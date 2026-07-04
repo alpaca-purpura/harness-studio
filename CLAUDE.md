@@ -1,27 +1,39 @@
-# Harness Studio — crear · observar · mejorar los arneses del talento asistido por IA
+# ArnesIA — la fábrica de arneses (crear · mapear · observar · mejorar)
 
-Producto standalone (graduado del monorepo `prenter-harness`, 2026-07-04). Norte =
-[`VISION.md`](./VISION.md) (**por forjar AQUÍ** — la visión mutó en la graduación; hasta
-firmarla, la herencia vigente manda) · registro = [`LEDGER.md`](./LEDGER.md) (fichas `HS-NN`,
-arranca en HS-01 — prefijo NUEVO, firmado en la graduación; la historia OBS-01..OBS-20 vive en
-la incubadora `prenter-harness/products/harness-studio/`, congelada).
+Producto standalone (graduado del monorepo `prenter-harness`, 2026-07-04; ex "Harness
+Studio" — renombre del repo pendiente, debate abierto). Norte = [`VISION.md`](./VISION.md)
+(**v3 FIRMADA**, ficha HS-02, 2026-07-04) · registro = [`LEDGER.md`](./LEDGER.md) (fichas
+`HS-NN`; la historia OBS-01..OBS-20 vive en la incubadora
+`prenter-harness/products/harness-studio/`, congelada).
 
-**Qué es (herencia vigente, sujeta a la visión nueva):** el producto que crea, observa y
-mejora los arneses del talento asistido por IA — la observación es el sensor de la mejora
-continua, no el producto entero. Vendible a empresas que gestionan su propia adopción de IA.
+**Qué es:** la fábrica de los arneses que alpacapurpura crea y vende por **rol × proceso**
+de compañía. El vendible es el ARNÉS con mejora continua; ArnesIA es el medio de
+producción. Solo arneses propios — nosotros seteamos el estándar. Constitución de 11
+principios en VISION.md (proceso implícito · base antes de acción · rol×proceso · aditivo
+sin pérdida · autodocumentación como efecto · guía sin bloqueo · agnóstico a rubro/tech ·
+estándar propio · telemetría de nacimiento · nada sin eval · economía de contexto medible).
+Ecosistema: ArnesIA es dueña única de observar y modificar; DevHub y apps de rol solo
+ejecutan; marketplace git elegible por proyecto.
 
-**Decisiones técnicas heredadas que siguen vigentes (hasta que la visión nueva las confirme o
-las mate):**
-- App local: binario Go (`studio`, :4200) + UI Next embebida (`go:embed`), Claude Code
-  headless por detrás — patrón conductor (I-76/OBS-16/OBS-18).
-- Flujo del creador: grill → spec → build headless → beta → evals-gate → promote, por el
-  release train del kit (KIT-06). La app OPERA las primitivas de P3, jamás las duplica.
-- Shell de lentes = visor ligero cero-dep (D2 cerrada, OBS-13); contrato L0 con `meta.clase`
-  (I-75); el producto hospeda solo `clase: arnes`.
+**Decisiones técnicas vigentes (HS-02):**
+- Binario Go único `arnesia`: `serve` (watcher + indexer JSONL + API HTTP/SSE + UI
+  embebida, :4200) · `open` · `index` · `publish`. Topología Syncthing/opencode.
+- UI: **Vite + React SPA** vía `go:embed` (Next muere) · Mapa: **React Flow 12** + layout
+  de carriles custom · **SQLite puro-Go** (modernc, WAL) como índice desechable; los JSONL
+  de `~/.claude` son la fuente de verdad; Langfuse = espejo opcional, jamás dependencia dura.
+- Mapa = lienzo único: banda Guardia (hooks) · carriles por fase del proceso · banda Base
+  (knowledge); capas Estructura/Tokens/Desempeño/Proceso; crear/editar = acciones sobre el
+  mapa.
+- Creación conversacional: Claude Code headless por detrás — patrón conductor
+  (I-76/OBS-16/OBS-18). Flujo: grill → spec → build headless → beta → evals-gate → promote
+  por el release train del kit (KIT-06). La app OPERA las primitivas de P3, jamás las
+  duplica. Contrato L0 `meta.clase` (I-75) — el grafo agnóstico es su evolución.
+- Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
+  v3 en watchlist.
 
-**Estado:** repo recién fundado — cero código; TODO vive aún en el monorepo (congelado: célula
-`products/harness-studio/` E instancia 0 `tooling/harness-studio/`) y entra por **port
-gradual**, pieza por pieza, gobernado por la visión que se firme aquí.
+**Estado:** gran plan fase 1 (Visión) ✓ · siguiente = **fase 2: UX del producto (HS-03)**.
+Cero código aún; port del monorepo gobernado por la regla de VISION.md — nada se porta sin
+pasar por la fase del gran plan que le corresponde.
 
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se
