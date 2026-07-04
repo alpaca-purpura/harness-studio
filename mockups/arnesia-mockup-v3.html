@@ -195,15 +195,28 @@
   body[data-capa="perf"] .node[data-gate]{border-color:var(--crit)}
   body[data-capa="perf"] .node[data-gate] .flag{display:block;color:var(--crit)}
   body[data-capa="proceso"] .lane-meta{display:flex}
-  body[data-capa="proceso"] .node{opacity:.55}
-  body[data-capa="proceso"] .node.exc{opacity:1;border-color:var(--warn)}
+  body[data-capa="proceso"] .node[data-type="know"],body[data-capa="proceso"] .node[data-type="mcp"],body[data-capa="proceso"] .node[data-type="rule"]{opacity:.35;filter:saturate(.4)}
+  body[data-capa="proceso"] .node.pexc{border-color:var(--warn)}
+  body[data-capa="proceso"] .node .sub.proc{display:block}
+  body[data-capa="proceso"] .flow{display:flex}
+  body[data-capa="perf"] .worst{display:flex}
+  .node .sub .ok{color:var(--ok)} .node .sub .warn{color:var(--warn)} .node .sub .crit{color:var(--crit)}
   .mchip{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:5px;background:var(--surface2);border:1px solid var(--line);color:var(--muted)}
   .mchip.warn{color:var(--warn);border-color:var(--warn)}
   .mchip.ok{color:var(--ok);border-color:var(--ok)}
-  .budget{display:none;position:relative;z-index:4;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:8px 12px;font-family:var(--mono);font-size:11px}
-  .budget .bar{flex:1;height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;display:flex}
+  .budget,.flow,.worst{display:none;position:relative;z-index:4;flex-direction:column;gap:7px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:8px 12px;font-family:var(--mono);font-size:11px}
+  .brow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .brow .rl{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex:none}
+  .brow .fine{font-size:10px;color:var(--muted)}
+  .budget .bar{flex:1;min-width:120px;height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;display:flex}
   .budget .seg-base{background:var(--accent);width:8.9%}
   .budget .seg-meta{background:var(--c-skill);width:.8%}
+  .pchip{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-radius:5px;padding:2px 8px;color:var(--text);white-space:nowrap}
+  button.pchip:hover{border-color:var(--accent);color:var(--accent)}
+  .pchip.warn{color:var(--warn);border-color:var(--warn)}
+  .pchip b{font-weight:650}
+  .fchain{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .fchain .arr{color:var(--muted);font-size:10px}
   .legend{flex:none;display:flex;gap:14px;align-items:center;padding:7px 20px;border-top:1px solid var(--line);background:var(--surface);font-size:11px;color:var(--muted);overflow-x:auto}
   .legend .k{display:flex;align-items:center;gap:5px;white-space:nowrap}
   button.k{padding:2px 7px;border-radius:6px;border:1px solid transparent}
@@ -464,10 +477,10 @@
   </div>
   <nav class="tabs" id="tabs" aria-label="Vistas del arnés"></nav>
   <nav class="views" aria-label="Capas del mapa" id="capas">
-    <button data-c="estructura">Estructura</button>
-    <button data-c="tokens">Tokens</button>
-    <button data-c="perf">Desempeño</button>
-    <button data-c="proceso">Proceso</button>
+    <button data-c="estructura" title="¿Qué hay y cómo se conecta? — tipos, canal, edges">Estructura</button>
+    <button data-c="tokens" title="¿En qué se van los tokens? — carga, consumo 30d, presupuesto de contexto">Tokens</button>
+    <button data-c="perf" title="¿Qué funciona, qué falla, qué sobra? — invocaciones, éxito, p95, sin uso">Desempeño</button>
+    <button data-c="proceso" title="¿Fluye el proceso declarado? — corridas por fase, saltos, excepciones, cumplimiento">Proceso</button>
   </nav>
   <button class="gear" id="gear" title="Ajustes · Marketplaces" aria-label="Ajustes y marketplaces">⚙</button>
 </header>
@@ -496,6 +509,8 @@
           </section>
           <div class="lanes" id="lanes"></div>
           <div class="budget" id="budget"></div>
+          <div class="worst" id="worst"></div>
+          <div class="flow" id="flow"></div>
           <section class="band" id="band-base" aria-label="Base de conocimiento">
             <div class="band-label" id="base-label"></div>
             <div class="band-row" id="row-base"></div>
@@ -511,7 +526,7 @@
         <button class="k" data-tf="rule" title="filtrar: solo reglas"><span class="sw" style="background:var(--c-rule);clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)"></span>regla</button>
         <span class="k"><span class="sw" style="background:var(--ok);border-radius:99px"></span>estable</span>
         <span class="k"><span class="sw" style="background:var(--warn);border-radius:99px"></span>beta</span>
-        <span class="note">clic en un tipo = filtrar · flecha = quién invoca a quién · punteado = propuesto / sin uso</span>
+        <span class="note" id="cap-note">clic en un tipo = filtrar · flecha = quién invoca a quién · punteado = propuesto / sin uso</span>
       </div>
     </div>
     <aside id="rail"><div class="insp" id="insp"></div></aside>
@@ -558,12 +573,12 @@
 </div>
 
 <div class="review">
-  <div><b>Evaluar (v3):</b></div>
-  <div>1 · ¿5 señales + semáforo por umbral comunican salud?</div>
-  <div>2 · ¿Corridas: conversación / árbol / waterfall bastan?</div>
-  <div>3 · ¿Contenido: editar → diff → beta → tren se siente natural?</div>
-  <div>4 · ¿Dock con sesión CC (modelo·tokens·contexto) suficiente?</div>
-  <div>5 · ¿Importar arnés y marketplaces: flujos correctos?</div>
+  <div><b>Evaluar (v3.3):</b></div>
+  <div>1 · ¿Capa Tokens responde «en qué se van» (carga·30d·heat·Pareto)?</div>
+  <div>2 · ¿Desempeño con éxito+p95+peores+sin-uso basta?</div>
+  <div>3 · ¿Proceso como flujo+saltos+conformidad ya se distingue de Diagnóstico?</div>
+  <div>4 · ¿La atribución solapada (Σ≠total) se entiende y es honesta?</div>
+  <div>5 · ¿La corrida r3 (salto de fase, guía sin bloqueo) cuenta bien la historia?</div>
 </div>
 
 <script>
@@ -586,30 +601,30 @@ const DEV_LANES=[
   {id:"desp",n:"Despliegue",runs:"11 corridas",exc:0,cum:"100%"}
 ];
 const DEV_N={
- "h-guardian":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — inyecta la fase activa del proceso y el estado del ledger en cada prompt.",inv:412,ex:100,tc:180,ti:180,f:[]},
- "h-bitacora":{t:"hook",l:"guardia",nm:"bitacora-continua",ver:"1.4.1",c:"estable",d:"Stop — registra avance de la conversación en el ledger del proyecto. Nada se pierde entre sesiones.",inv:389,ex:99,tc:120,ti:120,f:[]},
- "h-excepciones":{t:"hook",l:"guardia",nm:"registro-excepciones",ver:"0.9.0",c:"beta",d:"PostToolUse — detecta saltos de fase, advierte, mitiga llenando vacíos y registra la excepción.",inv:34,ex:94,tc:150,ti:150,f:[{s:"warn",o:"runtime",capa:"proceso",x:"6% de excepciones no clasificadas — afinar detección de salto UX→Desarrollo."}]},
- "h-autodoc":{t:"hook",l:"guardia",nm:"autodoc-commit",ver:"1.1.0",c:"estable",d:"PostToolUse(git) — tras cada commit actualiza capabilities-map y specs as code. Autodocumentación como efecto.",inv:203,ex:98,tc:140,ti:140,f:[]},
- "s-captar":{t:"skill",l:"req",nm:"captar-requerimiento",ver:"2.0.0",c:"estable",d:"Entrevista al solicitante, estructura el requerimiento y lo registra en el tracker.",inv:41,ex:95,tc:80,ti:1900,f:[]},
- "s-priorizar":{t:"skill",l:"req",nm:"priorizar-backlog",ver:"1.3.0",c:"estable",d:"Ordena backlog por valor/esfuerzo contra la visión de producto.",inv:12,ex:100,tc:70,ti:1200,f:[]},
- "a-analista":{t:"agent",l:"req",nm:"analista-contexto",ver:"1.1.0",c:"estable",d:"Subagente: explora la base y el código para contextualizar un requerimiento sin ensuciar el contexto principal.",inv:38,ex:92,tc:90,ti:6400,f:[]},
- "m-tracker":{t:"mcp",l:"req",nm:"mcp-tracker",ver:"0.8.2",c:"beta",d:"MCP — conexión al tracker (Linear/Jira). Lectura y alta de issues.",inv:63,ex:97,tc:450,ti:300,f:[{s:"info",o:"estático",capa:"tokens",x:"12 tools expuestas, solo 4 usadas — recortar superficie ahorraría 310 tokens de carga."}]},
- "s-refinar":{t:"skill",l:"specs",nm:"refinar-spec",ver:"1.6.0",c:"estable",d:"Convierte requerimiento en spec as code con criterios de aceptación verificables.",inv:29,ex:93,tc:85,ti:2300,f:[]},
- "s-ux":{t:"skill",l:"specs",nm:"disenar-ux",ver:"1.0.1",c:"estable",d:"Flujos y wireframes as code a partir de la spec; alimenta el diseño técnico.",inv:17,ex:88,tc:90,ti:2800,f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 excepción registrada: fase saltada en corrida #6 — spec pasó directo a desarrollo."}]},
- "a-specwriter":{t:"agent",l:"specs",nm:"spec-writer",ver:"1.2.0",c:"estable",d:"Subagente redactor: produce la spec final y la versiona junto al código.",inv:27,ex:96,tc:85,ti:5100,f:[]},
- "s-arquitectura":{t:"skill",l:"arq",nm:"disenar-arquitectura",ver:"2.1.0",c:"estable",d:"Propone/actualiza la arquitectura as code; toda decisión queda como ADR en decisiones.",inv:14,ex:100,tc:95,ti:3600,f:[]},
- "s-distec":{t:"skill",l:"arq",nm:"diseno-tecnico",ver:"1.5.0",c:"estable",d:"Baja la arquitectura a diseño técnico por feature: contratos, módulos, riesgos.",inv:22,ex:95,tc:80,ti:2100,f:[]},
- "a-arquitecto":{t:"agent",l:"arq",nm:"arquitecto",ver:"1.3.0",c:"estable",d:"Subagente: evalúa trade-offs contra el stack y las decisiones previas antes de proponer.",inv:19,ex:94,tc:95,ti:7200,f:[]},
- "s-implementar":{t:"skill",l:"dev",nm:"implementar-feature",ver:"3.2.0",c:"estable",d:"Implementa una feature desde su spec: plan, código, pruebas y actualización de capabilities. Paso aditivo: retoma exactamente donde quedó la conversación anterior.",inv:87,ex:91,tc:110,ti:4800,f:[{s:"info",o:"runtime",capa:"tokens",x:"Mayor consumidor de tokens del arnés (418k/30d) — candidata a subagente para exploración."}]},
+ "h-guardian":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — inyecta la fase activa del proceso y el estado del ledger en cada prompt.",inv:412,ex:100,tc:180,ti:180,p95:"0.3s",proc:"412 inyecciones de fase 30d",f:[]},
+ "h-bitacora":{t:"hook",l:"guardia",nm:"bitacora-continua",ver:"1.4.1",c:"estable",d:"Stop — registra avance de la conversación en el ledger del proyecto. Nada se pierde entre sesiones.",inv:389,ex:99,tc:120,ti:120,p95:"0.5s",proc:"389 registros al ledger 30d",f:[]},
+ "h-excepciones":{t:"hook",l:"guardia",nm:"registro-excepciones",ver:"0.9.0",c:"beta",d:"PostToolUse — detecta saltos de fase, advierte, mitiga llenando vacíos y registra la excepción.",inv:34,ex:94,tc:150,ti:150,p95:"0.4s",proc:"6 excepciones registradas 30d · 1 sin clasificar",f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 de las 6 excepciones del período quedó sin clasificar — afinar detección de salto Specs⇢Desarrollo."}]},
+ "h-autodoc":{t:"hook",l:"guardia",nm:"autodoc-commit",ver:"1.1.0",c:"estable",d:"PostToolUse(git) — tras cada commit actualiza capabilities-map y specs as code. Autodocumentación como efecto.",inv:203,ex:98,tc:140,ti:140,p95:"1.2s",proc:"203 actualizaciones de docs 30d",f:[]},
+ "s-captar":{t:"skill",l:"req",nm:"captar-requerimiento",ver:"2.0.0",c:"estable",d:"Entrevista al solicitante, estructura el requerimiento y lo registra en el tracker.",inv:41,ex:95,tc:80,ti:1900,p95:"4.8m",f:[]},
+ "s-priorizar":{t:"skill",l:"req",nm:"priorizar-backlog",ver:"1.3.0",c:"estable",d:"Ordena backlog por valor/esfuerzo contra la visión de producto.",inv:12,ex:100,tc:70,ti:1200,p95:"2.1m",f:[]},
+ "a-analista":{t:"agent",l:"req",nm:"analista-contexto",ver:"1.1.0",c:"estable",d:"Subagente: explora la base y el código para contextualizar un requerimiento sin ensuciar el contexto principal.",inv:38,ex:92,tc:90,ti:6400,p95:"1.9m",f:[]},
+ "m-tracker":{t:"mcp",l:"req",nm:"mcp-tracker",ver:"0.8.2",c:"beta",d:"MCP — conexión al tracker (Linear/Jira). Lectura y alta de issues.",inv:63,ex:97,tc:450,ti:300,p95:"0.9s",f:[{s:"info",o:"estático",capa:"tokens",x:"12 tools expuestas, solo 4 usadas — recortar superficie ahorraría 310 tokens de carga."}]},
+ "s-refinar":{t:"skill",l:"specs",nm:"refinar-spec",ver:"1.6.0",c:"estable",d:"Convierte requerimiento en spec as code con criterios de aceptación verificables.",inv:29,ex:93,tc:85,ti:2300,p95:"5.2m",f:[]},
+ "s-ux":{t:"skill",l:"specs",nm:"disenar-ux",ver:"1.0.1",c:"estable",d:"Flujos y wireframes as code a partir de la spec; alimenta el diseño técnico.",inv:17,ex:88,tc:90,ti:2800,p95:"6.0m",exc:1,f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 excepción registrada: salto Specs ⇢ Desarrollo (corrida del 1-jul) — spec pasó directo a desarrollo."}]},
+ "a-specwriter":{t:"agent",l:"specs",nm:"spec-writer",ver:"1.2.0",c:"estable",d:"Subagente redactor: produce la spec final y la versiona junto al código.",inv:27,ex:96,tc:85,ti:5100,p95:"2.6m",f:[]},
+ "s-arquitectura":{t:"skill",l:"arq",nm:"disenar-arquitectura",ver:"2.1.0",c:"estable",d:"Propone/actualiza la arquitectura as code; toda decisión queda como ADR en decisiones.",inv:14,ex:100,tc:95,ti:3600,p95:"5.5m",f:[]},
+ "s-distec":{t:"skill",l:"arq",nm:"diseno-tecnico",ver:"1.5.0",c:"estable",d:"Baja la arquitectura a diseño técnico por feature: contratos, módulos, riesgos.",inv:22,ex:95,tc:80,ti:2100,p95:"3.9m",f:[]},
+ "a-arquitecto":{t:"agent",l:"arq",nm:"arquitecto",ver:"1.3.0",c:"estable",d:"Subagente: evalúa trade-offs contra el stack y las decisiones previas antes de proponer.",inv:19,ex:94,tc:95,ti:7200,p95:"3.1m",f:[]},
+ "s-implementar":{t:"skill",l:"dev",nm:"implementar-feature",ver:"3.2.0",c:"estable",d:"Implementa una feature desde su spec: plan, código, pruebas y actualización de capabilities. Paso aditivo: retoma exactamente donde quedó la conversación anterior.",inv:87,ex:91,tc:110,ti:4800,p95:"9.1m",exc:2,f:[{s:"info",o:"runtime",capa:"tokens",x:"Mayor consumidor de la ventana principal (418k/30d; su subagente constructor suma 725k en ventana propia) — candidata a delegar más exploración."}]},
  "s-quirurgica":{t:"skill",l:"dev",nm:"actualizacion-quirurgica",ver:"1.0.0",c:"beta",d:"Cambios mínimos post-despliegue sin abrir ciclo completo.",inv:0,ex:0,tc:75,ti:0,dead:1,f:[{s:"warn",o:"runtime",capa:"perf",x:"Nunca invocada en 30 días — ¿fusionar con implementar-feature o falta trigger en la descripción?"}]},
- "a-constructor":{t:"agent",l:"dev",nm:"constructor",ver:"2.0.0",c:"estable",d:"Subagente de implementación en worktree aislado; devuelve diff + resumen.",inv:74,ex:89,tc:100,ti:9800,f:[]},
- "s-tests":{t:"skill",l:"cal",nm:"ejecutar-tests",ver:"1.8.0",c:"estable",d:"Corre suites, interpreta fallos y decide si el ciclo avanza.",inv:81,ex:87,tc:80,ti:1600,f:[]},
- "s-auditoria":{t:"skill",l:"cal",nm:"auditoria-tecnica",ver:"1.2.0",c:"estable",d:"Auditoría de seguridad, deuda y cumplimiento de la arquitectura antes de UAT.",inv:17,ex:82,tc:90,ti:3900,f:[{s:"crit",o:"runtime",capa:"perf",x:"18% de fallo — el paso 3 (chequeo de migraciones) rompe en monorepos. 3 excepciones registradas."}]},
- "a-auditor":{t:"agent",l:"cal",nm:"auditor",ver:"1.1.0",c:"estable",d:"Subagente adversarial: intenta refutar que la feature cumple la spec.",inv:16,ex:94,tc:90,ti:6900,f:[]},
- "s-uat":{t:"skill",l:"desp",nm:"desplegar-uat",ver:"1.4.0",c:"estable",d:"Despliegue a UAT vía mcp-cloud con verificación post-deploy.",inv:11,ex:100,tc:85,ti:1400,f:[]},
- "s-prod":{t:"skill",l:"desp",nm:"desplegar-produccion",ver:"1.4.0",c:"estable",d:"Pase a producción con gate de evals y registro en el ledger.",inv:7,ex:100,tc:85,ti:1500,f:[]},
- "s-rollback":{t:"skill",l:"desp",nm:"rollback-quirurgico",ver:"1.0.0",c:"estable",d:"Reversión inmediata con causa registrada como excepción del proceso.",inv:1,ex:100,tc:70,ti:900,f:[]},
- "m-cloud":{t:"mcp",l:"desp",nm:"mcp-cloud",ver:"1.2.0",c:"estable",d:"MCP — operaciones sobre el cloud de la compañía (deploy, logs, estado).",inv:19,ex:96,tc:520,ti:400,f:[]},
+ "a-constructor":{t:"agent",l:"dev",nm:"constructor",ver:"2.0.0",c:"estable",d:"Subagente de implementación en worktree aislado; devuelve diff + resumen.",inv:74,ex:89,tc:100,ti:9800,p95:"8.7m",f:[]},
+ "s-tests":{t:"skill",l:"cal",nm:"ejecutar-tests",ver:"1.8.0",c:"estable",d:"Corre suites, interpreta fallos y decide si el ciclo avanza.",inv:81,ex:87,tc:80,ti:1600,p95:"3.2m",f:[]},
+ "s-auditoria":{t:"skill",l:"cal",nm:"auditoria-tecnica",ver:"1.2.0",c:"estable",d:"Auditoría de seguridad, deuda y cumplimiento de la arquitectura antes de UAT.",inv:17,ex:82,tc:90,ti:3900,p95:"4.6m",exc:3,f:[{s:"crit",o:"runtime",capa:"perf",x:"18% de fallo — el paso 3 (chequeo de migraciones) rompe en monorepos. 3 excepciones registradas."}]},
+ "a-auditor":{t:"agent",l:"cal",nm:"auditor",ver:"1.1.0",c:"estable",d:"Subagente adversarial: intenta refutar que la feature cumple la spec.",inv:16,ex:94,tc:90,ti:6900,p95:"2.8m",f:[]},
+ "s-uat":{t:"skill",l:"desp",nm:"desplegar-uat",ver:"1.4.0",c:"estable",d:"Despliegue a UAT vía mcp-cloud con verificación post-deploy.",inv:11,ex:100,tc:85,ti:1400,p95:"2.4m",f:[]},
+ "s-prod":{t:"skill",l:"desp",nm:"desplegar-produccion",ver:"1.4.0",c:"estable",d:"Pase a producción con gate de evals y registro en el ledger.",inv:7,ex:100,tc:85,ti:1500,p95:"2.9m",f:[]},
+ "s-rollback":{t:"skill",l:"desp",nm:"rollback-quirurgico",ver:"1.0.0",c:"estable",d:"Reversión inmediata con causa registrada como excepción del proceso.",inv:1,ex:100,tc:70,ti:900,p95:"1.1m",f:[]},
+ "m-cloud":{t:"mcp",l:"desp",nm:"mcp-cloud",ver:"1.2.0",c:"estable",d:"MCP — operaciones sobre el cloud de la compañía (deploy, logs, estado).",inv:19,ex:96,tc:520,ti:400,p95:"2.2s",f:[]},
  "r-claude":{t:"rule",l:"base",nm:"CLAUDE.md (reglas)",ver:"—",c:"estable",d:"Reglas del proyecto SIEMPRE en contexto: convenciones, límites, qué jamás hacer. No se invocan — condicionan cada turno de cada sesión.",inv:0,ex:0,tc:2900,ti:0,heat:2,alw:1,f:[]},
  "r-standards":{t:"rule",l:"base",nm:"standards-codigo",ver:"—",c:"estable",d:"Estándar de código y estilo de la compañía. Regla: siempre cargada, guía sin bloqueo.",inv:0,ex:0,tc:1100,ti:0,heat:1,alw:1,f:[]},
  "k-arquitectura":{t:"know",l:"base",nm:"arquitectura-as-code",ver:"—",c:"estable",d:"La arquitectura vigente del sistema, versionada. Toda skill de diseño la lee; autodoc-commit la mantiene.",inv:141,ex:100,tc:4200,ti:0,heat:3,f:[]},
@@ -636,13 +651,13 @@ const PM_LANES=[
   {id:"prio",n:"Priorización",runs:"4 corridas",exc:0,cum:"100%"}
 ];
 const PM_N={
- "h-guard":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — fase activa + ledger en cada prompt.",inv:120,ex:100,tc:180,ti:180,f:[]},
- "h-bit":{t:"hook",l:"guardia",nm:"bitacora-continua",ver:"1.4.1",c:"estable",d:"Stop — avance al ledger del proyecto.",inv:112,ex:99,tc:120,ti:120,f:[]},
- "s-hip":{t:"skill",l:"desc",nm:"formular-hipotesis",ver:"1.1.0",c:"estable",d:"Estructura hipótesis de problema/solución contra la visión.",inv:9,ex:100,tc:75,ti:1500,f:[]},
- "s-guion":{t:"skill",l:"ent",nm:"guion-entrevista",ver:"1.0.0",c:"estable",d:"Prepara guion no-sesgado por segmento.",inv:14,ex:93,tc:80,ti:1700,f:[]},
- "s-notas":{t:"skill",l:"ent",nm:"sintetizar-notas",ver:"1.2.0",c:"estable",d:"Notas de entrevista → evidencia etiquetada.",inv:18,ex:94,tc:85,ti:2400,f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 excepción: entrevista sin consentimiento registrado en corrida #4."}]},
- "a-sint":{t:"agent",l:"sin",nm:"sintetizador",ver:"1.0.0",c:"estable",d:"Subagente: clusteriza evidencia y propone insights.",inv:11,ex:91,tc:95,ti:5200,f:[]},
- "s-oport":{t:"skill",l:"prio",nm:"arbol-oportunidades",ver:"0.9.0",c:"beta",d:"Opportunity solution tree desde insights.",inv:6,ex:83,tc:90,ti:2900,f:[]},
+ "h-guard":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — fase activa + ledger en cada prompt.",inv:120,ex:100,tc:180,ti:180,p95:"0.3s",proc:"120 inyecciones de fase 30d",f:[]},
+ "h-bit":{t:"hook",l:"guardia",nm:"bitacora-continua",ver:"1.4.1",c:"estable",d:"Stop — avance al ledger del proyecto.",inv:112,ex:99,tc:120,ti:120,p95:"0.4s",proc:"112 registros al ledger 30d",f:[]},
+ "s-hip":{t:"skill",l:"desc",nm:"formular-hipotesis",ver:"1.1.0",c:"estable",d:"Estructura hipótesis de problema/solución contra la visión.",inv:9,ex:100,tc:75,ti:1500,p95:"2.2m",f:[]},
+ "s-guion":{t:"skill",l:"ent",nm:"guion-entrevista",ver:"1.0.0",c:"estable",d:"Prepara guion no-sesgado por segmento.",inv:14,ex:93,tc:80,ti:1700,p95:"2.7m",f:[]},
+ "s-notas":{t:"skill",l:"ent",nm:"sintetizar-notas",ver:"1.2.0",c:"estable",d:"Notas de entrevista → evidencia etiquetada.",inv:18,ex:94,tc:85,ti:2400,p95:"3.4m",exc:1,f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 excepción de protocolo: entrevista sin consentimiento registrado (corrida del 28-jun)."}]},
+ "a-sint":{t:"agent",l:"sin",nm:"sintetizador",ver:"1.0.0",c:"estable",d:"Subagente: clusteriza evidencia y propone insights.",inv:11,ex:91,tc:95,ti:5200,p95:"4.8m",f:[]},
+ "s-oport":{t:"skill",l:"prio",nm:"arbol-oportunidades",ver:"0.9.0",c:"beta",d:"Opportunity solution tree desde insights.",inv:6,ex:83,tc:90,ti:2900,p95:"5.1m",f:[]},
  "r-cl2":{t:"rule",l:"base",nm:"CLAUDE.md (reglas)",ver:"—",c:"estable",d:"Reglas del proyecto siempre en contexto.",inv:0,ex:0,tc:1200,ti:0,heat:1,alw:1,f:[]},
  "k-vision2":{t:"know",l:"base",nm:"vision-producto",ver:"—",c:"estable",d:"Norte del producto del cliente.",inv:22,ex:100,tc:1600,ti:0,heat:2,f:[]},
  "k-seg":{t:"know",l:"base",nm:"segmentos-clientes",ver:"—",c:"estable",d:"Segmentos y JTBD conocidos.",inv:17,ex:100,tc:1300,ti:0,heat:1,f:[]}
@@ -709,6 +724,21 @@ const RUNS={
     {t:"err",lb:"Paso 3 FALLA",txt:"workspace de monorepo no soportado — la traza que alimenta el hallazgo crítico del inspector",s:69,d:5,cx:36,ad:"+0.1k · stacktrace"},
     {t:"hook",lb:"registro-excepciones",comp:"h-excepciones",txt:"PostToolUse → excepción clasificada: fallo-de-skill · registrada",tok:"150 tok",s:74,d:2,cx:36.2,ad:"+0.2k · excepción clasificada y registrada"},
     {t:"asst",lb:"Respuesta",txt:"Auditoría incompleta: el paso 3 falló en monorepo. Excepción registrada; hallazgo abierto en Diagnóstico.",tok:"out 800",s:180,d:41,cx:36.9,ad:"+0.7k · respuesta"}
+   ]},
+  {id:"r3",sid:"b2e8f4a7",f:"1 jul 09:40",disp:"implementar-feature",comp:"s-implementar",fase:"Desarrollo",modelo:"claude-sonnet-5",turnos:9,tokIn:"51.3k",tokOut:"5.8k",cache:"860k",costo:"$0.52",ctx:33,dur:"8m 52s",okk:true,exc:1,total:532,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"Implementa HU-238: filtros por fecha en reportes — la spec la afinamos luego",s:0,d:2,cx:19.5,ad:"arranque: base del arnés + reglas (19.4k) + prompt"},
+    {t:"hook",lb:"guardian-proceso",comp:"h-guardian",txt:"UserPromptSubmit → fase del ledger: Specs & UX — HU-238 SIN spec congelada",tok:"180 tok",s:2,d:1,cx:19.7,ad:"+180 · fase activa + estado del ledger"},
+    {t:"skill",lb:"implementar-feature",comp:"s-implementar",txt:"skill_activated · trigger: user-slash (/implementar)",tok:"110 tok carga",s:3,d:1,cx:19.8,ad:"+110 · metadata de la skill"},
+    {t:"llm",lb:"claude-sonnet-5",txt:"Advierte: spec HU-238 en borrador — guía sin bloqueo (principio 6): propone continuar y registrar la excepción",tok:"in 9.8k · out 1.1k",s:4,d:8,cx:30.7,ad:"+10.9k · SKILL.md + borrador de spec"},
+    {t:"hook",lb:"registro-excepciones",comp:"h-excepciones",txt:"PostToolUse → excepción: salto-de-fase Specs ⇢ Desarrollo (Arquitectura saltada) · registrada en el ledger",tok:"150 tok",s:12,d:2,cx:30.9,ad:"+0.2k · excepción clasificada"},
+    {t:"agent",lb:"constructor",comp:"a-constructor",txt:"subagente en worktree — implementación con spec provisional",tok:"7.1k tok",s:14,d:420,cx:32.8,ad:"+1.9k · solo diff+resumen vuelven — el subagente gasta en SU ventana",kids:[
+      {t:"llm",lb:"claude-sonnet-5",txt:"implementación de filtros por fecha",tok:"in 24k · out 3.1k",s:15,d:230,own:1},
+      {t:"tool",lb:"Edit ×3",txt:"api/reports.go · DateFilter.tsx · reports_test.go",s:250,d:184,own:1}
+    ]},
+    {t:"tool",lb:"Bash",txt:"go test ./… → 38 pass",s:440,d:60,cx:64.2,ad:"+31.4k · logs de tests — pico de la sesión (32%)"},
+    {t:"asst",lb:"Respuesta",txt:"HU-238 lista con spec provisional. Excepción de salto registrada — refinar-spec queda pendiente en el ledger.",tok:"out 1.4k",s:505,d:24,cx:65.6,ad:"+1.4k · respuesta"},
+    {t:"hook",lb:"bitacora-continua",comp:"h-bitacora",txt:"Stop → avance + excepción al ledger del proyecto",tok:"120 tok",s:530,d:2,cx:65.7,ad:"+0.1k · avance al ledger"}
    ]}
  ],
  "pm-discovery":[
@@ -769,9 +799,11 @@ const ARNESES={
  "dev-fullcycle":{
    nm:"arnes-dev-fullcycle",canal:"estable",ver:"1.3.0",rol:"Developer full-cycle",proc:"SDLC completo",
    lanes:DEV_LANES,N:DEV_N,E:DEV_EDGES,telem:true,
-   runs30:68,rpd:"2.3",exito:91,p95:"9.4m",comp:29,tok30:1940000,costo30:"$29",eval:{v:"12/14",s:"warn"},
+   runs30:68,rpd:"2.3",exito:91,p95:"9.4m",comp:29,tok30:2600000,costo30:"$38",eval:{v:"12/14",s:"warn"},
    proyectos:["cliente-acme/webapp","alpacapurpura/devhub"],spark:[88,90,86,92,89,93,90,91],sparkR:[2,3,1,4,2,3,2,3],
    budget:{txt:"carga inicial <b>19.4k</b> / 200k tokens",note:"base 17.8k · metadatos skills 1.6k · <b>9.7%</b> de la ventana"},
+   pareto:[{id:"a-constructor",v:"725.2k",nota:"ventana propia"},{id:"k-arquitectura",v:"592.2k",nota:"leída 141×"},{id:"s-implementar",v:"417.6k",nota:"ventana principal"}],
+   flujo:{saltos:[{lb:"Specs ⇢ Desarrollo ×1 — spec sin congelar, Arquitectura saltada",run:"r3"}],tipos:"salto de fase ×1 · fallo de skill ×3 · orden interno ×2"},
    tren:{
      beta:[
        {comp:"auditoria-tecnica",tc:"skill",from:"1.2.0",to:"1.2.1-beta.0",st:"run",txt:"eval-gate corriendo · 6/14 evals",pct:43,org:"Nacida hoy del hallazgo crítico (18% fallo paso 3) vía dock fábrica."},
@@ -797,6 +829,8 @@ const ARNESES={
    runs30:24,rpd:"0.8",exito:94,p95:"6.1m",comp:9,tok30:410000,costo30:"$6",eval:{v:"12/12",s:"ok"},
    proyectos:["cliente-acme/producto"],spark:[91,93,95,90,96,94,92,94],sparkR:[1,1,0,2,1,1,1,1],
    budget:{txt:"carga inicial <b>7.1k</b> / 200k tokens",note:"base 5.9k · metadatos 1.2k · <b>3.6%</b> de la ventana"},
+   pareto:[{id:"a-sint",v:"57.2k",nota:"ventana propia"},{id:"s-notas",v:"43.2k",nota:"ventana principal"},{id:"k-vision2",v:"35.2k",nota:"leída 22×"}],
+   flujo:{saltos:[],tipos:"protocolo ×1 (consentimiento sin registrar)"},
    tren:{beta:[{comp:"arbol-oportunidades",tc:"skill",from:"0.9.0",to:"1.0.0-beta.2",st:"run",txt:"eval-gate corriendo · 9/12 evals",pct:75,org:"Candidata a estable tras 3 semanas de canary."}],listo:[],pub:[]},
    hist:[
      {v:"v0.9.0",f:"2026-06-10",add:2,mod:1,del:0,hito:"Nace <code>arbol-oportunidades</code> (beta) — cierre del loop discovery→priorización.",cur:1},
@@ -890,7 +924,7 @@ function renderPortafolio(){
     <div class="kpi"><div class="v">${PF_ORDER.length}</div><div class="l">arneses</div></div>
     <div class="kpi"><div class="v">${runs}</div><div class="l">corridas 30d</div></div>
     <div class="kpi"><div class="v">${fmtM(tok)}</div><div class="l">tokens 30d</div></div>
-    <div class="kpi"><div class="v">$35</div><div class="l">costo 30d</div></div>
+    <div class="kpi"><div class="v">$44</div><div class="l">costo 30d</div></div>
     <div class="kpi"><div class="v ${nH?"warn":""}">${nH}</div><div class="l">hallazgos abiertos</div></div>
     <div class="kpi"><div class="v">${beta}</div><div class="l">candidatos en el tren</div></div>`;
   const g=$("pf-grid");g.innerHTML="";
@@ -969,20 +1003,25 @@ $("mk-addbtn").addEventListener("click",()=>{
 });
 
 /* ══════════ S2 mapa ══════════ */
+/* contrato de datos por capa (iteración 6): consumo 30d = misma fórmula en mapa e inspector */
+function consumoDe(A,n){if(!A.telem)return 0;return n.alw?A.runs30*n.tc:n.inv*(n.ti||n.tc)}
+function heatDe(A,n){const c=consumoDe(A,n);return A.telem?(c>=400000?4:c>=200000?3:c>=75000?2:c>=20000?1:0):(n.heat||0)}
 function nodeEl(id,A){
   const n=A.N[id];
   const b=document.createElement("button");
-  b.className="node"+(n.prop?" proposed":"")+(n.f.some(x=>x.s!=="info")?" exc":"");
+  b.className="node"+(n.prop?" proposed":"")+(n.exc?" pexc":"");
   b.id="n-"+id;b.dataset.type=n.t;b.title=n.nm+" — "+TYPN[n.t];
-  if(n.heat)b.dataset.heat=n.heat;
-  if(n.tc>=300&&!n.heat)b.dataset.heat=1;
+  const c30=consumoDe(A,n);
+  const heat=heatDe(A,n);
+  if(heat)b.dataset.heat=heat;
   if(n.dead)b.dataset.dead=1;
   const gateBeta=A.tren&&A.tren.beta.some(c=>c.st==="fail"&&c.comp===n.nm);
   if(gateBeta)b.dataset.gate=1;
   b.innerHTML=`<span class="top"><span class="glyph">${GLY[n.t]}</span><span class="nm">${n.nm}</span><span class="rel${n.c==="beta"?" beta":""}"></span></span>
   <span class="sub typ">${TYPN[n.t]}</span>
-  <span class="sub tok">${A.telem||n.tc?`${n.tc} carga${n.ti?` · ${fmt(n.ti)} al invocar`:""}`:"— sin medir"}</span>
-  <span class="sub perf">${n.alw?"siempre en contexto":A.telem?`${n.inv}× 30d${n.inv?` · ${n.ex}% éxito`:""}`:"— sin corridas"}</span>
+  <span class="sub tok">${n.tc?`carga ${fmt(n.tc)}${A.telem?` · 30d ${c30?fmtM(c30):"0"}`:" · sin corridas"}`:"— sin medir"}</span>
+  <span class="sub perf">${n.alw?"siempre en contexto":A.telem?`${n.inv}× 30d${n.inv?` · <span class="${n.ex>=90?"ok":n.ex>=85?"warn":"crit"}">${n.ex}%</span>${n.p95?` · p95 ${n.p95}`:""}`:""}`:"— sin corridas"}</span>
+  <span class="sub proc">${n.proc?n.proc:n.exc?`<span class="warn">⚠ ${n.exc} excepci${n.exc===1?"ón":"ones"} 30d</span>`:(n.t==="know"||n.t==="rule"||n.t==="mcp")?"—":A.telem&&n.inv?"sin excepciones 30d":"—"}</span>
   <span class="flag">${gateBeta?"gate falló":"sin uso 30d"}</span>`;
   b.addEventListener("click",()=>select(id,true));
   return b;
@@ -1016,12 +1055,13 @@ function renderMapa(A){
   A.lanes.forEach((L,i)=>{
     const ids=Object.keys(A.N).filter(k=>A.N[k].l===L.id);
     const sum=ids.reduce((a,k)=>a+A.N[k].tc,0);
+    const sum30=ids.reduce((a,k)=>a+consumoDe(A,A.N[k]),0);
     const el=document.createElement("section");
     el.className="lane"+(L.ghost?" ghost":"");
     el.innerHTML=`<div class="lane-hd"><span class="idx">FASE ${i+1}</span><h2>${L.n}</h2>
       <button class="lane-add" title="Crear componente en ${L.n}" aria-label="Crear componente en ${L.n}">+</button>
       <div class="lane-meta"><span class="mchip ${L.exc?"warn":"ok"}">${L.runs}</span><span class="mchip ${L.exc?"warn":"ok"}">${L.exc} exc</span><span class="mchip">cumpl. ${L.cum}</span></div></div>
-    <div class="lane-body" id="lb-${L.id}"></div><div class="lane-sum">Σ carga ${fmt(sum)} tok</div>`;
+    <div class="lane-body" id="lb-${L.id}"></div><div class="lane-sum">Σ carga ${fmt(sum)} tok${sum30?` · Σ 30d ${fmtM(sum30)}`:""}</div>`;
     lanesEl.appendChild(el);
     el.querySelector(".lane-add").addEventListener("click",()=>openDock("crear-comp",L.n));
     const body=el.querySelector(".lane-body");
@@ -1039,7 +1079,33 @@ function renderMapa(A){
   Object.keys(A.N).filter(k=>A.N[k].l==="base").forEach(id=>rb.appendChild(nodeEl(id,A)));
   const cta=$("cta-base");if(cta)cta.addEventListener("click",()=>openDock("captura",null));
   const bg=$("budget");
-  bg.innerHTML=A.budget?`<span>${A.budget.txt}</span><div class="bar"><span class="seg-base"></span><span class="seg-meta"></span></div><span>${A.budget.note}</span>`:"";
+  bg.innerHTML=A.budget?`<div class="brow"><span>${A.budget.txt}</span><div class="bar"><span class="seg-base"></span><span class="seg-meta"></span></div><span>${A.budget.note}</span></div>${A.pareto?`<div class="brow"><span class="rl">top consumo 30d</span>${A.pareto.map(p=>`<button class="pchip" data-sel="${p.id}"><b>${A.N[p.id].nm}</b> ${p.v}${p.nota?` · ${p.nota}`:""}</button>`).join("")}<span class="fine">la atribución se solapa: knowledge y reglas cuentan dentro de quien las carga — Σ ≠ total facturado</span></div>`:""}`:"";
+  bg.style.display=A.budget?"":"none";
+  bg.querySelectorAll("[data-sel]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.sel,true)));
+  const wo=$("worst");
+  if(A.telem){
+    const worst=Object.keys(A.N).map(k=>({id:k,n:A.N[k]})).filter(x=>!x.n.alw&&x.n.inv>0&&x.n.ex<90).sort((a,b)=>a.n.ex-b.n.ex).slice(0,3);
+    const dead=Object.keys(A.N).filter(k=>A.N[k].dead);
+    wo.innerHTML=`<div class="brow"><span class="rl">peor éxito 30d</span>${worst.length?worst.map(x=>`<button class="pchip" data-sel="${x.id}"><b>${x.n.nm}</b> ${x.n.ex}%</button>`).join(""):`<span class="fine">todo ≥90%</span>`}${dead.length?`<span class="rl">sin uso 30d</span>${dead.map(k=>`<button class="pchip warn" data-sel="${k}">${A.N[k].nm}</button>`).join("")}`:""}<button class="pchip" data-godiag="1">hallazgos → Diagnóstico</button><span class="fine">fuente: corridas JSONL 30d</span></div>`;
+    wo.querySelectorAll("[data-sel]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.sel,true)));
+    wo.querySelector("[data-godiag]").addEventListener("click",()=>go({view:"diag",dock:null}));
+    wo.style.display="";
+  }else{wo.innerHTML="";wo.style.display="none"}
+  const fl=$("flow");
+  if(A.telem&&A.flujo){
+    const chain=A.lanes.map(L=>`<span class="pchip"><b>${L.n}</b> ${L.runs.replace(" corridas","")}</span>`).join(`<span class="arr">→</span>`);
+    fl.innerHTML=`<div class="brow"><span class="rl">flujo 30d</span><div class="fchain">${chain}</div><span class="fine">volumen = corridas que tocaron la fase</span></div>
+    <div class="brow"><span class="rl">saltos de fase</span>${A.flujo.saltos.length?A.flujo.saltos.map(s2=>`<button class="pchip warn" data-vrun="${s2.run}">⚠ ${s2.lb} · ver corrida →</button>`).join(""):`<span class="fine">ninguno en 30d</span>`}<span class="rl">excepciones</span><span class="fine">${A.flujo.tipos} · lo accionable vive en Diagnóstico</span></div>`;
+    fl.querySelectorAll("[data-vrun]").forEach(b=>b.addEventListener("click",()=>go({view:"corridas",run:b.dataset.vrun,vista:"arbol",dock:null,replay:null})));
+    fl.style.display="";
+  }else{fl.innerHTML="";fl.style.display="none"}
+  const NOTES={
+    estructura:"clic en un tipo = filtrar · flecha = quién invoca a quién · punteado = propuesto / sin uso",
+    tokens:"heat = consumo 30d: ▓ ≥20k · ▓▓ ≥75k · ▓▓▓ ≥200k · ▓▓▓▓ ≥400k · fuente: usage del JSONL",
+    perf:"éxito: ≥90 ok · 85–90 atención · <85 crítico · p95 por invocación, jamás promedio · grosor de flecha = volumen",
+    proceso:"conformidad del proceso declarado · cumplimiento = corridas de la fase sin excepción · hallazgos accionables → Diagnóstico"
+  };
+  $("cap-note").textContent=NOTES[S.capa];
   if(rp){
     rp.seq.forEach((s2,i)=>{const el=$("n-"+s2.comp);if(el){const b=document.createElement("span");b.className="seq";b.textContent=i+1;el.appendChild(b)}});
     $("rp-ver").addEventListener("click",()=>go({view:"corridas",run:rp.r.id,vista:"arbol",replay:null}));
@@ -1120,9 +1186,11 @@ function renderInsp(){
    <div class="metrics">
      <div class="metric"><div class="v">${n.alw?(A.telem?A.runs30+"×":"—"):A.telem?n.inv+"×":"—"}</div><div class="l">${n.alw?"sesiones que la cargan":"invocaciones 30d"}</div></div>
      <div class="metric"><div class="v ${A.telem&&n.inv?(n.ex>=90?"ok":n.ex>=85?"warn":"crit"):""}">${A.telem&&n.inv?n.ex+"%":"—"}</div><div class="l">éxito</div></div>
+     <div class="metric"><div class="v">${A.telem&&n.p95?n.p95:"—"}</div><div class="l">p95 por invocación</div></div>
      <div class="metric"><div class="v">${n.tc?fmt(n.tc):"—"}</div><div class="l">tokens al cargar</div></div>
      <div class="metric"><div class="v">${n.ti?fmt(n.ti):"—"}</div><div class="l">tokens por invocación</div></div>
-     <div class="metric" style="grid-column:1/-1"><div class="v">${n.alw?(A.telem?fmtM(A.runs30*n.tc):"—"):A.telem&&n.inv?fmtM(n.inv*(n.ti||n.tc)):"—"}</div><div class="l">consumo 30d — cada componente rinde cuentas de sus tokens (principio 11)</div></div>
+     <div class="metric"><div class="v ${n.exc?"warn":""}">${n.exc?n.exc:A.telem&&n.inv?"0":"—"}</div><div class="l">excepciones de proceso 30d</div></div>
+     <div class="metric" style="grid-column:1/-1"><div class="v">${consumoDe(A,n)?fmtM(consumoDe(A,n)):"—"}</div><div class="l">consumo 30d — cada componente rinde cuentas de sus tokens (principio 11)</div></div>
    </div>
    ${(()=>{const rel={inv:[],por:[],lee:[],leidoPor:[],esc:[],escPor:[]};
      (A.E||[]).forEach(([f,t2,k])=>{
@@ -1329,7 +1397,7 @@ function renderCorridas(A){
     <button class="run-row" data-run="${r.id}">
       <span class="st ${r.okk?"ok":"bad"}"></span>
       <code>${r.disp}</code><span style="color:var(--muted)">fase ${r.fase} · ${r.f}</span>
-      <span class="meta"><span>${r.modelo}</span><span>${r.turnos} turnos</span><span>${r.tokIn}→${r.tokOut}</span><span>ctx máx ${r.ctx}%</span><span>${r.costo}</span><span>${r.dur}</span></span>
+      <span class="meta">${r.exc?`<span style="color:var(--warn)">⚠ ${r.exc} exc</span>`:""}<span>${r.modelo}</span><span>${r.turnos} turnos</span><span>${r.tokIn}→${r.tokOut}</span><span>ctx máx ${r.ctx}%</span><span>${r.costo}</span><span>${r.dur}</span></span>
     </button>`).join("")||`<p class="rn-empty">Sin corridas con este filtro.</p>`
    :`<p class="rn-empty">◌ Sin corridas aún — ${A.telem?"":"el arnés no registra telemetría. "}El sensor indexa los JSONL de ~/.claude; daemon caído = cero pérdida.</p>`}`;
   w.querySelectorAll(".rn-filters button").forEach(b=>b.addEventListener("click",()=>{S.rnf=b.dataset.f;renderCorridas(A)}));
@@ -1340,7 +1408,7 @@ function renderRunDet(A,r,w){
     <span class="rstat" style="border-color:var(--ok);color:var(--ok)">CORRIDA REAL · JSONL</span><span class="rstat">sesión <b>${r.sid}</b></span><span class="rstat">modelo <b>${r.modelo}</b></span>
     <span class="rstat">turnos <b>${r.turnos}</b></span><span class="rstat">in <b>${r.tokIn}</b> · out <b>${r.tokOut}</b> · caché <b>${r.cache}</b></span>
     <span class="rstat">ctx máx <b>${r.ctx}%</b></span><span class="rstat">costo <b>${r.costo}</b></span><span class="rstat">duración <b>${r.dur}</b></span>
-    <span class="rstat" style="${r.okk?"color:var(--ok)":"color:var(--crit)"}">${r.okk?"✓ exitosa":"✕ fallida"}</span></div>`;
+    <span class="rstat" style="${r.okk?"color:var(--ok)":"color:var(--crit)"}">${r.okk?"✓ exitosa":"✕ fallida"}</span>${r.exc?`<span class="rstat" style="border-color:var(--warn);color:var(--warn)">⚠ ${r.exc} excepción de proceso</span>`:""}</div>`;
   const vsel=`<div class="vsel" role="tablist">
     <button data-v="conv" aria-pressed="${S.vista==="conv"}">Conversación</button>
     <button data-v="arbol" aria-pressed="${S.vista==="arbol"}">Árbol</button>

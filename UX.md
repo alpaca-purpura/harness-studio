@@ -171,12 +171,54 @@ Base: [`research/2026-07-04-salud-trazas-edicion.md`](./research/2026-07-04-salu
    aparece como destino de publish en el Tren. (Dónde vive la config = debate fase 3; el
    flujo UX queda aquí.)
 
-## Inventario de funcionalidades — corte iteración 5 (mockup v3.2, 2026-07-04)
+## Iteración 6 — datos exactos por capa + rediseño capa Proceso (v3.3, 2026-07-04)
+
+Tema: backlog #1 (deuda desde iteración 2) + #2. Veredicto sobre Proceso: **rediseño, no
+fusión** — la capa responde una pregunta que Diagnóstico no puede (flujo y conformidad del
+proceso declarado, principio 1); el solape muere al firmar la frontera.
+
+**Contrato de datos por capa (firmable):** cada capa = una pregunta + datos exactos +
+procedencia; el botón de capa lleva su pregunta como tooltip y la leyenda muestra
+umbrales/procedencia por capa.
+
+1. **Estructura** — ¿qué hay y cómo se conecta? Tipo (color+forma+etiqueta) · canal ·
+   edges direccionales. Fuente: índice estático del arnés.
+2. **Tokens** — ¿en qué se van los tokens? Nodo: `carga X · 30d Y` con **fórmula única
+   mapa=inspector** (reglas = sesiones×carga; resto = inv×(tokens-por-invocación‖carga)) ·
+   heat por umbral documentado (▓≥20k ▓▓≥75k ▓▓▓≥200k ▓▓▓▓≥400k) · Σ carril carga+30d ·
+   franja presupuesto + **Pareto top-3 clickeable** · nota honesta: **la atribución se
+   solapa** (knowledge/reglas cuentan dentro de quien las carga — Σ ≠ total facturado).
+   Fuente: usage JSONL.
+3. **Desempeño** — ¿qué funciona, qué falla, qué sobra? Nodo: inv× · éxito% coloreado por
+   umbral (≥90/85) · **p95 por invocación** (cuantiles, jamás promedios — estándar F1) ·
+   sin-uso punteado · gate-fallado rojo · grosor de edge = volumen · franja computada
+   «peor éxito» top-3 + sin-uso + puerta a Diagnóstico. Fuente: corridas JSONL 30d.
+4. **Proceso** — ¿fluye el proceso declarado? Franja de **flujo fase→fase** con volúmenes ·
+   **saltos de fase como chips warn → abren SU corrida real** · tipología de excepciones
+   (salto/fallo-de-skill/orden-interno, suma = chips de carril) · nodo = excepciones que
+   protagonizó (skills/agentes) o su maquinaria (hooks Guardia: inyecciones/registros/
+   excepciones detectadas) · knowledge/reglas/mcp atenuados con «—» (no protagonizan
+   excepciones) · cumplimiento = corridas de la fase sin excepción.
+
+**Frontera firmada Proceso ↔ Diagnóstico:** Proceso = flujo agregado y conformidad (dónde
+y cuánto se rompe el proceso); Diagnóstico = hallazgos accionables por componente (qué
+arreglar). Una excepción repetida se vuelve hallazgo (lo hace registro-excepciones); el
+hallazgo vive en Diagnóstico, el flujo en Proceso.
+
+**Además:** corrida **r3** nueva (salto Specs⇢Desarrollo con guía sin bloqueo, principio
+6) cierra el loop capa→salto→corrida→replay; badge «⚠ n exc» en fila y detalle de corrida ·
+inspector gana métricas p95 + excepciones 30d · **corrección de honestidad**: constructor
+(725k, ventana propia) supera a implementar-feature (418k) — hallazgo reformulado a «mayor
+consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6M ($38; KPI
+portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
+reload de deep-link + dark/light + consola limpia.
+
+## Inventario de funcionalidades — corte iteración 6 (mockup v3.3, 2026-07-04)
 
 > Fuente de verdad para retomar en cualquier sesión. Mockup vigente:
 > `mockups/arnesia-mockup-v3.html` (v2 preservado como historia). Artifact único:
 > https://claude.ai/code/artifact/6a63cdf3-e6ee-442e-b17c-c659995baec1
-> Todo lo listado está CONSTRUIDO y verificado con click-through (≈125 asserts acumulados).
+> Todo lo listado está CONSTRUIDO y verificado con click-through (≈175 asserts acumulados).
 
 **S1 · Portafolio.** 6 KPIs (arneses · corridas 30d · tokens 30d · costo $ · hallazgos ·
 candidatos tren). Tarjeta idéntica por arnés (RED+eval): semáforo por umbral documentado
@@ -187,18 +229,22 @@ chips de tren en vuelo, proyectos instalados, hallazgos; orden worst-first. Card
 
 **S2 · Mapa.** Geografía Guardia / carriles-fase / Base. **6 tipos** con color+forma+
 etiqueta visible (skill azul ▢ · agente violeta ● · hook rosa ◆ · knowledge verde ■ ·
-mcp gris ⬡ · **regla oliva escudo — «siempre en contexto»**). 4 capas: Estructura (tipos+
-edges) · Tokens (heat, carga/invocación, Σ por carril, budget strip) · Desempeño (inv×,
-éxito, sin-uso punteado, gate-fallado rojo, grosor de edge por volumen) · Proceso (chips
-corridas/exc/cumplimiento por carril). **Edges direccionales con flecha** (inv/write;
-know punteado sin flecha) pintados SOBRE contenedores. Leyenda = filtro por tipo. «+» por
-carril → dock. Statebars: naciendo / sin-telemetría / **replay**. Banda Base en alerta con
-faltantes + CTA capturar. **Replay de corrida sobre el mapa**: badges #1..#n en orden real,
-secuencia narrada, camino resaltado, botones ver-corrida/salir. Deep-link por hash de TODO
-(arnés · vista · capa · sel · dock · run · vista-traza · replay).
+mcp gris ⬡ · **regla oliva escudo — «siempre en contexto»**). **4 capas con contrato de
+datos firmado (iteración 6)** — cada una con su pregunta en tooltip y nota de leyenda con
+umbrales/procedencia: Estructura (tipos+edges) · Tokens (nodo carga+consumo-30d fórmula
+única, heat por umbral, Σ carril, budget + Pareto top-3, nota de solape de atribución) ·
+Desempeño (inv×, éxito% umbral, p95/invocación, sin-uso, gate-fallado, grosor de edge,
+franja peor-éxito) · Proceso (flujo fase→fase, saltos→corrida, tipología de excepciones,
+nodo con excepciones/maquinaria, cumplimiento por carril). **Edges direccionales con
+flecha** (inv/write; know punteado sin flecha) pintados SOBRE contenedores. Leyenda =
+filtro por tipo. «+» por carril → dock. Statebars: naciendo / sin-telemetría / **replay**.
+Banda Base en alerta con faltantes + CTA capturar. **Replay de corrida sobre el mapa**:
+badges #1..#n en orden real, secuencia narrada, camino resaltado. Deep-link por hash de
+TODO (arnés · vista · capa · sel · dock · run · vista-traza · replay).
 
 **S3 · Inspector (3 pestañas).** *Resumen:* identidad+canal, métricas (inv 30d · éxito ·
-carga · por-invocación · consumo 30d — reglas: sesiones-que-cargan × costo), **Relaciones**
+**p95/invocación** · carga · por-invocación · **excepciones de proceso 30d** · consumo 30d
+— fórmula única compartida con el mapa; reglas: sesiones-que-cargan × costo), **Relaciones**
 en 6 direcciones (invoca→ / ←invocado-por / lee / ←leído-por / escribe→ / ←escrito-por,
 chips navegables), hallazgos, acciones (Editar conversando · A/B→tren · Promover si beta ·
 Ver historia). *Contenido:* fuente real con números de línea + chips versión/diff/historial
@@ -215,7 +261,9 @@ comandos (/goal), compaction. Rail conmuta inspector↔dock.
 
 **S8 · Corridas.** Lista de corridas REALES (chip «CORRIDA REAL · JSONL» — nada es flujo
 ideal): disparo · fase · fecha · modelo · turnos · in/out · ctx máx · costo · duración ·
-✓/✕; filtros todas/fallidas. Detalle con 3 vistas: **Conversación** (burbujas + filas sys)
+✓/✕ · **badge «⚠ n exc» si registró excepciones de proceso** (también en el detalle);
+filtros todas/fallidas. 3 corridas demo en dev (r1 feliz · r2 fallo · **r3 salto de fase
+con guía sin bloqueo**). Detalle con 3 vistas: **Conversación** (burbujas + filas sys)
 · **Árbol** (tokens+duración por paso, subagente anidado, attribution «ver componente en
 el mapa», **contabilidad de contexto por paso**: barra de ventana + acumulado k/% + qué
 añadió cada paso + pico + compaction en verde con delta negativo + subagente = «ventana
@@ -240,21 +288,27 @@ bandejas vacías.
 **Decisiones acumuladas además de las 4 del grill:** 5 señales RED+eval (eval = último
 gate hasta tener evals continuos) · corridas siempre reales (JSONL) · regla = 6º tipo de
 primera clase · contabilidad de contexto visible por paso · CodeMirror 6 · edición directa
-SIEMPRE pare beta que va al tren (principio 10, sin borradores fuera del tren).
+SIEMPRE pare beta que va al tren (principio 10, sin borradores fuera del tren) ·
+**contrato de datos por capa: una pregunta + datos exactos + procedencia + umbral
+documentado (iteración 6)** · **capa Proceso rediseñada, frontera con Diagnóstico firmada
+(flujo/conformidad vs hallazgos accionables)** · **p95 por invocación, jamás promedios** ·
+**atribución de tokens declarada como solapada (Σ ≠ total facturado)** · **fórmula de
+consumo única mapa=inspector**.
 
-## Backlog de profundización (iteraciones 6+, estimadas 6-8 más)
+## Backlog de profundización (iteraciones 7+)
 
-1. Qué datos exactos por capa (Tokens/Desempeño/Proceso) — pendiente desde iteración 2.
-2. Capa Proceso débil — solape con Diagnóstico; ¿rediseño o fusión?
-3. Dock a 1280px deja mapa a media pantalla — ¿comprimir carriles / flotar / colapsar?
-4. Vista A/B real (hoy «Evaluar A/B» solo salta al tren).
-5. ¿Flujo canónico/ideal por skill como concepto aparte del replay real?
-6. Detalle de evals del gate («Ver evals») + telemetría post-deploy por proyecto.
-7. Historia: mapa por versión (exige snapshot del índice — decidir en fase 3).
-8. Onboarding/captura de base a fondo (hoy solo dock guionado).
-9. Multi-proyecto: ¿vista por proyecto instalado?
-10. Búsqueda global (componentes, corridas, hallazgos).
-11. Accesibilidad teclado completa (hoy parcial) · estados vacíos restantes.
-12. Taxonomía: ¿subtipos de regla / clase L0 visible en el nodo?
+~~1. Qué datos exactos por capa~~ · ~~2. Capa Proceso vs Diagnóstico~~ — **resueltos en
+iteración 6** (contrato de capas + rediseño Proceso).
+
+1. Dock a 1280px deja mapa a media pantalla — ¿comprimir carriles / flotar / colapsar?
+2. Vista A/B real (hoy «Evaluar A/B» solo salta al tren).
+3. ¿Flujo canónico/ideal por skill como concepto aparte del replay real?
+4. Detalle de evals del gate («Ver evals») + telemetría post-deploy por proyecto.
+5. Historia: mapa por versión (exige snapshot del índice — decidir en fase 3).
+6. Onboarding/captura de base a fondo (hoy solo dock guionado).
+7. Multi-proyecto: ¿vista por proyecto instalado?
+8. Búsqueda global (componentes, corridas, hallazgos).
+9. Accesibilidad teclado completa (hoy parcial) · estados vacíos restantes.
+10. Taxonomía: ¿subtipos de regla / clase L0 visible en el nodo?
 
 <!-- Al cerrar cada iteración: registrar sección "Iteración N" + actualizar inventario. -->
