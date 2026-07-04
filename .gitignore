@@ -1,0 +1,15 @@
+# Node / UI
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+
+# Go
+bin/
+*.exe
+
+# Local
+.DS_Store
+*.log
+.env
+.env.*
