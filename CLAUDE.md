@@ -31,9 +31,14 @@ ejecutan; marketplace git elegible por proyecto.
 - Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
   v3 en watchlist.
 
-**Estado:** gran plan fase 1 (Visión) ✓ · siguiente = **fase 2: UX del producto (HS-03)**.
-Cero código aún; port del monorepo gobernado por la regla de VISION.md — nada se porta sin
-pasar por la fase del gran plan que le corresponde.
+**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 5 de ~11-13**.
+Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
+al corte · backlog iteraciones 6+) · mockup vigente = `mockups/arnesia-mockup-v3.html`
+(navegable, artifact único — URL en memoria auto) · estándares mapeados =
+`research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
+el repo · publicar siempre al MISMO artifact (parámetro `url`) · nada se entrega sin
+click-through con asserts + screenshots revisados + consola limpia. Cero código de
+producto aún; port del monorepo gobernado por la regla de VISION.md.
 
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se

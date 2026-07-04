@@ -1,0 +1,1451 @@
+<title>ArnesIA — Mockup v3 · app completa</title>
+<style>
+  :root{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545; --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --heat1:rgba(200,140,60,.10); --heat2:rgba(205,125,55,.22); --heat3:rgba(210,105,55,.36); --heat4:rgba(205,80,55,.5);
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+      --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+      --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+      --ok:#57b380; --warn:#e0904f; --crit:#e25b5b; --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+      --heat1:rgba(217,163,91,.10); --heat2:rgba(220,145,80,.20); --heat3:rgba(224,120,70,.33); --heat4:rgba(226,90,70,.48);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545; --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --heat1:rgba(200,140,60,.10); --heat2:rgba(205,125,55,.22); --heat3:rgba(210,105,55,.36); --heat4:rgba(205,80,55,.5);
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+    --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+    --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+    --ok:#57b380; --warn:#e0904f; --crit:#e25b5b; --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+    --heat1:rgba(217,163,91,.10); --heat2:rgba(220,145,80,.20); --heat3:rgba(224,120,70,.33); --heat4:rgba(226,90,70,.48);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible,.node:focus-visible,.pf-card:focus-visible,.run-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ── toolbar ── */
+  header{display:flex;align-items:center;gap:14px;padding:0 16px;height:52px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);position:relative;z-index:30}
+  .wordmark{font-weight:700;letter-spacing:-.02em;font-size:16px;padding:4px 6px;border-radius:6px}
+  .wordmark em{font-style:normal;color:var(--accent)}
+  .wordmark:hover{background:var(--surface2)}
+  .harness-pick{display:none;align-items:center;gap:8px;padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);position:relative}
+  body[data-scr="arnes"] .harness-pick{display:flex}
+  .harness-pick code{font-family:var(--mono);font-size:12px}
+  .chip{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:99px;white-space:nowrap}
+  .chip.estable{background:var(--accent-soft);color:var(--accent)}
+  .chip.beta{background:var(--warn-soft);color:var(--warn)}
+  .chip.naciendo{background:var(--c-agent);color:var(--bg)}
+  .caret{color:var(--muted);font-size:10px}
+  .pick-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:300px;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px;display:none;flex-direction:column;gap:2px;z-index:40}
+  .pick-menu.open{display:flex}
+  .pick-menu button{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-align:left}
+  .pick-menu button:hover{background:var(--surface2)}
+  .pick-menu code{font-family:var(--mono);font-size:12px;flex:1}
+  .pick-menu .sep{border-top:1px solid var(--line);margin:4px 2px}
+  .tabs{display:none;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px}
+  body[data-scr="arnes"] .tabs{display:flex}
+  .tabs button{padding:5px 12px;border-radius:5px;font-size:12.5px;color:var(--muted);position:relative}
+  .tabs button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.18);font-weight:600}
+  .tabs .n{font-family:var(--mono);font-size:10px;margin-left:5px;padding:1px 5px;border-radius:99px;background:var(--crit-soft);color:var(--crit)}
+  .views{margin-left:auto;display:none;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px}
+  body[data-scr="arnes"][data-view="mapa"] .views{display:flex}
+  .views button{padding:5px 13px;border-radius:5px;font-size:12.5px;color:var(--muted)}
+  .views button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.18);font-weight:600}
+  .gear{margin-left:auto;color:var(--muted);font-size:15px;padding:5px 9px;border-radius:6px;border:1px solid transparent}
+  body[data-scr="arnes"][data-view="mapa"] .gear{margin-left:0}
+  .gear:hover{border-color:var(--line);color:var(--text)}
+
+  main{flex:1;display:flex;min-height:0}
+  .view{display:none;flex:1;min-width:0}
+  .view.on{display:flex}
+
+  /* ── S1 portafolio ── */
+  #v-portafolio{flex-direction:column;overflow:auto}
+  .pf-wrap{max-width:1120px;width:100%;margin:0 auto;padding:30px 28px 48px}
+  .pf-hd h1{margin:0 0 4px;font-size:21px;letter-spacing:-.01em;text-wrap:balance}
+  .pf-hd p{margin:0;color:var(--muted);font-size:13px}
+  .pf-kpis{display:flex;gap:10px;margin:18px 0 24px;flex-wrap:wrap}
+  .kpi{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:10px 16px;min-width:120px}
+  .kpi .v{font-family:var(--mono);font-size:19px;font-weight:650;font-variant-numeric:tabular-nums}
+  .kpi .v.warn{color:var(--warn)} .kpi .v.crit{color:var(--crit)}
+  .kpi .l{font-size:10.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px}
+  .pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .pf-card{border:1px solid var(--line);border-radius:11px;background:var(--surface);padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:9px;transition:border-color .15s}
+  .pf-card:hover{border-color:var(--accent)}
+  .pf-top{display:flex;align-items:center;gap:8px}
+  .pf-top code{font-family:var(--mono);font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .estado{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px}
+  .estado.sano{background:var(--ok-soft);color:var(--ok)}
+  .estado.atencion{background:var(--warn-soft);color:var(--warn)}
+  .estado.critico{background:var(--crit-soft);color:var(--crit)}
+  .estado.gris{background:var(--surface2);color:var(--muted)}
+  .estado.rollout{background:var(--accent-soft);color:var(--accent)}
+  .pf-rol{font-size:12px;color:var(--muted)}
+  .senales{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .sen{border:1px solid var(--line);border-radius:7px;padding:6px 7px;background:var(--surface2);min-width:0}
+  .sen .v{font-family:var(--mono);font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px;white-space:nowrap}
+  .sen .v .tr{font-size:9px;color:var(--muted)}
+  .sen .v.ok{color:var(--ok)} .sen .v.warn{color:var(--warn)} .sen .v.crit{color:var(--crit)}
+  .sen .l{font-size:9px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sen .spark{display:flex;align-items:flex-end;gap:1.5px;height:14px;margin-top:4px}
+  .sen .spark span{flex:1;background:var(--accent);opacity:.7;border-radius:1px;min-height:1.5px}
+  .sen .spark.mut span{background:var(--line2)}
+  .pf-tren{display:flex;gap:6px;align-items:center;font-size:10.5px;color:var(--muted);flex-wrap:wrap}
+  .pf-tren .tchip{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--line)}
+  .pf-tren .tchip.warn{color:var(--warn);border-color:var(--warn)}
+  .pf-tren .tchip.ok{color:var(--ok);border-color:var(--ok)}
+  .pf-foot{display:flex;gap:6px;flex-wrap:wrap}
+  .pf-proj{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+  .pf-new{border:1.5px dashed var(--line2);border-radius:11px;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;color:var(--muted);transition:border-color .15s,color .15s;text-align:center;padding:12px}
+  .pf-new:hover{border-color:var(--accent);color:var(--accent)}
+  .pf-new .plus{width:32px;height:32px;border-radius:99px;border:1.5px dashed currentColor;display:grid;place-items:center;font-size:17px}
+
+  /* ── S2 mapa ── */
+  #v-mapa .canvas-wrap{flex:1;min-width:0;display:flex;flex-direction:column}
+  .scroller{flex:1;overflow:auto;position:relative}
+  .content{position:relative;min-width:1220px;padding:16px 20px 12px;display:flex;flex-direction:column;gap:12px}
+  .statebar{position:relative;z-index:2;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 14px;font-size:12.5px}
+  .statebar.tel{background:var(--surface);color:var(--muted);border-style:dashed}
+  .statebar.birth{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
+  .statebar .dotp{width:8px;height:8px;border-radius:99px;background:var(--accent);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  svg.edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+  .edge{fill:none;stroke:var(--line2);opacity:.5;transition:opacity .15s,stroke .15s}
+  .edge.know{stroke-dasharray:4 4;opacity:.28}
+  .edge.write{stroke-dasharray:2 3;stroke:var(--accent);opacity:.4}
+  .edge.hot{stroke:var(--accent);opacity:.95}
+  body.has-sel .edge:not(.hot){opacity:.12}
+  .band{position:relative;z-index:2;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:8px 12px}
+  .band.alert{border-color:var(--warn)}
+  .band-label{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+  .band-label h2{margin:0;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+  .band-label span{font-size:11px;color:var(--muted)}
+  .band-label .miss{color:var(--warn);font-weight:600}
+  .band-label .cta{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:3px 10px}
+  .band-label .cta:hover{background:var(--warn-soft)}
+  .band-row{display:flex;gap:8px;flex-wrap:wrap}
+  .lanes{position:relative;z-index:2;display:flex;gap:10px;align-items:stretch}
+  .lane{flex:1;min-width:178px;border:1px solid var(--line);border-radius:9px;background:var(--surface);display:flex;flex-direction:column}
+  .lane.ghost{border-style:dashed;opacity:.8}
+  .lane-hd{padding:9px 11px 7px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
+  .lane-hd .idx{font-family:var(--mono);font-size:10px;color:var(--muted);width:100%}
+  .lane-hd h2{margin:1px 0 0;font-size:12.5px;font-weight:650;flex:1}
+  .lane-add{flex:none;width:20px;height:20px;border-radius:5px;display:grid;place-items:center;color:var(--muted);font-size:13px;border:1px solid transparent}
+  .lane-add:hover{border-color:var(--accent);color:var(--accent)}
+  .lane-meta{display:none;margin-top:6px;gap:4px;flex-wrap:wrap;width:100%}
+  .lane-body{padding:9px;display:flex;flex-direction:column;gap:7px;flex:1}
+  .lane-sum{display:none;font-family:var(--mono);font-size:10.5px;color:var(--muted);padding:0 11px 8px}
+  .node{position:relative;z-index:4;display:flex;flex-direction:column;gap:3px;padding:7px 9px;border:1px solid var(--line);border-left:3px solid var(--tc,var(--line));border-radius:7px;background:var(--surface2);cursor:pointer;transition:border-color .15s,background .2s;text-align:left;min-width:0}
+  .node:hover{border-color:var(--line2);border-left-color:var(--tc)}
+  .node.sel{border-color:var(--accent);border-left-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .node .top{display:flex;align-items:center;gap:6px}
+  .glyph{flex:none;width:15px;height:15px;border-radius:4px;display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--bg);background:var(--tc,var(--muted))}
+  .node .nm{font-family:var(--mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rel{margin-left:auto;flex:none;width:6px;height:6px;border-radius:99px;background:var(--ok)}
+  .rel.beta{background:var(--warn)}
+  .node .sub{display:none;font-family:var(--mono);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .node .sub.typ{font-family:var(--sans);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--tc,var(--muted));opacity:.8}
+  body[data-capa="estructura"] .node .sub.typ{display:block}
+  .node.dim{opacity:.18;filter:saturate(.3)}
+  .node .seq{position:absolute;top:-8px;right:-8px;z-index:5;width:19px;height:19px;border-radius:99px;background:var(--accent);color:var(--bg);font-family:var(--mono);font-size:10.5px;font-weight:700;display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+  /* glifos con FORMA por tipo (color + forma, no solo color) */
+  .node[data-type="agent"] .glyph,.sg[data-t="agent"]{border-radius:99px}
+  .node[data-type="hook"] .glyph{border-radius:2px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .node[data-type="know"] .glyph{border-radius:1px}
+  .node[data-type="mcp"] .glyph{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border-radius:0}
+  .statebar.replay{background:var(--accent-soft);border-color:var(--accent);flex-wrap:wrap}
+  .statebar.replay .rseq{font-family:var(--mono);font-size:11px;line-height:1.9}
+  .statebar.replay .rseq b{color:var(--accent)}
+  .statebar.replay button{border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;margin-left:6px}
+  .statebar.replay button:hover{background:var(--accent-soft)}
+  .node[data-type="skill"]{--tc:var(--c-skill)}
+  .node[data-type="agent"]{--tc:var(--c-agent)}
+  .node[data-type="hook"]{--tc:var(--c-hook)}
+  .node[data-type="know"]{--tc:var(--c-know)}
+  .node[data-type="mcp"]{--tc:var(--c-mcp)}
+  .node[data-type="rule"]{--tc:var(--c-rule)}
+  .node[data-type="rule"] .glyph{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%);border-radius:0}
+  .node.proposed{border-style:dashed;opacity:.75}
+  .node .flag{display:none;font-size:10px;font-weight:600;color:var(--warn)}
+  body[data-capa="tokens"] .node .sub.tok{display:block}
+  body[data-capa="tokens"] .node[data-heat="1"]{background:var(--heat1)}
+  body[data-capa="tokens"] .node[data-heat="2"]{background:var(--heat2)}
+  body[data-capa="tokens"] .node[data-heat="3"]{background:var(--heat3)}
+  body[data-capa="tokens"] .node[data-heat="4"]{background:var(--heat4)}
+  body[data-capa="tokens"] .lane-sum{display:block}
+  body[data-capa="tokens"] .budget{display:flex}
+  body[data-capa="perf"] .node .sub.perf{display:block}
+  body[data-capa="perf"] .node[data-dead]{border-style:dashed;opacity:.85}
+  body[data-capa="perf"] .node[data-dead] .flag{display:block}
+  body[data-capa="perf"] .node[data-gate]{border-color:var(--crit)}
+  body[data-capa="perf"] .node[data-gate] .flag{display:block;color:var(--crit)}
+  body[data-capa="proceso"] .lane-meta{display:flex}
+  body[data-capa="proceso"] .node{opacity:.55}
+  body[data-capa="proceso"] .node.exc{opacity:1;border-color:var(--warn)}
+  .mchip{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:5px;background:var(--surface2);border:1px solid var(--line);color:var(--muted)}
+  .mchip.warn{color:var(--warn);border-color:var(--warn)}
+  .mchip.ok{color:var(--ok);border-color:var(--ok)}
+  .budget{display:none;position:relative;z-index:4;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:8px 12px;font-family:var(--mono);font-size:11px}
+  .budget .bar{flex:1;height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;display:flex}
+  .budget .seg-base{background:var(--accent);width:8.9%}
+  .budget .seg-meta{background:var(--c-skill);width:.8%}
+  .legend{flex:none;display:flex;gap:14px;align-items:center;padding:7px 20px;border-top:1px solid var(--line);background:var(--surface);font-size:11px;color:var(--muted);overflow-x:auto}
+  .legend .k{display:flex;align-items:center;gap:5px;white-space:nowrap}
+  button.k{padding:2px 7px;border-radius:6px;border:1px solid transparent}
+  button.k:hover{border-color:var(--line2);color:var(--text)}
+  button.k[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .legend .sw{width:9px;height:9px;border-radius:3px;flex:none}
+  .legend .note{margin-left:auto;font-family:var(--mono);font-size:10.5px;white-space:nowrap}
+
+  /* ── rail: inspector / dock ── */
+  aside{width:320px;flex:none;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;transition:width .18s ease}
+  aside.dock-on{width:380px}
+  .insp{padding:14px 16px;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+  .insp .hint{color:var(--muted);font-size:12.5px;line-height:1.6;margin-top:8px}
+  .itabs{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:2px;margin-bottom:12px}
+  .itabs button{flex:1;padding:4px 8px;border-radius:5px;font-size:11.5px;color:var(--muted)}
+  .itabs button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .insp .type-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .insp .type-lb{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .insp h3{margin:0 0 2px;font-family:var(--mono);font-size:15px;font-weight:600;word-break:break-all}
+  .insp .ver{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:7px;align-items:center;margin-bottom:10px}
+  .insp p.desc{margin:0 0 12px;font-size:12.5px;line-height:1.55;color:var(--muted)}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+  .metric{border:1px solid var(--line);border-radius:7px;padding:7px 9px;background:var(--surface2)}
+  .metric .v{font-family:var(--mono);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+  .metric .l{font-size:10px;color:var(--muted);margin-top:1px}
+  .metric .v.warn{color:var(--warn)} .metric .v.ok{color:var(--ok)} .metric .v.crit{color:var(--crit)}
+  .sec-lb{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+  .finding{display:flex;gap:8px;border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:7px;padding:8px 10px;font-size:12px;line-height:1.45;margin-bottom:7px;background:var(--surface2)}
+  .finding.crit{border-left-color:var(--crit)}
+  .finding.info{border-left-color:var(--c-skill)}
+  .empty-f{font-size:12px;color:var(--muted);margin-bottom:7px}
+  .rels{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+  .relrow{display:flex;gap:5px;flex-wrap:wrap;align-items:baseline;font-size:10.5px;color:var(--muted)}
+  .relrow .rl{flex:none;width:88px;text-transform:uppercase;letter-spacing:.05em;font-size:9.5px;font-weight:700}
+  .relchip{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+  .relchip:hover{border-color:var(--accent);color:var(--accent)}
+  .actions{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+  .actions button{border:1px solid var(--line);border-radius:7px;padding:8px 12px;font-size:12.5px;font-weight:600;background:var(--surface2);text-align:center}
+  .actions button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .actions button:hover{border-color:var(--accent)}
+  /* contenido tab */
+  .src{border:1px solid var(--line);border-radius:8px;background:var(--surface2);font-family:var(--mono);font-size:11px;line-height:1.6;overflow:auto;max-height:44vh;counter-reset:ln}
+  .src .cl{display:flex;white-space:pre}
+  .src .cl::before{counter-increment:ln;content:counter(ln);flex:none;width:30px;text-align:right;padding-right:9px;color:var(--muted);opacity:.55;user-select:none}
+  .src .cl.add{background:var(--ok-soft)} .src .cl.del{background:var(--crit-soft);text-decoration:line-through;opacity:.8}
+  textarea.srced{width:100%;min-height:38vh;border:1px solid var(--accent);border-radius:8px;background:var(--surface2);color:var(--text);font-family:var(--mono);font-size:11px;line-height:1.6;padding:10px;resize:vertical}
+  .nota{width:100%;border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--text);font:inherit;font-size:12px;padding:7px 10px;margin-top:8px}
+  .verchips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+  .verchips .vc{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+  .verchips .vc.cur{border-color:var(--accent);color:var(--accent);font-weight:700}
+  /* corridas del componente */
+  .mini-run{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:7px;padding:7px 10px;margin-bottom:6px;font-size:11.5px;width:100%;text-align:left}
+  .mini-run:hover{border-color:var(--accent)}
+  .mini-run .st{width:7px;height:7px;border-radius:99px;flex:none}
+  .mini-run .st.ok{background:var(--ok)} .mini-run .st.bad{background:var(--crit)}
+  .mini-run code{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+  /* dock */
+  .dock{display:flex;flex-direction:column;height:100%;min-height:0}
+  .dock-hd{flex:none;padding:11px 14px 9px;border-bottom:1px solid var(--line)}
+  .dock-hd .row1{display:flex;align-items:center;gap:8px}
+  .dock-hd .lb{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  .dock-hd .x{margin-left:auto;color:var(--muted);font-size:15px;padding:2px 7px;border-radius:5px}
+  .dock-hd .x:hover{background:var(--surface2)}
+  .ses{display:flex;align-items:center;gap:7px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--muted);flex-wrap:wrap}
+  .ses .sid{border:1px solid var(--line);border-radius:5px;padding:2px 7px;color:var(--text)}
+  .ses .sid:hover{border-color:var(--accent);color:var(--accent)}
+  .ses .ctxbar{flex:none;width:64px;height:6px;border-radius:99px;background:var(--surface2);overflow:hidden;border:1px solid var(--line)}
+  .ses .ctxbar i{display:block;height:100%;background:var(--accent)}
+  .dock-ctx{flex:none;margin:10px 14px 0;border:1px dashed var(--line2);border-radius:7px;padding:7px 10px;font-size:11.5px;color:var(--muted);display:flex;gap:7px;align-items:center}
+  .dock-ctx code{font-family:var(--mono);font-size:11px;color:var(--text)}
+  .dock-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+  .msg{max-width:88%;border-radius:9px;padding:8px 11px;font-size:12.5px;line-height:1.5}
+  .msg.ia{background:var(--surface2);border:1px solid var(--line);align-self:flex-start}
+  .msg.op{background:var(--accent-soft);border:1px solid transparent;align-self:flex-end}
+  .msg.sys{align-self:stretch;max-width:none;background:none;border:1px dashed var(--line2);color:var(--muted);font-family:var(--mono);font-size:10.5px;padding:6px 10px}
+  .msg.err{align-self:stretch;max-width:none;background:var(--crit-soft);border:1px solid var(--crit);color:var(--text);font-size:12px}
+  .msg b{font-weight:650}
+  .msg .opts{display:flex;flex-direction:column;gap:5px;margin-top:7px}
+  .msg .opts span{border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:11.5px;background:var(--surface)}
+  .msg .opts span.pick{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .art-card{align-self:stretch;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--surface2);padding:9px 11px;font-size:12px}
+  .art-card .t{font-family:var(--mono);font-size:11px;font-weight:650;margin-bottom:4px}
+  .art-card .d{color:var(--muted);line-height:1.5}
+  .art-card .row{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+  .art-card .row button{border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;background:var(--surface)}
+  .art-card .row button:hover{border-color:var(--accent)}
+  .chk{display:flex;gap:7px;align-items:baseline;font-size:12px;line-height:1.5;margin:3px 0}
+  .chk .s{flex:none;font-weight:700}
+  .chk .s.ok{color:var(--ok)} .chk .s.bad{color:var(--crit)} .chk .s.wr{color:var(--warn)}
+  .dock-in{flex:none;margin:0 14px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);padding:9px 12px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .dock-in .send{margin-left:auto;color:var(--accent);font-weight:700}
+  .dock-note{flex:none;padding:0 14px 12px;font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+
+  /* ── S8 corridas ── */
+  #v-corridas{flex-direction:column;overflow:auto}
+  .rn-wrap{max-width:1060px;width:100%;margin:0 auto;padding:26px 28px 48px}
+  .rn-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .rn-hd h1{margin:0;font-size:18px}
+  .rn-hd p{margin:0;color:var(--muted);font-size:12.5px}
+  .rn-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .rn-filters button{border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:11.5px;color:var(--muted)}
+  .rn-filters button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600;background:var(--accent-soft)}
+  .run-row{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:10px 14px;margin-bottom:7px;width:100%;text-align:left;font-size:12px}
+  .run-row:hover{border-color:var(--accent)}
+  .run-row .st{flex:none;width:8px;height:8px;border-radius:99px}
+  .run-row .st.ok{background:var(--ok)} .run-row .st.bad{background:var(--crit)}
+  .run-row code{font-family:var(--mono);font-size:11.5px;font-weight:650}
+  .run-row .meta{margin-left:auto;display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+  .rn-empty{color:var(--muted);font-size:12.5px}
+  /* detalle */
+  .run-det .backbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .run-det .back{border:1px solid var(--line);border-radius:6px;padding:4px 11px;font-size:11.5px;font-weight:600}
+  .run-det .back:hover{border-color:var(--accent)}
+  .run-stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .rstat{border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:6px 11px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .rstat b{color:var(--text);font-weight:650}
+  .vsel{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:2px;width:max-content;margin-bottom:14px}
+  .vsel button{padding:4px 13px;border-radius:5px;font-size:11.5px;color:var(--muted)}
+  .vsel button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  /* árbol */
+  .step{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-left:3px solid var(--sc,var(--line2));border-radius:7px;background:var(--surface);padding:8px 11px;margin-bottom:6px;font-size:12px}
+  .step.k1{margin-left:34px}
+  .step .sg{flex:none;width:16px;height:16px;border-radius:4px;display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--bg);background:var(--sc,var(--muted))}
+  .step .bd{flex:1;min-width:0}
+  .step .r1{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .step .r1 code{font-family:var(--mono);font-size:11.5px;font-weight:650}
+  .step .r1 .tk{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .step .tx{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:2px}
+  .step .goto{border:1px solid var(--line);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:600;margin-top:5px}
+  .step .goto:hover{border-color:var(--accent);color:var(--accent)}
+  .step[data-k="user"],.step[data-k="asst"]{--sc:var(--accent)}
+  .step[data-k="hook"]{--sc:var(--c-hook)}
+  .step[data-k="skill"]{--sc:var(--c-skill)}
+  .step[data-k="agent"]{--sc:var(--c-agent)}
+  .step[data-k="llm"]{--sc:var(--c-agent)}
+  .step[data-k="tool"]{--sc:var(--c-mcp)}
+  .step[data-k="cmd"],.step[data-k="compact"]{--sc:var(--line2);border-style:dashed}
+  .step[data-k="err"]{--sc:var(--crit);border-color:var(--crit)}
+  .ctxline{display:flex;align-items:center;gap:7px;margin-top:5px;font-size:10px;color:var(--muted);flex-wrap:wrap}
+  .cbar{flex:none;width:86px;height:5px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+  .cbar i{display:block;height:100%;background:var(--accent)}
+  .ctxline code{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  /* waterfall */
+  .wf{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:14px;overflow-x:auto}
+  .wf-row{display:flex;align-items:center;gap:10px;margin-bottom:5px;min-width:640px}
+  .wf-lb{flex:none;width:170px;font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wf-lb.k1{padding-left:14px;opacity:.85}
+  .wf-track{flex:1;position:relative;height:14px;background:var(--surface2);border-radius:4px}
+  .wf-bar{position:absolute;top:2px;bottom:2px;border-radius:3px;background:var(--sc,var(--muted));min-width:3px}
+  .wf-axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:8px;min-width:640px;padding-left:180px}
+  /* conversación */
+  .conv{max-width:720px;display:flex;flex-direction:column;gap:9px}
+
+  /* ── diag ── */
+  #v-diag{flex-direction:column;overflow:auto}
+  .dg-wrap{max-width:980px;width:100%;margin:0 auto;padding:26px 28px 48px}
+  .dg-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .dg-hd h1{margin:0;font-size:18px}
+  .dg-hd p{margin:0;color:var(--muted);font-size:12.5px}
+  .dg-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .dg-filters button{border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:11.5px;color:var(--muted)}
+  .dg-filters button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600;background:var(--accent-soft)}
+  .dg-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:11px 14px;margin-bottom:8px}
+  .sev{flex:none;width:8px;height:8px;border-radius:99px;margin-top:5px}
+  .sev.crit{background:var(--crit)} .sev.warn{background:var(--warn)} .sev.info{background:var(--c-skill)}
+  .dg-body{flex:1;min-width:0}
+  .dg-top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .dg-top code{font-family:var(--mono);font-size:12px;font-weight:650}
+  .dg-org{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+  .dg-txt{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:3px}
+  .dg-go{flex:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:11.5px;font-weight:600}
+  .dg-go:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ── tren ── */
+  #v-tren{flex-direction:column;overflow:auto}
+  .tr-wrap{width:100%;margin:0 auto;max-width:1180px;padding:26px 28px 48px}
+  .tr-hd{margin-bottom:18px}
+  .tr-hd h1{margin:0 0 3px;font-size:18px}
+  .tr-hd p{margin:0;color:var(--muted);font-size:12.5px}
+  .tr-scroll{overflow-x:auto}
+  .tr-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-width:860px}
+  .tr-col{border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;min-height:230px}
+  .tr-col-hd{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px}
+  .tr-col-hd h2{margin:0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .tr-col-hd .cnt{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .tr-col-bd{padding:10px;display:flex;flex-direction:column;gap:8px}
+  .cand{border:1px solid var(--line);border-left:3px solid var(--tc,var(--line2));border-radius:8px;background:var(--surface2);padding:9px 11px}
+  .cand code{font-family:var(--mono);font-size:11.5px;font-weight:650;display:block;margin-bottom:3px}
+  .cand .vv{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .cand .st{margin-top:6px;font-size:11px;display:flex;align-items:center;gap:6px}
+  .cand .st .dot{width:7px;height:7px;border-radius:99px;flex:none}
+  .cand .st.ok{color:var(--ok)} .cand .st.ok .dot{background:var(--ok)}
+  .cand .st.run{color:var(--accent)} .cand .st.run .dot{background:var(--accent);animation:pulse 1.6s infinite}
+  .cand .st.fail{color:var(--crit)} .cand .st.fail .dot{background:var(--crit)}
+  .cand .bar{margin-top:6px;height:5px;border-radius:99px;background:var(--surface);overflow:hidden}
+  .cand .bar i{display:block;height:100%;background:var(--accent)}
+  .cand .row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .cand .row button{border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:10.5px;font-weight:600;background:var(--surface)}
+  .cand .row button:hover{border-color:var(--accent)}
+  .cand .row button[disabled]{opacity:.45;cursor:not-allowed}
+  .cand .org{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.45}
+  .tr-empty{font-size:11.5px;color:var(--muted);padding:8px 2px}
+
+  /* ── historia ── */
+  #v-historia{flex-direction:column;overflow:auto}
+  .hi-wrap{max-width:820px;width:100%;margin:0 auto;padding:26px 28px 48px}
+  .hi-hd{margin-bottom:20px}
+  .hi-hd h1{margin:0 0 3px;font-size:18px}
+  .hi-hd p{margin:0;color:var(--muted);font-size:12.5px}
+  .hi-item{position:relative;padding:0 0 22px 26px;border-left:2px solid var(--line)}
+  .hi-item:last-child{border-left-color:transparent}
+  .hi-item::before{content:"";position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:99px;background:var(--accent);border:2px solid var(--bg)}
+  .hi-item.birth::before{background:var(--c-agent)}
+  .hi-v{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .hi-v code{font-family:var(--mono);font-size:14px;font-weight:700}
+  .hi-v .f{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .hi-delta{display:flex;gap:6px;margin:7px 0;flex-wrap:wrap}
+  .dchip{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:5px;border:1px solid var(--line)}
+  .dchip.add{color:var(--ok);border-color:var(--ok)}
+  .dchip.del{color:var(--crit);border-color:var(--crit)}
+  .dchip.mod{color:var(--warn);border-color:var(--warn)}
+  .hi-hito{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .hi-hito b{color:var(--text);font-weight:650}
+  .hi-acts{margin-top:7px;display:flex;gap:6px}
+  .hi-acts button{border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600}
+  .hi-acts button:hover{border-color:var(--accent)}
+
+  /* modal ajustes/marketplaces */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:80}
+  .overlay.open{display:flex}
+  .modal{width:min(520px,92vw);max-height:84vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .modal h2{margin:0 0 4px;font-size:15px}
+  .modal .sub{margin:0 0 14px;font-size:12px;color:var(--muted)}
+  .mk{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;gap:9px;align-items:center}
+  .mk code{font-family:var(--mono);font-size:11.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .mk .dest{font-size:10px;color:var(--muted)}
+  .mk-add{display:flex;gap:7px;margin-top:12px}
+  .mk-add input{flex:1;border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--text);font:inherit;font-size:12px;padding:7px 10px}
+  .mk-add button{border:1px solid var(--accent);color:var(--accent);border-radius:7px;padding:7px 13px;font-size:12px;font-weight:600}
+  .modal .close{position:absolute;visibility:hidden}
+  .modal .foot{display:flex;justify-content:flex-end;margin-top:14px}
+  .modal .foot button{border:1px solid var(--line);border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600}
+
+  .review{flex:none;border-top:1px solid var(--line);background:var(--surface);padding:9px 20px;display:flex;gap:22px;font-size:11.5px;color:var(--muted);overflow-x:auto}
+  .review b{color:var(--text);font-weight:650}
+  .review div{white-space:nowrap}
+  .toast{position:fixed;left:50%;bottom:56px;transform:translate(-50%,8px);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s,transform .25s;z-index:99;pointer-events:none;max-width:80%;text-align:center}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header>
+  <button class="wordmark" id="wm" title="Portafolio">Arnes<em>IA</em></button>
+  <div class="harness-pick" id="pick" role="button" tabindex="0" aria-haspopup="true">
+    <code id="pick-nm">—</code><span class="chip" id="pick-ch">—</span><code id="pick-v">—</code><span class="caret">▾</span>
+    <div class="pick-menu" id="pick-menu"></div>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Vistas del arnés"></nav>
+  <nav class="views" aria-label="Capas del mapa" id="capas">
+    <button data-c="estructura">Estructura</button>
+    <button data-c="tokens">Tokens</button>
+    <button data-c="perf">Desempeño</button>
+    <button data-c="proceso">Proceso</button>
+  </nav>
+  <button class="gear" id="gear" title="Ajustes · Marketplaces" aria-label="Ajustes y marketplaces">⚙</button>
+</header>
+
+<main>
+  <section class="view" id="v-portafolio">
+    <div class="pf-wrap">
+      <div class="pf-hd">
+        <h1>La producción de la fábrica</h1>
+        <p>Tarjeta idéntica por arnés · 5 señales (RED + eval) · semáforo por umbral documentado — pasa el mouse por el estado para ver el umbral.</p>
+      </div>
+      <div class="pf-kpis" id="pf-kpis"></div>
+      <div class="pf-grid" id="pf-grid"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-mapa">
+    <div class="canvas-wrap">
+      <div class="scroller" id="scroller">
+        <div class="content" id="content">
+          <svg class="edges" id="edges" aria-hidden="true"></svg>
+          <div id="statebar"></div>
+          <section class="band" id="band-guardia" aria-label="Guardia">
+            <div class="band-label"><h2>Guardia</h2><span>hooks transversales — actúan en todas las fases</span></div>
+            <div class="band-row" id="row-guardia"></div>
+          </section>
+          <div class="lanes" id="lanes"></div>
+          <div class="budget" id="budget"></div>
+          <section class="band" id="band-base" aria-label="Base de conocimiento">
+            <div class="band-label" id="base-label"></div>
+            <div class="band-row" id="row-base"></div>
+          </section>
+        </div>
+      </div>
+      <div class="legend" id="legend">
+        <button class="k" data-tf="skill" title="filtrar: solo skills"><span class="sw" style="background:var(--c-skill)"></span>skill</button>
+        <button class="k" data-tf="agent" title="filtrar: solo agentes"><span class="sw" style="background:var(--c-agent);border-radius:99px"></span>agente</button>
+        <button class="k" data-tf="hook" title="filtrar: solo hooks"><span class="sw" style="background:var(--c-hook);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></span>hook</button>
+        <button class="k" data-tf="know" title="filtrar: solo knowledge"><span class="sw" style="background:var(--c-know);border-radius:1px"></span>knowledge</button>
+        <button class="k" data-tf="mcp" title="filtrar: solo MCP"><span class="sw" style="background:var(--c-mcp);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)"></span>mcp</button>
+        <button class="k" data-tf="rule" title="filtrar: solo reglas"><span class="sw" style="background:var(--c-rule);clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)"></span>regla</button>
+        <span class="k"><span class="sw" style="background:var(--ok);border-radius:99px"></span>estable</span>
+        <span class="k"><span class="sw" style="background:var(--warn);border-radius:99px"></span>beta</span>
+        <span class="note">clic en un tipo = filtrar · flecha = quién invoca a quién · punteado = propuesto / sin uso</span>
+      </div>
+    </div>
+    <aside id="rail"><div class="insp" id="insp"></div></aside>
+  </section>
+
+  <section class="view" id="v-corridas">
+    <div class="rn-wrap" id="rn-wrap"></div>
+  </section>
+
+  <section class="view" id="v-diag">
+    <div class="dg-wrap">
+      <div class="dg-hd"><h1>Diagnóstico</h1><p>hallazgos estáticos y runtime — una sola bandeja, pintados sobre el mapa</p></div>
+      <div class="dg-filters" id="dg-filters"></div>
+      <div id="dg-list"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-tren">
+    <div class="tr-wrap">
+      <div class="tr-hd"><h1>Tren de release</h1><p>beta → eval-gate → promote → publish · nada se promueve sin eval (principio 10) · release train KIT-06</p></div>
+      <div class="tr-scroll"><div class="tr-cols" id="tr-cols"></div></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-historia">
+    <div class="hi-wrap">
+      <div class="hi-hd"><h1>Historia</h1><p>versiones del arnés — qué entró, qué salió, qué mutó; hitos ligados al ledger</p></div>
+      <div id="hi-list"></div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="mk-overlay">
+  <div class="modal" role="dialog" aria-label="Ajustes de marketplaces" style="position:relative">
+    <h2>Marketplaces</h2>
+    <p class="sub">Remotes git a los que este arnés publica (formato marketplace.json + semver/SHA). Dónde vive esta config por proyecto = debate de fase 3.</p>
+    <div id="mk-list"></div>
+    <div class="mk-add">
+      <input id="mk-url" placeholder="git@github.com:org/marketplace.git" aria-label="URL del marketplace">
+      <button id="mk-addbtn">Conectar</button>
+    </div>
+    <div class="foot"><button id="mk-close">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="review">
+  <div><b>Evaluar (v3):</b></div>
+  <div>1 · ¿5 señales + semáforo por umbral comunican salud?</div>
+  <div>2 · ¿Corridas: conversación / árbol / waterfall bastan?</div>
+  <div>3 · ¿Contenido: editar → diff → beta → tren se siente natural?</div>
+  <div>4 · ¿Dock con sesión CC (modelo·tokens·contexto) suficiente?</div>
+  <div>5 · ¿Importar arnés y marketplaces: flujos correctos?</div>
+</div>
+
+<script>
+/* ══════════ helpers ══════════ */
+const GLY={skill:"S",agent:"A",hook:"H",know:"K",mcp:"M",rule:"R"};
+const TYPN={skill:"Skill",agent:"Agente",hook:"Hook",know:"Knowledge",mcp:"Servidor MCP",rule:"Regla"};
+const fmt=n=>n>=1000?(n/1000).toFixed(1).replace(".0","")+"k":""+n;
+const fmtM=n=>n>=1e6?(n/1e6).toFixed(1).replace(".0","")+"M":fmt(n);
+function showToast(t){const p=document.querySelector(".toast");if(p)p.remove();const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);requestAnimationFrame(()=>e.classList.add("on"));setTimeout(()=>{e.classList.remove("on");setTimeout(()=>e.remove(),300)},2800)}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-toast]");if(t)showToast(t.dataset.toast)});
+const $=id=>document.getElementById(id);
+
+/* ══════════ DATA (idéntica a v2 + corridas + fuentes) ══════════ */
+const DEV_LANES=[
+  {id:"req",n:"Requerimientos",runs:"8 corridas",exc:0,cum:"100%"},
+  {id:"specs",n:"Specs & UX",runs:"8 corridas",exc:1,cum:"88%"},
+  {id:"arq",n:"Arquitectura",runs:"7 corridas",exc:0,cum:"100%"},
+  {id:"dev",n:"Desarrollo",runs:"23 corridas",exc:2,cum:"91%"},
+  {id:"cal",n:"Calidad",runs:"19 corridas",exc:3,cum:"84%"},
+  {id:"desp",n:"Despliegue",runs:"11 corridas",exc:0,cum:"100%"}
+];
+const DEV_N={
+ "h-guardian":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — inyecta la fase activa del proceso y el estado del ledger en cada prompt.",inv:412,ex:100,tc:180,ti:180,f:[]},
+ "h-bitacora":{t:"hook",l:"guardia",nm:"bitacora-continua",ver:"1.4.1",c:"estable",d:"Stop — registra avance de la conversación en el ledger del proyecto. Nada se pierde entre sesiones.",inv:389,ex:99,tc:120,ti:120,f:[]},
+ "h-excepciones":{t:"hook",l:"guardia",nm:"registro-excepciones",ver:"0.9.0",c:"beta",d:"PostToolUse — detecta saltos de fase, advierte, mitiga llenando vacíos y registra la excepción.",inv:34,ex:94,tc:150,ti:150,f:[{s:"warn",o:"runtime",capa:"proceso",x:"6% de excepciones no clasificadas — afinar detección de salto UX→Desarrollo."}]},
+ "h-autodoc":{t:"hook",l:"guardia",nm:"autodoc-commit",ver:"1.1.0",c:"estable",d:"PostToolUse(git) — tras cada commit actualiza capabilities-map y specs as code. Autodocumentación como efecto.",inv:203,ex:98,tc:140,ti:140,f:[]},
+ "s-captar":{t:"skill",l:"req",nm:"captar-requerimiento",ver:"2.0.0",c:"estable",d:"Entrevista al solicitante, estructura el requerimiento y lo registra en el tracker.",inv:41,ex:95,tc:80,ti:1900,f:[]},
+ "s-priorizar":{t:"skill",l:"req",nm:"priorizar-backlog",ver:"1.3.0",c:"estable",d:"Ordena backlog por valor/esfuerzo contra la visión de producto.",inv:12,ex:100,tc:70,ti:1200,f:[]},
+ "a-analista":{t:"agent",l:"req",nm:"analista-contexto",ver:"1.1.0",c:"estable",d:"Subagente: explora la base y el código para contextualizar un requerimiento sin ensuciar el contexto principal.",inv:38,ex:92,tc:90,ti:6400,f:[]},
+ "m-tracker":{t:"mcp",l:"req",nm:"mcp-tracker",ver:"0.8.2",c:"beta",d:"MCP — conexión al tracker (Linear/Jira). Lectura y alta de issues.",inv:63,ex:97,tc:450,ti:300,f:[{s:"info",o:"estático",capa:"tokens",x:"12 tools expuestas, solo 4 usadas — recortar superficie ahorraría 310 tokens de carga."}]},
+ "s-refinar":{t:"skill",l:"specs",nm:"refinar-spec",ver:"1.6.0",c:"estable",d:"Convierte requerimiento en spec as code con criterios de aceptación verificables.",inv:29,ex:93,tc:85,ti:2300,f:[]},
+ "s-ux":{t:"skill",l:"specs",nm:"disenar-ux",ver:"1.0.1",c:"estable",d:"Flujos y wireframes as code a partir de la spec; alimenta el diseño técnico.",inv:17,ex:88,tc:90,ti:2800,f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 excepción registrada: fase saltada en corrida #6 — spec pasó directo a desarrollo."}]},
+ "a-specwriter":{t:"agent",l:"specs",nm:"spec-writer",ver:"1.2.0",c:"estable",d:"Subagente redactor: produce la spec final y la versiona junto al código.",inv:27,ex:96,tc:85,ti:5100,f:[]},
+ "s-arquitectura":{t:"skill",l:"arq",nm:"disenar-arquitectura",ver:"2.1.0",c:"estable",d:"Propone/actualiza la arquitectura as code; toda decisión queda como ADR en decisiones.",inv:14,ex:100,tc:95,ti:3600,f:[]},
+ "s-distec":{t:"skill",l:"arq",nm:"diseno-tecnico",ver:"1.5.0",c:"estable",d:"Baja la arquitectura a diseño técnico por feature: contratos, módulos, riesgos.",inv:22,ex:95,tc:80,ti:2100,f:[]},
+ "a-arquitecto":{t:"agent",l:"arq",nm:"arquitecto",ver:"1.3.0",c:"estable",d:"Subagente: evalúa trade-offs contra el stack y las decisiones previas antes de proponer.",inv:19,ex:94,tc:95,ti:7200,f:[]},
+ "s-implementar":{t:"skill",l:"dev",nm:"implementar-feature",ver:"3.2.0",c:"estable",d:"Implementa una feature desde su spec: plan, código, pruebas y actualización de capabilities. Paso aditivo: retoma exactamente donde quedó la conversación anterior.",inv:87,ex:91,tc:110,ti:4800,f:[{s:"info",o:"runtime",capa:"tokens",x:"Mayor consumidor de tokens del arnés (418k/30d) — candidata a subagente para exploración."}]},
+ "s-quirurgica":{t:"skill",l:"dev",nm:"actualizacion-quirurgica",ver:"1.0.0",c:"beta",d:"Cambios mínimos post-despliegue sin abrir ciclo completo.",inv:0,ex:0,tc:75,ti:0,dead:1,f:[{s:"warn",o:"runtime",capa:"perf",x:"Nunca invocada en 30 días — ¿fusionar con implementar-feature o falta trigger en la descripción?"}]},
+ "a-constructor":{t:"agent",l:"dev",nm:"constructor",ver:"2.0.0",c:"estable",d:"Subagente de implementación en worktree aislado; devuelve diff + resumen.",inv:74,ex:89,tc:100,ti:9800,f:[]},
+ "s-tests":{t:"skill",l:"cal",nm:"ejecutar-tests",ver:"1.8.0",c:"estable",d:"Corre suites, interpreta fallos y decide si el ciclo avanza.",inv:81,ex:87,tc:80,ti:1600,f:[]},
+ "s-auditoria":{t:"skill",l:"cal",nm:"auditoria-tecnica",ver:"1.2.0",c:"estable",d:"Auditoría de seguridad, deuda y cumplimiento de la arquitectura antes de UAT.",inv:17,ex:82,tc:90,ti:3900,f:[{s:"crit",o:"runtime",capa:"perf",x:"18% de fallo — el paso 3 (chequeo de migraciones) rompe en monorepos. 3 excepciones registradas."}]},
+ "a-auditor":{t:"agent",l:"cal",nm:"auditor",ver:"1.1.0",c:"estable",d:"Subagente adversarial: intenta refutar que la feature cumple la spec.",inv:16,ex:94,tc:90,ti:6900,f:[]},
+ "s-uat":{t:"skill",l:"desp",nm:"desplegar-uat",ver:"1.4.0",c:"estable",d:"Despliegue a UAT vía mcp-cloud con verificación post-deploy.",inv:11,ex:100,tc:85,ti:1400,f:[]},
+ "s-prod":{t:"skill",l:"desp",nm:"desplegar-produccion",ver:"1.4.0",c:"estable",d:"Pase a producción con gate de evals y registro en el ledger.",inv:7,ex:100,tc:85,ti:1500,f:[]},
+ "s-rollback":{t:"skill",l:"desp",nm:"rollback-quirurgico",ver:"1.0.0",c:"estable",d:"Reversión inmediata con causa registrada como excepción del proceso.",inv:1,ex:100,tc:70,ti:900,f:[]},
+ "m-cloud":{t:"mcp",l:"desp",nm:"mcp-cloud",ver:"1.2.0",c:"estable",d:"MCP — operaciones sobre el cloud de la compañía (deploy, logs, estado).",inv:19,ex:96,tc:520,ti:400,f:[]},
+ "r-claude":{t:"rule",l:"base",nm:"CLAUDE.md (reglas)",ver:"—",c:"estable",d:"Reglas del proyecto SIEMPRE en contexto: convenciones, límites, qué jamás hacer. No se invocan — condicionan cada turno de cada sesión.",inv:0,ex:0,tc:2900,ti:0,heat:2,alw:1,f:[]},
+ "r-standards":{t:"rule",l:"base",nm:"standards-codigo",ver:"—",c:"estable",d:"Estándar de código y estilo de la compañía. Regla: siempre cargada, guía sin bloqueo.",inv:0,ex:0,tc:1100,ti:0,heat:1,alw:1,f:[]},
+ "k-arquitectura":{t:"know",l:"base",nm:"arquitectura-as-code",ver:"—",c:"estable",d:"La arquitectura vigente del sistema, versionada. Toda skill de diseño la lee; autodoc-commit la mantiene.",inv:141,ex:100,tc:4200,ti:0,heat:3,f:[]},
+ "k-capabilities":{t:"know",l:"base",nm:"capabilities-map",ver:"—",c:"estable",d:"Mapa de capacidades del software — lo que DevHub muestra. Se actualiza como efecto del trabajo, nunca a mano.",inv:96,ex:100,tc:3100,ti:0,heat:3,f:[]},
+ "k-vision":{t:"know",l:"base",nm:"vision-producto",ver:"—",c:"estable",d:"Norte del producto; priorizar-backlog no opera sin esto.",inv:31,ex:100,tc:1800,ti:0,heat:2,f:[]},
+ "k-stack":{t:"know",l:"base",nm:"stack-tecnologico",ver:"—",c:"estable",d:"Tecnologías, versiones y restricciones de la compañía.",inv:52,ex:100,tc:900,ti:0,heat:1,f:[]},
+ "k-flujos":{t:"know",l:"base",nm:"flujos-negocio",ver:"—",c:"estable",d:"Procesos de negocio que el software sirve; contexto para specs.",inv:24,ex:100,tc:2200,ti:0,heat:2,f:[]},
+ "k-decisiones":{t:"know",l:"base",nm:"decisiones (ADR)",ver:"—",c:"estable",d:"Ledger de decisiones. Registro aditivo: cada conversación suma, ninguna borra.",inv:67,ex:100,tc:5600,ti:0,heat:4,f:[{s:"warn",o:"estático",capa:"tokens",x:"5.6k tokens siempre en contexto — mover ADRs antiguos a carga bajo demanda ahorraría ~3.9k por sesión."}]},
+ "m-vector":{t:"mcp",l:"base",nm:"memoria-vectorial",ver:"0.1.0",c:"beta",d:"Segundo cerebro propuesto (vector DB / SQLite) para recuperación semántica sobre la base. En debate (fase 3).",inv:0,ex:0,tc:0,ti:0,prop:1,f:[{s:"info",o:"estático",capa:"estructura",x:"Propuesto — pendiente de debate: ¿obligatorio en la constitución del arnés?"}]}
+};
+const DEV_EDGES=[
+ ["s-captar","a-analista","inv",38],["s-captar","m-tracker","inv",41],["s-priorizar","m-tracker","inv",12],
+ ["s-refinar","a-specwriter","inv",27],["s-arquitectura","a-arquitecto","inv",14],["s-distec","a-arquitecto","inv",9],
+ ["s-implementar","a-constructor","inv",74],["s-tests","a-auditor","inv",5],["s-auditoria","a-auditor","inv",16],
+ ["s-uat","m-cloud","inv",11],["s-prod","m-cloud","inv",7],["s-rollback","m-cloud","inv",1],
+ ["s-arquitectura","k-arquitectura","know",0],["s-refinar","k-flujos","know",0],["s-priorizar","k-vision","know",0],
+ ["a-constructor","k-stack","know",0],["a-arquitecto","k-decisiones","know",0],["s-implementar","k-capabilities","know",0],
+ ["h-autodoc","k-capabilities","write",0],["h-bitacora","k-decisiones","write",0]
+];
+const PM_LANES=[
+  {id:"desc",n:"Descubrimiento",runs:"5 corridas",exc:0,cum:"100%"},
+  {id:"ent",n:"Entrevistas",runs:"9 corridas",exc:1,cum:"89%"},
+  {id:"sin",n:"Síntesis",runs:"6 corridas",exc:0,cum:"100%"},
+  {id:"prio",n:"Priorización",runs:"4 corridas",exc:0,cum:"100%"}
+];
+const PM_N={
+ "h-guard":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — fase activa + ledger en cada prompt.",inv:120,ex:100,tc:180,ti:180,f:[]},
+ "h-bit":{t:"hook",l:"guardia",nm:"bitacora-continua",ver:"1.4.1",c:"estable",d:"Stop — avance al ledger del proyecto.",inv:112,ex:99,tc:120,ti:120,f:[]},
+ "s-hip":{t:"skill",l:"desc",nm:"formular-hipotesis",ver:"1.1.0",c:"estable",d:"Estructura hipótesis de problema/solución contra la visión.",inv:9,ex:100,tc:75,ti:1500,f:[]},
+ "s-guion":{t:"skill",l:"ent",nm:"guion-entrevista",ver:"1.0.0",c:"estable",d:"Prepara guion no-sesgado por segmento.",inv:14,ex:93,tc:80,ti:1700,f:[]},
+ "s-notas":{t:"skill",l:"ent",nm:"sintetizar-notas",ver:"1.2.0",c:"estable",d:"Notas de entrevista → evidencia etiquetada.",inv:18,ex:94,tc:85,ti:2400,f:[{s:"warn",o:"runtime",capa:"proceso",x:"1 excepción: entrevista sin consentimiento registrado en corrida #4."}]},
+ "a-sint":{t:"agent",l:"sin",nm:"sintetizador",ver:"1.0.0",c:"estable",d:"Subagente: clusteriza evidencia y propone insights.",inv:11,ex:91,tc:95,ti:5200,f:[]},
+ "s-oport":{t:"skill",l:"prio",nm:"arbol-oportunidades",ver:"0.9.0",c:"beta",d:"Opportunity solution tree desde insights.",inv:6,ex:83,tc:90,ti:2900,f:[]},
+ "r-cl2":{t:"rule",l:"base",nm:"CLAUDE.md (reglas)",ver:"—",c:"estable",d:"Reglas del proyecto siempre en contexto.",inv:0,ex:0,tc:1200,ti:0,heat:1,alw:1,f:[]},
+ "k-vision2":{t:"know",l:"base",nm:"vision-producto",ver:"—",c:"estable",d:"Norte del producto del cliente.",inv:22,ex:100,tc:1600,ti:0,heat:2,f:[]},
+ "k-seg":{t:"know",l:"base",nm:"segmentos-clientes",ver:"—",c:"estable",d:"Segmentos y JTBD conocidos.",inv:17,ex:100,tc:1300,ti:0,heat:1,f:[]}
+};
+const PM_EDGES=[["s-notas","a-sint","inv",11],["s-oport","k-vision2","know",0],["s-guion","k-seg","know",0],["h-bit","k-vision2","write",0]];
+const FIN_LANES=[
+  {id:"prep",n:"Preparación",runs:"—",exc:0,cum:"—"},
+  {id:"conc",n:"Conciliación",runs:"—",exc:0,cum:"—"},
+  {id:"aju",n:"Ajustes",runs:"—",exc:0,cum:"—"},
+  {id:"rep",n:"Reporte",runs:"—",exc:0,cum:"—"}
+];
+const FIN_N={
+ "h-g3":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"UserPromptSubmit — fase activa del cierre en cada prompt.",inv:0,ex:0,tc:180,ti:180,f:[]},
+ "s-chk":{t:"skill",l:"prep",nm:"checklist-cierre",ver:"0.2.0",c:"beta",d:"Arma el checklist del período desde el calendario contable.",inv:0,ex:0,tc:80,ti:1100,f:[]},
+ "s-conc":{t:"skill",l:"conc",nm:"conciliar-cuentas",ver:"0.3.0",c:"beta",d:"Cruza extractos vs registros; separa diferencias por causa.",inv:0,ex:0,tc:95,ti:2600,f:[]},
+ "m-erp":{t:"mcp",l:"conc",nm:"mcp-erp",ver:"0.1.0",c:"beta",d:"MCP — lectura del ERP (asientos, extractos).",inv:0,ex:0,tc:380,ti:250,f:[]},
+ "s-aju":{t:"skill",l:"aju",nm:"proponer-ajustes",ver:"0.2.0",c:"beta",d:"Propone asientos de ajuste con evidencia adjunta.",inv:0,ex:0,tc:85,ti:1900,f:[]},
+ "s-rep":{t:"skill",l:"rep",nm:"reporte-cierre",ver:"0.2.0",c:"beta",d:"Genera el paquete de cierre para revisión del contador.",inv:0,ex:0,tc:90,ti:2200,f:[]},
+ "k-plan":{t:"know",l:"base",nm:"plan-de-cuentas",ver:"—",c:"estable",d:"Plan de cuentas y política contable de la compañía.",inv:0,ex:0,tc:1400,ti:0,heat:1,f:[]}
+};
+const FIN_EDGES=[["s-conc","m-erp","inv",0],["s-aju","k-plan","know",0]];
+const NEW_LANES=[
+  {id:"tri",n:"Triage",runs:"—",exc:0,cum:"—",ghost:1},
+  {id:"res",n:"Resolución",runs:"—",exc:0,cum:"—",ghost:1},
+  {id:"ver",n:"Verificación",runs:"—",exc:0,cum:"—",ghost:1}
+];
+const NEW_N={
+ "h-gn":{t:"hook",l:"guardia",nm:"guardian-proceso",ver:"1.2.0",c:"estable",d:"Heredado del estándar: fase activa en cada prompt.",inv:0,ex:0,tc:180,ti:180,prop:1,f:[]},
+ "s-tri":{t:"skill",l:"tri",nm:"clasificar-ticket",ver:"0.1.0",c:"beta",d:"Propuesta del build: clasifica severidad/área y asigna SLA.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[]},
+ "s-res":{t:"skill",l:"res",nm:"resolver-con-kb",ver:"0.1.0",c:"beta",d:"Propuesta del build: resuelve contra la base de conocimiento del producto.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[]},
+ "a-esc":{t:"agent",l:"res",nm:"escalador",ver:"0.1.0",c:"beta",d:"Propuesta del build: decide escalamiento a humano con contexto completo.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[]},
+ "s-verif":{t:"skill",l:"ver",nm:"verificar-cierre",ver:"0.1.0",c:"beta",d:"Propuesta del build: confirma resolución con el cliente antes de cerrar.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[]},
+ "k-prod":{t:"know",l:"base",nm:"base-producto",ver:"—",c:"estable",d:"Por capturar en el onboarding: qué es el producto, módulos, errores conocidos.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[]}
+};
+
+/* corridas (S8) — todo derivable del JSONL de ~/.claude */
+const RUNS={
+ "dev-fullcycle":[
+  {id:"r1",sid:"c7f2a1b4",f:"hoy 14:32",disp:"implementar-feature",comp:"s-implementar",fase:"Desarrollo",modelo:"claude-sonnet-5",turnos:14,tokIn:"84.2k",tokOut:"9.1k",cache:"1.2M",costo:"$0.84",ctx:41,dur:"12m 08s",okk:true,total:728,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"Implementa HU-231: export CSV en reportes de ventas",s:0,d:2,cx:19.5,ad:"arranque: base del arnés + reglas (19.4k) + prompt"},
+    {t:"hook",lb:"guardian-proceso",comp:"h-guardian",txt:"UserPromptSubmit → inyecta fase Desarrollo + estado del ledger",tok:"180 tok",s:2,d:1,cx:19.7,ad:"+180 · fase activa + estado del ledger"},
+    {t:"skill",lb:"implementar-feature",comp:"s-implementar",txt:"skill_activated · trigger: user-slash (/implementar)",tok:"110 tok carga",s:3,d:1,cx:19.8,ad:"+110 · metadata de la skill"},
+    {t:"llm",lb:"claude-sonnet-5",txt:"Plan: 4 archivos — endpoint + serializer + UI + tests",tok:"in 12.4k · out 1.8k",s:4,d:9,cx:33,ad:"+13.2k · SKILL.md completo + spec HU-231 + plan"},
+    {t:"tool",lb:"Read ×3",txt:"spec HU-231 · diseño técnico · capabilities-map",s:13,d:6,cx:52,ad:"+19k · diseño técnico + capabilities-map completos"},
+    {t:"agent",lb:"constructor",comp:"a-constructor",txt:"subagente en worktree aislado — transcript hermano (isSidechain)",tok:"9.8k tok",s:19,d:521,cx:54.1,ad:"+2.1k · solo diff+resumen vuelven — el subagente gasta 9.8k en SU ventana, no aquí",kids:[
+      {t:"llm",lb:"claude-sonnet-5",txt:"implementación por archivo",tok:"in 31k · out 4.2k",s:20,d:180,own:1},
+      {t:"tool",lb:"Edit ×5",txt:"api/export.go · serializer.go · ReportView.tsx · …",s:200,d:210,own:1},
+      {t:"tool",lb:"Bash",txt:"go test ./… → 42 pass",s:410,d:130,own:1}
+    ]},
+    {t:"cmd",lb:"/goal",txt:"comando del sistema — re-inyecta el objetivo de la sesión",s:545,d:2,cx:54.3,ad:"+0.2k · objetivo re-inyectado"},
+    {t:"tool",lb:"Bash",txt:"npm run e2e → verde",s:550,d:95,cx:82.3,ad:"+28k · logs del e2e — pico de la sesión (41%)"},
+    {t:"compact",lb:"compaction",txt:"contexto 82k → 41k (automático)",s:648,d:14,cx:41,ad:"−41.3k · resumen automático — el historial se compacta"},
+    {t:"asst",lb:"Respuesta",txt:"HU-231 lista: endpoint /export.csv + botón en UI, 42+3 tests verdes. Capabilities-map actualizado como efecto.",tok:"out 2.1k",s:668,d:55,cx:43.1,ad:"+2.1k · respuesta final"},
+    {t:"hook",lb:"bitacora-continua",comp:"h-bitacora",txt:"Stop → avance registrado en el ledger del proyecto",tok:"120 tok",s:725,d:3,cx:43.2,ad:"+0.1k · avance al ledger"}
+   ]},
+  {id:"r2",sid:"9d41e0c2",f:"ayer 17:05",disp:"auditoria-tecnica",comp:"s-auditoria",fase:"Calidad",modelo:"claude-haiku-4-5",turnos:6,tokIn:"22.1k",tokOut:"2.4k",cache:"310k",costo:"$0.09",ctx:18,dur:"3m 41s",okk:false,total:221,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"Audita el módulo de reportes antes de UAT",s:0,d:2,cx:19.5,ad:"arranque: base + reglas (19.4k) + prompt"},
+    {t:"hook",lb:"guardian-proceso",comp:"h-guardian",txt:"UserPromptSubmit → inyecta fase Calidad",tok:"180 tok",s:2,d:1,cx:19.7,ad:"+180 · fase activa"},
+    {t:"skill",lb:"auditoria-tecnica",comp:"s-auditoria",txt:"skill_activated · trigger: claude-proactive",tok:"90 tok carga",s:3,d:1,cx:19.8,ad:"+90 · metadata"},
+    {t:"llm",lb:"claude-haiku-4-5",txt:"plan de auditoría: 4 chequeos",tok:"in 8.1k · out 900",s:4,d:7,cx:28,ad:"+8.2k · SKILL.md + arquitectura-as-code"},
+    {t:"tool",lb:"Bash",txt:"chequeo de migraciones (paso 3)…",s:11,d:58,cx:35.9,ad:"+7.9k · salida de chequeos"},
+    {t:"err",lb:"Paso 3 FALLA",txt:"workspace de monorepo no soportado — la traza que alimenta el hallazgo crítico del inspector",s:69,d:5,cx:36,ad:"+0.1k · stacktrace"},
+    {t:"hook",lb:"registro-excepciones",comp:"h-excepciones",txt:"PostToolUse → excepción clasificada: fallo-de-skill · registrada",tok:"150 tok",s:74,d:2,cx:36.2,ad:"+0.2k · excepción clasificada y registrada"},
+    {t:"asst",lb:"Respuesta",txt:"Auditoría incompleta: el paso 3 falló en monorepo. Excepción registrada; hallazgo abierto en Diagnóstico.",tok:"out 800",s:180,d:41,cx:36.9,ad:"+0.7k · respuesta"}
+   ]}
+ ],
+ "pm-discovery":[
+  {id:"p1",sid:"4b8c2e17",f:"hoy 09:12",disp:"sintetizar-notas",comp:"s-notas",fase:"Entrevistas",modelo:"claude-sonnet-5",turnos:5,tokIn:"18.4k",tokOut:"3.2k",cache:"240k",costo:"$0.16",ctx:12,dur:"2m 05s",okk:true,total:125,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"Sintetiza las notas de la entrevista con el segmento retail",s:0,d:2,cx:6.1,ad:"arranque: base pm (5.9k) + prompt"},
+    {t:"hook",lb:"guardian-proceso",comp:"h-guard",txt:"inyecta fase Entrevistas",tok:"180 tok",s:2,d:1,cx:6.3,ad:"+180 · fase"},
+    {t:"skill",lb:"sintetizar-notas",comp:"s-notas",txt:"skill_activated · trigger: user-slash",tok:"85 tok",s:3,d:1,cx:6.4,ad:"+85 · metadata"},
+    {t:"llm",lb:"claude-sonnet-5",txt:"evidencia etiquetada: 14 fragmentos, 3 temas",tok:"in 15k · out 2.8k",s:4,d:95,cx:21.5,ad:"+15.1k · notas completas de la entrevista"},
+    {t:"asst",lb:"Respuesta",txt:"14 evidencias etiquetadas; 2 contradicen la hipótesis H3.",tok:"out 400",s:100,d:25,cx:23.9,ad:"+2.4k · evidencia etiquetada"}
+   ]}
+ ],
+ "fin-cierre":[], "nuevo":[]
+};
+
+/* fuente de componentes (pestaña Contenido) */
+const SRC={
+ "s-implementar":`---
+name: implementar-feature
+description: Implementa una feature desde su spec congelada
+version: 3.2.0
+clase: skill.proceso.desarrollo   # contrato L0 (I-75)
+---
+
+# Implementar feature
+
+## Cuándo
+Spec congelada en specs/ con criterios de
+aceptación verificables. Sin spec, no opera
+(advierte y registra excepción).
+
+## Pasos
+1. Lee spec + diseño técnico + capabilities-map
+2. Plan de implementación
+3. Delegar construcción → constructor
+   (subagente, worktree aislado)
+4. ejecutar-tests decide si el ciclo avanza
+5. Actualiza capabilities-map (efecto, no tarea)
+
+## Guardarraíles
+- No toca main sin tests verdes
+- Paso aditivo: retoma donde quedó la
+  conversación anterior (nada se pierde)`
+};
+function srcFor(id,n){return SRC[id]||`---
+name: ${n.nm}
+${n.ver!=="—"?`version: ${n.ver}`:"# knowledge — versiona con el arnés"}
+clase: ${n.t}.${n.l}
+---
+
+# ${n.nm}
+
+${n.d}
+
+(fuente de ejemplo — mockup)`}
+
+const ARNESES={
+ "dev-fullcycle":{
+   nm:"arnes-dev-fullcycle",canal:"estable",ver:"1.3.0",rol:"Developer full-cycle",proc:"SDLC completo",
+   lanes:DEV_LANES,N:DEV_N,E:DEV_EDGES,telem:true,
+   runs30:68,rpd:"2.3",exito:91,p95:"9.4m",comp:29,tok30:1940000,costo30:"$29",eval:{v:"12/14",s:"warn"},
+   proyectos:["cliente-acme/webapp","alpacapurpura/devhub"],spark:[88,90,86,92,89,93,90,91],sparkR:[2,3,1,4,2,3,2,3],
+   budget:{txt:"carga inicial <b>19.4k</b> / 200k tokens",note:"base 17.8k · metadatos skills 1.6k · <b>9.7%</b> de la ventana"},
+   tren:{
+     beta:[
+       {comp:"auditoria-tecnica",tc:"skill",from:"1.2.0",to:"1.2.1-beta.0",st:"run",txt:"eval-gate corriendo · 6/14 evals",pct:43,org:"Nacida hoy del hallazgo crítico (18% fallo paso 3) vía dock fábrica."},
+       {comp:"mcp-tracker",tc:"mcp",from:"0.8.2",to:"0.9.0-beta.1",st:"fail",txt:"gate FALLÓ · 2 regresiones",pct:100,org:"Recorte de superficie 12→4 tools rompió 2 evals de alta de issues. Vuelve al horno."}
+     ],
+     listo:[
+       {comp:"registro-excepciones",tc:"hook",from:"0.9.0",to:"1.0.0",st:"ok",txt:"gate ✓ 14/14 · TQR +6%",pct:100,org:"Listo para promote a estable. El canary cumplió 30 días."}
+     ],
+     pub:[
+       {comp:"implementar-feature",tc:"skill",from:"3.1.2",to:"3.2.0",st:"ok",txt:"publicada 2026-06-28",pct:100,org:"cliente-acme/webapp ✓ instalada · alpacapurpura/devhub — pendiente pull."}
+     ]
+   },
+   hist:[
+     {v:"v1.3.0",f:"2026-06-21",add:2,mod:3,del:1,hito:"<b>La auditoría adversarial entra al carril Calidad</b> — nace <code>auditor</code>; muere <code>revision-manual</code>. Ficha AR-14 del ledger del arnés.",cur:1},
+     {v:"v1.2.0",f:"2026-05-30",add:4,mod:1,del:0,hito:"<b>Banda Guardia completa</b> — los 4 hooks transversales operativos; el proceso se vuelve implícito de verdad."},
+     {v:"v1.1.0",f:"2026-05-12",add:3,mod:2,del:0,hito:"Carril Despliegue: nace el trío UAT/prod/rollback sobre <code>mcp-cloud</code>."},
+     {v:"v1.0.0",f:"2026-04-28",add:21,mod:0,del:0,hito:"<b>Nacimiento</b> — 21 componentes, telemetría conectada de fábrica (principio 9). Primer install: <code>cliente-acme/webapp</code>.",birth:1}
+   ]
+ },
+ "pm-discovery":{
+   nm:"arnes-pm-discovery",canal:"estable",ver:"0.9.0",rol:"Product manager",proc:"Discovery continuo",
+   lanes:PM_LANES,N:PM_N,E:PM_EDGES,telem:true,
+   runs30:24,rpd:"0.8",exito:94,p95:"6.1m",comp:9,tok30:410000,costo30:"$6",eval:{v:"12/12",s:"ok"},
+   proyectos:["cliente-acme/producto"],spark:[91,93,95,90,96,94,92,94],sparkR:[1,1,0,2,1,1,1,1],
+   budget:{txt:"carga inicial <b>7.1k</b> / 200k tokens",note:"base 5.9k · metadatos 1.2k · <b>3.6%</b> de la ventana"},
+   tren:{beta:[{comp:"arbol-oportunidades",tc:"skill",from:"0.9.0",to:"1.0.0-beta.2",st:"run",txt:"eval-gate corriendo · 9/12 evals",pct:75,org:"Candidata a estable tras 3 semanas de canary."}],listo:[],pub:[]},
+   hist:[
+     {v:"v0.9.0",f:"2026-06-10",add:2,mod:1,del:0,hito:"Nace <code>arbol-oportunidades</code> (beta) — cierre del loop discovery→priorización.",cur:1},
+     {v:"v0.8.0",f:"2026-05-19",add:7,mod:0,del:0,hito:"<b>Nacimiento</b> — 7 componentes.",birth:1}
+   ]
+ },
+ "fin-cierre":{
+   nm:"arnes-finanzas-cierre",canal:"beta",ver:"0.3.0",rol:"Analista de finanzas",proc:"Cierre mensual",
+   lanes:FIN_LANES,N:FIN_N,E:FIN_EDGES,telem:false,
+   runs30:0,rpd:"0",exito:null,p95:null,comp:7,tok30:0,costo30:"—",eval:null,
+   proyectos:["cliente-lumbre/contabilidad"],spark:[],sparkR:[],
+   baseMiss:["flujos-cierre","politica-ajustes"],
+   budget:{txt:"carga inicial <b>3.2k</b> / 200k tokens",note:"base 1.4k · metadatos 1.8k · <b>1.6%</b> de la ventana"},
+   tren:{beta:[],listo:[],pub:[]},
+   hist:[{v:"v0.3.0",f:"2026-07-01",add:7,mod:0,del:0,hito:"<b>Nacimiento</b> — primer arnés fuera de software: mismo estándar constitucional, proceso contable. Sin corridas aún.",birth:1,cur:1}]
+ },
+ "nuevo":{
+   nm:"arnes-ops-soporte",canal:"naciendo",ver:"—",rol:"Agente de soporte",proc:"Gestión de tickets",
+   lanes:NEW_LANES,N:NEW_N,E:[],telem:false,birth:true,
+   runs30:0,rpd:"0",exito:null,p95:null,comp:6,tok30:0,costo30:"—",eval:null,proyectos:[],spark:[],sparkR:[],
+   tren:{beta:[],listo:[],pub:[]},hist:[]
+ }
+};
+const PF_ORDER=["dev-fullcycle","pm-discovery","fin-cierre"];
+const MKS=[{url:"alpacapurpura/prenter-marketplace",canal:"estable",dest:"2 proyectos publican aquí"}];
+
+/* ══════════ estado + ruteo ══════════ */
+let S={scr:"portafolio",arnes:null,view:"mapa",capa:"estructura",sel:null,dock:null,run:null,vista:"conv",itab:"resumen",rnf:"todas",compFilter:null,replay:null,tfilter:null};
+let lastHash="";
+function syncHash(){
+  let h;
+  if(S.scr==="portafolio")h="#/portafolio";
+  else{
+    h=`#/a/${S.arnes}/${S.view}`;
+    if(S.view==="mapa")h+=`?capa=${S.capa}${S.sel?`&sel=${S.sel}`:""}${S.dock?`&dock=${S.dock.mode}`:""}${S.replay?`&replay=${S.replay}`:""}`;
+    if(S.view==="corridas"&&S.run)h+=`?run=${S.run}&vista=${S.vista}`;
+  }
+  lastHash=h;
+  if(location.hash!==h)location.hash=h;
+}
+function parseHash(){
+  const m=location.hash.match(/^#\/a\/([^/]+)\/(mapa|corridas|diag|tren|historia)(\?(.*))?$/);
+  if(!m){go({scr:"portafolio",arnes:null,sel:null,dock:null,run:null});return}
+  const q=new URLSearchParams(m[4]||"");
+  go({scr:"arnes",arnes:ARNESES[m[1]]?m[1]:"dev-fullcycle",view:m[2],
+      capa:["estructura","tokens","perf","proceso"].includes(q.get("capa"))?q.get("capa"):"estructura",
+      sel:q.get("sel")||null,dock:null,replay:q.get("replay")||null,
+      run:q.get("run")||null,vista:["conv","arbol","water"].includes(q.get("vista"))?q.get("vista"):"conv"});
+}
+window.addEventListener("hashchange",()=>{if(location.hash!==lastHash)parseHash()});
+function go(patch){Object.assign(S,patch);render();syncHash()}
+
+/* ══════════ render global ══════════ */
+function render(){
+  document.body.dataset.scr=S.scr;
+  document.body.dataset.view=S.view;
+  document.body.dataset.capa=S.capa;
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  if(S.scr==="portafolio"){renderPortafolio();$("v-portafolio").classList.add("on");return}
+  const A=ARNESES[S.arnes];
+  $("pick-nm").textContent=A.nm;
+  $("pick-v").textContent=A.ver==="—"?"":"v"+A.ver;
+  const ch=$("pick-ch");ch.textContent=A.canal;ch.className="chip "+A.canal;
+  renderTabs(A);
+  if(S.view==="mapa"){renderMapa(A);$("v-mapa").classList.add("on");requestAnimationFrame(()=>{drawEdges();if(S.sel&&A.N[S.sel]&&!S.dock)select(S.sel,false)})}
+  else if(S.view==="corridas"){renderCorridas(A);$("v-corridas").classList.add("on")}
+  else if(S.view==="diag"){renderDiag(A);$("v-diag").classList.add("on")}
+  else if(S.view==="tren"){renderTren(A);$("v-tren").classList.add("on")}
+  else{renderHistoria(A);$("v-historia").classList.add("on")}
+}
+
+/* ══════════ S1 portafolio — tarjetas RED ══════════ */
+function estadoDe(A){
+  if(A.birth)return{k:"rollout",ic:"◐",lb:"naciendo",tip:"build headless en curso"};
+  if(!A.telem)return{k:"gris",ic:"◌",lb:"sin datos",tip:"0 corridas 30d — gris ≠ verde: sin uso no es salud"};
+  const crit=Object.values(A.N).some(n=>n.f.some(f=>f.s==="crit"));
+  const gateFail=A.tren.beta.some(c=>c.st==="fail");
+  if(A.exito<85)return{k:"critico",ic:"✕",lb:"crítico",tip:"umbral: éxito <85%"};
+  if(crit||gateFail)return{k:"atencion",ic:"▲",lb:"atención",tip:"umbral: hallazgo crítico abierto o gate fallado"};
+  return{k:"sano",ic:"✓",lb:"sano",tip:"umbral: éxito ≥90%, sin críticos, gates verdes"};
+}
+const ORD={critico:0,atencion:1,sano:2,rollout:3,gris:4};
+function spark(arr,base){return `<div class="spark${arr.length?"":" mut"}">${(arr.length?arr:[1,1,1,1,1,1,1,1]).map(v=>`<span style="height:${arr.length?Math.max(8,(v-base)/(100-base)*100):8}%"></span>`).join("")}</div>`}
+function sparkR(arr){const mx=Math.max(1,...arr);return `<div class="spark${arr.length?"":" mut"}">${(arr.length?arr:[1,1,1,1,1,1,1,1]).map(v=>`<span style="height:${arr.length?Math.max(8,v/mx*100):8}%"></span>`).join("")}</div>`}
+function renderPortafolio(){
+  const runs=PF_ORDER.reduce((a,k)=>a+ARNESES[k].runs30,0);
+  const tok=PF_ORDER.reduce((a,k)=>a+(ARNESES[k].tok30||0),0);
+  const nH=PF_ORDER.reduce((a,k)=>a+Object.values(ARNESES[k].N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0),0);
+  const beta=PF_ORDER.reduce((a,k)=>a+ARNESES[k].tren.beta.length+ARNESES[k].tren.listo.length,0);
+  $("pf-kpis").innerHTML=`
+    <div class="kpi"><div class="v">${PF_ORDER.length}</div><div class="l">arneses</div></div>
+    <div class="kpi"><div class="v">${runs}</div><div class="l">corridas 30d</div></div>
+    <div class="kpi"><div class="v">${fmtM(tok)}</div><div class="l">tokens 30d</div></div>
+    <div class="kpi"><div class="v">$35</div><div class="l">costo 30d</div></div>
+    <div class="kpi"><div class="v ${nH?"warn":""}">${nH}</div><div class="l">hallazgos abiertos</div></div>
+    <div class="kpi"><div class="v">${beta}</div><div class="l">candidatos en el tren</div></div>`;
+  const g=$("pf-grid");g.innerHTML="";
+  const orden=[...PF_ORDER].sort((a,b)=>ORD[estadoDe(ARNESES[a]).k]-ORD[estadoDe(ARNESES[b]).k]);
+  orden.forEach(k=>{
+    const A=ARNESES[k];const est=estadoDe(A);
+    const nF=Object.values(A.N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0);
+    const tr=A.tren;const enVuelo=tr.beta.length+tr.listo.length;
+    const card=document.createElement("button");
+    card.className="pf-card";
+    card.innerHTML=`
+      <div class="pf-top"><code>${A.nm}</code><span class="estado ${est.k}" title="${est.tip}">${est.ic} ${est.lb}</span></div>
+      <div class="pf-rol">${A.rol} · ${A.proc}${A.ver!=="—"?` · <span style="font-family:var(--mono)">v${A.ver}</span>`:""} · <span class="chip ${A.canal}" style="font-size:9px">${A.canal}</span></div>
+      <div class="senales">
+        <div class="sen"><div class="v">${A.telem?A.rpd:"—"}</div><div class="l" title="corridas por día (30d)">corr/día</div>${sparkR(A.sparkR)}</div>
+        <div class="sen"><div class="v ${A.telem?(A.exito>=90?"ok":A.exito>=85?"warn":"crit"):""}">${A.telem?A.exito+"%":"—"}</div><div class="l" title="corridas exitosas (30d)">éxito</div>${spark(A.spark,70)}</div>
+        <div class="sen"><div class="v">${A.p95||"—"}</div><div class="l" title="duración p95 de corrida">p95</div></div>
+        <div class="sen"><div class="v">${A.telem?fmtM(A.tok30):"—"}</div><div class="l" title="tokens y costo 30d">${A.telem?"tok · "+A.costo30:"tokens"}</div></div>
+        <div class="sen"><div class="v ${A.eval?A.eval.s:""}">${A.eval?A.eval.v:"—"}</div><div class="l" title="resultado del último eval-gate">eval</div></div>
+      </div>
+      ${enVuelo?`<div class="pf-tren">tren: ${tr.beta.filter(c=>c.st!=="run").length?`<span class="tchip warn">${tr.beta.filter(c=>c.st!=="run").length} en horno</span>`:""}${tr.beta.filter(c=>c.st==="run").length?`<span class="tchip">1 en gate</span>`:""}${tr.listo.length?`<span class="tchip ok">${tr.listo.length} listo p/ promote</span>`:""}</div>`:""}
+      ${!A.telem&&A.baseMiss?`<div class="pf-tren"><span class="tchip warn">base incompleta</span><span class="tchip">sin telemetría aún</span></div>`:""}
+      <div class="pf-foot">${A.proyectos.map(p=>`<span class="pf-proj">${p}</span>`).join("")}${nF?`<span class="pf-proj" style="color:var(--warn);border-color:var(--warn)">${nF} hallazgo${nF===1?"":"s"}</span>`:""}</div>`;
+    card.addEventListener("click",()=>go({scr:"arnes",arnes:k,view:"mapa",capa:"estructura",sel:null,dock:null,run:null}));
+    g.appendChild(card);
+  });
+  const imp=document.createElement("button");
+  imp.className="pf-new";imp.id="pf-import";
+  imp.innerHTML=`<span class="plus">⇣</span><span><b>Importar arnés existente</b><br><span style="font-size:11.5px">carpeta local · repo git · marketplace → chequeo constitucional → adopción</span></span>`;
+  imp.addEventListener("click",()=>{go({scr:"arnes",arnes:"dev-fullcycle",view:"mapa",capa:"estructura",sel:null,dock:null});openDock("importar",null)});
+  g.appendChild(imp);
+  const nv=document.createElement("button");
+  nv.className="pf-new";
+  nv.innerHTML=`<span class="plus">+</span><span><b>Nuevo arnés</b><br><span style="font-size:11.5px">grill conversacional → spec → build headless</span></span>`;
+  nv.addEventListener("click",()=>{go({scr:"arnes",arnes:"nuevo",view:"mapa",capa:"estructura",sel:null,dock:null});openDock("crear-arnes",null)});
+  g.appendChild(nv);
+}
+
+/* ══════════ tabs / picker / gear ══════════ */
+function renderTabs(A){
+  const nF=Object.values(A.N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0);
+  const T=[["mapa","Mapa"],["corridas","Corridas"],["diag","Diagnóstico"],["tren","Tren"],["historia","Historia"]];
+  $("tabs").innerHTML=T.map(([id,lb])=>`<button data-t="${id}" aria-pressed="${S.view===id}">${lb}${id==="diag"&&nF?`<span class="n">${nF}</span>`:""}</button>`).join("");
+  $("tabs").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>go({view:b.dataset.t,dock:null,run:null,compFilter:null})));
+  $("capas").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c===S.capa)));
+}
+$("capas").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>go({capa:b.dataset.c})));
+$("wm").addEventListener("click",()=>go({scr:"portafolio",sel:null,dock:null,run:null}));
+$("pick").addEventListener("click",e=>{e.stopPropagation();$("pick-menu").classList.toggle("open");buildPickMenu()});
+$("pick").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("pick-menu").classList.toggle("open");buildPickMenu()}});
+document.addEventListener("click",()=>$("pick-menu").classList.remove("open"));
+function buildPickMenu(){
+  const m=$("pick-menu");
+  m.innerHTML=PF_ORDER.map(k=>{const A=ARNESES[k];
+    return `<button data-k="${k}"><code>${A.nm}</code><span class="chip ${A.canal}">${A.canal}</span></button>`}).join("")
+    +`<div class="sep"></div><button data-k="__pf"><code>← Portafolio</code></button>`;
+  m.querySelectorAll("button").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();m.classList.remove("open");
+    const k=b.dataset.k;
+    if(k==="__pf")go({scr:"portafolio",sel:null,dock:null,run:null});
+    else go({scr:"arnes",arnes:k,sel:null,dock:null,run:null});
+  }));
+}
+$("gear").addEventListener("click",()=>{renderMks();$("mk-overlay").classList.add("open")});
+$("mk-close").addEventListener("click",()=>$("mk-overlay").classList.remove("open"));
+$("mk-overlay").addEventListener("click",e=>{if(e.target===$("mk-overlay"))$("mk-overlay").classList.remove("open")});
+function renderMks(){
+  $("mk-list").innerHTML=MKS.map(m=>`<div class="mk"><span class="chip ${m.canal}">${m.canal}</span><code>${m.url}</code><span class="dest">${m.dest}</span></div>`).join("");
+}
+$("mk-addbtn").addEventListener("click",()=>{
+  const v=$("mk-url").value.trim();
+  if(!v){showToast("Pega la URL git del marketplace (marketplace.json + semver/SHA).");return}
+  MKS.push({url:v.replace(/^git@github\.com:/,"").replace(/\.git$/,""),canal:"beta",dest:"sin proyectos aún"});
+  $("mk-url").value="";renderMks();
+  showToast("Marketplace conectado (demo) — aparece como destino de publish en el Tren.");
+});
+
+/* ══════════ S2 mapa ══════════ */
+function nodeEl(id,A){
+  const n=A.N[id];
+  const b=document.createElement("button");
+  b.className="node"+(n.prop?" proposed":"")+(n.f.some(x=>x.s!=="info")?" exc":"");
+  b.id="n-"+id;b.dataset.type=n.t;b.title=n.nm+" — "+TYPN[n.t];
+  if(n.heat)b.dataset.heat=n.heat;
+  if(n.tc>=300&&!n.heat)b.dataset.heat=1;
+  if(n.dead)b.dataset.dead=1;
+  const gateBeta=A.tren&&A.tren.beta.some(c=>c.st==="fail"&&c.comp===n.nm);
+  if(gateBeta)b.dataset.gate=1;
+  b.innerHTML=`<span class="top"><span class="glyph">${GLY[n.t]}</span><span class="nm">${n.nm}</span><span class="rel${n.c==="beta"?" beta":""}"></span></span>
+  <span class="sub typ">${TYPN[n.t]}</span>
+  <span class="sub tok">${A.telem||n.tc?`${n.tc} carga${n.ti?` · ${fmt(n.ti)} al invocar`:""}`:"— sin medir"}</span>
+  <span class="sub perf">${n.alw?"siempre en contexto":A.telem?`${n.inv}× 30d${n.inv?` · ${n.ex}% éxito`:""}`:"— sin corridas"}</span>
+  <span class="flag">${gateBeta?"gate falló":"sin uso 30d"}</span>`;
+  b.addEventListener("click",()=>select(id,true));
+  return b;
+}
+function replaySeq(A){
+  const r=(RUNS[S.arnes]||[]).find(x=>x.id===S.replay);
+  if(!r)return null;
+  const seq=[];const seen=new Set();
+  flatPasos(r.pasos).forEach(p=>{if(p.comp&&A.N[p.comp]&&!seen.has(p.comp)){seen.add(p.comp);seq.push({comp:p.comp,lb:p.lb})}});
+  return {r,seq};
+}
+function renderMapa(A){
+  const sb=$("statebar");
+  const rp=S.replay?replaySeq(A):null;
+  if(rp){
+    sb.className="statebar replay";
+    sb.innerHTML=`<span class="dotp"></span><div class="rseq" style="flex:1"><b>Reproduciendo corrida</b> — ${rp.r.disp} · ${rp.r.f} · ${rp.r.okk?"✓":"✕"}<br>${
+      flatPasos(rp.r.pasos).map(p=>{
+        const i=rp.seq.findIndex(s2=>s2.comp===p.comp);
+        return p.comp&&i>=0?`<b>${p.lb} #${i+1}</b>`:p.lb;
+      }).join(" → ")}</div>
+      <span><button id="rp-ver">Ver corrida</button><button id="rp-out">Salir</button></span>`;
+    sb.style.display="flex";
+  }
+  else if(A.birth){sb.className="statebar birth";sb.innerHTML=`<span class="dotp"></span><span><b>Naciendo</b> — build headless en curso: los componentes aparecen punteados a medida que el conductor los forja. Telemetría conectada de nacimiento (principio 9).</span>`;sb.style.display="flex"}
+  else if(!A.telem){sb.className="statebar tel";sb.innerHTML=`<span>◌ <b>Sin telemetría aún</b> — el arnés no registra corridas. Métricas en «—»; nada se inventa (procedencia obligatoria).</span>`;sb.style.display="flex"}
+  else sb.style.display="none";
+  const rg=$("row-guardia");rg.innerHTML="";
+  Object.keys(A.N).filter(k=>A.N[k].l==="guardia").forEach(id=>rg.appendChild(nodeEl(id,A)));
+  const lanesEl=$("lanes");lanesEl.innerHTML="";
+  A.lanes.forEach((L,i)=>{
+    const ids=Object.keys(A.N).filter(k=>A.N[k].l===L.id);
+    const sum=ids.reduce((a,k)=>a+A.N[k].tc,0);
+    const el=document.createElement("section");
+    el.className="lane"+(L.ghost?" ghost":"");
+    el.innerHTML=`<div class="lane-hd"><span class="idx">FASE ${i+1}</span><h2>${L.n}</h2>
+      <button class="lane-add" title="Crear componente en ${L.n}" aria-label="Crear componente en ${L.n}">+</button>
+      <div class="lane-meta"><span class="mchip ${L.exc?"warn":"ok"}">${L.runs}</span><span class="mchip ${L.exc?"warn":"ok"}">${L.exc} exc</span><span class="mchip">cumpl. ${L.cum}</span></div></div>
+    <div class="lane-body" id="lb-${L.id}"></div><div class="lane-sum">Σ carga ${fmt(sum)} tok</div>`;
+    lanesEl.appendChild(el);
+    el.querySelector(".lane-add").addEventListener("click",()=>openDock("crear-comp",L.n));
+    const body=el.querySelector(".lane-body");
+    ids.forEach(id=>body.appendChild(nodeEl(id,A)));
+  });
+  const bl=$("base-label");
+  if(A.baseMiss){
+    $("band-base").classList.add("alert");
+    bl.innerHTML=`<h2>Base</h2><span class="miss">incompleta — faltan: ${A.baseMiss.map(m=>`<code style="font-family:var(--mono)">${m}</code>`).join(" · ")}</span><button class="cta" id="cta-base">Capturar base</button>`;
+  }else{
+    $("band-base").classList.remove("alert");
+    bl.innerHTML=`<h2>Base</h2><span>conocimiento del proyecto as code — el framework no opera sin esto</span>`;
+  }
+  const rb=$("row-base");rb.innerHTML="";
+  Object.keys(A.N).filter(k=>A.N[k].l==="base").forEach(id=>rb.appendChild(nodeEl(id,A)));
+  const cta=$("cta-base");if(cta)cta.addEventListener("click",()=>openDock("captura",null));
+  const bg=$("budget");
+  bg.innerHTML=A.budget?`<span>${A.budget.txt}</span><div class="bar"><span class="seg-base"></span><span class="seg-meta"></span></div><span>${A.budget.note}</span>`:"";
+  if(rp){
+    rp.seq.forEach((s2,i)=>{const el=$("n-"+s2.comp);if(el){const b=document.createElement("span");b.className="seq";b.textContent=i+1;el.appendChild(b)}});
+    $("rp-ver").addEventListener("click",()=>go({view:"corridas",run:rp.r.id,vista:"arbol",replay:null}));
+    $("rp-out").addEventListener("click",()=>go({replay:null}));
+  }
+  applyTfilter();
+  if(S.dock)openDock(S.dock.mode,S.dock.ctx,true);else closeDock(true);
+  if(!S.sel)inspEmpty(A);
+}
+function applyTfilter(){
+  document.querySelectorAll("#legend [data-tf]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tf===S.tfilter)));
+  document.querySelectorAll(".node").forEach(n=>n.classList.toggle("dim",!!S.tfilter&&n.dataset.type!==S.tfilter));
+}
+document.querySelectorAll("#legend [data-tf]").forEach(b=>b.addEventListener("click",()=>{
+  S.tfilter=S.tfilter===b.dataset.tf?null:b.dataset.tf;applyTfilter();
+}));
+function inspEmpty(A){
+  $("rail").innerHTML=`<div class="insp" id="insp"><p class="sec-lb">Inspector</p><p class="hint">${A.birth?"El arnés está naciendo — conversa en el dock; cada componente que el conductor forje aparecerá aquí.":"Clic en un nodo: identidad, métricas, hallazgos, contenido editable y sus corridas.<br><br>«+» en un carril crea un componente conversando."}</p></div>`;
+  $("rail").classList.remove("dock-on");
+}
+function drawEdges(){
+  const A=ARNESES[S.arnes];if(!A||S.view!=="mapa")return;
+  const svg=$("edges"),content=$("content");
+  const cr=content.getBoundingClientRect();
+  svg.setAttribute("viewBox",`0 0 ${content.scrollWidth} ${content.scrollHeight}`);
+  svg.style.width=content.scrollWidth+"px";svg.style.height=content.scrollHeight+"px";
+  const defs=`<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0L8,4L0,8z" fill="context-stroke"/></marker></defs>`;
+  svg.innerHTML=defs+(A.E||[]).map(([f,t,kind,vol])=>{
+    const a=$("n-"+f),b=$("n-"+t);
+    if(!a||!b)return"";
+    const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
+    const x1=ra.right-cr.left,y1=ra.top+ra.height/2-cr.top;
+    const x2=rb.left-cr.left,y2=rb.top+rb.height/2-cr.top;
+    const dx=Math.max(30,(x2-x1)/2);
+    const w=S.capa==="perf"&&kind==="inv"?Math.min(4,1+vol/25):1.2;
+    return `<path class="edge ${kind}" data-f="${f}" data-t="${t}" stroke-width="${w}" ${kind!=="know"?'marker-end="url(#arr)"':""} d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>`;
+  }).join("");
+  if(S.replay){
+    const A2=ARNESES[S.arnes];const rp=replaySeq(A2);
+    if(rp)for(let i=0;i<rp.seq.length-1;i++){
+      svg.querySelectorAll(`.edge[data-f="${rp.seq[i].comp}"][data-t="${rp.seq[i+1].comp}"],.edge[data-f="${rp.seq[i+1].comp}"][data-t="${rp.seq[i].comp}"]`).forEach(p=>p.classList.add("hot"));
+    }
+  }
+  if(S.sel)highlightEdges(S.sel);
+}
+function highlightEdges(id){
+  $("edges").querySelectorAll(".edge").forEach(p=>p.classList.toggle("hot",p.dataset.f===id||p.dataset.t===id));
+}
+window.addEventListener("resize",()=>{if(S.scr==="arnes"&&S.view==="mapa")drawEdges()});
+
+/* ══════════ S3 inspector con pestañas ══════════ */
+function runsDeComp(A,id){
+  return (RUNS[S.arnes]||[]).filter(r=>r.comp===id||r.pasos.some(p=>p.comp===id));
+}
+function select(id,user){
+  const A=ARNESES[S.arnes];const n=A.N[id];if(!n)return;
+  S.sel=id;S.itab="resumen";if(user)syncHash();
+  document.body.classList.add("has-sel");
+  document.querySelectorAll(".node.sel").forEach(e=>e.classList.remove("sel"));
+  const el=$("n-"+id);if(el){el.classList.add("sel");el.scrollIntoView({block:"nearest",inline:"nearest"})}
+  highlightEdges(id);
+  if(S.dock){S.dock=null}
+  renderInsp();
+}
+function renderInsp(){
+  const A=ARNESES[S.arnes];const id=S.sel;const n=A.N[id];
+  $("rail").classList.remove("dock-on");
+  const tabs=`<div class="itabs" role="tablist">
+    <button data-it="resumen" aria-pressed="${S.itab==="resumen"}">Resumen</button>
+    <button data-it="contenido" aria-pressed="${S.itab==="contenido"}">Contenido</button>
+    <button data-it="corridas" aria-pressed="${S.itab==="corridas"}">Corridas</button></div>`;
+  const head=`<div class="type-row"><span class="glyph" style="--tc:var(--c-${n.t})">${GLY[n.t]}</span><span class="type-lb">${TYPN[n.t]}</span></div>
+   <h3>${n.nm}</h3>
+   <div class="ver">${n.ver!=="—"?`v${n.ver}`:"sin versión"} <span class="chip ${n.c}">${n.c}</span>${n.prop?`<span class="chip" style="background:var(--surface2);color:var(--muted)">propuesto</span>`:""}</div>`;
+  let body="";
+  if(S.itab==="resumen"){
+    body=`<p class="desc">${n.d}</p>
+   <div class="metrics">
+     <div class="metric"><div class="v">${n.alw?(A.telem?A.runs30+"×":"—"):A.telem?n.inv+"×":"—"}</div><div class="l">${n.alw?"sesiones que la cargan":"invocaciones 30d"}</div></div>
+     <div class="metric"><div class="v ${A.telem&&n.inv?(n.ex>=90?"ok":n.ex>=85?"warn":"crit"):""}">${A.telem&&n.inv?n.ex+"%":"—"}</div><div class="l">éxito</div></div>
+     <div class="metric"><div class="v">${n.tc?fmt(n.tc):"—"}</div><div class="l">tokens al cargar</div></div>
+     <div class="metric"><div class="v">${n.ti?fmt(n.ti):"—"}</div><div class="l">tokens por invocación</div></div>
+     <div class="metric" style="grid-column:1/-1"><div class="v">${n.alw?(A.telem?fmtM(A.runs30*n.tc):"—"):A.telem&&n.inv?fmtM(n.inv*(n.ti||n.tc)):"—"}</div><div class="l">consumo 30d — cada componente rinde cuentas de sus tokens (principio 11)</div></div>
+   </div>
+   ${(()=>{const rel={inv:[],por:[],lee:[],leidoPor:[],esc:[],escPor:[]};
+     (A.E||[]).forEach(([f,t2,k])=>{
+       if(f===id){(k==="inv"?rel.inv:k==="know"?rel.lee:rel.esc).push(t2)}
+       if(t2===id){(k==="inv"?rel.por:k==="know"?rel.leidoPor:rel.escPor).push(f)}
+     });
+     const row=(lb,arr)=>arr.length?`<div class="relrow"><span class="rl">${lb}</span>${arr.map(x=>`<button class="relchip" data-rel="${x}">${A.N[x].nm}</button>`).join("")}</div>`:"";
+     const h2=row("invoca →",rel.inv)+row("← invocado por",rel.por)+row("lee",rel.lee)+row("← leído por",rel.leidoPor)+row("escribe →",rel.esc)+row("← escrito por",rel.escPor);
+     return h2?`<p class="sec-lb">Relaciones (quién llama a quién)</p><div class="rels">${h2}</div>`:"";})()}
+   <p class="sec-lb">Hallazgos</p>
+   ${n.f.length?n.f.map(f=>`<div class="finding ${f.s==="crit"?"crit":f.s==="info"?"info":""}">${f.x}</div>`).join(""):`<p class="empty-f">Sin hallazgos abiertos.</p>`}
+   <div class="actions">
+     <button class="primary" id="act-edit">Editar conversando</button>
+     <button id="act-ab">Evaluar A/B contra v anterior</button>
+     <button id="act-prom" ${n.c!=="beta"?"disabled style='opacity:.5;cursor:not-allowed'":""}>Promover a estable</button>
+     <button id="act-hist">Ver en Historia</button>
+   </div>`;
+  }else if(S.itab==="contenido"){
+    const src=srcFor(id,n);
+    body=`<div class="verchips">${n.ver!=="—"?`<span class="vc cur">v${n.ver} · ${n.c}</span><span class="vc" data-toast="Diff entre versiones — el visor completo se diseña con datos reales (fase 4).">v${n.ver.replace(/\d+$/,m=>Math.max(0,m-1))} · diff</span><span class="vc" data-toast="Historial completo de versiones del componente — fase 4.">historial…</span>`:`<span class="vc cur">versiona con el arnés</span>`}</div>
+    <div class="src" id="src-view">${src.split("\n").map(l=>`<div class="cl">${l.replace(/&/g,"&amp;").replace(/</g,"&lt;")||" "}</div>`).join("")}</div>
+    <div class="actions"><button class="primary" id="act-srced">Editar fuente</button><button id="act-edit2">Editar conversando (dock)</button></div>
+    <p class="hint" style="font-size:10.5px;margin-top:8px">Editor real: CodeMirror 6 embebido. Guardar = diff antes de confirmar + nota de cambio → nace beta → tren. Versiones inmutables; deploy = mover canal, jamás editar historia.</p>`;
+  }else{
+    const rs=runsDeComp(A,id);
+    body=`<p class="sec-lb">Corridas donde actuó</p>
+    ${rs.length?rs.map(r=>`<button class="mini-run" data-run="${r.id}"><span class="st ${r.okk?"ok":"bad"}"></span><span>${r.f} · ${r.disp}</span><code>${r.dur} · ${r.costo}</code></button>`).join(""):`<p class="empty-f">${A.telem?"Sin corridas registradas para este componente.":"Sin telemetría aún."}</p>`}
+    ${rs.length?`<div class="actions"><button id="act-allruns">Ver todas las corridas del arnés</button></div>`:""}`;
+  }
+  $("rail").innerHTML=`<div class="insp" id="insp">${tabs}${head}${body}</div>`;
+  $("rail").querySelectorAll(".itabs button").forEach(b=>b.addEventListener("click",()=>{S.itab=b.dataset.it;renderInsp()}));
+  const ae=$("act-edit")||$("act-edit2");
+  if($("act-edit"))$("act-edit").addEventListener("click",()=>openDock("editar",id));
+  if($("act-edit2"))$("act-edit2").addEventListener("click",()=>openDock("editar",id));
+  if($("act-hist"))$("act-hist").addEventListener("click",()=>go({view:"historia",dock:null}));
+  if($("act-prom"))$("act-prom").addEventListener("click",()=>{if(n.c==="beta")go({view:"tren",dock:null})});
+  if($("act-ab"))$("act-ab").addEventListener("click",()=>go({view:"tren",dock:null}));
+  if($("act-allruns"))$("act-allruns").addEventListener("click",()=>go({view:"corridas",run:null,compFilter:null}));
+  $("rail").querySelectorAll("[data-rel]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.rel,true)));
+  $("rail").querySelectorAll("[data-run]").forEach(b=>b.addEventListener("click",()=>go({view:"corridas",run:b.dataset.run,vista:"conv"})));
+  if($("act-srced"))$("act-srced").addEventListener("click",()=>editSrc(id,n));
+}
+function editSrc(id,n){
+  const src=srcFor(id,n);
+  const wrap=$("src-view").parentElement;
+  $("src-view").outerHTML=`<textarea class="srced" id="srced">${src.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</textarea>`;
+  wrap.querySelector(".actions").innerHTML=`<button class="primary" id="act-save">Guardar → ver diff</button><button id="act-cancel">Cancelar</button>`;
+  $("act-cancel").addEventListener("click",()=>renderInsp());
+  $("act-save").addEventListener("click",()=>{
+    const nuevo=$("srced").value;
+    const a=src.split("\n"),b=nuevo.split("\n");
+    const setA=new Set(a),setB=new Set(b);
+    const dels=a.filter(l=>!setB.has(l)).length,adds=b.filter(l=>!setA.has(l)).length;
+    const diffHtml=[...a.filter(l=>!setB.has(l)).map(l=>({l,c:"del"})),...b.filter(l=>!setA.has(l)).map(l=>({l,c:"add"}))];
+    wrap.querySelector(".srced").outerHTML=`<div class="src">${
+      (diffHtml.length?diffHtml:[{l:"(sin cambios)",c:""}]).map(x=>`<div class="cl ${x.c}">${(x.l||" ").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</div>`).join("")
+    }</div><input class="nota" id="nota" placeholder="Nota de cambio (estilo commit) — por qué">`;
+    wrap.querySelector(".actions").innerHTML=`<button class="primary" id="act-confirm">Confirmar → nace beta</button><button id="act-back">Volver a editar</button>`;
+    $("act-back").addEventListener("click",()=>{renderInsp();S.itab="contenido";renderInsp()});
+    $("act-confirm").addEventListener("click",()=>{
+      showToast(`${n.nm} ${n.ver!=="—"?"v"+n.ver+"-beta.0":"(beta)"} creada con ${adds} altas / ${dels} bajas — entra al tren (demo estática).`);
+      S.itab="resumen";renderInsp();
+    });
+  });
+}
+
+/* ══════════ S4 dock fábrica ══════════ */
+const DOCK_TITLES={editar:"Fábrica · editar componente","crear-comp":"Fábrica · nuevo componente","crear-arnes":"Fábrica · nuevo arnés",captura:"Fábrica · capturar base",importar:"Fábrica · importar arnés"};
+const DOCK_SES={editar:{sid:"f3d9b7c1",run:"r1"},"crear-comp":{sid:"a1c48e02",run:null},"crear-arnes":{sid:"e7b21f90",run:null},captura:{sid:"b4f7d3a8",run:null},importar:{sid:"d2a95c11",run:null}};
+function dockScript(mode,ctx){
+  const A=ARNESES[S.arnes];
+  if(mode==="editar"){
+    const n=A.N[ctx];
+    const chip=`<span class="glyph" style="--tc:var(--c-${n.t})">${GLY[n.t]}</span><code>${n.nm}</code> ${n.ver!=="—"?`<span style="font-family:var(--mono)">v${n.ver}</span>`:""}`;
+    if(ctx==="s-auditoria")return {ctx:chip,ses:{sid:"9d41e0c2",run:"r2",modelo:"claude-sonnet-5",tok:"12.4k",ctx:23,costo:"$0.11"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · contexto: componente + hallazgos + 3 trazas de fallo (JSONL ~/.claude)"},
+      {w:"sys",t:"hook UserPromptSubmit: guardian-proceso · 180 tok"},
+      {w:"ia",t:`Hallazgo crítico activo: <b>18% de fallo en el paso 3</b> (chequeo de migraciones) — las 3 trazas fallidas son monorepos con workspaces. Propongo: detectar workspace y delegar el chequeo a un subagente por paquete. ¿Voy?`},
+      {w:"op",t:"Dale, pero el subagente solo lectura."},
+      {w:"ia",t:`Hecho. Cambios: paso 3 reescrito con detección de workspace · nace subagente <b>auditor-migraciones</b> (read-only) · 2 evals nuevas con los monorepos que fallaron.`},
+      {w:"art",t:"auditoria-tecnica v1.2.1-beta.0",d:"Forjada por el conductor headless. Entra al tren: eval-gate corriendo (14 evals, 2 nuevas). El nodo queda en beta hasta pasar el gate — nada se promueve sin eval.",btns:[["Ver en el tren","tren"],["Ver diff","#"]]},
+      {w:"sys",t:"telemetría del build: 12.4k tokens · 2m 40s · patrón conductor (I-76)"}
+    ]};
+    if(ctx==="m-tracker")return {ctx:chip,ses:{sid:"7e02c5b3",run:null,modelo:"claude-sonnet-5",tok:"4.1k",ctx:9,costo:"$0.04"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · contexto: componente + gate fallado del tren (v0.9.0-beta.1)"},
+      {w:"ia",t:`El recorte de superficie (12→4 tools) <b>rompió 2 evals</b> de alta de issues: ambas usaban <code>create_issue_with_labels</code>, que quedó fuera. Opciones: reincluir esa tool (5 en total, ahorro baja a 260 tok) o reescribir las 2 evals contra <code>create_issue</code> + llamada de labels.`},
+      {w:"op",t:"Reincluye. 260 tok de ahorro sigue valiendo."},
+      {w:"ia",t:`Hecho — superficie final: 5 tools. Evals verdes en local. <b>v0.9.0-beta.2</b> re-entra al gate.`},
+      {w:"sys",t:"telemetría del build: 4.1k tokens · 50s · patrón conductor (I-76)"}
+    ]};
+    const hall=n.f.length?`Hallazgo abierto: ${n.f[0].x} `:"";
+    return {ctx:chip,ses:{sid:"f3d9b7c1",run:null,modelo:"claude-sonnet-5",tok:"2.2k",ctx:5,costo:"$0.02"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · contexto: definición + métricas 30d + trazas recientes (JSONL ~/.claude)"},
+      {w:"sys",t:"skill_activated: harness:editar-componente · trigger: user-slash"},
+      {w:"ia",t:`<b>${n.nm}</b>${A.telem&&n.inv?` — ${n.inv} invocaciones en 30d, ${n.ex}% de éxito`:" — sin corridas registradas aún"}. ${hall}¿Qué cambiamos? Puedo ajustar su disparo, reescribir pasos, moverla de fase o extraer un subagente.`},
+      {w:"sys",t:"cada cambio nace como beta y entra al tren — nada se promueve sin eval"}
+    ]};
+  }
+  if(mode==="crear-comp")return {ctx:`fase <code>${ctx}</code> · <span>tipo por definir</span>`,ses:{sid:"a1c48e02",run:null,modelo:"claude-sonnet-5",tok:"1.8k",ctx:4,costo:"$0.02"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · skill_activated: harness:crear-componente · trigger: user-slash"},
+      {w:"ia",t:`Nuevo componente en la fase <b>${ctx}</b>. ¿Qué debe pasar en esta fase que hoy no pasa? Te muestro qué componentes ya actúan aquí para no duplicar.`},
+      {w:"op",t:"…"},
+      {w:"sys",t:"el grill continúa — al confirmar la spec, el build headless lo forja y aparece punteado en el carril"}
+    ]};
+  if(mode==="crear-arnes")return {ctx:`<code>arnes-ops-soporte</code> · <span>naciendo</span>`,ses:{sid:"e7b21f90",run:null,modelo:"claude-fable-5",tok:"9.6k",ctx:14,costo:"$0.21"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · comando /crear-arnes"},
+      {w:"ia",t:`Empecemos por la constitución: <b>¿qué rol y qué proceso de la compañía sirve este arnés?</b>`},
+      {w:"op",t:"Agente de soporte. Proceso: gestión de tickets del producto."},
+      {w:"ia",t:`Propongo 3 fases como carriles:<span class="opts"><span class="pick">Triage → Resolución → Verificación</span><span>Triage → Resolución → Escalamiento → Verificación</span><span>definir otras…</span></span>`},
+      {w:"op",t:"La primera. Escalamiento vive dentro de Resolución."},
+      {w:"ia",t:`Carriles fijados (ya los ves en el mapa). Ahora la <b>base</b>: el arnés no opera sin el conocimiento del producto capturado as code. Detecto que no existe — la marco como faltante y el onboarding la captura antes de la primera corrida.`},
+      {w:"art",t:"spec del arnés — lista para forjar",d:"6 componentes propuestos (punteados en el mapa). Al confirmar: build headless → beta → eval-gate → promote (KIT-06). Telemetría conectada de nacimiento.",btns:[["Forjar arnés","#"],["Ajustar spec","#"]]},
+      {w:"sys",t:"build headless: los nodos pasan de punteado → beta a medida que el conductor los forja"}
+    ]};
+  if(mode==="importar")return {ctx:`fuente: <code>~/proyectos/arnes-legal-contratos</code>`,ses:{sid:"d2a95c11",run:null,modelo:"claude-fable-5",tok:"6.3k",ctx:11,costo:"$0.14"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · comando /importar-arnes"},
+      {w:"ia",t:`¿De dónde importamos?<span class="opts"><span class="pick">Carpeta local (~/proyectos/arnes-legal-contratos)</span><span>Repo git</span><span>Marketplace conectado (prenter-marketplace)</span></span>`},
+      {w:"ia",t:`Estructura leída: <b>14 componentes</b> (8 skills · 2 agentes · 2 hooks · 2 knowledge). Grafo armado. Corriendo el <b>chequeo constitucional</b>:`},
+      {w:"art",t:"reporte de adopción — arnes-legal-contratos",d:`<div class="chk"><span class="s ok">✓</span><span>Rol × proceso declarado (abogado · revisión de contratos)</span></div>
+<div class="chk"><span class="s ok">✓</span><span>Proceso implícito en componentes (4 fases detectadas)</span></div>
+<div class="chk"><span class="s bad">✗</span><span>Telemetría NO conectada — se conecta al adoptar (principio 9)</span></div>
+<div class="chk"><span class="s bad">✗</span><span>Base incompleta: falta <code>politicas-legales</code> as code</span></div>
+<div class="chk"><span class="s wr">⚠</span><span>5 skills sin evals — quedan como hallazgos abiertos (principio 10)</span></div>`,btns:[["Adoptar arnés","#"],["Descartar","#"]]},
+      {w:"sys",t:"adoptar = telemetría conectada + brechas → Diagnóstico + tren activo. Solo arneses PROPIOS: importar = adoptar lo nuestro preexistente."}
+    ]};
+  return {ctx:`base de <code>${A.nm}</code>`,ses:{sid:"b4f7d3a8",run:null,modelo:"claude-sonnet-5",tok:"3.4k",ctx:7,costo:"$0.03"},
+    msgs:[
+      {w:"sys",t:"sesión CC iniciada · skill_activated: harness:capturar-base"},
+      {w:"ia",t:`Faltan 2 piezas de la base: <b>flujos-cierre</b> y <b>politica-ajustes</b>. Sin ellas el arnés advierte en cada corrida (guía sin bloqueo: no detiene, registra la excepción). ¿Las capturamos ahora? Puedo entrevistar o leer documentos que me pases.`},
+      {w:"op",t:"Entrevista. El flujo de cierre lo tengo en la cabeza."},
+      {w:"ia",t:`Perfecto. Primera: ¿el cierre arranca con el corte del ERP o esperan la conciliación bancaria del banco principal?`},
+      {w:"sys",t:"al terminar, los knowledge aparecen en la banda Base y la alerta se apaga"}
+    ]};
+}
+function openDock(mode,ctx,silent){
+  S.dock={mode,ctx};
+  if(!silent)syncHash();
+  if(mode==="editar"&&ctx){
+    S.sel=ctx;document.body.classList.add("has-sel");
+    document.querySelectorAll(".node.sel").forEach(e=>e.classList.remove("sel"));
+    const el=$("n-"+ctx);if(el){el.classList.add("sel");el.scrollIntoView({block:"nearest",inline:"nearest"})}
+  }
+  const sc=dockScript(mode,ctx);
+  const ses=sc.ses||DOCK_SES[mode]||{};
+  const rail=$("rail");
+  rail.classList.add("dock-on");
+  rail.innerHTML=`<div class="dock">
+    <div class="dock-hd">
+      <div class="row1"><span class="lb">${DOCK_TITLES[mode]}</span><button class="x" id="dock-x" title="Cerrar dock" aria-label="Cerrar dock">✕</button></div>
+      <div class="ses">sesión CC <button class="sid" id="ses-sid" title="Abrir esta conversación en Corridas">${ses.sid||"—"}</button> · ${ses.modelo||"—"} · ${ses.tok||"—"} tok · <span class="ctxbar" title="contexto consumido: ${ses.ctx||0}%"><i style="width:${ses.ctx||0}%"></i></span> ${ses.ctx||0}% ctx · ${ses.costo||"—"}</div>
+    </div>
+    <div class="dock-ctx">${sc.ctx}</div>
+    <div class="dock-msgs">${sc.msgs.map(m=>
+      m.w==="art"
+      ?`<div class="art-card"><div class="t">◆ ${m.t}</div><div class="d">${m.d}</div><div class="row">${m.btns.map(b=>b[1]==="tren"?`<button data-go="tren">${b[0]}</button>`:`<button data-toast="Demo estática — esta acción se diseña en fases 3-4.">${b[0]}</button>`).join("")}</div></div>`
+      :`<div class="msg ${m.w}">${m.t}</div>`).join("")}</div>
+    <div class="dock-in" data-toast="Demo estática — en el producto real el conductor headless (Claude Code) conversa aquí."><span>Conversa con la fábrica…</span><span class="send">➤</span></div>
+    <div class="dock-note">cada conversación del dock = una sesión real de Claude Code (JSONL) — reproducible en Corridas</div>
+  </div>`;
+  $("dock-x").addEventListener("click",()=>closeDock());
+  $("ses-sid").addEventListener("click",()=>{
+    if(ses.run)go({view:"corridas",run:ses.run,vista:"conv",dock:null});
+    else showToast("Sesión sin corrida indexada aún (demo) — al existir, abre en Corridas.");
+  });
+  rail.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.go==="tren")go({view:"tren",dock:null});
+  }));
+  const msgs=rail.querySelector(".dock-msgs");msgs.scrollTop=msgs.scrollHeight;
+  requestAnimationFrame(drawEdges);
+}
+function closeDock(silent){
+  S.dock=null;
+  const A=ARNESES[S.arnes];
+  if(S.sel&&A&&A.N[S.sel])renderInsp();
+  else if(A)inspEmpty(A);
+  if(!silent)syncHash();
+  requestAnimationFrame(drawEdges);
+}
+
+/* ══════════ S8 corridas ══════════ */
+const KGLY={user:"U",asst:"IA",hook:"H",skill:"S",agent:"A",llm:"L",tool:"T",cmd:"/",compact:"⇣",err:"✕"};
+const KLBL={user:"prompt",asst:"respuesta",hook:"hook",skill:"skill",agent:"subagente",llm:"llm",tool:"tool",cmd:"comando",compact:"compaction",err:"error"};
+function flatPasos(ps){const out=[];ps.forEach(p=>{out.push({...p,k:0});(p.kids||[]).forEach(k2=>out.push({...k2,k:1}))});return out}
+function renderCorridas(A){
+  const runs=RUNS[S.arnes]||[];
+  const w=$("rn-wrap");
+  if(S.run){
+    const r=runs.find(x=>x.id===S.run);
+    if(!r){S.run=null}else{return renderRunDet(A,r,w)}
+  }
+  const list=runs.filter(r=>S.rnf==="todas"||(S.rnf==="fallidas"&&!r.okk));
+  w.innerHTML=`<div class="rn-hd"><h1>Corridas</h1><p>corridas REALES — cada una es una sesión de Claude Code tal como ocurrió (archivo JSONL de ~/.claude). Nada es flujo ideal: es lo que el usuario vivió</p></div>
+  <div class="rn-filters">
+    <button data-f="todas" aria-pressed="${S.rnf==="todas"}">Todas</button>
+    <button data-f="fallidas" aria-pressed="${S.rnf==="fallidas"}">Fallidas</button>
+  </div>
+  ${runs.length?list.map(r=>`
+    <button class="run-row" data-run="${r.id}">
+      <span class="st ${r.okk?"ok":"bad"}"></span>
+      <code>${r.disp}</code><span style="color:var(--muted)">fase ${r.fase} · ${r.f}</span>
+      <span class="meta"><span>${r.modelo}</span><span>${r.turnos} turnos</span><span>${r.tokIn}→${r.tokOut}</span><span>ctx máx ${r.ctx}%</span><span>${r.costo}</span><span>${r.dur}</span></span>
+    </button>`).join("")||`<p class="rn-empty">Sin corridas con este filtro.</p>`
+   :`<p class="rn-empty">◌ Sin corridas aún — ${A.telem?"":"el arnés no registra telemetría. "}El sensor indexa los JSONL de ~/.claude; daemon caído = cero pérdida.</p>`}`;
+  w.querySelectorAll(".rn-filters button").forEach(b=>b.addEventListener("click",()=>{S.rnf=b.dataset.f;renderCorridas(A)}));
+  w.querySelectorAll("[data-run]").forEach(b=>b.addEventListener("click",()=>go({run:b.dataset.run,vista:"conv"})));
+}
+function renderRunDet(A,r,w){
+  const stats=`<div class="run-stats">
+    <span class="rstat" style="border-color:var(--ok);color:var(--ok)">CORRIDA REAL · JSONL</span><span class="rstat">sesión <b>${r.sid}</b></span><span class="rstat">modelo <b>${r.modelo}</b></span>
+    <span class="rstat">turnos <b>${r.turnos}</b></span><span class="rstat">in <b>${r.tokIn}</b> · out <b>${r.tokOut}</b> · caché <b>${r.cache}</b></span>
+    <span class="rstat">ctx máx <b>${r.ctx}%</b></span><span class="rstat">costo <b>${r.costo}</b></span><span class="rstat">duración <b>${r.dur}</b></span>
+    <span class="rstat" style="${r.okk?"color:var(--ok)":"color:var(--crit)"}">${r.okk?"✓ exitosa":"✕ fallida"}</span></div>`;
+  const vsel=`<div class="vsel" role="tablist">
+    <button data-v="conv" aria-pressed="${S.vista==="conv"}">Conversación</button>
+    <button data-v="arbol" aria-pressed="${S.vista==="arbol"}">Árbol</button>
+    <button data-v="water" aria-pressed="${S.vista==="water"}">Waterfall</button></div>`;
+  let body="";
+  if(S.vista==="conv"){
+    body=`<div class="conv">${r.pasos.filter(p=>["user","asst","hook","skill","cmd","compact","err"].includes(p.t)).map(p=>{
+      if(p.t==="user")return `<div class="msg op">${p.txt}</div>`;
+      if(p.t==="asst")return `<div class="msg ia">${p.txt}</div>`;
+      if(p.t==="err")return `<div class="msg err">✕ ${p.lb} — ${p.txt}</div>`;
+      return `<div class="msg sys">${KLBL[p.t]}: ${p.lb}${p.tok?` · ${p.tok}`:""} — ${p.txt}</div>`;
+    }).join("")}</div>`;
+  }else if(S.vista==="arbol"){
+    body=flatPasos(r.pasos).map(p=>`
+      <div class="step${p.k?" k1":""}" data-k="${p.t}">
+        <span class="sg">${KGLY[p.t]}</span>
+        <div class="bd">
+          <div class="r1"><code>${p.lb}</code><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">${KLBL[p.t]}</span><span class="tk">${p.tok?p.tok+" · ":""}${p.d}s</span></div>
+          <div class="tx">${p.txt}</div>
+          ${p.own?`<div class="ctxline"><span style="opacity:.75">ventana propia del subagente — no ocupa la principal</span></div>`
+            :p.cx?`<div class="ctxline"><span class="cbar"><i style="width:${Math.min(100,p.cx/200*100)}%${p.t==="compact"?";background:var(--ok)":""}"></i></span><code>${p.cx}k · ${Math.round(p.cx/2)}%</code><span>${p.ad||""}</span></div>`:""}
+          ${p.comp&&A.N[p.comp]?`<button class="goto" data-comp="${p.comp}">ver componente en el mapa →</button>`:""}
+        </div>
+      </div>`).join("");
+  }else{
+    const fl=flatPasos(r.pasos);
+    body=`<div class="wf">${fl.map(p=>`
+      <div class="wf-row"><span class="wf-lb${p.k?" k1":""}" title="${p.lb}">${p.lb}</span>
+      <span class="wf-track"><span class="wf-bar" style="--sc:var(${p.t==="hook"?"--c-hook":p.t==="skill"?"--c-skill":p.t==="agent"||p.t==="llm"?"--c-agent":p.t==="tool"?"--c-mcp":p.t==="err"?"--crit":"--accent"});left:${p.s/r.total*100}%;width:${Math.max(.6,p.d/r.total*100)}%"></span></span></div>`).join("")}
+      <div class="wf-axis"><span>0s</span><span>${Math.round(r.total/2)}s</span><span>${r.total}s</span></div></div>`;
+  }
+  w.innerHTML=`<div class="run-det">
+    <div class="backbar"><button class="back" id="rn-back">← Corridas</button><code style="font-family:var(--mono);font-size:13px;font-weight:650">${r.disp}</code><span style="color:var(--muted);font-size:12px">fase ${r.fase} · ${r.f}</span><button class="back" id="rn-replay" style="margin-left:auto;border-color:var(--accent);color:var(--accent)">▶ Reproducir en el mapa</button></div>
+    ${stats}${vsel}${body}</div>`;
+  $("rn-back").addEventListener("click",()=>go({run:null}));
+  $("rn-replay").addEventListener("click",()=>go({view:"mapa",replay:r.id,sel:null,dock:null,run:null}));
+  w.querySelectorAll(".vsel button").forEach(b=>b.addEventListener("click",()=>go({vista:b.dataset.v})));
+  w.querySelectorAll("[data-comp]").forEach(b=>b.addEventListener("click",()=>go({view:"mapa",sel:b.dataset.comp,dock:null,run:null})));
+}
+
+/* ══════════ S5 diag ══════════ */
+let DGF="todos";
+function renderDiag(A){
+  const items=[];
+  Object.keys(A.N).forEach(id=>A.N[id].f.forEach(f=>items.push({id,n:A.N[id],...f})));
+  const sevOrder={crit:0,warn:1,info:2};
+  items.sort((a,b)=>sevOrder[a.s]-sevOrder[b.s]);
+  const F=[["todos","Todos"],["runtime","Runtime"],["estático","Estáticos"],["crit","Críticos"]];
+  $("dg-filters").innerHTML=F.map(([k,lb])=>`<button data-f="${k}" aria-pressed="${DGF===k}">${lb}</button>`).join("");
+  $("dg-filters").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{DGF=b.dataset.f;renderDiag(A)}));
+  const list=items.filter(it=>DGF==="todos"||it.o===DGF||it.s===DGF);
+  $("dg-list").innerHTML=list.length?list.map(it=>`
+    <div class="dg-row">
+      <span class="sev ${it.s}"></span>
+      <div class="dg-body">
+        <div class="dg-top"><code>${it.n.nm}</code><span class="dg-org">${it.o}</span><span class="dg-org" style="border-color:var(--accent-soft);color:var(--accent)">capa ${it.capa}</span></div>
+        <div class="dg-txt">${it.x}</div>
+      </div>
+      <button class="dg-go" data-id="${it.id}" data-capa="${it.capa}">Ver en el mapa →</button>
+    </div>`).join(""):`<p style="color:var(--muted);font-size:12.5px">Bandeja limpia — sin hallazgos con este filtro.</p>`;
+  $("dg-list").querySelectorAll(".dg-go").forEach(b=>b.addEventListener("click",()=>{
+    const capa=["estructura","tokens","perf","proceso"].includes(b.dataset.capa)?b.dataset.capa:"estructura";
+    go({view:"mapa",capa,sel:b.dataset.id,dock:null});
+  }));
+}
+
+/* ══════════ S6 tren ══════════ */
+function renderTren(A){
+  const col=(t,arr,extra)=>`
+    <div class="tr-col"><div class="tr-col-hd"><h2>${t}</h2><span class="cnt">${arr.length}</span></div>
+    <div class="tr-col-bd">${arr.length?arr.map(c=>`
+      <div class="cand" style="--tc:var(--c-${c.tc})">
+        <code>${c.comp}</code><span class="vv">v${c.from} → v${c.to}</span>
+        <div class="st ${c.st}"><span class="dot"></span>${c.txt}</div>
+        ${c.st==="run"?`<div class="bar"><i style="width:${c.pct}%"></i></div>`:""}
+        <div class="org">${c.org}</div>
+        ${extra?`<div class="row">${extra(c)}</div>`:""}
+      </div>`).join(""):`<p class="tr-empty">vacío</p>`}</div></div>`;
+  $("tr-cols").innerHTML=
+    col("Beta · en horno",A.tren.beta.filter(c=>c.st!=="run"),c=>c.st==="fail"?`<button data-ed="${c.comp}">Reabrir en fábrica</button>`:"")+
+    col("Eval-gate",A.tren.beta.filter(c=>c.st==="run"),()=>`<button disabled title="el gate decide, no el operador">promote bloqueado</button>`)+
+    col("Listo para promote",A.tren.listo,()=>`<button data-toast="Promote real corre por el release train del kit (KIT-06) — se diseña en fase 3.">Promover a estable</button><button data-toast="Detalle de evals del gate — se diseña en fase 3.">Ver evals</button>`)+
+    col("Publicado",A.tren.pub,()=>`<button data-toast="Telemetría post-deploy del proyecto instalado — se diseña en fase 3.">Ver telemetría post-deploy</button>`);
+  $("tr-cols").querySelectorAll("[data-ed]").forEach(b=>b.addEventListener("click",()=>{
+    const id=Object.keys(A.N).find(k=>A.N[k].nm===b.dataset.ed);
+    if(id)go({view:"mapa",sel:id,dock:{mode:"editar",ctx:id}});
+  }));
+}
+
+/* ══════════ S7 historia ══════════ */
+function renderHistoria(A){
+  $("hi-list").innerHTML=A.hist.length?A.hist.map(h=>`
+    <div class="hi-item${h.birth?" birth":""}">
+      <div class="hi-v"><code>${h.v}</code><span class="f">${h.f}</span>${h.cur?`<span class="chip estable">actual</span>`:""}</div>
+      <div class="hi-delta">
+        ${h.add?`<span class="dchip add">+${h.add} nuevos</span>`:""}
+        ${h.mod?`<span class="dchip mod">~${h.mod} mutados</span>`:""}
+        ${h.del?`<span class="dchip del">−${h.del} retirados</span>`:""}
+      </div>
+      <div class="hi-hito">${h.hito}</div>
+      <div class="hi-acts">${h.cur?`<button data-v="${h.v}">Ver en el mapa</button>`:`<button data-toast="Mapa histórico por versión: exige snapshot del índice — debate de fase 3.">Ver mapa de esta versión</button>`}</div>
+    </div>`).join(""):`<p style="color:var(--muted);font-size:12.5px">Sin versiones aún — el arnés está naciendo.</p>`;
+  $("hi-list").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>go({view:"mapa",dock:null})));
+}
+
+/* ══════════ init ══════════ */
+if(location.hash&&location.hash!=="#")parseHash();else go({scr:"portafolio"});
+</script>
