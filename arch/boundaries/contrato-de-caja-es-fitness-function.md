@@ -46,7 +46,7 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
   METODOLOGIA §3/§6 pide: el eval-gate por-caja (A4), la detección de precondición (saltos de
   fase / guía sin bloqueo), y la validación de composición (huérfanos = input sin productor
   upstream; dead-ends = output que nadie consume). ⇐ L1: validar instancias.
-- **Puente con `knowledge/`:** este check es la versión-arquitectura del linter de 121 checks. El
+- **Puente con `knowledge/`:** este check es la versión-arquitectura del linter de 122 checks. El
   runner `arnesia conformance` corre schema-validación (aquí) + go-arch-lint + los checks de
   metodología, mismo reporte severidad+señal.
 
@@ -64,4 +64,4 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = schema-first (JSON Schema 2020-12 +
   google/jsonschema-go). L2: `contract:` de caja y `meta.clase` L0 como single source → quicktype
   (Go+TS) + validación = fitness function del eval-gate A4 y la composición (huérfanos/dead-ends/
-  gate honesto). Puente con los 121 checks de knowledge. 4 checks.
+  gate honesto). Puente con los 122 checks de knowledge. 4 checks.

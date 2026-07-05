@@ -168,17 +168,18 @@ reemplazar los contratos inferidos por los reales.
 - **Se investiga y actualiza cada semana** (nuevos comandos tipo `/goal`, features, eventos de
   hook, deprecaciones). El árbol **crece y adiciona**, no se reescribe (lo viejo se marca
   `deprecado`). Mecanismo en [`knowledge/CADENCE.md`](./knowledge/CADENCE.md).
-- **Excepción a «firmado = congelado»:** cuando HS-03 se firme, la UX y esta metodología se
-  congelan; **el árbol de conocimiento NO** — por diseño sigue evolucionando, porque el estándar
-  que ArnesIA enforca tiene que seguir al ecosistema. Un arnés que ayer cumplía puede necesitar
+- **Excepción a «firmado = congelado» (decidida 2026-07-05):** HS-03 está **firmada**, pero la
+  firma congela la **fase**, no estos documentos: `UX.md` y esta metodología quedan **docs VIVOS**
+  por decisión del operador — siguen creciendo con nuevas iteraciones. **El árbol de conocimiento
+  tampoco se congela** — por diseño sigue al ecosistema. Un arnés que ayer cumplía puede necesitar
   mejora hoy porque salió algo nuevo: ése es exactamente el «punto de mejora» que el mapa muestra.
-- **Los 121 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA correrá
+- **Los 122 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA correrá
   (fase 5) y la fuente de los badges de mejora que la UX empieza a pintar (it.11+).
 
 ## Estado
 
-Documento vivo. **Cementado hasta la iteración 13 de HS-03** (§4 al día con it.13: retirado el
-andamiaje REAL vs DEMO del mockup; la honestidad sigue). Crece con los comentarios de
-UX del operador (quedan muchos). Cuando HS-03 se firme, esta metodología se congela junto a
-la UX (regla Rust: firmado = congelado) y pasa a ser la base de las specs de fase 4 — **salvo el
-árbol [`knowledge/`](./knowledge/INDEX.md), que por diseño sigue vivo** (§7).
+Documento vivo. **HS-03 FIRMADA** (it.13, 2026-07-05; §4 al día: retirado el andamiaje REAL vs
+DEMO del mockup; la honestidad sigue). Por **excepción declarada** (§7), la firma congela la fase
+pero **NO** esta metodología ni la UX: ambas siguen creciendo con los comentarios del operador
+(quedan muchos) y son la base de las specs de fase 4 (HS-06). El árbol
+[`knowledge/`](./knowledge/INDEX.md) también sigue vivo por diseño (§7).

@@ -14,6 +14,8 @@ sources:
 enforced_by:
   - fitness/arch_test.go:TestIndexRebuildsFromJSONL
   - fitness/arch_test.go:TestSchemaVersionTriggersRebuild
+  # el ban CGO/DuckDB (check sin-cgo) — depguard aún no lo cubre:
+  - fitness/arch_test.go:TestNoDuckDBOrCGOStore
 severity: high
 ---
 
@@ -54,7 +56,7 @@ daemon caído = cero pérdida».
 | index-reconstruible | borrar el `.db` y re-indexar produce el mismo estado consultable (test) | error | «dato solo-en-índice: se pierde si el índice muere» | arch_test.go:TestIndexRebuildsFromJSONL |
 | sin-migracion-incremental | no hay migraciones incrementales del índice; hay `schema_version`+rebuild | warn | «migración de un store que debería ser desechable» | arch_test.go:TestSchemaVersionTriggersRebuild |
 | writer-serializado | el handle de escritura usa `SetMaxOpenConns(1)`; WAL configurado | warn | «múltiples writers → SQLITE_BUSY» | arch_test.go |
-| sin-cgo | el índice usa `modernc.org/sqlite` (no CGO); no hay import de DuckDB en el core | error | «dependencia CGO rompe el binario único» | depguard |
+| sin-cgo | el índice usa `modernc.org/sqlite` (no CGO); no hay import de DuckDB en el core | error | «dependencia CGO rompe el binario único» | arch_test.go:TestNoDuckDBOrCGOStore (depguard aún no lo cubre) |
 
 ## Changelog
 

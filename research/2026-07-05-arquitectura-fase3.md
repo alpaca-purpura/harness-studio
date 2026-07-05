@@ -253,7 +253,8 @@ reactflow.dev/learn/advanced-use/performance (v12.11.1) · nuqs.dev/blog/nuqs-2 
   eval-gate A4 y la detección de huérfanos/mismatch hechos ejecutables. API HTTP/SSE (concern
   aparte): **OpenAPI 3.1** + **oapi-codegen/v2** (Go) + **openapi-typescript** (TS).
 - **Un solo runner:** subcomando `arnesia conformance` corre `knowledge/` (121 checks de
-  metodología) **y** `arch/fitness` (go-arch-lint + validación de schema) juntos, mismo reporte
+  metodología — 121 al momento de escribir → 122 tras la corrección de headless) **y**
+  `arch/fitness` (go-arch-lint + validación de schema) juntos, mismo reporte
   severidad+señal. Literalmente «la conformidad de arquitectura corre como linter igual que el
   árbol de metodología».
 

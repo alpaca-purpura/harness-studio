@@ -92,6 +92,6 @@ Hoy `arch/` es markdown + schemas + config as code. En fase 5, cuando el módulo
 aterrice: `fitness/.go-arch-lint.yml` corre en CI y **rompe el build** si el core importa el
 shell o el dominio importa `net/http`; `contracts/schema/*.json` valida cada `contract:` de caja
 al indexar y en el linter; `arnesia conformance` unifica estos 29 checks de arquitectura con los
-121 de `knowledge/` en un solo reporte severidad+señal. La misma disciplina que aplicamos a los
+122 de `knowledge/` en un solo reporte severidad+señal. La misma disciplina que aplicamos a los
 arneses que fabricamos, aplicada a la fábrica misma (dogfood). Por eso cada check mal puesto hoy
 es un falso positivo en CI mañana.

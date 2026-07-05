@@ -107,3 +107,8 @@ sobre cada arnés importado (METODOLOGIA §6 «conformación») y pinta puntos d
 (capa Desempeño / Diagnóstico). Es la semilla concreta del «segundo cerebro / estándar
 propio» (VISION debate abierto #1). Por eso la disciplina importa: cada check mal puesto hoy
 es un falso positivo en el mapa mañana.
+
+> **Nota honesta (gap):** correr knowledge + `arch/` con **un solo runner** (`arnesia conformance`)
+> exige un **contrato de check común** — schema unificado con `enforced_by`/mecanismo por check —
+> **planificado como ficha HS-06**. Hoy los checks de este árbol NO llevan `enforced_by` (muchos son
+> telemetría/juicio-NL): la ejecución unificada es intención declarada, no soportada por el formato actual.

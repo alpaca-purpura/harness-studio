@@ -1,0 +1,3 @@
+# Aquí va el sidecar externalBin del daemon Go: binaries/arnesia-<target-triple>
+# (p.ej. arnesia-x86_64-unknown-linux-gnu). Se cross-compila desde el daemon Go y NO
+# se versiona el binario en sí — solo este .gitkeep. Ver ../README.md ("Cablear el sidecar").

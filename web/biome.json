@@ -1,0 +1,34 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.0/schema.json",
+  "//": "Biome v2.4 — lint+format+organize-imports+react-hooks (enforced_by de arch/conventions/ts-style.md + naming.md). DECLARADO; se activa cuando la SPA web/ aterrice (fase 5).",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "includes": ["src/**/*.ts", "src/**/*.tsx"] },
+  "formatter": {
+    "enabled": true,
+    "useEditorconfig": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "assist": {
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error"
+      },
+      "style": {
+        "useNamingConvention": {
+          "level": "error",
+          "options": { "strictCase": true }
+        }
+      }
+    }
+  },
+  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "asNeeded" } }
+}

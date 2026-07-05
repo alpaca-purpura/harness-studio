@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability base del shell ArnesIA: solo lo mínimo del core para la ventana 'main'.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

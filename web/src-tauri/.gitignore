@@ -1,0 +1,12 @@
+# Artefactos de compilación de Rust/Cargo.
+/target/
+
+# Binarios del sidecar (se generan cross-compilando el daemon Go; no se versionan).
+/binaries/arnesia-*
+
+# Iconos generados por `cargo tauri icon` (regenerables desde el logo fuente).
+/icons/
+
+# Cargo.lock: para una APP/binario Cargo recomienda VERSIONARLO (builds reproducibles).
+# Está intencionalmente NO ignorado; se commitea cuando exista.
+# Cargo.lock

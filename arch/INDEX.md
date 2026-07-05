@@ -15,9 +15,13 @@
   técnicas fundacionales** (HS-02). El **norte**; esta capa las aterriza y las enforça.
 - [`../METODOLOGIA.md`](../METODOLOGIA.md) — reglas de negocio. El `contract:` de caja (§3) es
   **el mismo schema** que valida [`contracts/schema/box.contract.schema.json`](./contracts/schema/box.contract.schema.json).
-- [`../knowledge/`](../knowledge/INDEX.md) — estándar as code por **elemento de arnés** (121
+- [`../knowledge/`](../knowledge/INDEX.md) — estándar as code por **elemento de arnés** (122
   checks). `arch/` es el gemelo: estándar as code de **la app ArnesIA misma** (dogfood). Un solo
-  runner (`arnesia conformance`) corre ambos árboles.
+  runner (`arnesia conformance`) corre ambos árboles — **aspiración pendiente-HS-06**: hoy `arch/`
+  ya declara `enforced_by:` por check, pero los checks de `knowledge/` aún no; la ejecución
+  conjunta requiere un **contrato de check común** (schema con `enforced_by`/mecanismo por check)
+  planificado como ficha HS-06. Hasta entonces cada árbol corre por separado; la aspiración sigue
+  viva, solo no es realidad actual.
 - [`../LEDGER.md`](../LEDGER.md) — el diario firmado. Cada boundary cita su ficha en `ledger:`.
 
 ## Las dos capas (en cada boundary node)
@@ -30,28 +34,38 @@
 Y cada nodo emite un **`Checklist evaluable`**: la rúbrica as code (checks con severidad + señal)
 que un linter (`go-arch-lint`/`depguard`/validación de schema/`arch_test.go`) corre para probar
 que el código NO viola la arquitectura. Cada check declara su `enforced_by:` — el link 1:1 a la
-check ejecutable que lo guarda.
+check ejecutable que lo guarda (esto ya rige en `arch/`; en `knowledge/` el `enforced_by:` por
+check llega con HS-06, ver runner unificado arriba).
 
 ## El árbol — boundary nodes
 
 | Nodo | Regla | Estado | Versión | Checks | Enforcer |
 |------|-------|--------|---------|--------|----------|
-| [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.0 | 4 | go-arch-lint · depguard |
+| [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
 | [`boundaries/dominio-independiente-de-transporte.md`](./boundaries/dominio-independiente-de-transporte.md) | El dominio no depende de HTTP/SSE/SQLite | 🌱 vivo | 1.0 | 4 | go-arch-lint · depguard |
 | [`boundaries/adaptadores-de-agente-intercambiables.md`](./boundaries/adaptadores-de-agente-intercambiables.md) | Claude Code = un adaptador tras `AgentPort` | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
 | [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | JSONL = verdad; SQLite = índice reconstruible | 🌱 vivo | 1.0 | 4 | arch_test.go · schema |
 | [`boundaries/conductor-no-parsea-jsonl.md`](./boundaries/conductor-no-parsea-jsonl.md) | El conductor consume stream-json/OTel, no parsea JSONL | 🌱 vivo | 1.0 | 4 | depguard · arch_test.go |
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff | 🌱 vivo | 1.0 | 5 | arch_test.go |
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌱 vivo | 1.0 | 4 | schema · arch_test.go |
+| [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
+| [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
+| [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
+| [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌱 vivo | 1.0 | 4 | stylelint · tokens-sync |
+| [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌱 vivo | 1.0 | 5 | vitest + Storybook 10 |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 estable ·
-🔍 en-revisión. **Total: 7 boundaries · 29 checks · pasada fundacional 2026-07-05 (HS-04).**
+🔍 en-revisión. **Total boundaries: 12 · 51 checks** — fundacional HS-04 (backend, 7 boundaries · 29
+checks) + HS-05 (frontend, 5 boundaries · 22 checks). **+ [`conventions/`](./conventions/INDEX.md): 8
+convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 77 checks.**
 
-> **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** hoy no hay código Go todavía (fase 5).
-> Los checks están **declarados, no corriendo**: son el ruleset que se activa cuando el módulo
-> `arnesia` aterrice. Igual que los 121 checks de `knowledge/` son el linter futuro, estos 29 son
-> el enforcement futuro de la arquitectura. Estado del enforcer = `proposed` hasta que el código
-> exista; luego `enforced`.
+> **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** hoy no hay código todavía (fase 5). Los
+> checks están **declarados, no corriendo**: son el ruleset que se activa cuando el módulo `arnesia`
+> y la SPA `web/` aterricen. Igual que los 122 checks de `knowledge/` son el linter futuro, estos 77
+> (51 checks de boundary + 26 de conventions) son el enforcement futuro de la arquitectura. Los config files
+> (`.golangci.yml`, `web/biome.json`, `web/.dependency-cruiser.js`, `lefthook.yml`, `ci.yml`…) están
+> **declarados** con `if: hashFiles(...)` / notas de honestidad; los paths (`web/src/**`, module path)
+> son **provisionales**. Estado del enforcer = `proposed` hasta que el código exista; luego `enforced`.
 
 ## Subdirectorios
 
@@ -61,7 +75,13 @@ Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el códig
   schemas del dominio (L0 `meta.clase` + `contract:` de caja); `api/openapi.yaml` = superficie
   HTTP/SSE. `gen/` = tipos generados Go+TS (quicktype/oapi-codegen; se llena al haber build).
 - [`fitness/`](./fitness/) — **las checks ejecutables** (fallan CI): `.go-arch-lint.yml` (grafo
-  de imports), `arch_test.go` (lo que el linter no expresa).
+  de imports Go), `arch_test.go` (lo que el linter no expresa). Los enforcers FE viven junto a la SPA
+  (`web/.dependency-cruiser.js`, `web/steiger.config.ts`, `web/.stylelintrc.json`) y los de estilo en
+  la raíz (`.golangci.yml`, `web/biome.json`, `lefthook.yml`, `.github/workflows/ci.yml`).
+- [`conventions/`](./conventions/INDEX.md) — **convenciones de código as code** (HS-05): 8 nodes · 26
+  checks de estilo/lint/format/naming/commits/hooks/CI (Go + TS/React + Rust). Hermano de `fitness/`
+  (`fitness/` = forma arquitectónica; `conventions/` = estilo de código). Cada nodo referencia el config
+  real vía `enforced_by:`.
 - `decisions/` — MADR completos, **solo cuando hace falta** el tratamiento de opciones que una
   ficha no aguanta. Vacío por ahora (el LEDGER cubre el «por qué»).
 
@@ -77,6 +97,10 @@ Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el códig
 | Frontend | Vite+React SPA `go:embed` · **React Flow 12** · **Zustand** + hash-state |
 | Dock | **AG-UI** (taxonomía, emisor Go propio) · **assistant-ui** · **CodeMirror 6** + merge |
 | Arch as code | JSON Schema 2020-12 → quicktype (Go+TS) · go-arch-lint + depguard · D2+Mermaid · MADR-proyección del LEDGER |
+| FE topología (HS-05) | **FSD-lite** (`web/src/{app,pages,widgets,features,entities,shared}`; `pages`=composition-roots por hash-state, sin router) · **dependency-cruiser** (gate) + steiger |
+| FE componentes (HS-05) | **shadcn/ui sobre Base UI** (copy-in, lintable) · 6 capas de UI direccionales (**canvas⊥chrome**) · atomic = vocabulario en `shared/ui` |
+| Tokens + estilo (HS-05) | **DTCG 2025.10** `.tokens.json` → **Style Dictionary v5** → **Tailwind v4** `@theme`+TS · dark `data-theme` · stylelint anti-magic-value |
+| Fitness/convenciones FE (HS-05) | **Storybook 10** (story=test) + a11y axe + regresión visual **local** (sin Chromatic) · **Biome v2.4** + `tsc` strictest · **golangci-lint v2** · **lefthook** |
 
 ## Cómo crece
 

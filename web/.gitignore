@@ -1,0 +1,8 @@
+node_modules/
+dist/
+storybook-static/
+*.tsbuildinfo
+# Tauri
+src-tauri/target/
+# Style Dictionary re-genera estos; se commitean para runnabilidad pre-install (ver README).
+# (no ignorar theme.css / tokens.ts)

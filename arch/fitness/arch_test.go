@@ -8,13 +8,12 @@
 // tests skip with a TODO. When the module exists (`go mod init`), drop this file at the repo
 // root's `arch/fitness/` and it runs in CI alongside `go-arch-lint check`.
 //
-// This is the arch-side twin of knowledge/'s 121-check linter: `arnesia conformance` runs
+// This is the arch-side twin of knowledge/'s 122-check linter: `arnesia conformance` runs
 // go-arch-lint + these tests + schema validation + the methodology checks in one severity+signal
 // report. See arch/CADENCE.md.
 package fitness
 
 import (
-	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"

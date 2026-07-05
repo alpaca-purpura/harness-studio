@@ -13,7 +13,10 @@ sources:
     revisado: 2026-07-05
 enforced_by:
   - fitness/.go-arch-lint.yml#domain
-  - fitness/.go-arch-lint.yml#transport
+  - fitness/.go-arch-lint.yml#transport-http
+  - fitness/.go-arch-lint.yml#transport-sse
+  # cubre modernc.org/sqlite + /transport/ + /sse (lo que depguard no banea):
+  - fitness/arch_test.go:TestDomainIndependentOfTransport
 severity: critical
 ---
 
@@ -47,7 +50,7 @@ return structs»)*
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
 | domain-no-http | `internal/domain/**` no importa `net/http` ni el paquete SSE | error | «dominio acoplado al transporte» | depguard / go-arch-lint#domain |
-| domain-no-sql | `internal/domain/**` no importa `database/sql` ni `modernc.org/sqlite` | error | «dominio acoplado al store» | depguard / go-arch-lint#domain |
+| domain-no-sql | `internal/domain/**` no importa `database/sql` ni `modernc.org/sqlite` | error | «dominio acoplado al store» | depguard (database/sql) · arch_test.go:TestDomainIndependentOfTransport (modernc.org/sqlite) · go-arch-lint#domain |
 | transport-sin-reglas | los handlers no derivan estado de salud/eval/gate (solo traducen) | warn | «regla de negocio en el handler» | arch_test.go |
 | dtos-generados | los tipos del wire vienen de `contracts/gen`, no escritos a mano en el dominio | info | «DTO a mano — riesgo de drift doc↔código» | schema/codegen |
 

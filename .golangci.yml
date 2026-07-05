@@ -1,0 +1,78 @@
+# golangci-lint v2 — convenciones Go de ArnesIA (enforced_by de arch/conventions/go-style.md).
+# Rompe CI: `golangci-lint run ./...` (hallazgos) · `golangci-lint fmt --diff` (formato).
+#
+# NOTA (honestidad, arch/CADENCE): el módulo Go aún no existe (cero código de producto, fase 5).
+# Este archivo DECLARA el set objetivo; se activa cuando el módulo `arnesia` aterrice. El grafo de
+# imports hexagonal vive aparte en arch/fitness/.go-arch-lint.yml; aquí van estilo + depguard.
+version: "2"
+
+linters:
+  default: standard   # errcheck govet ineffassign staticcheck unused (staticcheck absorbe gosimple+stylecheck)
+  enable:
+    # correctitud / errores
+    - errcheck
+    - errorlint        # wrap %w, errors.Is/As
+    - nilerr
+    - nilnesserr
+    - bodyclose        # HTTP response bodies
+    - noctx
+    - rowserrcheck     # database/sql (SQLite modernc)
+    - sqlclosecheck
+    - contextcheck
+    - fatcontext
+    - makezero
+    # seguridad
+    - gosec            # daemon con FS/exec/red
+    - depguard         # bans de import duros (complementa go-arch-lint)
+    # logging
+    - sloglint         # ya usan slog
+    # modernización / perf
+    - copyloopvar
+    - intrange
+    - perfsprint
+    - usestdlibvars
+    - usetesting
+    - unconvert
+    - wastedassign
+    # estilo / API
+    - revive           # naming idiomático (ver arch/conventions/naming.md)
+    - gocritic
+    - unparam
+    - predeclared
+    - nolintlint       # obliga justificar cada //nolint
+    # tests
+    - testifylint
+    - tparallel
+  settings:
+    revive:
+      rules:
+        - { name: var-naming }
+        - { name: exported }
+        - { name: receiver-naming }
+        - { name: unexported-return }
+        - { name: package-comments }
+        - { name: error-naming }
+        - { name: error-strings }
+        - { name: context-as-argument }
+        - { name: increment-decrement }
+        - { name: redefines-builtin-id }
+    govet:
+      enable-all: true
+      disable: [fieldalignment]   # ruidoso
+    depguard:
+      rules:
+        domain-sin-transporte:
+          # el dominio no importa transporte/infra (espejo de arch/boundaries/dominio-independiente-de-transporte)
+          files: ["**/internal/domain/**", "**/internal/usecase/**"]
+          deny:
+            - { pkg: "net/http", desc: "el dominio no conoce HTTP (usa un puerto)" }
+            - { pkg: "database/sql", desc: "el dominio no conoce el store (usa un puerto)" }
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+
+# Evitados por ruido (criterio documentado en arch/conventions/go-style.md):
+# lll wsl nlreturn err113 exhaustruct varnamelen mnd godox gochecknoglobals gochecknoinits dupl
+# tagliatelle maintidx forcetypeassert paralleltest

@@ -1,0 +1,40 @@
+# Shell de escritorio ArnesIA (Tauri 2 — HS-04).
+# El shell es CLIENTE del daemon Go `arnesia` (:4200): ventana + single-instance +
+# (fase futura) lanzar el sidecar. NO importa el core (boundary core-no-importa-shell).
+#
+# Versiones fijadas a la MAYOR de cada crate (Tauri 2 GA). Al instalar en una máquina con
+# toolchain + red, correr `cargo update` y fijar los minors exactos.  # verificar al instalar
+
+[package]
+name = "arnesia"
+version = "0.1.0"
+description = "ArnesIA — la fábrica de arneses (shell de escritorio)"
+authors = ["alpacapurpura <hola@alpacapurpura.lat>"]
+edition = "2021"                    # verificar al instalar (MSRV la marca la Tauri 2 vigente)
+rust-version = "1.77"               # verificar al instalar (Tauri 2 exige >= 1.77.2)
+
+# Patrón canónico create-tauri-app v2: lib reutilizable + bin fino (mobile-ready).
+[lib]
+name = "arnesia_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "arnesia"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }   # verificar al instalar
+
+[dependencies]
+tauri = { version = "2", features = [] }         # verificar al instalar
+tauri-plugin-single-instance = "2"               # verificar al instalar (mitigación Mint: 1 sola ventana)
+serde = { version = "1", features = ["derive"] } # verificar al instalar
+serde_json = "1"                                 # verificar al instalar
+
+# Perfil release estándar de Tauri (binario chico). Opcional; ajustar al instalar.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

@@ -1,8 +1,9 @@
 # ArnesIA — UX del producto (fase 2 del gran plan, ficha HS-03)
 
-> **BORRADOR — en forja.** Se congela y firma al cierre de HS-03 (regla Rust: firmado =
-> congelado). Norte: [`VISION.md`](./VISION.md) v3. Mockup v1 del Mapa = herencia validada
-> en esencia (HS-02).
+> **FIRMADA** (HS-03, it.13, 2026-07-05). Por **excepción declarada** (ver METODOLOGIA §7 y ficha
+> HS-03 del LEDGER), la firma cierra la **fase** pero este doc queda **VIVO**: sigue creciendo con
+> nuevas iteraciones (no se congela). Norte: [`VISION.md`](./VISION.md) v3. Mockup v1 del Mapa =
+> herencia validada en esencia (HS-02).
 
 ## Bifurcaciones firmadas (grill 2026-07-04)
 
@@ -81,6 +82,11 @@ versión) navega a cualquier vista conservando foco — estado serializado en UR
 - Daemon caído / reconexión: los JSONL son la fuente de verdad — aviso «índice
   desactualizado», jamás pérdida.
 - Candidato beta con gate fallado: visible en Tren + pintado en mapa (capa Desempeño).
+
+> **Nota de numeración:** el registro guarda las iteraciones donde se **fijó un acuerdo** (por eso
+> hay saltos: it.1 = grill/bifurcaciones sin numerar; it.4/it.5 se disolvieron en las subversiones
+> v3.1–v3.2 de it.3 sin acuerdo propio que cementar). No es un hueco: falta mucho trabajo de UX y el
+> doc sigue vivo (crece con nuevas iteraciones).
 
 ## Iteración 2 — feedback del operador (2026-07-04, sobre mockup v2.1 auditado)
 
@@ -532,7 +538,7 @@ comunify) ¿un arnés con overlays o varios?
 
 ## Inventario final (firma) — corte iteración 13 (2026-07-05)
 
-> Baseline vigente para firmar HS-03. El snapshot «corte iteración 6» de abajo se conserva como
+> Baseline **firmado** de HS-03 (it.13, 2026-07-05). El snapshot «corte iteración 6» de abajo se conserva como
 > historia. **Dos mockups, dos roles** (se unifican al portar): SHELL/navegación/organigrama =
 > `arnesia-shell-A-galaxia.html` (artifact 682f3890) · detalle profundo de superficies =
 > `arnesia-mockup-v3.html` (artifact 6a63cdf3) · laboratorio de shell (4 paradigmas, A firmado) =
@@ -681,7 +687,8 @@ consumo única mapa=inspector**.
 ~~1. Qué datos exactos por capa~~ · ~~2. Capa Proceso vs Diagnóstico~~ — **resueltos en
 iteración 6** (contrato de capas + rediseño Proceso).
 
-1. Dock a 1280px deja mapa a media pantalla — ¿comprimir carriles / flotar / colapsar?
+~~1. Dock a 1280px deja mapa a media pantalla~~ — **resuelto en it.13**: Command Rail dejó el chat
+   como dock **invocado** (⌘K), no persistente; el visual va casi-fullscreen y el dock ya no comprime el mapa.
 2. Vista A/B real (hoy «Evaluar A/B» solo salta al tren).
 3. ¿Flujo canónico/ideal por skill como concepto aparte del replay real?
 4. Detalle de evals del gate («Ver evals») + telemetría post-deploy por proyecto.

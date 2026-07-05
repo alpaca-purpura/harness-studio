@@ -1,0 +1,28 @@
+# lefthook — gate local pre-commit (enforced_by de arch/conventions/hooks.md + commits.md).
+# Binario Go, políglota, paralelo, Node-free. Instalar: `go install github.com/evilmartians/lefthook@latest`.
+#
+# NOTA (honestidad): declarado; se activa cuando el código aterrice (fase 5). lefthook = feedback
+# rápido (saltable con --no-verify); el gate DURO es CI (arch/conventions/ci.md).
+
+pre-commit:
+  parallel: true
+  commands:
+    go-lint:
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD {staged_files}
+    go-fmt:
+      glob: "*.go"
+      run: golangci-lint fmt {staged_files}
+    ts:
+      root: "web/"
+      glob: "*.{ts,tsx}"
+      run: biome check --write --staged {staged_files}
+    rust:
+      glob: "*.rs"
+      run: cargo fmt
+
+commit-msg:
+  commands:
+    conventional:
+      # Conventional Commits + scope HS-NN (regex Node-free — ver arch/conventions/commits.md)
+      run: 'grep -qE "^(feat|fix|docs|refactor|chore|test|perf|build|ci)(\(.+\))?: " {1} || { echo "commit no-Conventional (feat|fix|…: descripción)"; exit 1; }'

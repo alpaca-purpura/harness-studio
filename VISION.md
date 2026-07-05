@@ -162,8 +162,12 @@ será ficha futura — no es esta visión.)
 - **Mapa: React Flow 12** + layout de carriles custom (~200 líneas; elkjs solo si hace falta).
 - **Storage: SQLite puro-Go** (modernc, WAL, rollups) — cross-compile sin CGO. DuckDB solo
   si años de telemetría lo exigen.
-- **Empaque:** GoReleaser → brew/scoop/deb. Tauri 2 = milestone futuro "app vendible"
-  (wrapper sobre el mismo daemon, no rewrite). Wails v3 en watchlist (alpha aún).
+- **Empaque:** GoReleaser → brew/scoop/deb para el daemon. **Shell v1 = Tauri 2 desde el
+  nacimiento** (fork firmado HS-04, 2026-07-05): app de escritorio nativa con el daemon Go como
+  sidecar `externalBin`; el WebView consume la misma API HTTP/SSE. El boundary `core⊥shell` no
+  cambia — «servable headless» sigue gratis y la ruta a la «app vendible» es aditiva (wrap, no
+  rewrite). Wails v3 en watchlist. *(Supera la lectura previa «Tauri = milestone futuro»: nacemos
+  con Tauri. Ver HS-04 en el LEDGER.)*
 
 ## Lo que NO es
 
@@ -179,8 +183,8 @@ será ficha futura — no es esta visión.)
 |---|------|--------|
 | 1 | Visión del producto | **esta ficha (HS-02)** ✓ |
 | 2 | UX del producto (mapa a fondo, inspector, flujos) | ✓ firmada (HS-03, it.13) |
-| 3 | Arquitectura del software y diseño técnico | **en curso (HS-04)** — stack + `arch/` as code |
-| 4 | Definición de specs | siguiente (HS-05) |
+| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend) — stack cerrado + `arch/` = 77 checks |
+| 4 | Definición de specs | **siguiente (HS-06)** |
 | 5 | Implementación y pruebas (MVP = Mapa primero) | pendiente |
 | 6 | Instalación y dogfood | pendiente |
 

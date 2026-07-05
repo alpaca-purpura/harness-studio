@@ -12,7 +12,11 @@ sources:
     autoridad: oficial
     revisado: 2026-07-05
 enforced_by:
-  - fitness/.go-arch-lint.yml#core
+  # «core» = agregado conceptual de {domain, usecase, ports}; NO existe un componente `core` en
+  # .go-arch-lint.yml — el boundary se enforça sobre esos tres (cada uno cannotDependOn: [shell]).
+  - fitness/.go-arch-lint.yml#domain
+  - fitness/.go-arch-lint.yml#usecase
+  - fitness/.go-arch-lint.yml#ports
   - fitness/arch_test.go:TestCoreHasNoShellImport
 severity: critical
 ---
@@ -39,6 +43,9 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 
 - **`internal/core/**` (dominio + casos de uso + puertos) NO importa `internal/shell/**` ni
   ningún paquete de Tauri.** El shell es un cliente del daemon, no al revés. ⇐ L1: hexagonal.
+  Nota: «core» es un **agregado conceptual** de los componentes reales `{domain, usecase, ports}`
+  de [`.go-arch-lint.yml`](../fitness/.go-arch-lint.yml) (no hay componente `core`); el boundary se
+  enforça sobre esos tres + `arch_test.go:TestCoreHasNoShellImport`.
 - El shell (`shell/` = crate Tauri + launcher) **solo** conoce: cómo levantar/attach-ear el
   daemon (`attach si :4200 está arriba, si no spawnea`), setear el env de Mint
   (`WEBKIT_DISABLE_DMABUF_RENDERER=1`), y abrir el WebView. No consume el dominio directo.
@@ -55,7 +62,7 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| core-no-shell-import | ningún paquete de `internal/core/**` importa `internal/shell/**` o `tauri` | error | «core importa el shell (acopla el daemon a su envoltorio)» | go-arch-lint#core |
+| core-no-shell-import | ningún paquete de `internal/core/**` importa `internal/shell/**` o `tauri` | error | «core importa el shell (acopla el daemon a su envoltorio)» | arch_test.go:TestCoreHasNoShellImport · go-arch-lint#{domain,usecase,ports} |
 | shell-solo-composition | solo el shell/launcher levanta o attachea el daemon; el core no auto-lanza ventana | warn | «lógica de ventana en el core» | arch_test.go:TestCoreHasNoShellImport |
 | daemon-servable-headless | existe un entrypoint `serve` que corre sin shell (test de humo) | error | «el daemon no arranca sin shell» | arch_test.go |
 | mint-env-en-launcher | el launcher setea `WEBKIT_DISABLE_DMABUF_RENDERER` (Tauri, Linux) | warn | banda Guardia «WebView Mint sin mitigación DMABUF» | arch_test.go |

@@ -1,0 +1,14 @@
+{
+  "//": "stylelint — anti-magic-value (enforced_by de arch/boundaries/fe-tokens-contrato.md). Obliga var(--…) en lugar de hex/valores crudos. DECLARADO; se activa con la SPA web/ (fase 5).",
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "scale-unlimited/declaration-strict-value": [
+      ["/color$/", "background-color", "border-color", "fill", "stroke", "box-shadow"],
+      {
+        "ignoreValues": ["transparent", "currentColor", "inherit", "none", "unset"],
+        "disableFix": true,
+        "message": "usa un token semántico var(--…), no un valor mágico (fe-tokens-contrato)"
+      }
+    ]
+  }
+}

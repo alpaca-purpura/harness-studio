@@ -35,6 +35,7 @@
     "clase": {
       "type": "string",
       "description": "La clase L0 del componente (meta.clase, I-75). 7 tipos de primera clase mapeados en el mockup v3 (color+forma+etiqueta). Aditivo: la lista crece si la superficie de Claude Code suma tipos.",
+      "$comment": "TODO HS-06: converger enum a los 11 tipos de knowledge/ y unificar labels (agente→subagent, regla→rule).",
       "enum": ["skill", "agente", "hook", "knowledge", "mcp", "regla", "command"]
     },
     "banda": {
@@ -56,7 +57,7 @@
         "fuente_path": { "type": "string", "description": "Ruta al archivo fuente (SKILL.md, hook, knowledge). Puntero, no contrato." },
         "contract": {
           "description": "El contrato de caja, si clase=skill y es caja de proceso. Valida contra box.contract.schema.json.",
-          "$ref": "https://arnesia.alpacapurpura.lat/schema/box.contract.schema.json"
+          "$ref": "box.contract.schema.json"
         },
         "procedencia": {
           "type": "string",
