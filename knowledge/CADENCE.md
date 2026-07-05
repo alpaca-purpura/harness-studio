@@ -64,6 +64,11 @@ Anillos de crecimiento. Una línea por pasada:
 
 ## El ritual (cadencia semanal)
 
+> **Ejecutable:** el procedimiento paso a paso vive en [`WEEKLY-UPDATE.md`](./WEEKLY-UPDATE.md).
+> Se dispara de dos formas — **routine programado** (cron cloud, semanal) o el **botón
+> «Actualizar estándar»** del mapa (manual, on-demand). Tier vigente: **HÍBRIDO** (auto-aplica
+> solo evidencia L1; L2/checks/elementos nuevos van a propuestas en `_inbox/`).
+
 1. **Barrido de novedades.** Research de qué salió nuevo (changelog de Claude Code, docs
    oficiales, blog de Anthropic, releases del kit, chatter de expertos). Un frente por
    familia de elementos; se puede automatizar con agentes en paralelo (como la pasada
