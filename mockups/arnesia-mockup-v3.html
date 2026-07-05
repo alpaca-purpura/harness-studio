@@ -179,6 +179,8 @@
   .node[data-type="know"]{--tc:var(--c-know)}
   .node[data-type="mcp"]{--tc:var(--c-mcp)}
   .node[data-type="rule"]{--tc:var(--c-rule)}
+  .node[data-type="command"]{--tc:var(--muted)}
+  .node[data-type="command"] .glyph{border-radius:4px;font-weight:800}
   .node[data-type="rule"] .glyph{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%);border-radius:0}
   .node.proposed{border-style:dashed;opacity:.75}
   .node .flag{display:none;font-size:10px;font-weight:600;color:var(--warn)}
@@ -508,6 +510,7 @@
             <div class="band-row" id="row-guardia"></div>
           </section>
           <div class="lanes" id="lanes"></div>
+          <div id="bands"></div>
           <div class="budget" id="budget"></div>
           <div class="worst" id="worst"></div>
           <div class="flow" id="flow"></div>
@@ -583,8 +586,8 @@
 
 <script>
 /* ══════════ helpers ══════════ */
-const GLY={skill:"S",agent:"A",hook:"H",know:"K",mcp:"M",rule:"R"};
-const TYPN={skill:"Skill",agent:"Agente",hook:"Hook",know:"Knowledge",mcp:"Servidor MCP",rule:"Regla"};
+const GLY={skill:"S",agent:"A",hook:"H",know:"K",mcp:"M",rule:"R",command:"/"};
+const TYPN={skill:"Skill",agent:"Agente",hook:"Hook",know:"Knowledge",mcp:"Servidor MCP",rule:"Regla",command:"Comando"};
 const fmt=n=>n>=1000?(n/1000).toFixed(1).replace(".0","")+"k":""+n;
 const fmtM=n=>n>=1e6?(n/1e6).toFixed(1).replace(".0","")+"M":fmt(n);
 function showToast(t){const p=document.querySelector(".toast");if(p)p.remove();const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);requestAnimationFrame(()=>e.classList.add("on"));setTimeout(()=>{e.classList.remove("on");setTimeout(()=>e.remove(),300)},2800)}
@@ -704,64 +707,166 @@ const LV_LANES=[
   {id:"cal",n:"Calidad",runs:"9 sesiones",exc:0,cum:"—"},
   {id:"cierre",n:"Cierre & Merge",runs:"—",exc:0,cum:"—"}
 ];
+const LV_BANDS=[
+  {id:"lib",label:"Librería de expertos",sub:"skills preload que cargan builders/auditors — sus tokens cuentan en quien las usa, no son una fase"},
+  {id:"meta",label:"Meta-harness · Git · Utilidades · Comandos",sub:"mantienen el propio arnés y operan git; transversales al proceso"},
+  {id:"dormidas",label:"Marcas dormidas",sub:"PMs sin bootstrap — scaffolds del template, cero corridas"},
+  {id:"clerk",label:"Terceros · Clerk (auth)",sub:"skills de librería externa cargables — no son del proceso Luana"}
+];
 const LV_N={
- // Guardia — 6 hooks reales (settings.json proyecto + plugin harness@0.5.2). éxito no aplica (exit 0 fail-open)
- "h-auto-chain":{t:"hook",l:"guardia",nm:"auto-chain-detect",ver:"—",c:"estable",d:"UserPromptSubmit — detecta patrón «/pm-{brand} + skill + verbo» y autoriza encadenar skills inline (anti-stale, solo el prompt actual).",inv:902,tc:200,ti:200,p95:"~1s",proc:"902 UserPromptSubmit · encadena skills al detectar patrón PM+skill",f:[]},
- "h-learning":{t:"hook",l:"guardia",nm:"learning-detect",ver:"—",c:"estable",d:"UserPromptSubmit — detecta frases ES («aprendamos de esto», «/aprende») y dispara el flujo learning-capture.",inv:902,tc:150,ti:150,p95:"~1s",proc:"902 UserPromptSubmit · dispara learning-capture ante frases ES",f:[]},
- "h-overlay":{t:"hook",l:"guardia",nm:"claude-md-overlay-check",ver:"—",c:"estable",d:"SessionStart — advisory: si el cwd cae en una marca y falta su overlay CLAUDE.md, avisa (no carga; CC lo hace built-in).",inv:469,tc:80,ti:80,p95:"~0.6s",proc:"469 SessionStart · avisa si falta overlay de marca",f:[]},
- "h-contract":{t:"hook",l:"guardia",nm:"contract-guard",ver:"—",c:"estable",d:"PostToolUse(Write|Edit) — al tocar un SSoT (12 reglas engine/brand/legacy) emite el comando regen/test a correr.",inv:3856,tc:120,ti:120,p95:"~0.9s",proc:"~3.9k PostToolUse(Write/Edit) · recuerda regen/test al tocar un SSoT",f:[]},
- "h-validate":{t:"hook",l:"guardia",nm:"validate-session-close",ver:"—",c:"estable",d:"Stop — valida invariantes al cierre: WIP caps por marca (BLOCK si excede), estado huérfano, no-context-loss.",inv:809,tc:100,ti:100,p95:"~2s",proc:"809 Stop · valida WIP caps + cierre sin pérdida (BLOCK si excede)",f:[]},
- "h-telemetry":{t:"hook",l:"guardia",nm:"telemetry-emit (kit)",ver:"0.5.2",c:"estable",d:"Stop·SubagentStop·SessionEnd — emisor KIT-03: arma spans OTLP GenAI-semconv del transcript y los escribe al sink local. Fail-open (siempre exit 0).",inv:832,tc:0,ti:0,p95:"~1.5s",proc:"~832 Stop/SubagentStop · emite spans OTLP al sink (fail-open)",f:[{s:"info",o:"estático",capa:"estructura",x:"El emisor de telemetría del kit YA existe (KIT-03) — es exactamente el sensor que ArnesIA necesita. Hoy escribe a sink local; conectar su egress a ArnesIA = telemetría real sin instrumentar de cero."}]},
- // Intake — PMs (puntos de entrada más frecuentes)
- "s-pm-luana":{t:"skill",l:"intake",nm:"pm-luana",ver:"v4",c:"estable",d:"PM del engine compartido (27 paquetes luana-core), extension SDK EP-1..18, promotion gate marca→core, vista portfolio. Punto de entrada más frecuente.",inv:41,tc:5800,ti:5800,c30:5280000,f:[]},
- "s-pm-vitalia":{t:"skill",l:"intake",nm:"pm-vitalia",ver:"v4",c:"estable",d:"PM de la marca Vitalia (Salud, HIPAA-lite, PHI pgcrypto). Pointer-first: intake→refining, discovery de stories, merge.",inv:40,tc:6700,ti:6700,c30:3170000,f:[]},
- // Spec & UX
- "s-po":{t:"skill",l:"spec",nm:"po",ver:"v4",c:"estable",d:"Product Owner: service-stories + agentic-stories; produce 01-spec.md con Gherkin AI-resistant; transición refining→refined.",inv:4,tc:5000,ti:5000,c30:180000,f:[]},
- "s-po-ux":{t:"skill",l:"spec",nm:"po-ux",ver:"v4",c:"estable",d:"PO+UX fusión: UI standard stories (CRUD/list/form/dashboard); 01-spec.md unificado + wireframes + microcopy + graders Playwright.",inv:15,tc:10300,ti:10300,c30:800000,f:[]},
- "s-ux-agentico":{t:"skill",l:"spec",nm:"ux-agentico",ver:"—",c:"estable",d:"Diseña flujos conversacionales; produce 02-design-agentic.md; carga sales-agent-expert, copilot-expert.",inv:2,tc:4700,ti:4700,c30:100000,f:[]},
- // Arquitectura
- "s-architect":{t:"skill",l:"arq",nm:"architect",ver:"v4",c:"estable",d:"Orquestador de arquitectura: spawna architect-orchestrator; produce el READY PACKAGE (03-arch+04-validators+05-guidelines+06-tickets); refined→ready.",inv:13,tc:11900,ti:11900,c30:1440000,f:[]},
- "a-architect-orch":{t:"agent",l:"arq",nm:"architect-orchestrator",ver:"—",c:"estable",d:"Subagente opus (maxTurns 80): Solution Architect full-stack; preload de 8 skills expertas; produce 03-arch.md como SSoT de los builders.",inv:14,tc:10600,ti:10600,c30:540000,f:[]},
- // Desarrollo
- "s-dev-team":{t:"skill",l:"dev",nm:"dev-team",ver:"v4",c:"estable",d:"Router del developer (Conv 2): itera ticket→validators→fix; decide owner por tier; ready→developed + auto-handoff a /auditor. El componente más pesado del arnés.",inv:26,tc:14100,ti:14100,c30:6710000,f:[{s:"info",o:"runtime",capa:"tokens",x:"Mayor consumidor del arnés: 6.7M tok out / 30d (18M in+out atribuidos). Encadena hasta 8 subagentes por corrida (ej: corrida rl-c). Candidato a acotar vía CONTEXT-BRIEF."}]},
- "a-context-builder":{t:"agent",l:"dev",nm:"context-builder",ver:"—",c:"estable",d:"Subagente haiku: pre-flight reader; produce CONTEXT-BRIEF.md (5-8k tok) que los Opus/Sonnet consumen en vez de re-leer 30-50k.",inv:6,tc:8100,ti:8100,c30:140000,f:[]},
- "a-context-validator":{t:"agent",l:"dev",nm:"context-validator",ver:"—",c:"estable",d:"Subagente haiku: validador adversarial del CONTEXT-BRIEF; escribe CONTEXT-BRIEF-validation.md. Lo spawna context-builder.",inv:0,tc:3000,ti:3000,c30:0,dead:1,f:[{s:"warn",o:"runtime",capa:"perf",x:"0 lanzamientos en 30 días — el validador adversarial del brief nunca corrió, pese a context-builder activo (6×). ¿Trigger roto o paso muerto? El brief va sin validar."}]},
- "a-builder-be":{t:"agent",l:"dev",nm:"builder-backend",ver:"—",c:"estable",d:"Subagente sonnet (maxTurns 120): FastAPI/SQLAlchemy 2.0/Alembic DDD; consume 03-arch.md; defiere a gate-runner + auditor-backend.",inv:43,tc:8700,ti:8700,c30:1100000,f:[]},
- "a-builder-fe":{t:"agent",l:"dev",nm:"builder-frontend",ver:"—",c:"estable",d:"Subagente sonnet (maxTurns 120): Next.js 16/React 19/Shadcn FSD-Lite; el subagente más lanzado del arnés.",inv:87,tc:9800,ti:9800,c30:2450000,f:[]},
- "a-builder-agentic":{t:"agent",l:"dev",nm:"builder-agentic",ver:"—",c:"estable",d:"Subagente opus (maxTurns 150): owner exclusivo de copilot/sales_agent brand-extension (LangGraph 2.0, Qdrant RAG). Defiere a auditor-agentic.",inv:5,tc:11600,ti:11600,c30:140000,f:[]},
- "a-gate-runner":{t:"agent",l:"dev",nm:"gate-runner",ver:"—",c:"estable",d:"Subagente haiku (maxTurns 25): corre suites de calidad brand-scoped; escribe gate-output.json. No decide veredicto.",inv:6,tc:5000,ti:5000,c30:40000,f:[]},
- "s-backend-expert":{t:"skill",l:"dev",nm:"backend-expert",ver:"—",c:"estable",d:"Librería experta preloaded por builder/auditor backend: FastAPI/SQLAlchemy 2.0/Alembic/DDD. No es fase — es conocimiento cargado.",inv:65,tc:1800,ti:1800,c30:0,lib:1,f:[]},
- "s-frontend-expert":{t:"skill",l:"dev",nm:"frontend-expert",ver:"—",c:"estable",d:"Librería experta preloaded por builder/auditor frontend: Next.js 16/React 19/FSD-Lite/Shadcn. No es fase — es conocimiento cargado.",inv:114,tc:1800,ti:1800,c30:0,lib:1,f:[]},
- // Calidad
- "s-auditor":{t:"skill",l:"cal",nm:"auditor",ver:"v4",c:"estable",d:"Auditor (Conv 3): spawna auditor-{be,fe,agentic}; Phase D matriz gherkin; veredicto APPROVED|CHANGES_REQUESTED|ESCALATED; auto-handoff a merge.",inv:9,tc:12500,ti:12500,c30:950000,f:[]},
- "a-auditor-be":{t:"agent",l:"cal",nm:"auditor-backend",ver:"—",c:"estable",d:"Subagente opus: audita módulos business BE vs /test-backend; consume gate-output.json; produce REVIEW.md. Nunca audita copilot/core.",inv:6,tc:8900,ti:8900,c30:120000,f:[]},
- "a-auditor-fe":{t:"agent",l:"cal",nm:"auditor-frontend",ver:"—",c:"estable",d:"Subagente opus: audita FE vs /test-frontend; produce REVIEW.md; carga chrome-devtools-verify.",inv:7,tc:10700,ti:10700,c30:160000,f:[]},
- "a-auditor-agentic":{t:"agent",l:"cal",nm:"auditor-agentic",ver:"—",c:"estable",d:"Subagente opus: audita superficies agentic (copilot/sales_agent) brand-extension; self-fix restringido; produce REVIEW-agentic.md.",inv:0,tc:8900,ti:8900,c30:0,dead:1,f:[{s:"crit",o:"runtime",capa:"perf",x:"0 lanzamientos en 30 días pese a builder-agentic activo (5×). El código agentic (copilot/sales_agent) se construyó pero su auditor nunca lo revisó — brecha de calidad real, no un simple nodo sin uso."}]},
- // Cierre & Merge
- "s-commit-push":{t:"skill",l:"cierre",nm:"commit-push",ver:"—",c:"estable",d:"Commit + push delegado a un worker Haiku (git-haiku-delegation).",inv:5,tc:1400,ti:1400,c30:20000,f:[]},
- "s-handoff":{t:"skill",l:"cierre",nm:"handoff",ver:"—",c:"estable",d:"Genera el doc de handoff al cierre de sesión (delegado Haiku).",inv:0,tc:1400,ti:1400,c30:0,f:[]},
- "s-pase-produccion":{t:"skill",l:"cierre",nm:"pase-produccion",ver:"—",c:"beta",d:"Pipeline deploy triple-branch. DEFERRED: GH Actions no provisionado.",inv:0,tc:2400,ti:2400,c30:0,dead:1,f:[{s:"warn",o:"estático",capa:"estructura",x:"DEFERRED — GH Actions no provisionado. La fase Cierre/Deploy no tiene owner ejecutable: el arnés construye y audita pero no despliega solo."}]},
- // Base — reglas siempre-en-contexto + knowledge as code (consumo = fórmula 194 sesiones × carga; no medido aparte)
- "r-claude":{t:"rule",l:"base",nm:"CLAUDE.md (raíz)",ver:"—",c:"estable",d:"Overlay del proyecto SIEMPRE en contexto: paradigma 3-planos, spine de 10 estados, cost-routing por tier, 38 Critical Rules, git workflow. Termina con @AGENTS.md.",inv:0,ex:0,tc:4800,ti:0,alw:1,f:[{s:"info",o:"estático",capa:"estructura",x:"Doc drift: referencia docs/product/glossary.md (inexistente) y el dir docs/architecture/ADR/ está vacío (los ADR reales viven en luana-platform/)."}]},
- "r-agents":{t:"rule",l:"base",nm:"AGENTS.md",ver:"—",c:"estable",d:"Stack, commands, native-first, quality gates, constraints. Referenciado desde CLAUDE.md.",inv:0,ex:0,tc:1400,ti:0,alw:1,f:[]},
- "r-overlay":{t:"rule",l:"base",nm:"vitalia/CLAUDE.md",ver:"—",c:"estable",d:"Overlay auto-cargado en el cwd de la marca: vertical Salud, HIPAA-lite, shell Valeria + 5 especialistas.",inv:0,ex:0,tc:2700,ti:0,alw:1,f:[]},
- "r-rules-kit":{t:"rule",l:"base",nm:"rules del kit (21+25)",ver:"0.5.2",c:"estable",d:"46 invariantes de proceso: 21 always-on del kit (story-closure-gate, tdd-mandatory, anti-duplication, git-safety, parallel-safety…) + 25 del proyecto. Núcleo always-on ≤9.5k chars.",inv:0,ex:0,tc:2400,ti:0,alw:1,f:[{s:"info",o:"estático",capa:"estructura",x:"El hook session-start-rules del kit es NO-OP efectivo hoy: el manifest slim lista 3 reglas pero el corpus vive en .claude/rules nativo. Redundancia inofensiva, pero es deuda del kit."}]},
- "k-config":{t:"know",l:"base",nm:"project.config.yaml (costura)",ver:"—",c:"estable",d:"LA COSTURA (DIP): 12 slots (toolchain/locale/engine/models/roster/value_stream/wip_caps…). SSoT de tech y marca; la lee harness_config.py y los hooks, no se inyecta al LLM.",inv:0,ex:0,tc:6200,ti:0,f:[]},
- "k-lifecycle":{t:"know",l:"base",nm:"lifecycle.md",ver:"—",c:"estable",d:"SSoT del modelo 4-ejes (Release→Story→Capability→Scenario) + los 10 estados macro del spine.",inv:0,ex:0,tc:4300,ti:0,f:[{s:"crit",o:"estático",capa:"proceso",x:"Ningún componente define criterio de éxito de corrida ni tiene evals — el gate «nada sin eval» (principio 10) NO está instrumentado. Por eso el semáforo de salud queda «señales incompletas» y no puede ponerse verde."},{s:"warn",o:"estático",capa:"proceso",x:"Fases en conflicto: lifecycle.md remite a story-closure-gate.md para {G,R,C,D} pero ese doc aún lista A–F. Migración de proceso v4→v5 sin cerrar."}]},
- "k-capability":{t:"know",l:"base",nm:"capability-protocol.md",ver:"v3.2",c:"estable",d:"Schema de capability + computed_status (stub→wip→partial→declared-live→verified-live). La «salud del producto» que construye el arnés.",inv:0,ex:0,tc:9300,ti:0,f:[]},
- "k-harness-arch":{t:"know",l:"base",nm:"harness-architecture-guide.md",ver:"—",c:"estable",d:"Deep-dive del arnés: 3 capas CORE→PROJECT→BRAND, regla de dependencia hacia adentro, la costura.",inv:0,ex:0,tc:4300,ti:0,f:[]},
- "k-paradigm":{t:"know",l:"base",nm:"PARADIGM.md",ver:"v4.1",c:"estable",d:"Norte: Luana = equipo de trabajadores digitales (empleados-IA), no un SaaS-herramienta. 3 planos, mapa 3 zonas.",inv:0,ex:0,tc:3600,ti:0,f:[]},
- "m-tessl":{t:"mcp",l:"base",nm:"mcp-tessl",ver:"—",c:"estable",d:"MCP — gestión de tiles Tessl (docs versionados de dependencias). Único servidor MCP a nivel proyecto.",inv:0,ex:0,tc:200,ti:200,f:[{s:"info",o:"runtime",capa:"tokens",x:"MCP declarado pero ~0 invocaciones reales en 30d — superficie cargada sin uso (la verificación real corre por chrome-devtools, que es del host)."}]}
+ "s-pm-luana":{"t":"skill","l":"intake","nm":"pm-luana","ver":"—","c":"estable","tc":5756,"ti":5756,"f":[],"inv":41,"c30":5280000,"d":"PM del engine compartido (27 paquetes luana-core), extension SDK EP-1..18, promotion gate marca→core. Punto de entrada más frecuente."},
+ "s-pm-vitalia":{"t":"skill","l":"intake","nm":"pm-vitalia","ver":"—","c":"estable","tc":6676,"ti":6676,"f":[],"inv":40,"c30":3170000,"d":"PM de la marca Vitalia (Salud, HIPAA-lite, PHI pgcrypto). Pointer-first: intake→refining, discovery de stories, merge."},
+ "s-pm-nicolify":{"t":"skill","l":"intake","nm":"pm-nicolify","ver":"—","c":"estable","tc":6424,"ti":6424,"f":[],"inv":0,"d":"PM de Nicolify (Agent-as-a-Service B2B, 6 agentes Luana/Abel/Brenda/Christian/Norvil)."},
+ "s-pm-comunify":{"t":"skill","l":"intake","nm":"pm-comunify","ver":"—","c":"estable","tc":4458,"ti":4458,"f":[],"inv":0,"d":"PM de Comunify (Creator Economy + Educación)."},
+ "s-pm-lupulo":{"t":"skill","l":"intake","nm":"pm-lupulo","ver":"—","c":"estable","tc":4155,"ti":4155,"f":[],"inv":0,"d":"PM de Lupulo (Gastronomía/KDS). Marca placeholder."},
+ "s-pm":{"t":"skill","l":"intake","nm":"pm","ver":"—","c":"estable","tc":377,"ti":377,"f":[],"inv":0,"d":"Alias retro-compat → /pm-luana."},
+ "s-po":{"t":"skill","l":"spec","nm":"po","ver":"—","c":"estable","tc":4966,"ti":4966,"f":[],"inv":4,"c30":180000,"d":"Product Owner: service-stories + agentic-stories; 01-spec.md Gherkin AI-resistant; refining→refined."},
+ "s-po-ux":{"t":"skill","l":"spec","nm":"po-ux","ver":"—","c":"estable","tc":10254,"ti":10254,"f":[],"inv":15,"c30":800000,"d":"PO+UX fusión: UI standard stories; 01-spec.md unificado + wireframes + microcopy + graders Playwright."},
+ "s-ux-agentico":{"t":"skill","l":"spec","nm":"ux-agentico","ver":"—","c":"estable","tc":4726,"ti":4726,"f":[],"inv":2,"c30":100000,"d":"Diseña flujos conversacionales; produce 02-design-agentic.md."},
+ "s-architect":{"t":"skill","l":"arq","nm":"architect","ver":"—","c":"estable","tc":11904,"ti":11904,"f":[],"inv":13,"c30":1440000,"d":"Orquestador de arquitectura: spawna architect-orchestrator; produce el READY PACKAGE; refined→ready."},
+ "a-architect-orchestrator":{"t":"agent","l":"arq","nm":"architect-orchestrator","ver":"—","c":"estable","tc":10577,"ti":10577,"f":[],"inv":14,"c30":540000,"d":"Subagente opus (mt80): Solution Architect full-stack; preload de 8 skills expertas; produce 03-arch.md."},
+ "s-dev-team":{"t":"skill","l":"dev","nm":"dev-team","ver":"—","c":"estable","tc":14120,"ti":14120,"f":[{"s":"info","o":"runtime","capa":"tokens","x":"Mayor consumidor del arnés: 6.7M tok out / 30d (18M in+out atribuidos). Encadena hasta 8 subagentes por corrida (ej: rl-c). Candidato a acotar vía CONTEXT-BRIEF."}],"inv":26,"c30":6710000,"d":"Router del developer (Conv 2): itera ticket→validators→fix; ready→developed + auto-handoff a /auditor. Componente más pesado."},
+ "a-context-builder":{"t":"agent","l":"dev","nm":"context-builder","ver":"—","c":"estable","tc":8140,"ti":8140,"f":[],"inv":6,"c30":140000,"d":"Subagente haiku: pre-flight reader; produce CONTEXT-BRIEF.md (5-8k) para no re-leer 30-50k."},
+ "a-context-validator":{"t":"agent","l":"dev","nm":"context-validator","ver":"—","c":"estable","tc":3017,"ti":3017,"f":[{"s":"warn","o":"runtime","capa":"perf","x":"0 lanzamientos en 30 días — el validador adversarial del brief nunca corrió pese a context-builder activo (6×). ¿Trigger roto o paso muerto?"}],"inv":0,"c30":0,"dead":1,"d":"Subagente haiku: validador adversarial del CONTEXT-BRIEF. Lo spawna context-builder."},
+ "a-builder-backend":{"t":"agent","l":"dev","nm":"builder-backend","ver":"—","c":"estable","tc":8702,"ti":8702,"f":[],"inv":43,"c30":1100000,"d":"Subagente sonnet (mt120): FastAPI/SQLAlchemy 2.0/Alembic DDD."},
+ "a-builder-frontend":{"t":"agent","l":"dev","nm":"builder-frontend","ver":"—","c":"estable","tc":9813,"ti":9813,"f":[],"inv":87,"c30":2450000,"d":"Subagente sonnet (mt120): Next.js 16/React 19/Shadcn FSD-Lite. El subagente más lanzado."},
+ "a-builder-agentic":{"t":"agent","l":"dev","nm":"builder-agentic","ver":"—","c":"estable","tc":11569,"ti":11569,"f":[],"inv":5,"c30":140000,"d":"Subagente opus (mt150): owner de copilot/sales_agent (LangGraph 2.0, Qdrant RAG)."},
+ "a-gate-runner":{"t":"agent","l":"dev","nm":"gate-runner","ver":"—","c":"estable","tc":4960,"ti":4960,"f":[],"inv":6,"c30":40000,"d":"Subagente haiku (mt25): corre suites de calidad brand-scoped; escribe gate-output.json."},
+ "s-auditor":{"t":"skill","l":"cal","nm":"auditor","ver":"—","c":"estable","tc":12468,"ti":12468,"f":[],"inv":9,"c30":950000,"d":"Auditor (Conv 3): spawna auditor-{be,fe,agentic}; Phase D matriz gherkin; veredicto APPROVED|CHANGES|ESCALATED."},
+ "a-auditor-backend":{"t":"agent","l":"cal","nm":"auditor-backend","ver":"—","c":"estable","tc":8871,"ti":8871,"f":[],"inv":6,"c30":120000,"d":"Subagente opus: audita módulos BE vs /test-backend."},
+ "a-auditor-frontend":{"t":"agent","l":"cal","nm":"auditor-frontend","ver":"—","c":"estable","tc":10714,"ti":10714,"f":[],"inv":7,"c30":160000,"d":"Subagente opus: audita FE vs /test-frontend; carga chrome-devtools-verify."},
+ "a-auditor-agentic":{"t":"agent","l":"cal","nm":"auditor-agentic","ver":"—","c":"estable","tc":8912,"ti":8912,"f":[{"s":"crit","o":"runtime","capa":"perf","x":"0 lanzamientos en 30 días pese a builder-agentic activo (5×). El código agentic (copilot/sales_agent) se construyó pero su auditor nunca lo revisó — brecha de calidad real."}],"inv":0,"c30":0,"dead":1,"d":"Subagente opus: audita superficies agentic (copilot/sales_agent)."},
+ "s-commit-push":{"t":"skill","l":"cierre","nm":"commit-push","ver":"—","c":"estable","tc":1408,"ti":1408,"f":[],"inv":0,"d":"Commit + push delegado a Haiku."},
+ "s-handoff":{"t":"skill","l":"cierre","nm":"handoff","ver":"—","c":"estable","tc":1420,"ti":1420,"f":[],"inv":0,"d":"Doc de handoff al cierre (delegado Haiku)."},
+ "s-pase-produccion":{"t":"skill","l":"cierre","nm":"pase-produccion","ver":"—","c":"estable","tc":2399,"ti":2399,"f":[{"s":"warn","o":"estático","capa":"estructura","x":"DEFERRED — GH Actions no provisionado. La fase Cierre/Deploy no tiene owner ejecutable: el arnés construye y audita pero no despliega solo."}],"inv":0,"dead":1,"d":"Pipeline deploy triple-branch. DEFERRED: GH Actions no provisionado."},
+ "s-backend-expert":{"t":"skill","l":"lib","nm":"backend-expert","ver":"—","c":"estable","tc":1797,"ti":1797,"f":[],"inv":65,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/backend-expert/SKILL.md"},
+ "s-frontend-expert":{"t":"skill","l":"lib","nm":"frontend-expert","ver":"—","c":"estable","tc":1818,"ti":1818,"f":[],"inv":114,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/frontend-expert/SKILL.md"},
+ "s-copilot-expert":{"t":"skill","l":"lib","nm":"copilot-expert","ver":"—","c":"estable","tc":7103,"ti":7103,"f":[],"inv":115,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/copilot-expert/SKILL.md"},
+ "s-sales-agent-expert":{"t":"skill","l":"lib","nm":"sales-agent-expert","ver":"—","c":"estable","tc":4436,"ti":4436,"f":[],"inv":115,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/sales-agent-expert/SKILL.md"},
+ "s-brand-expert":{"t":"skill","l":"lib","nm":"brand-expert","ver":"—","c":"estable","tc":6324,"ti":6324,"f":[],"inv":160,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/brand-expert/SKILL.md"},
+ "s-offer-expert":{"t":"skill","l":"lib","nm":"offer-expert","ver":"—","c":"estable","tc":5392,"ti":5392,"f":[],"inv":160,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/offer-expert/SKILL.md"},
+ "s-offer-type-preset-expert":{"t":"skill","l":"lib","nm":"offer-type-preset-expert","ver":"—","c":"estable","tc":5153,"ti":5153,"f":[],"inv":160,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/offer-type-preset-expert/SKILL.md"},
+ "s-metrics-expert":{"t":"skill","l":"lib","nm":"metrics-expert","ver":"—","c":"estable","tc":2324,"ti":2324,"f":[],"inv":160,"lib":1,"d":"Librería experta preloaded por builders/auditors. Fuente: .claude/skills/metrics-expert/SKILL.md"},
+ "s-manychat-expert":{"t":"skill","l":"lib","nm":"manychat-expert","ver":"—","c":"estable","tc":2257,"ti":2257,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/manychat-expert/SKILL.md"},
+ "s-vitalia-design-system":{"t":"skill","l":"lib","nm":"vitalia-design-system","ver":"—","c":"estable","tc":2967,"ti":2967,"f":[],"inv":6,"c30":790000,"d":"SSoT de diseño + shell de Vitalia (tokens, shell Valeria+5)."},
+ "s-nicolify-design-system":{"t":"skill","l":"lib","nm":"nicolify-design-system","ver":"—","c":"estable","tc":4161,"ti":4161,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/nicolify-design-system/SKILL.md"},
+ "s-playwright-expert":{"t":"skill","l":"lib","nm":"playwright-expert","ver":"—","c":"estable","tc":4329,"ti":4329,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/playwright-expert/SKILL.md"},
+ "s-chrome-devtools-verify":{"t":"skill","l":"lib","nm":"chrome-devtools-verify","ver":"—","c":"estable","tc":2944,"ti":2944,"f":[],"inv":2,"c30":110000,"d":"Componente del arnés. Fuente: .claude/skills/chrome-devtools-verify/SKILL.md"},
+ "s-harnesses-improvement":{"t":"skill","l":"meta","nm":"harnesses-improvement","ver":"—","c":"estable","tc":1278,"ti":1278,"f":[{"s":"warn","o":"runtime","capa":"proceso","x":"58 skills, 46 rules, 10 agentes — pero solo ~13 skills se activaron en 30d. 22 componentes propios fríos + 7 marcas dormidas + 12 skills Clerk (terceros) + 2 UX deprecadas. Superficie enorme, mayoría fría: candidata a poda o lazy-load (el ritual CIL de este mismo componente debería cazarlo)."}],"inv":2,"c30":660000,"d":"Ritual semanal de mejora continua del propio arnés (4 carriles CIL)."},
+ "s-harness-issue":{"t":"skill","l":"meta","nm":"harness-issue","ver":"—","c":"estable","tc":542,"ti":542,"f":[],"inv":6,"c30":70000,"d":"Captura sin fricción de deficiencias del harness → harness-backlog.md."},
+ "s-ai-docs":{"t":"skill","l":"meta","nm":"ai-docs","ver":"—","c":"estable","tc":1614,"ti":1614,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/ai-docs/SKILL.md"},
+ "s-worktree-protocol":{"t":"skill","l":"meta","nm":"worktree-protocol","ver":"—","c":"estable","tc":3150,"ti":3150,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/worktree-protocol/SKILL.md"},
+ "s-brand-offer-auditor":{"t":"skill","l":"meta","nm":"brand-offer-auditor","ver":"—","c":"estable","tc":3030,"ti":3030,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/brand-offer-auditor/SKILL.md"},
+ "s-tessl-context":{"t":"skill","l":"meta","nm":"tessl-context","ver":"—","c":"estable","tc":428,"ti":428,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/tessl-context/SKILL.md"},
+ "s-git-manager":{"t":"skill","l":"meta","nm":"git-manager","ver":"—","c":"estable","tc":374,"ti":374,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/git-manager/SKILL.md"},
+ "s-harness-bootstrap":{"t":"skill","l":"meta","nm":"harness-bootstrap","ver":"—","c":"estable","tc":1403,"ti":1403,"f":[],"inv":0,"d":"Componente del arnés. Fuente: core-harness/skills/harness-bootstrap/SKILL.md"},
+ "s-data-storyteller":{"t":"skill","l":"meta","nm":"data-storyteller","ver":"—","c":"estable","tc":2830,"ti":2830,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/data-storyteller/SKILL.md"},
+ "s-content-hunter":{"t":"skill","l":"meta","nm":"content-hunter","ver":"—","c":"estable","tc":4444,"ti":4444,"f":[],"inv":0,"d":"Componente del arnés. Fuente: .claude/skills/content-hunter/SKILL.md"},
+ "s-ux-disruptivo":{"t":"skill","l":"meta","nm":"ux-disruptivo","ver":"—","c":"estable","tc":255,"ti":255,"f":[],"dep":1,"inv":0,"d":"DEPRECATED — usar /po-ux. Fuente: .claude/skills/ux-disruptivo/SKILL.md"},
+ "s-ux-flow-architect":{"t":"skill","l":"meta","nm":"ux-flow-architect","ver":"—","c":"estable","tc":300,"ti":300,"f":[],"dep":1,"inv":0,"d":"DEPRECATED — usar /po-ux. Fuente: .claude/skills/ux-flow-architect/SKILL.md"},
+ "c-cierra-limpio":{"t":"command","l":"meta","nm":"/cierra-limpio","ver":"—","c":"estable","tc":133,"ti":133,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/cierra-limpio.md"},
+ "c-dev-up":{"t":"command","l":"meta","nm":"/dev-up","ver":"—","c":"estable","tc":137,"ti":137,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/dev-up.md"},
+ "c-estado":{"t":"command","l":"meta","nm":"/estado","ver":"—","c":"estable","tc":142,"ti":142,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/estado.md"},
+ "c-explore-module":{"t":"command","l":"meta","nm":"/explore-module","ver":"—","c":"estable","tc":124,"ti":124,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/explore-module.md"},
+ "c-migrate":{"t":"command","l":"meta","nm":"/migrate","ver":"—","c":"estable","tc":200,"ti":200,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/migrate.md"},
+ "c-rescata":{"t":"command","l":"meta","nm":"/rescata","ver":"—","c":"estable","tc":141,"ti":141,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/rescata.md"},
+ "c-review-pr":{"t":"command","l":"meta","nm":"/review-pr","ver":"—","c":"estable","tc":134,"ti":134,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/review-pr.md"},
+ "c-test-all":{"t":"command","l":"meta","nm":"/test-all","ver":"—","c":"estable","tc":1936,"ti":1936,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/test-all.md"},
+ "c-test-backend":{"t":"command","l":"meta","nm":"/test-backend","ver":"—","c":"estable","tc":1678,"ti":1678,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/test-backend.md"},
+ "c-test-frontend":{"t":"command","l":"meta","nm":"/test-frontend","ver":"—","c":"estable","tc":1260,"ti":1260,"f":[],"inv":0,"d":"Comando slash del proyecto. Fuente: .claude/commands/test-frontend.md"},
+ "s-pm-fitflow":{"t":"skill","l":"dormidas","nm":"pm-fitflow","ver":"—","c":"estable","tc":585,"ti":585,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/pm-fitflow/SKILL.md"},
+ "s-pm-fixia":{"t":"skill","l":"dormidas","nm":"pm-fixia","ver":"—","c":"estable","tc":568,"ti":568,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/pm-fixia/SKILL.md"},
+ "s-pm-guestly":{"t":"skill","l":"dormidas","nm":"pm-guestly","ver":"—","c":"estable","tc":583,"ti":583,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/pm-guestly/SKILL.md"},
+ "s-pm-inmoflow":{"t":"skill","l":"dormidas","nm":"pm-inmoflow","ver":"—","c":"estable","tc":596,"ti":596,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/pm-inmoflow/SKILL.md"},
+ "s-pm-retailly":{"t":"skill","l":"dormidas","nm":"pm-retailly","ver":"—","c":"estable","tc":591,"ti":591,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/pm-retailly/SKILL.md"},
+ "s-pm-saasora":{"t":"skill","l":"dormidas","nm":"pm-saasora","ver":"—","c":"estable","tc":573,"ti":573,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/pm-saasora/SKILL.md"},
+ "s-pm-sistema-template":{"t":"skill","l":"dormidas","nm":"_pm-sistema-template","ver":"—","c":"estable","tc":3496,"ti":3496,"f":[],"prop":1,"inv":0,"d":"Marca sin bootstrap: scaffold del template, sin roster ni stories aún. Fuente: .claude/skills/_pm-sistema-template/SKILL.md"},
+ "s-clerk":{"t":"skill","l":"clerk","nm":"clerk","ver":"—","c":"estable","tc":1352,"ti":1352,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk/SKILL.md"},
+ "s-clerk-setup":{"t":"skill","l":"clerk","nm":"clerk-setup","ver":"—","c":"estable","tc":3260,"ti":3260,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-setup/SKILL.md"},
+ "s-clerk-testing":{"t":"skill","l":"clerk","nm":"clerk-testing","ver":"—","c":"estable","tc":483,"ti":483,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-testing/SKILL.md"},
+ "s-clerk-orgs":{"t":"skill","l":"clerk","nm":"clerk-orgs","ver":"—","c":"estable","tc":4808,"ti":4808,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-orgs/SKILL.md"},
+ "s-clerk-react-patterns":{"t":"skill","l":"clerk","nm":"clerk-react-patterns","ver":"—","c":"estable","tc":1041,"ti":1041,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-react-patterns/SKILL.md"},
+ "s-clerk-react-router-patterns":{"t":"skill","l":"clerk","nm":"clerk-react-router-patterns","ver":"—","c":"estable","tc":1146,"ti":1146,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-react-router-patterns/SKILL.md"},
+ "s-clerk-nextjs-patterns":{"t":"skill","l":"clerk","nm":"clerk-nextjs-patterns","ver":"—","c":"estable","tc":2076,"ti":2076,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-nextjs-patterns/SKILL.md"},
+ "s-clerk-backend-api":{"t":"skill","l":"clerk","nm":"clerk-backend-api","ver":"—","c":"estable","tc":4065,"ti":4065,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-backend-api/SKILL.md"},
+ "s-clerk-webhooks":{"t":"skill","l":"clerk","nm":"clerk-webhooks","ver":"—","c":"estable","tc":3241,"ti":3241,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-webhooks/SKILL.md"},
+ "s-clerk-billing":{"t":"skill","l":"clerk","nm":"clerk-billing","ver":"—","c":"estable","tc":5109,"ti":5109,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-billing/SKILL.md"},
+ "s-clerk-custom-ui":{"t":"skill","l":"clerk","nm":"clerk-custom-ui","ver":"—","c":"estable","tc":1624,"ti":1624,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-custom-ui/SKILL.md"},
+ "s-clerk-chrome-extension-patterns":{"t":"skill","l":"clerk","nm":"clerk-chrome-extension-patterns","ver":"—","c":"estable","tc":2915,"ti":2915,"f":[],"ext":1,"inv":0,"d":"Skill de terceros (Clerk auth) cargable por el harness. Fuente: .agents/skills/clerk-chrome-extension-patterns/SKILL.md"},
+ "r-admin-panel":{"t":"rule","l":"base","nm":"admin-panel","ver":"—","c":"estable","tc":135,"ti":135,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/admin-panel.md"},
+ "r-analytics-metrics":{"t":"rule","l":"base","nm":"analytics-metrics","ver":"—","c":"estable","tc":173,"ti":173,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/analytics-metrics.md"},
+ "r-anti-default-flip-audit":{"t":"rule","l":"base","nm":"anti-default-flip-audit","ver":"—","c":"estable","tc":633,"ti":633,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/anti-default-flip-audit.md"},
+ "r-anti-duplication":{"t":"rule","l":"base","nm":"anti-duplication","ver":"—","c":"estable","tc":946,"ti":946,"f":[],"alw":1,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · siempre en contexto. Fuente: .claude/rules/anti-duplication.md"},
+ "r-anti-duplication-refining":{"t":"rule","l":"base","nm":"anti-duplication-refining","ver":"—","c":"estable","tc":554,"ti":554,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/anti-duplication-refining.md"},
+ "r-anti-orphan-integration":{"t":"rule","l":"base","nm":"anti-orphan-integration","ver":"—","c":"estable","tc":644,"ti":644,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/anti-orphan-integration.md"},
+ "r-architect-autonomous-mode":{"t":"rule","l":"base","nm":"architect-autonomous-mode","ver":"—","c":"estable","tc":684,"ti":684,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/architect-autonomous-mode.md"},
+ "r-architectural-fitness":{"t":"rule","l":"base","nm":"architectural-fitness","ver":"—","c":"estable","tc":481,"ti":481,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/architectural-fitness.md"},
+ "r-auditor-downstream-regression":{"t":"rule","l":"base","nm":"auditor-downstream-regression","ver":"—","c":"estable","tc":847,"ti":847,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/auditor-downstream-regression.md"},
+ "r-auditor-self-fix-policy":{"t":"rule","l":"base","nm":"auditor-self-fix-policy","ver":"—","c":"estable","tc":1320,"ti":1320,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/auditor-self-fix-policy.md"},
+ "r-backend-ddd":{"t":"rule","l":"base","nm":"backend-ddd","ver":"—","c":"estable","tc":688,"ti":688,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/backend-ddd.md"},
+ "r-backend-migrations":{"t":"rule","l":"base","nm":"backend-migrations","ver":"—","c":"estable","tc":403,"ti":403,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/backend-migrations.md"},
+ "r-backend-quality":{"t":"rule","l":"base","nm":"backend-quality","ver":"—","c":"estable","tc":531,"ti":531,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/backend-quality.md"},
+ "r-claude-md-overlay":{"t":"rule","l":"base","nm":"claude-md-overlay","ver":"—","c":"estable","tc":497,"ti":497,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/claude-md-overlay.md"},
+ "r-cockpit-boundary":{"t":"rule","l":"base","nm":"cockpit-boundary","ver":"—","c":"estable","tc":1156,"ti":1156,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/cockpit-boundary.md"},
+ "r-copilot-observability":{"t":"rule","l":"base","nm":"copilot-observability","ver":"—","c":"estable","tc":158,"ti":158,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/copilot-observability.md"},
+ "r-copilot-resilience":{"t":"rule","l":"base","nm":"copilot-resilience","ver":"—","c":"estable","tc":158,"ti":158,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/copilot-resilience.md"},
+ "r-currency-handling":{"t":"rule","l":"base","nm":"currency-handling","ver":"—","c":"estable","tc":130,"ti":130,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/currency-handling.md"},
+ "r-data-reliability":{"t":"rule","l":"base","nm":"data-reliability","ver":"—","c":"estable","tc":127,"ti":127,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/data-reliability.md"},
+ "r-debugging":{"t":"rule","l":"base","nm":"debugging","ver":"—","c":"estable","tc":155,"ti":155,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/debugging.md"},
+ "r-definition-of-done-live-verify":{"t":"rule","l":"base","nm":"definition-of-done-live-verify","ver":"—","c":"estable","tc":1749,"ti":1749,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/definition-of-done-live-verify.md"},
+ "r-e2e-testing":{"t":"rule","l":"base","nm":"e2e-testing","ver":"—","c":"estable","tc":326,"ti":326,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/e2e-testing.md"},
+ "r-etl-extraction-contract":{"t":"rule","l":"base","nm":"etl-extraction-contract","ver":"—","c":"estable","tc":190,"ti":190,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/etl-extraction-contract.md"},
+ "r-form-runtime-array":{"t":"rule","l":"base","nm":"form-runtime-array","ver":"—","c":"estable","tc":140,"ti":140,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/form-runtime-array.md"},
+ "r-frontend-fsd":{"t":"rule","l":"base","nm":"frontend-fsd","ver":"—","c":"estable","tc":723,"ti":723,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/frontend-fsd.md"},
+ "r-frontend-quality":{"t":"rule","l":"base","nm":"frontend-quality","ver":"—","c":"estable","tc":453,"ti":453,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/frontend-quality.md"},
+ "r-frontend-visual-fidelity":{"t":"rule","l":"base","nm":"frontend-visual-fidelity","ver":"—","c":"estable","tc":2401,"ti":2401,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/frontend-visual-fidelity.md"},
+ "r-git-haiku-delegation":{"t":"rule","l":"base","nm":"git-haiku-delegation","ver":"—","c":"estable","tc":437,"ti":437,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/git-haiku-delegation.md"},
+ "r-github-actions-deferred":{"t":"rule","l":"base","nm":"github-actions-deferred","ver":"—","c":"estable","tc":634,"ti":634,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/github-actions-deferred.md"},
+ "r-git-safety":{"t":"rule","l":"base","nm":"git-safety","ver":"—","c":"estable","tc":690,"ti":690,"f":[],"alw":1,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · siempre en contexto. Fuente: .claude/rules/git-safety.md"},
+ "r-hotfix-repro-mandatory":{"t":"rule","l":"base","nm":"hotfix-repro-mandatory","ver":"—","c":"estable","tc":808,"ti":808,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/hotfix-repro-mandatory.md"},
+ "r-learning-capture":{"t":"rule","l":"base","nm":"learning-capture","ver":"—","c":"estable","tc":769,"ti":769,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/learning-capture.md"},
+ "r-master-data":{"t":"rule","l":"base","nm":"master-data","ver":"—","c":"estable","tc":121,"ti":121,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/master-data.md"},
+ "r-offer-catalogs":{"t":"rule","l":"base","nm":"offer-catalogs","ver":"—","c":"estable","tc":180,"ti":180,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/offer-catalogs.md"},
+ "r-paradigm-arquitectura":{"t":"rule","l":"base","nm":"paradigm-arquitectura","ver":"—","c":"estable","tc":1513,"ti":1513,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/paradigm-arquitectura.md"},
+ "r-parallel-safety":{"t":"rule","l":"base","nm":"parallel-safety","ver":"—","c":"estable","tc":1370,"ti":1370,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/parallel-safety.md"},
+ "r-pii-sanitisation":{"t":"rule","l":"base","nm":"pii-sanitisation","ver":"—","c":"estable","tc":936,"ti":936,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/pii-sanitisation.md"},
+ "r-pm-skill-chaining":{"t":"rule","l":"base","nm":"pm-skill-chaining","ver":"—","c":"estable","tc":584,"ti":584,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/pm-skill-chaining.md"},
+ "r-sales-agent-brand-voice":{"t":"rule","l":"base","nm":"sales-agent-brand-voice","ver":"—","c":"estable","tc":143,"ti":143,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/sales-agent-brand-voice.md"},
+ "r-sistema-docs-schema":{"t":"rule","l":"base","nm":"sistema-docs-schema","ver":"—","c":"estable","tc":208,"ti":208,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/sistema-docs-schema.md"},
+ "r-spanish-text":{"t":"rule","l":"base","nm":"spanish-text","ver":"—","c":"estable","tc":793,"ti":793,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/spanish-text.md"},
+ "r-step-0-worktree":{"t":"rule","l":"base","nm":"step-0-worktree","ver":"—","c":"estable","tc":1104,"ti":1104,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/step-0-worktree.md"},
+ "r-story-closure-gate":{"t":"rule","l":"base","nm":"story-closure-gate","ver":"—","c":"estable","tc":1456,"ti":1456,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/story-closure-gate.md"},
+ "r-tdd-mandatory":{"t":"rule","l":"base","nm":"tdd-mandatory","ver":"—","c":"estable","tc":469,"ti":469,"f":[],"alw":1,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · siempre en contexto. Fuente: .claude/rules/tdd-mandatory.md"},
+ "r-tenant-isolation":{"t":"rule","l":"base","nm":"tenant-isolation","ver":"—","c":"estable","tc":271,"ti":271,"f":[],"alw":0,"kit":0,"inv":0,"d":"Regla del proyecto · carga condicional. Fuente: .claude/rules/tenant-isolation.md"},
+ "r-test-design-doctrine":{"t":"rule","l":"base","nm":"test-design-doctrine","ver":"—","c":"estable","tc":871,"ti":871,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/test-design-doctrine.md"},
+ "r-worktree-dual-strategy":{"t":"rule","l":"base","nm":"worktree-dual-strategy","ver":"—","c":"estable","tc":478,"ti":478,"f":[],"alw":0,"kit":1,"inv":0,"d":"Regla del kit (harness@0.5.2, symlink) · carga condicional. Fuente: .claude/rules/worktree-dual-strategy.md"},
+ "h-auto-chain":{"t":"hook","l":"guardia","nm":"auto-chain-detect","ver":"—","c":"estable","tc":144,"ti":144,"inv":902,"proc":"902 UserPromptSubmit · encadena skills","p95":"~1s","f":[],"d":"UserPromptSubmit — encadena skills al detectar patrón «/pm + skill + verbo»."},
+ "h-learning":{"t":"hook","l":"guardia","nm":"learning-detect","ver":"—","c":"estable","tc":96,"ti":96,"inv":902,"proc":"902 UserPromptSubmit · learning-capture","p95":"~1s","f":[],"d":"UserPromptSubmit — dispara learning-capture ante frases ES."},
+ "h-overlay":{"t":"hook","l":"guardia","nm":"claude-md-overlay-check","ver":"—","c":"estable","tc":92,"ti":92,"inv":469,"proc":"469 SessionStart · avisa overlay","p95":"~1s","f":[],"d":"SessionStart — avisa si falta el overlay CLAUDE.md de la marca."},
+ "h-contract":{"t":"hook","l":"guardia","nm":"contract-guard","ver":"—","c":"estable","tc":305,"ti":305,"inv":3856,"proc":"~3.9k PostToolUse · regen/test SSoT","p95":"~1s","f":[],"d":"PostToolUse(Write|Edit) — recuerda regen/test al tocar un SSoT (12 reglas)."},
+ "h-validate":{"t":"hook","l":"guardia","nm":"validate-session-close","ver":"—","c":"estable","tc":268,"ti":268,"inv":809,"proc":"809 Stop · WIP caps + cierre","p95":"~1s","f":[],"d":"Stop — valida WIP caps + cierre sin pérdida (BLOCK si excede)."},
+ "h-telemetry":{"t":"hook","l":"guardia","nm":"telemetry-emit (kit)","ver":"—","c":"estable","tc":0,"ti":0,"inv":832,"proc":"~832 Stop/SubagentStop · spans OTLP","p95":"~1s","f":[],"d":"Stop·SubagentStop·SessionEnd — emisor KIT-03: spans OTLP al sink (fail-open)."},
+ "r-claude":{"t":"rule","l":"base","nm":"CLAUDE.md (raíz)","ver":"—","c":"estable","tc":4820,"ti":0,"inv":0,"alw":1,"f":[{"s":"info","o":"estático","capa":"estructura","x":"Doc drift: referencia docs/product/glossary.md (inexistente) y el dir docs/architecture/ADR/ está vacío."}],"d":"Regla del proyecto · siempre en contexto. Fuente: .claude/rules/CLAUDE.md (raíz).md"},
+ "r-agents":{"t":"rule","l":"base","nm":"AGENTS.md","ver":"—","c":"estable","tc":1386,"ti":0,"inv":0,"alw":1,"f":[],"d":"Regla del proyecto · siempre en contexto. Fuente: .claude/rules/AGENTS.md.md"},
+ "r-overlay":{"t":"rule","l":"base","nm":"vitalia/CLAUDE.md","ver":"—","c":"estable","tc":2684,"ti":0,"inv":0,"alw":1,"f":[],"d":"Regla del proyecto · siempre en contexto. Fuente: .claude/rules/vitalia/CLAUDE.md.md"},
+ "k-config":{"t":"know","l":"base","nm":"project.config.yaml (costura)","ver":"—","c":"estable","tc":6237,"ti":0,"inv":0,"f":[],"d":"Componente del arnés. Fuente: .claude/skills/project.config.yaml (costura)/SKILL.md"},
+ "k-lifecycle":{"t":"know","l":"base","nm":"lifecycle.md","ver":"—","c":"estable","tc":4262,"ti":0,"inv":0,"f":[{"s":"crit","o":"estático","capa":"proceso","x":"Ningún componente define criterio de éxito de corrida ni evals — el gate «nada sin eval» (principio 10) NO está instrumentado. Por eso la salud queda «señales incompletas» y no puede ponerse verde."},{"s":"warn","o":"estático","capa":"proceso","x":"Fases en conflicto: lifecycle.md remite a story-closure-gate.md para {G,R,C,D} pero ese doc aún lista A–F. Migración v4→v5 sin cerrar."}],"d":"Componente del arnés. Fuente: .claude/skills/lifecycle.md/SKILL.md"},
+ "k-capability":{"t":"know","l":"base","nm":"capability-protocol.md","ver":"v3.2","c":"estable","tc":9302,"ti":0,"inv":0,"f":[],"d":"Componente del arnés. Fuente: .claude/skills/capability-protocol.md/SKILL.md"},
+ "k-harness-arch":{"t":"know","l":"base","nm":"harness-architecture-guide.md","ver":"—","c":"estable","tc":4290,"ti":0,"inv":0,"f":[],"d":"Componente del arnés. Fuente: .claude/skills/harness-architecture-guide.md/SKILL.md"},
+ "k-paradigm":{"t":"know","l":"base","nm":"PARADIGM.md","ver":"v4.1","c":"estable","tc":3593,"ti":0,"inv":0,"f":[],"d":"Componente del arnés. Fuente: .claude/skills/PARADIGM.md/SKILL.md"},
+ "m-tessl":{"t":"mcp","l":"base","nm":"mcp-tessl","ver":"—","c":"estable","tc":50,"ti":50,"inv":0,"f":[{"s":"info","o":"runtime","capa":"tokens","x":"MCP declarado pero ~0 invocaciones reales en 30d — superficie cargada sin uso."}],"d":"Componente del arnés. Fuente: .claude/skills/mcp-tessl/SKILL.md"}
 };
 const LV_EDGES=[
- ["s-architect","a-architect-orch","inv",14],["s-dev-team","a-context-builder","inv",6],
- ["a-context-builder","a-context-validator","inv",6],["s-dev-team","a-builder-be","inv",43],
- ["s-dev-team","a-builder-fe","inv",87],["s-dev-team","a-builder-agentic","inv",5],
+ ["s-architect","a-architect-orchestrator","inv",14],["s-dev-team","a-context-builder","inv",6],
+ ["a-context-builder","a-context-validator","inv",6],["s-dev-team","a-builder-backend","inv",43],
+ ["s-dev-team","a-builder-frontend","inv",87],["s-dev-team","a-builder-agentic","inv",5],
  ["s-dev-team","a-gate-runner","inv",6],["s-dev-team","s-auditor","inv",9],
- ["s-auditor","a-auditor-be","inv",6],["s-auditor","a-auditor-fe","inv",7],["s-auditor","a-auditor-agentic","inv",0],
- ["a-builder-be","s-backend-expert","know",0],["a-builder-fe","s-frontend-expert","know",0],
+ ["s-auditor","a-auditor-backend","inv",6],["s-auditor","a-auditor-frontend","inv",7],["s-auditor","a-auditor-agentic","inv",0],
+ ["s-auditor","a-gate-runner","inv",6],
+ ["a-builder-backend","s-backend-expert","know",0],["a-builder-frontend","s-frontend-expert","know",0],
+ ["a-builder-agentic","s-copilot-expert","know",0],["a-builder-agentic","s-sales-agent-expert","know",0],
  ["s-pm-luana","s-pm-vitalia","inv",0],["s-pm-vitalia","k-lifecycle","know",0],
- ["s-architect","k-capability","know",0],["a-builder-be","k-config","know",0],
+ ["s-architect","k-capability","know",0],["a-builder-backend","k-config","know",0],
  ["h-telemetry","k-config","know",0]
 ];
 
@@ -950,8 +1055,8 @@ const ARNESES={
  "luana-vitalia":{
    real:true,excMeasured:false,
    nm:"luana-platform · vitalia",canal:"estable",ver:"—",rol:"Pipeline dev multi-marca (rol×proceso)",proc:"SDD Level 3 · spine de 10 estados",
-   lanes:LV_LANES,N:LV_N,E:LV_EDGES,telem:true,
-   runs30:194,rpd:"6.7",exito:null,p95:"2h09*",comp:39,tok30:81200000,costo30:"—",eval:null,
+   lanes:LV_LANES,bands:LV_BANDS,N:LV_N,E:LV_EDGES,telem:true,
+   runs30:194,rpd:"6.7",exito:null,p95:"2h09*",comp:141,tok30:81200000,costo30:"—",eval:null,
    proyectos:["alpacapurpura/luana-platform · wip/vitalia"],spark:[],sparkR:[],
    budget:{txt:"carga always-on <b>~11.3k</b> / 200k tokens",note:"CLAUDE.md 4.8k · AGENTS.md 1.4k · overlay vitalia 2.7k · núcleo de reglas ~2.4k · <b>~5.7%</b> de la ventana"},
    pareto:[{id:"s-dev-team",v:"6.7M",nota:"ventana principal"},{id:"s-pm-luana",v:"5.3M",nota:"coordinador"},{id:"s-pm-vitalia",v:"3.2M",nota:"coordinador"}],
@@ -1177,7 +1282,7 @@ $("mk-addbtn").addEventListener("click",()=>{
 /* ══════════ S2 mapa ══════════ */
 /* contrato de datos por capa (iteración 6): consumo 30d = misma fórmula en mapa e inspector.
    n.c30 = consumo MEDIDO (arneses reales, suma de usage del JSONL) — pisa la fórmula estimada. */
-function consumoDe(A,n){if(n.c30!=null)return n.c30;if(!A.telem)return 0;return n.alw?A.runs30*n.tc:n.inv*(n.ti||n.tc)}
+function consumoDe(A,n){if(n.lib)return 0;if(n.c30!=null)return n.c30;if(!A.telem)return 0;return n.alw?A.runs30*n.tc:n.inv*(n.ti||n.tc)}
 /* heat relativo al arnés (percentil 50/75/90/97) — el umbral absoluto murió en iteración 7:
    no escala entre un arnés de 2,6M y uno de 81M tok/30d */
 function heatCuts(A){
@@ -1201,8 +1306,8 @@ function nodeEl(id,A){
   if(gateBeta)b.dataset.gate=1;
   b.innerHTML=`<span class="top"><span class="glyph">${GLY[n.t]}</span><span class="nm">${n.nm}</span><span class="rel${n.c==="beta"?" beta":""}"></span></span>
   <span class="sub typ">${TYPN[n.t]}</span>
-  <span class="sub tok">${n.tc?`carga ${fmt(n.tc)}${n.lib?` · <span title="es una librería preloaded: sus tokens se cuentan dentro del componente que la carga (atribución solapada)">se cuenta en quien la usa</span>`:A.telem?` · 30d ${c30?fmtM(c30):"0"}`:" · sin corridas"}`:"— sin medir"}</span>
-  <span class="sub perf">${n.alw?"siempre en contexto":A.telem?`${n.inv}× 30d${n.inv&&n.ex!=null?` · <span class="${n.ex>=90?"ok":n.ex>=85?"warn":"crit"}">${n.ex}%</span>`:""}${n.p95?` · p95 ${n.p95}`:n.inv&&n.ex==null?` · <span title="el arnés no define criterio de éxito de corrida (hallazgo)">éxito sin medir</span>`:""}`:"— sin corridas"}</span>
+  <span class="sub tok">${n.tc?`carga ${fmt(n.tc)}${n.lib?` · <span title="librería preloaded: sus tokens se cuentan dentro del componente que la carga (atribución solapada)">se cuenta en quien la usa</span>`:n.t==="rule"?(n.alw?" · siempre en contexto":" · carga condicional"):n.t==="know"?(n.inv?` · leído ${n.inv}×`:" · leído por skills"):A.telem?` · 30d ${c30?fmtM(c30):"0"}`:" · sin corridas"}`:"— sin medir"}</span>
+  <span class="sub perf">${n.alw?"siempre en contexto":n.t==="rule"?"regla · según fase":n.t==="know"?"knowledge · leído, no invocado":A.telem?`${n.inv}× 30d${n.inv&&n.ex!=null?` · <span class="${n.ex>=90?"ok":n.ex>=85?"warn":"crit"}">${n.ex}%</span>`:""}${n.p95?` · p95 ${n.p95}`:n.inv&&n.ex==null?` · <span title="el arnés no define criterio de éxito de corrida (hallazgo)">éxito sin medir</span>`:""}`:"— sin corridas"}</span>
   <span class="sub proc">${n.proc?n.proc:n.exc?`<span class="warn">⚠ ${n.exc} excepci${n.exc===1?"ón":"ones"} 30d</span>`:A.excMeasured===false?"—":(n.t==="know"||n.t==="rule"||n.t==="mcp")?"—":A.telem&&n.inv?"sin excepciones 30d":"—"}</span>
   <span class="flag">${gateBeta?"gate falló":"sin uso 30d"}</span>`;
   b.addEventListener("click",()=>select(id,true));
@@ -1250,6 +1355,17 @@ function renderMapa(A){
     el.querySelector(".lane-add").addEventListener("click",()=>openDock("crear-comp",L.n));
     const body=el.querySelector(".lane-body");
     ids.forEach(id=>body.appendChild(nodeEl(id,A)));
+  });
+  const bandsEl=$("bands");bandsEl.innerHTML="";
+  (A.bands||[]).forEach(B=>{
+    const ids=Object.keys(A.N).filter(k=>A.N[k].l===B.id);
+    if(!ids.length)return;
+    const el=document.createElement("section");
+    el.className="band";el.style.marginTop="10px";
+    el.innerHTML=`<div class="band-label"><h2>${B.label}</h2><span>${B.sub} · <b>${ids.length}</b></span></div><div class="band-row"></div>`;
+    const row=el.querySelector(".band-row");
+    ids.forEach(id=>row.appendChild(nodeEl(id,A)));
+    bandsEl.appendChild(el);
   });
   const bl=$("base-label");
   if(A.baseMiss){

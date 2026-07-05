@@ -213,6 +213,39 @@ consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
 
+## Iteración 8 — arnés real COMPLETO, sin corte curado (v3.5, 2026-07-04)
+
+Pedido del operador: «muestra los 55 skills completos, no el corte curado; de igual forma
+los rules, hooks, TODO — el caso más real posible». Extraídos los bytes EXACTOS de cada
+archivo del repo (`wc -c`) y generado el set de nodos por script (`carga = bytes/4` real),
+fusionando la telemetría medida donde existe. **141 nodos reales**: 58 skills · 46 rules
+(25 proyecto + 21 del kit symlinkeadas) · 10 agentes · 6 hooks · 10 comandos · 8
+knowledge/reglas-raíz · 1 MCP. Verificado headless (jsdom + Playwright, 141 nodos render,
+consola limpia, screenshots dark/light autorevisados).
+
+**Nueva geografía — bandas transversales** (además de Guardia/6-fases/Base): el spine no
+alcanza para lo que no es una fase, así que se añadieron 4 bandas: **Librería de expertos**
+(13: backend/frontend/copilot/… + design systems + playwright/chrome-verify) · **Meta-harness
+· Git · Utilidades · Comandos** (22) · **Marcas dormidas** (7 PMs sin bootstrap, punteados) ·
+**Terceros · Clerk** (12 skills de auth externa). Base ahora lista las 46 rules
+individuales (siempre-en-contexto vs condicional) + knowledge + mcp.
+
+**El hallazgo que emerge de mostrar TODO:** superficie enorme, mayoría fría — de 58 skills
+solo ~13 se activaron en 30d; **22 componentes propios fríos + 7 marcas dormidas + 12
+Clerk + 2 UX deprecadas**. Es un hallazgo real de primera clase (registrado en Diagnóstico
+sobre `harnesses-improvement`): candidato a poda / lazy-load. **A esta escala el filtro por
+tipo de la leyenda deja de ser adorno y se vuelve el navegador principal** — insight de
+producto: el mapa necesita filtros (tipo, caliente/frío, banda) como ciudadanos de primera.
+
+**Refinamientos de honestidad forzados por la escala:**
+- **Tipo `command` de primera clase** (glifo `/`, color muted) — antes salía «UNDEFINED».
+- **Reglas y knowledge no se «invocan»**: reglas muestran «siempre en contexto» (alw) vs
+  «carga condicional»; knowledge «leído por skills», nunca «0× 30d» engañoso.
+- **Librerías preloaded no cuentan heat** (`consumoDe` devuelve 0 si `lib`): su costo «se
+  cuenta en quien la usa» — evita el doble conteo de la atribución solapada.
+- **Heat percentil se recalcula sobre el set real** (141 nodos): dev-team heat máx, el resto
+  se distribuye; el mar de nodos fríos queda sin heat (correcto).
+
 ## Iteración 7 — arnés REAL como data de prueba: luana-platform/vitalia (v3.4, 2026-07-04)
 
 Pedido del operador: cargar SU proyecto real (`~/Proyectos/luana-vitalia`) al mockup para

@@ -31,7 +31,7 @@ ejecutan; marketplace git elegible por proyecto.
 - Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
   v3 en watchlist.
 
-**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 7 de ~11-13**.
+**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 8 de ~11-13**.
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog iteraciones 6+) · mockup vigente = `mockups/arnesia-mockup-v3.html`
 (navegable, artifact único — URL en memoria auto) · estándares mapeados =
