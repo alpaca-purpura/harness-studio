@@ -66,7 +66,7 @@
   body[data-scr="arnes"][data-view="mapa"] .views{display:flex}
   .views button{padding:5px 13px;border-radius:5px;font-size:12.5px;color:var(--muted)}
   .views button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.18);font-weight:600}
-  .gear{margin-left:auto;color:var(--muted);font-size:15px;padding:5px 9px;border-radius:6px;border:1px solid transparent}
+  .gear{color:var(--muted);font-size:15px;padding:5px 9px;border-radius:6px;border:1px solid transparent}
   body[data-scr="arnes"][data-view="mapa"] .gear{margin-left:0}
   .gear:hover{border-color:var(--line);color:var(--text)}
 
@@ -500,6 +500,85 @@
   .toast{position:fixed;left:50%;bottom:56px;transform:translate(-50%,8px);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s,transform .25s;z-index:99;pointer-events:none;max-width:80%;text-align:center}
   .toast.on{opacity:1;transform:translate(-50%,0)}
   @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+  /* ── shell reformulado: chip global Estándar (cross-arnés) ── */
+  .std-chip{margin-left:auto;display:flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--line);border-radius:7px;background:var(--surface2);font-size:12px;color:var(--text);white-space:nowrap}
+  .std-chip:hover{border-color:var(--accent)}
+  .std-chip .rev{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .std-chip .dot{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .std-chip .dot.has{color:var(--warn)}
+  body[data-scr="arnes"][data-view="mapa"] .std-chip{margin-left:0}
+  body[data-scr="estandar"] .std-chip{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+
+  /* ── S9 Estándar (vista + detalle) ── */
+  #v-estandar{flex-direction:row;overflow:hidden}
+  .std-main{flex:1;min-width:0;overflow:auto;padding:26px 26px 40px}
+  .std-inner{max-width:940px;margin:0 auto}
+  .std-hd h1{margin:0 0 5px;font-size:21px;letter-spacing:-.01em;text-wrap:balance}
+  .std-hd p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;max-width:78ch}
+  .std-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 4px}
+  .std-meta{display:flex;gap:7px;flex-wrap:wrap}
+  .std-upd{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:8px 15px;font-size:13px;font-weight:650}
+  .std-upd:hover{background:var(--accent);color:var(--bg)}
+  .std-link{font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .std-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:10px;margin-top:20px}
+  .std-node{border:1px solid var(--line);border-left:3px solid var(--tc,var(--line));border-radius:9px;background:var(--surface);padding:11px 13px;text-align:left;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:border-color .15s}
+  .std-node:hover{border-color:var(--accent)}
+  .std-node[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .std-node .nm{font-family:var(--mono);font-size:12.5px;font-weight:650}
+  .std-node .sub{font-size:11px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .std-node .foot{display:flex;gap:5px;align-items:center;font-size:10.5px;color:var(--muted);margin-top:1px}
+  .std-node .vchip{font-family:var(--mono);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .std-node .chk{font-weight:650;color:var(--text)}
+  .std-rail{width:360px;flex:none;border-left:1px solid var(--line);background:var(--surface);overflow:auto;padding:18px 18px 30px}
+  .std-rail .empty{color:var(--muted);font-size:12.5px;margin-top:44px;text-align:center;line-height:1.6;padding:0 12px}
+  .sr-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px}
+  .sr-hd code{font-family:var(--mono);font-size:14px;font-weight:650}
+  .sr-vchip{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
+  .sr-src{font-size:11px;color:var(--muted);margin:0 0 15px;line-height:1.5}
+  .sr-sec{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+  .sr-l{border:1px solid var(--line);border-radius:8px;background:var(--surface2);padding:10px 11px 5px;margin:0 0 15px;font-size:12px;line-height:1.5;list-style:none}
+  .sr-l li{margin:0 0 6px;padding-left:15px;position:relative}
+  .sr-l.l1 li::before{content:"▸";position:absolute;left:0;color:var(--c-know)}
+  .sr-l.l2 li::before{content:"◆";position:absolute;left:1px;top:1px;color:var(--accent);font-size:9px}
+  .sr-chk{width:100%;border-collapse:collapse;font-size:11px}
+  .sr-chk td{border-top:1px solid var(--line);padding:6px 5px;vertical-align:top;line-height:1.4}
+  .sr-chk .id{font-family:var(--mono);font-size:10px;white-space:nowrap}
+  .sev{font-size:9px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:99px;white-space:nowrap}
+  .sev.error{background:var(--crit-soft);color:var(--crit)}
+  .sev.warn{background:var(--warn-soft);color:var(--warn)}
+  .sev.info{background:var(--surface2);color:var(--muted)}
+
+  /* ── drawer Actualizar estándar ── */
+  .upd-panel{width:min(640px,94vw);max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .upd-panel h2{margin:0 0 3px;font-size:16px}
+  .upd-panel .sub{margin:0 0 14px;font-size:12px;color:var(--muted);line-height:1.5}
+  .upd-x{position:absolute;top:13px;right:15px;color:var(--muted);font-size:15px;padding:3px 8px;border-radius:6px}
+  .upd-x:hover{background:var(--surface2)}
+  .upd-prog{border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:9px 12px;margin-bottom:12px;font-family:var(--mono);font-size:11.5px;line-height:1.95}
+  .upd-prog .ck{color:var(--muted);display:inline-block;width:15px}
+  .upd-prog .ck.done{color:var(--ok)}
+  .upd-real{border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:12px 14px;font-size:12.5px;line-height:1.55}
+  .upd-real .t{font-weight:650;color:var(--muted);display:flex;align-items:center;gap:7px;font-size:13px}
+  .upd-demo-hd{display:flex;align-items:center;gap:8px;margin:18px 0 9px;font-size:12px;color:var(--muted)}
+  .upd-demo-hd .chip{background:var(--warn-soft);color:var(--warn)}
+  .nov{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:11px 13px;margin-bottom:9px}
+  .nov .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .nov .tier{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+  .nov .tier.auto{background:var(--ok-soft);color:var(--ok)}
+  .nov .tier.ok{background:var(--warn-soft);color:var(--warn)}
+  .nov .ty{font-size:10.5px;color:var(--muted)}
+  .nov .ti{font-weight:650;font-size:13px;margin-bottom:3px}
+  .nov .meta{font-size:11px;color:var(--muted);margin-bottom:2px;line-height:1.5}
+  .nov details{margin:7px 0 0}
+  .nov summary{cursor:pointer;font-size:11.5px;color:var(--accent);font-weight:600}
+  .nov pre{margin:7px 0 0;border:1px solid var(--line);border-radius:7px;background:var(--surface2);padding:9px 11px;font-family:var(--mono);font-size:10.5px;line-height:1.55;overflow-x:auto;white-space:pre;color:var(--muted)}
+  .nov .diff-add{color:var(--ok)}
+  .nov .aff{border:1px solid var(--warn);border-radius:6px;background:var(--warn-soft);color:var(--warn);font-size:11px;padding:5px 8px;margin:7px 0 0;line-height:1.45}
+  .nov .acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .nov .acts button{border:1px solid var(--line);border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;background:var(--surface2)}
+  .nov .acts button.pri{border-color:var(--accent);color:var(--accent)}
+  .nov .acts button:hover{border-color:var(--accent)}
 </style>
 
 <header>
@@ -515,6 +594,9 @@
     <button data-c="perf" title="¿Qué funciona, qué falla, qué sobra? — invocaciones, éxito, p95, sin uso">Desempeño</button>
     <button data-c="proceso" title="¿Fluye el proceso declarado? — corridas por fase, saltos, excepciones, cumplimiento">Proceso</button>
   </nav>
+  <button class="std-chip" id="std-chip" title="Estándar as code — 11 elementos · 121 checks. El estándar que ArnesIA enforca sobre todo arnés. Se actualiza cada semana.">
+    <span>⟳ Estándar</span><span class="rev" id="std-rev">v1.0 · rev 04-jul</span><span class="dot" id="std-dot">●0</span>
+  </button>
   <button class="gear" id="gear" title="Ajustes · Marketplaces" aria-label="Ajustes y marketplaces">⚙</button>
 </header>
 
@@ -591,6 +673,24 @@
       <div id="hi-list"></div>
     </div>
   </section>
+
+  <section class="view" id="v-estandar">
+    <div class="std-main">
+      <div class="std-inner">
+        <div class="std-hd">
+          <h1>Estándar de ArnesIA</h1>
+          <p>El estándar <b>as code</b> que ArnesIA enforca sobre todo arnés. Cada elemento define cómo debe estructurarse según Anthropic y los expertos (<b>L1</b>) y nuestra adaptación a la fábrica de cajas (<b>L2</b>), y emite <b>checks evaluables</b> que el mapa pinta como puntos de mejora. Árbol vivo: se actualiza cada semana — mañana aparecen comandos, formas de trabajar y hasta elementos nuevos.</p>
+        </div>
+        <div class="std-bar">
+          <button class="std-upd" id="std-upd">⟳ Actualizar estándar</button>
+          <div class="std-meta" id="std-metrics"></div>
+          <span class="std-link" data-toast="Buzón knowledge/_inbox/: reportes semanales con evidencia L1 auto-aplicada + propuestas por revisar (L2, checks, elementos nuevos). Vacío hoy — la marca de agua es 2026-07-04.">Ver buzón / último reporte →</span>
+        </div>
+        <div class="std-grid" id="std-grid"></div>
+      </div>
+    </div>
+    <aside class="std-rail" id="std-rail"></aside>
+  </section>
 </main>
 
 <div class="overlay" id="mk-overlay">
@@ -604,6 +704,10 @@
     </div>
     <div class="foot"><button id="mk-close">Cerrar</button></div>
   </div>
+</div>
+
+<div class="overlay" id="upd-overlay">
+  <div class="upd-panel" id="upd-panel" role="dialog" aria-label="Actualizar estándar" style="position:relative"></div>
 </div>
 
 <div class="review">
@@ -1192,11 +1296,12 @@ const PF_ORDER=["luana-vitalia","dev-fullcycle","pm-discovery","fin-cierre"];
 const MKS=[{url:"alpacapurpura/prenter-marketplace",canal:"estable",dest:"2 proyectos publican aquí"}];
 
 /* ══════════ estado + ruteo ══════════ */
-let S={scr:"portafolio",arnes:null,view:"mapa",capa:"estructura",sel:null,dock:null,run:null,vista:"conv",itab:"resumen",rnf:"todas",compFilter:null,replay:null,tfilter:null};
+let S={scr:"portafolio",arnes:null,view:"mapa",capa:"estructura",sel:null,dock:null,run:null,vista:"conv",itab:"resumen",rnf:"todas",compFilter:null,replay:null,tfilter:null,stdSel:null};
 let lastHash="";
 function syncHash(){
   let h;
   if(S.scr==="portafolio")h="#/portafolio";
+  else if(S.scr==="estandar")h="#/estandar"+(S.stdSel?"/"+S.stdSel:"");
   else{
     h=`#/a/${S.arnes}/${S.view}`;
     if(S.view==="mapa")h+=`?capa=${S.capa}${S.sel?`&sel=${S.sel}`:""}${S.dock?`&dock=${S.dock.mode}`:""}${S.replay?`&replay=${S.replay}`:""}`;
@@ -1206,6 +1311,10 @@ function syncHash(){
   if(location.hash!==h)location.hash=h;
 }
 function parseHash(){
+  if(/^#\/estandar/.test(location.hash)){
+    const mm=location.hash.match(/^#\/estandar(?:\/([a-z-]+))?$/);
+    go({scr:"estandar",stdSel:mm&&mm[1]&&STD.some(n=>n.k===mm[1])?mm[1]:null,arnes:null,dock:null,run:null});return;
+  }
   const m=location.hash.match(/^#\/a\/([^/]+)\/(mapa|corridas|diag|tren|historia)(\?(.*))?$/);
   if(!m){go({scr:"portafolio",arnes:null,sel:null,dock:null,run:null});return}
   const q=new URLSearchParams(m[4]||"");
@@ -1224,6 +1333,7 @@ function render(){
   document.body.dataset.capa=S.capa;
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
   if(S.scr==="portafolio"){renderPortafolio();$("v-portafolio").classList.add("on");return}
+  if(S.scr==="estandar"){renderEstandar();$("v-estandar").classList.add("on");return}
   const A=ARNESES[S.arnes];
   $("pick-nm").textContent=A.nm;
   $("pick-v").textContent=A.ver==="—"?"":"v"+A.ver;
@@ -1329,6 +1439,8 @@ function buildPickMenu(){
 $("gear").addEventListener("click",()=>{renderMks();$("mk-overlay").classList.add("open")});
 $("mk-close").addEventListener("click",()=>$("mk-overlay").classList.remove("open"));
 $("mk-overlay").addEventListener("click",e=>{if(e.target===$("mk-overlay"))$("mk-overlay").classList.remove("open")});
+$("std-chip").addEventListener("click",()=>go({scr:"estandar"}));
+$("upd-overlay").addEventListener("click",e=>{if(e.target===$("upd-overlay"))closeUpd()});
 function renderMks(){
   $("mk-list").innerHTML=MKS.map(m=>`<div class="mk"><span class="chip ${m.canal}">${m.canal}</span><code>${m.url}</code><span class="dest">${m.dest}</span></div>`).join("");
 }
@@ -1904,6 +2016,132 @@ function renderHistoria(A){
     </div>`).join(""):`<p style="color:var(--muted);font-size:12.5px">Sin versiones aún — el arnés está naciendo.</p>`;
   $("hi-list").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>go({view:"mapa",dock:null})));
 }
+
+/* ══════════ S9 · Estándar (árbol de conocimiento vivo) ══════════ */
+const STD_META={ver:"1.0",rev:"2026-07-04",nodos:11,checks:121};
+const STD=[
+ {k:"skills",el:"Skills",col:"--c-skill",ver:"1.0",chk:14,
+  l1:["Capacidad invocada por el modelo; el cuerpo cuesta ~0 tokens hasta invocarse (agentskills.io, estándar abierto).","Frontmatter: name ≤64 + description que dice qué+cuándo; cuerpo <500 líneas, progressive disclosure.","Autoría dirigida por evals; auditar scripts empaquetados (26% con vulnerabilidad — arxiv 2026)."],
+  l2:["Skill = CAJA (frente de fase, con contrato) o APOYO (rol). ⇐ VISION A1.","El eval-gate vive en contract.gate y es honesto: none si no hay eval real. ⇐ A4.","Skill propia fría 30d = candidata a poda / lazy-load. ⇐ principio 11."],
+  checks:[["skill-caja-contract","error","caja sin contrato — sin gate ni hand-off"],["skill-desc-what-when","warn","descripción débil (falta el cuándo)"],["skill-script-audit","error","script sin auditar — riesgo exfiltración"],["skill-cold-30d","info","skill fría — candidata a poda"]]},
+ {k:"hooks",el:"Hooks",col:"--c-hook",ver:"1.0",chk:12,
+  l1:["Comandos que corren en puntos fijos del ciclo → control determinista (~30 eventos hoy).","Exit 2 = bloqueante; exit 1 NO bloquea (error #1). additionalContext para informar sin bloquear.","Corren con TODOS tus permisos; CVE-2025-59536: hook de repo no confiable = RCE al abrir la carpeta."],
+  l2:["Los hooks son la banda Guardia (transversal, VISION A6).","Regla dura destructiva ⇒ hook PreToolUse que la enforca (no solo prosa). ⇐ rules.","telemetry-emit del kit = el sensor que ArnesIA consume (KIT-03)."],
+  checks:[["hook-exit2-block","error","hook usa exit 1: no bloquea nada"],["hook-quote-vars","warn","variable sin comillas — injection"],["hook-permreq-scoped","error","auto-approve sin matcher — aprueba todo"],["hook-rule-pair","warn","regla sin hook — solo advisory"]]},
+ {k:"rules",el:"Rules / memoria",col:"--c-rule",ver:"1.0",chk:12,
+  l1:["CLAUDE.md always-on: es contexto, NO enforcement (para bloquear de verdad → hook).","Jerarquía managed>user>proyecto>local, aditiva; @imports máx 4 hops; .claude/rules/ con paths:.","Objetivo <200 líneas: cada token se paga cada turno; sin contradicciones."],
+  l2:["Viven en la banda Base; métrica = sesiones que las cargan × su costo.","Presupuesto de contexto medido y visible; superarlo = hallazgo. ⇐ principio 11.","AGENTS.md por @import/symlink, nunca duplicado. ⇐ estándar ganador."],
+  checks:[["rules-size-budget","warn","reglas caras: Xk siempre en contexto"],["rules-contradiction","error","dos reglas se contradicen"],["rules-hard-enforcement","warn","regla solo advisory, no aplicada"],["rules-path-scoping","info","guía global — mover a paths: rule"]]},
+ {k:"subagents",el:"Subagents",col:"--c-agent",ver:"1.0",chk:12,
+  l1:["Asistente acotado con ventana de contexto propia; solo su mensaje final vuelve al padre.","Frontmatter name+description (dispara auto-delegación); tools omitido = hereda TODO (mala práctica).","Anti-telephone: el resumen describe intención, no efecto → «verifica el diff, no el resumen»."],
+  l2:["Subagente = maquinaria dedicada de una caja (VISION A1), no una caja.","Contrato de retorno obligatorio: <veredicto> → <path>, nunca «resume». ⇐ anti-telephone.","tools least-privilege explícitas; modelo deliberado por rol."],
+  checks:[["agent-return-contract","warn","sin contrato de retorno — riesgo telephone"],["agent-tools-scoped","warn","agente con acceso total a tools"],["agent-desc-trigger","warn","descripción vaga — auto-delegación falla"],["agent-cold-30d","warn","maquinaria muerta (0 lanzamientos)"]]},
+ {k:"commands",el:"Slash commands",col:"--c-skill",ver:"1.0",chk:11,
+  l1:["Merge v2.1.3: un command custom ES una skill (mismo sistema). Built-in vs custom.","Placeholders $ARGUMENTS/$N/$name; el bloque de bash corre antes de que Claude lo vea (preprocesado).","Built-ins nuevos el último año: /goal, /simplify, /fork, /verify, /code-review ultra…"],
+  l2:["Command custom nace como skill (.claude/skills/), no .claude/commands/. ⇐ merge.","Efecto secundario (/commit, /deploy) ⇒ disable-model-invocation. ⇐ skills.","Built-ins nuevos (/goal…) como palancas del proceso, con lógica de uso declarada."],
+  checks:[["cmd-side-effect-lock","error","efecto secundario invocable por el modelo"],["cmd-shell-injection","error","posible inyección de shell vía $ARGUMENTS"],["cmd-argument-hint","info","comando sin argument-hint"],["cmd-builtin-usage-declared","info","built-in nuevo sin lógica de uso declarada"]]},
+ {k:"mcp",el:"MCP servers",col:"--c-mcp",ver:"1.0",chk:11,
+  l1:["Estándar abierto: un server expone tools/resources/prompts. SSE deprecado → HTTP.","Tool Search default-ON: tools deferred, ~85% menos tokens de defs (ej. 55k→1k).","Anthropic NO audita servers; scan Equixly 2025: 43% con command-injection."],
+  l2:["MCP suele ser tercero (banda Terceros); métrica dominante = costo de contexto vs uso.","MCP frío 30d = candidato a desconectar (paga contexto, no rinde). ⇐ mcp-tessl real.","Cero secretos en .mcp.json versionado; solo servers de fuente confiable."],
+  checks:[["mcp-unused","warn","MCP sin uso (paga contexto, no rinde)"],["mcp-secret-in-config","error","secreto en config versionada"],["mcp-toolsearch-off","warn","tools sin deferred — costo evitable"],["mcp-unpinned-stdio","warn","comando sin pin — rug-pull"]]},
+ {k:"plugins",el:"Plugins & marketplaces",col:"--accent",ver:"1.0",chk:12,
+  l1:["Plugin = directorio que empaqueta skills/agents/hooks/mcp; marketplace = repo git.","Subir version en cada release; producción pinnea sha (no solo ref, es force-pusheable).","Dos marketplaces en refs distintos = canales estable vs latest."],
+  l2:["El plugin/marketplace es el vehículo de distribución del arnés (VISION marketplace git).","Semver+SHA pin en canal estable; canales beta/estable = KIT-06. ⇐ Tren.","Backflow, jamás fork silencioso (I-59); single-purpose + costo acotado."],
+  checks:[["plugin-version-pinned","warn","plugin sin pin (drift silencioso)"],["plugin-no-secrets","error","secreto en plugin"],["plugin-sha-pin","warn","canal estable sin SHA — no reproducible"],["marketplace-trusted","error","marketplace no confiable — ejecuta código"]]},
+ {k:"settings-permissions",el:"Settings & permisos",col:"--c-mcp",ver:"1.0",chk:11,
+  l1:["settings.json en capas; los permisos los enforca Claude Code, no el modelo (el límite real).","allow solo comandos inofensivos; los riesgosos a ask; deny agresivo de secretos.","bypassPermissions solo en contenedor aislado; nunca en config compartida."],
+  l2:["Settings/permisos = banda Guardia junto a hooks: la postura de seguridad del arnés.","Least-privilege enforced; nunca Bash(*) en scope compartido.","La regla la enuncia CLAUDE.md, el permiso/hook la aplica. ⇐ cross-capa."],
+  checks:[["perm-no-blanket-bash","error","permiso Bash total (riesgo)"],["perm-secrets-deny","error","sin bloqueo de secretos"],["perm-bypass-shared","error","bypass compartido en repo"],["perm-advisory-only","warn","regla solo advisory, no aplicada"]]},
+ {k:"output-styles",el:"Output styles",col:"--c-know",ver:"1.0",chk:8,
+  l1:["Inyectan instrucciones en el system prompt (rol/tono/formato); se fijan al inicio de sesión.","Mayor peso de instrucción y nunca se compactan; pero steering probabilístico, NO enforcement (issue #6450).","Convenciones → CLAUDE.md, no output style; coding harness mantiene keep-coding-instructions."],
+  l2:["Superficie menos usada por diseño: el rol×proceso vive en skills/rules/hooks. ⇐ principio 1.","No contradice reglas ni permisos (cross-capa con rules).","Supresión de tono ⇒ respaldar con hook (no está garantizada)."],
+  checks:[["style-vs-rules-conflict","warn","estilo en conflicto con reglas"],["style-loses-coding","warn","pierde verificación/scoping de código"],["style-deprecated-cmd","error","comando obsoleto /output-style"],["style-tone-suppression","warn","supresión de tono no garantizada"]]},
+ {k:"statusline",el:"Status line",col:"--c-mcp",ver:"1.0",chk:8,
+  l1:["Barra que corre un comando, recibe JSON de estado por stdin y muestra su stdout; 0 tokens API.","Cachear git shell-outs por session_id (no PID); output corto; solo stdout (stderr rompe).","total_input/output_tokens pasó a LIVE (v2.1.132, breaking para scripts que sumaban)."],
+  l2:["Visibilidad, no dirección; surface honesto de contexto %, costo, modelo. ⇐ principio 11.","prompt_id/session_id correlan con el JSONL que el sensor de ArnesIA consume (S8).","Cero secretos en la barra; null-safe con campos ausentes."],
+  checks:[["statusline-context","info","no muestra % de contexto — compacta tarde"],["statusline-git-cache","warn","git sin cache — spawn pesado por refresh"],["statusline-no-secret","error","expone posibles secretos"],["statusline-fast","warn","statusline lenta — queda stale"]]},
+ {k:"headless-sdk",el:"Headless / Agent SDK",col:"--c-agent",ver:"1.0",chk:10,
+  l1:["claude -p / Agent SDK: el motor headless que un conductor dirige por stdin/stdout.","stream-json + --json-schema para salida estructurada; NO parsear el JSONL interno (cambia entre versiones).","--bare para CI; --max-turns para cortar loop/costo; evitar --dangerously-skip-permissions."],
+  l2:["Es el motor de la fábrica conversacional de ArnesIA (patrón conductor I-76); gobierna a ArnesIA (dogfood).","Sesión pineada por session_id (dock↔sesión S4), nunca --continue bajo concurrencia.","OTel = telemetría de nacimiento (principio 9); JSONL = fuente de verdad, índice desechable."],
+  checks:[["headless-no-blanket-skip","error","automatización con permisos saltados"],["headless-max-turns","error","sin turn-cap — loop/costo runaway"],["headless-no-jsonl-parse","error","parseo directo del JSONL (formato inestable)"],["headless-structured-output","warn","-p sin --output-format a un parser"]]}
+];
+const DEMO_NOV=[
+ {tier:"auto",ty:"evidencia L1",node:"skills",ti:"v2.1.205 añade el campo `timeout` a skills",
+  meta:"fuente code.claude.com/docs/en/skills · 2026-07-11 · verificado contra doc oficial",
+  how:'# knowledge/elements/skills.md → L1.4\n<span class="diff-add">+ `timeout` (v2.1.205) — corta la skill si excede N s · fuente docs (2026-07-11)</span>\n# changelog\n<span class="diff-add">+ 2026-07-11 · v1.1 · añadido campo `timeout` a L1.4</span>',aff:null},
+ {tier:"ok",ty:"check nuevo",node:"skills",ti:"Anthropic: toda skill con acceso de red debe declararlo",
+  meta:"propone check skill-declares-network · warn · señal «badge: skill con red no declarada»",
+  how:'# SKILL.md del arnés cliente (ejemplo antes→después)\n  clerk-auth:\n<span class="diff-add">+   network: ["api.clerk.com"]   # declara egreso</span>',
+  aff:"Arneses afectados: luana → 3 skills clerk hacen red sin declararla · [Ver en Diagnóstico]"},
+ {tier:"ok",ty:"elemento nuevo",node:null,ti:"Aparece una primitiva de dirección: «Channels»",
+  meta:"propone nodo nuevo elements/channels.md (12º nodo del árbol)",
+  how:'Al aprobar: research fundacional del elemento (L1 oficial + L2 + checks),\nse suma al INDEX y sube el conteo de checks. Requiere tu OK: es una rama\nnueva del árbol, no evidencia sobre un nodo existente.',aff:null}
+];
+function renderEstandar(){
+  $("std-rev").textContent="v"+STD_META.ver+" · rev 04-jul";
+  $("std-metrics").innerHTML=`<span class="mchip">v${STD_META.ver}</span><span class="mchip">${STD_META.nodos} elementos</span><span class="mchip">${STD_META.checks} checks</span><span class="mchip">revisado ${STD_META.rev}</span>`;
+  $("std-grid").innerHTML=STD.map(n=>`<button class="std-node" data-std="${n.k}" aria-pressed="${S.stdSel===n.k}" style="--tc:var(${n.col})">
+    <span class="nm">${n.el}</span>
+    <span class="sub">${n.l1[0]}</span>
+    <span class="foot"><span class="vchip">v${n.ver}</span> · <span class="chk">${n.chk}</span> checks · 🌱 vivo</span>
+  </button>`).join("");
+  $("std-grid").querySelectorAll("[data-std]").forEach(b=>b.addEventListener("click",()=>go({stdSel:b.dataset.std})));
+  $("std-upd").addEventListener("click",openUpd);
+  renderStdRail();
+}
+function renderStdRail(){
+  const r=$("std-rail");const n=STD.find(x=>x.k===S.stdSel);
+  if(!n){r.innerHTML=`<div class="empty">Elige un elemento para ver su estándar — <b>L1</b> (oficial + expertos), <b>L2</b> (nuestra adaptación) y sus <b>checks evaluables</b>.</div>`;return}
+  r.innerHTML=`<div class="sr-hd"><code>${n.el}</code><span class="sr-vchip">v${n.ver}</span><span class="chip estable">🌱 vivo</span></div>
+    <p class="sr-src">${n.chk} checks · fuentes oficiales + expertos, fechadas · <code style="font-family:var(--mono)">knowledge/elements/${n.k}.md</code></p>
+    <div class="sr-sec">L1 · estándar (oficial + expertos)</div>
+    <ul class="sr-l l1">${n.l1.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <div class="sr-sec">L2 · nuestra adaptación</div>
+    <ul class="sr-l l2">${n.l2.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <div class="sr-sec">Checks evaluables · muestra de ${n.chk}</div>
+    <table class="sr-chk"><tbody>${n.checks.map(c=>`<tr><td class="id">${c[0]}</td><td><span class="sev ${c[1]}">${c[1]}</span></td><td>${c[2]}</td></tr>`).join("")}</tbody></table>`;
+}
+function openUpd(){
+  const p=$("upd-panel");
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  p.innerHTML=`<button class="upd-x" id="upd-x" aria-label="Cerrar">✕</button>
+    <h2>⟳ Actualizar estándar</h2>
+    <p class="sub">Barrido delta desde la marca de agua ${STD_META.rev} — runbook <code style="font-family:var(--mono)">knowledge/WEEKLY-UPDATE.md</code> · tier híbrido.</p>
+    <div class="upd-prog" id="upd-prog">
+      <div><span class="ck">○</span>changelog oficial de Claude Code</div>
+      <div><span class="ck">○</span>claude.com/blog · anthropic.com/engineering</div>
+      <div><span class="ck">○</span>estándares abiertos (agentskills · AGENTS · MCP)</div>
+      <div><span class="ck">○</span>expertos + señales de seguridad</div>
+    </div>
+    <div id="upd-out" style="display:none"></div>`;
+  $("upd-overlay").classList.add("open");
+  $("upd-x").addEventListener("click",closeUpd);
+  const fronts=[...p.querySelectorAll(".ck")];
+  const finish=()=>{fronts.forEach(f=>{f.classList.add("done");f.textContent="✓"});const o=$("upd-out");o.style.display="block";o.innerHTML=updResult();wireUpdOut();};
+  if(reduce){finish();}
+  else{let i=0;const tick=()=>{if(i<fronts.length){fronts[i].classList.add("done");fronts[i].textContent="✓";i++;setTimeout(tick,300);}else finish();};setTimeout(tick,280);}
+}
+function updResult(){
+  return `<div class="upd-real"><div class="t">◌ Sin novedades reales</div>
+      <div style="margin-top:6px;color:var(--muted)">El árbol nació hoy (v${STD_META.ver}, marca de agua ${STD_META.rev}). 0 delta desde el baseline · ${STD_META.nodos} nodos · ${STD_META.checks} checks al día. <b>Gris ≠ verde:</b> sin novedad es un dato honesto, no una celebración.</div></div>
+    <div class="upd-demo-hd"><span class="chip">DEMO</span> Así se verá cuando SÍ haya novedades — ejemplos, no reales</div>
+    ${DEMO_NOV.map((n,i)=>`<div class="nov">
+      <div class="top"><span class="tier ${n.tier}">${n.tier==="auto"?"✓ auto-aplicado":"⚠ requiere tu OK"}</span><span class="ty">${n.ty}${n.node?" · "+n.node:""}</span></div>
+      <div class="ti">${n.ti}</div>
+      <div class="meta">${n.meta}</div>
+      ${n.aff?`<div class="aff">${n.aff}</div>`:""}
+      <details><summary>Cómo ${n.tier==="auto"?"se aplicó":"aplicarlo"} (ejemplo)</summary><pre>${n.how}</pre></details>
+      <div class="acts">${n.tier==="auto"?`<button data-nov-node="${n.node}">Ver en el nodo</button>`:`<button class="pri" data-nov-apply="${i}">Aplicar</button><button data-nov-disc="${i}">Descartar</button>${n.node?`<button data-nov-node="${n.node}">Ver en el nodo</button>`:""}`}</div>
+    </div>`).join("")}
+    <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5"><b>Tier híbrido:</b> la evidencia L1 se auto-aplica y commitea (git-reversible); L2, checks y elementos nuevos esperan tu OK. Reporte completo → <code style="font-family:var(--mono)">knowledge/_inbox/</code>.</div>`;
+}
+function wireUpdOut(){
+  const p=$("upd-panel");
+  p.querySelectorAll("[data-nov-node]").forEach(b=>b.addEventListener("click",()=>{closeUpd();go({scr:"estandar",stdSel:b.dataset.novNode});}));
+  p.querySelectorAll("[data-nov-apply]").forEach(b=>b.addEventListener("click",()=>showToast("Demo: en real, esto aplicaría el cambio al nodo, añadiría el check y lo pintaría en el mapa + Diagnóstico de los arneses afectados.")));
+  p.querySelectorAll("[data-nov-disc]").forEach(b=>b.addEventListener("click",()=>showToast("Demo: descartado — queda registrado en el reporte del buzón como propuesta rechazada.")));
+}
+function closeUpd(){$("upd-overlay").classList.remove("open");}
 
 /* ══════════ init ══════════ */
 if(location.hash&&location.hash!=="#")parseHash();else go({scr:"portafolio"});

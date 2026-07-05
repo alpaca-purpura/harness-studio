@@ -59,6 +59,8 @@
 | S5 | **Diagnóstico** (pestaña hermana) | Bandeja unificada estático+runtime; severidad; cada hallazgo → foco en mapa |
 | S6 | **Tren** (pestaña hermana) | beta → eval-gate → promote → publish (release train KIT-06 operado, no duplicado) |
 | S7 | **Historia** (pestaña hermana) | Versiones, diffs, hitos del arnés |
+| S8 | **Corridas** (pestaña hermana) | Corridas reales JSONL: Conversación/Árbol/Waterfall + attribution paso→mapa + replay |
+| S9 | **Estándar** (screen global, cross-arnés) | El árbol de conocimiento vivo (`knowledge/`): 11 elementos con L1/L2/checks + botón «Actualizar estándar» → drawer de novedades. Chip global en el header |
 
 **Navegación:** toolbar global = wordmark · picker de arnés (con canal+versión) · pestañas
 Mapa / Diagnóstico / Tren / Historia · conmutador de capas (visible solo en Mapa).
@@ -212,6 +214,47 @@ inspector gana métricas p95 + excepciones 30d · **corrección de honestidad**:
 consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6M ($38; KPI
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
+
+## Iteración 12 — S9 Estándar en el mapa: chip global + vista + botón Actualizar (2026-07-04)
+
+Pedido del operador: un **botón en el mockup** para disparar el update del estándar y, justo
+después, ver un **resumen de novedades (si hay) + cómo aplicarlas con ejemplos**; y **reformular
+la vista contenedor** para que el look-and-feel aloje esa opción y una vista sobre los detalles.
+
+**Shell reformulado:** el estándar es cross-arnés, así que se volvió un **screen global**
+(`S.scr:"estandar"`, hermano de portafolio, NO una pestaña del arnés). El header ganó un **chip
+global `⟳ Estándar v1.0 · rev 04-jul ●0`** (versión + fecha de revisión + dot de propuestas
+pendientes), visible en TODAS las pantallas — incluido dentro de un arnés. `.gear` dejó de ser el
+ancla de margen; el chip lo es (mismo patrón que ya usaba gear).
+
+**S9 · Estándar (vista + detalle):** dos paneles. Izquierda: título + explicación + botón
+**«⟳ Actualizar estándar»** + métricas (v1.0 · 11 elementos · 121 checks · revisado 04-jul) +
+link al buzón; grilla de **11 nodos** (borde por color de tipo, versión, #checks, 🌱 vivo).
+Derecha: **rail de detalle** del nodo elegido — **L1** (estándar oficial+expertos), **L2**
+(nuestra adaptación) y **tabla de checks** con severidad (error/warn/info). Es la «vista sobre los
+detalles» pedida. Deep-link `#/estandar/<nodo>`.
+
+**Botón → drawer de novedades (la joya):** máquina de estados honesta. ① progreso (4 frentes de
+fuente ✓, animado; instantáneo con reduced-motion). ② resultado **real: «◌ Sin novedades reales»**
+(gris ≠ verde — el árbol nació hoy, 0 delta) — **no se inventan novedades**. ③ sección **DEMO
+etiquetada** «así se verá cuando SÍ haya novedades» con 3 tarjetas ejemplo: **evidencia L1
+(auto-aplicado, verde)** · **check nuevo (requiere tu OK, ámbar) con arneses afectados** (luana →
+3 skills clerk) · **elemento nuevo (Channels)**. Cada una con **«cómo aplicarlo» expandible = diff/
+ejemplo concreto** y acciones (Aplicar/Descartar/Ver en el nodo, con toasts honestos). El tier
+híbrido queda explícito: evidencia se auto-aplica, lo que toca el mapa espera OK.
+
+**Honestidad (coherente con METODOLOGIA §4):** REAL vs DEMO separados y etiquetados · gris para
+«sin novedades» · procedencia (fuente+fecha) en cada novedad · cero botones muertos (toasts).
+
+**Verificado headless (Playwright, chromium real):** 39/39 asserts en verde — shell/chip,
+navegación a Estándar, 11 nodos, rail L1/L2/checks, drawer (sin-novedades + 3 DEMO + tier +
+afectados), «ver en el nodo», deep-link `#/estandar/hooks`, **regresión del mapa del arnés (20
+nodos intactos)**, animación real <5s, **consola limpia**. Screenshots light+dark de vista y
+drawer autorevisados. Artifact republicado al mismo URL (favicon 🏭).
+
+**Pendiente que habilita (no hecho aquí):** conectar los checks a Diagnóstico real por arnés
+(«ver arneses afectados» hoy es demo) · activar el routine semanal cloud (`/schedule`) que
+alimenta el buzón · badge de conformidad por-nodo sobre el mapa del arnés.
 
 ## Iteración 11 — metodología as code: árbol de conocimiento vivo (2026-07-04)
 
