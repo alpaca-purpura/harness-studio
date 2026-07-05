@@ -213,6 +213,33 @@ consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
 
+## Iteración 10 — Contrato por caja reemplaza Relaciones (v3.7, 2026-07-04)
+
+Decisión del operador: cada caja-skill debe declarar **qué necesita para operar y qué
+entrega, y a quién (condicional)**. Se reemplazó la sección **«Relaciones»** del inspector
+(6 direcciones invoca/lee/escribe) por **«Contrato»**, en clave de flujo de datos:
+- **necesita ↑** (inputs con origen: usuario / base / caja upstream / librería / maquinaria)
+- **entrega** (outputs, artefactos as code)
+- **ruta ↓** (a quién entrega, **con condición** — happy path / rework / escalate)
+- **viene de** (upstream, computado de quién rutea a esta caja)
+
+**Ruteo condicional real de luana** (inferido del SKILL.md, marcado «por formalizar»):
+auditor → commit-push si APPROVED · → dev-team si CHANGES_REQUESTED (rework) · → humano si
+ESCALATED; dev-team → auditor normal · → pm-luana si necesita engine lift (R23, la corrida
+rl-c). pm-* rutea a po/po-ux/ux-agentico según tipo de story. Contratos poblados para las 9
+skills-frente de las cajas; el resto cae a **contrato derivado del grafo** (edges) o «no
+declarado». Chips navegables. Verificado headless (Contrato reemplaza Relaciones, ruteo
+condicional, fallback, regresión de capas, consola limpia).
+
+**Por qué importa (más que una vista):** el contrato por caja es lo que vuelve reales el
+eval-gate por-skill (A4), la detección de precondición = saltos/guía-sin-bloqueo (principio
+6), el ruteo condicional (el DAG real), y la validación de composición (huérfanos/mismatch).
+Es un **forcing function**: para mostrarlo, la skill debe declararlo. Hoy en luana vive en
+prosa → el mockup lo marca «inferido, por formalizar», que es a la vez honesto y la
+propuesta de valor. **Siguiente paso acordado:** prompt para kit-dev que formaliza los
+contratos en los SKILL.md de todos los arneses (schema `contract:` en frontmatter) para que
+ArnesIA los extraiga y remapee sin inferir.
+
 ## Iteración 9 — capa Proceso = fábrica de cajas + doctrina de anatomía (v3.6, 2026-07-04)
 
 Raíz: una conversación de modelo con el operador cerró que **un arnés es una fábrica de

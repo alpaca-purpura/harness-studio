@@ -238,6 +238,18 @@
   .prw{font-size:9.5px;color:var(--warn);border-top:1px dashed var(--warn);padding-top:5px;margin-top:1px}
   .parrow{flex:0 0 auto;align-self:center;color:var(--muted);font-size:12px;padding:0 5px}
   .pgatelegend b{font-weight:700}
+  /* ── inspector · Contrato (reemplaza Relaciones) ── */
+  .contract{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .crow{display:flex;gap:7px;align-items:baseline}
+  .crow .cl{flex:none;width:72px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+  .cch{display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0}
+  .cchip{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-left:2px solid var(--line2);border-radius:5px;padding:2px 7px;background:var(--surface2)}
+  .cchip em{font-style:normal;color:var(--muted);font-size:9px;margin-left:3px}
+  .cchip.in{border-left-color:var(--c-skill)} .cchip.out{border-left-color:var(--c-know)}
+  .croute{font-family:var(--mono);font-size:10.5px;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+  .croute .cond{font-style:normal;font-size:9px;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:0 4px}
+  .croute .cond.ok{color:var(--muted);border-color:var(--line)}
+  .inf{font-weight:400;text-transform:none;letter-spacing:0;color:var(--warn);font-size:9.5px;cursor:help}
   .legend{flex:none;display:flex;gap:14px;align-items:center;padding:7px 20px;border-top:1px solid var(--line);background:var(--surface);font-size:11px;color:var(--muted);overflow-x:auto}
   .legend .k{display:flex;align-items:center;gap:5px;white-space:nowrap}
   button.k{padding:2px 7px;border-radius:6px;border:1px solid transparent}
@@ -875,6 +887,20 @@ const LV_N={
  "k-paradigm":{"t":"know","l":"base","nm":"PARADIGM.md","ver":"v4.1","c":"estable","tc":3593,"ti":0,"inv":0,"f":[],"d":"Componente del arnés. Fuente: .claude/skills/PARADIGM.md/SKILL.md"},
  "m-tessl":{"t":"mcp","l":"base","nm":"mcp-tessl","ver":"—","c":"estable","tc":50,"ti":50,"inv":0,"f":[{"s":"info","o":"runtime","capa":"tokens","x":"MCP declarado pero ~0 invocaciones reales en 30d — superficie cargada sin uso."}],"d":"Componente del arnés. Fuente: .claude/skills/mcp-tessl/SKILL.md"}
 };
+/* contratos por caja (INFERIDOS de la prosa del SKILL.md — ## Cuándo / Pasos / produce X — no formales aún).
+   a: artefacto · s: origen (usuario/base/caja) · routes to: id-nodo o rol · c: condición ("" = happy path) */
+const LV_CONTRACTS={
+ "s-pm-luana":{inferred:1,inputs:[{a:"pedido / intención",s:"usuario · chris-input.md"},{a:"visión + lifecycle + segmentos",s:"base"}],outputs:[{a:"story + checkpoint.md"}],routes:[{to:"s-po",c:"story de servicio"},{to:"s-po-ux",c:"story de UI"},{to:"s-ux-agentico",c:"story conversacional"}]},
+ "s-pm-vitalia":{inferred:1,inputs:[{a:"pedido de marca Vitalia",s:"usuario · chris-input.md"},{a:"visión vitalia + PHI/HIPAA",s:"base"}],outputs:[{a:"story + checkpoint.md"}],routes:[{to:"s-po",c:"story de servicio"},{to:"s-po-ux",c:"story de UI"},{to:"s-ux-agentico",c:"story conversacional"}]},
+ "s-po":{inferred:1,inputs:[{a:"story [refining]",s:"caja Intake"},{a:"flujos-negocio",s:"base"}],outputs:[{a:"01-spec.md (Gherkin AI-resistant)"}],routes:[{to:"s-architect",c:""}]},
+ "s-po-ux":{inferred:1,inputs:[{a:"story de UI [refining]",s:"caja Intake"},{a:"design-system-canon",s:"base"}],outputs:[{a:"01-spec.md + wireframes + microcopy"}],routes:[{to:"s-architect",c:""}]},
+ "s-ux-agentico":{inferred:1,inputs:[{a:"story conversacional",s:"caja Intake"},{a:"sales-agent + copilot expert",s:"librería"}],outputs:[{a:"02-design-agentic.md"}],routes:[{to:"s-architect",c:""}]},
+ "s-architect":{inferred:1,inputs:[{a:"01-spec.md [refined]",s:"caja Spec"},{a:"arquitectura-as-code + capabilities + stack",s:"base"}],outputs:[{a:"READY PACKAGE (03-arch·04-validators·05-guidelines·06-tickets)"}],routes:[{to:"s-dev-team",c:""}]},
+ "s-dev-team":{inferred:1,inputs:[{a:"READY PACKAGE [ready]",s:"caja Arquitectura"},{a:"CONTEXT-BRIEF",s:"maquinaria · context-builder"}],outputs:[{a:"código + T-impl-log + gate-output.json"}],routes:[{to:"s-auditor",c:""},{to:"s-pm-luana",c:"necesita engine lift (R23)"}]},
+ "s-auditor":{inferred:1,inputs:[{a:"código [developed] + gate-output.json",s:"caja Desarrollo"},{a:"/test-backend · /test-frontend",s:"validators"}],outputs:[{a:"REVIEW.md + veredicto"}],routes:[{to:"s-commit-push",c:"APPROVED"},{to:"s-dev-team",c:"CHANGES_REQUESTED · rework"},{to:"humano / Chris",c:"ESCALATED"}]},
+ "s-commit-push":{inferred:1,inputs:[{a:"cambios aprobados [done]",s:"caja Calidad"}],outputs:[{a:"commit + push --ff-only"}],routes:[{to:"merge / release",c:""}]}
+};
+Object.entries(LV_CONTRACTS).forEach(([k,v])=>{if(LV_N[k])LV_N[k].contract=v});
 const LV_EDGES=[
  ["s-architect","a-architect-orchestrator","inv",14],["s-dev-team","a-context-builder","inv",6],
  ["a-context-builder","a-context-validator","inv",6],["s-dev-team","a-builder-backend","inv",43],
@@ -1521,6 +1547,27 @@ function select(id,user){
   if(S.dock){S.dock=null}
   renderInsp();
 }
+/* Contrato de la caja (A2/A4): necesita ↑ · entrega · ruta ↓ (condicional) · viene de.
+   Reemplaza «Relaciones». Rico si el nodo declara contract; si no, derivado del grafo de edges. */
+function renderContract(id,A){
+  const n=A.N[id];
+  const chip=x=>A.N[x]?`<button class="relchip" data-rel="${x}">${A.N[x].nm}</button>`:`<span class="relchip" style="opacity:.85">${x}</span>`;
+  if(n.contract){
+    const c=n.contract;
+    const inRow=(c.inputs||[]).length?`<div class="crow"><span class="cl">necesita ↑</span><div class="cch">${c.inputs.map(i=>`<span class="cchip in">${i.a}<em>· ${i.s}</em></span>`).join("")}</div></div>`:"";
+    const outRow=(c.outputs||[]).length?`<div class="crow"><span class="cl">entrega</span><div class="cch">${c.outputs.map(o=>`<span class="cchip out">${o.a}</span>`).join("")}</div></div>`:"";
+    const rtRow=(c.routes||[]).length?`<div class="crow"><span class="cl">ruta ↓</span><div class="cch">${c.routes.map(r=>`<span class="croute">→ ${chip(r.to)} ${r.c?`<em class="cond">si ${r.c}</em>`:`<em class="cond ok">normal</em>`}</span>`).join("")}</div></div>`:"";
+    const fed=Object.keys(A.N).filter(k=>A.N[k].contract&&(A.N[k].contract.routes||[]).some(r=>r.to===id));
+    const fedRow=fed.length?`<div class="crow"><span class="cl">viene de</span><div class="cch">${fed.map(chip).join("")}</div></div>`:"";
+    return `<p class="sec-lb">Contrato${c.inferred?` <span class="inf" title="Estos contratos existen en prosa en el SKILL.md (## Cuándo, Pasos, «produce X») — no como dato formal. Aquí están inferidos. El paso siguiente es formalizarlos para que el arnés los lea, valide y evalúe.">· inferido de la prosa · por formalizar</span>`:""}</p><div class="contract">${inRow}${outRow}${rtRow}${fedRow}</div>`;
+  }
+  const ent=[],vie=[],lee=[];
+  (A.E||[]).forEach(([f,t2,k])=>{if(f===id){(k==="know"?lee:ent).push(t2)}if(t2===id&&k!=="know")vie.push(f)});
+  const row=(lb,arr)=>arr.length?`<div class="crow"><span class="cl">${lb}</span><div class="cch">${arr.map(chip).join("")}</div></div>`:"";
+  const h=row("viene de",vie)+row("lee (base)",lee)+row("entrega a ↓",ent);
+  return h?`<p class="sec-lb">Contrato <span class="inf" title="Derivado del grafo de invocación/lectura — este componente no declara un contrato entrada/salida.">· derivado del grafo</span></p><div class="contract">${h}</div>`
+    :`<p class="sec-lb">Contrato</p><p class="empty-f">${n.t==="skill"||n.t==="agent"?"No declarado — esta caja no dice qué necesita ni qué entrega (por formalizar).":"Componente de apoyo — no es una caja de proceso (infra compartida)."}</p>`;
+}
 function renderInsp(){
   const A=ARNESES[S.arnes];const id=S.sel;const n=A.N[id];
   $("rail").classList.remove("dock-on");
@@ -1543,14 +1590,7 @@ function renderInsp(){
      <div class="metric"><div class="v ${n.exc?"warn":""}">${n.exc?n.exc:A.telem&&n.inv?"0":"—"}</div><div class="l">excepciones de proceso 30d</div></div>
      <div class="metric" style="grid-column:1/-1"><div class="v">${consumoDe(A,n)?fmtM(consumoDe(A,n)):"—"}</div><div class="l">consumo 30d — cada componente rinde cuentas de sus tokens (principio 11)</div></div>
    </div>
-   ${(()=>{const rel={inv:[],por:[],lee:[],leidoPor:[],esc:[],escPor:[]};
-     (A.E||[]).forEach(([f,t2,k])=>{
-       if(f===id){(k==="inv"?rel.inv:k==="know"?rel.lee:rel.esc).push(t2)}
-       if(t2===id){(k==="inv"?rel.por:k==="know"?rel.leidoPor:rel.escPor).push(f)}
-     });
-     const row=(lb,arr)=>arr.length?`<div class="relrow"><span class="rl">${lb}</span>${arr.map(x=>`<button class="relchip" data-rel="${x}">${A.N[x].nm}</button>`).join("")}</div>`:"";
-     const h2=row("invoca →",rel.inv)+row("← invocado por",rel.por)+row("lee",rel.lee)+row("← leído por",rel.leidoPor)+row("escribe →",rel.esc)+row("← escrito por",rel.escPor);
-     return h2?`<p class="sec-lb">Relaciones (quién llama a quién)</p><div class="rels">${h2}</div>`:"";})()}
+   ${renderContract(id,A)}
    <p class="sec-lb">Hallazgos</p>
    ${n.f.length?n.f.map(f=>`<div class="finding ${f.s==="crit"?"crit":f.s==="info"?"info":""}">${f.x}</div>`).join(""):`<p class="empty-f">Sin hallazgos abiertos.</p>`}
    <div class="actions">
