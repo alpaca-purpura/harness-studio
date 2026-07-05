@@ -213,6 +213,68 @@ consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
 
+## Iteración 7 — arnés REAL como data de prueba: luana-platform/vitalia (v3.4, 2026-07-04)
+
+Pedido del operador: cargar SU proyecto real (`~/Proyectos/luana-vitalia`) al mockup para
+juzgar si el producto le sirve, viendo su estado real. Investigación con 3 subagentes en
+paralelo (estructura del repo · inventario de componentes · telemetría de 194 JSONL de
+`~/.claude`, 2 pasadas). Todo verificado headless con jsdom + Playwright (chromium real,
+~50 asserts en verde, screenshots dark/light autorevisados, consola limpia) — **el
+chrome-devtools MCP se cayó al matar el chrome zombie que tenía el lock del lane
+`luana-vitalia-I` (justo el bug SingletonLock de la corrida rl-b); Playwright headless lo
+reemplazó sin conflicto de lane**.
+
+**Qué se modeló (todo REAL, procedencia explícita):** el arnés = **pipeline dev
+multi-marca** de luana (worktree vitalia, rama `wip/vitalia`). Geografía: Guardia = **6
+hooks reales** (auto-chain, learning-detect, overlay-check, contract-guard,
+validate-session-close, telemetry-emit del kit `harness@0.5.2`) · **6 fases** = spine de
+proceso (Intake·Priorización → Spec&UX → Arquitectura → Desarrollo → Calidad → Cierre&Merge)
+con sus skills/agentes reales (pm-luana/pm-vitalia · po/po-ux/ux-agentico · architect +
+architect-orchestrator · dev-team + context-builder/validator + builders be/fe/agentic +
+gate-runner + backend/frontend-expert · auditor + auditors be/fe/agentic ·
+commit-push/handoff/pase-produccion) · Base = reglas always-on (CLAUDE.md, AGENTS.md,
+overlay vitalia, 46 rules) + knowledge (project.config.yaml costura, lifecycle,
+capability-protocol, harness-arch, paradigm) + mcp-tessl. **39 nodos, 18 edges** (cadena
+real dev-team→builders→auditor).
+
+**Telemetría real integrada (194 sesiones, 30d):** consumo por componente = suma real de
+tokens del JSONL (`c30` pisa la fórmula estimada) — dev-team 6.7M out (heat máx), pm-luana
+5.3M, pm-vitalia 3.2M, builder-fe 2.5M. 3 corridas reales paso a paso (rl-a pm-vitalia
+admin · rl-b SingletonLock con subagente + 2 errores · rl-c dev-team OLA-2 con
+builder-agentic re-spawn por API 529). Historia real (kit v0.5.2 · charter 3-capas ·
+bootstrap 27 pkgs).
+
+**Hallazgos REALES en Diagnóstico (no inventados, trazables al repo):** 2 críticos —
+`auditor-agentic` 0 lanzamientos pese a `builder-agentic` activo (código agentic construido
+pero **nunca auditado**) · **ningún componente define criterio de éxito ni evals** (el gate
+«nada sin eval» del principio 10 no está instrumentado → salud «señales incompletas», no
+puede ponerse verde). Warns — `context-validator` 0 lanzamientos (brief sin validar) ·
+`pase-produccion` DEFERRED (sin owner de deploy) · incoherencia de fases A–F vs {G,R,C,D}.
+Infos — **telemetry-emit del kit YA es el sensor que ArnesIA necesita (KIT-03)** · dev-team
+consumo · doc drift (glossary roto, ADR dir vacío) · mcp-tessl sin uso.
+
+**Decisiones de honestidad forzadas por la data real (nuevas):**
+- **Chips REAL vs DEMO** por arnés; **KPIs del portafolio = solo arneses reales** (demo no
+  se mezcla en los totales).
+- **Éxito/p95 por componente = «—» honesto**: el JSONL no trae criterio de éxito de corrida
+  → no se inventa; es en sí un hallazgo. Estado del arnés = **«señales incompletas»** (5ª
+  rama del semáforo) cuando hay telemetría viva pero sin criterio de calidad.
+- **Heat pasa de umbral absoluto a percentil del arnés (p50/75/90/97)**: el absoluto no
+  escala entre un arnés de 2.6M y uno de 81M tok/30d. (Contrato de capa Tokens actualizado.)
+- **Consumo medido pisa consumo estimado** (`c30`) — la fórmula queda solo para lo no medido
+  (reglas always-on). Librerías preloaded (backend/frontend-expert) = «se cuenta en quien la
+  usa» (atribución solapada explícita).
+- **ctx por paso y contabilidad de contexto = «—» en corridas reales**: no se extrajo del
+  JSONL en esta pasada; no se fabrica (la contabilidad por paso de los demos era sintética).
+- **Tren vacío** para el arnés real (versiona con git del monorepo, aún no adoptado por el
+  tren de ArnesIA).
+
+**Pendiente para próximas iteraciones (feedback del operador que sigue):** contabilidad de
+contexto por paso desde JSONL real · criterio de éxito/eval (¿cómo lo definiría el
+operador?) · ¿mostrar los ~55 skills completos o el corte curado? · empleados-IA del
+producto (Valeria·Lisa…) vs roster de dev — ¿dos vistas? · multi-marca (vitalia/nicolify/
+comunify) ¿un arnés con overlays o varios?
+
 ## Inventario de funcionalidades — corte iteración 6 (mockup v3.3, 2026-07-04)
 
 > Fuente de verdad para retomar en cualquier sesión. Mockup vigente:

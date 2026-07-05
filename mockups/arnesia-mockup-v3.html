@@ -693,6 +693,78 @@ const NEW_N={
  "k-prod":{t:"know",l:"base",nm:"base-producto",ver:"—",c:"estable",d:"Por capturar en el onboarding: qué es el producto, módulos, errores conocidos.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[]}
 };
 
+/* ══ ARNÉS REAL: luana-platform · worktree vitalia — extraído del repo + 194 JSONL (30d, 2026-06-04→07-03) ══
+   Procedencia: carga = bytes/4 del fuente · consumo 30d = suma real de tokens del JSONL (c30) ·
+   éxito/p95 por componente = NO medido (el arnés no emite criterio de corrida) → "—" honesto. */
+const LV_LANES=[
+  {id:"intake",n:"Intake · Priorización",runs:"81 sesiones",exc:0,cum:"—"},
+  {id:"spec",n:"Spec & UX",runs:"21 sesiones",exc:0,cum:"—"},
+  {id:"arq",n:"Arquitectura",runs:"13 sesiones",exc:0,cum:"—"},
+  {id:"dev",n:"Desarrollo",runs:"26 sesiones",exc:0,cum:"—"},
+  {id:"cal",n:"Calidad",runs:"9 sesiones",exc:0,cum:"—"},
+  {id:"cierre",n:"Cierre & Merge",runs:"—",exc:0,cum:"—"}
+];
+const LV_N={
+ // Guardia — 6 hooks reales (settings.json proyecto + plugin harness@0.5.2). éxito no aplica (exit 0 fail-open)
+ "h-auto-chain":{t:"hook",l:"guardia",nm:"auto-chain-detect",ver:"—",c:"estable",d:"UserPromptSubmit — detecta patrón «/pm-{brand} + skill + verbo» y autoriza encadenar skills inline (anti-stale, solo el prompt actual).",inv:902,tc:200,ti:200,p95:"~1s",proc:"902 UserPromptSubmit · encadena skills al detectar patrón PM+skill",f:[]},
+ "h-learning":{t:"hook",l:"guardia",nm:"learning-detect",ver:"—",c:"estable",d:"UserPromptSubmit — detecta frases ES («aprendamos de esto», «/aprende») y dispara el flujo learning-capture.",inv:902,tc:150,ti:150,p95:"~1s",proc:"902 UserPromptSubmit · dispara learning-capture ante frases ES",f:[]},
+ "h-overlay":{t:"hook",l:"guardia",nm:"claude-md-overlay-check",ver:"—",c:"estable",d:"SessionStart — advisory: si el cwd cae en una marca y falta su overlay CLAUDE.md, avisa (no carga; CC lo hace built-in).",inv:469,tc:80,ti:80,p95:"~0.6s",proc:"469 SessionStart · avisa si falta overlay de marca",f:[]},
+ "h-contract":{t:"hook",l:"guardia",nm:"contract-guard",ver:"—",c:"estable",d:"PostToolUse(Write|Edit) — al tocar un SSoT (12 reglas engine/brand/legacy) emite el comando regen/test a correr.",inv:3856,tc:120,ti:120,p95:"~0.9s",proc:"~3.9k PostToolUse(Write/Edit) · recuerda regen/test al tocar un SSoT",f:[]},
+ "h-validate":{t:"hook",l:"guardia",nm:"validate-session-close",ver:"—",c:"estable",d:"Stop — valida invariantes al cierre: WIP caps por marca (BLOCK si excede), estado huérfano, no-context-loss.",inv:809,tc:100,ti:100,p95:"~2s",proc:"809 Stop · valida WIP caps + cierre sin pérdida (BLOCK si excede)",f:[]},
+ "h-telemetry":{t:"hook",l:"guardia",nm:"telemetry-emit (kit)",ver:"0.5.2",c:"estable",d:"Stop·SubagentStop·SessionEnd — emisor KIT-03: arma spans OTLP GenAI-semconv del transcript y los escribe al sink local. Fail-open (siempre exit 0).",inv:832,tc:0,ti:0,p95:"~1.5s",proc:"~832 Stop/SubagentStop · emite spans OTLP al sink (fail-open)",f:[{s:"info",o:"estático",capa:"estructura",x:"El emisor de telemetría del kit YA existe (KIT-03) — es exactamente el sensor que ArnesIA necesita. Hoy escribe a sink local; conectar su egress a ArnesIA = telemetría real sin instrumentar de cero."}]},
+ // Intake — PMs (puntos de entrada más frecuentes)
+ "s-pm-luana":{t:"skill",l:"intake",nm:"pm-luana",ver:"v4",c:"estable",d:"PM del engine compartido (27 paquetes luana-core), extension SDK EP-1..18, promotion gate marca→core, vista portfolio. Punto de entrada más frecuente.",inv:41,tc:5800,ti:5800,c30:5280000,f:[]},
+ "s-pm-vitalia":{t:"skill",l:"intake",nm:"pm-vitalia",ver:"v4",c:"estable",d:"PM de la marca Vitalia (Salud, HIPAA-lite, PHI pgcrypto). Pointer-first: intake→refining, discovery de stories, merge.",inv:40,tc:6700,ti:6700,c30:3170000,f:[]},
+ // Spec & UX
+ "s-po":{t:"skill",l:"spec",nm:"po",ver:"v4",c:"estable",d:"Product Owner: service-stories + agentic-stories; produce 01-spec.md con Gherkin AI-resistant; transición refining→refined.",inv:4,tc:5000,ti:5000,c30:180000,f:[]},
+ "s-po-ux":{t:"skill",l:"spec",nm:"po-ux",ver:"v4",c:"estable",d:"PO+UX fusión: UI standard stories (CRUD/list/form/dashboard); 01-spec.md unificado + wireframes + microcopy + graders Playwright.",inv:15,tc:10300,ti:10300,c30:800000,f:[]},
+ "s-ux-agentico":{t:"skill",l:"spec",nm:"ux-agentico",ver:"—",c:"estable",d:"Diseña flujos conversacionales; produce 02-design-agentic.md; carga sales-agent-expert, copilot-expert.",inv:2,tc:4700,ti:4700,c30:100000,f:[]},
+ // Arquitectura
+ "s-architect":{t:"skill",l:"arq",nm:"architect",ver:"v4",c:"estable",d:"Orquestador de arquitectura: spawna architect-orchestrator; produce el READY PACKAGE (03-arch+04-validators+05-guidelines+06-tickets); refined→ready.",inv:13,tc:11900,ti:11900,c30:1440000,f:[]},
+ "a-architect-orch":{t:"agent",l:"arq",nm:"architect-orchestrator",ver:"—",c:"estable",d:"Subagente opus (maxTurns 80): Solution Architect full-stack; preload de 8 skills expertas; produce 03-arch.md como SSoT de los builders.",inv:14,tc:10600,ti:10600,c30:540000,f:[]},
+ // Desarrollo
+ "s-dev-team":{t:"skill",l:"dev",nm:"dev-team",ver:"v4",c:"estable",d:"Router del developer (Conv 2): itera ticket→validators→fix; decide owner por tier; ready→developed + auto-handoff a /auditor. El componente más pesado del arnés.",inv:26,tc:14100,ti:14100,c30:6710000,f:[{s:"info",o:"runtime",capa:"tokens",x:"Mayor consumidor del arnés: 6.7M tok out / 30d (18M in+out atribuidos). Encadena hasta 8 subagentes por corrida (ej: corrida rl-c). Candidato a acotar vía CONTEXT-BRIEF."}]},
+ "a-context-builder":{t:"agent",l:"dev",nm:"context-builder",ver:"—",c:"estable",d:"Subagente haiku: pre-flight reader; produce CONTEXT-BRIEF.md (5-8k tok) que los Opus/Sonnet consumen en vez de re-leer 30-50k.",inv:6,tc:8100,ti:8100,c30:140000,f:[]},
+ "a-context-validator":{t:"agent",l:"dev",nm:"context-validator",ver:"—",c:"estable",d:"Subagente haiku: validador adversarial del CONTEXT-BRIEF; escribe CONTEXT-BRIEF-validation.md. Lo spawna context-builder.",inv:0,tc:3000,ti:3000,c30:0,dead:1,f:[{s:"warn",o:"runtime",capa:"perf",x:"0 lanzamientos en 30 días — el validador adversarial del brief nunca corrió, pese a context-builder activo (6×). ¿Trigger roto o paso muerto? El brief va sin validar."}]},
+ "a-builder-be":{t:"agent",l:"dev",nm:"builder-backend",ver:"—",c:"estable",d:"Subagente sonnet (maxTurns 120): FastAPI/SQLAlchemy 2.0/Alembic DDD; consume 03-arch.md; defiere a gate-runner + auditor-backend.",inv:43,tc:8700,ti:8700,c30:1100000,f:[]},
+ "a-builder-fe":{t:"agent",l:"dev",nm:"builder-frontend",ver:"—",c:"estable",d:"Subagente sonnet (maxTurns 120): Next.js 16/React 19/Shadcn FSD-Lite; el subagente más lanzado del arnés.",inv:87,tc:9800,ti:9800,c30:2450000,f:[]},
+ "a-builder-agentic":{t:"agent",l:"dev",nm:"builder-agentic",ver:"—",c:"estable",d:"Subagente opus (maxTurns 150): owner exclusivo de copilot/sales_agent brand-extension (LangGraph 2.0, Qdrant RAG). Defiere a auditor-agentic.",inv:5,tc:11600,ti:11600,c30:140000,f:[]},
+ "a-gate-runner":{t:"agent",l:"dev",nm:"gate-runner",ver:"—",c:"estable",d:"Subagente haiku (maxTurns 25): corre suites de calidad brand-scoped; escribe gate-output.json. No decide veredicto.",inv:6,tc:5000,ti:5000,c30:40000,f:[]},
+ "s-backend-expert":{t:"skill",l:"dev",nm:"backend-expert",ver:"—",c:"estable",d:"Librería experta preloaded por builder/auditor backend: FastAPI/SQLAlchemy 2.0/Alembic/DDD. No es fase — es conocimiento cargado.",inv:65,tc:1800,ti:1800,c30:0,lib:1,f:[]},
+ "s-frontend-expert":{t:"skill",l:"dev",nm:"frontend-expert",ver:"—",c:"estable",d:"Librería experta preloaded por builder/auditor frontend: Next.js 16/React 19/FSD-Lite/Shadcn. No es fase — es conocimiento cargado.",inv:114,tc:1800,ti:1800,c30:0,lib:1,f:[]},
+ // Calidad
+ "s-auditor":{t:"skill",l:"cal",nm:"auditor",ver:"v4",c:"estable",d:"Auditor (Conv 3): spawna auditor-{be,fe,agentic}; Phase D matriz gherkin; veredicto APPROVED|CHANGES_REQUESTED|ESCALATED; auto-handoff a merge.",inv:9,tc:12500,ti:12500,c30:950000,f:[]},
+ "a-auditor-be":{t:"agent",l:"cal",nm:"auditor-backend",ver:"—",c:"estable",d:"Subagente opus: audita módulos business BE vs /test-backend; consume gate-output.json; produce REVIEW.md. Nunca audita copilot/core.",inv:6,tc:8900,ti:8900,c30:120000,f:[]},
+ "a-auditor-fe":{t:"agent",l:"cal",nm:"auditor-frontend",ver:"—",c:"estable",d:"Subagente opus: audita FE vs /test-frontend; produce REVIEW.md; carga chrome-devtools-verify.",inv:7,tc:10700,ti:10700,c30:160000,f:[]},
+ "a-auditor-agentic":{t:"agent",l:"cal",nm:"auditor-agentic",ver:"—",c:"estable",d:"Subagente opus: audita superficies agentic (copilot/sales_agent) brand-extension; self-fix restringido; produce REVIEW-agentic.md.",inv:0,tc:8900,ti:8900,c30:0,dead:1,f:[{s:"crit",o:"runtime",capa:"perf",x:"0 lanzamientos en 30 días pese a builder-agentic activo (5×). El código agentic (copilot/sales_agent) se construyó pero su auditor nunca lo revisó — brecha de calidad real, no un simple nodo sin uso."}]},
+ // Cierre & Merge
+ "s-commit-push":{t:"skill",l:"cierre",nm:"commit-push",ver:"—",c:"estable",d:"Commit + push delegado a un worker Haiku (git-haiku-delegation).",inv:5,tc:1400,ti:1400,c30:20000,f:[]},
+ "s-handoff":{t:"skill",l:"cierre",nm:"handoff",ver:"—",c:"estable",d:"Genera el doc de handoff al cierre de sesión (delegado Haiku).",inv:0,tc:1400,ti:1400,c30:0,f:[]},
+ "s-pase-produccion":{t:"skill",l:"cierre",nm:"pase-produccion",ver:"—",c:"beta",d:"Pipeline deploy triple-branch. DEFERRED: GH Actions no provisionado.",inv:0,tc:2400,ti:2400,c30:0,dead:1,f:[{s:"warn",o:"estático",capa:"estructura",x:"DEFERRED — GH Actions no provisionado. La fase Cierre/Deploy no tiene owner ejecutable: el arnés construye y audita pero no despliega solo."}]},
+ // Base — reglas siempre-en-contexto + knowledge as code (consumo = fórmula 194 sesiones × carga; no medido aparte)
+ "r-claude":{t:"rule",l:"base",nm:"CLAUDE.md (raíz)",ver:"—",c:"estable",d:"Overlay del proyecto SIEMPRE en contexto: paradigma 3-planos, spine de 10 estados, cost-routing por tier, 38 Critical Rules, git workflow. Termina con @AGENTS.md.",inv:0,ex:0,tc:4800,ti:0,alw:1,f:[{s:"info",o:"estático",capa:"estructura",x:"Doc drift: referencia docs/product/glossary.md (inexistente) y el dir docs/architecture/ADR/ está vacío (los ADR reales viven en luana-platform/)."}]},
+ "r-agents":{t:"rule",l:"base",nm:"AGENTS.md",ver:"—",c:"estable",d:"Stack, commands, native-first, quality gates, constraints. Referenciado desde CLAUDE.md.",inv:0,ex:0,tc:1400,ti:0,alw:1,f:[]},
+ "r-overlay":{t:"rule",l:"base",nm:"vitalia/CLAUDE.md",ver:"—",c:"estable",d:"Overlay auto-cargado en el cwd de la marca: vertical Salud, HIPAA-lite, shell Valeria + 5 especialistas.",inv:0,ex:0,tc:2700,ti:0,alw:1,f:[]},
+ "r-rules-kit":{t:"rule",l:"base",nm:"rules del kit (21+25)",ver:"0.5.2",c:"estable",d:"46 invariantes de proceso: 21 always-on del kit (story-closure-gate, tdd-mandatory, anti-duplication, git-safety, parallel-safety…) + 25 del proyecto. Núcleo always-on ≤9.5k chars.",inv:0,ex:0,tc:2400,ti:0,alw:1,f:[{s:"info",o:"estático",capa:"estructura",x:"El hook session-start-rules del kit es NO-OP efectivo hoy: el manifest slim lista 3 reglas pero el corpus vive en .claude/rules nativo. Redundancia inofensiva, pero es deuda del kit."}]},
+ "k-config":{t:"know",l:"base",nm:"project.config.yaml (costura)",ver:"—",c:"estable",d:"LA COSTURA (DIP): 12 slots (toolchain/locale/engine/models/roster/value_stream/wip_caps…). SSoT de tech y marca; la lee harness_config.py y los hooks, no se inyecta al LLM.",inv:0,ex:0,tc:6200,ti:0,f:[]},
+ "k-lifecycle":{t:"know",l:"base",nm:"lifecycle.md",ver:"—",c:"estable",d:"SSoT del modelo 4-ejes (Release→Story→Capability→Scenario) + los 10 estados macro del spine.",inv:0,ex:0,tc:4300,ti:0,f:[{s:"crit",o:"estático",capa:"proceso",x:"Ningún componente define criterio de éxito de corrida ni tiene evals — el gate «nada sin eval» (principio 10) NO está instrumentado. Por eso el semáforo de salud queda «señales incompletas» y no puede ponerse verde."},{s:"warn",o:"estático",capa:"proceso",x:"Fases en conflicto: lifecycle.md remite a story-closure-gate.md para {G,R,C,D} pero ese doc aún lista A–F. Migración de proceso v4→v5 sin cerrar."}]},
+ "k-capability":{t:"know",l:"base",nm:"capability-protocol.md",ver:"v3.2",c:"estable",d:"Schema de capability + computed_status (stub→wip→partial→declared-live→verified-live). La «salud del producto» que construye el arnés.",inv:0,ex:0,tc:9300,ti:0,f:[]},
+ "k-harness-arch":{t:"know",l:"base",nm:"harness-architecture-guide.md",ver:"—",c:"estable",d:"Deep-dive del arnés: 3 capas CORE→PROJECT→BRAND, regla de dependencia hacia adentro, la costura.",inv:0,ex:0,tc:4300,ti:0,f:[]},
+ "k-paradigm":{t:"know",l:"base",nm:"PARADIGM.md",ver:"v4.1",c:"estable",d:"Norte: Luana = equipo de trabajadores digitales (empleados-IA), no un SaaS-herramienta. 3 planos, mapa 3 zonas.",inv:0,ex:0,tc:3600,ti:0,f:[]},
+ "m-tessl":{t:"mcp",l:"base",nm:"mcp-tessl",ver:"—",c:"estable",d:"MCP — gestión de tiles Tessl (docs versionados de dependencias). Único servidor MCP a nivel proyecto.",inv:0,ex:0,tc:200,ti:200,f:[{s:"info",o:"runtime",capa:"tokens",x:"MCP declarado pero ~0 invocaciones reales en 30d — superficie cargada sin uso (la verificación real corre por chrome-devtools, que es del host)."}]}
+};
+const LV_EDGES=[
+ ["s-architect","a-architect-orch","inv",14],["s-dev-team","a-context-builder","inv",6],
+ ["a-context-builder","a-context-validator","inv",6],["s-dev-team","a-builder-be","inv",43],
+ ["s-dev-team","a-builder-fe","inv",87],["s-dev-team","a-builder-agentic","inv",5],
+ ["s-dev-team","a-gate-runner","inv",6],["s-dev-team","s-auditor","inv",9],
+ ["s-auditor","a-auditor-be","inv",6],["s-auditor","a-auditor-fe","inv",7],["s-auditor","a-auditor-agentic","inv",0],
+ ["a-builder-be","s-backend-expert","know",0],["a-builder-fe","s-frontend-expert","know",0],
+ ["s-pm-luana","s-pm-vitalia","inv",0],["s-pm-vitalia","k-lifecycle","know",0],
+ ["s-architect","k-capability","know",0],["a-builder-be","k-config","know",0],
+ ["h-telemetry","k-config","know",0]
+];
+
 /* corridas (S8) — todo derivable del JSONL de ~/.claude */
 const RUNS={
  "dev-fullcycle":[
@@ -751,11 +823,90 @@ const RUNS={
     {t:"asst",lb:"Respuesta",txt:"14 evidencias etiquetadas; 2 contradicen la hipótesis H3.",tok:"out 400",s:100,d:25,cx:23.9,ad:"+2.4k · evidencia etiquetada"}
    ]}
  ],
- "fin-cierre":[], "nuevo":[]
+ "fin-cierre":[], "nuevo":[],
+ /* corridas REALES de luana-vitalia (JSONL). ctx por paso y % ventana NO extraídos aún → "—" honesto */
+ "luana-vitalia":[
+  {id:"rl-a",sid:"aaf72465",f:"17 jun 17:43",disp:"pm-vitalia",comp:"s-pm-vitalia",fase:"Intake",modelo:"claude-opus-4-8",turnos:17,tokIn:"214k",tokOut:"18k",cache:"1.5M",costo:"—",ctx:null,dur:"2m 26s",okk:true,total:146,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"¿Estado del módulo admin de vitalia? Investigación, sin tocar código.",s:0,d:3},
+    {t:"skill",lb:"pm-vitalia",comp:"s-pm-vitalia",txt:"skill_activated · trigger: /pm-vitalia",tok:"~6.7k carga",s:3,d:2},
+    {t:"llm",lb:"claude-opus-4-8",txt:"Caveman mode; investigación no-código. Localizo el módulo admin.",tok:"in ~40k",s:5,d:20},
+    {t:"tool",lb:"Bash ×3",txt:"localiza el módulo admin (Streamlit)",s:25,d:30},
+    {t:"llm",lb:"claude-opus-4-8",txt:"Existe. Ahora: cómo se levanta + puerto + estado.",s:55,d:15},
+    {t:"tool",lb:"Read · Bash ×2",txt:"lee config + revisa proceso",s:70,d:25},
+    {t:"tool",lb:"Bash ×3",txt:"estado de la capability admin + setup de password",s:95,d:25},
+    {t:"asst",lb:"Respuesta",txt:"Admin Streamlit vivo y completo, pero NO se levanta solo (falta script de arranque).",tok:"out ~18k",s:130,d:16}
+   ]},
+  {id:"rl-b",sid:"62ea57d5",f:"15 jun 05:04",disp:"pm-luana",comp:"s-pm-luana",fase:"Intake",modelo:"claude-opus-4-8",turnos:101,tokIn:"148k",tokOut:"121k",cache:"14.4M",costo:"—",ctx:null,dur:"35m 31s",okk:true,total:2131,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"El MCP de Chrome choca entre 2 lanes — diagnosticá y arreglá.",s:0,d:5},
+    {t:"skill",lb:"pm-luana",comp:"s-pm-luana",txt:"skill_activated · /pm-luana (salta bootstrap: es debug de tooling)",tok:"~5.8k carga",s:5,d:3},
+    {t:"tool",lb:"Bash ×6",txt:"2 instancias MCP con mismo userDataDir → colisión SingletonLock",s:8,d:180},
+    {t:"asst",lb:"Diagnóstico",txt:"Root cause: SingletonLock de Chrome compartido entre lanes.",s:190,d:40},
+    {t:"tool",lb:"AskUserQuestion",txt:"decide fix «per-lane persistente»",s:230,d:60},
+    {t:"tool",lb:"Bash ×2",txt:"backup + patch ~/.claude.json (userDataDir con lane)",s:290,d:120},
+    {t:"skill",lb:"harness-issue",comp:"s-harness-issue",txt:"skill_activated · captura HB-73 + learning en el backlog del harness",tok:"~0.5k",s:410,d:20},
+    {t:"tool",lb:"Edit · Read · Edit",txt:"escribe backlog + learning",s:430,d:150},
+    {t:"err",lb:"tool_result is_error",txt:"un Edit falló (recuperado con Read+Edit) — 1 de los 2 errores de la corrida",s:580,d:5},
+    {t:"agent",lb:"subagente commit (haiku)",txt:"commit 4 files + push FF — delegado a Haiku (git-haiku-delegation)",tok:"~3k",s:600,d:200,kids:[
+      {t:"tool",lb:"Bash ×2",txt:"git add + commit + push --ff-only",s:601,d:190,own:1}
+    ]},
+    {t:"err",lb:"mcp list_pages",txt:"«The browser is already in use» — repro EN VIVO del bug exacto que se está arreglando",s:810,d:30},
+    {t:"asst",lb:"Respuesta",txt:"Cerrado 47b5aa18 → push FF a origin/wip/vitalia; lane A verificado en vivo.",s:2000,d:131}
+   ]},
+  {id:"rl-c",sid:"22a2dad8",f:"23 jun 01:06",disp:"dev-team",comp:"s-dev-team",fase:"Desarrollo",modelo:"claude-opus-4-8",turnos:141,tokIn:"254k",tokOut:"337k",cache:"36.8M",costo:"—",ctx:null,dur:"40m 13s activa",okk:true,total:2413,
+   pasos:[
+    {t:"user",lb:"Prompt del usuario",txt:"/pm-vitalia — cerrar la fase 2 del canal inbound de Adrián",s:0,d:3},
+    {t:"skill",lb:"pm-vitalia",comp:"s-pm-vitalia",txt:"skill_activated · Step-0 closure-gate scan + story discovery (paralelo)",tok:"~6.7k carga",s:3,d:3},
+    {t:"tool",lb:"Bash ×3",txt:"target = vitalia-fase2-adrian-canal-inbound (estado AWAIT_CHRIS_VERIFY)",s:6,d:40},
+    {t:"agent",lb:"general-purpose ×3",txt:"auditoría paralela: brand-inventory · engine-ABI · loop — confirman claims, detectan drift",s:46,d:200,kids:[
+      {t:"llm",lb:"3 subagentes",txt:"cada uno explora un frente en su ventana propia",tok:"~30k c/u",s:47,d:190,own:1}
+    ]},
+    {t:"tool",lb:"Write · Edit ×5",txt:"reconcilia 4 docs (checkpoint, validators, chris-input) a la realidad",s:250,d:180},
+    {t:"tool",lb:"AskUserQuestion",txt:"Chris elige «(A) Construir OLA-2»",s:430,d:90},
+    {t:"skill",lb:"dev-team",comp:"s-dev-team",txt:"skill_activated · /dev-team Step-0 bootstrap (OLA-2, module=sales_agent)",tok:"~14.1k carga",s:520,d:10},
+    {t:"err",lb:"tool_result is_error",txt:"un Bash falló (recuperado con Edit)",s:530,d:40},
+    {t:"agent",lb:"builder-agentic",comp:"a-builder-agentic",txt:"GAP-1 build — composition.py +356 (commit 0fd45f31)",tok:"~7k",s:570,d:420,kids:[
+      {t:"llm",lb:"claude-opus-4-8",txt:"implementación agentic en ventana propia",tok:"in ~48k",s:571,d:410,own:1}
+    ]},
+    {t:"agent",lb:"builder-agentic (re-spawn ×2)",comp:"a-builder-agentic",txt:"engine lift — muere 2× por API 529 (overload, 0 tok) → re-spawn → lift built (commit 5bd0dd1b, race de índice compartido resuelta)",tok:"~9k",s:1000,d:900},
+    {t:"asst",lb:"Respuesta",txt:"Lift GAP-2/3 construido, testeado y live-verified. OLA-2 entera (GAP-1+GAP-2/3) cerrada.",tok:"out ~12k",s:2280,d:133}
+   ]}
+ ]
 };
 
 /* fuente de componentes (pestaña Contenido) */
 const SRC={
+ "s-pm-vitalia":`---
+name: pm-vitalia
+description: PM de la marca Vitalia (Salud, HIPAA-lite)
+model: opus
+clase: skill.proceso.intake   # contrato L0 (I-75)
+---
+
+# PM · Vitalia
+
+Marca: Salud + Bienestar. PHI cifrada (pgcrypto),
+HIPAA-lite. Shell: Valeria + 5 especialistas.
+
+## Cuándo
+Intake y priorización de stories de vitalia;
+transición idea → refining. Pointer-first: no
+duplica el engine, opera sobre luana-core.
+
+## Pasos
+1. Step-0: closure-gate scan (¿hay algo a medio
+   cerrar? WIP caps por marca)
+2. Discovery de stories contra la visión
+3. Escribe checkpoint.md + chris-input.md
+4. Handoff a /po o /po-ux según tipo
+
+## Guardarraíles
+- Respeta tenant-isolation + pii-sanitisation
+- No toca engine sin promotion gate marca→core
+- Nada sin spec congelada aguas abajo
+
+# (fuente real, recortada — luana-vitalia)`,
  "s-implementar":`---
 name: implementar-feature
 description: Implementa una feature desde su spec congelada
@@ -796,6 +947,23 @@ ${n.d}
 (fuente de ejemplo — mockup)`}
 
 const ARNESES={
+ "luana-vitalia":{
+   real:true,excMeasured:false,
+   nm:"luana-platform · vitalia",canal:"estable",ver:"—",rol:"Pipeline dev multi-marca (rol×proceso)",proc:"SDD Level 3 · spine de 10 estados",
+   lanes:LV_LANES,N:LV_N,E:LV_EDGES,telem:true,
+   runs30:194,rpd:"6.7",exito:null,p95:"2h09*",comp:39,tok30:81200000,costo30:"—",eval:null,
+   proyectos:["alpacapurpura/luana-platform · wip/vitalia"],spark:[],sparkR:[],
+   budget:{txt:"carga always-on <b>~11.3k</b> / 200k tokens",note:"CLAUDE.md 4.8k · AGENTS.md 1.4k · overlay vitalia 2.7k · núcleo de reglas ~2.4k · <b>~5.7%</b> de la ventana"},
+   pareto:[{id:"s-dev-team",v:"6.7M",nota:"ventana principal"},{id:"s-pm-luana",v:"5.3M",nota:"coordinador"},{id:"s-pm-vitalia",v:"3.2M",nota:"coordinador"}],
+   flujo:{saltos:[],nomedido:"el arnés no emite saltos de fase como evento medible — pendiente instrumentar el sensor",tipos:"no extraídas del JSONL — el proceso no las marca como evento (hallazgo de instrumentación)"},
+   tren:{beta:[],listo:[],pub:[]},
+   hist:[
+     {v:"proceso v5",f:"2026-06 (en migración)",add:0,mod:4,del:0,hito:"<b>Migración de fases A–F → {G,R,C,D}</b> sin cerrar — coexistencia documentada como incoherencia. Es la deuda de proceso viva del arnés.",cur:1},
+     {v:"kit harness v0.5.2",f:"2026-06-11",add:0,mod:0,del:0,hito:"<b>Backflow auditado: 0 hot-fixes pendientes</b> — el kit local quedó sincronizado con la fábrica <code>prenter-harness</code> (BACKFLOW.md)."},
+     {v:"harness refactor charter",f:"2026-06-08",add:2,mod:0,del:0,hito:"<b>3 capas CORE→PROJECT→BRAND</b> + costura <code>project.config.yaml</code> (12 slots). DoD de extracción: drop en repo vacío resuelve idea→done sin editar el core."},
+     {v:"platform v0.1.0",f:"2026-05-12",add:27,mod:0,del:0,hito:"<b>Bootstrap</b> — 27 paquetes core, migración desde Nicolify (Stories 1–9). Alpha.",birth:1}
+   ]
+ },
  "dev-fullcycle":{
    nm:"arnes-dev-fullcycle",canal:"estable",ver:"1.3.0",rol:"Developer full-cycle",proc:"SDLC completo",
    lanes:DEV_LANES,N:DEV_N,E:DEV_EDGES,telem:true,
@@ -854,7 +1022,7 @@ const ARNESES={
    tren:{beta:[],listo:[],pub:[]},hist:[]
  }
 };
-const PF_ORDER=["dev-fullcycle","pm-discovery","fin-cierre"];
+const PF_ORDER=["luana-vitalia","dev-fullcycle","pm-discovery","fin-cierre"];
 const MKS=[{url:"alpacapurpura/prenter-marketplace",canal:"estable",dest:"2 proyectos publican aquí"}];
 
 /* ══════════ estado + ruteo ══════════ */
@@ -908,6 +1076,7 @@ function estadoDe(A){
   if(!A.telem)return{k:"gris",ic:"◌",lb:"sin datos",tip:"0 corridas 30d — gris ≠ verde: sin uso no es salud"};
   const crit=Object.values(A.N).some(n=>n.f.some(f=>f.s==="crit"));
   const gateFail=A.tren.beta.some(c=>c.st==="fail");
+  if(A.exito==null)return{k:"atencion",ic:"▲",lb:"señales incompletas",tip:"telemetría viva pero éxito/eval sin criterio definido aún — el semáforo exige las 5 señales"};
   if(A.exito<85)return{k:"critico",ic:"✕",lb:"crítico",tip:"umbral: éxito <85%"};
   if(crit||gateFail)return{k:"atencion",ic:"▲",lb:"atención",tip:"umbral: hallazgo crítico abierto o gate fallado"};
   return{k:"sano",ic:"✓",lb:"sano",tip:"umbral: éxito ≥90%, sin críticos, gates verdes"};
@@ -916,19 +1085,22 @@ const ORD={critico:0,atencion:1,sano:2,rollout:3,gris:4};
 function spark(arr,base){return `<div class="spark${arr.length?"":" mut"}">${(arr.length?arr:[1,1,1,1,1,1,1,1]).map(v=>`<span style="height:${arr.length?Math.max(8,(v-base)/(100-base)*100):8}%"></span>`).join("")}</div>`}
 function sparkR(arr){const mx=Math.max(1,...arr);return `<div class="spark${arr.length?"":" mut"}">${(arr.length?arr:[1,1,1,1,1,1,1,1]).map(v=>`<span style="height:${arr.length?Math.max(8,v/mx*100):8}%"></span>`).join("")}</div>`}
 function renderPortafolio(){
-  const runs=PF_ORDER.reduce((a,k)=>a+ARNESES[k].runs30,0);
-  const tok=PF_ORDER.reduce((a,k)=>a+(ARNESES[k].tok30||0),0);
-  const nH=PF_ORDER.reduce((a,k)=>a+Object.values(ARNESES[k].N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0),0);
-  const beta=PF_ORDER.reduce((a,k)=>a+ARNESES[k].tren.beta.length+ARNESES[k].tren.listo.length,0);
+  const reales=PF_ORDER.filter(k=>ARNESES[k].real);
+  const base=reales.length?reales:PF_ORDER;
+  const runs=base.reduce((a,k)=>a+ARNESES[k].runs30,0);
+  const tok=base.reduce((a,k)=>a+(ARNESES[k].tok30||0),0);
+  const nH=base.reduce((a,k)=>a+Object.values(ARNESES[k].N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0),0);
+  const beta=base.reduce((a,k)=>a+ARNESES[k].tren.beta.length+ARNESES[k].tren.listo.length,0);
   $("pf-kpis").innerHTML=`
-    <div class="kpi"><div class="v">${PF_ORDER.length}</div><div class="l">arneses</div></div>
+    <div class="kpi"><div class="v">${base.length}</div><div class="l">arneses${reales.length?" reales":""}</div></div>
     <div class="kpi"><div class="v">${runs}</div><div class="l">corridas 30d</div></div>
     <div class="kpi"><div class="v">${fmtM(tok)}</div><div class="l">tokens 30d</div></div>
-    <div class="kpi"><div class="v">$44</div><div class="l">costo 30d</div></div>
+    <div class="kpi"><div class="v">${reales.length?"—":"$44"}</div><div class="l">costo 30d${reales.length?" · sin tabla de precios aún":""}</div></div>
     <div class="kpi"><div class="v ${nH?"warn":""}">${nH}</div><div class="l">hallazgos abiertos</div></div>
-    <div class="kpi"><div class="v">${beta}</div><div class="l">candidatos en el tren</div></div>`;
+    <div class="kpi"><div class="v">${beta}</div><div class="l">candidatos en el tren</div></div>
+    ${reales.length?`<div class="kpi" style="border-style:dashed"><div class="v" style="font-size:12px;padding-top:4px">KPIs = solo arneses reales</div><div class="l">demo excluida — no se mezcla</div></div>`:""}`;
   const g=$("pf-grid");g.innerHTML="";
-  const orden=[...PF_ORDER].sort((a,b)=>ORD[estadoDe(ARNESES[a]).k]-ORD[estadoDe(ARNESES[b]).k]);
+  const orden=[...PF_ORDER].sort((a,b)=>(ARNESES[a].real?0:1)-(ARNESES[b].real?0:1)||ORD[estadoDe(ARNESES[a]).k]-ORD[estadoDe(ARNESES[b]).k]);
   orden.forEach(k=>{
     const A=ARNESES[k];const est=estadoDe(A);
     const nF=Object.values(A.N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0);
@@ -936,11 +1108,11 @@ function renderPortafolio(){
     const card=document.createElement("button");
     card.className="pf-card";
     card.innerHTML=`
-      <div class="pf-top"><code>${A.nm}</code><span class="estado ${est.k}" title="${est.tip}">${est.ic} ${est.lb}</span></div>
+      <div class="pf-top"><code>${A.nm}</code>${A.real?`<span class="chip" style="background:var(--ok-soft);color:var(--ok)" title="data extraída del proyecto y los JSONL reales, 2026-07-04">REAL</span>`:`<span class="chip" style="background:var(--surface2);color:var(--muted)" title="arnés ficticio de demostración">DEMO</span>`}<span class="estado ${est.k}" title="${est.tip}">${est.ic} ${est.lb}</span></div>
       <div class="pf-rol">${A.rol} · ${A.proc}${A.ver!=="—"?` · <span style="font-family:var(--mono)">v${A.ver}</span>`:""} · <span class="chip ${A.canal}" style="font-size:9px">${A.canal}</span></div>
       <div class="senales">
         <div class="sen"><div class="v">${A.telem?A.rpd:"—"}</div><div class="l" title="corridas por día (30d)">corr/día</div>${sparkR(A.sparkR)}</div>
-        <div class="sen"><div class="v ${A.telem?(A.exito>=90?"ok":A.exito>=85?"warn":"crit"):""}">${A.telem?A.exito+"%":"—"}</div><div class="l" title="corridas exitosas (30d)">éxito</div>${spark(A.spark,70)}</div>
+        <div class="sen"><div class="v ${A.telem&&A.exito!=null?(A.exito>=90?"ok":A.exito>=85?"warn":"crit"):""}">${A.telem&&A.exito!=null?A.exito+"%":"—"}</div><div class="l" title="${A.telem&&A.exito==null?"telemetría viva pero sin criterio de éxito de corrida definido — no se inventa":"corridas exitosas (30d)"}">éxito</div>${spark(A.spark,70)}</div>
         <div class="sen"><div class="v">${A.p95||"—"}</div><div class="l" title="duración p95 de corrida">p95</div></div>
         <div class="sen"><div class="v">${A.telem?fmtM(A.tok30):"—"}</div><div class="l" title="tokens y costo 30d">${A.telem?"tok · "+A.costo30:"tokens"}</div></div>
         <div class="sen"><div class="v ${A.eval?A.eval.s:""}">${A.eval?A.eval.v:"—"}</div><div class="l" title="resultado del último eval-gate">eval</div></div>
@@ -1003,9 +1175,19 @@ $("mk-addbtn").addEventListener("click",()=>{
 });
 
 /* ══════════ S2 mapa ══════════ */
-/* contrato de datos por capa (iteración 6): consumo 30d = misma fórmula en mapa e inspector */
-function consumoDe(A,n){if(!A.telem)return 0;return n.alw?A.runs30*n.tc:n.inv*(n.ti||n.tc)}
-function heatDe(A,n){const c=consumoDe(A,n);return A.telem?(c>=400000?4:c>=200000?3:c>=75000?2:c>=20000?1:0):(n.heat||0)}
+/* contrato de datos por capa (iteración 6): consumo 30d = misma fórmula en mapa e inspector.
+   n.c30 = consumo MEDIDO (arneses reales, suma de usage del JSONL) — pisa la fórmula estimada. */
+function consumoDe(A,n){if(n.c30!=null)return n.c30;if(!A.telem)return 0;return n.alw?A.runs30*n.tc:n.inv*(n.ti||n.tc)}
+/* heat relativo al arnés (percentil 50/75/90/97) — el umbral absoluto murió en iteración 7:
+   no escala entre un arnés de 2,6M y uno de 81M tok/30d */
+function heatCuts(A){
+  if(A._hc)return A._hc;
+  const cs=Object.values(A.N).map(n=>consumoDe(A,n)).filter(c=>c>0).sort((a,b)=>a-b);
+  if(!cs.length)return A._hc=[Infinity,Infinity,Infinity,Infinity];
+  const q=p=>cs[Math.min(cs.length-1,Math.floor(p*cs.length))];
+  return A._hc=[q(.5),q(.75),q(.9),q(.97)];
+}
+function heatDe(A,n){const c=consumoDe(A,n);if(!A.telem||!c)return A.telem?0:(n.heat||0);const hc=heatCuts(A);return c>=hc[3]?4:c>=hc[2]?3:c>=hc[1]?2:c>=hc[0]?1:0}
 function nodeEl(id,A){
   const n=A.N[id];
   const b=document.createElement("button");
@@ -1019,9 +1201,9 @@ function nodeEl(id,A){
   if(gateBeta)b.dataset.gate=1;
   b.innerHTML=`<span class="top"><span class="glyph">${GLY[n.t]}</span><span class="nm">${n.nm}</span><span class="rel${n.c==="beta"?" beta":""}"></span></span>
   <span class="sub typ">${TYPN[n.t]}</span>
-  <span class="sub tok">${n.tc?`carga ${fmt(n.tc)}${A.telem?` · 30d ${c30?fmtM(c30):"0"}`:" · sin corridas"}`:"— sin medir"}</span>
-  <span class="sub perf">${n.alw?"siempre en contexto":A.telem?`${n.inv}× 30d${n.inv?` · <span class="${n.ex>=90?"ok":n.ex>=85?"warn":"crit"}">${n.ex}%</span>${n.p95?` · p95 ${n.p95}`:""}`:""}`:"— sin corridas"}</span>
-  <span class="sub proc">${n.proc?n.proc:n.exc?`<span class="warn">⚠ ${n.exc} excepci${n.exc===1?"ón":"ones"} 30d</span>`:(n.t==="know"||n.t==="rule"||n.t==="mcp")?"—":A.telem&&n.inv?"sin excepciones 30d":"—"}</span>
+  <span class="sub tok">${n.tc?`carga ${fmt(n.tc)}${n.lib?` · <span title="es una librería preloaded: sus tokens se cuentan dentro del componente que la carga (atribución solapada)">se cuenta en quien la usa</span>`:A.telem?` · 30d ${c30?fmtM(c30):"0"}`:" · sin corridas"}`:"— sin medir"}</span>
+  <span class="sub perf">${n.alw?"siempre en contexto":A.telem?`${n.inv}× 30d${n.inv&&n.ex!=null?` · <span class="${n.ex>=90?"ok":n.ex>=85?"warn":"crit"}">${n.ex}%</span>`:""}${n.p95?` · p95 ${n.p95}`:n.inv&&n.ex==null?` · <span title="el arnés no define criterio de éxito de corrida (hallazgo)">éxito sin medir</span>`:""}`:"— sin corridas"}</span>
+  <span class="sub proc">${n.proc?n.proc:n.exc?`<span class="warn">⚠ ${n.exc} excepci${n.exc===1?"ón":"ones"} 30d</span>`:A.excMeasured===false?"—":(n.t==="know"||n.t==="rule"||n.t==="mcp")?"—":A.telem&&n.inv?"sin excepciones 30d":"—"}</span>
   <span class="flag">${gateBeta?"gate falló":"sin uso 30d"}</span>`;
   b.addEventListener("click",()=>select(id,true));
   return b;
@@ -1035,6 +1217,7 @@ function replaySeq(A){
 }
 function renderMapa(A){
   const sb=$("statebar");
+  sb.style.borderColor="";
   const rp=S.replay?replaySeq(A):null;
   if(rp){
     sb.className="statebar replay";
@@ -1047,6 +1230,7 @@ function renderMapa(A){
     sb.style.display="flex";
   }
   else if(A.birth){sb.className="statebar birth";sb.innerHTML=`<span class="dotp"></span><span><b>Naciendo</b> — build headless en curso: los componentes aparecen punteados a medida que el conductor los forja. Telemetría conectada de nacimiento (principio 9).</span>`;sb.style.display="flex"}
+  else if(A.real){sb.className="statebar tel";sb.style.borderColor="var(--ok)";sb.innerHTML=`<span style="color:var(--ok)">⛁ <b>ARNÉS REAL</b></span><span>estructura extraída del repo (tokens de carga = bytes/4) + telemetría de 194 JSONL reales (30d) · lo no medible se muestra «—» — nada se inventa</span>`;sb.style.display="flex"}
   else if(!A.telem){sb.className="statebar tel";sb.innerHTML=`<span>◌ <b>Sin telemetría aún</b> — el arnés no registra corridas. Métricas en «—»; nada se inventa (procedencia obligatoria).</span>`;sb.style.display="flex"}
   else sb.style.display="none";
   const rg=$("row-guardia");rg.innerHTML="";
@@ -1084,24 +1268,25 @@ function renderMapa(A){
   bg.querySelectorAll("[data-sel]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.sel,true)));
   const wo=$("worst");
   if(A.telem){
-    const worst=Object.keys(A.N).map(k=>({id:k,n:A.N[k]})).filter(x=>!x.n.alw&&x.n.inv>0&&x.n.ex<90).sort((a,b)=>a.n.ex-b.n.ex).slice(0,3);
+    const worst=Object.keys(A.N).map(k=>({id:k,n:A.N[k]})).filter(x=>!x.n.alw&&x.n.inv>0&&x.n.ex!=null&&x.n.ex<90).sort((a,b)=>a.n.ex-b.n.ex).slice(0,3);
     const dead=Object.keys(A.N).filter(k=>A.N[k].dead);
-    wo.innerHTML=`<div class="brow"><span class="rl">peor éxito 30d</span>${worst.length?worst.map(x=>`<button class="pchip" data-sel="${x.id}"><b>${x.n.nm}</b> ${x.n.ex}%</button>`).join(""):`<span class="fine">todo ≥90%</span>`}${dead.length?`<span class="rl">sin uso 30d</span>${dead.map(k=>`<button class="pchip warn" data-sel="${k}">${A.N[k].nm}</button>`).join("")}`:""}<button class="pchip" data-godiag="1">hallazgos → Diagnóstico</button><span class="fine">fuente: corridas JSONL 30d</span></div>`;
+    const noEx=A.excMeasured===false||Object.values(A.N).some(n=>n.inv>0&&!n.alw&&n.ex==null);
+    wo.innerHTML=`<div class="brow"><span class="rl">peor éxito 30d</span>${worst.length?worst.map(x=>`<button class="pchip" data-sel="${x.id}"><b>${x.n.nm}</b> ${x.n.ex}%</button>`).join(""):noEx?`<span class="fine">éxito por componente no medido — el arnés no define criterio de corrida (hallazgo)</span>`:`<span class="fine">todo ≥90%</span>`}${dead.length?`<span class="rl">sin uso 30d</span>${dead.map(k=>`<button class="pchip warn" data-sel="${k}">${A.N[k].nm}</button>`).join("")}`:""}<button class="pchip" data-godiag="1">hallazgos → Diagnóstico</button><span class="fine">fuente: corridas JSONL 30d</span></div>`;
     wo.querySelectorAll("[data-sel]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.sel,true)));
     wo.querySelector("[data-godiag]").addEventListener("click",()=>go({view:"diag",dock:null}));
     wo.style.display="";
   }else{wo.innerHTML="";wo.style.display="none"}
   const fl=$("flow");
   if(A.telem&&A.flujo){
-    const chain=A.lanes.map(L=>`<span class="pchip"><b>${L.n}</b> ${L.runs.replace(" corridas","")}</span>`).join(`<span class="arr">→</span>`);
+    const chain=A.lanes.map(L=>`<span class="pchip"><b>${L.n}</b> ${L.runs.replace(/ (corridas|sesiones)$/,"")}</span>`).join(`<span class="arr">→</span>`);
     fl.innerHTML=`<div class="brow"><span class="rl">flujo 30d</span><div class="fchain">${chain}</div><span class="fine">volumen = corridas que tocaron la fase</span></div>
-    <div class="brow"><span class="rl">saltos de fase</span>${A.flujo.saltos.length?A.flujo.saltos.map(s2=>`<button class="pchip warn" data-vrun="${s2.run}">⚠ ${s2.lb} · ver corrida →</button>`).join(""):`<span class="fine">ninguno en 30d</span>`}<span class="rl">excepciones</span><span class="fine">${A.flujo.tipos} · lo accionable vive en Diagnóstico</span></div>`;
+    <div class="brow"><span class="rl">saltos de fase</span>${A.flujo.saltos.length?A.flujo.saltos.map(s2=>`<button class="pchip warn" data-vrun="${s2.run}">⚠ ${s2.lb} · ver corrida →</button>`).join(""):`<span class="fine">${A.flujo.nomedido||"ninguno en 30d"}</span>`}<span class="rl">excepciones</span><span class="fine">${A.flujo.tipos} · lo accionable vive en Diagnóstico</span></div>`;
     fl.querySelectorAll("[data-vrun]").forEach(b=>b.addEventListener("click",()=>go({view:"corridas",run:b.dataset.vrun,vista:"arbol",dock:null,replay:null})));
     fl.style.display="";
   }else{fl.innerHTML="";fl.style.display="none"}
   const NOTES={
     estructura:"clic en un tipo = filtrar · flecha = quién invoca a quién · punteado = propuesto / sin uso",
-    tokens:"heat = consumo 30d: ▓ ≥20k · ▓▓ ≥75k · ▓▓▓ ≥200k · ▓▓▓▓ ≥400k · fuente: usage del JSONL",
+    tokens:"heat = consumo relativo al arnés (percentil 50/75/90/97) — escala de un arnés de 2M o de 80M por igual · fuente: usage del JSONL",
     perf:"éxito: ≥90 ok · 85–90 atención · <85 crítico · p95 por invocación, jamás promedio · grosor de flecha = volumen",
     proceso:"conformidad del proceso declarado · cumplimiento = corridas de la fase sin excepción · hallazgos accionables → Diagnóstico"
   };
@@ -1185,7 +1370,7 @@ function renderInsp(){
     body=`<p class="desc">${n.d}</p>
    <div class="metrics">
      <div class="metric"><div class="v">${n.alw?(A.telem?A.runs30+"×":"—"):A.telem?n.inv+"×":"—"}</div><div class="l">${n.alw?"sesiones que la cargan":"invocaciones 30d"}</div></div>
-     <div class="metric"><div class="v ${A.telem&&n.inv?(n.ex>=90?"ok":n.ex>=85?"warn":"crit"):""}">${A.telem&&n.inv?n.ex+"%":"—"}</div><div class="l">éxito</div></div>
+     <div class="metric"><div class="v ${A.telem&&n.inv&&n.ex!=null?(n.ex>=90?"ok":n.ex>=85?"warn":"crit"):""}">${A.telem&&n.inv&&n.ex!=null?n.ex+"%":"—"}</div><div class="l">éxito${A.telem&&n.inv&&n.ex==null?" · sin criterio":""}</div></div>
      <div class="metric"><div class="v">${A.telem&&n.p95?n.p95:"—"}</div><div class="l">p95 por invocación</div></div>
      <div class="metric"><div class="v">${n.tc?fmt(n.tc):"—"}</div><div class="l">tokens al cargar</div></div>
      <div class="metric"><div class="v">${n.ti?fmt(n.ti):"—"}</div><div class="l">tokens por invocación</div></div>
@@ -1397,7 +1582,7 @@ function renderCorridas(A){
     <button class="run-row" data-run="${r.id}">
       <span class="st ${r.okk?"ok":"bad"}"></span>
       <code>${r.disp}</code><span style="color:var(--muted)">fase ${r.fase} · ${r.f}</span>
-      <span class="meta">${r.exc?`<span style="color:var(--warn)">⚠ ${r.exc} exc</span>`:""}<span>${r.modelo}</span><span>${r.turnos} turnos</span><span>${r.tokIn}→${r.tokOut}</span><span>ctx máx ${r.ctx}%</span><span>${r.costo}</span><span>${r.dur}</span></span>
+      <span class="meta">${r.exc?`<span style="color:var(--warn)">⚠ ${r.exc} exc</span>`:""}<span>${r.modelo}</span><span>${r.turnos} turnos</span><span>${r.tokIn}→${r.tokOut}</span><span>ctx máx ${r.ctx!=null?r.ctx+"%":"—"}</span><span>${r.costo}</span><span>${r.dur}</span></span>
     </button>`).join("")||`<p class="rn-empty">Sin corridas con este filtro.</p>`
    :`<p class="rn-empty">◌ Sin corridas aún — ${A.telem?"":"el arnés no registra telemetría. "}El sensor indexa los JSONL de ~/.claude; daemon caído = cero pérdida.</p>`}`;
   w.querySelectorAll(".rn-filters button").forEach(b=>b.addEventListener("click",()=>{S.rnf=b.dataset.f;renderCorridas(A)}));
@@ -1407,7 +1592,7 @@ function renderRunDet(A,r,w){
   const stats=`<div class="run-stats">
     <span class="rstat" style="border-color:var(--ok);color:var(--ok)">CORRIDA REAL · JSONL</span><span class="rstat">sesión <b>${r.sid}</b></span><span class="rstat">modelo <b>${r.modelo}</b></span>
     <span class="rstat">turnos <b>${r.turnos}</b></span><span class="rstat">in <b>${r.tokIn}</b> · out <b>${r.tokOut}</b> · caché <b>${r.cache}</b></span>
-    <span class="rstat">ctx máx <b>${r.ctx}%</b></span><span class="rstat">costo <b>${r.costo}</b></span><span class="rstat">duración <b>${r.dur}</b></span>
+    <span class="rstat">ctx máx <b>${r.ctx!=null?r.ctx+"%":"—"}</b></span><span class="rstat">costo <b>${r.costo}</b></span><span class="rstat">duración <b>${r.dur}</b></span>
     <span class="rstat" style="${r.okk?"color:var(--ok)":"color:var(--crit)"}">${r.okk?"✓ exitosa":"✕ fallida"}</span>${r.exc?`<span class="rstat" style="border-color:var(--warn);color:var(--warn)">⚠ ${r.exc} excepción de proceso</span>`:""}</div>`;
   const vsel=`<div class="vsel" role="tablist">
     <button data-v="conv" aria-pressed="${S.vista==="conv"}">Conversación</button>
