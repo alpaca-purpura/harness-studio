@@ -69,6 +69,10 @@ Mapa / Diagnóstico / Tren / Historia · conmutador de capas (visible solo en Ma
 **Command Rail** (izquierda); las pestañas hermanas son ítems del rail, el picker de arnés vive
 en el breadcrumb y el conmutador de capas en la barra del mapa. El Portafolio gana lente
 **Organigrama** (arneses por empresa/puesto, «reporta a»). Ver «Iteración 13».
+**› Actualizado en iteración 14 (multisesión):** el borde izquierdo pasa de rail-de-vistas a
+**rail-de-sesiones** (tabs paralelas tipo WARP, colapsable a gutter); las **vistas** bajan a tira slim
+por sesión; el global (Portafolio·Estándar·Ajustes) al pie del rail. Sesión = **frente de trabajo**
+(N:1 con arnés) con su conversación CC; chat invocado colapsable; sesiones persisten. Ver «Iteración 14».
 **Contexto inter-vista (paga la deuda OBS-13):** toda entidad (nodo, hallazgo, candidato,
 versión) navega a cualquier vista conservando foco — estado serializado en URL hash
 (arnés · vista · capa · selección) ⇒ deep-link compartible.
@@ -281,6 +285,70 @@ marketplace por-arnés ¿override o hereda de la empresa? · reporta-a ¿cross-e
 `＋ crear arnés para un puesto` desde el organigrama (dispara dock de creación).
 
 **Cierre de fase 2 UX → siguiente: fase 3 arquitectura**, luego implementar v1 con lo definido.
+
+## Iteración 14 — Multisesión: tabs de sesión tipo WARP en el shell A (2026-07-05)
+
+Grill del operador: necesita **tabs de sesiones paralelas** — trabaja varios arneses a la par y al
+cambiar de tab debe caer en el **contexto Y la conversación** de ese arnés (referencia: WARP, tabs a
+la izquierda para saltar de conversación y continuar). Choca con el shell A firmado (it.13): el
+Command Rail izquierdo era **rail de vistas**; ahora el borde izquierdo lo reclaman las **sesiones**.
+
+**Exploración — «Session Lab», 4 paradigmas conmutables al tacto** (`mockups/arnesia-session-lab.html`,
+artifact `2cc55622-…`, favicon 🗂️): **P1 Session Rail** (rail ancho, tarjetas con nombre·estado CC vivo) ·
+**P2 Dual-Zone Rail** (un rail 60px: sesiones-avatares arriba, global abajo; vistas → pestañas top) ·
+**P3 Conversation Cockpit** (rail sesiones + conversación persistente derecha, WARP literal) ·
+**P4 Spaces + Quick-Switch** (gutter colapsado + ⌘1–9/⌘K palette). Verificado headless (chromium real):
+4 paradigmas, cambio de sesión restaura vista+selección+conversación, ⌘K/palette, simulación «CC te
+necesita», light+dark, consola limpia.
+
+**La joya (por qué multisesión importa, no es solo tabs):** en trabajo paralelo el rail de sesiones es
+una **superficie de aviso** — lanzas trabajo en el arnés A (headless CC corriendo), saltas a B, y A te
+avisa **◐ «te necesita»** cuando CC pide tu OK/decisión. Estado de sesión de primera clase: **streaming**
+(CC generando) · **await** (te necesita — pulso ámbar) · **idle** (en pausa). Contador `N ◐` en la
+cabecera del rail.
+
+**FIRMADO — shell de sesión = P1 Session Rail + colapsa a gutter.** Rail izquierdo **ancho** (~224px):
+tarjeta por sesión con **nombre del frente**·arnés·empresa·salud·estado CC vivo·dónde quedó; botón **«**
+colapsa el rail a un **gutter de pips** (~52px, estilo P4) para recuperar ancho de mapa, **»** lo expande.
+Descartados como base: P2/P4 (avatares/pips **no distinguen** dos sesiones del mismo arnés — ver decisión
+1); P3-permanente (el operador quiere el chat colapsable, no fijo).
+
+**3 decisiones del operador (cementadas):**
+1. **Sesión = frente de trabajo, N:1 con arnés.** Lo normal es 1 sesión por arnés, pero puede abrir
+   **varios frentes** sobre el mismo (p. ej. `luana-platform` con «timeout de contract-guard» + «poda de
+   skills frías» a la vez). ⇒ la sesión es entidad propia con **nombre de frente**; la tarjeta muestra
+   frente + arnés + badge «·2 frentes»; el breadcrumb añade `· frente «…»` cuando hay N>1.
+2. **Chat invocado y colapsable** (no persistente). Dock derecho que se abre con ⌘K/«Conversar» y se
+   **colapsa** («⟩ colapsar») para ver mejor la información. Muere P3 como base; su conversación-siempre-
+   visible queda como posible modo-foco futuro, no default.
+3. **Sesiones persisten.** Al reabrir la app, las sesiones se **restauran donde quedaron** (arnés + vista
+   + selección + nodo + conversación CC). Cada sesión = un **hash-state con nombre + su conversación CC
+   viva** — reusa el estado serializado de OBS-13 (contexto inter-vista) ya diseñado. Chip «⭯ persisten»
+   en el rail; toast de restauración al abrir.
+
+**Cómo evoluciona el shell A (supersede la chrome de it.13):** el Command Rail **muta** de «rail de
+vistas» a **rail de sesiones**; las **vistas** (Mapa/Diag/Corridas/Tren/Historia) se demotan a **tira slim
+por sesión** (a la derecha del rail); el **global** (⌂ Portafolio · ⟳ Estándar · ⚙ Ajustes) baja al pie
+del rail. Jerarquía mental nueva: **1º qué sesión/frente** (rail) → **2º qué vista** (tira) → **3º
+conversar** (dock ⌘K). El Portafolio/Organigrama (it.13) sigue siendo el **launcher** de sesiones
+(«Nueva sesión» elige arnés y nombra el frente).
+
+**Mockup de la dirección firmada:** `mockups/arnesia-shell-A-sessions.html` (artifact `b5e559d0-…`,
+favicon 🪟). Verificado headless: modelo N:1 (2 frentes de luana visibles), cambio de sesión restaura
+todo, rail colapsa a gutter y switch sigue funcionando, dock invocado colapsable + ⌘K reabre, cerrar
+sesión, simulación «te necesita», light+dark, **consola limpia**. Screenshots (expandido + gutter)
+autorevisados.
+
+**Decidido por el operador (2026-07-05):** nombre del frente = **auto-derivado del 1er mensaje, editable**
+(✎ en la tarjeta → input inline; en el mockup) · **sin límite de sesiones ni advertencia de costo** (el
+operador asume las N ventanas de contexto CC; no gatear).
+
+**Backlog abierto (it.14):** ⌘K quick-switch de sesión (palette de P4) como **añadido** al rail, no
+reemplazo · ¿dónde persiste la lista de sesiones — índice SQLite desechable vs sidecar propio (los JSONL
+siguen siendo fuente de verdad)? · al portar: unificar shell-A-galaxia (it.13) + shell-A-sessions (it.14)
++ detalle v3 en un solo shell.
+**Doc VIVO:** it.14 refina el shell **durante** la fase 3 de arquitectura (no reabre la firma de fase 2);
+alimenta las specs de fase 4.
 
 ## Iteración 12 — S9 Estándar en el mapa: chip global + vista + botón Actualizar (2026-07-04)
 

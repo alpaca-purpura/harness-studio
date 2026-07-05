@@ -60,8 +60,10 @@ carpetas; primitivos = **shadcn sobre Base UI** (copy-in lintable). **Tokens** =
 
 **Estado:** fase 1 (Visión) ✓ · fase 2 UX (HS-03) ✓ firmada it.13 · **fase 3 arquitectura (HS-04
 backend + HS-05 frontend) — as code COMPLETA: 12 boundaries + `conventions/` = 77 checks, stack cerrado
-BE+FE; siguiente HS-06 = specs**. Shell UX = **Command Rail (A)**: rail de iconos izquierdo · visual (mapa/
-portafolio) a pantalla casi completa · chat invocado (⌘K) como dock derecho. Portafolio con
+BE+FE; siguiente HS-06 = specs**. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
+un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
+N:1 con arnés, con su conversación CC viva; estado CC vivo `streaming/await/idle`; persisten) · vistas =
+tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K) como dock derecho colapsable. Portafolio con
 2 lentes: **Organigrama** (arneses por empresa/puesto, «reporta a», libre 2D) ↔ Cuadrícula.
 App = fábrica de arneses (crear + mantener), NO cockpit de empresa; metadata puesto·empresa·
 reporta-a + marketplace por empresa/arnés. Mockups de shell: `mockups/arnesia-shell-lab.html`
@@ -82,9 +84,12 @@ go/ts-style·types·naming·commits·hooks·editor·ci] = **77 checks** `enforce
 `contracts/` schemas L0+contrato · `fitness/` go-arch-lint [Go] + enforcers FE en `web/`
 [dependency-cruiser·steiger·stylelint·biome] + configs de estilo en raíz; se revisa al cambiar, mecanismo
 en `arch/CADENCE.md` y `arch/conventions/CADENCE.md`) ·
-mockups vigentes (2, se unifican al portar) = `mockups/arnesia-shell-A-galaxia.html` (shell
-firmado it.13) + `mockups/arnesia-mockup-v3.html` (detalle de superficies; navegable, URL en
-memoria auto) · estándares mapeados =
+mockups vigentes (se unifican al portar) = `mockups/arnesia-shell-A-galaxia.html` (shell
+firmado it.13) + `mockups/arnesia-shell-A-sessions.html` (**multisesión firmado it.14**: rail de
+sesiones tipo WARP colapsable a gutter · sesión = frente N:1 con arnés · chat invocado colapsable ·
+persisten) + `mockups/arnesia-session-lab.html` (lab de 4 paradigmas de navegación multisesión) +
+`mockups/arnesia-mockup-v3.html` (detalle de superficies; navegable, URL en memoria auto) ·
+estándares mapeados =
 `research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
 el repo · publicar siempre al MISMO artifact (parámetro `url`) · nada se entrega sin
 click-through con asserts + screenshots revisados + consola limpia. Cero código de
