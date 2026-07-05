@@ -1,0 +1,434 @@
+<title>ArnesIA · Shell A + Organigrama</title>
+<style>
+  :root{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --heat:rgba(205,105,55,.30);
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+      --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+      --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+      --ok:#57b380; --warn:#e0904f; --crit:#e25b5b;
+      --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+      --heat:rgba(226,110,70,.30);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --heat:rgba(205,105,55,.30);
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+    --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+    --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+    --ok:#57b380; --warn:#e0904f; --crit:#e25b5b;
+    --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+    --heat:rgba(226,110,70,.30);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  code,.mono{font-family:var(--mono)}
+
+  .lab{flex:none;height:40px;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--surface2);border-bottom:1px solid var(--line2);font-size:12px;color:var(--muted)}
+  .lab b{color:var(--text)}
+  .lab .tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;border:1px solid var(--line2);border-radius:5px;padding:3px 7px}
+  .lab .sp{flex:1}
+  .lab button{border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:11.5px;background:var(--surface)}
+  .lab button:hover{color:var(--text);border-color:var(--line2)}
+
+  .app{flex:1;min-height:0;display:flex}
+
+  /* Command Rail (A) */
+  .rail{flex:none;width:66px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:11px 0;gap:2px;z-index:5}
+  .rail .brand{width:36px;height:36px;border-radius:10px;background:var(--accent);color:#fff;font-weight:800;font-size:16px;display:grid;place-items:center;margin-bottom:10px}
+  .rail .ri{width:52px;padding:8px 0;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:9px;line-height:1.1}
+  .rail .ri .ico{font-size:17px}
+  .rail .ri:hover{background:var(--surface2);color:var(--text)}
+  .rail .ri[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+  .rail .sp{flex:1}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{flex:none;display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .crumb{display:flex;align-items:center;gap:7px;font-size:12.5px;flex-wrap:wrap}
+  .crumb .sepc{color:var(--muted)} .crumb b{font-weight:600}
+  .crumb .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:3px 9px;background:var(--surface2);font-family:var(--mono);font-size:11.5px}
+  .stdchip{margin-left:8px;font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:4px 9px}
+  .ask{margin-left:auto;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;background:var(--accent-soft)}
+  .ask kbd{font-family:var(--mono);font-size:10px;border:1px solid currentColor;border-radius:4px;padding:0 4px;opacity:.8}
+
+  .body{flex:1;min-height:0;display:flex}
+  .stage{flex:1;min-width:0;overflow:auto}
+  .dock{flex:none;width:0;overflow:hidden;border-left:1px solid var(--line);transition:width .2s ease;background:var(--surface)}
+  .app.chat-on .dock{width:378px}
+
+  /* Portafolio */
+  .pf{padding:20px 26px;max-width:1180px;margin:0 auto}
+  .pf-hd{display:flex;align-items:flex-end;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+  .pf-hd h1{font-size:19px;margin:0 0 3px;letter-spacing:-.01em}
+  .pf-hd p{color:var(--muted);font-size:12.5px;margin:0}
+  .seg{margin-left:auto;display:flex;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:2px;flex:none}
+  .seg button{display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:6px;font-size:12.5px;color:var(--muted)}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .obj-note{font-size:11.5px;color:var(--muted);border-left:2px solid var(--accent);padding:2px 0 2px 9px;margin:6px 0 16px}
+  .obj-note b{color:var(--text)}
+
+  /* Cuadrícula */
+  .pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:13px}
+  .pf-card{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 15px;display:flex;flex-direction:column;gap:9px;text-align:left;transition:border-color .15s,transform .12s}
+  .pf-card:hover{border-color:var(--line2);transform:translateY(-1px)}
+  .pf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .pf-nm{font-family:var(--mono);font-size:12.5px;font-weight:650}
+  .pf-co{font-size:10px;color:var(--muted);margin-top:1px}
+  .estado{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;border-radius:99px;padding:3px 9px;white-space:nowrap}
+  .e-ok{background:var(--ok-soft);color:var(--ok)} .e-warn{background:var(--warn-soft);color:var(--warn)}
+  .e-crit{background:var(--crit-soft);color:var(--crit)} .e-gris{background:var(--surface2);color:var(--muted)}
+  .e-info{background:var(--accent-soft);color:var(--accent)}
+  .pf-meta{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 6px;background:var(--surface2)}
+  .chip.mkt{border-left:2px solid var(--accent)}
+
+  /* ══ Organigrama (libre 2D) ══ */
+  .gxy{display:flex;flex-direction:column;gap:15px}
+  .gxy-hint{font-size:11.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;padding:0 2px 2px}
+  .gxy-hint b{color:var(--text)}
+  .board-wrap{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+  .board-hd{display:flex;align-items:center;gap:10px;padding:13px 15px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .board-hd .cnm{font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .board-hd .cnote{font-size:11px;color:var(--muted);flex-basis:100%;order:5}
+  .mkt-pill{margin-left:auto;display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:9px;padding:5px 9px;background:var(--surface2);font-size:11px}
+  .mkt-pill .mlbl{color:var(--muted)}
+  .mkt-pill code{font-size:10.5px}
+  .mkt-tag{font-family:var(--mono);font-size:8.5px;font-weight:700;border-radius:4px;padding:1px 5px}
+  .mkt-tag.own{color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent)}
+  .mkt-tag.mine{color:var(--muted);border:1px solid var(--line2)}
+  .mkt-pill button{border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:10.5px;color:var(--muted);background:var(--surface)}
+  .mkt-pill button:hover{color:var(--text);border-color:var(--line2)}
+  .mkt-pill button.dep{color:var(--accent);border-color:var(--accent)}
+  .board{position:relative;height:var(--bh,370px);background:radial-gradient(circle at 14% 4%,var(--accent-soft),transparent 46%),radial-gradient(circle at 90% 96%,var(--accent-soft),transparent 42%),transparent;touch-action:none}
+  .dotgrid{position:absolute;inset:0;background-image:radial-gradient(var(--line) 1px,transparent 1.4px);background-size:24px 24px;opacity:.45;pointer-events:none}
+  .edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .edges path.edge{fill:none;stroke:var(--line2);stroke-width:1.6;vector-effect:non-scaling-stroke;opacity:.85}
+  .onode{position:absolute;transform:translate(-50%,-50%);width:164px;border:1px solid var(--line);border-left:3px solid var(--pc,var(--line));border-radius:11px;background:var(--surface);padding:9px 11px;display:flex;flex-direction:column;gap:3px;cursor:grab;box-shadow:0 5px 18px rgba(0,0,0,.10);transition:box-shadow .12s,border-color .12s;touch-action:none;user-select:none;z-index:3}
+  .onode:hover{box-shadow:0 10px 28px rgba(0,0,0,.17);border-color:var(--line2)}
+  .onode.drag{box-shadow:0 16px 40px rgba(0,0,0,.28);cursor:grabbing;z-index:6}
+  .onode .oh{display:flex;align-items:center;gap:7px}
+  .onode .odot{width:8px;height:8px;border-radius:99px;background:var(--pc);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--pc) 22%,transparent)}
+  .onode .oarn{font-family:var(--mono);font-size:11.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .onode .opuesto{font-size:10px;color:var(--muted);font-weight:600}
+  .onode .obot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:1px}
+  .onode .omt{font-family:var(--mono);font-size:9px;color:var(--muted)}
+  .onode .ohall{font-family:var(--mono);font-size:8.5px;font-weight:700;color:#fff;background:var(--crit);border-radius:99px;padding:0 5px}
+  .onode . grip{position:absolute}
+  .onode .rootbadge{position:absolute;top:-8px;left:11px;font-size:8px;font-family:var(--mono);letter-spacing:.06em;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:1px 6px}
+  .board-add{border:1px dashed var(--line2);border-radius:14px;background:transparent;padding:16px;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12.5px;cursor:pointer}
+  .board-add:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
+
+  /* map */
+  .mapwrap{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;height:100%}
+  .mapbar{flex:none;display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface);font-size:12px;flex-wrap:wrap}
+  .metastrip{display:flex;gap:6px;flex-wrap:wrap;margin-left:4px}
+  .metastrip .mchip{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 7px;background:var(--surface2)}
+  .metastrip .mchip b{color:var(--text);font-weight:600}
+  .layers{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:2px;margin-left:auto}
+  .layers button{padding:4px 11px;border-radius:5px;font-size:12px;color:var(--muted)}
+  .layers button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .map{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .band{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:9px 12px}
+  .band-hd{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
+  .band-hd h3{margin:0;font-size:12.5px} .band-hd span{font-size:11px;color:var(--muted)}
+  .row{display:flex;gap:9px;flex-wrap:wrap}
+  .lanes{display:flex;gap:11px;align-items:flex-start;overflow-x:auto;padding-bottom:2px}
+  .lane{flex:1;min-width:172px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column}
+  .lane-hd{padding:7px 10px;border-bottom:1px solid var(--line);font-size:11px;font-weight:650;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+  .lane-hd .n{font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--line);border-radius:99px;padding:1px 6px}
+  .lane-body{padding:9px;display:flex;flex-direction:column;gap:8px}
+  .node{position:relative;display:flex;flex-direction:column;gap:3px;padding:7px 9px 7px 11px;border:1px solid var(--line);border-left:3px solid var(--tc,var(--line));border-radius:8px;background:var(--surface2);cursor:pointer;text-align:left;transition:border-color .12s,transform .12s}
+  .node:hover{border-color:var(--line2);transform:translateX(1px)}
+  .node.hot{background:linear-gradient(0deg,var(--heat),transparent)} .node.beta{border-left-style:dashed}
+  .node-top{display:flex;align-items:center;gap:6px}
+  .glyph{width:14px;height:14px;flex:none;background:var(--tc)}
+  .g-skill{border-radius:2px} .g-agent{border-radius:99px} .g-hook{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .g-know{border-radius:1px} .g-mcp{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)} .g-rule{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)}
+  .node-nm{font-family:var(--mono);font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .node-ty{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .node-mt{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .node-badge{position:absolute;top:-6px;right:-6px;font-family:var(--mono);font-size:9px;font-weight:700;background:var(--warn);color:#fff;border-radius:99px;padding:1px 5px}
+  .maplegend{flex:none;display:flex;gap:13px;align-items:center;padding:7px 16px;border-top:1px solid var(--line);background:var(--surface);font-size:11px;color:var(--muted);overflow-x:auto}
+  .lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap} .lg .glyph{width:11px;height:11px}
+
+  /* chat */
+  .chat{display:flex;flex-direction:column;height:100%;min-height:0}
+  .chat-hd{flex:none;display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .chat-hd .t{font-size:12.5px;font-weight:650}
+  .chat-hd .x{margin-left:auto;color:var(--muted);border-radius:6px;padding:3px 7px}
+  .chat-hd .x:hover{background:var(--surface2);color:var(--text)}
+  .ses{flex:none;display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--surface2);font-family:var(--mono);font-size:10px;color:var(--muted);flex-wrap:wrap}
+  .ses .sid{color:var(--accent)}
+  .ctxbar{width:52px;height:6px;border-radius:99px;background:var(--surface);overflow:hidden;border:1px solid var(--line)}
+  .ctxbar i{display:block;height:100%;background:var(--accent);width:18%}
+  .msgs{flex:1;overflow:auto;padding:13px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:90%;padding:9px 11px;border-radius:11px;font-size:12.5px;line-height:1.5}
+  .msg.u{align-self:flex-end;background:var(--accent-soft);border:1px solid var(--accent);border-bottom-right-radius:3px}
+  .msg.a{align-self:flex-start;background:var(--surface2);border:1px solid var(--line);border-bottom-left-radius:3px}
+  .msg.sys{align-self:center;font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px dashed var(--line2);border-radius:7px;padding:4px 9px}
+  .msg .diff{font-family:var(--mono);font-size:10.5px;line-height:1.55;margin-top:7px;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .msg .diff div{padding:1px 8px}
+  .msg .diff .add{background:var(--ok-soft);color:var(--ok)} .msg .diff .del{background:var(--crit-soft);color:var(--crit)}
+  .msg .cta{display:flex;gap:6px;margin-top:8px}
+  .msg .cta button{border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;background:var(--surface)}
+  .msg .cta button.pri{border-color:var(--accent);color:var(--accent)}
+  .composer{flex:none;padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end}
+  .composer .box{flex:1;border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:9px 11px;font-size:12.5px;color:var(--muted);min-height:38px}
+  .composer .send{flex:none;width:36px;height:36px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:15px}
+
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);font-size:12.5px;padding:9px 15px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;z-index:200;max-width:80vw}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="lab">
+  <span class="tag">ITER · SHELL A + ORGANIGRAMA</span>
+  <span>Galaxia = <b>organigrama de puestos, libre 2D</b> (arrastra los nodos). Nodo = arnés · línea = <b>reporta a</b> · por empresa: su <b>marketplace</b>.</span>
+  <span class="sp"></span>
+  <button id="theme">◐ Tema</button>
+</div>
+
+<div class="app" id="app">
+  <nav class="rail" id="rail" aria-label="Vistas"></nav>
+  <div class="main">
+    <div class="topbar"><div class="crumb" id="crumb"></div>
+      <span class="stdchip" title="Estándar as code — 11 elementos · 121 checks">⟳ Estándar v1.0 · rev 04-jul</span>
+      <button class="ask" id="ask"><span>✦</span>Conversar <kbd>⌘K</kbd></button>
+    </div>
+    <div class="body">
+      <div class="stage" id="stage"></div>
+      <aside class="dock" id="dock"></aside>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═════════ estado ═════════ */
+const S={view:"pf",pfMode:"galaxy",chat:false,arnes:null,layer:"estructura"};
+const NAV=[["pf","◫","Portafolio"],["map","⬡","Mapa"],["runs","▤","Corridas"],["diag","⚠","Diagnóstico"],["train","⇢","Tren"],["hist","◷","Historia"]];
+
+/* ═════════ datos ═════════
+   Diseñado para la realidad general (empresa = un arnés por puesto, con reporta-a),
+   NO para la excepción multi-marca. Nordia = ejemplo del organigrama tipo.
+   Luana = el arnés real que se opera hoy. Posición x/y en % (arrastrable → persiste). */
+const ST={ok:["e-ok","sano","var(--ok)"],warn:["e-warn","atención","var(--warn)"],crit:["e-crit","señales incompletas","var(--crit)"],gris:["e-gris","inactivo","var(--muted)"],info:["e-info","naciendo","var(--accent)"]};
+const COMPANIES=[
+  {nm:"Nordia",tag:"ejemplo",note:"Un arnés por puesto; las líneas son «reporta a». Datos ilustrativos.",
+   market:{repo:"nordia/arneses-nordia",kind:"own"},bh:392,
+   nodes:[
+     {arn:"producto-nordia",puesto:"Dirección de Producto",reportsTo:null,st:"ok",mt:"sano · 14/día",hall:0,x:50,y:15},
+     {arn:"pm-nordia",puesto:"Gestión de Proyecto",reportsTo:"producto-nordia",st:"ok",mt:"12/día",hall:0,x:19,y:48},
+     {arn:"ux-nordia",puesto:"Diseño · UX",reportsTo:"producto-nordia",st:"warn",mt:"éxito 87%",hall:1,x:44,y:52},
+     {arn:"ing-nordia",puesto:"Líder de Ingeniería",reportsTo:"producto-nordia",st:"ok",mt:"sano",hall:0,x:79,y:44},
+     {arn:"frontend-nordia",puesto:"Frontend",reportsTo:"ing-nordia",st:"warn",mt:"p95 alto",hall:0,x:63,y:83},
+     {arn:"backend-nordia",puesto:"Backend",reportsTo:"ing-nordia",st:"crit",mt:"3 hallazgos",hall:3,x:90,y:80}
+   ]},
+  {nm:"Luana",tag:"real",note:"Plataforma · desarrollo — por ahora un puesto con arnés; los demás se cubren creándolos.",
+   market:{repo:"alpacapurpura/prenter-marketplace",kind:"mine"},bh:186,
+   nodes:[
+     {arn:"luana-platform",puesto:"Plataforma · Desarrollo",reportsTo:null,st:"crit",mt:"6.4/día · 4m12 p95",hall:2,x:50,y:50}
+   ]}
+];
+const ALLARN=COMPANIES.flatMap(c=>c.nodes.map(n=>({...n,empresa:c.nm,real:c.tag!=='ejemplo',market:c.market})));
+
+const MAP={
+  guardia:[{nm:"telemetry-emit",ty:"hook",mt:"inyecta · 30d 194 ses"},{nm:"auto-chain",ty:"hook",mt:"encadena fases"},{nm:"contract-guard",ty:"hook",mt:"valida contrato",badge:"⚠ 3 exc"}],
+  lanes:[
+    {nm:"Intake",n:2,nodes:[{nm:"pm-luana",ty:"skill",mt:"5.3M · 30d",hot:true},{nm:"pm-vitalia",ty:"skill",mt:"3.2M · 30d"}]},
+    {nm:"Spec & UX",n:2,nodes:[{nm:"po-ux",ty:"skill",mt:"éxito 91%"},{nm:"ux-agentico",ty:"agent",mt:"12× 30d"}]},
+    {nm:"Desarrollo",n:3,nodes:[{nm:"dev-team",ty:"skill",mt:"6.7M · heat máx",hot:true},{nm:"builder-fe",ty:"agent",mt:"2.5M · 30d"},{nm:"builder-be",ty:"agent",mt:"1.9M · 30d",beta:true}]},
+    {nm:"Calidad",n:2,nodes:[{nm:"auditor",ty:"skill",mt:"gate manual"},{nm:"gate-runner",ty:"agent",mt:"SIN GATE",badge:"!"}]}
+  ],
+  base:[{nm:"CLAUDE.md",ty:"rule",mt:"siempre en contexto"},{nm:"project.config",ty:"know",mt:"leído por 8 skills"},{nm:"mcp-tessl",ty:"mcp",mt:"0× 30d"}]
+};
+const TYN={skill:"Skill",agent:"Agente",hook:"Hook",know:"Knowledge",mcp:"MCP",rule:"Regla"};
+const findArn=a=>ALLARN.find(x=>x.arn===a);
+
+/* ═════════ render ═════════ */
+function railHTML(){
+  return `<div class="brand" title="ArnesIA">A</div>
+  ${NAV.map(([k,ic,lb])=>`<button class="ri" data-nav="${k}" aria-pressed="${S.view===k}" title="${lb}"><span class="ico">${ic}</span>${lb.slice(0,7)}</button>`).join("")}
+  <div class="sp"></div>
+  <button class="ri" data-toast="Estándar as code — global, cross-arnés (11 elementos · 121 checks)."><span class="ico">⟳</span>Están.</button>
+  <button class="ri" data-toast="Ajustes · Marketplaces"><span class="ico">⚙</span>Ajus.</button>`;
+}
+
+function grid(){
+  const cards=ALLARN.map(a=>{const s=ST[a.st];const rep=a.reportsTo?a.reportsTo:"—";
+    return `<button class="pf-card" data-open="${a.arn}">
+      <div class="pf-top"><div><div class="pf-nm">${a.arn}</div><div class="pf-co">${a.empresa} · ${a.puesto}</div></div>
+        <span class="estado ${s[0]}">${s[1]}</span></div>
+      <div class="pf-meta"><span class="chip">${a.mt}</span>${a.hall?`<span class="chip" style="color:var(--crit)">${a.hall} hallazgos</span>`:''}</div>
+      <div class="pf-meta"><span class="chip">↳ reporta a: ${rep}</span><span class="chip mkt" data-toast="Publica a ${a.market.repo} (${a.market.kind==='own'?'repo propio de la empresa':'tu marketplace'})">⬡ ${a.market.repo}</span></div>
+    </button>`;}).join("");
+  return `<div class="pf-grid">${cards}</div>`;
+}
+
+function edgePath(c,p){const my=(c.y+p.y)/2;return `M ${c.x} ${c.y} C ${c.x} ${my}, ${p.x} ${my}, ${p.x} ${p.y}`;}
+function boardHTML(c,ci){
+  const edges=c.nodes.filter(n=>n.reportsTo).map(n=>{const p=c.nodes.find(x=>x.arn===n.reportsTo);
+    return `<path class="edge" data-child="${n.arn}" d="${edgePath(n,p)}"/>`;}).join("");
+  const nodes=c.nodes.map((n,i)=>{const s=ST[n.st];
+    return `<div class="onode" data-board="${ci}" data-i="${i}" data-arn="${n.arn}" style="left:${n.x}%;top:${n.y}%;--pc:${s[2]}" tabindex="0" role="button" aria-label="${n.arn} — ${n.puesto}">
+      ${n.reportsTo?'':'<span class="rootbadge">raíz</span>'}
+      <div class="oh"><span class="odot"></span><span class="oarn">${n.arn}</span></div>
+      <span class="opuesto">${n.puesto}</span>
+      <div class="obot"><span class="omt">${n.mt}</span>${n.hall?`<span class="ohall">${n.hall}</span>`:''}</div>
+    </div>`;}).join("");
+  const mk=c.market;
+  return `<section class="board-wrap">
+    <div class="board-hd"><span class="cnm">${c.nm}</span>
+      <div class="mkt-pill"><span class="mlbl">marketplace</span> ⬡ <code>${mk.repo}</code>
+        <span class="mkt-tag ${mk.kind}">${mk.kind==='own'?'repo propio':'mío'}</span>
+        <button data-toast="Gestionar marketplace de ${c.nm}: cambiar remote, canal (estable/beta), o conectar un repo propio de la empresa.">gestionar</button>
+        <button class="dep" data-toast="Desplegar los arneses de ${c.nm} → ${mk.repo}. Cada arnés publica a este marketplace desde el Tren (nada sin eval, principio 10).">⇢ desplegar</button></div>
+      <div class="cnote">${c.note}</div>
+    </div>
+    <div class="board" data-board="${ci}" style="--bh:${c.bh}px">
+      <div class="dotgrid"></div>
+      <svg class="edges" viewBox="0 0 100 100" preserveAspectRatio="none">${edges}</svg>
+      ${nodes}
+    </div>
+  </section>`;
+}
+function galaxy(){
+  return `<div class="gxy">
+    <div class="gxy-hint"><span><b>Organigrama por empresa.</b> Nodo = arnés (arrástralo).</span><span>línea = <b>reporta a</b></span><span>color = salud · badge = hallazgos</span><span>arriba: dónde publica (marketplace)</span><span>clic = entrar a su mapa</span><span>· empresas y datos ilustrativos</span></div>
+    ${COMPANIES.map(boardHTML).join("")}
+    <button class="board-add" data-toast="Conectar empresa: enlaza su marketplace (el tuyo por defecto, o un repo propio que le creaste). Sus arneses aparecen aquí para ver, actualizar y desplegar.">＋ Conectar empresa · enlazar su marketplace</button>
+  </div>`;
+}
+
+function portafolio(){
+  return `<div class="pf">
+    <div class="pf-hd">
+      <div><h1>La fábrica de arneses</h1><p>${S.pfMode==='galaxy'?'Tus arneses <b>en el organigrama</b> de cada empresa — un arnés por puesto, líneas de reporte. Arrastra para acomodar.':'Todos tus arneses · triage plano peor-primero · con su empresa, puesto y marketplace.'}</p></div>
+      <div class="seg" role="tablist">
+        <button data-mode="galaxy" role="tab" aria-pressed="${S.pfMode==='galaxy'}"><span>◫</span>Organigrama</button>
+        <button data-mode="grid" role="tab" aria-pressed="${S.pfMode==='grid'}"><span>▦</span>Cuadrícula</button>
+      </div>
+    </div>
+    <div class="obj-note"><b>Aquí solo se crean y mantienen arneses.</b> Los puestos sin arnés no aparecen — lo demás de la empresa vive en su cockpit. Cada arnés lleva su puesto, empresa y a quién reporta como metadato.</div>
+    ${S.pfMode==='galaxy'?galaxy():grid()}
+  </div>`;
+}
+
+function node(n){return `<button class="node ${n.hot?'hot':''} ${n.beta?'beta':''}" data-node="${n.nm}" style="--tc:var(--c-${n.ty})">
+  ${n.badge?`<span class="node-badge">${n.badge}</span>`:''}
+  <div class="node-top"><span class="glyph g-${n.ty}"></span><span class="node-nm">${n.nm}</span></div>
+  <span class="node-ty">${TYN[n.ty]}</span><span class="node-mt">${n.mt}</span></button>`;}
+function mapView(){
+  const g=MAP.guardia.map(node).join("");
+  const lanes=MAP.lanes.map(l=>`<div class="lane"><div class="lane-hd">${l.nm}<span class="n">${l.n}</span></div><div class="lane-body">${l.nodes.map(node).join("")}</div></div>`).join("");
+  const base=MAP.base.map(node).join("");
+  const nm=S.arnes||"luana-platform";const a=findArn(nm);
+  const meta=a?`<div class="metastrip"><span class="mchip">empresa <b>${a.empresa}</b></span><span class="mchip">puesto <b>${a.puesto}</b></span><span class="mchip">reporta a <b>${a.reportsTo||'—'}</b></span><span class="mchip">⬡ <b>${a.market.repo}</b></span></div>`:'';
+  return `<div class="mapwrap">
+    <div class="mapbar"><span class="mono" style="color:var(--muted)">${nm}</span> · geografía real ${meta}
+      <div class="layers" role="tablist">${["estructura","tokens","perf","proceso"].map(c=>`<button data-layer="${c}" role="tab" aria-pressed="${S.layer===c}">${({estructura:"Estructura",tokens:"Tokens",perf:"Desempeño",proceso:"Proceso"})[c]}</button>`).join("")}</div>
+    </div>
+    <div class="map">
+      <div class="band"><div class="band-hd"><h3>Guardia</h3><span>hooks transversales — actúan en todas las fases</span></div><div class="row">${g}</div></div>
+      <div class="lanes">${lanes}</div>
+      <div class="band"><div class="band-hd"><h3>Base</h3><span>siempre en contexto — reglas · knowledge · mcp</span></div><div class="row">${base}</div></div>
+    </div>
+    <div class="maplegend">${Object.entries(TYN).map(([k,v])=>`<span class="lg"><span class="glyph g-${k}" style="--tc:var(--c-${k})"></span>${v.toLowerCase()}</span>`).join("")}<span class="lg" style="margin-left:auto;color:var(--muted)">◧ mapa ilustrativo — foco = shell/organigrama</span></div>
+  </div>`;
+}
+function chatHTML(){
+  return `<div class="chat">
+    <div class="chat-hd"><span style="color:var(--accent)">✦</span><span class="t">Conversar · editar hablando</span><button class="x" data-chatclose>✕</button></div>
+    <div class="ses"><span class="sid">◍ sess_a71c</span><span>· Opus 4.8</span><span>· 24.1k tok</span><span>· ctx</span><span class="ctxbar"><i></i></span><span>18%</span></div>
+    <div class="msgs">
+      <div class="msg u">Sube el timeout del hook <b>contract-guard</b> a 60s y registra la excepción.</div>
+      <div class="msg sys">skill_activated · edición-de-caja (proactivo) · nodo=contract-guard</div>
+      <div class="msg a">Listo. Propuesta sobre <b>contract-guard.hook</b> (queda en <b>beta</b> → tren):
+        <div class="diff"><div class="del">- timeout: 30</div><div class="add">+ timeout: 60</div><div class="add">+ on_timeout: log_exception("contract-guard")</div></div>
+        <div class="cta"><button class="pri" data-toast="Cambio en beta → Tren. Nada se promueve sin eval (principio 10).">Aplicar → beta</button><button data-toast="El nodo contract-guard parpadea punteado en el mapa.">Ver en el mapa ✦</button></div>
+      </div>
+    </div>
+    <div class="composer"><div class="box">Pídele un cambio al arnés…</div><button class="send" data-toast="Claude Code headless detrás — patrón conductor.">↑</button></div>
+  </div>`;
+}
+function crumbHTML(){
+  if(S.view!=='pf'&&S.view!=='map')return `<b>${NAV.find(n=>n[0]===S.view)[2]}</b>`;
+  if(S.view==='map'){const a=findArn(S.arnes||"luana-platform");
+    return `<span data-nav="pf" style="cursor:pointer;color:var(--muted)">Portafolio</span><span class="sepc">/</span>${a?`<span class="pill">${a.empresa}</span><span class="sepc">/</span>`:''}<span class="pill">${S.arnes||'luana-platform'} <span style="opacity:.6">▾</span></span><span class="sepc">/</span><b>Mapa</b>`;}
+  return `<b>Portafolio</b><span class="sepc">·</span><span style="color:var(--muted)">${S.pfMode==='galaxy'?'Organigrama':'Cuadrícula'}</span>`;
+}
+
+/* ═════════ mount ═════════ */
+const rail=document.getElementById('rail'),stage=document.getElementById('stage'),dock=document.getElementById('dock'),crumb=document.getElementById('crumb'),app=document.getElementById('app');
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
+function render(){
+  rail.innerHTML=railHTML();crumb.innerHTML=crumbHTML();
+  stage.innerHTML=(S.view==='pf')?portafolio():(S.view==='map')?mapView():`<div class="pf"><h1>${NAV.find(n=>n[0]===S.view)[2]}</h1><p style="color:var(--muted)">Vista hermana — fuera del foco de esta iteración (vive en el mockup v3). El shell A la aloja igual en el rail.</p></div>`;
+  app.classList.toggle('chat-on',S.chat);
+  dock.innerHTML=S.chat?chatHTML():'';
+  wire();
+}
+function openArnes(arn){S.view='map';S.arnes=arn;render();toast('Entrando al mapa de «'+arn+'»');}
+
+/* ── drag libre 2D del organigrama ── */
+function updateEdges(board,ci,arn){const co=COMPANIES[ci];
+  board.querySelectorAll('path.edge').forEach(p=>{const child=co.nodes.find(n=>n.arn===p.dataset.child);const parent=co.nodes.find(n=>n.arn===child.reportsTo);
+    if(child.arn===arn||parent.arn===arn)p.setAttribute('d',edgePath(child,parent));});}
+function wireDrag(el){
+  el.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return; e.preventDefault();
+    const board=el.closest('.board'),ci=+el.dataset.board,node=COMPANIES[ci].nodes[+el.dataset.i];
+    const rect=board.getBoundingClientRect();const sx=e.clientX,sy=e.clientY;let moved=false;
+    try{el.setPointerCapture(e.pointerId);}catch(_){}el.classList.add('drag');
+    const move=ev=>{const dx=ev.clientX-sx,dy=ev.clientY-sy;if(Math.abs(dx)>4||Math.abs(dy)>4)moved=true;
+      let nx=Math.max(8,Math.min(92,((ev.clientX-rect.left)/rect.width)*100));
+      let ny=Math.max(9,Math.min(91,((ev.clientY-rect.top)/rect.height)*100));
+      node.x=nx;node.y=ny;el.style.left=nx+'%';el.style.top=ny+'%';updateEdges(board,ci,node.arn);};
+    const up=()=>{el.classList.remove('drag');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);
+      if(!moved)openArnes(node.arn);};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
+  });
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openArnes(el.dataset.arn);}});
+}
+
+function wire(){
+  rail.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{const k=b.dataset.nav;
+    if(k==='pf'){S.view='pf';}else if(k==='map'){if(!S.arnes)S.arnes='luana-platform';S.view='map';}else{S.view=k;}render();});
+  rail.querySelectorAll('[data-toast]').forEach(b=>b.onclick=()=>toast(b.dataset.toast));
+  stage.querySelectorAll('[data-nav="pf"]').forEach(b=>b.onclick=()=>{S.view='pf';render();});
+  stage.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.pfMode=b.dataset.mode;render();});
+  stage.querySelectorAll('.pf-card[data-open]').forEach(b=>b.onclick=()=>openArnes(b.dataset.open));
+  stage.querySelectorAll('.onode').forEach(wireDrag);
+  stage.querySelectorAll('[data-layer]').forEach(b=>b.onclick=()=>{S.layer=b.dataset.layer;render();});
+  stage.querySelectorAll('[data-node]').forEach(b=>b.onclick=()=>{S.chat=true;render();toast('Nodo «'+b.dataset.node+'» → editar hablando');});
+  stage.querySelectorAll('[data-toast]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();toast(b.dataset.toast);});
+  dock.querySelectorAll('[data-chatclose]').forEach(b=>b.onclick=()=>{S.chat=false;render();});
+  dock.querySelectorAll('[data-toast]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();toast(b.dataset.toast);});
+}
+document.getElementById('ask').onclick=()=>{S.chat=!S.chat;render();};
+document.getElementById('theme').onclick=()=>{const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':cur==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark');
+  document.documentElement.setAttribute('data-theme',next);toast('Tema: '+next);};
+addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();S.chat=!S.chat;render();}});
+render();
+</script>

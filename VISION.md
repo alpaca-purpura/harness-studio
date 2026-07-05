@@ -188,7 +188,10 @@ será ficha futura — no es esta visión.)
 corresponde. Sobrevive en principio: patrón conductor (I-76/OBS-16/OBS-18), flujo creador
 sobre KIT-06, contrato L0 `meta.clase` (I-75 — el grafo agnóstico es su evolución). Muere:
 UI Next, nombre. En evaluación (fase UX): shell de lentes (D2/OBS-13) vs mapa React Flow
-como visor único.
+como visor único. *[Resuelto en HS-03 it.13 (2026-07-05): el shell es **Command Rail** — rail
+de iconos izq. + chat como dock derecho + Portafolio con lente Organigrama; ni «shell de
+lentes» puro ni «visor único». Ver UX.md «Iteración 13». Nota aditiva; no altera los 11
+principios ni A1–A7.]*
 
 ## Debates abiertos (no bloquean la firma)
 

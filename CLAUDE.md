@@ -32,7 +32,14 @@ ejecutan; marketplace git elegible por proyecto.
 - Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
   v3 en watchlist.
 
-**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 12 de ~13-15**.
+**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) — iteración 13: SHELL FIRMADO,
+cerrando fase**. Shell = **Command Rail (A)**: rail de iconos izquierdo · visual (mapa/
+portafolio) a pantalla casi completa · chat invocado (⌘K) como dock derecho. Portafolio con
+2 lentes: **Organigrama** (arneses por empresa/puesto, «reporta a», libre 2D) ↔ Cuadrícula.
+App = fábrica de arneses (crear + mantener), NO cockpit de empresa; metadata puesto·empresa·
+reporta-a + marketplace por empresa/arnés. Mockups de shell: `mockups/arnesia-shell-lab.html`
+(compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada). **Próximo:
+fase 3 arquitectura → implementar v1 con lo definido.**
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
 cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·

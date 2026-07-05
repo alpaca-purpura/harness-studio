@@ -4,7 +4,8 @@
 > sigan. Norte constitucional: [`VISION.md`](./VISION.md) (11 principios + anatomía A1–A7).
 > Este documento **baja la anatomía a reglas de negocio concretas que el producto va a
 > enforcar**. Registro de iteraciones y detalle de UX: [`UX.md`](./UX.md). Cementado hasta la
-> **iteración 11 de HS-03** (2026-07-04).
+> **iteración 13 de HS-03** (2026-07-05; §4 reconciliado con el retiro del andamiaje REAL vs
+> DEMO del mockup).
 >
 > **Base de evidencia = [`knowledge/`](./knowledge/INDEX.md) (árbol de conocimiento VIVO).**
 > El «qué debe tener cada componente» (§2–3) **deriva** del estándar as code por elemento
@@ -123,8 +124,12 @@ Cómo el producto muestra datos, para que jamás mienta:
   usa»).
 - **Contrato de datos por capa:** cada capa del mapa = una pregunta + datos exactos +
   procedencia + umbral documentado (Estructura · Tokens · Desempeño · Proceso).
-- **REAL vs DEMO separados:** los arneses reales llevan chip REAL; los de demostración, DEMO;
-  los KPIs del portafolio suman **solo arneses reales**.
+- **Datos con procedencia, sin split demo/real** (andamiaje retirado it.13, 2026-07-05): el
+  producto opera **solo arneses propios** (VISION §8) — no hay tarjetas de demostración que
+  separar; cada arnés carga la procedencia de sus datos y los KPIs agregan datos reales por
+  construcción. El chip REAL/DEMO, el KPI «solo reales» y el orden real-primero eran andamiaje
+  del mockup para distinguir luana de tarjetas ficticias; mueren con el mockup. La honestidad
+  (nada se inventa · gris ≠ verde · «—» sin medir) sigue **intacta**.
 
 ## 5. Insights de producto que guían el diseño (emergentes)
 
@@ -172,7 +177,8 @@ reemplazar los contratos inferidos por los reales.
 
 ## Estado
 
-Documento vivo. **Cementado hasta la iteración 11 de HS-03.** Crece con los comentarios de
+Documento vivo. **Cementado hasta la iteración 13 de HS-03** (§4 al día con it.13: retirado el
+andamiaje REAL vs DEMO del mockup; la honestidad sigue). Crece con los comentarios de
 UX del operador (quedan muchos). Cuando HS-03 se firme, esta metodología se congela junto a
 la UX (regla Rust: firmado = congelado) y pasa a ser la base de las specs de fase 4 — **salvo el
 árbol [`knowledge/`](./knowledge/INDEX.md), que por diseño sigue vivo** (§7).

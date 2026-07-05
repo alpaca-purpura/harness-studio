@@ -64,6 +64,10 @@
 
 **Navegación:** toolbar global = wordmark · picker de arnés (con canal+versión) · pestañas
 Mapa / Diagnóstico / Tren / Historia · conmutador de capas (visible solo en Mapa).
+**› Actualizado en iteración 13 (shell firmado):** la chrome pasó de toolbar superior a
+**Command Rail** (izquierda); las pestañas hermanas son ítems del rail, el picker de arnés vive
+en el breadcrumb y el conmutador de capas en la barra del mapa. El Portafolio gana lente
+**Organigrama** (arneses por empresa/puesto, «reporta a»). Ver «Iteración 13».
 **Contexto inter-vista (paga la deuda OBS-13):** toda entidad (nodo, hallazgo, candidato,
 versión) navega a cualquier vista conservando foco — estado serializado en URL hash
 (arnés · vista · capa · selección) ⇒ deep-link compartible.
@@ -215,7 +219,72 @@ consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
 
+## Iteración 13 — Shell firmado: Command Rail (A) + Organigrama de puestos (2026-07-05)
+
+Grill del operador: repensar el **SHELL** (cómo se navega entre vistas) para app de escritorio
+con experiencia conversacional — referencia conductor.build «pero donde el fuerte sea lo
+visual». Se exploraron **4 paradigmas** en un "Shell Lab" (mismo contenido, conmutable al
+tacto): **A Command Rail · B Copilot Home (Claude Desktop) · C Split Studio · D Canvas-native**.
+Mockup lab: `mockups/arnesia-shell-lab.html` (artifact `9bcef775-…`, favicon 🧭).
+
+**FIRMADO — shell = A · Command Rail.** Rail de iconos fijo a la izquierda (nav espacial, tipo
+IDE/Linear/conductor); el visual (mapa/portafolio) a pantalla casi completa; el chat se
+**invoca** (⌘K / «Conversar») como dock derecho contextual — herramienta, no hogar. Descartados:
+B (entierra lo visual = contra el fuerte), C Split permanente; **D Canvas-native guardado como
+modo/milestone futuro** (el zoom-semántico de galaxia = demo de venta para la app Tauri). Esto
+**evoluciona la bifurcación 4** (shell de lentes): capas + vistas hermanas siguen, pero la chrome
+es el Command Rail — las «pestañas hermanas» son ítems del rail, el picker de arnés vive en el
+breadcrumb, el conmutador de capas en la barra del mapa. **Muere el backlog #1** («dock a 1280px
+comía el mapa»): el dock es lateral e intencional, no invade el lienzo.
+
+**Portafolio con 2 lentes (reemplaza el grid plano):**
+- **Organigrama (nuevo, hero).** Por empresa, un tablero **libre 2D arrastrable**: nodo = arnés,
+  **línea = «reporta a»**, color = salud, badge = hallazgos. Materializa VISION «arneses por rol
+  × proceso de compañía»: una empresa cliente = un arnés por puesto.
+- **Cuadrícula.** Triage plano peor-primero; cada tarjeta muestra empresa·puesto·reporta-a·
+  marketplace.
+
+**Aclaraciones de alcance del operador (cementadas):**
+1. **App = fábrica de arneses (crear + mantener), NO cockpit de empresa.** Los puestos SIN arnés
+   no aparecen aquí (no contaminar el objetivo); lo demás de la empresa vive en un **cockpit**
+   aparte (futuro). Cada arnés lleva metadato **puesto · empresa · reporta-a** (visible en la
+   tarjeta y en la barra del mapa al entrar).
+2. **No programar para la excepción.** La multi-marca del operador (vitalia/nicolify/comunify) =
+   mismo código, una excepción; el arnés real es `luana-platform`. Diseñar para la realidad
+   general (empresa = arnés por puesto). En el mockup: `Nordia` = empresa **EJEMPLO** del
+   organigrama tipo; `Luana` = **REAL**. (Cierra el pendiente multi-marca de iteración 7.)
+3. **Marketplace por empresa (y por arnés).** Dónde publica sus arneses: por defecto el mío
+   (`alpacapurpura/prenter-marketplace`); una empresa puede tener **repo propio** que el operador
+   crea y **enlaza** aquí → ver / actualizar / **desplegar** sus arneses ahí. Header por empresa:
+   repo + tag(mío/propio) + gestionar + ⇢ desplegar. Conecta con Tren/publish (S6) y ⚙ Marketplaces.
+
+**Mockup del shell:** `mockups/arnesia-shell-A-galaxia.html` (artifact `682f3890-…`, favicon 🌌).
+Verificado headless (chromium real): 4 paradigmas del lab · organigrama 2D + edges de reporte ·
+**drag real** (nodo mueve, línea sigue, sin navegación accidental) · click→mapa con metadata
+strip (empresa·puesto·reporta-a·marketplace) · cuadrícula con reporta-a+marketplace · light+dark ·
+consola sin errores de app.
+
+**Dos mockups, dos roles (para fase 3):** shell + navegación + organigrama viven en
+`arnesia-shell-A-galaxia.html`; el detalle profundo de superficies (4 capas del mapa, inspector
+3-pestañas, corridas, tren, diagnóstico, estándar) sigue en `arnesia-mockup-v3.html`. **Al portar
+a código se unifican** — el shell A hospeda las superficies de v3.
+
+**Backlog abierto (deferido por el operador para no bloquear la fase de arquitectura):** posición
+del organigrama ¿100% libre vs auto-layout + ajuste fino? ¿persistir posiciones como metadato? ·
+marketplace por-arnés ¿override o hereda de la empresa? · reporta-a ¿cross-empresa o solo intra? ·
+`＋ crear arnés para un puesto` desde el organigrama (dispara dock de creación).
+
+**Cierre de fase 2 UX → siguiente: fase 3 arquitectura**, luego implementar v1 con lo definido.
+
 ## Iteración 12 — S9 Estándar en el mapa: chip global + vista + botón Actualizar (2026-07-04)
+
+> **Actualizado it.13 (2026-07-05):** el drawer se des-andamió — se retiraron el estado vacío
+> «◌ Sin novedades reales» y la sección **DEMO etiquetada** («así se verá cuando SÍ haya…»);
+> ahora presenta directo las novedades del barrido semanal. Sobreviven la procedencia
+> (fuente+fecha por novedad), el tier híbrido (auto vs requiere-OK) y los toasts honestos.
+> Razón: en esta etapa todo es mockup de diseño; no se diseña para la excepción real-vs-demo.
+> El **principio de producto** (nada se inventa: un barrido real vacío muestra «sin novedades»,
+> jamás fabrica) sigue vigente en METODOLOGIA §4 — se retiró el andamiaje, no la honestidad.
 
 Pedido del operador: un **botón en el mockup** para disparar el update del estándar y, justo
 después, ver un **resumen de novedades (si hay) + cómo aplicarlas con ejemplos**; y **reformular
@@ -437,7 +506,11 @@ consumo · doc drift (glossary roto, ADR dir vacío) · mcp-tessl sin uso.
 
 **Decisiones de honestidad forzadas por la data real (nuevas):**
 - **Chips REAL vs DEMO** por arnés; **KPIs del portafolio = solo arneses reales** (demo no
-  se mezcla en los totales).
+  se mezcla en los totales). *— Retirado it.13 (2026-07-05): chip REAL/DEMO, KPI «solo reales»,
+  orden real-primero y statebar «⛁ ARNÉS REAL» eran andamiaje del mockup; se quitaron (todo es
+  mockup de diseño; luana es solo ejemplo, sus skills aún se adaptarán). Sobrevive el resto de
+  esta lista — «señales incompletas», «—» honesto, heat percentil, consumo-medido-pisa-estimado,
+  procedencia.*
 - **Éxito/p95 por componente = «—» honesto**: el JSONL no trae criterio de éxito de corrida
   → no se inventa; es en sí un hallazgo. Estado del arnés = **«señales incompletas»** (5ª
   rama del semáforo) cuando hay telemetría viva pero sin criterio de calidad.
@@ -456,6 +529,70 @@ contexto por paso desde JSONL real · criterio de éxito/eval (¿cómo lo defini
 operador?) · ¿mostrar los ~55 skills completos o el corte curado? · empleados-IA del
 producto (Valeria·Lisa…) vs roster de dev — ¿dos vistas? · multi-marca (vitalia/nicolify/
 comunify) ¿un arnés con overlays o varios?
+
+## Inventario final (firma) — corte iteración 13 (2026-07-05)
+
+> Baseline vigente para firmar HS-03. El snapshot «corte iteración 6» de abajo se conserva como
+> historia. **Dos mockups, dos roles** (se unifican al portar): SHELL/navegación/organigrama =
+> `arnesia-shell-A-galaxia.html` (artifact 682f3890) · detalle profundo de superficies =
+> `arnesia-mockup-v3.html` (artifact 6a63cdf3) · laboratorio de shell (4 paradigmas, A firmado) =
+> `arnesia-shell-lab.html` (artifact 9bcef775).
+
+**I · Shell & navegación (shell-A).** Command Rail izquierdo (brand + nav espacial Portafolio·
+Mapa·Corridas·Diagnóstico·Tren·Historia + Estándar + Ajustes al pie) · topbar con breadcrumb
+(Portafolio / empresa / picker-arnés ▾ / vista) + chip global ⟳ Estándar + botón «Conversar ⌘K» ·
+**chat dock invocado** (derecho, contextual): fila de sesión CC (id·modelo·tokens·barra ctx·%) +
+mensajes user/sys/asistente + diff + CTAs «Aplicar→beta»/«Ver en el mapa» + composer; Claude Code
+headless detrás. Muere el backlog #1 (el dock ya no come el mapa). Light/dark · reduced-motion ·
+focus · toasts honestos.
+
+**II · S1 Portafolio, 2 lentes (shell-A).**
+- **Organigrama (hero):** tablero libre 2D **arrastrable** por empresa; nodo = arnés, **línea =
+  «reporta a»** (bezier SVG), color = salud, badge = hallazgos, badge «raíz»; drag real (la línea
+  sigue, clic-sin-mover = entra al mapa). CTA «＋ Conectar empresa».
+- **Cuadrícula:** triage peor-primero; tarjeta con empresa·puesto·**reporta-a**·**marketplace**,
+  estado (sano/atención/crítico/naciendo/**señales incompletas**/inactivo), señales + hallazgos.
+- **Metadato de arnés de primera clase:** puesto · empresa · reporta-a (en tarjeta, breadcrumb y
+  barra del mapa). **Marketplace por empresa:** repo + tag (mío / repo propio) + gestionar +
+  ⇢ desplegar. Alcance declarado: aquí SOLO se crean y mantienen arneses; los puestos sin arnés no
+  aparecen (lo demás vive en el cockpit, futuro).
+
+**III · Superficies de detalle (v3).**
+- **S2 Mapa:** Guardia / carriles-fase / Base + **bandas transversales** (Librería de expertos ·
+  Meta-harness·Git·Utilidades·Comandos · Marcas dormidas · Terceros·Clerk). **7 tipos**
+  color+forma+etiqueta (skill·agente·hook·knowledge·mcp·regla·**command /**). **4 capas con
+  contrato de datos:** Estructura · Tokens (carga+30d, fórmula única, heat percentil, Σ carril,
+  budget+Pareto, solape declarado) · Desempeño (inv×·éxito%·p95/invocación·sin-uso·gate-fallado·
+  grosor de edge) · **Proceso = pipeline de contratos por caja** (entra→cajas→eval-gate chip→sale,
+  rework ↩, cajas paralelas, gate auto/manual/parcial/**sin-gate**). Edges direccionales. Leyenda
+  = filtro por tipo (pendiente: falta el filtro de `command` — backlog). Replay de corrida sobre
+  el mapa (#1..#n, camino, deep-link). Base en alerta + CTA capturar.
+- **S3 Inspector (3 pestañas):** Resumen (identidad, métricas inv/éxito/p95/carga/excepciones/
+  consumo, **Contrato: necesita↑·entrega·ruta↓ condicional·viene-de** [inferido/derivado/no-
+  declarado], hallazgos, acciones) · Contenido (fuente + editar → diff → nota → beta → tren;
+  CodeMirror 6) · Corridas.
+- **S8 Corridas:** lista JSONL (disparo·fase·fecha·modelo·turnos·in/out·ctx·costo·duración·✓/✕·
+  ⚠exc); detalle 3 vistas Conversación / Árbol (contabilidad de contexto por paso) / Waterfall +
+  attribution paso→mapa + ▶ reproducir en el mapa.
+- **S5 Diagnóstico:** bandeja unificada estático+runtime, severidad, capa sugerida, «ver en el
+  mapa», badge de count. **S6 Tren:** horno / eval-gate / listo / publicado; gate-fallado →
+  «Reabrir en fábrica»; promote bloqueado por gate; destinos publish. **S7 Historia:** versiones +
+  deltas + hitos. **S9 Estándar (global):** 11 nodos + rail L1/L2/checks (severidad) + botón
+  Actualizar → drawer de novedades (tier híbrido auto vs requiere-OK, arneses afectados, cómo-
+  aplicarlo con diff); deep-link `#/estandar/<nodo>`. **S4 Dock fábrica** (equivalente al chat
+  dock): 5 modos (editar · crear-componente · crear-arnés · capturar-base · **importar arnés** →
+  chequeo constitucional → adopción) + fila de sesión CC + eventos de sistema.
+
+**IV · Global.** ⚙ Marketplaces · deep-link por hash de todo (paga OBS-13) · **honestidad de
+producto intacta** (nada se inventa · procedencia · «—» sin medir · gris ≠ verde) · daltonismo
+(color+forma) · toasts honestos. Estados: naciendo, sin telemetría, señales incompletas, base
+incompleta, gate fallado, sin uso, propuesto, corrida fallida, bandejas vacías.
+
+**Decisiones de arquitectura firmadas:** shell = Command Rail (A) · D Canvas-native = milestone
+futuro · contrato de datos por capa · frontera Proceso↔Diagnóstico · p95 por invocación (jamás
+promedios) · atribución de tokens solapada (Σ ≠ total) · fórmula de consumo única mapa=inspector ·
+heat percentil · edición directa siempre pare beta→tren · Contrato por caja como forcing function ·
+**andamiaje REAL/DEMO retirado del mockup, honestidad de producto conservada.**
 
 ## Inventario de funcionalidades — corte iteración 6 (mockup v3.3, 2026-07-04)
 
@@ -554,5 +691,10 @@ iteración 6** (contrato de capas + rediseño Proceso).
 8. Búsqueda global (componentes, corridas, hallazgos).
 9. Accesibilidad teclado completa (hoy parcial) · estados vacíos restantes.
 10. Taxonomía: ¿subtipos de regla / clase L0 visible en el nodo?
+11. Leyenda del mapa (v3): falta el filtro para el 7º tipo `command` — se renderiza pero no se
+    puede filtrar (gap detectado en it.13).
+12. Organigrama (shell-A): ¿posición 100% libre vs auto-layout + ajuste fino? ¿persistir
+    posiciones como metadato? · marketplace por-arnés ¿override o hereda de la empresa? ·
+    reporta-a ¿cross-empresa o solo intra? · «＋ crear arnés para un puesto» desde el organigrama.
 
 <!-- Al cerrar cada iteración: registrar sección "Iteración N" + actualizar inventario. -->

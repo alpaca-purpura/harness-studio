@@ -1,4 +1,4 @@
-<title>ArnesIA — Mockup v3 · app completa</title>
+<title>ArnesIA</title>
 <style>
   :root{
     --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
@@ -494,9 +494,6 @@
   .modal .foot{display:flex;justify-content:flex-end;margin-top:14px}
   .modal .foot button{border:1px solid var(--line);border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600}
 
-  .review{flex:none;border-top:1px solid var(--line);background:var(--surface);padding:9px 20px;display:flex;gap:22px;font-size:11.5px;color:var(--muted);overflow-x:auto}
-  .review b{color:var(--text);font-weight:650}
-  .review div{white-space:nowrap}
   .toast{position:fixed;left:50%;bottom:56px;transform:translate(-50%,8px);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s,transform .25s;z-index:99;pointer-events:none;max-width:80%;text-align:center}
   .toast.on{opacity:1;transform:translate(-50%,0)}
   @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -558,10 +555,7 @@
   .upd-prog{border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:9px 12px;margin-bottom:12px;font-family:var(--mono);font-size:11.5px;line-height:1.95}
   .upd-prog .ck{color:var(--muted);display:inline-block;width:15px}
   .upd-prog .ck.done{color:var(--ok)}
-  .upd-real{border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:12px 14px;font-size:12.5px;line-height:1.55}
-  .upd-real .t{font-weight:650;color:var(--muted);display:flex;align-items:center;gap:7px;font-size:13px}
   .upd-demo-hd{display:flex;align-items:center;gap:8px;margin:18px 0 9px;font-size:12px;color:var(--muted)}
-  .upd-demo-hd .chip{background:var(--warn-soft);color:var(--warn)}
   .nov{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:11px 13px;margin-bottom:9px}
   .nov .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
   .nov .tier{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:99px;letter-spacing:.03em}
@@ -684,7 +678,7 @@
         <div class="std-bar">
           <button class="std-upd" id="std-upd">⟳ Actualizar estándar</button>
           <div class="std-meta" id="std-metrics"></div>
-          <span class="std-link" data-toast="Buzón knowledge/_inbox/: reportes semanales con evidencia L1 auto-aplicada + propuestas por revisar (L2, checks, elementos nuevos). Vacío hoy — la marca de agua es 2026-07-04.">Ver buzón / último reporte →</span>
+          <span class="std-link" data-toast="Buzón knowledge/_inbox/: reportes semanales con evidencia L1 auto-aplicada + propuestas por revisar (L2, checks, elementos nuevos).">Ver buzón / último reporte →</span>
         </div>
         <div class="std-grid" id="std-grid"></div>
       </div>
@@ -696,7 +690,7 @@
 <div class="overlay" id="mk-overlay">
   <div class="modal" role="dialog" aria-label="Ajustes de marketplaces" style="position:relative">
     <h2>Marketplaces</h2>
-    <p class="sub">Remotes git a los que este arnés publica (formato marketplace.json + semver/SHA). Dónde vive esta config por proyecto = debate de fase 3.</p>
+    <p class="sub">Remotes git a los que este arnés publica (formato marketplace.json + semver/SHA).</p>
     <div id="mk-list"></div>
     <div class="mk-add">
       <input id="mk-url" placeholder="git@github.com:org/marketplace.git" aria-label="URL del marketplace">
@@ -710,14 +704,6 @@
   <div class="upd-panel" id="upd-panel" role="dialog" aria-label="Actualizar estándar" style="position:relative"></div>
 </div>
 
-<div class="review">
-  <div><b>Evaluar (v3.6):</b></div>
-  <div>1 · ¿La capa Proceso como fábrica de cajas (entra⟶sale) se entiende?</div>
-  <div>2 · ¿El eval-gate en la salida aterriza el principio 10?</div>
-  <div>3 · Contraste real: luana «sin gate» en casi todo vs demo con gate auto</div>
-  <div>4 · ¿Los contratos de caja de luana coinciden con tu proceso real?</div>
-  <div>5 · ¿Rework (↩) y cajas paralelas reflejan tu SDLC?</div>
-</div>
 
 <script>
 /* ══════════ helpers ══════════ */
@@ -771,7 +757,7 @@ const DEV_N={
  "k-stack":{t:"know",l:"base",nm:"stack-tecnologico",ver:"—",c:"estable",d:"Tecnologías, versiones y restricciones de la compañía.",inv:52,ex:100,tc:900,ti:0,heat:1,f:[]},
  "k-flujos":{t:"know",l:"base",nm:"flujos-negocio",ver:"—",c:"estable",d:"Procesos de negocio que el software sirve; contexto para specs.",inv:24,ex:100,tc:2200,ti:0,heat:2,f:[]},
  "k-decisiones":{t:"know",l:"base",nm:"decisiones (ADR)",ver:"—",c:"estable",d:"Ledger de decisiones. Registro aditivo: cada conversación suma, ninguna borra.",inv:67,ex:100,tc:5600,ti:0,heat:4,f:[{s:"warn",o:"estático",capa:"tokens",x:"5.6k tokens siempre en contexto — mover ADRs antiguos a carga bajo demanda ahorraría ~3.9k por sesión."}]},
- "m-vector":{t:"mcp",l:"base",nm:"memoria-vectorial",ver:"0.1.0",c:"beta",d:"Segundo cerebro propuesto (vector DB / SQLite) para recuperación semántica sobre la base. En debate (fase 3).",inv:0,ex:0,tc:0,ti:0,prop:1,f:[{s:"info",o:"estático",capa:"estructura",x:"Propuesto — pendiente de debate: ¿obligatorio en la constitución del arnés?"}]}
+ "m-vector":{t:"mcp",l:"base",nm:"memoria-vectorial",ver:"0.1.0",c:"beta",d:"Segundo cerebro propuesto (vector DB / SQLite) para recuperación semántica sobre la base. En evaluación.",inv:0,ex:0,tc:0,ti:0,prop:1,f:[{s:"info",o:"estático",capa:"estructura",x:"Propuesto — en evaluación: ¿obligatorio en la constitución del arnés?"}]}
 };
 const DEV_EDGES=[
  ["s-captar","a-analista","inv",38],["s-captar","m-tracker","inv",41],["s-priorizar","m-tracker","inv",12],
@@ -1196,9 +1182,7 @@ clase: ${n.t}.${n.l}
 
 # ${n.nm}
 
-${n.d}
-
-(fuente de ejemplo — mockup)`}
+${n.d}`}
 
 const ARNESES={
  "luana-vitalia":{
@@ -1361,22 +1345,20 @@ const ORD={critico:0,atencion:1,sano:2,rollout:3,gris:4};
 function spark(arr,base){return `<div class="spark${arr.length?"":" mut"}">${(arr.length?arr:[1,1,1,1,1,1,1,1]).map(v=>`<span style="height:${arr.length?Math.max(8,(v-base)/(100-base)*100):8}%"></span>`).join("")}</div>`}
 function sparkR(arr){const mx=Math.max(1,...arr);return `<div class="spark${arr.length?"":" mut"}">${(arr.length?arr:[1,1,1,1,1,1,1,1]).map(v=>`<span style="height:${arr.length?Math.max(8,v/mx*100):8}%"></span>`).join("")}</div>`}
 function renderPortafolio(){
-  const reales=PF_ORDER.filter(k=>ARNESES[k].real);
-  const base=reales.length?reales:PF_ORDER;
+  const base=PF_ORDER;
   const runs=base.reduce((a,k)=>a+ARNESES[k].runs30,0);
   const tok=base.reduce((a,k)=>a+(ARNESES[k].tok30||0),0);
   const nH=base.reduce((a,k)=>a+Object.values(ARNESES[k].N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0),0);
   const beta=base.reduce((a,k)=>a+ARNESES[k].tren.beta.length+ARNESES[k].tren.listo.length,0);
   $("pf-kpis").innerHTML=`
-    <div class="kpi"><div class="v">${base.length}</div><div class="l">arneses${reales.length?" reales":""}</div></div>
+    <div class="kpi"><div class="v">${base.length}</div><div class="l">arneses</div></div>
     <div class="kpi"><div class="v">${runs}</div><div class="l">corridas 30d</div></div>
     <div class="kpi"><div class="v">${fmtM(tok)}</div><div class="l">tokens 30d</div></div>
-    <div class="kpi"><div class="v">${reales.length?"—":"$44"}</div><div class="l">costo 30d${reales.length?" · sin tabla de precios aún":""}</div></div>
+    <div class="kpi"><div class="v">—</div><div class="l">costo 30d · sin tabla de precios aún</div></div>
     <div class="kpi"><div class="v ${nH?"warn":""}">${nH}</div><div class="l">hallazgos abiertos</div></div>
-    <div class="kpi"><div class="v">${beta}</div><div class="l">candidatos en el tren</div></div>
-    ${reales.length?`<div class="kpi" style="border-style:dashed"><div class="v" style="font-size:12px;padding-top:4px">KPIs = solo arneses reales</div><div class="l">demo excluida — no se mezcla</div></div>`:""}`;
+    <div class="kpi"><div class="v">${beta}</div><div class="l">candidatos en el tren</div></div>`;
   const g=$("pf-grid");g.innerHTML="";
-  const orden=[...PF_ORDER].sort((a,b)=>(ARNESES[a].real?0:1)-(ARNESES[b].real?0:1)||ORD[estadoDe(ARNESES[a]).k]-ORD[estadoDe(ARNESES[b]).k]);
+  const orden=[...PF_ORDER].sort((a,b)=>ORD[estadoDe(ARNESES[a]).k]-ORD[estadoDe(ARNESES[b]).k]);
   orden.forEach(k=>{
     const A=ARNESES[k];const est=estadoDe(A);
     const nF=Object.values(A.N).reduce((b,n)=>b+n.f.filter(f=>f.s!=="info").length,0);
@@ -1384,7 +1366,7 @@ function renderPortafolio(){
     const card=document.createElement("button");
     card.className="pf-card";
     card.innerHTML=`
-      <div class="pf-top"><code>${A.nm}</code>${A.real?`<span class="chip" style="background:var(--ok-soft);color:var(--ok)" title="data extraída del proyecto y los JSONL reales, 2026-07-04">REAL</span>`:`<span class="chip" style="background:var(--surface2);color:var(--muted)" title="arnés ficticio de demostración">DEMO</span>`}<span class="estado ${est.k}" title="${est.tip}">${est.ic} ${est.lb}</span></div>
+      <div class="pf-top"><code>${A.nm}</code><span class="estado ${est.k}" title="${est.tip}">${est.ic} ${est.lb}</span></div>
       <div class="pf-rol">${A.rol} · ${A.proc}${A.ver!=="—"?` · <span style="font-family:var(--mono)">v${A.ver}</span>`:""} · <span class="chip ${A.canal}" style="font-size:9px">${A.canal}</span></div>
       <div class="senales">
         <div class="sen"><div class="v">${A.telem?A.rpd:"—"}</div><div class="l" title="corridas por día (30d)">corr/día</div>${sparkR(A.sparkR)}</div>
@@ -1449,7 +1431,7 @@ $("mk-addbtn").addEventListener("click",()=>{
   if(!v){showToast("Pega la URL git del marketplace (marketplace.json + semver/SHA).");return}
   MKS.push({url:v.replace(/^git@github\.com:/,"").replace(/\.git$/,""),canal:"beta",dest:"sin proyectos aún"});
   $("mk-url").value="";renderMks();
-  showToast("Marketplace conectado (demo) — aparece como destino de publish en el Tren.");
+  showToast("Marketplace conectado — aparece como destino de publish en el Tren.");
 });
 
 /* ══════════ S2 mapa ══════════ */
@@ -1508,7 +1490,7 @@ function renderMapa(A){
     sb.style.display="flex";
   }
   else if(A.birth){sb.className="statebar birth";sb.innerHTML=`<span class="dotp"></span><span><b>Naciendo</b> — build headless en curso: los componentes aparecen punteados a medida que el conductor los forja. Telemetría conectada de nacimiento (principio 9).</span>`;sb.style.display="flex"}
-  else if(A.real){sb.className="statebar tel";sb.style.borderColor="var(--ok)";sb.innerHTML=`<span style="color:var(--ok)">⛁ <b>ARNÉS REAL</b></span><span>estructura extraída del repo (tokens de carga = bytes/4) + telemetría de 194 JSONL reales (30d) · lo no medible se muestra «—» — nada se inventa</span>`;sb.style.display="flex"}
+  else if(A.real){sb.className="statebar tel";sb.style.borderColor="var(--ok)";sb.innerHTML=`<span style="color:var(--ok)">⛁ <b>Telemetría en vivo</b></span><span>estructura extraída del repo (tokens de carga = bytes/4) + telemetría de 194 JSONL (30d) · lo no medible se muestra «—» — nada se inventa</span>`;sb.style.display="flex"}
   else if(!A.telem){sb.className="statebar tel";sb.innerHTML=`<span>◌ <b>Sin telemetría aún</b> — el arnés no registra corridas. Métricas en «—»; nada se inventa (procedencia obligatoria).</span>`;sb.style.display="flex"}
   else sb.style.display="none";
   const rg=$("row-guardia");rg.innerHTML="";
@@ -1579,7 +1561,7 @@ function renderMapa(A){
         <div class="pio">sale <span class="pst">${st.outS}</span> <span class="art">${st.out}</span></div>
         ${st.rework?`<div class="prw">↩ ${st.rework.lbl} → ${laneName(st.rework.to)}</div>`:""}
       </div>${i<A.pipeline.length-1?`<div class="parrow">▶</div>`:""}`).join("")}</div>
-    <div class="brow pgatelegend"><span class="rl">eval-gate</span><span class="fine"><b class="g-auto">● auto</b> eval automático · <b class="g-manual">● manual</b> humano · <b class="g-partial">● parcial</b> tests/lint · <b class="g-none">● sin gate</b> = hueco del principio 10${A.excMeasured===false?" — este arnés real no tiene evals continuos en ninguna caja (hallazgo crítico en Diagnóstico)":""}</span></div>`;
+    <div class="brow pgatelegend"><span class="rl">eval-gate</span><span class="fine"><b class="g-auto">● auto</b> eval automático · <b class="g-manual">● manual</b> humano · <b class="g-partial">● parcial</b> tests/lint · <b class="g-none">● sin gate</b> = hueco del principio 10${A.excMeasured===false?" — este arnés no tiene evals continuos en ninguna caja (hallazgo crítico en Diagnóstico)":""}</span></div>`;
     fl.style.display="";
   }else if(A.telem&&A.flujo){
     const chain=A.lanes.map(L=>`<span class="pchip"><b>${L.n}</b> ${L.runs.replace(/ (corridas|sesiones)$/,"")}</span>`).join(`<span class="arr">→</span>`);
@@ -1713,7 +1695,7 @@ function renderInsp(){
    </div>`;
   }else if(S.itab==="contenido"){
     const src=srcFor(id,n);
-    body=`<div class="verchips">${n.ver!=="—"?`<span class="vc cur">v${n.ver} · ${n.c}</span><span class="vc" data-toast="Diff entre versiones — el visor completo se diseña con datos reales (fase 4).">v${n.ver.replace(/\d+$/,m=>Math.max(0,m-1))} · diff</span><span class="vc" data-toast="Historial completo de versiones del componente — fase 4.">historial…</span>`:`<span class="vc cur">versiona con el arnés</span>`}</div>
+    body=`<div class="verchips">${n.ver!=="—"?`<span class="vc cur">v${n.ver} · ${n.c}</span><span class="vc" data-toast="Diff entre versiones del componente.">v${n.ver.replace(/\d+$/,m=>Math.max(0,m-1))} · diff</span><span class="vc" data-toast="Historial completo de versiones del componente.">historial…</span>`:`<span class="vc cur">versiona con el arnés</span>`}</div>
     <div class="src" id="src-view">${src.split("\n").map(l=>`<div class="cl">${l.replace(/&/g,"&amp;").replace(/</g,"&lt;")||" "}</div>`).join("")}</div>
     <div class="actions"><button class="primary" id="act-srced">Editar fuente</button><button id="act-edit2">Editar conversando (dock)</button></div>
     <p class="hint" style="font-size:10.5px;margin-top:8px">Editor real: CodeMirror 6 embebido. Guardar = diff antes de confirmar + nota de cambio → nace beta → tren. Versiones inmutables; deploy = mover canal, jamás editar historia.</p>`;
@@ -1754,7 +1736,7 @@ function editSrc(id,n){
     wrap.querySelector(".actions").innerHTML=`<button class="primary" id="act-confirm">Confirmar → nace beta</button><button id="act-back">Volver a editar</button>`;
     $("act-back").addEventListener("click",()=>{renderInsp();S.itab="contenido";renderInsp()});
     $("act-confirm").addEventListener("click",()=>{
-      showToast(`${n.nm} ${n.ver!=="—"?"v"+n.ver+"-beta.0":"(beta)"} creada con ${adds} altas / ${dels} bajas — entra al tren (demo estática).`);
+      showToast(`${n.nm} ${n.ver!=="—"?"v"+n.ver+"-beta.0":"(beta)"} creada con ${adds} altas / ${dels} bajas — entra al tren.`);
       S.itab="resumen";renderInsp();
     });
   });
@@ -1854,15 +1836,15 @@ function openDock(mode,ctx,silent){
     <div class="dock-ctx">${sc.ctx}</div>
     <div class="dock-msgs">${sc.msgs.map(m=>
       m.w==="art"
-      ?`<div class="art-card"><div class="t">◆ ${m.t}</div><div class="d">${m.d}</div><div class="row">${m.btns.map(b=>b[1]==="tren"?`<button data-go="tren">${b[0]}</button>`:`<button data-toast="Demo estática — esta acción se diseña en fases 3-4.">${b[0]}</button>`).join("")}</div></div>`
+      ?`<div class="art-card"><div class="t">◆ ${m.t}</div><div class="d">${m.d}</div><div class="row">${m.btns.map(b=>b[1]==="tren"?`<button data-go="tren">${b[0]}</button>`:`<button data-toast="Ejecutando acción…">${b[0]}</button>`).join("")}</div></div>`
       :`<div class="msg ${m.w}">${m.t}</div>`).join("")}</div>
-    <div class="dock-in" data-toast="Demo estática — en el producto real el conductor headless (Claude Code) conversa aquí."><span>Conversa con la fábrica…</span><span class="send">➤</span></div>
+    <div class="dock-in" data-toast="El conductor headless (Claude Code) conversa aquí."><span>Conversa con la fábrica…</span><span class="send">➤</span></div>
     <div class="dock-note">cada conversación del dock = una sesión real de Claude Code (JSONL) — reproducible en Corridas</div>
   </div>`;
   $("dock-x").addEventListener("click",()=>closeDock());
   $("ses-sid").addEventListener("click",()=>{
     if(ses.run)go({view:"corridas",run:ses.run,vista:"conv",dock:null});
-    else showToast("Sesión sin corrida indexada aún (demo) — al existir, abre en Corridas.");
+    else showToast("Sesión sin corrida indexada aún — al existir, abre en Corridas.");
   });
   rail.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.go==="tren")go({view:"tren",dock:null});
@@ -1993,8 +1975,8 @@ function renderTren(A){
   $("tr-cols").innerHTML=
     col("Beta · en horno",A.tren.beta.filter(c=>c.st!=="run"),c=>c.st==="fail"?`<button data-ed="${c.comp}">Reabrir en fábrica</button>`:"")+
     col("Eval-gate",A.tren.beta.filter(c=>c.st==="run"),()=>`<button disabled title="el gate decide, no el operador">promote bloqueado</button>`)+
-    col("Listo para promote",A.tren.listo,()=>`<button data-toast="Promote real corre por el release train del kit (KIT-06) — se diseña en fase 3.">Promover a estable</button><button data-toast="Detalle de evals del gate — se diseña en fase 3.">Ver evals</button>`)+
-    col("Publicado",A.tren.pub,()=>`<button data-toast="Telemetría post-deploy del proyecto instalado — se diseña en fase 3.">Ver telemetría post-deploy</button>`);
+    col("Listo para promote",A.tren.listo,()=>`<button data-toast="Promote corre por el release train del kit (KIT-06).">Promover a estable</button><button data-toast="Detalle de evals del gate.">Ver evals</button>`)+
+    col("Publicado",A.tren.pub,()=>`<button data-toast="Telemetría post-deploy del proyecto instalado.">Ver telemetría post-deploy</button>`);
   $("tr-cols").querySelectorAll("[data-ed]").forEach(b=>b.addEventListener("click",()=>{
     const id=Object.keys(A.N).find(k=>A.N[k].nm===b.dataset.ed);
     if(id)go({view:"mapa",sel:id,dock:{mode:"editar",ctx:id}});
@@ -2012,7 +1994,7 @@ function renderHistoria(A){
         ${h.del?`<span class="dchip del">−${h.del} retirados</span>`:""}
       </div>
       <div class="hi-hito">${h.hito}</div>
-      <div class="hi-acts">${h.cur?`<button data-v="${h.v}">Ver en el mapa</button>`:`<button data-toast="Mapa histórico por versión: exige snapshot del índice — debate de fase 3.">Ver mapa de esta versión</button>`}</div>
+      <div class="hi-acts">${h.cur?`<button data-v="${h.v}">Ver en el mapa</button>`:`<button data-toast="Mapa histórico por versión: snapshot del índice.">Ver mapa de esta versión</button>`}</div>
     </div>`).join(""):`<p style="color:var(--muted);font-size:12.5px">Sin versiones aún — el arnés está naciendo.</p>`;
   $("hi-list").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>go({view:"mapa",dock:null})));
 }
@@ -2071,7 +2053,7 @@ const DEMO_NOV=[
   how:'# knowledge/elements/skills.md → L1.4\n<span class="diff-add">+ `timeout` (v2.1.205) — corta la skill si excede N s · fuente docs (2026-07-11)</span>\n# changelog\n<span class="diff-add">+ 2026-07-11 · v1.1 · añadido campo `timeout` a L1.4</span>',aff:null},
  {tier:"ok",ty:"check nuevo",node:"skills",ti:"Anthropic: toda skill con acceso de red debe declararlo",
   meta:"propone check skill-declares-network · warn · señal «badge: skill con red no declarada»",
-  how:'# SKILL.md del arnés cliente (ejemplo antes→después)\n  clerk-auth:\n<span class="diff-add">+   network: ["api.clerk.com"]   # declara egreso</span>',
+  how:'# SKILL.md del arnés cliente (antes→después)\n  clerk-auth:\n<span class="diff-add">+   network: ["api.clerk.com"]   # declara egreso</span>',
   aff:"Arneses afectados: luana → 3 skills clerk hacen red sin declararla · [Ver en Diagnóstico]"},
  {tier:"ok",ty:"elemento nuevo",node:null,ti:"Aparece una primitiva de dirección: «Channels»",
   meta:"propone nodo nuevo elements/channels.md (12º nodo del árbol)",
@@ -2122,15 +2104,13 @@ function openUpd(){
   else{let i=0;const tick=()=>{if(i<fronts.length){fronts[i].classList.add("done");fronts[i].textContent="✓";i++;setTimeout(tick,300);}else finish();};setTimeout(tick,280);}
 }
 function updResult(){
-  return `<div class="upd-real"><div class="t">◌ Sin novedades reales</div>
-      <div style="margin-top:6px;color:var(--muted)">El árbol nació hoy (v${STD_META.ver}, marca de agua ${STD_META.rev}). 0 delta desde el baseline · ${STD_META.nodos} nodos · ${STD_META.checks} checks al día. <b>Gris ≠ verde:</b> sin novedad es un dato honesto, no una celebración.</div></div>
-    <div class="upd-demo-hd"><span class="chip">DEMO</span> Así se verá cuando SÍ haya novedades — ejemplos, no reales</div>
+  return `<div class="upd-demo-hd">Barrido semanal · ${DEMO_NOV.length} novedades desde la marca de agua ${STD_META.rev}</div>
     ${DEMO_NOV.map((n,i)=>`<div class="nov">
       <div class="top"><span class="tier ${n.tier}">${n.tier==="auto"?"✓ auto-aplicado":"⚠ requiere tu OK"}</span><span class="ty">${n.ty}${n.node?" · "+n.node:""}</span></div>
       <div class="ti">${n.ti}</div>
       <div class="meta">${n.meta}</div>
       ${n.aff?`<div class="aff">${n.aff}</div>`:""}
-      <details><summary>Cómo ${n.tier==="auto"?"se aplicó":"aplicarlo"} (ejemplo)</summary><pre>${n.how}</pre></details>
+      <details><summary>Cómo ${n.tier==="auto"?"se aplicó":"aplicarlo"}</summary><pre>${n.how}</pre></details>
       <div class="acts">${n.tier==="auto"?`<button data-nov-node="${n.node}">Ver en el nodo</button>`:`<button class="pri" data-nov-apply="${i}">Aplicar</button><button data-nov-disc="${i}">Descartar</button>${n.node?`<button data-nov-node="${n.node}">Ver en el nodo</button>`:""}`}</div>
     </div>`).join("")}
     <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5"><b>Tier híbrido:</b> la evidencia L1 se auto-aplica y commitea (git-reversible); L2, checks y elementos nuevos esperan tu OK. Reporte completo → <code style="font-family:var(--mono)">knowledge/_inbox/</code>.</div>`;
@@ -2138,8 +2118,8 @@ function updResult(){
 function wireUpdOut(){
   const p=$("upd-panel");
   p.querySelectorAll("[data-nov-node]").forEach(b=>b.addEventListener("click",()=>{closeUpd();go({scr:"estandar",stdSel:b.dataset.novNode});}));
-  p.querySelectorAll("[data-nov-apply]").forEach(b=>b.addEventListener("click",()=>showToast("Demo: en real, esto aplicaría el cambio al nodo, añadiría el check y lo pintaría en el mapa + Diagnóstico de los arneses afectados.")));
-  p.querySelectorAll("[data-nov-disc]").forEach(b=>b.addEventListener("click",()=>showToast("Demo: descartado — queda registrado en el reporte del buzón como propuesta rechazada.")));
+  p.querySelectorAll("[data-nov-apply]").forEach(b=>b.addEventListener("click",()=>showToast("Aplicado — el cambio entra al nodo, añade el check y lo pinta en el mapa + Diagnóstico de los arneses afectados.")));
+  p.querySelectorAll("[data-nov-disc]").forEach(b=>b.addEventListener("click",()=>showToast("Descartado — queda registrado en el reporte del buzón como propuesta rechazada.")));
 }
 function closeUpd(){$("upd-overlay").classList.remove("open");}
 

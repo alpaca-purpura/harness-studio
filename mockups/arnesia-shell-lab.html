@@ -1,0 +1,606 @@
+<title>ArnesIA · Shell Lab</title>
+<style>
+  :root{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --heat:rgba(205,105,55,.30);
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+      --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+      --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+      --ok:#57b380; --warn:#e0904f; --crit:#e25b5b;
+      --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+      --heat:rgba(226,110,70,.30);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --heat:rgba(205,105,55,.30);
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+    --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+    --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+    --ok:#57b380; --warn:#e0904f; --crit:#e25b5b;
+    --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+    --heat:rgba(226,110,70,.30);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  code,.mono{font-family:var(--mono)}
+
+  /* ══ LAB chrome (marco, NO parte del producto) ══ */
+  .lab{flex:none;height:46px;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--surface2);border-bottom:1px solid var(--line2);position:relative;z-index:60}
+  .lab-tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted);border:1px solid var(--line2);border-radius:5px;padding:3px 7px}
+  .lab-title{font-size:12.5px;color:var(--muted)}
+  .lab-title b{color:var(--text);font-weight:650}
+  .lab-tabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .lab-tabs button{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:6px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .lab-tabs button .k{font-family:var(--mono);font-size:10px;font-weight:700;width:16px;height:16px;display:grid;place-items:center;border-radius:4px;background:var(--surface2);color:var(--muted)}
+  .lab-tabs button[aria-pressed="true"]{background:var(--accent-soft);color:var(--text);font-weight:600}
+  .lab-tabs button[aria-pressed="true"] .k{background:var(--accent);color:#fff}
+  .lab-tabs button:hover:not([aria-pressed="true"]){background:var(--surface2)}
+  .lab-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .lab-btn{border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--muted);background:var(--surface)}
+  .lab-btn:hover{color:var(--text);border-color:var(--line2)}
+
+  .stage{flex:1;min-height:0;position:relative;overflow:hidden;display:flex}
+  .stage>.frame,.stage>.frameC{flex:1;min-width:0}
+
+  /* annotation strip under lab: explains the active concept */
+  .concept-note{flex:none;display:flex;align-items:flex-start;gap:10px;padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12px;line-height:1.5}
+  .concept-note .cn-dot{flex:none;width:9px;height:9px;border-radius:99px;background:var(--accent);margin-top:4px}
+  .concept-note b{color:var(--text)}
+  .concept-note span{color:var(--muted)}
+  .concept-note .cn-tag{flex:none;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:2px 6px;background:var(--accent-soft);white-space:nowrap}
+
+  .frame{flex:1;min-height:0;display:flex;flex-direction:column}
+  .shell{flex:1;min-height:0;display:flex;background:var(--bg)}
+
+  /* ══ shared: nav item glyphs ══ */
+  .ico{width:18px;height:18px;flex:none;display:inline-grid;place-items:center;font-size:14px;line-height:1}
+
+  /* ══ shared: portfolio ══ */
+  .canvas-scroll{flex:1;min-width:0;overflow:auto}
+  .pf{padding:22px 26px;max-width:1100px;margin:0 auto}
+  .pf h1{font-size:19px;margin:0 0 3px;letter-spacing:-.01em}
+  .pf .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px}
+  .pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:13px}
+  .pf-card{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 15px;display:flex;flex-direction:column;gap:10px;text-align:left;transition:border-color .15s,transform .12s}
+  .pf-card:hover{border-color:var(--line2);transform:translateY(-1px)}
+  .pf-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .pf-nm{font-family:var(--mono);font-size:13px;font-weight:650}
+  .estado{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;border-radius:99px;padding:3px 9px}
+  .estado.ok{background:var(--ok-soft);color:var(--ok)}
+  .estado.warn{background:var(--warn-soft);color:var(--warn)}
+  .estado.crit{background:var(--crit-soft);color:var(--crit)}
+  .estado.gris{background:var(--surface2);color:var(--muted)}
+  .estado.info{background:var(--accent-soft);color:var(--accent)}
+  .pf-meta{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 6px;background:var(--surface2)}
+  .pf-sens{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .sen{border:1px solid var(--line);border-radius:8px;padding:6px 7px;background:var(--surface2)}
+  .sen .lb{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .sen .vl{font-family:var(--mono);font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
+  .spark{display:block;margin-top:3px}
+  .demo-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--muted);border:1px dashed var(--line2);border-radius:4px;padding:1px 5px}
+
+  /* ══ shared: map (ilustrativo) ══ */
+  .mapwrap{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+  .mapbar{flex:none;display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface);font-size:12px}
+  .layers{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:2px;margin-left:auto}
+  .layers button{padding:4px 11px;border-radius:5px;font-size:12px;color:var(--muted)}
+  .layers button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .map{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .band{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:9px 12px}
+  .band-hd{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
+  .band-hd h3{margin:0;font-size:12.5px}
+  .band-hd span{font-size:11px;color:var(--muted)}
+  .row{display:flex;gap:9px;flex-wrap:wrap}
+  .lanes{display:flex;gap:11px;align-items:flex-start;overflow-x:auto;padding-bottom:2px}
+  .lane{flex:1;min-width:172px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column}
+  .lane-hd{padding:7px 10px;border-bottom:1px solid var(--line);font-size:11px;font-weight:650;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+  .lane-hd .n{font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--line);border-radius:99px;padding:1px 6px}
+  .lane-body{padding:9px;display:flex;flex-direction:column;gap:8px}
+  .node{position:relative;display:flex;flex-direction:column;gap:3px;padding:7px 9px 7px 11px;border:1px solid var(--line);border-left:3px solid var(--tc,var(--line));border-radius:8px;background:var(--surface2);cursor:pointer;text-align:left;transition:border-color .12s,transform .12s}
+  .node:hover{border-color:var(--line2);transform:translateX(1px)}
+  .node.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .node.hot{background:linear-gradient(0deg,var(--heat),transparent)}
+  .node.beta{border-left-style:dashed}
+  .node-top{display:flex;align-items:center;gap:6px}
+  .glyph{width:14px;height:14px;flex:none;background:var(--tc)}
+  .g-skill{border-radius:2px}
+  .g-agent{border-radius:99px}
+  .g-hook{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .g-know{border-radius:1px}
+  .g-mcp{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+  .g-rule{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)}
+  .node-nm{font-family:var(--mono);font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .node-ty{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .node-mt{font-family:var(--mono);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .node-badge{position:absolute;top:-6px;right:-6px;font-family:var(--mono);font-size:9px;font-weight:700;background:var(--warn);color:#fff;border-radius:99px;padding:1px 5px}
+  .maplegend{flex:none;display:flex;gap:13px;align-items:center;padding:7px 16px;border-top:1px solid var(--line);background:var(--surface);font-size:11px;color:var(--muted);overflow-x:auto}
+  .lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .lg .glyph{width:11px;height:11px}
+
+  /* ══ shared: chat / conductor ══ */
+  .chat{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+  .chat-hd{flex:none;display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .chat-hd .t{font-size:12.5px;font-weight:650}
+  .chat-hd .x{margin-left:auto;color:var(--muted);border-radius:6px;padding:3px 7px}
+  .chat-hd .x:hover{background:var(--surface2);color:var(--text)}
+  .ses{flex:none;display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--surface2);font-family:var(--mono);font-size:10px;color:var(--muted);flex-wrap:wrap}
+  .ses .sid{color:var(--accent)}
+  .ctxbar{width:52px;height:6px;border-radius:99px;background:var(--surface);overflow:hidden;border:1px solid var(--line)}
+  .ctxbar i{display:block;height:100%;background:var(--accent);width:18%}
+  .msgs{flex:1;overflow:auto;padding:13px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:88%;padding:9px 11px;border-radius:11px;font-size:12.5px;line-height:1.5}
+  .msg.u{align-self:flex-end;background:var(--accent-soft);border:1px solid var(--accent);border-bottom-right-radius:3px}
+  .msg.a{align-self:flex-start;background:var(--surface2);border:1px solid var(--line);border-bottom-left-radius:3px}
+  .msg.sys{align-self:center;font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px dashed var(--line2);border-radius:7px;padding:4px 9px}
+  .msg .diff{font-family:var(--mono);font-size:10.5px;line-height:1.55;margin-top:7px;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .msg .diff div{padding:1px 8px}
+  .msg .diff .add{background:var(--ok-soft);color:var(--ok)}
+  .msg .diff .del{background:var(--crit-soft);color:var(--crit)}
+  .msg .cta{display:flex;gap:6px;margin-top:8px}
+  .msg .cta button{border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;background:var(--surface)}
+  .msg .cta button.pri{border-color:var(--accent);color:var(--accent)}
+  .composer{flex:none;padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end}
+  .composer .box{flex:1;border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:9px 11px;font-size:12.5px;color:var(--muted);min-height:38px}
+  .composer .send{flex:none;width:36px;height:36px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:15px}
+
+  /* ══════════ CONCEPT A · Command Rail ══════════ */
+  .railL{flex:none;width:60px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:3px;z-index:5}
+  .railL .brand{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-bottom:9px}
+  .railL .ri{width:44px;padding:8px 0;border-radius:9px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:9px}
+  .railL .ri .ico{font-size:16px}
+  .railL .ri:hover{background:var(--surface2);color:var(--text)}
+  .railL .ri[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+  .railL .sp{flex:1}
+  .mainA{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topA{flex:none;display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .crumb{display:flex;align-items:center;gap:7px;font-size:12.5px}
+  .crumb .sepc{color:var(--muted)}
+  .crumb .pick{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:4px 9px;background:var(--surface2);font-family:var(--mono);font-size:11.5px}
+  .ask{margin-left:auto;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;background:var(--accent-soft)}
+  .ask kbd{font-family:var(--mono);font-size:10px;border:1px solid currentColor;border-radius:4px;padding:0 4px;opacity:.8}
+  .bodyA{flex:1;min-height:0;display:flex}
+  .dockR{flex:none;width:0;overflow:hidden;border-left:1px solid var(--line);transition:width .2s ease}
+  .shell.chat-on .dockR{width:372px}
+
+  /* ══════════ CONCEPT B · Copilot Home ══════════ */
+  .sideB{flex:none;width:246px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:11px 9px;gap:4px}
+  .sideB .newc{display:flex;align-items:center;gap:8px;border:1px solid var(--accent);color:var(--accent);border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:600;background:var(--accent-soft);margin-bottom:6px}
+  .sideB .grp{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:9px 8px 4px}
+  .sideB .item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;font-size:12.5px;color:var(--text)}
+  .sideB .item.thread{color:var(--muted);font-size:12px}
+  .sideB .item:hover{background:var(--surface2)}
+  .sideB .item[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .sideB .dotm{width:7px;height:7px;border-radius:99px;flex:none}
+  .chatB{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;background:var(--bg)}
+  .chatB-inner{width:100%;max-width:720px;flex:1;display:flex;flex-direction:column;min-height:0}
+  .chatB .msgs{padding:22px 8px}
+  .canvasB{flex:none;width:0;overflow:hidden;border-left:1px solid var(--line);background:var(--surface);transition:width .2s ease;display:flex;flex-direction:column}
+  .shell.canvas-on .canvasB{width:46%;min-width:420px}
+  .canvasB-hd{flex:none;display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:12px}
+  .canvasB-hd .artf{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+
+  /* ══════════ CONCEPT C · Split Studio ══════════ */
+  .frameC{display:flex;flex-direction:column;min-height:0;flex:1}
+  .topC{flex:none;display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .brandC{font-weight:750;font-size:15px;letter-spacing:-.02em}
+  .brandC em{font-style:normal;color:var(--accent)}
+  .tabsC{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:2px}
+  .tabsC button{padding:5px 12px;border-radius:6px;font-size:12.5px;color:var(--muted)}
+  .tabsC button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .pickC{margin-left:2px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:4px 9px;background:var(--surface2);font-family:var(--mono);font-size:11.5px}
+  .splitC{flex:1;min-height:0;display:flex}
+  .canvasC{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--line)}
+  .conductorC{flex:none;width:388px;display:flex;flex-direction:column;background:var(--surface);min-height:0}
+  .cnd-tabs{flex:none;display:flex;gap:2px;padding:8px 10px 0}
+  .cnd-tabs button{flex:1;padding:6px;border-radius:7px 7px 0 0;font-size:11.5px;color:var(--muted);border:1px solid transparent;border-bottom:none}
+  .cnd-tabs button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;border-color:var(--line)}
+  .cnd-body{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:-1px}
+
+  /* ══════════ CONCEPT D · Canvas-native ══════════ */
+  .canvasD{position:absolute;inset:0;overflow:hidden;background:
+    radial-gradient(circle at 30% 20%, var(--accent-soft), transparent 42%),
+    radial-gradient(circle at 78% 74%, var(--accent-soft), transparent 40%),
+    var(--bg)}
+  .zoomtag{position:absolute;top:14px;left:16px;z-index:8;display:inline-flex;align-items:center;gap:8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 11px;box-shadow:0 4px 14px rgba(0,0,0,.1)}
+  .zoomtag b{font-weight:650}
+  .zoomtag .zback{color:var(--accent);font-weight:600;border-left:1px solid var(--line);padding-left:8px}
+  .galaxy{position:absolute;inset:0;display:grid;place-items:center}
+  .galaxy-inner{position:relative;width:min(760px,86%);height:min(430px,72%)}
+  .pod{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:transform .15s}
+  .pod:hover{transform:translate(-50%,-50%) scale(1.05)}
+  .pod .disc{width:var(--sz,92px);height:var(--sz,92px);border-radius:99px;border:2px solid var(--pc,var(--line2));background:var(--surface);display:grid;place-items:center;box-shadow:0 6px 22px rgba(0,0,0,.12);position:relative}
+  .pod .disc .st{font-size:22px}
+  .pod .ring{position:absolute;inset:-6px;border-radius:99px;border:2px solid var(--pc);opacity:.35}
+  .pod .plabel{font-family:var(--mono);font-size:11px;font-weight:650}
+  .pod .psub{font-size:10px;color:var(--muted)}
+  .zoomMap{position:absolute;inset:0;display:flex;flex-direction:column;animation:zin .22s ease}
+  @keyframes zin{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+  .cmdbar{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--line2);border-radius:14px;padding:6px;box-shadow:0 10px 34px rgba(0,0,0,.2)}
+  .cmdbar .cq{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:9px;background:var(--surface2);color:var(--muted);font-size:12px;min-width:190px}
+  .cmdbar .cq kbd{margin-left:auto;font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+  .cmdbar .cbtn{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;font-size:12px;color:var(--muted)}
+  .cmdbar .cbtn:hover{background:var(--surface2);color:var(--text)}
+  .cmdbar .cbtn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .cmdbar .cbtn.talk{background:var(--accent);color:#fff}
+  .hud{position:absolute;right:20px;bottom:84px;z-index:10;width:352px;max-height:62%;display:none;flex-direction:column;background:var(--surface);border:1px solid var(--line2);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.32);overflow:hidden}
+  .shell.hud-on .hud{display:flex}
+  .hud .chat-hd{cursor:grab}
+
+  .empty{flex:1;display:grid;place-items:center;color:var(--muted);font-size:12.5px;text-align:center;padding:30px}
+  .empty .big{font-size:26px;margin-bottom:8px;opacity:.6}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);font-size:12.5px;padding:9px 15px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;z-index:200;max-width:80vw}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:720px){.lab-title,.lab-tag{display:none}.pf{padding:16px}}
+</style>
+
+<div class="lab">
+  <span class="lab-tag">SHELL LAB</span>
+  <span class="lab-title">ArnesIA · <b>4 paradigmas de shell</b> — mismo contenido, elige al tacto</span>
+  <div class="lab-tabs" id="lab-tabs" role="tablist">
+    <button data-c="A" role="tab"><span class="k">A</span>Command Rail</button>
+    <button data-c="B" role="tab"><span class="k">B</span>Copilot Home</button>
+    <button data-c="C" role="tab"><span class="k">C</span>Split Studio</button>
+    <button data-c="D" role="tab"><span class="k">D</span>Canvas-native</button>
+  </div>
+  <div class="lab-right">
+    <button class="lab-btn" id="theme">◐ Tema</button>
+  </div>
+</div>
+
+<div class="concept-note" id="cnote"></div>
+
+<div class="stage" id="stage"></div>
+
+<div id="toast"></div>
+
+<script>
+/* ═════════ estado ═════════ */
+const S={concept:"A",screen:"pf",chat:false,canvasB:false,cndTab:"chat",layer:"estructura",zoom:"galaxy",hud:false,arnes:"luana-platform"};
+
+const CONCEPTS={
+  A:{tag:"NAV ESPACIAL · CHAT INVOCADO",title:"Command Rail",
+     desc:"Rail de iconos fijo a la izquierda (como un IDE / Linear / conductor). El visual manda: mapa y portafolio ocupan casi todo. El chat se <b>invoca</b> (⌘K o «Conversar») como panel derecho contextual — es herramienta, no hogar. Familiar para power-users; da el máximo espacio al mapa."},
+  B:{tag:"CHAT PRIMERO · VISUAL COMO ARTIFACT",title:"Copilot Home",
+     desc:"Modelo Claude Desktop: abre en una columna de conversación con lista de chats + arneses a la izquierda. <b>Navegas hablando</b> («muéstrame el mapa de luana») y el visual abre como <i>artifact</i> a la derecha. Lo más «agéntico-nativo» — pero entierra lo visual, que es nuestro fuerte."},
+  C:{tag:"SPLIT PERMANENTE · VISUAL + CONDUCTOR",title:"Split Studio",
+     desc:"Pantalla partida siempre: <b>visual a la izquierda, conductor a la derecha</b> (conversar · sesión CC · tren, con pestañas). Ninguno es subordinado. Editas hablando y el mapa <b>muta en vivo</b> al lado — materializa «los componentes nacen y mutan EN el mapa mientras se conversa». El más equilibrado."},
+  D:{tag:"CANVAS NATIVO · ZOOM SEMÁNTICO",title:"Canvas-native",
+     desc:"Todo es lienzo. <b>Zoom semántico</b>: alejado = galaxia de arneses (portafolio); acercas a uno = su mapa. Sin pestañas: navegación por command bar flotante (⌘K) y el chat es un <b>HUD flotante</b> que se arrastra sobre el canvas. Lo más «visual» y audaz — también lo menos convencional."}
+};
+
+/* ═════════ datos (ilustrativos — foco = shell) ═════════ */
+const ARN=[
+  {id:"luana-platform",nm:"luana-platform",estado:["crit","✕ señales incompletas"],canal:"real",v:"—",real:true,
+   sens:[["corr/día","6.4",[3,5,4,7,6,8,6]],["éxito","—",null],["p95","4m12s",[5,4,6,5,4,4,3]]],tren:"—",hall:2},
+  {id:"dev-fullcycle",nm:"dev-fullcycle",estado:["ok","✓ sano"],canal:"estable",v:"v2.3",real:false,
+   sens:[["corr/día","41",[6,7,6,8,7,8,9]],["éxito","94%",[8,8,7,9,9,8,9]],["p95","2m03s",[4,4,3,4,3,3,3]]],tren:"12/14",hall:0},
+  {id:"pm-discovery",nm:"pm-discovery",estado:["info","◐ naciendo"],canal:"beta",v:"v0.1",real:true,
+   sens:[["corr/día","—",null],["éxito","—",null],["p95","—",null]],tren:"—",hall:0},
+  {id:"harnesses-improvement",nm:"harnesses-improvement",estado:["warn","▲ atención"],canal:"estable",v:"v1.4",real:true,
+   sens:[["corr/día","2.1",[3,2,4,2,3,2,1]],["éxito","88%",[9,8,7,8,7,7,6]],["p95","6m40s",[3,4,5,6,6,7,7]]],tren:"listo",hall:3}
+];
+
+const MAP={
+  guardia:[
+    {nm:"telemetry-emit",ty:"hook",mt:"inyecta · 30d 194 ses"},
+    {nm:"auto-chain",ty:"hook",mt:"encadena fases"},
+    {nm:"contract-guard",ty:"hook",mt:"valida contrato",badge:"⚠ 3 exc"}
+  ],
+  lanes:[
+    {nm:"Intake",n:2,nodes:[{nm:"pm-luana",ty:"skill",mt:"5.3M · 30d",hot:true},{nm:"pm-vitalia",ty:"skill",mt:"3.2M · 30d"}]},
+    {nm:"Spec & UX",n:2,nodes:[{nm:"po-ux",ty:"skill",mt:"éxito 91%"},{nm:"ux-agentico",ty:"agent",mt:"12× 30d"}]},
+    {nm:"Desarrollo",n:3,nodes:[{nm:"dev-team",ty:"skill",mt:"6.7M · heat máx",hot:true},{nm:"builder-fe",ty:"agent",mt:"2.5M · 30d"},{nm:"builder-be",ty:"agent",mt:"1.9M · 30d",beta:true}]},
+    {nm:"Calidad",n:2,nodes:[{nm:"auditor",ty:"skill",mt:"gate manual"},{nm:"gate-runner",ty:"agent",mt:"SIN GATE",badge:"!"}]}
+  ],
+  base:[
+    {nm:"CLAUDE.md",ty:"rule",mt:"siempre en contexto"},
+    {nm:"project.config",ty:"know",mt:"leído por 8 skills"},
+    {nm:"mcp-tessl",ty:"mcp",mt:"0× 30d"}
+  ]
+};
+const TYN={skill:"Skill",agent:"Agente",hook:"Hook",know:"Knowledge",mcp:"MCP",rule:"Regla"};
+const NAV=[["pf","◫","Portafolio"],["map","⬡","Mapa"],["runs","▤","Corridas"],["diag","⚠","Diagnóstico"],["train","⇢","Tren"],["hist","◷","Historia"]];
+
+/* ═════════ helpers de render ═════════ */
+function spark(d){
+  if(!d) return '<span class="mono" style="font-size:10px;color:var(--muted)">— sin datos</span>';
+  const w=54,h=15,mx=Math.max(...d),mn=Math.min(...d),rg=(mx-mn)||1;
+  const pts=d.map((v,i)=>`${(i/(d.length-1)*w).toFixed(1)},${(h-((v-mn)/rg)*h).toFixed(1)}`).join(" ");
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/><circle cx="${(w).toFixed(1)}" cy="${(h-((d[d.length-1]-mn)/rg)*h).toFixed(1)}" r="1.7" fill="var(--accent)"/></svg>`;
+}
+function portfolio(compact){
+  const cards=ARN.map(a=>`
+    <button class="pf-card" data-open="${a.id}">
+      <div class="pf-top">
+        <span class="pf-nm">${a.nm}</span>
+        <span class="estado ${a.estado[0]}">${a.estado[1]}</span>
+      </div>
+      <div class="pf-meta">
+        <span class="chip">${a.canal} · ${a.v}</span>
+        ${a.real?'':'<span class="demo-tag">DEMO</span>'}
+        <span class="chip">tren ${a.tren}</span>
+        ${a.hall?`<span class="chip" style="color:var(--crit)">${a.hall} hallazgos</span>`:'<span class="chip" style="color:var(--ok)">0 hallazgos</span>'}
+      </div>
+      <div class="pf-sens">
+        ${a.sens.map(s=>`<div class="sen"><div class="lb">${s[0]}</div><div class="vl">${s[1]}</div>${spark(s[2])}</div>`).join("")}
+      </div>
+    </button>`).join("");
+  return `<div class="canvas-scroll"><div class="pf">
+    <h1>La producción de la fábrica</h1>
+    <p class="sub">Tarjeta idéntica por arnés · semáforo por umbral · clic entra al mapa. ${compact?'':'<b>4 arneses</b> · 51 corridas 30d · 2.9M tok · 5 hallazgos'}</p>
+    <div class="pf-grid">${cards}</div>
+  </div></div>`;
+}
+function mapView(withBar){
+  const g=MAP.guardia.map(node).join("");
+  const lanes=MAP.lanes.map(l=>`
+    <div class="lane"><div class="lane-hd">${l.nm}<span class="n">${l.n}</span></div>
+    <div class="lane-body">${l.nodes.map(node).join("")}</div></div>`).join("");
+  const base=MAP.base.map(node).join("");
+  const bar=withBar?`<div class="mapbar"><span class="mono" style="color:var(--muted)">luana-platform</span> · geografía real
+    <div class="layers" role="tablist">
+      ${["estructura","tokens","perf","proceso"].map(c=>`<button data-layer="${c}" role="tab" aria-pressed="${S.layer===c}">${({estructura:"Estructura",tokens:"Tokens",perf:"Desempeño",proceso:"Proceso"})[c]}</button>`).join("")}
+    </div></div>`:"";
+  const legend=`<div class="maplegend">
+    ${Object.entries(TYN).map(([k,v])=>`<span class="lg"><span class="glyph g-${k}" style="--tc:var(--c-${k})"></span>${v.toLowerCase()}</span>`).join("")}
+    <span class="lg" style="margin-left:auto;color:var(--muted)">◧ mapa ilustrativo — el foco de este lab es el <b style="color:var(--text)">shell</b>, no la data</span>
+  </div>`;
+  return `<div class="mapwrap">${bar}
+    <div class="map">
+      <div class="band"><div class="band-hd"><h3>Guardia</h3><span>hooks transversales — actúan en todas las fases</span></div><div class="row">${g}</div></div>
+      <div class="lanes">${lanes}</div>
+      <div class="band"><div class="band-hd"><h3>Base</h3><span>siempre en contexto — reglas · knowledge · mcp</span></div><div class="row">${base}</div></div>
+    </div>${legend}</div>`;
+}
+function node(n){
+  return `<button class="node ${n.hot?'hot':''} ${n.beta?'beta':''} ${S._sel===n.nm?'sel':''}" data-node="${n.nm}" style="--tc:var(--c-${n.ty})">
+    ${n.badge?`<span class="node-badge">${n.badge}</span>`:''}
+    <div class="node-top"><span class="glyph g-${n.ty}"></span><span class="node-nm">${n.nm}</span></div>
+    <span class="node-ty">${TYN[n.ty]}</span>
+    <span class="node-mt">${n.mt}</span>
+  </button>`;
+}
+function chat(variant){
+  const closeBtn=variant==='dock'||variant==='hud'?'<button class="x" data-chatclose>✕</button>':'';
+  const title=variant==='column'?'Nueva conversación':'Conversar · editar hablando';
+  return `<div class="chat" style="flex:1;min-height:0">
+    <div class="chat-hd"><span class="ico" style="color:var(--accent)">✦</span><span class="t">${title}</span>${closeBtn}</div>
+    <div class="ses"><span class="sid">◍ sess_a71c</span><span>· Opus 4.8</span><span>· 24.1k tok</span><span>· ctx</span><span class="ctxbar"><i></i></span><span>18%</span><span>· $0.19</span></div>
+    <div class="msgs">
+      <div class="msg u">Sube el timeout del hook <b>contract-guard</b> a 60s y registra la excepción cuando salte.</div>
+      <div class="msg sys">skill_activated · edición-de-caja (proactivo) · nodo=contract-guard</div>
+      <div class="msg a">Listo. Propuesta sobre <b>contract-guard.hook</b> (queda en <b>beta</b> → tren, no toca estable):
+        <div class="diff">
+          <div class="del">- timeout: 30</div>
+          <div class="add">+ timeout: 60</div>
+          <div class="add">+ on_timeout: log_exception("contract-guard")</div>
+        </div>
+        <div class="cta"><button class="pri" data-toast="Cambio en beta → aparece en el Tren. Nada se promueve sin eval (principio 10).">Aplicar → beta</button><button data-toast="El nodo contract-guard parpadea en el mapa mostrando el punteado de propuesta.">Ver en el mapa ✦</button></div>
+      </div>
+    </div>
+    <div class="composer"><div class="box">Pídele un cambio al arnés… (crea · edita · captura base)</div><button class="send" data-toast="Claude Code headless detrás — patrón conductor.">↑</button></div>
+  </div>`;
+}
+function navRail(){
+  return `<nav class="railL" aria-label="Vistas">
+    <div class="brand" title="ArnesIA">A</div>
+    ${NAV.map(([k,ic,lb])=>`<button class="ri" data-nav="${k}" aria-pressed="${(S.screen==='pf'&&k==='pf')||(S.screen==='map'&&k==='map')}" title="${lb}"><span class="ico">${ic}</span>${lb.slice(0,6)}</button>`).join("")}
+    <div class="sp"></div>
+    <button class="ri" data-toast="Estándar as code — 11 elementos · 121 checks (global, cross-arnés)."><span class="ico">⟳</span>Están.</button>
+    <button class="ri" data-toast="Ajustes · Marketplaces"><span class="ico">⚙</span>Ajus.</button>
+  </nav>`;
+}
+
+/* ═════════ shells ═════════ */
+function shellA(){
+  const body=S.screen==='pf'?portfolio(false):mapView(true);
+  const crumb=S.screen==='pf'
+    ? `<span>Portafolio</span>`
+    : `<span>Portafolio</span><span class="sepc">/</span><span class="pick">luana-platform <span style="opacity:.6">▾</span></span><span class="sepc">/</span><span>Mapa</span>`;
+  return `<div class="frame"><div class="shell ${S.chat?'chat-on':''}">
+    ${navRail()}
+    <div class="mainA">
+      <div class="topA"><div class="crumb">${crumb}</div>
+        <button class="ask" data-chattoggle><span class="ico">✦</span>Conversar <kbd>⌘K</kbd></button>
+      </div>
+      <div class="bodyA">${body}<aside class="dockR">${S.chat?chat('dock'):''}</aside></div>
+    </div>
+  </div></div>`;
+}
+function shellB(){
+  const threads=[["luana · timeout hook","var(--crit)"],["dev-fullcycle · nuevo agente","var(--ok)"],["¿qué se rompió esta semana?","var(--warn)"]];
+  const canvasContent=S.screen==='map'?mapView(true):portfolio(true);
+  return `<div class="frame"><div class="shell ${S.canvasB?'canvas-on':''}">
+    <aside class="sideB">
+      <button class="newc"><span class="ico">✦</span> Nueva conversación</button>
+      <div class="grp">Conversaciones</div>
+      ${threads.map((t,i)=>`<button class="item thread" data-toast="Hilo de conversación con su sesión CC asociada."><span class="dotm" style="background:${t[1]}"></span>${t[0]}</button>`).join("")}
+      <div class="grp">Arneses</div>
+      ${ARN.map(a=>`<button class="item" data-open="${a.id}"><span class="dotm" style="background:var(--${a.estado[0]==='gris'?'muted':a.estado[0]==='info'?'accent':a.estado[0]})"></span>${a.nm}</button>`).join("")}
+      <div style="flex:1"></div>
+      <button class="item" data-toast="Estándar global"><span class="ico">⟳</span> Estándar</button>
+      <button class="item" data-toast="Ajustes"><span class="ico">⚙</span> Ajustes</button>
+    </aside>
+    <div class="chatB"><div class="chatB-inner">
+      <div class="msgs">
+        <div class="msg a">Hola. Soy el conductor de la fábrica. Puedo <b>crear</b>, <b>editar</b> o <b>diagnosticar</b> arneses. Prueba: «muéstrame el mapa de luana» o «¿por qué falla la fase de Calidad?».</div>
+        <div class="msg u">Muéstrame el mapa de luana-platform.</div>
+        <div class="msg sys">command · abriendo artifact «Mapa · luana-platform» →</div>
+        <div class="msg a">Ahí está, a la derecha ▸. Su fase <b>Calidad</b> corre <b>SIN GATE</b> en gate-runner — el principio 10 no está instrumentado. ¿Lo forjamos?</div>
+        <div class="msg u">Sí, sube el timeout de contract-guard a 60s primero.</div>
+        <div class="msg a">Propuesta en <b>beta</b>:
+          <div class="diff"><div class="del">- timeout: 30</div><div class="add">+ timeout: 60</div></div>
+          <div class="cta"><button class="pri" data-toast="Cambio en beta → Tren.">Aplicar → beta</button></div>
+        </div>
+      </div>
+      <div class="composer"><div class="box">Escribe a la fábrica…</div><button class="send" data-toast="Claude Code headless detrás.">↑</button></div>
+    </div></div>
+    <section class="canvasB">
+      <div class="canvasB-hd"><span class="artf">ARTIFACT</span><b>${S.screen==='map'?'Mapa · luana-platform':'Portafolio'}</b><button class="x" style="margin-left:auto;color:var(--muted);padding:3px 7px" data-canvasclose>✕</button></div>
+      ${canvasContent}
+    </section>
+  </div></div>`;
+}
+function shellC(){
+  const view=S.screen==='pf'?portfolio(false):mapView(true);
+  const cnd=S.cndTab==='chat'?chat('conductor')
+    :S.cndTab==='ses'?`<div class="empty"><div><div class="big">◍</div>Sesión CC en vivo<br><span class="mono" style="font-size:11px">sess_a71c · Opus 4.8 · 24.1k tok · ctx 18% · $0.19</span><br><br>eventos: skill_activated · hooks · /goal · compaction</div></div>`
+    :`<div class="empty"><div><div class="big">⇢</div>Tren de release<br><span style="font-size:11px">horno → eval-gate → listo → publicado</span></div></div>`;
+  return `<div class="frameC">
+    <div class="topC">
+      <span class="brandC">Arnes<em>IA</em></span>
+      <span class="pickC">luana-platform <span style="opacity:.6">· real ▾</span></span>
+      <div class="tabsC" role="tablist">
+        <button data-nav="pf" role="tab" aria-pressed="${S.screen==='pf'}">Portafolio</button>
+        <button data-nav="map" role="tab" aria-pressed="${S.screen==='map'}">Mapa</button>
+        <button data-toast="Corridas reales (JSONL)" role="tab" aria-pressed="false">Corridas</button>
+        <button data-toast="Diagnóstico" role="tab" aria-pressed="false">Diagnóstico</button>
+        <button data-toast="Tren de release" role="tab" aria-pressed="false">Tren</button>
+      </div>
+      <span style="margin-left:auto" class="mono" style="font-size:11px;color:var(--muted)">⟳ Estándar v1.0</span>
+    </div>
+    <div class="splitC">
+      <div class="canvasC">${view}</div>
+      <aside class="conductorC">
+        <div class="cnd-tabs" role="tablist">
+          <button data-cnd="chat" role="tab" aria-pressed="${S.cndTab==='chat'}">✦ Conversar</button>
+          <button data-cnd="ses" role="tab" aria-pressed="${S.cndTab==='ses'}">◍ Sesión</button>
+          <button data-cnd="tren" role="tab" aria-pressed="${S.cndTab==='tren'}">⇢ Tren</button>
+        </div>
+        <div class="cnd-body">${cnd}</div>
+      </aside>
+    </div>
+  </div>`;
+}
+function shellD(){
+  const pods=[
+    {id:"dev-fullcycle",st:"✓",sz:118,pc:"var(--ok)",sub:"sano · 41/día",x:26,y:34},
+    {id:"luana-platform",st:"✕",sz:132,pc:"var(--crit)",sub:"señales incompletas",x:60,y:56,ring:true},
+    {id:"harnesses-improvement",st:"▲",sz:96,pc:"var(--warn)",sub:"atención · 3 hallazgos",x:82,y:24},
+    {id:"pm-discovery",st:"◐",sz:74,pc:"var(--accent)",sub:"naciendo",x:34,y:78}
+  ];
+  const galaxy=`<div class="galaxy"><div class="galaxy-inner">
+    ${pods.map(p=>`<button class="pod" data-open="${p.id}" style="left:${p.x}%;top:${p.y}%;--sz:${p.sz}px;--pc:${p.pc}">
+      <span class="disc">${p.ring?'<span class="ring"></span>':''}<span class="st" style="color:${p.pc}">${p.st}</span></span>
+      <span class="plabel">${p.id}</span><span class="psub">${p.sub}</span></button>`).join("")}
+  </div></div>`;
+  const zoomtag=S.zoom==='harness'
+    ? `<div class="zoomtag"><span>◫ Galaxia</span> › <b>luana-platform</b><button class="zback" data-zoomout>↙ alejar</button></div>`
+    : `<div class="zoomtag"><b>◫ Galaxia</b> · 4 arneses <span style="color:var(--muted)">— acerca a uno para su mapa</span></div>`;
+  const content=S.zoom==='harness'?`<div class="zoomMap">${mapView(true)}</div>`:galaxy;
+  return `<div class="frame"><div class="shell ${S.hud?'hud-on':''}" style="position:relative;display:block">
+    <div class="canvasD">
+      ${zoomtag}
+      ${content}
+      <div class="cmdbar">
+        <div class="cq"><span class="ico">⌕</span>Ir a… crear… preguntar<kbd>⌘K</kbd></div>
+        <button class="cbtn" data-zoomout aria-pressed="${S.zoom==='galaxy'}"><span class="ico">◫</span>Galaxia</button>
+        <button class="cbtn" data-toast="Zoom semántico: acerca a un arnés para ver su mapa."><span class="ico">⬡</span>Mapa</button>
+        <button class="cbtn talk" data-hudtoggle><span class="ico">✦</span>Conversar</button>
+      </div>
+      <div class="hud">${chat('hud')}</div>
+    </div>
+  </div></div>`;
+}
+
+/* ═════════ render + wiring ═════════ */
+const SHELLS={A:shellA,B:shellB,C:shellC,D:shellD};
+const stage=document.getElementById('stage');
+const cnote=document.getElementById('cnote');
+function renderNote(){
+  const c=CONCEPTS[S.concept];
+  cnote.innerHTML=`<span class="cn-dot"></span><span class="cn-tag">${S.concept} · ${c.tag}</span><span><b>${c.title}.</b> ${c.desc}</span>`;
+}
+function render(){
+  document.querySelectorAll('#lab-tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.concept));
+  renderNote();
+  stage.innerHTML=SHELLS[S.concept]();
+  wire();
+}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2600);}
+
+function wire(){
+  stage.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
+    S.screen='map'; S._sel=null;
+    if(S.concept==='B') S.canvasB=true;
+    if(S.concept==='D') S.zoom='harness';
+    render();
+  });
+  stage.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.nav;
+    if(k==='pf'){S.screen='pf';S.zoom='galaxy';}
+    else if(k==='map'){S.screen='map';}
+    else{toast('Vista «'+k+'» — fuera de foco de este lab (shell). Vive en el mockup v3.');return;}
+    render();
+  });
+  stage.querySelectorAll('[data-node]').forEach(b=>b.onclick=()=>{
+    S._sel=b.dataset.node;
+    if(S.concept==='A'){S.chat=true;}
+    if(S.concept==='D'){S.hud=true;}
+    if(S.concept==='C'){S.cndTab='chat';}
+    render();
+    toast('Nodo «'+b.dataset.node+'» seleccionado → editar hablando');
+  });
+  stage.querySelectorAll('[data-layer]').forEach(b=>b.onclick=()=>{S.layer=b.dataset.layer;render();});
+  stage.querySelectorAll('[data-cnd]').forEach(b=>b.onclick=()=>{S.cndTab=b.dataset.cnd;render();});
+  stage.querySelectorAll('[data-chattoggle]').forEach(b=>b.onclick=()=>{S.chat=!S.chat;render();});
+  stage.querySelectorAll('[data-chatclose]').forEach(b=>b.onclick=()=>{S.chat=false;render();});
+  stage.querySelectorAll('[data-canvasclose]').forEach(b=>b.onclick=()=>{S.canvasB=false;render();});
+  stage.querySelectorAll('[data-hudtoggle]').forEach(b=>b.onclick=()=>{S.hud=!S.hud;render();});
+  stage.querySelectorAll('[data-zoomout]').forEach(b=>b.onclick=()=>{S.zoom='galaxy';S.screen='pf';render();});
+  stage.querySelectorAll('[data-toast]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();toast(b.dataset.toast);});
+}
+
+/* lab tabs */
+document.querySelectorAll('#lab-tabs button').forEach(b=>b.onclick=()=>{
+  S.concept=b.dataset.c;
+  // reset transient state so each concept opens in its natural home
+  S.chat=false;S.canvasB=false;S.hud=false;S._sel=null;
+  S.screen=(S.concept==='B')?'pf':'pf';
+  S.zoom='galaxy';S.cndTab='chat';
+  render();
+});
+document.getElementById('theme').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':cur==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark');
+  document.documentElement.setAttribute('data-theme',next);
+  toast('Tema: '+next);
+};
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();
+    if(S.concept==='A'){S.chat=!S.chat;render();}
+    else if(S.concept==='D'){S.hud=!S.hud;render();}
+    else toast('⌘K — en '+S.concept+' el chat ya está siempre visible.');
+  }
+  if(['1','2','3','4'].includes(e.key)&&!e.metaKey&&!e.ctrlKey){
+    const map={'1':'A','2':'B','3':'C','4':'D'};S.concept=map[e.key];
+    S.chat=false;S.canvasB=false;S.hud=false;S.screen='pf';S.zoom='galaxy';render();
+  }
+});
+
+render();
+</script>
