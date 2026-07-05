@@ -34,7 +34,10 @@ ejecutan; marketplace git elegible por proyecto.
 
 **Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 10 de ~11-13**.
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
-al corte · backlog iteraciones 6+) · mockup vigente = `mockups/arnesia-mockup-v3.html`
+al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
+cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·
+fábrica de cajas · qué debe tener cada componente · contrato de caja · reglas de honestidad ·
+proceso de conformación — doc vivo, crece con las iteraciones UX) · mockup vigente = `mockups/arnesia-mockup-v3.html`
 (navegable, artifact único — URL en memoria auto) · estándares mapeados =
 `research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
 el repo · publicar siempre al MISMO artifact (parámetro `url`) · nada se entrega sin
