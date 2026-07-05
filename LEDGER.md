@@ -225,7 +225,66 @@ gobernanza (límite de sesiones concurrentes, presupuesto costo/`%contexto`/`max
 Debates de VISION que fase 4 hereda: segundo cerebro · config de marketplace por proyecto · renombre
 repo → `arnesia`.
 
-<!-- Próximas: HS-06, … -->
+### HS-06 · Endurecimiento multisesión + confinamiento de la superficie local — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-05):* "Quiero que revises la aplicación en tauri desarrollada y me
+comentes si técnicamente ya separaste por completo el contexto y manejo de claude code entre tabs
+de sesión… Audita a profundidad" → "Si, investiga cada punto a profundidad y soluciónalos, debemos
+estar en todos en Alta. Eso sí, todo diséñalo primero, ve que haya coherencia total en el diseño y
+arquitectura técnica".
+
+*Desarrollo:* auditoría a fondo del shell Tauri v1 (`a0e4fe2`). **Veredicto: el aislamiento de
+contexto CC por tab SÍ es real** a nivel de proceso — 1 ventana → 1 daemon → N subprocesos `claude`,
+cada uno con su `ClaudeSessionID`; el FE rutea por `session_id` con buffer por-sesión. Pero la
+auditoría destapó **7 huecos**. Coherencia primero (design-mode + forks firmados por AskUserQuestion),
+luego implementación en las 4 capas + materialización as-code. Hallazgo clave: **5 de los 7 no eran
+arquitectura nueva** — caían sobre checks ya declarados o sobre el scope multisesión ya cementado en
+«Siguiente» de HS-05: S2 = la prosa `permisos-gui` «aislar sesiones por cwd/worktree» (que el
+conductor shippeado violaba, corriendo todo en un cwd global); c.1 run_id = S5; c.3 max-turns/gobierno
+= S3 + fold-in; c.4 contención `~/.claude` = S2. **Solo S1 (auth de la superficie) era un boundary
+genuinamente ausente** — ninguna regla cubría «quién le habla al daemon» (con CORS `*` + sin token,
+cualquier web abierta en el navegador podía POSTear turnos y conducir un agente con acceso al
+filesystem).
+
+**Forks ratificados (AskUserQuestion):** (1) **S2 = registro explícito arnés→ruta** (puerto
+`WorkdirResolver` + `store/arnes_registry.go`; fallback aislado por arnés si no registrado — jamás el
+cwd global; worktree-por-sesión = upgrade futuro del mismo puerto). (2) **S1 = el shell emite el
+token** (Tauri mint por lanzamiento → env `ARNESIA_AUTH_TOKEN` al spawnear el sidecar → WebView por
+`invoke('auth_token')`; dev sin Tauri → daemon bajo Host+Origin; shell = raíz de confianza,
+coherente con core⊥shell). (3) **ficha = HS-06** (las specs completas corren a HS-07).
+
+**Materializado (código + arch as-code, nacen enforced):** **2 boundaries nuevos** —
+[`superficie-local-confinada`](./arch/boundaries/superficie-local-confinada.md) (middleware `withAuth`
+en 3 gates: Host anti-rebinding · Origin allowlist reflejado —adiós CORS `*`— · token constant-time;
+6 checks) + [`sesion-viva-consistente`](./arch/boundaries/sesion-viva-consistente.md) (un-turno-a-la-vez
+`ErrBusy`→409 · emit bloqueante + broker shed-on-lag→replay `Last-Event-ID` · `run_id` en todo frame +
+dedup FE `finalizedRun` · `tryHealResume` para `--resume` stale; 4 checks) — **+ 2 checks a
+`permisos-gui`** (`sesion-aislada-por-cwd`, `cwd-path-contenido`) y `--max-turns` ahora satisfecho por
+el conductor. **Fitness tests reales que PASAN** (`go test ./arch/fitness/...`, `-race` limpio):
+8 tests HS-06. **Contrato OpenAPI reconciliado** (drift `/dock/*`→`/sessions/*` real + `/arneses` +
+`securitySchemes` bearer/`?token=` + `DockFrame` con `run_id` + 409). **go-arch-lint**: mapeado el
+componente `store` faltante. **arch/ = 14 boundaries · 63 checks + 26 conventions = 89.**
+
+**Honestidad:** el shell Rust (`lib.rs` + `Cargo.toml` `getrandom`) se ESCRIBIÓ pero **no se compiló
+aquí** (sin toolchain Rust ni red — coherente con «verificar al instalar» del Cargo.toml); se valida
+con `cargo build` en la máquina provisionada. **Explícitamente fuera de scope → HS-07:** diff-approval
+/ `--permission-mode` / protocolo `control_request` (el spike de permisos que HS-04 ya reservaba) ·
+OTel + `system/api_retry` (warn) · worktree-git-por-sesión · UX completa de registro de ruta + gobierno
+de presupuesto (c.2/c.3 restantes). El backend Go compila + vetea limpio; el FE typa (tsc strictest) +
+lintea (Biome) limpio.
+
+*Conecta:* la auditoría del shell (`a0e4fe2` HS-03 it.14) · HS-04 (arch backend as code + patrón
+conductor + `permisos-gui` cuya prosa esto vuelve ejecutable) · HS-05 (scope multisesión c.1/c.3/c.4
+que esto ejecuta; arch FE) · `knowledge/headless-sdk` (`--max-turns`, session-pin — dogfood) · I-76/
+OBS-18 (patrón conductor).
+
+*Siguiente:* **HS-07 = fase 4, specs** (heredada): cementar schemas del dominio (fase/estado spine,
+`meta.clase` 7→11 · label unify), el **spike del protocolo de permisos** (`control_request` contra el
+binario instalado) + diff-approval, las specs del MVP (Mapa primero), y los restos del scope
+multisesión (worktree por sesión · gobierno de presupuesto costo/`%contexto` · OTel/api_retry). Debates
+de VISION heredados: segundo cerebro · config de marketplace por proyecto · renombre repo → `arnesia`.
+
+<!-- Próximas: HS-07, … -->
 
 ## Log
 
@@ -236,3 +295,4 @@ repo → `arnesia`.
 | 2026-07-05 | Fase 2 (UX) FIRMADA en it.13: **shell = Command Rail (A)** (rail iconos izq. + visual casi-fullscreen + chat dock ⌘K) · Portafolio 2 lentes (Organigrama ↔ Cuadrícula) · 13 iteraciones sobre el lienzo · retiro andamiaje REAL/DEMO. Cementa `UX.md` + `METODOLOGIA.md` como **docs VIVOS** (excepción declarada a firmado=congelado). Base de evidencia = `knowledge/` (11 nodos · 122 checks). | HS-03 |
 | 2026-07-05 | Fase 3 (arquitectura) arrancada: investigación 5-frentes verificada → stack completo (Tauri 2, subproceso-conductor stream-json, modernc SQLite, SSE, React Flow 12+Zustand, **AG-UI+assistant-ui+CodeMirror6**, schema-first Go+TS, go-arch-lint). Fork firmado: **shell = Tauri 2 desde v1** (divergencia declarada vs browser-first del research). **Arquitectura as code materializada:** árbol `arch/` (7 boundaries · 29 checks · model/ · contracts/ · fitness/) espejando `knowledge/`. Corrección `--bare`/auth propagada a knowledge (→122 checks). | HS-04 |
 | 2026-07-05 | Fase 3 completada al FE: investigación 5-frentes (FSD · atomic · storybook · convenciones · tokens) verificada → **arquitectura FE as code**. Veredictos: **FSD-lite** + dependency-cruiser · 6 capas direccionales (canvas⊥chrome) + **shadcn/Base UI** · **Storybook 10** story=test (Chromatic descartado) · **golangci-lint v2 + Biome v2.4 + tsc strictest + lefthook** · **DTCG→Style Dictionary v5→Tailwind v4**. Materializado: **5 boundary nodes FE (22 checks) + `arch/conventions/` (8 nodes · 26 checks)** + config files declarados → **arch/ = 77 checks**. Specs corren a HS-06. | HS-05 |
+| 2026-07-05 | Auditoría del shell Tauri v1: aislamiento CC por-tab CONFIRMADO real; 7 huecos → **endurecimiento multisesión + confinamiento local**. Forks firmados: **S2 registro explícito arnés→ruta** (WorkdirResolver, cwd por sesión, nunca global) · **S1 shell emite el token** (Host+Origin+token, adiós CORS `*`). Materializado (nace **enforced**, fitness tests PASAN `-race`): **2 boundaries** (superficie-local-confinada · sesion-viva-consistente) + 2 checks a permisos-gui + `--max-turns` + OpenAPI reconciliado + `store` mapeado en go-arch-lint → **arch/ = 14 boundaries · 89 checks**. Shell Rust escrito, no compilado aquí. Specs + spike de permisos → HS-07. | HS-06 |

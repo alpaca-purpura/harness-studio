@@ -29,7 +29,8 @@ export interface Session {
   conv?: Turn[]
 }
 
-// NewSession is the create payload.
+// NewSession is the create payload. path, when set, registers the arnés's working directory
+// (the dir its conductor runs claude in) in the same call — per-session confinement (S2).
 export interface NewSession {
   arnes: string
   frente?: string
@@ -38,6 +39,7 @@ export interface NewSession {
   salud?: Salud
   view?: string
   parked?: string
+  path?: string
 }
 
 // DockFrame is one SSE `dock` event payload. Every frame carries session_id so one

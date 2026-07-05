@@ -5,10 +5,12 @@
 
 import { create } from "zustand"
 import {
+  ApiError,
   api,
   connectDock,
   type DockConnection,
   type DockFrame,
+  fetchAuthToken,
   type NewSession,
   type Session,
 } from "@/shared/api"
@@ -22,6 +24,10 @@ interface SessionsState {
   loaded: boolean
   // streaming[id] = assistant text assembled from deltas for the in-flight turn.
   streaming: Record<string, string>
+  // finalizedRun[id] = the last run_id that received a terminal (result/error) frame. Frames
+  // of an already-finalized run are dropped so an SSE reconnect+replay can't double-apply a
+  // turn (boundary sesion-viva-consistente `frames-idempotentes-run-id`).
+  finalizedRun: Record<string, string>
 
   init: () => Promise<void>
   switchTo: (id: string) => void
@@ -52,8 +58,12 @@ export const useSessions = create<SessionsState>((set, get) => ({
   connected: false,
   loaded: false,
   streaming: {},
+  finalizedRun: {},
 
   init: async () => {
+    // Get the API capability token from the Tauri shell before any request (undefined in the
+    // dev browser → the daemon falls back to its Host+Origin gate).
+    api.setToken(await fetchAuthToken())
     // The daemon may still be binding :4200 when the WebView mounts (Tauri spawns it
     // as a sidecar concurrently). Retry the first load until it answers.
     let sessions: Session[] = []
@@ -125,6 +135,9 @@ export const useSessions = create<SessionsState>((set, get) => ({
     const id = get().activeId
     const body = text.trim()
     if (!id || !body) return
+    // Client-side guard mirroring the server's one-turn-at-a-time rule (409): never send
+    // while this session is already streaming.
+    if (get().sessions.find((s) => s.id === id)?.status === "streaming") return
     // Optimistic: show the user turn and flip to streaming immediately.
     set((st) => ({
       sessions: patch(st.sessions, id, (s) => ({
@@ -137,6 +150,14 @@ export const useSessions = create<SessionsState>((set, get) => ({
     try {
       await api.turn(id, body)
     } catch (err) {
+      // 409 = the daemon already has a turn in flight (a race the guard above almost always
+      // prevents). Drop the optimistic user turn and leave the live stream untouched.
+      if (err instanceof ApiError && err.status === 409) {
+        set((st) => ({
+          sessions: patch(st.sessions, id, (s) => ({ ...s, conv: (s.conv ?? []).slice(0, -1) })),
+        }))
+        return
+      }
       set((st) => ({
         sessions: patch(st.sessions, id, (s) => ({
           ...s,
@@ -154,6 +175,9 @@ export const useSessions = create<SessionsState>((set, get) => ({
 
   onDock: (f) => {
     const id = f.session_id
+    // Idempotency: once a run received its terminal frame, drop any further frame for it —
+    // this is how an SSE reconnect+replay (or a late delta) can't duplicate a turn.
+    if (f.run_id && get().finalizedRun[id] === f.run_id) return
     switch (f.kind) {
       case "status":
         set((st) => ({
@@ -194,6 +218,7 @@ export const useSessions = create<SessionsState>((set, get) => ({
           delete rest[id]
           return {
             streaming: rest,
+            finalizedRun: f.run_id ? { ...st.finalizedRun, [id]: f.run_id } : st.finalizedRun,
             sessions: patch(st.sessions, id, (s) => ({
               ...s,
               status: "idle",
@@ -210,6 +235,7 @@ export const useSessions = create<SessionsState>((set, get) => ({
           delete rest[id]
           return {
             streaming: rest,
+            finalizedRun: f.run_id ? { ...st.finalizedRun, [id]: f.run_id } : st.finalizedRun,
             sessions: patch(st.sessions, id, (s) => ({
               ...s,
               status: "idle",

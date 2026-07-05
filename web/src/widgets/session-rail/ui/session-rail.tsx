@@ -253,12 +253,20 @@ function NewSessionButton({ collapsed }: { collapsed: boolean }) {
       type="button"
       onClick={() => {
         setGlobal("") // leave any global view so the new session's canvas + dock show.
+        // Optionally register the arnés's working directory now so its conductor is confined
+        // to it (S2). If the WebView has no prompt (or the user skips), the daemon falls back
+        // to an isolated per-arnés scratch dir — never a shared cwd. Full dialog UX = HS-07.
+        const dir =
+          typeof window.prompt === "function"
+            ? window.prompt("Ruta del arnés (opcional):")?.trim()
+            : ""
         void create({
           arnes: "nuevo-arnes",
           empresa: "—",
           puesto: "—",
           salud: "info",
           view: "Mapa",
+          ...(dir ? { path: dir } : {}),
         })
       }}
       title="Nueva sesión — el frente se auto-deriva del primer mensaje (editable ✎)"

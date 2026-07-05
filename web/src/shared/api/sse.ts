@@ -10,12 +10,16 @@ export interface DockConnection {
 }
 
 // connectDock opens the multiplexed stream and invokes onFrame for each `dock` event.
-// onStatus reports connection liveness for the UI.
+// onStatus reports connection liveness for the UI. The capability token (when set) rides as
+// a query param because EventSource cannot set an Authorization header (boundary
+// superficie-local-confinada `sse-token-o-origin`).
 export function connectDock(
   onFrame: (frame: DockFrame) => void,
   onStatus?: (connected: boolean) => void,
 ): DockConnection {
-  const es = new EventSource(`${api.base}/events`)
+  const token = api.token()
+  const url = token ? `${api.base}/events?token=${encodeURIComponent(token)}` : `${api.base}/events`
+  const es = new EventSource(url)
 
   es.addEventListener("open", () => onStatus?.(true))
   es.addEventListener("error", () => onStatus?.(false))

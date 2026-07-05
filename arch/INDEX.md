@@ -46,7 +46,9 @@ check llega con HS-06, ver runner unificado arriba).
 | [`boundaries/adaptadores-de-agente-intercambiables.md`](./boundaries/adaptadores-de-agente-intercambiables.md) | Claude Code = un adaptador tras `AgentPort` | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
 | [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | JSONL = verdad; SQLite = índice reconstruible | 🌱 vivo | 1.0 | 4 | arch_test.go · schema |
 | [`boundaries/conductor-no-parsea-jsonl.md`](./boundaries/conductor-no-parsea-jsonl.md) | El conductor consume stream-json/OTel, no parsea JSONL | 🌱 vivo | 1.0 | 4 | depguard · arch_test.go |
-| [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff | 🌱 vivo | 1.0 | 5 | arch_test.go |
+| [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
+| [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.0 | 6 | arch_test.go |
+| [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌱 vivo | 1.0 | 4 | schema · arch_test.go |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
 | [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
@@ -54,18 +56,21 @@ check llega con HS-06, ver runner unificado arriba).
 | [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌱 vivo | 1.0 | 4 | stylelint · tokens-sync |
 | [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌱 vivo | 1.0 | 5 | vitest + Storybook 10 |
 
-Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 estable ·
-🔍 en-revisión. **Total boundaries: 12 · 51 checks** — fundacional HS-04 (backend, 7 boundaries · 29
-checks) + HS-05 (frontend, 5 boundaries · 22 checks). **+ [`conventions/`](./conventions/INDEX.md): 8
-convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 77 checks.**
+Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 14 · 63 checks** — fundacional HS-04
+(backend, 7 boundaries · 29 checks) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
+· 10 checks + 2 checks nuevos a permisos-gui = 12 checks)**. **+ [`conventions/`](./conventions/INDEX.md): 8
+convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 89 checks.**
 
-> **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** hoy no hay código todavía (fase 5). Los
-> checks están **declarados, no corriendo**: son el ruleset que se activa cuando el módulo `arnesia`
-> y la SPA `web/` aterricen. Igual que los 122 checks de `knowledge/` son el linter futuro, estos 77
-> (51 checks de boundary + 26 de conventions) son el enforcement futuro de la arquitectura. Los config files
-> (`.golangci.yml`, `web/biome.json`, `web/.dependency-cruiser.js`, `lefthook.yml`, `ci.yml`…) están
-> **declarados** con `if: hashFiles(...)` / notas de honestidad; los paths (`web/src/**`, module path)
-> son **provisionales**. Estado del enforcer = `proposed` hasta que el código exista; luego `enforced`.
+> **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
+> no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**
+> los 2 boundaries `superficie-local-confinada` + `sesion-viva-consistente` y los 2 checks S2 de
+> `permisos-gui` **nacen `enforced`**: su código (daemon Go + shell) y sus fitness tests
+> (`fitness/arch_test.go`: `TestNoWildcardCORS`, `TestLocalSurfaceConfined`, `TestOneTurnAtATime`,
+> `TestFramesCarryRunID`, `TestNoSilentEventDrop`, `TestMaxTurnsAlways`, `TestSessionSpawnsInArnesPath`,
+> `TestArnesPathContainment`) shippean juntos y **PASAN** (`go test ./arch/fitness/...`). El resto (los 77
+> previos) sigue `proposed`; los config files FE (`web/biome.json`, `web/.dependency-cruiser.js`…) y el
+> `go-arch-lint check` se corren cuando su tooling se instale. Estado del enforcer por nodo en su frontmatter.
 
 ## Subdirectorios
 

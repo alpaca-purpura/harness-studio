@@ -75,7 +75,11 @@ func runServe(args []string) error {
 	addr := fs.String("addr", "127.0.0.1:4200", "listen address")
 	claudeBin := fs.String("claude", "claude", "path to the claude binary (the Dock conductor)")
 	sessionsPath := fs.String("sessions", "", "session registry file (default ~/.arnesia/sessions.json)")
-	workdir := fs.String("workdir", "", "working directory the conductor runs claude in (default: daemon cwd)")
+	arnesesPath := fs.String("arneses", "", "arnés→path registry file (default ~/.arnesia/arneses.json)")
+	arnesRoot := fs.String("arnes-root", "", "root for unregistered-arnés fallback dirs (default ~/.arnesia/arneses)")
+	maxTurns := fs.Int("max-turns", 40, "cap on the agent loop per turn (--max-turns); 0 disables the cap")
+	authToken := fs.String("auth-token", os.Getenv("ARNESIA_AUTH_TOKEN"),
+		"capability token required on the API (default $ARNESIA_AUTH_TOKEN; empty = Host+Origin only, dev)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -95,6 +99,13 @@ func runServe(args []string) error {
 		return fmt.Errorf("session store: %w", err)
 	}
 
+	// Arnés→path registry: resolves each session's cwd so a conductor is confined to its
+	// arnés's tree, never a shared global cwd (boundary permisos-gui `sesion-aislada-por-cwd`).
+	arnesReg, err := store.NewArnesRegistry(*arnesesPath, *arnesRoot)
+	if err != nil {
+		return fmt.Errorf("arnes registry: %w", err)
+	}
+
 	watcher := watch.New()
 	events, err := watcher.Watch(ctx)
 	if err != nil {
@@ -104,11 +115,11 @@ func runServe(args []string) error {
 	// Transport + services.
 	broker := sse.NewBroker()
 	mapSvc := usecase.NewMapService(idx)
-	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, *workdir)
+	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns)
 	if err != nil {
 		return fmt.Errorf("session service: %w", err)
 	}
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, broker)
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, arnesReg, broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {

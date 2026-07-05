@@ -14,13 +14,23 @@
 package fitness
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"go/parser"
 	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
+
+	"github.com/alpacapurpura/arnesia/internal/adapters/store"
+	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/ports"
+	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
 // repoRoot walks up from the test's cwd until it finds a go.mod (the future module root).
@@ -181,4 +191,265 @@ func TestWriteRequiresApproval(t *testing.T) {
 func TestBoxContractValidatesAgainstSchema(t *testing.T) {
 	t.Skip("TODO(fase 5): cada contract: de caja valida contra contracts/schema/box.contract.schema.json " +
 		"vía google/jsonschema-go — la fitness function del dominio (eval-gate A4, huérfanos, gate honesto).")
+}
+
+// ============================================================================
+// HS-06 · superficie-local-confinada + sesion-viva-consistente (enforced)
+// These run for real against the module — no skip.
+// ============================================================================
+
+// readSourceFile returns a repo-relative file's contents, or "" pre-module (no-op).
+func readSourceFile(t *testing.T, rel string) string {
+	t.Helper()
+	root := repoRoot()
+	if root == "" {
+		return ""
+	}
+	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	if err != nil {
+		t.Fatalf("read %s: %v", rel, err)
+	}
+	return string(b)
+}
+
+// --- superficie-local-confinada.md ---
+
+func TestNoWildcardCORS(t *testing.T) {
+	root := repoRoot()
+	if root == "" {
+		return
+	}
+	base := filepath.Join(root, "internal", "adapters", "transport")
+	if _, err := os.Stat(base); err != nil {
+		return
+	}
+	_ = filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+		b, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil
+		}
+		if strings.Contains(string(b), `Access-Control-Allow-Origin", "*"`) {
+			t.Errorf("%s sets a wildcard CORS origin — violates superficie-local-confinada", path)
+		}
+		return nil
+	})
+}
+
+func TestLocalSurfaceConfined(t *testing.T) {
+	auth := readSourceFile(t, "internal/adapters/transport/http/auth.go")
+	if auth == "" {
+		return
+	}
+	for _, must := range []string{"ConstantTimeCompare", "Host", "Origin", "Access-Control-Allow-Origin"} {
+		if !strings.Contains(auth, must) {
+			t.Errorf("auth.go missing %q — the confinement gate is incomplete", must)
+		}
+	}
+	router := readSourceFile(t, "internal/adapters/transport/http/router.go")
+	if !strings.Contains(router, "withAuth(") {
+		t.Errorf("router.go does not wrap the mux in withAuth — surface is unconfined")
+	}
+	if strings.Contains(router, "withCORS(") {
+		t.Errorf("router.go still uses the old open withCORS wrapper")
+	}
+}
+
+// --- sesion-viva-consistente.md (source scans) ---
+
+func TestNoSilentEventDrop(t *testing.T) {
+	cond := readSourceFile(t, "internal/adapters/agent/claudecode/conductor.go")
+	if cond == "" {
+		return
+	}
+	i := strings.Index(cond, "func (s *ccSession) emit(")
+	if i < 0 {
+		t.Fatal("conductor emit not found")
+	}
+	body := cond[i:min(i+220, len(cond))]
+	if !strings.Contains(body, "s.events <- ev") {
+		t.Errorf("conductor emit is not a blocking send — frames can be dropped")
+	}
+	if strings.Contains(body, "default:") {
+		t.Errorf("conductor emit still has a select/default drop — silent event loss")
+	}
+	broker := readSourceFile(t, "internal/adapters/transport/sse/broker.go")
+	if !strings.Contains(broker, "disconnect") {
+		t.Errorf("broker does not shed lagging subscribers — silent event loss on backpressure")
+	}
+}
+
+func TestMaxTurnsAlways(t *testing.T) {
+	cond := readSourceFile(t, "internal/adapters/agent/claudecode/conductor.go")
+	if cond == "" {
+		return
+	}
+	if !strings.Contains(cond, "--max-turns") {
+		t.Errorf("conductor does not pass --max-turns — violates permisos-gui max-turns-siempre")
+	}
+}
+
+// --- sesion-viva-consistente.md + permisos-gui (behavioral, with fakes) ---
+
+type fakeSession struct {
+	events chan ports.AgentEvent
+	mu     sync.Mutex
+	sent   []string
+}
+
+func (f *fakeSession) Send(_ context.Context, turn string) error {
+	f.mu.Lock()
+	f.sent = append(f.sent, turn)
+	f.mu.Unlock()
+	return nil
+}
+func (f *fakeSession) Events() <-chan ports.AgentEvent { return f.events }
+func (f *fakeSession) Close() error                    { return nil }
+
+type fakeAgent struct {
+	mu       sync.Mutex
+	spawns   []ports.SpawnOpts
+	sessions []*fakeSession
+}
+
+func (a *fakeAgent) Spawn(_ context.Context, opts ports.SpawnOpts) (ports.AgentSession, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.spawns = append(a.spawns, opts)
+	s := &fakeSession{events: make(chan ports.AgentEvent, 16)}
+	a.sessions = append(a.sessions, s)
+	return s, nil
+}
+
+type fakeResolver struct{ path string }
+
+func (r fakeResolver) Resolve(string) (string, bool, error) { return r.path, true, nil }
+
+type fakeStore struct{}
+
+func (fakeStore) Load(context.Context) ([]domain.Session, error) { return nil, nil }
+func (fakeStore) Save(context.Context, []domain.Session) error   { return nil }
+
+type fakePub struct {
+	mu     sync.Mutex
+	frames []map[string]any
+}
+
+func (p *fakePub) Publish(_ string, data []byte) {
+	var m map[string]any
+	if json.Unmarshal(data, &m) == nil {
+		p.mu.Lock()
+		p.frames = append(p.frames, m)
+		p.mu.Unlock()
+	}
+}
+
+func (p *fakePub) snapshot() []map[string]any {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	out := make([]map[string]any, len(p.frames))
+	copy(out, p.frames)
+	return out
+}
+
+func newTestService(t *testing.T, agent ports.AgentPort, pub usecase.EventPublisher, cwd string) *usecase.SessionService {
+	t.Helper()
+	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+	return svc
+}
+
+func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatal("condition not met within timeout")
+}
+
+func TestSessionSpawnsInArnesPath(t *testing.T) {
+	agent := &fakeAgent{}
+	svc := newTestService(t, agent, &fakePub{}, "/tmp/arnes-x")
+	id := svc.List()[0].ID
+	if err := svc.Turn(id, "hola"); err != nil {
+		t.Fatalf("turn: %v", err)
+	}
+	agent.mu.Lock()
+	defer agent.mu.Unlock()
+	if len(agent.spawns) != 1 {
+		t.Fatalf("want 1 spawn, got %d", len(agent.spawns))
+	}
+	if got := agent.spawns[0].Cwd; got != "/tmp/arnes-x" {
+		t.Errorf("conductor cwd = %q, want the arnés path (never a shared global cwd)", got)
+	}
+	if got := agent.spawns[0].MaxTurns; got != 40 {
+		t.Errorf("MaxTurns = %d, want 40 (cap must propagate)", got)
+	}
+}
+
+func TestOneTurnAtATime(t *testing.T) {
+	agent := &fakeAgent{}
+	svc := newTestService(t, agent, &fakePub{}, t.TempDir())
+	id := svc.List()[0].ID
+	if err := svc.Turn(id, "one"); err != nil {
+		t.Fatalf("first turn: %v", err)
+	}
+	// Status is now streaming (no result event delivered). A second turn must be rejected.
+	if err := svc.Turn(id, "two"); !errors.Is(err, usecase.ErrBusy) {
+		t.Errorf("second turn while streaming: got %v, want ErrBusy", err)
+	}
+}
+
+func TestFramesCarryRunID(t *testing.T) {
+	agent := &fakeAgent{}
+	pub := &fakePub{}
+	svc := newTestService(t, agent, pub, t.TempDir())
+	id := svc.List()[0].ID
+	if err := svc.Turn(id, "hi"); err != nil {
+		t.Fatalf("turn: %v", err)
+	}
+	sess := agent.sessions[0]
+	sess.events <- ports.AgentEvent{Kind: ports.EventInit, ClaudeSessionID: "cc1", Model: "m"}
+	sess.events <- ports.AgentEvent{Kind: ports.EventDelta, Text: "x"}
+	sess.events <- ports.AgentEvent{Kind: ports.EventResult, Text: "done", CtxPct: 5}
+	close(sess.events)
+
+	waitFor(t, 2*time.Second, func() bool {
+		for _, f := range pub.snapshot() {
+			if f["kind"] == "result" {
+				return true
+			}
+		}
+		return false
+	})
+	for _, f := range pub.snapshot() {
+		if rid, ok := f["run_id"].(string); !ok || rid == "" {
+			t.Errorf("dock frame kind=%v has no run_id — an SSE replay cannot be deduped", f["kind"])
+		}
+	}
+}
+
+func TestArnesPathContainment(t *testing.T) {
+	reg, err := store.NewArnesRegistry(filepath.Join(t.TempDir(), "arneses.json"), filepath.Join(t.TempDir(), "fallback"))
+	if err != nil {
+		t.Fatalf("new registry: %v", err)
+	}
+	home, _ := os.UserHomeDir()
+	for _, bad := range []string{"/", home, filepath.Join(home, ".claude"), filepath.Join(home, ".ssh"), "relative/dir"} {
+		if err := reg.Register("x", bad); err == nil {
+			t.Errorf("Register(%q) should be rejected (protected/invalid path)", bad)
+		}
+	}
+	good := t.TempDir()
+	if err := reg.Register("x", good); err != nil {
+		t.Errorf("Register(%q) should succeed: %v", good, err)
+	}
 }

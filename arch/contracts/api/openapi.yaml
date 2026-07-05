@@ -1,15 +1,26 @@
 openapi: 3.1.0
 info:
   title: ArnesIA daemon API
-  version: 0.0.1-skeleton
+  version: 0.1.0-hs06
   description: >-
-    Superficie HTTP/SSE del daemon `arnesia serve` (:4200). SKELETON de fase 3 — enumera las
-    superficies del UX (S1–S9) como endpoints; se cementa en fase 4 (specs). Single source: de
-    aquí se generan los tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO
-    contiene reglas de negocio (ver arch/boundaries/dominio-independiente-de-transporte.md).
+    Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
+    tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
+    (arch/boundaries/dominio-independiente-de-transporte.md).
+
+
+    **Confinamiento (HS-06, arch/boundaries/superficie-local-confinada.md).** Toda ruta (salvo
+    `/healthz`) pasa tres gates: (1) `Host` debe ser un loopback esperado (anti DNS-rebinding); (2)
+    un `Origin` de navegador debe estar en el allowlist y se refleja exacto (nunca `*`); (3) si el
+    daemon arrancó con token (`ARNESIA_AUTH_TOKEN`/`--auth-token`, minteado por el shell Tauri), toda
+    request lo exige (`Authorization: Bearer` o `X-Arnesia-Token`, o `?token=` para el SSE). En dev
+    sin token, los gates 1+2 siguen. Los gates Host/Origin no se expresan en OpenAPI (son de header);
+    se documentan aquí.
 servers:
   - url: http://127.0.0.1:4200/api
     description: daemon local (single-user). El WebView Tauri y el browser dev consumen esta misma API.
+security:
+  - bearerAuth: []
+  # En dev (daemon sin token) la seguridad efectiva es Host+Origin; el token gate se salta.
 paths:
   /harnesses:
     get:
@@ -48,47 +59,128 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista de corridas. }
-  /events:
+
+  /arneses:
     get:
-      operationId: streamEvents
+      operationId: listArneses
       summary: >-
-        SSE multiplexado — UNA conexión, eventos tipados (event: map | dock | run). Reconexión por
-        Last-Event-ID. Fuente: captura del stream-json del conductor + deltas del indexer.
-      parameters:
-        - name: Last-Event-ID
-          in: header
-          required: false
-          schema: { type: string }
+        Registro arnés→ruta (S2) — cada arnés mapea a la working dir donde corre `claude`. Confina la
+        sesión a su árbol (arch/boundaries/permisos-gui `sesion-aislada-por-cwd`).
       responses:
         "200":
-          description: text/event-stream. Taxonomía AG-UI (subset text/tool/lifecycle) + CUSTOM para eventos CC.
+          description: Entradas registradas.
           content:
-            text/event-stream:
-              schema: { type: string }
-  /dock/{sessionId}/turn:
-    post:
-      operationId: sendTurn
-      summary: Dock (S4) — envía un turno a la sesión CC viva (streaming input al subproceso).
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ArnesPath" } }
+  /arneses/{id}:
+    put:
+      operationId: registerArnes
+      summary: Registra (o reemplaza) la working dir de un arnés. Valida absoluta·existe·dir·no-protegida.
       parameters:
-        - { name: sessionId, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [path], properties: { path: { type: string } } }
+      responses:
+        "200":
+          description: Registrada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArnesPath" }
+        "400": { description: Ruta inválida o protegida (`/`, `$HOME`, `~/.claude`, `~/.ssh`, relativa…). }
+
+  /sessions:
+    get:
+      operationId: listSessions
+      summary: Multisesión (S4) — los frentes de trabajo abiertos (rail).
+      responses:
+        "200":
+          description: Sesiones en orden estable de creación.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Session" } }
+    post:
+      operationId: createSession
+      summary: Abre un frente. `path` opcional registra la ruta del arnés en la misma llamada (S2).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewSession" }
+      responses:
+        "201":
+          description: Sesión creada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { description: Payload inválido o ruta de arnés rechazada. }
+  /sessions/{id}:
+    get:
+      operationId: getSession
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: La sesión.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } }
+        "404": { description: No existe. }
+    patch:
+      operationId: patchSession
+      summary: Renombra el frente y/o registra la vista donde quedó parqueada.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              properties: { frente: { type: string }, view: { type: string } }
+      responses:
+        "200":
+          description: Sesión actualizada.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } }
+        "404": { description: No existe. }
+    delete:
+      operationId: closeSession
+      summary: Cierra la sesión (detiene el conductor, la saca del registro).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Cerrada. }
+        "404": { description: No existe. }
+  /sessions/{id}/turn:
+    post:
+      operationId: sendTurn
+      summary: Dock (S4) — envía un turno a la sesión CC viva (streaming input al subproceso).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
               properties: { text: { type: string } }
       responses:
         "202":
           description: "Turno encolado; la respuesta llega por /events (event: dock)."
-  /dock/{sessionId}/permission:
+        "400": { description: Turno vacío. }
+        "409":
+          description: >-
+            La sesión ya está streaming — un turno en vuelo (arch/boundaries/sesion-viva-consistente
+            `un-turno-a-la-vez`). No se encola un segundo turno.
+  /sessions/{id}/permission:
     post:
       operationId: resolvePermission
       summary: >-
-        Diff-approval (human-in-the-loop). Resuelve un control_request:can_use_tool. allow debe
-        echar updatedInput; deny debe incluir message. Ver arch/boundaries/permisos-gui-human-in-the-loop.md.
+        Diff-approval (human-in-the-loop). Resuelve un control_request:can_use_tool. Ver
+        arch/boundaries/permisos-gui-human-in-the-loop.md. (Stub — spike de permisos = HS-07.)
       parameters:
-        - { name: sessionId, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string } }
       requestBody:
         required: true
         content:
@@ -103,4 +195,101 @@ paths:
                 message: { type: string, description: requerido si decision=deny }
       responses:
         "200": { description: Resuelto. }
-components: {}
+
+  /events:
+    get:
+      operationId: streamEvents
+      summary: >-
+        SSE multiplexado — UNA conexión, eventos tipados (event: map | dock | run). Reconexión por
+        Last-Event-ID; un subscriber rezagado se descarta y reconecta+replaya (sesion-viva-consistente
+        `sin-perdida-silenciosa`). Cada frame `dock` lleva session_id + run_id (rutear N streams +
+        idempotencia).
+      security:
+        - bearerAuth: []
+        - sseToken: []
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: { type: string }
+        - name: token
+          in: query
+          required: false
+          description: Token de capacidad para el EventSource (no puede poner headers).
+          schema: { type: string }
+      responses:
+        "200":
+          description: text/event-stream. Taxonomía AG-UI (subset text/tool/lifecycle) + CUSTOM para eventos CC.
+          content:
+            text/event-stream:
+              schema:
+                description: "Frames `event: dock` con este payload:"
+                $ref: "#/components/schemas/DockFrame"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        Token de capacidad minteado por el shell Tauri (`ARNESIA_AUTH_TOKEN`). También aceptado como
+        header `X-Arnesia-Token`. Ausente en dev → gate se salta (Host+Origin siguen).
+    sseToken:
+      type: apiKey
+      in: query
+      name: token
+      description: Variante para el EventSource (que no puede setear headers).
+  schemas:
+    Session:
+      type: object
+      required: [id, frente, arnes, status, view]
+      properties:
+        id: { type: string }
+        frente: { type: string }
+        arnes: { type: string }
+        empresa: { type: string }
+        puesto: { type: string }
+        salud: { type: string, enum: [ok, warn, crit, info] }
+        status: { type: string, enum: [streaming, await, idle] }
+        view: { type: string }
+        parked: { type: string }
+        claude_session_id: { type: string }
+        model: { type: string }
+        ctx_pct: { type: integer }
+        conv:
+          type: array
+          items:
+            type: object
+            properties:
+              rol: { type: string, enum: [user, assistant, sys] }
+              text: { type: string }
+    NewSession:
+      type: object
+      required: [arnes]
+      properties:
+        arnes: { type: string }
+        frente: { type: string }
+        empresa: { type: string }
+        puesto: { type: string }
+        salud: { type: string, enum: [ok, warn, crit, info] }
+        view: { type: string }
+        parked: { type: string }
+        path: { type: string, description: "opcional — registra la working dir del arnés (S2)." }
+    DockFrame:
+      type: object
+      required: [session_id, kind]
+      properties:
+        session_id: { type: string, description: "rutea N conversaciones en una conexión." }
+        run_id: { type: string, description: "el turno al que pertenece el frame (idempotencia)." }
+        kind: { type: string, enum: [status, init, delta, message, result, error] }
+        text: { type: string }
+        status: { type: string, enum: [streaming, await, idle] }
+        ctx_pct: { type: integer }
+        model: { type: string }
+        claude_session_id: { type: string }
+    ArnesPath:
+      type: object
+      required: [arnes, path]
+      properties:
+        arnes: { type: string }
+        path: { type: string }

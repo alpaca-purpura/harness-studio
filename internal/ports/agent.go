@@ -46,7 +46,13 @@ type SpawnOpts struct {
 	// Model overrides the default model (e.g. "claude-opus-4-8"); empty uses the CLI default.
 	Model string
 	// Cwd is the working directory the conductor runs in; empty inherits the daemon's.
+	// It is resolved per session from the session's arnés (see WorkdirResolver) so each
+	// conductor is confined to its own tree — never a shared global cwd.
 	Cwd string
+	// MaxTurns caps the agent loop of a single turn (`--max-turns`); 0 means "unset"
+	// (no cap). Every unattended conductor run fixes it — a hijacked/looping turn must
+	// not run unbounded (permisos-gui `max-turns-siempre`, headless-sdk `headless-max-turns`).
+	MaxTurns int
 }
 
 // AgentSession is a live `claude` conductor: streaming user turns in, normalized

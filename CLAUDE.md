@@ -42,10 +42,11 @@ stdin/stdout (subproceso-conductor; SDK-sidecar y Managed Agents descartados). *
 stream-json (live) + OTel (hooks/skills) + JSONL (enumerar/replay, jamás parsear). **Dock** =
 taxonomía **AG-UI** sobre SSE (emisor Go propio) + **assistant-ui** + **CodeMirror 6/merge**;
 component-selection (format-authoring = trampa). **SSE** multiplexado 1 conexión. **Estado FE** =
-Zustand + hash-state. **Arquitectura as code** = árbol [`arch/`](./arch/INDEX.md) (12 boundaries +
-`conventions/` = **77 checks** · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; runner
+Zustand + hash-state. **Arquitectura as code** = árbol [`arch/`](./arch/INDEX.md) (14 boundaries +
+`conventions/` = **89 checks** · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; runner
 futuro `arnesia conformance` corre ambos. Corrección propagada: `--bare` rompe auth de suscripción
-(knowledge headless v1.1).
+(knowledge headless v1.1). **HS-06** endureció el shell v1 (2 boundaries `enforced`: superficie-local-
+confinada + sesion-viva-consistente; fitness tests corriendo).
 
 **Decisiones de arquitectura FE (HS-05, fase 3 — 2026-07-05):** investigación 5-frentes verificada
 (`research/2026-07-05-fe-arch-atomic-storybook-convenciones.md`) — cierra el hueco FE de HS-04. **Topología =
@@ -59,8 +60,10 @@ carpetas; primitivos = **shadcn sobre Base UI** (copy-in lintable). **Tokens** =
 **Biome v2.4** (>ESLint) + `tsc` strictest + **lefthook** (binario Go). Config files declarados (raíz + `web/`).
 
 **Estado:** fase 1 (Visión) ✓ · fase 2 UX (HS-03) ✓ firmada it.13 · **fase 3 arquitectura (HS-04
-backend + HS-05 frontend) — as code COMPLETA: 12 boundaries + `conventions/` = 77 checks, stack cerrado
-BE+FE; siguiente HS-06 = specs**. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
+backend + HS-05 frontend) — as code COMPLETA: 14 boundaries + `conventions/` = 89 checks, stack cerrado
+BE+FE** · **HS-06 endurecimiento multisesión + confinamiento local (auditoría del shell v1: aislamiento
+CC por-tab confirmado real; S1 auth Host+Origin+token · S2 cwd por arnés · S3–S6 stream confiable;
+2 boundaries nacen enforced) — siguiente HS-07 = specs**. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
 un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
 N:1 con arnés, con su conversación CC viva; estado CC vivo `streaming/await/idle`; persisten) · vistas =
 tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K) como dock derecho colapsable. Portafolio con
@@ -68,7 +71,8 @@ tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K)
 App = fábrica de arneses (crear + mantener), NO cockpit de empresa; metadata puesto·empresa·
 reporta-a + marketplace por empresa/arnés. Mockups de shell: `mockups/arnesia-shell-lab.html`
 (compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada). **Próximo:
-fase 4 specs (HS-06) → implementar v1 con lo definido (MVP = Mapa primero).**
+fase 4 specs (HS-07) → spike de permisos (control_request) + MVP Mapa; restos multisesión (worktree,
+gobierno de presupuesto, OTel).**
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
 cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·
@@ -79,8 +83,9 @@ hook·rule·subagent·command·mcp·plugin·settings·output-style·statusline·
 oficial+expertos ↔ L2 nuestra adaptación + checklist evaluable = 122 checks; se actualiza CADA
 SEMANA vía [`knowledge/CADENCE.md`](./knowledge/CADENCE.md), NO se congela al firmar HS-03) ·
 **arquitectura y diseño técnico as code** = [`arch/`](./arch/INDEX.md) (árbol gemelo de knowledge:
-**12 boundary nodes** [7 backend + 5 FE] L1↔L2 + [`conventions/`](./arch/conventions/INDEX.md) [8 nodes:
-go/ts-style·types·naming·commits·hooks·editor·ci] = **77 checks** `enforced_by:` · `model/` C4 ·
+**14 boundary nodes** [9 backend + 5 FE; HS-06 sumó superficie-local-confinada + sesion-viva-consistente]
+L1↔L2 + [`conventions/`](./arch/conventions/INDEX.md) [8 nodes:
+go/ts-style·types·naming·commits·hooks·editor·ci] = **89 checks** `enforced_by:` · `model/` C4 ·
 `contracts/` schemas L0+contrato · `fitness/` go-arch-lint [Go] + enforcers FE en `web/`
 [dependency-cruiser·steiger·stylelint·biome] + configs de estilo en raíz; se revisa al cambiar, mecanismo
 en `arch/CADENCE.md` y `arch/conventions/CADENCE.md`) ·

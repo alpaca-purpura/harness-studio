@@ -1,6 +1,6 @@
 ---
 regla: permisos-gui-human-in-the-loop
-version: 1.0
+version: 1.1
 updated: 2026-07-05
 status: proposed
 ledger: HS-04
@@ -17,6 +17,8 @@ sources:
 enforced_by:
   - fitness/arch_test.go:TestNoBypassPermissions
   - fitness/arch_test.go:TestWriteRequiresApproval
+  - fitness/arch_test.go:TestSessionSpawnsInArnesPath
+  - fitness/arch_test.go:TestArnesPathContainment
 severity: critical
 ---
 
@@ -60,10 +62,19 @@ control):
 | write-requiere-aprobacion | Write/Edit no están en `--allowedTools`; pasan por el diff-approval del GUI | error | «escritura auto-aprobada sin diff» | arch_test.go:TestWriteRequiresApproval |
 | modo-por-fase | evals-gate/promote corren `dontAsk`; grill/spec corren `plan` | warn | «fase sin humano corriendo en modo interactivo (o viceversa)» | arch_test.go |
 | allowedtools-readonly | `--allowedTools` solo lista tools read-only | warn | «allowlist incluye tools que escriben» | arch_test.go |
-| max-turns-siempre | toda corrida del conductor fija `--max-turns` | error | «sin turn-cap — loop/costo runaway» | arch_test.go |
+| max-turns-siempre | toda corrida del conductor fija `--max-turns` | error | «sin turn-cap — loop/costo runaway» | arch_test.go:TestMaxTurnsAlways |
+| sesion-aislada-por-cwd | cada sesión spawnea `claude` en la ruta de SU arnés (WorkdirResolver), nunca un cwd global compartido | error | «N sesiones en un cwd → se pisan archivos + contención ~/.claude» | arch_test.go:TestSessionSpawnsInArnesPath |
+| cwd-path-contenido | la ruta registrada de un arnés pasa validación (absoluta, dir existente, no `/`/`$HOME`/`~/.claude`/`~/.ssh`) | error | banda Guardia «cwd de sesión sobre ubicación protegida» | arch_test.go:TestArnesPathContainment |
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **HS-06 — la prosa L2 «aislar sesiones por cwd/worktree» se vuelve
+  ejecutable.** La auditoría del shell Tauri v1 encontró que el conductor corría TODO en un cwd
+  global (arnés = metadata cosmética). Fix: puerto `WorkdirResolver` + registro explícito arnés→ruta
+  (`internal/adapters/store/arnes_registry.go`), con fallback aislado por arnés (nunca cwd global) y
+  denylist de paths protegidos. **+2 checks** (`sesion-aislada-por-cwd`, `cwd-path-contenido`) +
+  `max-turns-siempre` ahora satisfecho por el conductor (`--max-turns`). El diff-approval /
+  `--permission-mode` sigue reservado al spike de permisos (HS-07). 5 → **7 checks**.
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = human-in-the-loop deny-by-default. L2:
   conductor en `default`, diff-approval en el GUI vía `control_request`, modos por fase, bypass
   jamás, `--max-turns` siempre; spike pendiente del shape JSON-RPC. 5 checks.

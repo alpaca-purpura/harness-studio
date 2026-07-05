@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
@@ -15,7 +17,8 @@ func listSessions(svc *usecase.SessionService) http.HandlerFunc {
 	}
 }
 
-// createSessionBody is the POST /api/sessions payload.
+// createSessionBody is the POST /api/sessions payload. Path, when present, registers the
+// arnés's working directory in the same call (S2), so a new front is confined from turn one.
 type createSessionBody struct {
 	Arnes   string       `json:"arnes"`
 	Frente  string       `json:"frente"`
@@ -24,14 +27,23 @@ type createSessionBody struct {
 	Salud   domain.Salud `json:"salud"`
 	View    string       `json:"view"`
 	Parked  string       `json:"parked"`
+	Path    string       `json:"path"`
 }
 
-// createSession opens a new work-front.
-func createSession(svc *usecase.SessionService) http.HandlerFunc {
+// createSession opens a new work-front. If a path is supplied it registers the arnés's
+// working directory first; a bad path fails the create (400) rather than opening a session
+// that would fall back to a scratch dir.
+func createSession(svc *usecase.SessionService, reg ports.ArnesRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body createSessionBody
 		if err := decodeJSON(w, r, &body); err != nil {
 			return
+		}
+		if body.Path != "" {
+			if err := reg.Register(body.Arnes, body.Path); err != nil {
+				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+				return
+			}
 		}
 		sess, err := svc.Create(domain.Session{
 			Arnes:   body.Arnes,
@@ -130,6 +142,12 @@ func sessionTurn(svc *usecase.SessionService) http.HandlerFunc {
 			return
 		}
 		if err := svc.Turn(id, body.Text); err != nil {
+			// A turn while the session is already streaming is a conflict, not a failure
+			// (boundary sesion-viva-consistente `un-turno-a-la-vez`).
+			if errors.Is(err, usecase.ErrBusy) {
+				writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+				return
+			}
 			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
 			return
 		}

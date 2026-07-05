@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
@@ -19,8 +20,10 @@ type errorBody struct {
 }
 
 // NewHandler builds the daemon's router. maps serves the Map/graph endpoints; sessions
-// drives the multisesión Dock; events is the SSE broker mounted at /events.
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, events http.Handler) http.Handler {
+// drives the multisesión Dock; arneses is the arnés→path registry (per-session workdir
+// confinement); events is the SSE broker mounted at /events. auth confines the whole
+// surface (Host+Origin+token, boundary superficie-local-confinada).
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arneses ports.ArnesRegistry, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 
 	// Liveness + the multiplexed SSE stream (the two endpoints the shell polls first).
@@ -34,32 +37,20 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, even
 	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}", getNode)
 	mux.HandleFunc("GET /api/harnesses/{id}/runs", listRuns)
 
+	// Arnés registry (S2) — maps an arnés to the working dir its sessions run claude in.
+	mux.HandleFunc("GET /api/arneses", listArneses(arneses))
+	mux.HandleFunc("PUT /api/arneses/{id}", registerArnes(arneses))
+
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))
-	mux.HandleFunc("POST /api/sessions", createSession(sessions))
+	mux.HandleFunc("POST /api/sessions", createSession(sessions, arneses))
 	mux.HandleFunc("GET /api/sessions/{id}", getSession(sessions))
 	mux.HandleFunc("PATCH /api/sessions/{id}", patchSession(sessions))
 	mux.HandleFunc("DELETE /api/sessions/{id}", deleteSession(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/turn", sessionTurn(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/permission", resolvePermission)
 
-	return withCORS(mux)
-}
-
-// withCORS allows the Vite dev origin (and the Tauri WebView) to call the daemon
-// cross-origin during development, and answers preflight requests.
-func withCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := w.Header()
-		h.Set("Access-Control-Allow-Origin", "*")
-		h.Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-		h.Set("Access-Control-Allow-Headers", "Content-Type, Last-Event-ID")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	return withAuth(auth, mux)
 }
 
 func healthz(w http.ResponseWriter, _ *http.Request) {

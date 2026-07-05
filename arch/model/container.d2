@@ -10,8 +10,8 @@ operador: "Operador" {shape: person}
 
 shell: "Shell Tauri 2\n(ventana · tray · updater · deep-link · firma)" {
   style.fill: "#eef2ff"
-  launcher: "launcher\n(attach-o-spawnea daemon · env Mint DMABUF · single-instance)"
-  webview: "WebView (webkit2gtk 4.1)\ncarga la SPA go:embed"
+  launcher: "launcher\n(attach-o-spawnea daemon · env Mint DMABUF · single-instance)\nHS-06: mint token → env ARNESIA_AUTH_TOKEN · kill sidecar al salir"
+  webview: "WebView (webkit2gtk 4.1)\ncarga la SPA go:embed\nHS-06: invoke('auth_token') → Bearer/?token="
 }
 
 daemon: "arnesia (daemon Go único)" {
@@ -19,7 +19,7 @@ daemon: "arnesia (daemon Go único)" {
 
   spa: "SPA Vite+React (go:embed)\nReact Flow 12 · Zustand+hash · assistant-ui · CodeMirror6+merge"
 
-  transport: "Transporte\nHTTP + SSE multiplexado (event: map|dock|run)" {
+  transport: "Transporte\nHTTP + SSE multiplexado (event: map|dock|run)\nHS-06: gate Host+Origin+token (superficie-local-confinada) · frames dock con session_id+run_id" {
     style.fill: "#fff7ed"
   }
 
@@ -30,10 +30,11 @@ daemon: "arnesia (daemon Go único)" {
   ports: "Puertos\nAgentPort · GraphStore · RunStore · EventBus"
 
   adapters: "Adaptadores" {
-    agentcc: "agent/claudecode\nsubproceso stream-json + OTel"
+    agentcc: "agent/claudecode\nsubproceso stream-json + OTel · --max-turns · emit bloqueante"
     index: "index/sqlite (modernc, WAL)\níndice DESECHABLE"
     watch: "watch (fsnotify + reader por offset)"
     publish: "publish (marketplace git)"
+    store: "store (sessions.json + arneses.json)\nHS-06: WorkdirResolver arnés→ruta (cwd por sesión)"
   }
 }
 
@@ -49,6 +50,7 @@ daemon.transport -> daemon.core: "traduce request<->caso-de-uso"
 daemon.core -> daemon.ports: "depende de interfaces"
 daemon.adapters.agentcc -> daemon.ports: "implementa AgentPort" {style.stroke-dash: 3}
 daemon.adapters.index -> daemon.ports: "implementa GraphStore/RunStore" {style.stroke-dash: 3}
+daemon.adapters.store -> daemon.ports: "implementa SessionStore/WorkdirResolver" {style.stroke-dash: 3}
 daemon.adapters.agentcc -> claude: "dirige (conductor)"
 claude -> jsonl: "escribe"
 claude -> otel: "hooks/skills/tool_decision"

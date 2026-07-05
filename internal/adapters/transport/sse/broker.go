@@ -23,6 +23,11 @@ const (
 // maxHistory caps the replay ring buffer (Last-Event-ID reconnection window).
 const maxHistory = 256
 
+// subBuffer is the per-subscriber send buffer. A subscriber that falls this far behind is
+// shed (see Publish) rather than dropping frames silently — it reconnects and replays the
+// gap via Last-Event-ID (boundary sesion-viva-consistente `sin-perdida-silenciosa`).
+const subBuffer = 256
+
 // Event is one SSE message. ID is a monotonic sequence; Type is one of the Event*
 // constants; Data is the payload (may be multi-line).
 type Event struct {
@@ -31,22 +36,36 @@ type Event struct {
 	Data []byte
 }
 
+// subscriber is one connected client. The data channel is NEVER closed (so Publish can
+// never send on a closed channel); disconnection is signalled by closing done, which both
+// the ServeHTTP reader and Publish observe. sync.Once makes disconnect idempotent across
+// the two callers (a lagged shed in Publish vs. the ServeHTTP defer).
+type subscriber struct {
+	ch   chan Event
+	done chan struct{}
+	once sync.Once
+}
+
+func (s *subscriber) disconnect() { s.once.Do(func() { close(s.done) }) }
+
 // Broker fans events out to every connected subscriber. Safe for concurrent use.
 type Broker struct {
 	mu      sync.RWMutex
-	subs    map[chan Event]struct{}
+	subs    map[*subscriber]struct{}
 	history []Event
 	seq     uint64
 }
 
 // NewBroker returns an empty broker.
 func NewBroker() *Broker {
-	return &Broker{subs: map[chan Event]struct{}{}}
+	return &Broker{subs: map[*subscriber]struct{}{}}
 }
 
-// Publish assigns the next id, records the event for replay, and fans it out. It
-// returns the stored event (with its assigned id). Slow subscribers are skipped
-// rather than blocking the publisher.
+// Publish assigns the next id, records the event for replay, and fans it out. It returns
+// the stored event (with its assigned id). A subscriber whose buffer is full is not
+// silently skipped: it is SHED (disconnected) so its EventSource reconnects and replays the
+// gap from history via Last-Event-ID. This turns silent loss into guaranteed catch-up as
+// long as the gap stays within maxHistory.
 func (b *Broker) Publish(eventType string, data []byte) Event {
 	b.mu.Lock()
 	b.seq++
@@ -55,17 +74,28 @@ func (b *Broker) Publish(eventType string, data []byte) Event {
 	if len(b.history) > maxHistory {
 		b.history = b.history[len(b.history)-maxHistory:]
 	}
-	subs := make([]chan Event, 0, len(b.subs))
-	for ch := range b.subs {
-		subs = append(subs, ch)
+	subs := make([]*subscriber, 0, len(b.subs))
+	for s := range b.subs {
+		subs = append(subs, s)
 	}
 	b.mu.Unlock()
 
-	for _, ch := range subs {
+	var lagged []*subscriber
+	for _, s := range subs {
 		select {
-		case ch <- e:
-		default: // subscriber too slow — it will catch up via Last-Event-ID on reconnect.
+		case s.ch <- e:
+		case <-s.done: // already disconnected — skip.
+		default: // buffer full: shed this subscriber, it catches up on reconnect.
+			lagged = append(lagged, s)
 		}
+	}
+	if len(lagged) > 0 {
+		b.mu.Lock()
+		for _, s := range lagged {
+			delete(b.subs, s)
+			s.disconnect()
+		}
+		b.mu.Unlock()
 	}
 	return e
 }
@@ -99,28 +129,28 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-ctx.Done():
 			return
-		case e, open := <-sub:
-			if !open {
-				return
-			}
+		case <-sub.done: // shed as a lagging subscriber — client reconnects + replays.
+			return
+		case e := <-sub.ch:
 			writeEvent(w, e)
 			flusher.Flush()
 		}
 	}
 }
 
-func (b *Broker) subscribe() chan Event {
-	ch := make(chan Event, 16)
+func (b *Broker) subscribe() *subscriber {
+	s := &subscriber{ch: make(chan Event, subBuffer), done: make(chan struct{})}
 	b.mu.Lock()
-	b.subs[ch] = struct{}{}
+	b.subs[s] = struct{}{}
 	b.mu.Unlock()
-	return ch
+	return s
 }
 
-func (b *Broker) unsubscribe(ch chan Event) {
+func (b *Broker) unsubscribe(s *subscriber) {
 	b.mu.Lock()
-	delete(b.subs, ch)
+	delete(b.subs, s)
 	b.mu.Unlock()
+	s.disconnect()
 }
 
 // replay returns the buffered events with an id greater than lastID.

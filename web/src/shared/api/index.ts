@@ -1,5 +1,5 @@
 // Public API of the `shared/api` segment.
-export { api } from "./client"
+export { ApiError, api, fetchAuthToken } from "./client"
 export { connectDock, type DockConnection } from "./sse"
 export {
   type DockFrame,

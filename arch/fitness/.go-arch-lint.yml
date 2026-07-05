@@ -36,6 +36,8 @@ components:
     in: internal/adapters/watch/**
   publish:
     in: internal/adapters/publish/**
+  store:
+    in: internal/adapters/store/**
 
   # --- composition root + shell ---
   cmd:
@@ -47,16 +49,17 @@ deps:
   # El dominio no depende de NADIE interno (ni transporte, ni store, ni ports concretos).
   domain:
     mayDependOn: []
-    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, cmd, shell]
+    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, store, cmd, shell]
 
-  # Los casos de uso dependen solo del dominio y de los puertos (interfaces).
+  # Los casos de uso dependen solo del dominio y de los puertos (interfaces) — NUNCA del store
+  # concreto (usan ports.SessionStore / ports.WorkdirResolver; el cmd cablea el adaptador).
   usecase:
     mayDependOn: [domain, ports]
-    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, shell]
+    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, store, shell]
 
   ports:
     mayDependOn: [domain]
-    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, cmd, shell]
+    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, store, cmd, shell]
 
   # El transporte traduce request<->caso-de-uso; no toca adaptadores de salida ni el shell.
   transport-http:
@@ -80,9 +83,15 @@ deps:
     mayDependOn: [domain, ports]
     cannotDependOn: [shell, cmd]
 
+  # El store (registro de sesiones + registro arnés→ruta) implementa puertos; depende del
+  # dominio/ports, no del transporte, adaptadores de agente, ni el shell.
+  store:
+    mayDependOn: [domain, ports]
+    cannotDependOn: [shell, transport-http, transport-sse, agent-adapters, index, watch, publish, cmd]
+
   # SOLO la composition root cablea adaptadores concretos (agente, store) con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, store]
     cannotDependOn: [shell]
 
   # El shell (Tauri/launcher) NO importa el core: es cliente del daemon vía HTTP/SSE.

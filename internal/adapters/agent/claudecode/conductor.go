@@ -26,6 +26,7 @@ import (
 	"log/slog"
 	"math"
 	"os/exec"
+	"strconv"
 	"sync"
 
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -64,6 +65,12 @@ func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.Agen
 	}
 	if opts.Model != "" {
 		args = append(args, "--model", opts.Model)
+	}
+	// --max-turns caps the agent loop of every turn: a hijacked or looping conductor must
+	// not run unbounded (boundary permisos-gui `max-turns-siempre`, headless-sdk
+	// `headless-max-turns`; both error-severity). 0 means the caller left it unset.
+	if opts.MaxTurns > 0 {
+		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
 	}
 
 	cmd := exec.CommandContext(ctx, c.bin, args...)
@@ -218,15 +225,16 @@ func (s *ccSession) pump(stdout io.Reader) {
 	}
 }
 
-// emit sends ev, dropping it if the consumer is gone (channel buffer full and unread
-// after the session was abandoned) rather than blocking the pump forever.
+// emit sends ev on the events channel. The send is BLOCKING on purpose: dropping a frame
+// here would strand the session (a lost `result` leaves the dock stuck "streaming"), which
+// is exactly what boundary sesion-viva-consistente `sin-perdida-silenciosa` forbids. It is
+// safe to block because pump is the sole caller and the SessionService consumer always
+// drains Events() (its own downstream — the SSE broker — never blocks, it sheds slow
+// subscribers instead). Back-pressure here correctly slows the reader rather than losing
+// data. No post-close guard is needed: pump closes s.events only after its loop returns, so
+// emit is never called on a closed channel.
 func (s *ccSession) emit(ev ports.AgentEvent) {
-	select {
-	case s.events <- ev:
-	default:
-		// Rare: consumer detached. Dropping keeps the subprocess drained; a
-		// reconnecting client replays via SSE Last-Event-ID.
-	}
+	s.events <- ev
 }
 
 // readLine returns one line without the trailing newline. A final unterminated line
