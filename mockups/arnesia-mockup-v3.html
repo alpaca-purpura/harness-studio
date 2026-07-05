@@ -219,6 +219,25 @@
   .pchip b{font-weight:650}
   .fchain{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .fchain .arr{color:var(--muted);font-size:10px}
+  /* ── capa Proceso v2: fábrica de cajas (contrato input→output + eval-gate) ── */
+  .pipe{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:2px 0 4px}
+  .pstage{flex:0 0 auto;min-width:186px;max-width:230px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+  .pstage .pfase{font-family:var(--sans);font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .pst{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:1px 5px;border-radius:4px;white-space:nowrap}
+  .pio{font-size:10px;color:var(--muted);line-height:1.4;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
+  .pio .art{font-family:var(--mono);color:var(--text);font-size:10px}
+  .pcajas{display:flex;flex-wrap:wrap;gap:4px}
+  .pcaja{font-family:var(--mono);font-size:10px;font-weight:650;border:1px solid var(--c-skill);color:var(--c-skill);border-radius:6px;padding:2px 7px;background:var(--surface)}
+  .pgate{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;border:1px solid var(--line);border-radius:6px;padding:3px 7px;background:var(--surface)}
+  .pgate .gd{width:7px;height:7px;border-radius:99px;flex:none}
+  .g-auto{color:var(--ok)} .g-auto .gd{background:var(--ok)}
+  .g-manual{color:var(--c-skill)} .g-manual .gd{background:var(--c-skill)}
+  .g-partial{color:var(--warn)} .g-partial .gd{background:var(--warn)}
+  .g-none{color:var(--crit)} .g-none .gd{background:var(--crit)}
+  .pgate.g-none{border-color:var(--crit);border-style:dashed}
+  .prw{font-size:9.5px;color:var(--warn);border-top:1px dashed var(--warn);padding-top:5px;margin-top:1px}
+  .parrow{flex:0 0 auto;align-self:center;color:var(--muted);font-size:12px;padding:0 5px}
+  .pgatelegend b{font-weight:700}
   .legend{flex:none;display:flex;gap:14px;align-items:center;padding:7px 20px;border-top:1px solid var(--line);background:var(--surface);font-size:11px;color:var(--muted);overflow-x:auto}
   .legend .k{display:flex;align-items:center;gap:5px;white-space:nowrap}
   button.k{padding:2px 7px;border-radius:6px;border:1px solid transparent}
@@ -576,12 +595,12 @@
 </div>
 
 <div class="review">
-  <div><b>Evaluar (v3.3):</b></div>
-  <div>1 · ¿Capa Tokens responde «en qué se van» (carga·30d·heat·Pareto)?</div>
-  <div>2 · ¿Desempeño con éxito+p95+peores+sin-uso basta?</div>
-  <div>3 · ¿Proceso como flujo+saltos+conformidad ya se distingue de Diagnóstico?</div>
-  <div>4 · ¿La atribución solapada (Σ≠total) se entiende y es honesta?</div>
-  <div>5 · ¿La corrida r3 (salto de fase, guía sin bloqueo) cuenta bien la historia?</div>
+  <div><b>Evaluar (v3.6):</b></div>
+  <div>1 · ¿La capa Proceso como fábrica de cajas (entra⟶sale) se entiende?</div>
+  <div>2 · ¿El eval-gate en la salida aterriza el principio 10?</div>
+  <div>3 · Contraste real: luana «sin gate» en casi todo vs demo con gate auto</div>
+  <div>4 · ¿Los contratos de caja de luana coinciden con tu proceso real?</div>
+  <div>5 · ¿Rework (↩) y cajas paralelas reflejan tu SDLC?</div>
 </div>
 
 <script>
@@ -1061,6 +1080,14 @@ const ARNESES={
    budget:{txt:"carga always-on <b>~11.3k</b> / 200k tokens",note:"CLAUDE.md 4.8k · AGENTS.md 1.4k · overlay vitalia 2.7k · núcleo de reglas ~2.4k · <b>~5.7%</b> de la ventana"},
    pareto:[{id:"s-dev-team",v:"6.7M",nota:"ventana principal"},{id:"s-pm-luana",v:"5.3M",nota:"coordinador"},{id:"s-pm-vitalia",v:"3.2M",nota:"coordinador"}],
    flujo:{saltos:[],nomedido:"el arnés no emite saltos de fase como evento medible — pendiente instrumentar el sensor",tipos:"no extraídas del JSONL — el proceso no las marca como evento (hallazgo de instrumentación)"},
+   pipeline:[
+     {id:"intake",inS:"idea",in:"pedido (chris-input)",outS:"refining",out:"story + checkpoint",cajas:["pm-luana","pm-vitalia","pm-nicolify","+2"],gate:{k:"none"}},
+     {id:"spec",inS:"refining",in:"story",outS:"refined",out:"01-spec.md (+02-design)",cajas:["po","po-ux","ux-agentico"],gate:{k:"none"}},
+     {id:"arq",inS:"refined",in:"01-spec.md",outS:"ready",out:"READY PACKAGE (03-arch…06-tickets)",cajas:["architect"],gate:{k:"none"}},
+     {id:"dev",inS:"ready",in:"READY PACKAGE",outS:"developed",out:"código + T-impl-log",cajas:["dev-team"],gate:{k:"partial",txt:"gate-runner: tests/lint — sin eval score"}},
+     {id:"cal",inS:"developed",in:"código",outS:"done",out:"REVIEW.md + veredicto",cajas:["auditor"],gate:{k:"manual",txt:"auditor + gherkin — sin eval continuo"},rework:{to:"dev",lbl:"CHANGES_REQUESTED"}},
+     {id:"cierre",inS:"done",in:"aprobado",outS:"released",out:"merge + release",cajas:["pm (merge)"],gate:{k:"none"}}
+   ],
    tren:{beta:[],listo:[],pub:[]},
    hist:[
      {v:"proceso v5",f:"2026-06 (en migración)",add:0,mod:4,del:0,hito:"<b>Migración de fases A–F → {G,R,C,D}</b> sin cerrar — coexistencia documentada como incoherencia. Es la deuda de proceso viva del arnés.",cur:1},
@@ -1077,6 +1104,14 @@ const ARNESES={
    budget:{txt:"carga inicial <b>19.4k</b> / 200k tokens",note:"base 17.8k · metadatos skills 1.6k · <b>9.7%</b> de la ventana"},
    pareto:[{id:"a-constructor",v:"725.2k",nota:"ventana propia"},{id:"k-arquitectura",v:"592.2k",nota:"leída 141×"},{id:"s-implementar",v:"417.6k",nota:"ventana principal"}],
    flujo:{saltos:[{lb:"Specs ⇢ Desarrollo ×1 — spec sin congelar, Arquitectura saltada",run:"r3"}],tipos:"salto de fase ×1 · fallo de skill ×3 · orden interno ×2"},
+   pipeline:[
+     {id:"req",inS:"idea",in:"pedido",outS:"captado",out:"requerimiento (tracker)",cajas:["captar-requerimiento","priorizar-backlog"],gate:{k:"none"}},
+     {id:"specs",inS:"captado",in:"requerimiento",outS:"especificado",out:"spec as code + criterios",cajas:["refinar-spec","disenar-ux"],gate:{k:"none"}},
+     {id:"arq",inS:"especificado",in:"spec",outS:"diseñado",out:"arquitectura + ADR",cajas:["disenar-arquitectura","diseno-tecnico"],gate:{k:"none"}},
+     {id:"dev",inS:"diseñado",in:"diseño técnico",outS:"construido",out:"código + tests",cajas:["implementar-feature"],gate:{k:"partial",txt:"tests verdes (gate de código)"}},
+     {id:"cal",inS:"construido",in:"código",outS:"auditado",out:"veredicto + evals",cajas:["auditoria-tecnica"],gate:{k:"auto",txt:"eval-gate 12/14 · release train KIT-06"},rework:{to:"dev",lbl:"hallazgo → reabrir en fábrica"}},
+     {id:"desp",inS:"auditado",in:"auditado",outS:"desplegado",out:"deploy + registro ledger",cajas:["desplegar-uat","desplegar-produccion"],gate:{k:"auto",txt:"gate de evals + canary 30d"}}
+   ],
    tren:{
      beta:[
        {comp:"auditoria-tecnica",tc:"skill",from:"1.2.0",to:"1.2.1-beta.0",st:"run",txt:"eval-gate corriendo · 6/14 evals",pct:43,org:"Nacida hoy del hallazgo crítico (18% fallo paso 3) vía dock fábrica."},
@@ -1349,7 +1384,7 @@ function renderMapa(A){
     el.className="lane"+(L.ghost?" ghost":"");
     el.innerHTML=`<div class="lane-hd"><span class="idx">FASE ${i+1}</span><h2>${L.n}</h2>
       <button class="lane-add" title="Crear componente en ${L.n}" aria-label="Crear componente en ${L.n}">+</button>
-      <div class="lane-meta"><span class="mchip ${L.exc?"warn":"ok"}">${L.runs}</span><span class="mchip ${L.exc?"warn":"ok"}">${L.exc} exc</span><span class="mchip">cumpl. ${L.cum}</span></div></div>
+      <div class="lane-meta">${(()=>{const st=(A.pipeline||[]).find(p=>p.id===L.id);return st?`<span class="mchip"><span class="pst" style="font-size:9px">${st.inS}</span> → <span class="pst" style="font-size:9px">${st.outS}</span></span><span class="mchip g-${st.gate.k}" style="border-color:currentColor">gate: ${st.gate.k==="none"?"sin gate":st.gate.k}</span>`:`<span class="mchip ${L.exc?"warn":"ok"}">${L.runs}</span><span class="mchip ${L.exc?"warn":"ok"}">${L.exc} exc</span><span class="mchip">cumpl. ${L.cum}</span>`})()}</div></div>
     <div class="lane-body" id="lb-${L.id}"></div><div class="lane-sum">Σ carga ${fmt(sum)} tok${sum30?` · Σ 30d ${fmtM(sum30)}`:""}</div>`;
     lanesEl.appendChild(el);
     el.querySelector(".lane-add").addEventListener("click",()=>openDock("crear-comp",L.n));
@@ -1393,7 +1428,22 @@ function renderMapa(A){
     wo.style.display="";
   }else{wo.innerHTML="";wo.style.display="none"}
   const fl=$("flow");
-  if(A.telem&&A.flujo){
+  const laneName=id=>{const L=(A.lanes||[]).find(x=>x.id===id);return L?L.n:id};
+  if(A.pipeline){
+    const GT={auto:"eval automático",manual:"gate humano",partial:"gate parcial",none:"SIN GATE"};
+    fl.innerHTML=`<div class="brow"><span class="rl">fábrica · flujo de contratos</span><span class="fine">cada caja transforma <b>entra ⟶ sale</b> (artefactos as code) · el <b>eval-gate vive en la salida</b> (principio 10 · regla A4) · el trabajo lleva su estado, la caja es dueña de UNA transición (A3)</span></div>
+    <div class="pipe">${A.pipeline.map((st,i)=>`
+      <div class="pstage">
+        <div class="pfase">Fase ${i+1} · ${laneName(st.id)}</div>
+        <div class="pio">entra <span class="pst">${st.inS}</span> <span class="art">${st.in}</span></div>
+        <div class="pcajas">${st.cajas.map(c=>`<span class="pcaja">${c}</span>`).join("")}</div>
+        <div class="pgate g-${st.gate.k}"><span class="gd"></span>${st.gate.txt||GT[st.gate.k]}</div>
+        <div class="pio">sale <span class="pst">${st.outS}</span> <span class="art">${st.out}</span></div>
+        ${st.rework?`<div class="prw">↩ ${st.rework.lbl} → ${laneName(st.rework.to)}</div>`:""}
+      </div>${i<A.pipeline.length-1?`<div class="parrow">▶</div>`:""}`).join("")}</div>
+    <div class="brow pgatelegend"><span class="rl">eval-gate</span><span class="fine"><b class="g-auto">● auto</b> eval automático · <b class="g-manual">● manual</b> humano · <b class="g-partial">● parcial</b> tests/lint · <b class="g-none">● sin gate</b> = hueco del principio 10${A.excMeasured===false?" — este arnés real no tiene evals continuos en ninguna caja (hallazgo crítico en Diagnóstico)":""}</span></div>`;
+    fl.style.display="";
+  }else if(A.telem&&A.flujo){
     const chain=A.lanes.map(L=>`<span class="pchip"><b>${L.n}</b> ${L.runs.replace(/ (corridas|sesiones)$/,"")}</span>`).join(`<span class="arr">→</span>`);
     fl.innerHTML=`<div class="brow"><span class="rl">flujo 30d</span><div class="fchain">${chain}</div><span class="fine">volumen = corridas que tocaron la fase</span></div>
     <div class="brow"><span class="rl">saltos de fase</span>${A.flujo.saltos.length?A.flujo.saltos.map(s2=>`<button class="pchip warn" data-vrun="${s2.run}">⚠ ${s2.lb} · ver corrida →</button>`).join(""):`<span class="fine">${A.flujo.nomedido||"ninguno en 30d"}</span>`}<span class="rl">excepciones</span><span class="fine">${A.flujo.tipos} · lo accionable vive en Diagnóstico</span></div>`;
@@ -1404,7 +1454,7 @@ function renderMapa(A){
     estructura:"clic en un tipo = filtrar · flecha = quién invoca a quién · punteado = propuesto / sin uso",
     tokens:"heat = consumo relativo al arnés (percentil 50/75/90/97) — escala de un arnés de 2M o de 80M por igual · fuente: usage del JSONL",
     perf:"éxito: ≥90 ok · 85–90 atención · <85 crítico · p95 por invocación, jamás promedio · grosor de flecha = volumen",
-    proceso:"conformidad del proceso declarado · cumplimiento = corridas de la fase sin excepción · hallazgos accionables → Diagnóstico"
+    proceso:"la fábrica: cajas de proceso con contrato entra⟶sale · cada caja es dueña de una transición de estado · el eval-gate vive en la salida · ↩ = retrabajo · el trabajo fluye, la caja transforma"
   };
   $("cap-note").textContent=NOTES[S.capa];
   if(rp){

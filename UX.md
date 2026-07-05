@@ -213,6 +213,42 @@ consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
 
+## Iteración 9 — capa Proceso = fábrica de cajas + doctrina de anatomía (v3.6, 2026-07-04)
+
+Raíz: una conversación de modelo con el operador cerró que **un arnés es una fábrica de
+cajas de proceso** (input→output), no un carril-cadena. Se firmó como doctrina y se rehízo
+la capa Proceso sobre ese modelo.
+
+**Doctrina nueva en `VISION.md` — «Anatomía del arnés» (reglas A1–A7, aditivas, no tocan los
+11 principios firmados):** A1 jerarquía fase›caja›maquinaria (caja = una skill que orquesta
+agentes/sub-skills y se apoya en rules/hooks/knowledge) · A2 contrato input→output as code
+(la salida de una caja = entrada de la siguiente) · A3 **dos estados**: el trabajo lleva su
+estado (spine), la caja es dueña de UNA transición + tiene su estado operativo (telemetría)
+· A4 **el eval-gate vive en el contrato de salida** (aterriza el principio 10) · A5 la
+fábrica no es recta: **rework** (aristas de retorno) + **cajas paralelas** (por marca / tipo)
+· A6 la infraestructura compartida (Guardia/Base) vive en bandas, no dentro de una caja ·
+A7 crear un arnés = definir sus fases y los contratos entre cajas.
+
+**Capa Proceso rediseñada (mockup):** el strip de flujo se volvió un **pipeline de contratos**
+— cada caja como tarjeta con `entra {estado}·{artefacto}` → cajas (skills) → **eval-gate
+chip** → `sale {estado}·{artefacto}`, con **rework ↩** y cajas paralelas apiladas. Los
+headers de carril muestran el contrato (`entra→sale` + estado del gate). El **eval-gate por
+fin tiene hogar visual**: chips auto/manual/parcial/**sin-gate** (rojo punteado).
+
+**El contraste que esto revela (la joya de la iteración):** el **demo dev-fullcycle** (arnés
+ideal) tiene eval-gate **auto** en Calidad (12/14, release train) y Despliegue; **luana real
+tiene «SIN GATE» en 4 de 6 cajas** — el hueco del principio 10 hecho espacial. Se *ve* que el
+arnés real construye y audita pero no evalúa. Conecta 1:1 con el hallazgo crítico «sin evals»
+del Diagnóstico real.
+
+**Contratos reales de luana modelados** (del repo): Intake `idea→refining` (pedido→story,
+cajas pm-* paralelas) · Spec `refining→refined` (story→01-spec.md, po/po-ux/ux-agentico) ·
+Arq `refined→ready` (spec→READY PACKAGE) · Dev `ready→developed` (READY PACKAGE→código,
+gate parcial gate-runner) · Cal `developed→done` (código→REVIEW.md, gate manual auditor +
+rework CHANGES_REQUESTED→Dev) · Cierre `done→released`. Verificado headless (pipeline 6
+cajas en ambos, gates correctos, regresión de las otras 3 capas intacta, consola limpia,
+dark/light revisados). Arneses sin `pipeline` (pm-discovery/fin) caen al flujo viejo.
+
 ## Iteración 8 — arnés real COMPLETO, sin corte curado (v3.5, 2026-07-04)
 
 Pedido del operador: «muestra los 55 skills completos, no el corte curado; de igual forma

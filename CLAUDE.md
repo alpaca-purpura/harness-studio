@@ -2,7 +2,8 @@
 
 Producto standalone (graduado del monorepo `prenter-harness`, 2026-07-04; ex "Harness
 Studio" — renombre del repo pendiente, debate abierto). Norte = [`VISION.md`](./VISION.md)
-(**v3 FIRMADA**, ficha HS-02, 2026-07-04) · registro = [`LEDGER.md`](./LEDGER.md) (fichas
+(**v3 FIRMADA**, ficha HS-02, 2026-07-04; + sección aditiva «Anatomía del arnés — fábrica
+de cajas de proceso», reglas A1–A7, HS-03 it.9) · registro = [`LEDGER.md`](./LEDGER.md) (fichas
 `HS-NN`; la historia OBS-01..OBS-20 vive en la incubadora
 `prenter-harness/products/harness-studio/`, congelada).
 
@@ -31,7 +32,7 @@ ejecutan; marketplace git elegible por proyecto.
 - Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
   v3 en watchlist.
 
-**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 8 de ~11-13**.
+**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 9 de ~11-13**.
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog iteraciones 6+) · mockup vigente = `mockups/arnesia-mockup-v3.html`
 (navegable, artifact único — URL en memoria auto) · estándares mapeados =

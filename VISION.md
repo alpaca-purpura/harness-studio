@@ -50,6 +50,42 @@ del producto es un **grafo de componentes agnóstico** y cada agente es solo un 
 11. **Economía de contexto medible.** Cada componente rinde cuentas de sus tokens (carga e
     invocación). Toda edición conoce su costo de invalidación de caché.
 
+## Anatomía del arnés — la fábrica de cajas de proceso
+
+> Añadido en fase UX (HS-03, iteración 9, 2026-07-04) — operacionaliza el principio 1
+> («proceso implícito») y aterriza el 10 («nada sin eval»). Aditivo: no altera los 11
+> principios firmados.
+
+Un arnés es una **fábrica**: el trabajo entra por un extremo, cruza una línea de **cajas de
+proceso** y sale transformado. Reglas de cómo se arma todo arnés nuestro:
+
+- **A1 · Jerarquía fase › caja › maquinaria.** El arnés se organiza en **fases**; cada fase
+  agrupa una o más **cajas de proceso**. Una caja = **una skill** (el frente que define el
+  trabajo de esa etapa) que orquesta su **maquinaria dedicada** (agentes, sub-skills) y se
+  apoya en infraestructura compartida (rules, hooks, knowledge).
+- **A2 · Contrato input → output.** Toda caja declara qué **entra** y qué **sale**, como
+  artefactos as code (spec, arquitectura, código, review). La **salida de una caja es la
+  entrada de la siguiente**: el hand-off ES el contrato, no una convención.
+- **A3 · Dos estados, no los confundas.** El **trabajo** (la unidad que fluye: historia,
+  ticket, caso) lleva su propio estado a lo largo de la línea. Cada **caja es dueña de UNA
+  transición** de ese estado (entra en X, sale en Y). La caja además tiene su **estado
+  operativo** (corriendo/ociosa/bloqueada, éxito, throughput) — lo que mide la telemetría.
+  Estado del trabajo ≠ estado de la caja.
+- **A4 · El eval-gate vive en el contrato de salida.** El principio 10 se aterriza aquí: el
+  gate de una caja evalúa **si su output honra el contrato dado el input**. Sin contrato de
+  salida declarado no hay dónde poner el eval — y la caja no puede prometer calidad.
+- **A5 · La fábrica no es una recta.** Hay **retrabajo** (una caja de control devuelve el
+  trabajo a una caja anterior: el bucle detectar→corregir) y **cajas en paralelo** dentro de
+  una fase (una línea por variante: por marca, por tipo de trabajo). El mapa honra ambos:
+  aristas de retorno y cajas apiladas.
+- **A6 · La infraestructura compartida no es una caja.** Los hooks transversales (banda
+  Guardia) y el knowledge/reglas (banda Base) actúan sobre TODAS las cajas; viven en
+  **bandas**, no dentro de una fase. Solo la maquinaria *dedicada* de una caja vive en ella.
+- **A7 · Crear un arnés = definir sus fases y los contratos entre cajas.** La fábrica
+  conversacional (grill → spec → build) produce ante todo esta línea: las fases, la caja
+  (skill) de cada una, su contrato input→output y la transición de estado que posee. Agentes,
+  rules y hooks se cuelgan después como maquinaria y apoyo.
+
 ## Ecosistema y fronteras
 
 ```
