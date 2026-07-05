@@ -177,10 +177,10 @@ será ficha futura — no es esta visión.)
 
 | # | Fase | Estado |
 |---|------|--------|
-| 1 | Visión del producto | **esta ficha (HS-02)** |
-| 2 | UX del producto (mapa a fondo, inspector, flujos) | siguiente |
-| 3 | Arquitectura del software y diseño técnico | pendiente |
-| 4 | Definición de specs | pendiente |
+| 1 | Visión del producto | **esta ficha (HS-02)** ✓ |
+| 2 | UX del producto (mapa a fondo, inspector, flujos) | ✓ firmada (HS-03, it.13) |
+| 3 | Arquitectura del software y diseño técnico | **en curso (HS-04)** — stack + `arch/` as code |
+| 4 | Definición de specs | siguiente (HS-05) |
 | 5 | Implementación y pruebas (MVP = Mapa primero) | pendiente |
 | 6 | Instalación y dogfood | pendiente |
 

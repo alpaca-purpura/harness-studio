@@ -1,0 +1,91 @@
+# go-arch-lint (config version 3) — el grafo de imports permitido de ArnesIA.
+# Falla CI si el código viola los boundaries de arch/boundaries/.
+# Correr: `go-arch-lint check --project-path .`  (activa en fase 5, cuando el módulo aterrice).
+#
+# NOTA: el módulo Go aún no existe (cero código de producto). Este archivo DECLARA la
+# arquitectura objetivo; los globs asumen la disposición `internal/**` + `cmd/**` + `shell/`.
+# El module path (`github.com/alpacapurpura/arnesia`) es PROVISIONAL — se fija al `go mod init`.
+
+version: 3
+workdir: ../..            # la raíz del repo (arch/fitness -> repo root)
+
+allow:
+  depOnAnyVendor: false   # las deps externas se declaran; nada implícito
+
+components:
+  # --- el core: dominio + casos de uso. No conoce nada de afuera. ---
+  domain:
+    in: internal/domain/**
+  usecase:
+    in: internal/usecase/**
+  ports:
+    in: internal/ports/**
+
+  # --- transporte (adaptadores de entrega) ---
+  transport-http:
+    in: internal/adapters/transport/http/**
+  transport-sse:
+    in: internal/adapters/transport/sse/**
+
+  # --- adaptadores de salida ---
+  agent-adapters:
+    in: internal/adapters/agent/**
+  index:
+    in: internal/adapters/index/**
+  watch:
+    in: internal/adapters/watch/**
+  publish:
+    in: internal/adapters/publish/**
+
+  # --- composition root + shell ---
+  cmd:
+    in: cmd/**
+  shell:
+    in: shell/**
+
+deps:
+  # El dominio no depende de NADIE interno (ni transporte, ni store, ni ports concretos).
+  domain:
+    mayDependOn: []
+    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, cmd, shell]
+
+  # Los casos de uso dependen solo del dominio y de los puertos (interfaces).
+  usecase:
+    mayDependOn: [domain, ports]
+    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, shell]
+
+  ports:
+    mayDependOn: [domain]
+    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, cmd, shell]
+
+  # El transporte traduce request<->caso-de-uso; no toca adaptadores de salida ni el shell.
+  transport-http:
+    mayDependOn: [domain, usecase, ports]
+    cannotDependOn: [shell, agent-adapters, index, watch]
+  transport-sse:
+    mayDependOn: [domain, usecase, ports]
+    cannotDependOn: [shell, agent-adapters, index, watch]
+
+  # Los adaptadores implementan puertos: dependen del dominio/ports, no del shell ni entre sí.
+  agent-adapters:
+    mayDependOn: [domain, ports]
+    cannotDependOn: [shell, transport-http, transport-sse, index, watch, cmd]
+  index:
+    mayDependOn: [domain, ports]
+    cannotDependOn: [shell, transport-http, transport-sse, agent-adapters, cmd]
+  watch:
+    mayDependOn: [domain, ports]
+    cannotDependOn: [shell, transport-http, transport-sse, cmd]
+  publish:
+    mayDependOn: [domain, ports]
+    cannotDependOn: [shell, cmd]
+
+  # SOLO la composition root cablea adaptadores concretos (agente, store) con los puertos.
+  cmd:
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish]
+    cannotDependOn: [shell]
+
+  # El shell (Tauri/launcher) NO importa el core: es cliente del daemon vía HTTP/SSE.
+  shell:
+    mayDependOn: []
+    cannotDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, cmd]

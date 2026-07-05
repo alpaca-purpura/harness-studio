@@ -1,7 +1,7 @@
 ---
 elemento: headless
-version: 1.0
-updated: 2026-07-04
+version: 1.1
+updated: 2026-07-05
 status: vivo
 fuentes:
   - url: https://code.claude.com/docs/en/headless
@@ -46,7 +46,11 @@ retry_delay_ms, error), `stream_event`, `assistant`, `result`. *(oficial: headle
 {default|acceptEdits|plan|auto|dontAsk|bypassPermissions}`, `--dangerously-skip-permissions`
 (= bypass). `--bare` salta hooks/skills/plugins/MCP/CLAUDE.md discovery — **«modo recomendado
 para scripted/SDK, será el default de `-p`»**; pasar solo lo necesario vía `--settings`/`--mcp-config`/
-`--agents`. *(oficial: headless + permission-modes)*
+`--agents`. **⚠ CORRECCIÓN (HS-04, 2026-07-05, frente B):** `--bare` **también salta OAuth/keychain
+discovery** → exige `ANTHROPIC_API_KEY`/`apiKeyHelper`. Un conductor que monta el login Pro/Max del
+usuario **no puede usar `--bare`** (le rompe el auth de suscripción). Y como `-p` hará `--bare` su
+default futuro, **pinear flags explícitos, no heredar el default de `-p`**. *(oficial: headless +
+permission-modes + authentication)*
 
 **Transcript (L1.5):** JSONL en `~/.claude/projects/<p>/<session>.jsonl`; **formato interno,
 cambia entre versiones** → guía oficial: usar `--output-format json/stream-json`, `/export`, hook
@@ -90,8 +94,15 @@ gobierna al producto ArnesIA mismo (dogfood) más que a los arneses que fabrica.
    con turn-cap y `--allowedTools`, nunca bypass. ⇐ L1.6/L1.7 + principio 10 (nada sin control).
 4. **Telemetría de nacimiento vía OTel:** todo run headless emite OTel — es el principio 9
    («telemetría de nacimiento, no opt-in») hecho flag. ⇐ L1.6 + [[hooks]] L2.5 (`telemetry-emit`).
-5. **`--bare` para builds reproducibles:** el build headless de ArnesIA no hereda el `~/.claude`
-   del operador; pasa el arnés explícito. ⇐ L1.6.
+5. **`--bare` SOLO cuando estás deliberadamente sobre API key** (corregido HS-04): aísla el build
+   del `~/.claude` del operador, pero **salta el auth de suscripción** — por eso el conductor
+   interactivo (que monta el login Pro/Max) NO lo usa; para aislar sin romper auth, pasar el arnés
+   explícito vía `--settings`/`--mcp-config`/`--agents` y `settingSources:[]`, dejando el auth
+   intacto. `--bare` reservado para CI/fan-out con API key propia. ⇐ L1.4/L1.6.
+6. **`% contexto` es métrica DERIVADA nuestra** (corregido HS-04): no existe en stream-json ni OTel;
+   se computa `(input+cacheRead+cacheCreation)/ventana-del-modelo` y se etiqueta como derivada (no
+   se presenta como medida). Alimenta el header de sesión del dock (S4) y el árbol de corrida (S8).
+   ⇐ L1.2.
 
 ## Checklist evaluable
 
@@ -103,7 +114,8 @@ gobierna al producto ArnesIA mismo (dogfood) más que a los arneses que fabrica.
 | headless-no-blanket-skip | evita `--dangerously-skip-permissions`/bypass; usa allowlist/`dontAsk` | error | banda Guardia «automatización con permisos saltados» | L1.4 · L2.3 |
 | headless-structured-output | `-p` scripted usa `--output-format json/stream-json`, no texto | warn | «`-p` sin `--output-format` piped a parser» | L1.6 · L2.1 |
 | headless-session-pin | captura `session_id` y resume por ID, no `--continue` bajo concurrencia | warn | «orquestación con `--continue` — ambiguo» | L1.6 · L2.2 |
-| headless-bare-ci | CI/scripted pasa `--bare` (o aísla con `--settings`/`--mcp-config`) | info | «CI sin `--bare` — hereda ambiente» | L1.4 · L2.5 |
+| headless-bare-ci | CI/scripted **sobre API key** pasa `--bare`; conductor de suscripción aísla con `--settings`/`--mcp-config`/`settingSources:[]` (jamás `--bare`, rompe auth) | info | «CI sin aislar — hereda ambiente» / «`--bare` en conductor de suscripción — auth roto» | L1.4 · L2.5 |
+| headless-ctx-derivado | el `% contexto` se computa y se etiqueta como derivado (no existe en stream-json/OTel) | info | «% contexto presentado como medido» | L1.2 · L2.6 |
 | headless-max-turns | corridas desatendidas/fan-out fijan `--max-turns`/`maxTurns` | error | «sin turn-cap — loop/costo runaway» | L1.6 · L2.3 |
 | headless-perm-scope | tools por `--allowedTools`, no `Bash(*)`/wildcard en automatización | error | banda Guardia «wildcard en config headless» | L1.7 · L2.3 |
 | headless-telemetry | flota headless emite OTel (`CLAUDE_CODE_ENABLE_TELEMETRY=1`) | warn | «sin telemetría — sin audit trail» | L1.6 · L2.4 |
@@ -113,6 +125,12 @@ gobierna al producto ArnesIA mismo (dogfood) más que a los arneses que fabrica.
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **Corrección load-bearing (HS-04, fase 3, frente B):** `--bare` **también
+  salta OAuth/keychain** → rompe el auth de suscripción; el conductor interactivo NO lo usa (se
+  aísla con `--settings`/`--mcp-config`/`settingSources:[]`), reservado a CI con API key. Añadido:
+  `% contexto` = métrica derivada nuestra (no existe en stream-json/OTel). L2.5 reescrita, L2.6
+  nueva, 2 checks (bare-ci corregido, ctx-derivado nuevo → **12 checks**). Disparado por la
+  investigación de arquitectura `research/2026-07-05-arquitectura-fase3.md`.
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales (headless, agent-sdk/overview +
   migration, sessions, monitoring, best-practices). L2 amarra headless/SDK = motor de la fábrica
   conversacional de ArnesIA (patrón conductor I-76), stream-json + sensor JSONL-como-verdad-índice-

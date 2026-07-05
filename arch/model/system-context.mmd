@@ -1,0 +1,27 @@
+%% C4 nivel 1 — contexto de sistema de ArnesIA (Mermaid; renderiza en GitHub sin tooling)
+%% Fuente única: se edita este texto; el render es on-demand. Ver arch/model/container.d2 para nivel 2.
+C4Context
+    title ArnesIA — contexto de sistema
+
+    Person(operador, "Operador (alpacapurpura)", "Crea, mapea, observa y mejora arneses. Único usuario local.")
+
+    System_Boundary(maquina, "Máquina del operador (Linux Mint primero)") {
+        System(arnesia, "ArnesIA", "Fábrica de arneses: daemon Go (serve/index/publish) + SPA embebida + shell Tauri 2")
+        System_Ext(claude, "Claude Code (CLI local)", "Motor headless dirigido por el conductor (subproceso stream-json). Auth = login del operador")
+        SystemDb_Ext(jsonl, "~/.claude/**/*.jsonl", "Transcripts = fuente de verdad. Formato interno; se enumera/replaya, no se parsea como API")
+    }
+
+    System_Ext(marketplace, "Marketplace git", "Destino de publish (marketplace.json + semver/SHA). Por empresa/arnés")
+    System_Ext(devhub, "DevHub / apps de rol", "Ejecutan arneses. Jamás los modifican. Emiten telemetría")
+    System_Ext(langfuse, "Langfuse", "Espejo opcional de telemetría. Jamás dependencia dura")
+
+    Rel(operador, arnesia, "Crea/mapea/observa/mejora", "Tauri WebView → HTTP/SSE :4200")
+    Rel(arnesia, claude, "Dirige (patrón conductor)", "subproceso: stream-json stdin/stdout + OTel")
+    Rel(claude, jsonl, "Escribe transcripts")
+    Rel(arnesia, jsonl, "Indexa (watch + reader por offset)")
+    Rel(arnesia, marketplace, "Publica arneses (tren de release)")
+    Rel(devhub, marketplace, "Instala arneses")
+    Rel(devhub, arnesia, "Telemetría (estrato seguro: métricas/scores/hashes)")
+    Rel(arnesia, langfuse, "Export opcional (espejo)")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

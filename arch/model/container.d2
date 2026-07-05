@@ -1,0 +1,61 @@
+# C4 nivel 2 — contenedores de ArnesIA (D2; render: `d2 container.d2 container.svg`, binario Go único)
+# Fuente única as code. Los boundaries de arch/boundaries/ enforçan las flechas prohibidas.
+
+title: {
+  label: "ArnesIA — contenedores (C4 nivel 2)"
+  near: top-center
+}
+
+operador: "Operador" {shape: person}
+
+shell: "Shell Tauri 2\n(ventana · tray · updater · deep-link · firma)" {
+  style.fill: "#eef2ff"
+  launcher: "launcher\n(attach-o-spawnea daemon · env Mint DMABUF · single-instance)"
+  webview: "WebView (webkit2gtk 4.1)\ncarga la SPA go:embed"
+}
+
+daemon: "arnesia (daemon Go único)" {
+  style.fill: "#ecfdf5"
+
+  spa: "SPA Vite+React (go:embed)\nReact Flow 12 · Zustand+hash · assistant-ui · CodeMirror6+merge"
+
+  transport: "Transporte\nHTTP + SSE multiplexado (event: map|dock|run)" {
+    style.fill: "#fff7ed"
+  }
+
+  core: "Core (dominio + casos de uso)\ngrafo agnóstico · spine de estados · contratos\nNO importa transporte/store/shell/agente-concreto" {
+    style.fill: "#fef9c3"
+  }
+
+  ports: "Puertos\nAgentPort · GraphStore · RunStore · EventBus"
+
+  adapters: "Adaptadores" {
+    agentcc: "agent/claudecode\nsubproceso stream-json + OTel"
+    index: "index/sqlite (modernc, WAL)\níndice DESECHABLE"
+    watch: "watch (fsnotify + reader por offset)"
+    publish: "publish (marketplace git)"
+  }
+}
+
+claude: "Claude Code CLI (local)" {shape: hexagon; style.fill: "#f3e8ff"}
+jsonl: "~/.claude/**/*.jsonl\nFUENTE DE VERDAD" {shape: cylinder; style.fill: "#fee2e2"}
+otel: "OTel endpoint (en el daemon)" {shape: queue}
+
+operador -> shell.webview: "usa"
+shell.launcher -> daemon: "attach/spawn :4200"
+shell.webview -> daemon.transport: "HTTP/SSE"
+daemon.spa -> daemon.transport: "consume (misma build en dev-browser y Tauri)"
+daemon.transport -> daemon.core: "traduce request<->caso-de-uso"
+daemon.core -> daemon.ports: "depende de interfaces"
+daemon.adapters.agentcc -> daemon.ports: "implementa AgentPort" {style.stroke-dash: 3}
+daemon.adapters.index -> daemon.ports: "implementa GraphStore/RunStore" {style.stroke-dash: 3}
+daemon.adapters.agentcc -> claude: "dirige (conductor)"
+claude -> jsonl: "escribe"
+claude -> otel: "hooks/skills/tool_decision"
+daemon.adapters.watch -> jsonl: "indexa (enumera/replaya)"
+daemon.adapters.agentcc -> otel: "recibe sidechannel"
+
+prohibido: "Flechas PROHIBIDAS (enforçadas por arch/fitness):\n core -> shell · core -> transport · core -> database/sql · core -> claudecode concreto" {
+  near: bottom-center
+  style: {fill: "#fef2f2"; stroke: "#dc2626"; font-color: "#991b1b"}
+}

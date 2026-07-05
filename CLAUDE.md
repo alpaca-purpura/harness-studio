@@ -32,14 +32,29 @@ ejecutan; marketplace git elegible por proyecto.
 - Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
   v3 en watchlist.
 
-**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) — iteración 13: SHELL FIRMADO,
-cerrando fase**. Shell = **Command Rail (A)**: rail de iconos izquierdo · visual (mapa/
+**Decisiones de arquitectura (HS-04, fase 3 — 2026-07-05):** investigación 5-frentes verificada
+(`research/2026-07-05-arquitectura-fase3.md`). **Shell v1 = Tauri 2 DESDE v1** (fork firmado; el
+milestone «futuro» se adelantó — daemon como sidecar `externalBin`, el WebView consume la misma
+API; mitigaciones Mint load-bearing: webkit 4.1, `WEBKIT_DISABLE_DMABUF_RENDERER=1`,
+single-instance). **Conexión a CC** = Go spawnea el `claude` local, habla **stream-json** por
+stdin/stdout (subproceso-conductor; SDK-sidecar y Managed Agents descartados). **Event sourcing**:
+stream-json (live) + OTel (hooks/skills) + JSONL (enumerar/replay, jamás parsear). **Dock** =
+taxonomía **AG-UI** sobre SSE (emisor Go propio) + **assistant-ui** + **CodeMirror 6/merge**;
+component-selection (format-authoring = trampa). **SSE** multiplexado 1 conexión. **Estado FE** =
+Zustand + hash-state. **Arquitectura as code** = árbol [`arch/`](./arch/INDEX.md) (7 boundaries ·
+29 checks · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; runner futuro `arnesia
+conformance` corre ambos. Corrección propagada: `--bare` rompe auth de suscripción (knowledge
+headless v1.1).
+
+**Estado:** fase 1 (Visión) ✓ · fase 2 UX (HS-03) ✓ firmada it.13 · **fase 3 arquitectura
+(HS-04) — EN CURSO: stack completo + arquitectura as code (árbol [`arch/`](./arch/INDEX.md))
+propuestos; siguiente HS-05 = specs**. Shell UX = **Command Rail (A)**: rail de iconos izquierdo · visual (mapa/
 portafolio) a pantalla casi completa · chat invocado (⌘K) como dock derecho. Portafolio con
 2 lentes: **Organigrama** (arneses por empresa/puesto, «reporta a», libre 2D) ↔ Cuadrícula.
 App = fábrica de arneses (crear + mantener), NO cockpit de empresa; metadata puesto·empresa·
 reporta-a + marketplace por empresa/arnés. Mockups de shell: `mockups/arnesia-shell-lab.html`
 (compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada). **Próximo:
-fase 3 arquitectura → implementar v1 con lo definido.**
+fase 4 specs (HS-05) → implementar v1 con lo definido (MVP = Mapa primero).**
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
 cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·
@@ -49,6 +64,9 @@ elemento** = [`knowledge/`](./knowledge/INDEX.md) (árbol de conocimiento VIVO: 
 hook·rule·subagent·command·mcp·plugin·settings·output-style·statusline·headless—, cada uno L1
 oficial+expertos ↔ L2 nuestra adaptación + checklist evaluable = 121 checks; se actualiza CADA
 SEMANA vía [`knowledge/CADENCE.md`](./knowledge/CADENCE.md), NO se congela al firmar HS-03) ·
+**arquitectura y diseño técnico as code** = [`arch/`](./arch/INDEX.md) (árbol gemelo de knowledge:
+7 boundary nodes L1↔L2 + 29 checks `enforced_by:` · `model/` C4 · `contracts/` schemas L0+contrato
+· `fitness/` go-arch-lint; se revisa al cambiar, mecanismo en `arch/CADENCE.md`) ·
 mockup vigente = `mockups/arnesia-mockup-v3.html`
 (navegable, artifact único — URL en memoria auto) · estándares mapeados =
 `research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en

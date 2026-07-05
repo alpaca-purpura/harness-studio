@@ -70,7 +70,65 @@ ejecuta arneses, jamás los modifica).
 flujos de creación/edición sobre el lienzo). Debates abiertos en VISION.md: segundo
 cerebro · diseño fino del mapa · config de marketplace por proyecto · renombre del repo.
 
-<!-- Próximas: HS-03, HS-04, … -->
+### HS-04 · Fase 3 arrancada — stack + arquitectura as code (shell = Tauri 2 desde v1) — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-05):* "necesito que arranquemos la fase de arquitectura y diseño
+técnico haciendo una investigación profunda de cómo hacer aplicaciones web multiplataforma y
+conectándome a claude code instalado en la computadora, la primera instalación será en linux
+(mint)… trabajemos bajo el concepto de arquitectura y diseño técnico as code para que, en vez de
+tener una documentación pesada para mantener mi aplicación, la 'documentación' viva aquí mismo…
+dame el stack completo que usaríamos, así como los patrones de arquitectura y diseño técnico."
+
+*Desarrollo:* apertura de la fase 3 del gran plan (HS-03 UX firmado en it.13). **Investigación de
+5 frentes en paralelo (subagentes), verificada julio-2026**, condensada en
+[`research/2026-07-05-arquitectura-fase3.md`](./research/2026-07-05-arquitectura-fase3.md): (A)
+shell/empaque multiplataforma · (B) conexión al Claude Code local · (C) contrato del dock (UI
+agéntica de streaming, respondiendo el state-of-the-art que trajo el operador) · (D) local-first
+(watch/índice/transporte/React Flow) · (E) arquitectura as code. **Stack** (confirma/refina
+HS-02): binario Go único · Tauri 2 · subproceso-conductor stream-json · modernc SQLite desechable
+(DuckDB descartado por CGO) · SSE multiplexado · React Flow 12 + Zustand+hash · **AG-UI
+(taxonomía) + assistant-ui + CodeMirror6/merge** (nuevo, resuelve el dock) · JSON Schema 2020-12 →
+quicktype (Go+TS) · go-arch-lint + depguard · D2+Mermaid.
+
+**Forks firmados por el operador (AskUserQuestion):** (1) **shell v1 = Tauri 2 desde v1** (app de
+escritorio nativa), NO browser-first — se acepta el riesgo WebKitGTK de Mint y sus mitigaciones
+(webkit 4.1, `WEBKIT_DISABLE_DMABUF_RENDERER=1`, single-instance) pasan a load-bearing. Es una
+**divergencia declarada** frente a la recomendación del research (browser-first por menor riesgo);
+el boundary `core⊥shell` no cambia: el daemon sirve HTTP/SSE y Tauri es shell tonto encima →
+«servable headless» sigue gratis y la ruta a la app vendible es aditiva (wrap, no rewrite). (2)
+**materializar la arquitectura as code YA**.
+
+**Materializado (arquitectura as code, espeja `knowledge/`):** nuevo árbol
+[`arch/`](./arch/INDEX.md) — INDEX + CADENCE + **7 boundary nodes** (core⊥shell · dominio⊥transporte
+· adaptadores-de-agente-intercambiables · índice-desechable-JSONL-es-verdad · conductor-no-parsea-
+JSONL · permisos-GUI-human-in-the-loop · contrato-de-caja-es-fitness-function), cada uno L1
+(principio con fuente) ↔ L2 (realización en el árbol Go) + tabla de checks (**29 checks**, severidad
++ señal, `enforced_by:` 1:1) — el gemelo-arquitectura de los 123 de knowledge; **`model/`** (C4
+contexto Mermaid + container D2); **`contracts/`** (schemas L0 `meta.clase` + `contract:` de caja —
+el mismo de METODOLOGIA §3 — + OpenAPI 3.1, con `gen/` para tipos Go+TS); **`fitness/`**
+(`.go-arch-lint.yml` + `arch_test.go`). Un solo runner futuro `arnesia conformance` corre arch +
+knowledge. **Corrección load-bearing propagada** al nodo `knowledge/headless-sdk` (v1.0→v1.1):
+`--bare` **rompe el auth de suscripción** (no default-earlo en el conductor) + `%contexto` = métrica
+derivada (no existe en stream-json/OTel) → 123 checks totales.
+
+**Honestidad:** cero código de producto aún (fase 5); los 29 checks están **declarados, no
+corriendo** (`status: proposed`) — se activan cuando el módulo Go aterrice, igual que los 123 de
+knowledge son el linter futuro. Flags de verificación registrados en el research doc (shape
+JSON-RPC de `control_request` = primer spike de fase 4; contención `~/.claude` = load-test;
+macOS+Keychain; ToS si se distribuye).
+
+*Conecta:* HS-02 (decisiones técnicas fundacionales que esto aterriza) · HS-03 (UX firmada que la
+arquitectura debe servir) · I-75 (contrato L0 `meta.clase` = el schema `graph.l0`) · I-76/OBS-16/
+OBS-18 (patrón conductor, hecho subproceso-stream-json) · KIT-03 (`telemetry-emit` OTel = el
+sidechannel del conductor) · `knowledge/` (el árbol gemelo; `arch/` copia su patrón L1/L2/checks) ·
+METODOLOGIA §3 (`contract:` de caja = `box.contract.schema.json`).
+
+*Siguiente:* **HS-05 = fase 4, specs** — cementar los schemas del dominio (fase/estado spine,
+`meta.clase` por-formalizar), el spike del protocolo de permisos contra el binario instalado, y las
+specs del MVP (Mapa primero). Debates de VISION que fase 4 hereda: segundo cerebro (vector DB) ·
+config de marketplace por proyecto · renombre repo → `arnesia`.
+
+<!-- Próximas: HS-05, … -->
 
 ## Log
 
@@ -78,3 +136,4 @@ cerebro · diseño fino del mapa · config de marketplace por proyecto · renomb
 |---|---|---|
 | 2026-07-04 | Fundación del repo propio: graduación de P4 (2ª graduación de la incubadora, precedente DevHub/I-78). Repo nace limpio con visión POR FORJAR (mutó — se firma aquí como HS-02); prefijo nuevo HS-NN; célula `products/harness-studio/` E instancia 0 `tooling/harness-studio/` congeladas como fuente del port gradual; kit dev como plugin del marketplace, canal estable. | HS-01 |
 | 2026-07-04 | Visión v3 forjada y FIRMADA: **ArnesIA**, fábrica de arneses por rol × proceso. Constitución de 11 principios; Mapa = lienzo único; grafo agnóstico + adaptador CC; captura local-first + Langfuse espejo; git marketplaces + telemetría de efectividad; stack Go/Vite/React Flow/SQLite. Gran plan 6 fases — siguiente: UX (HS-03). | HS-02 |
+| 2026-07-05 | Fase 3 (arquitectura) arrancada: investigación 5-frentes verificada → stack completo (Tauri 2, subproceso-conductor stream-json, modernc SQLite, SSE, React Flow 12+Zustand, **AG-UI+assistant-ui+CodeMirror6**, schema-first Go+TS, go-arch-lint). Fork firmado: **shell = Tauri 2 desde v1** (divergencia declarada vs browser-first del research). **Arquitectura as code materializada:** árbol `arch/` (7 boundaries · 29 checks · model/ · contracts/ · fitness/) espejando `knowledge/`. Corrección `--bare`/auth propagada a knowledge (→123 checks). | HS-04 |

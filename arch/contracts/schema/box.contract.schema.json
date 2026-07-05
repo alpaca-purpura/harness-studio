@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arnesia.alpacapurpura.lat/schema/box.contract.schema.json",
+  "title": "Contrato de caja de proceso",
+  "description": "Bloque `contract:` del frontmatter de un SKILL.md que es caja de proceso. Single source of truth: deriva de METODOLOGIA.md §3 (acordado iteración 10 de HS-03). Validar cada instancia contra este schema ES la fitness function del eval-gate A4 y de la validación de composición. Ver arch/boundaries/contrato-de-caja-es-fitness-function.md.",
+  "type": "object",
+  "required": ["caja"],
+  "additionalProperties": false,
+  "properties": {
+    "caja": {
+      "type": "boolean",
+      "description": "true si es la skill-frente de una fase (una caja de proceso). false = skill de apoyo (librería/utilidad/tercero/meta-harness), que no declara transición ni gate."
+    },
+    "fase": {
+      "type": "string",
+      "description": "id de la fase que esta caja protagoniza.",
+      "minLength": 1
+    },
+    "estado": {
+      "type": "string",
+      "description": "La transición del spine de estados del trabajo que esta caja posee: '<estado_entra> -> <estado_sale>'.",
+      "pattern": "^\\s*[a-zA-Z0-9_\\-]+\\s*->\\s*[a-zA-Z0-9_\\-]+\\s*$"
+    },
+    "necesita": {
+      "type": "array",
+      "description": "Inputs: qué necesita para operar bien (precondición). Un input sin productor upstream = huérfano (hallazgo).",
+      "items": {
+        "type": "object",
+        "required": ["art", "de"],
+        "additionalProperties": false,
+        "properties": {
+          "art": { "type": "string", "description": "Artefacto o precondición.", "minLength": 1 },
+          "de": {
+            "type": "string",
+            "description": "Origen del input.",
+            "pattern": "^(usuario|base:[a-zA-Z0-9_\\-]+|caja:[a-zA-Z0-9_\\-]+|libreria:[a-zA-Z0-9_\\-]+|maquinaria:[a-zA-Z0-9_\\-]+)$"
+          },
+          "requerido": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    "entrega": {
+      "type": "array",
+      "description": "Outputs: artefactos as code que produce. La salida de una caja es la entrada de la siguiente. Un output que nadie consume = dead-end (hallazgo).",
+      "items": {
+        "type": "object",
+        "required": ["art"],
+        "additionalProperties": false,
+        "properties": {
+          "art": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "ruta": {
+      "type": "array",
+      "description": "A quién entrega, CONDICIONAL (el DAG real: happy path / rework / escalate).",
+      "items": {
+        "type": "object",
+        "required": ["a"],
+        "additionalProperties": false,
+        "properties": {
+          "a": { "type": "string", "description": "skill o rol destino.", "minLength": 1 },
+          "si": { "type": "string", "description": "Condición. Omitir para el happy path." }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "description": "Cómo se evalúa la SALIDA de la caja (aterriza el principio 10, regla A4). HONESTO: tipo 'none' cuando la skill NO tiene eval real; jamás se fabrica un eval para rellenar.",
+      "required": ["tipo"],
+      "additionalProperties": false,
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["auto", "manual", "parcial", "none"]
+        },
+        "detalle": {
+          "type": "string",
+          "description": "Cómo evalúa; si tipo=none, POR QUÉ falta (el hueco del principio 10 hecho dato)."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "caja": { "const": true } }, "required": ["caja"] },
+      "then": {
+        "required": ["fase", "estado", "gate"],
+        "description": "Una caja de proceso DEBE declarar su fase, la transición de estado que posee y su gate (aunque sea tipo none)."
+      }
+    }
+  ]
+}

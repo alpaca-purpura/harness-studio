@@ -1,0 +1,106 @@
+openapi: 3.1.0
+info:
+  title: ArnesIA daemon API
+  version: 0.0.1-skeleton
+  description: >-
+    Superficie HTTP/SSE del daemon `arnesia serve` (:4200). SKELETON de fase 3 — enumera las
+    superficies del UX (S1–S9) como endpoints; se cementa en fase 4 (specs). Single source: de
+    aquí se generan los tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO
+    contiene reglas de negocio (ver arch/boundaries/dominio-independiente-de-transporte.md).
+servers:
+  - url: http://127.0.0.1:4200/api
+    description: daemon local (single-user). El WebView Tauri y el browser dev consumen esta misma API.
+paths:
+  /harnesses:
+    get:
+      operationId: listHarnesses
+      summary: Portafolio (S1) — arneses con salud + telemetría resumida.
+      responses:
+        "200":
+          description: Lista de arneses (organigrama/cuadrícula).
+  /harnesses/{id}/graph:
+    get:
+      operationId: getHarnessGraph
+      summary: Mapa (S2) — el grafo agnóstico del arnés (nodos + edges).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Grafo L0.
+          content:
+            application/json:
+              schema:
+                $ref: ../schema/graph.l0.schema.json
+  /harnesses/{id}/nodes/{nodeId}:
+    get:
+      operationId: getNode
+      summary: Inspector (S3) — identidad + métricas + contrato + hallazgos del nodo.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: nodeId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Nodo con contrato (valida box.contract.schema.json) y métricas. }
+  /harnesses/{id}/runs:
+    get:
+      operationId: listRuns
+      summary: Corridas (S8) — corridas reales derivadas del JSONL (enumerar/replay, no parsear schema).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Lista de corridas. }
+  /events:
+    get:
+      operationId: streamEvents
+      summary: >-
+        SSE multiplexado — UNA conexión, eventos tipados (event: map | dock | run). Reconexión por
+        Last-Event-ID. Fuente: captura del stream-json del conductor + deltas del indexer.
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: text/event-stream. Taxonomía AG-UI (subset text/tool/lifecycle) + CUSTOM para eventos CC.
+          content:
+            text/event-stream:
+              schema: { type: string }
+  /dock/{sessionId}/turn:
+    post:
+      operationId: sendTurn
+      summary: Dock (S4) — envía un turno a la sesión CC viva (streaming input al subproceso).
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { text: { type: string } }
+      responses:
+        "202":
+          description: "Turno encolado; la respuesta llega por /events (event: dock)."
+  /dock/{sessionId}/permission:
+    post:
+      operationId: resolvePermission
+      summary: >-
+        Diff-approval (human-in-the-loop). Resuelve un control_request:can_use_tool. allow debe
+        echar updatedInput; deny debe incluir message. Ver arch/boundaries/permisos-gui-human-in-the-loop.md.
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestId, decision]
+              properties:
+                requestId: { type: string }
+                decision: { type: string, enum: [allow, deny] }
+                updatedInput: { type: object, description: requerido si decision=allow }
+                message: { type: string, description: requerido si decision=deny }
+      responses:
+        "200": { description: Resuelto. }
+components: {}
