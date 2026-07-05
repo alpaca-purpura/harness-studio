@@ -1,0 +1,235 @@
+// Multisesión store (Zustand). It mirrors the daemon's session registry and drives the
+// live Dock: optimistic user turns, per-session streaming buffers, and SSE frame
+// routing. The daemon is the source of truth (persist + resume); this store is the
+// live view of it.
+
+import { create } from "zustand"
+import {
+  api,
+  connectDock,
+  type DockConnection,
+  type DockFrame,
+  type NewSession,
+  type Session,
+} from "@/shared/api"
+
+interface SessionsState {
+  sessions: Session[]
+  activeId: string | null
+  chatOpen: boolean
+  railCollapsed: boolean
+  connected: boolean
+  loaded: boolean
+  // streaming[id] = assistant text assembled from deltas for the in-flight turn.
+  streaming: Record<string, string>
+
+  init: () => Promise<void>
+  switchTo: (id: string) => void
+  create: (input: NewSession) => Promise<void>
+  closeSession: (id: string) => Promise<void>
+  rename: (id: string, frente: string) => Promise<void>
+  parkView: (view: string) => Promise<void>
+  sendTurn: (text: string) => Promise<void>
+  toggleChat: () => void
+  openChat: () => void
+  closeChat: () => void
+  toggleRail: () => void
+  onDock: (frame: DockFrame) => void
+}
+
+let dockConn: DockConnection | null = null
+
+// patch replaces one session in the list by id via a mutator.
+function patch(list: Session[], id: string, fn: (s: Session) => Session): Session[] {
+  return list.map((s) => (s.id === id ? fn(s) : s))
+}
+
+export const useSessions = create<SessionsState>((set, get) => ({
+  sessions: [],
+  activeId: null,
+  chatOpen: false,
+  railCollapsed: false,
+  connected: false,
+  loaded: false,
+  streaming: {},
+
+  init: async () => {
+    // The daemon may still be binding :4200 when the WebView mounts (Tauri spawns it
+    // as a sidecar concurrently). Retry the first load until it answers.
+    let sessions: Session[] = []
+    for (let attempt = 0; ; attempt++) {
+      try {
+        sessions = await api.listSessions()
+        break
+      } catch (err) {
+        if (attempt >= 40) {
+          console.error("arnesia: daemon unreachable after retries", err)
+          set({ loaded: true })
+          return
+        }
+        await new Promise((r) => setTimeout(r, 500))
+      }
+    }
+    set((st) => ({
+      sessions,
+      loaded: true,
+      activeId: st.activeId ?? sessions[0]?.id ?? null,
+    }))
+    if (!dockConn) {
+      dockConn = connectDock(
+        (f) => get().onDock(f),
+        (c) => set({ connected: c }),
+      )
+    }
+  },
+
+  switchTo: (id) => set({ activeId: id }),
+
+  create: async (input) => {
+    const sess = await api.createSession(input)
+    set((st) => ({
+      sessions: [...st.sessions, sess],
+      activeId: sess.id,
+      chatOpen: true,
+    }))
+  },
+
+  closeSession: async (id) => {
+    await api.closeSession(id)
+    set((st) => {
+      const sessions = st.sessions.filter((s) => s.id !== id)
+      const activeId = st.activeId === id ? (sessions[0]?.id ?? null) : st.activeId
+      return { sessions, activeId }
+    })
+  },
+
+  rename: async (id, frente) => {
+    const trimmed = frente.trim()
+    if (!trimmed) return
+    set((st) => ({
+      sessions: patch(st.sessions, id, (s) => ({ ...s, frente: trimmed })),
+    }))
+    await api.renameSession(id, trimmed)
+  },
+
+  parkView: async (view) => {
+    const id = get().activeId
+    if (!id) return
+    set((st) => ({
+      sessions: patch(st.sessions, id, (s) => ({ ...s, view })),
+    }))
+    await api.setView(id, view)
+  },
+
+  sendTurn: async (text) => {
+    const id = get().activeId
+    const body = text.trim()
+    if (!id || !body) return
+    // Optimistic: show the user turn and flip to streaming immediately.
+    set((st) => ({
+      sessions: patch(st.sessions, id, (s) => ({
+        ...s,
+        status: "streaming",
+        conv: [...(s.conv ?? []), { rol: "user", text: body }],
+      })),
+      streaming: { ...st.streaming, [id]: "" },
+    }))
+    try {
+      await api.turn(id, body)
+    } catch (err) {
+      set((st) => ({
+        sessions: patch(st.sessions, id, (s) => ({
+          ...s,
+          status: "idle",
+          conv: [...(s.conv ?? []), { rol: "sys", text: `error: ${String(err)}` }],
+        })),
+      }))
+    }
+  },
+
+  toggleChat: () => set((st) => ({ chatOpen: !st.chatOpen })),
+  openChat: () => set({ chatOpen: true }),
+  closeChat: () => set({ chatOpen: false }),
+  toggleRail: () => set((st) => ({ railCollapsed: !st.railCollapsed })),
+
+  onDock: (f) => {
+    const id = f.session_id
+    switch (f.kind) {
+      case "status":
+        set((st) => ({
+          sessions: patch(st.sessions, id, (s) => ({
+            ...s,
+            status: f.status ?? s.status,
+          })),
+        }))
+        break
+
+      case "init":
+        set((st) => ({
+          sessions: patch(st.sessions, id, (s) => ({
+            ...s,
+            claude_session_id: f.claude_session_id ?? s.claude_session_id,
+            model: f.model ?? s.model,
+          })),
+        }))
+        break
+
+      case "delta":
+        set((st) => ({
+          streaming: {
+            ...st.streaming,
+            [id]: (st.streaming[id] ?? "") + (f.text ?? ""),
+          },
+          sessions: patch(st.sessions, id, (s) => ({
+            ...s,
+            status: "streaming",
+          })),
+        }))
+        break
+
+      case "result":
+        set((st) => {
+          const finalText = (st.streaming[id] ?? "").trim() || (f.text ?? "")
+          const rest = { ...st.streaming }
+          delete rest[id]
+          return {
+            streaming: rest,
+            sessions: patch(st.sessions, id, (s) => ({
+              ...s,
+              status: "idle",
+              ctx_pct: f.ctx_pct && f.ctx_pct > 0 ? f.ctx_pct : s.ctx_pct,
+              conv: [...(s.conv ?? []), { rol: "assistant", text: finalText }],
+            })),
+          }
+        })
+        break
+
+      case "error":
+        set((st) => {
+          const rest = { ...st.streaming }
+          delete rest[id]
+          return {
+            streaming: rest,
+            sessions: patch(st.sessions, id, (s) => ({
+              ...s,
+              status: "idle",
+              conv: [...(s.conv ?? []), { rol: "sys", text: `error: ${f.text ?? ""}` }],
+            })),
+          }
+        })
+        break
+
+      case "message":
+        // Full assistant message: superseded by delta assembly; ignored here.
+        break
+    }
+  },
+}))
+
+// selectors -----------------------------------------------------------------
+
+export const selectActive = (st: SessionsState): Session | undefined =>
+  st.sessions.find((s) => s.id === st.activeId)
+
+export const selectAttention = (st: SessionsState): number =>
+  st.sessions.filter((s) => s.status === "await").length

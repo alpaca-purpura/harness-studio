@@ -1,0 +1,148 @@
+package httpapi
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/usecase"
+)
+
+// listSessions (S4) — the multisesión rail.
+func listSessions(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, svc.List())
+	}
+}
+
+// createSessionBody is the POST /api/sessions payload.
+type createSessionBody struct {
+	Arnes   string       `json:"arnes"`
+	Frente  string       `json:"frente"`
+	Empresa string       `json:"empresa"`
+	Puesto  string       `json:"puesto"`
+	Salud   domain.Salud `json:"salud"`
+	View    string       `json:"view"`
+	Parked  string       `json:"parked"`
+}
+
+// createSession opens a new work-front.
+func createSession(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body createSessionBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		sess, err := svc.Create(domain.Session{
+			Arnes:   body.Arnes,
+			Frente:  body.Frente,
+			Empresa: body.Empresa,
+			Puesto:  body.Puesto,
+			Salud:   body.Salud,
+			View:    body.View,
+			Parked:  body.Parked,
+		})
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusCreated, sess)
+	}
+}
+
+// getSession returns one session.
+func getSession(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := svc.Get(r.PathValue("id"))
+		if !ok {
+			writeJSON(w, http.StatusNotFound, errorBody{Error: "session not found"})
+			return
+		}
+		writeJSON(w, http.StatusOK, sess)
+	}
+}
+
+// patchSessionBody carries the mutable fields of a session (rename / park view).
+type patchSessionBody struct {
+	Frente *string `json:"frente"`
+	View   *string `json:"view"`
+}
+
+// patchSession renames a front and/or records its parked view.
+func patchSession(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		var body patchSessionBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		var (
+			sess domain.Session
+			err  error
+			ok   bool
+		)
+		if body.Frente != nil {
+			sess, err = svc.Rename(id, *body.Frente)
+			ok = true
+		}
+		if body.View != nil {
+			sess, err = svc.SetView(id, *body.View)
+			ok = true
+		}
+		if !ok {
+			sess, _ = svc.Get(id)
+		}
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, sess)
+	}
+}
+
+// deleteSession closes a session.
+func deleteSession(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := svc.Close(r.PathValue("id")); err != nil {
+			writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// turnBody is the POST /api/sessions/{id}/turn payload.
+type turnBody struct {
+	Text string `json:"text"`
+}
+
+// sessionTurn streams one user message to a session's conductor. The response is
+// immediate (202); the assistant reply arrives over the SSE Dock stream.
+func sessionTurn(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		var body turnBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		if body.Text == "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "empty turn"})
+			return
+		}
+		if err := svc.Turn(id, body.Text); err != nil {
+			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+// decodeJSON decodes a request body, writing a 400 on failure. It returns the error so
+// callers can bail early.
+func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		writeJSON(w, http.StatusBadRequest, errorBody{Error: "invalid JSON body: " + err.Error()})
+		return err
+	}
+	return nil
+}

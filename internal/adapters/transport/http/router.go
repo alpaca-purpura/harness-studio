@@ -18,9 +18,9 @@ type errorBody struct {
 	Error string `json:"error"`
 }
 
-// NewHandler builds the daemon's router. maps serves the Map/graph endpoints; events
-// is the SSE broker mounted at /events (and its OpenAPI path /api/events).
-func NewHandler(maps *usecase.MapService, events http.Handler) http.Handler {
+// NewHandler builds the daemon's router. maps serves the Map/graph endpoints; sessions
+// drives the multisesión Dock; events is the SSE broker mounted at /events.
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, events http.Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// Liveness + the multiplexed SSE stream (the two endpoints the shell polls first).
@@ -34,11 +34,32 @@ func NewHandler(maps *usecase.MapService, events http.Handler) http.Handler {
 	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}", getNode)
 	mux.HandleFunc("GET /api/harnesses/{id}/runs", listRuns)
 
-	// Dock (S4): turn + human-in-the-loop permission.
-	mux.HandleFunc("POST /api/dock/{sessionId}/turn", sendTurn)
-	mux.HandleFunc("POST /api/dock/{sessionId}/permission", resolvePermission)
+	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
+	mux.HandleFunc("GET /api/sessions", listSessions(sessions))
+	mux.HandleFunc("POST /api/sessions", createSession(sessions))
+	mux.HandleFunc("GET /api/sessions/{id}", getSession(sessions))
+	mux.HandleFunc("PATCH /api/sessions/{id}", patchSession(sessions))
+	mux.HandleFunc("DELETE /api/sessions/{id}", deleteSession(sessions))
+	mux.HandleFunc("POST /api/sessions/{id}/turn", sessionTurn(sessions))
+	mux.HandleFunc("POST /api/sessions/{id}/permission", resolvePermission)
 
-	return mux
+	return withCORS(mux)
+}
+
+// withCORS allows the Vite dev origin (and the Tauri WebView) to call the daemon
+// cross-origin during development, and answers preflight requests.
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Access-Control-Allow-Origin", "*")
+		h.Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+		h.Set("Access-Control-Allow-Headers", "Content-Type, Last-Event-ID")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func healthz(w http.ResponseWriter, _ *http.Request) {
@@ -73,12 +94,7 @@ func listRuns(w http.ResponseWriter, _ *http.Request) {
 	notImplemented(w)
 }
 
-// sendTurn (S4) — enqueue a turn to the live conductor session. Stub.
-func sendTurn(w http.ResponseWriter, _ *http.Request) {
-	notImplemented(w)
-}
-
-// resolvePermission — diff-approval (human-in-the-loop). Stub.
+// resolvePermission — diff-approval (human-in-the-loop). Stub (fase 4 spec S4).
 func resolvePermission(w http.ResponseWriter, _ *http.Request) {
 	notImplemented(w)
 }

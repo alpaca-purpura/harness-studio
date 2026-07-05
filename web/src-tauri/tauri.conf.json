@@ -1,31 +1,31 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ArnesIA",
-  "version": "0.1.0",
-  "identifier": "lat.alpacapurpura.arnesia",
-  "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "ArnesIA",
-        "width": 1440,
-        "height": 900,
-        "resizable": true
-      }
-    ],
-    "security": {
-      "csp": null
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "externalBin": ["binaries/arnesia"]
-  }
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "ArnesIA",
+	"version": "0.1.0",
+	"identifier": "lat.alpacapurpura.arnesia",
+	"build": {
+		"beforeDevCommand": "npm run dev",
+		"devUrl": "http://localhost:5173",
+		"beforeBuildCommand": "npm run build",
+		"frontendDist": "../dist"
+	},
+	"app": {
+		"windows": [
+			{
+				"label": "main",
+				"title": "ArnesIA",
+				"width": 1440,
+				"height": 900,
+				"resizable": true
+			}
+		],
+		"security": {
+			"csp": null
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": "all",
+		"externalBin": ["binaries/arnesia-daemon"]
+	}
 }

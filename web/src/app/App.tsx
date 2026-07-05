@@ -1,30 +1,25 @@
-import { Button, useAppStore } from "@/shared";
+import { useEffect } from "react"
+import { ShellPage } from "@/pages/shell"
+import { useSessions } from "@/shared"
 
-// PLACEHOLDER de primera versión (vacía). Reserva las 3 zonas del shell firmado (HS-03 it.13,
-// mockups/arnesia-shell-A-galaxia.html): Command Rail izq. · lienzo casi-fullscreen · dock de
-// conversación invocable (⌘K). El shell REAL se construye en la próxima sesión (widgets/features).
+// App boots the shell: it loads the session registry, opens the multiplexed Dock
+// stream, and binds ⌘K to invoke the conversation. Everything else is composed by
+// ShellPage (mockup it.14).
 export function App() {
-  const theme = useAppStore((s) => s.theme);
-  const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const init = useSessions((s) => s.init)
+  const toggleChat = useSessions((s) => s.toggleChat)
 
-  return (
-    <div className="flex h-full w-full">
-      {/* Command Rail (zona reservada — vacía por ahora) */}
-      <aside className="flex w-14 flex-none flex-col items-center gap-3 border-r border-sidebar-border bg-sidebar py-3">
-        <div className="size-8 rounded-md bg-sidebar-primary" title="ArnesIA" />
-      </aside>
+  useEffect(() => {
+    void init()
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        toggleChat()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [init, toggleChat])
 
-      {/* Lienzo (zona reservada — vacía por ahora) */}
-      <main className="relative flex flex-1 flex-col items-center justify-center gap-4 p-8">
-        <h1 className="text-2xl font-semibold text-foreground">ArnesIA</h1>
-        <p className="max-w-md text-center text-sm text-muted-foreground">
-          Scaffold vacío listo. El shell (Command Rail · lienzo · dock de conversación) se construye
-          en la próxima sesión.
-        </p>
-        <Button variant="outline" size="sm" onClick={toggleTheme}>
-          Tema: {theme}
-        </Button>
-      </main>
-    </div>
-  );
+  return <ShellPage />
 }

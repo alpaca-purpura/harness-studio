@@ -28,6 +28,7 @@ tauri-build = { version = "2", features = [] }   # verificar al instalar
 [dependencies]
 tauri = { version = "2", features = [] }         # verificar al instalar
 tauri-plugin-single-instance = "2"               # verificar al instalar (mitigación Mint: 1 sola ventana)
+tauri-plugin-shell = "2"                          # spawn del daemon Go como sidecar (externalBin)
 serde = { version = "1", features = ["derive"] } # verificar al instalar
 serde_json = "1"                                 # verificar al instalar
 

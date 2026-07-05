@@ -5,21 +5,59 @@ package ports
 
 import "context"
 
-// AgentEvent is one stream-json message emitted by the conductor subprocess. Raw is
-// the untouched JSONL line — enumerate/replay it, never re-decode its schema inside a
-// use case (see arch/boundaries/conductor-no-parsea-jsonl.md).
+// AgentEventKind is the normalized meaning of a conductor event. The claudecode
+// adapter owns the Claude Code stream-json protocol and translates its raw frames
+// into these; nothing upstream re-decodes the protocol (see
+// arch/boundaries/conductor-no-parsea-jsonl.md — the on-disk JSONL corpus is for
+// enumerate/replay, and the live stream is interpreted only here, by its expert).
+type AgentEventKind string
+
+const (
+	// EventInit — the `system/init` frame: ClaudeSessionID and Model are set. Capture
+	// ClaudeSessionID to later `--resume` this conversation.
+	EventInit AgentEventKind = "init"
+	// EventDelta — one token chunk of the current assistant message (Text).
+	EventDelta AgentEventKind = "delta"
+	// EventMessage — a complete assistant message (Text); a fallback when partial
+	// deltas were not requested/emitted.
+	EventMessage AgentEventKind = "message"
+	// EventResult — the turn finished. CtxPct carries context-window usage (0–100).
+	EventResult AgentEventKind = "result"
+	// EventError — the conductor failed (Text is the reason).
+	EventError AgentEventKind = "error"
+)
+
+// AgentEvent is one normalized message from the conductor. Raw is the untouched
+// stream-json line for enumerate/replay; the typed fields are what the Dock renders.
 type AgentEvent struct {
-	Type string // stream-json message type, e.g. "assistant" | "tool_use" | "result".
-	Raw  []byte
+	Kind            AgentEventKind
+	Text            string
+	ClaudeSessionID string
+	Model           string
+	CtxPct          int
+	Raw             []byte
 }
 
-// AgentSession is a live `claude` conductor: streaming input in, stream-json out.
+// SpawnOpts parameterizes a conductor. Resume, when non-empty, continues an existing
+// Claude Code conversation instead of starting a fresh one.
+type SpawnOpts struct {
+	// Resume is a Claude Code session id to `--resume`; empty starts a new session.
+	Resume string
+	// Model overrides the default model (e.g. "claude-opus-4-8"); empty uses the CLI default.
+	Model string
+	// Cwd is the working directory the conductor runs in; empty inherits the daemon's.
+	Cwd string
+}
+
+// AgentSession is a live `claude` conductor: streaming user turns in, normalized
+// events out, over a persistent subprocess.
 type AgentSession interface {
-	// Send streams one user turn to the subprocess stdin.
+	// Send streams one user turn to the subprocess stdin. Safe to call across turns
+	// while the session stays alive.
 	Send(ctx context.Context, turn string) error
-	// Events yields the subprocess stream-json output until the session closes.
+	// Events yields normalized events until the session closes.
 	Events() <-chan AgentEvent
-	// Close terminates the subprocess.
+	// Close terminates the subprocess (closing stdin, then waiting).
 	Close() error
 }
 
@@ -27,6 +65,6 @@ type AgentSession interface {
 // deliberately interchangeable: nothing outside the concrete adapter knows which agent
 // backs it (see arch/boundaries/adaptadores-de-agente-intercambiables.md).
 type AgentPort interface {
-	// Spawn starts a conductor for prompt and returns the live session.
-	Spawn(ctx context.Context, prompt string) (AgentSession, error)
+	// Spawn starts a persistent conductor and returns the live session.
+	Spawn(ctx context.Context, opts SpawnOpts) (AgentSession, error)
 }

@@ -1,6 +1,6 @@
-import { cva, type VariantProps } from "class-variance-authority";
-import type { ButtonHTMLAttributes } from "react";
-import { cn } from "@/shared/lib/cn";
+import { cva, type VariantProps } from "class-variance-authority"
+import type { ButtonHTMLAttributes } from "react"
+import { cn } from "@/shared/lib/cn"
 
 // Primitivo shadcn (copy-in) sobre tokens semánticos. NADA de magic-value: solo utilidades
 // mapeadas a los design tokens (arch/boundaries/fe-tokens-contrato.md).
@@ -24,12 +24,12 @@ export const buttonVariants = cva(
     },
     defaultVariants: { variant: "default", size: "default" },
   },
-);
+)
 
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}
 
 export function Button({ className, variant, size, ...props }: ButtonProps) {
-  return <button className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+  return <button className={cn(buttonVariants({ variant, size }), className)} {...props} />
 }

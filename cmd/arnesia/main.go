@@ -18,6 +18,7 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/adapters/publish"
+	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	httpapi "github.com/alpacapurpura/arnesia/internal/adapters/transport/http"
 	"github.com/alpacapurpura/arnesia/internal/adapters/transport/sse"
 	"github.com/alpacapurpura/arnesia/internal/adapters/watch"
@@ -72,6 +73,9 @@ commands:
 func runServe(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	addr := fs.String("addr", "127.0.0.1:4200", "listen address")
+	claudeBin := fs.String("claude", "claude", "path to the claude binary (the Dock conductor)")
+	sessionsPath := fs.String("sessions", "", "session registry file (default ~/.arnesia/sessions.json)")
+	workdir := fs.String("workdir", "", "working directory the conductor runs claude in (default: daemon cwd)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -84,8 +88,12 @@ func runServe(args []string) error {
 	if err := idx.Rebuild(ctx); err != nil {
 		return fmt.Errorf("index rebuild: %w", err)
 	}
-	agent := claudecode.New("claude") // the Dock conductor.
-	_ = agent                         // TODO(fase 5): the Dock streams turns through the conductor.
+	agent := claudecode.New(*claudeBin) // the Dock conductor.
+
+	sessionStore, err := store.NewRegistry(*sessionsPath)
+	if err != nil {
+		return fmt.Errorf("session store: %w", err)
+	}
 
 	watcher := watch.New()
 	events, err := watcher.Watch(ctx)
@@ -93,10 +101,14 @@ func runServe(args []string) error {
 		return fmt.Errorf("watch: %w", err)
 	}
 
-	// Transport.
+	// Transport + services.
 	broker := sse.NewBroker()
 	mapSvc := usecase.NewMapService(idx)
-	handler := httpapi.NewHandler(mapSvc, broker)
+	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, *workdir)
+	if err != nil {
+		return fmt.Errorf("session service: %w", err)
+	}
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, broker)
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {
@@ -126,6 +138,13 @@ func runServe(args []string) error {
 	}
 	return nil
 }
+
+// brokerPublisher adapts the SSE broker (whose Publish returns the stored event) to
+// the usecase.EventPublisher interface (which ignores it), keeping usecase free of any
+// transport import.
+type brokerPublisher struct{ b *sse.Broker }
+
+func (p brokerPublisher) Publish(eventType string, data []byte) { p.b.Publish(eventType, data) }
 
 // runOpen opens the UI. Stub.
 func runOpen(_ []string) error {

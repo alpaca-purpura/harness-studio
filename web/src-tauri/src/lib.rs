@@ -1,8 +1,17 @@
 //! Shell de escritorio ArnesIA (Tauri 2 — HS-04).
 //!
 //! El shell es CLIENTE del daemon Go `arnesia` (API HTTP/SSE en http://localhost:4200):
-//! aporta ventana + single-instance + (fase futura) lanzar el sidecar. NO importa el core
+//! aporta ventana + single-instance + lanza el daemon como sidecar. NO importa el core
 //! (boundary `core-no-importa-shell`): el WebView consume la misma API que el modo headless.
+
+use std::net::TcpStream;
+use std::time::Duration;
+
+use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::ShellExt;
+
+/// Puerto donde escucha el daemon Go.
+const DAEMON_ADDR: &str = "127.0.0.1:4200";
 
 /// Punto de arranque compartido entre desktop (`main.rs`) y mobile (`mobile_entry_point`).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -14,16 +23,51 @@ pub fn run() {
             // TODO(fase futura): reenfocar la ventana "main" y, si aplica, rutear el deep-link
             // `arnesia://` recibido en `_argv` (ojo bug single-instance+deep-link tauri#12726).
         }))
-        .setup(|_app| {
-            // FASE FUTURA (sidecar): aquí se cablea el daemon Go `arnesia serve`.
-            //   1. Sondar http://localhost:4200 (bind-or-bail / flock del daemon).
-            //   2. Si NO responde -> spawnear el externalBin `binaries/arnesia-<target-triple>`
-            //      vía tauri-plugin-shell (`app.shell().sidecar("arnesia")`), sub-comando `serve`.
-            //      Requiere sumar `tauri-plugin-shell` a Cargo.toml + capability `shell:allow-execute`.
-            //   3. Tauri no auto-reapea el sidecar en crash duro -> heartbeat/supervisor propio.
-            // El WebView ya apunta a la SPA (dev: :5173 / prod: frontendDist), que habla con :4200.
+        .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            // Sidecar: si el daemon NO responde en :4200, spawnear el externalBin
+            // `binaries/arnesia-<target-triple>` con `serve`. El WebView (dev :5173 /
+            // prod frontendDist) habla con esa misma API.
+            if daemon_running() {
+                eprintln!("[arnesia] daemon ya activo en {DAEMON_ADDR}; no spawneo sidecar");
+                return Ok(());
+            }
+            match app.shell().sidecar("arnesia-daemon") {
+                Ok(cmd) => match cmd.args(["serve"]).spawn() {
+                    Ok((mut rx, _child)) => {
+                        // Drena stdout/stderr del daemon para que su pipe no se llene, y
+                        // registra su salida. Tauri NO auto-reapea en crash duro (supervisor
+                        // = fase futura).
+                        tauri::async_runtime::spawn(async move {
+                            while let Some(event) = rx.recv().await {
+                                match event {
+                                    CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
+                                        eprintln!("[arnesia] {}", String::from_utf8_lossy(&line));
+                                    }
+                                    CommandEvent::Terminated(payload) => {
+                                        eprintln!("[arnesia] daemon terminó: {payload:?}");
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        });
+                    }
+                    Err(e) => eprintln!("[arnesia] no pude spawnear el daemon: {e}"),
+                },
+                Err(e) => eprintln!("[arnesia] sidecar 'arnesia-daemon' no disponible: {e}"),
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error al arrancar el shell de ArnesIA");
+}
+
+/// daemon_running sondea el puerto del daemon con un timeout corto (bind-or-bail: si algo
+/// ya escucha, no spawneamos una segunda instancia).
+fn daemon_running() -> bool {
+    DAEMON_ADDR
+        .parse()
+        .ok()
+        .and_then(|addr| TcpStream::connect_timeout(&addr, Duration::from_millis(300)).ok())
+        .is_some()
 }

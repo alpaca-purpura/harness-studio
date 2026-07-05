@@ -1,6 +1,29 @@
 // Public API de la capa `shared` (FSD). Los consumidores importan desde aquí o desde
-// segmentos públicos (`@/shared/ui/button`), nunca de rutas internas profundas.
-export { cn } from "./lib/cn";
-export { Button, buttonVariants, type ButtonProps } from "./ui/button";
-export { useAppStore, bindHashState, type Theme } from "./store/app-store";
-export { tokens, type TokenName } from "./config/tokens";
+// segmentos públicos (`@/shared/ui/button`, `@/shared/api`), nunca de rutas internas.
+
+export {
+  api,
+  connectDock,
+  type DockConnection,
+  type DockFrame,
+  GLOBAL_VIEWS,
+  type NewSession,
+  type Rol,
+  SALUD_LABEL,
+  type Salud,
+  type Session,
+  type SessionStatus,
+  STATUS_LABEL,
+  type Turn,
+  VIEWS,
+} from "./api"
+export { type TokenName, tokens } from "./config/tokens"
+export { cn } from "./lib/cn"
+export { bindHashState, type Theme, useAppStore } from "./store/app-store"
+export {
+  selectActive,
+  selectAttention,
+  useSessions,
+} from "./store/sessions-store"
+export { Button, type ButtonProps, buttonVariants } from "./ui/button"
+export { ComingSoon } from "./ui/coming-soon"

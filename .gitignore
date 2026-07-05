@@ -8,6 +8,11 @@ dist/
 bin/
 *.exe
 
+# Tauri sidecar (daemon binario, se compila con `go build -o web/src-tauri/binaries/...`)
+web/src-tauri/binaries/arnesia-*
+web/src-tauri/target/
+web/src-tauri/gen/
+
 # Local
 .DS_Store
 *.log

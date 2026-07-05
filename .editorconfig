@@ -10,11 +10,13 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 2
 
+# gofmt manda tabs en Go.
 [*.go]
-indent_style = tab   # gofmt manda
+indent_style = tab
 
+# dos espacios finales = salto de línea en Markdown.
 [*.md]
-trim_trailing_whitespace = false   # dos espacios = salto de línea en Markdown
+trim_trailing_whitespace = false
 
 [Makefile]
 indent_style = tab

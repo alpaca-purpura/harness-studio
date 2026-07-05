@@ -1,133 +1,135 @@
 /* GENERADO por `npm run tokens:build` — NO editar a mano. Fuente: tokens/base.tokens.json.
    Committeado para runnabilidad pre-install; se regenera con el comando. */
 :root {
-  /* semantic (shadcn) */
-  --background: #f2f4f7;
-  --foreground: #212832;
-  --card: #ffffff;
-  --card-foreground: #212832;
-  --popover: #ffffff;
-  --popover-foreground: #212832;
-  --primary: #a8742c;
-  --primary-foreground: #ffffff;
-  --secondary: #e9edf2;
-  --secondary-foreground: #212832;
-  --muted: #e9edf2;
-  --muted-foreground: #5d6a79;
-  --accent: #e9edf2;
-  --accent-foreground: #212832;
-  --accent-soft: rgba(168, 116, 44, 0.14);
-  --destructive: #c94545;
-  --destructive-foreground: #ffffff;
-  --border: #d5dbe3;
-  --input: #c3cbd6;
-  --ring: #a8742c;
-  /* sidebar (Command Rail) */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #5d6a79;
-  --sidebar-primary: #a8742c;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e9edf2;
-  --sidebar-accent-foreground: #212832;
-  --sidebar-border: #d5dbe3;
-  --sidebar-ring: #a8742c;
-  /* chart (categórico) */
-  --chart-1: #2f74b5;
-  --chart-2: #20826f;
-  --chart-3: #7455c2;
-  --chart-4: #bb4c85;
-  --chart-5: #586c80;
-  /* kind (tipos de arnés) */
-  --c-skill: #2f74b5;
-  --c-agent: #7455c2;
-  --c-hook: #bb4c85;
-  --c-knowledge: #20826f;
-  --c-mcp: #586c80;
-  --c-rule: #7a7a24;
-  /* health */
-  --ok: #2e8f5e;
-  --warn: #c96a2e;
-  --crit: #c94545;
-  --ok-soft: rgba(46, 143, 94, 0.13);
-  --warn-soft: rgba(201, 106, 46, 0.13);
-  --crit-soft: rgba(201, 69, 69, 0.12);
-  /* heat */
-  --heat-1: rgba(205, 105, 55, 0.1);
-  --heat-2: rgba(205, 105, 55, 0.22);
-  --heat-3: rgba(205, 105, 55, 0.36);
-  --heat-4: rgba(205, 105, 55, 0.5);
-  /* radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 9px;
-  --radius-xl: 12px;
-  --radius-full: 9999px;
-  /* space */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  /* text */
-  --text-xs: 11px;
-  --text-sm: 12.5px;
-  --text-base: 14px;
-  --text-lg: 16px;
-  --text-xl: 20px;
-  --text-2xl: 26px;
-  /* font */
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+	/* semantic (shadcn) */
+	--background: #f2f4f7;
+	--foreground: #212832;
+	--card: #ffffff;
+	--card-foreground: #212832;
+	--popover: #ffffff;
+	--popover-foreground: #212832;
+	--primary: #a8742c;
+	--primary-foreground: #ffffff;
+	--secondary: #e9edf2;
+	--secondary-foreground: #212832;
+	--muted: #e9edf2;
+	--muted-foreground: #5d6a79;
+	--accent: #e9edf2;
+	--accent-foreground: #212832;
+	--accent-soft: rgba(168, 116, 44, 0.14);
+	--destructive: #c94545;
+	--destructive-foreground: #ffffff;
+	--border: #d5dbe3;
+	--input: #c3cbd6;
+	--ring: #a8742c;
+	/* sidebar (Command Rail) */
+	--sidebar: #ffffff;
+	--sidebar-foreground: #5d6a79;
+	--sidebar-primary: #a8742c;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #e9edf2;
+	--sidebar-accent-foreground: #212832;
+	--sidebar-border: #d5dbe3;
+	--sidebar-ring: #a8742c;
+	/* chart (categórico) */
+	--chart-1: #2f74b5;
+	--chart-2: #20826f;
+	--chart-3: #7455c2;
+	--chart-4: #bb4c85;
+	--chart-5: #586c80;
+	/* kind (tipos de arnés) */
+	--c-skill: #2f74b5;
+	--c-agent: #7455c2;
+	--c-hook: #bb4c85;
+	--c-knowledge: #20826f;
+	--c-mcp: #586c80;
+	--c-rule: #7a7a24;
+	/* health */
+	--ok: #2e8f5e;
+	--warn: #c96a2e;
+	--crit: #c94545;
+	--ok-soft: rgba(46, 143, 94, 0.13);
+	--warn-soft: rgba(201, 106, 46, 0.13);
+	--crit-soft: rgba(201, 69, 69, 0.12);
+	/* heat */
+	--heat-1: rgba(205, 105, 55, 0.1);
+	--heat-2: rgba(205, 105, 55, 0.22);
+	--heat-3: rgba(205, 105, 55, 0.36);
+	--heat-4: rgba(205, 105, 55, 0.5);
+	/* radius */
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 9px;
+	--radius-xl: 12px;
+	--radius-full: 9999px;
+	/* space */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-10: 40px;
+	--space-12: 48px;
+	/* text */
+	--text-xs: 11px;
+	--text-sm: 12.5px;
+	--text-base: 14px;
+	--text-lg: 16px;
+	--text-xl: 20px;
+	--text-2xl: 26px;
+	/* font */
+	--font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-mono:
+		ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono",
+		monospace;
 }
 
 :root[data-theme="dark"] {
-  --background: #14171c;
-  --foreground: #e8ecf1;
-  --card: #1b2027;
-  --card-foreground: #e8ecf1;
-  --popover: #1b2027;
-  --popover-foreground: #e8ecf1;
-  --primary: #d9a35b;
-  --primary-foreground: #ffffff;
-  --secondary: #242b34;
-  --secondary-foreground: #e8ecf1;
-  --muted: #242b34;
-  --muted-foreground: #94a1af;
-  --accent: #242b34;
-  --accent-foreground: #e8ecf1;
-  --accent-soft: rgba(217, 163, 91, 0.14);
-  --destructive: #e25b5b;
-  --destructive-foreground: #ffffff;
-  --border: #2d3743;
-  --input: #3a4655;
-  --ring: #d9a35b;
-  --sidebar: #1b2027;
-  --sidebar-foreground: #94a1af;
-  --sidebar-primary: #d9a35b;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #242b34;
-  --sidebar-accent-foreground: #e8ecf1;
-  --sidebar-border: #2d3743;
-  --sidebar-ring: #d9a35b;
-  --chart-1: #5b9dd9;
-  --chart-2: #4fb3a1;
-  --chart-3: #9b7fd4;
-  --chart-4: #d46a9e;
-  --chart-5: #8195a9;
-  --c-skill: #5b9dd9;
-  --c-agent: #9b7fd4;
-  --c-hook: #d46a9e;
-  --c-knowledge: #4fb3a1;
-  --c-mcp: #8195a9;
-  --c-rule: #b5b558;
-  --ok: #57b380;
-  --warn: #e0904f;
-  --crit: #e25b5b;
-  --ok-soft: rgba(87, 179, 128, 0.14);
-  --warn-soft: rgba(224, 144, 79, 0.14);
-  --crit-soft: rgba(226, 91, 91, 0.13);
+	--background: #14171c;
+	--foreground: #e8ecf1;
+	--card: #1b2027;
+	--card-foreground: #e8ecf1;
+	--popover: #1b2027;
+	--popover-foreground: #e8ecf1;
+	--primary: #d9a35b;
+	--primary-foreground: #ffffff;
+	--secondary: #242b34;
+	--secondary-foreground: #e8ecf1;
+	--muted: #242b34;
+	--muted-foreground: #94a1af;
+	--accent: #242b34;
+	--accent-foreground: #e8ecf1;
+	--accent-soft: rgba(217, 163, 91, 0.14);
+	--destructive: #e25b5b;
+	--destructive-foreground: #ffffff;
+	--border: #2d3743;
+	--input: #3a4655;
+	--ring: #d9a35b;
+	--sidebar: #1b2027;
+	--sidebar-foreground: #94a1af;
+	--sidebar-primary: #d9a35b;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #242b34;
+	--sidebar-accent-foreground: #e8ecf1;
+	--sidebar-border: #2d3743;
+	--sidebar-ring: #d9a35b;
+	--chart-1: #5b9dd9;
+	--chart-2: #4fb3a1;
+	--chart-3: #9b7fd4;
+	--chart-4: #d46a9e;
+	--chart-5: #8195a9;
+	--c-skill: #5b9dd9;
+	--c-agent: #9b7fd4;
+	--c-hook: #d46a9e;
+	--c-knowledge: #4fb3a1;
+	--c-mcp: #8195a9;
+	--c-rule: #b5b558;
+	--ok: #57b380;
+	--warn: #e0904f;
+	--crit: #e25b5b;
+	--ok-soft: rgba(87, 179, 128, 0.14);
+	--warn-soft: rgba(224, 144, 79, 0.14);
+	--crit-soft: rgba(226, 91, 91, 0.13);
 }

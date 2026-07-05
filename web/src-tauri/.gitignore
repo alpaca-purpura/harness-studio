@@ -4,8 +4,10 @@
 # Binarios del sidecar (se generan cross-compilando el daemon Go; no se versionan).
 /binaries/arnesia-*
 
-# Iconos generados por `cargo tauri icon` (regenerables desde el logo fuente).
-/icons/
+# Iconos: se VERSIONAN (el build los exige en tiempo de compilación → clone-and-build).
+# Placeholder generado con `pnpm tauri icon app-icon.png`; regénéralos al tener el logo final.
+# gen/: schemas de capabilities generados por Tauri (no se versionan).
+/gen/
 
 # Cargo.lock: para una APP/binario Cargo recomienda VERSIONARLO (builds reproducibles).
 # Está intencionalmente NO ignorado; se commitea cuando exista.

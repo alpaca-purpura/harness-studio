@@ -1,8 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.0/schema.json",
-  "//": "Biome v2.4 — lint+format+organize-imports+react-hooks (enforced_by de arch/conventions/ts-style.md + naming.md). DECLARADO; se activa cuando la SPA web/ aterrice (fase 5).",
+  "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "includes": ["src/**/*.ts", "src/**/*.tsx"] },
+  "files": {
+    "includes": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "!src/shared/config/tokens.ts",
+      "!src/vite-env.d.ts"
+    ]
+  },
+  "css": { "formatter": { "enabled": false }, "linter": { "enabled": false } },
   "formatter": {
     "enabled": true,
     "useEditorconfig": true,
@@ -18,6 +25,13 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "noAutofocus": "off",
+        "useSemanticElements": "off"
+      },
+      "complexity": {
+        "useLiteralKeys": "off"
+      },
       "correctness": {
         "useExhaustiveDependencies": "error",
         "useHookAtTopLevel": "error"
@@ -25,7 +39,19 @@
       "style": {
         "useNamingConvention": {
           "level": "error",
-          "options": { "strictCase": true }
+          "options": {
+            "strictCase": true,
+            "conventions": [
+              {
+                "selector": { "kind": "typeProperty" },
+                "formats": ["camelCase", "snake_case"]
+              },
+              {
+                "selector": { "kind": "objectLiteralProperty" },
+                "formats": ["camelCase", "snake_case"]
+              }
+            ]
+          }
         }
       }
     }
