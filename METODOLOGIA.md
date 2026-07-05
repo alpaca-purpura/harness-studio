@@ -4,7 +4,17 @@
 > sigan. Norte constitucional: [`VISION.md`](./VISION.md) (11 principios + anatomía A1–A7).
 > Este documento **baja la anatomía a reglas de negocio concretas que el producto va a
 > enforcar**. Registro de iteraciones y detalle de UX: [`UX.md`](./UX.md). Cementado hasta la
-> **iteración 10 de HS-03** (2026-07-04).
+> **iteración 11 de HS-03** (2026-07-04).
+>
+> **Base de evidencia = [`knowledge/`](./knowledge/INDEX.md) (árbol de conocimiento VIVO).**
+> El «qué debe tener cada componente» (§2–3) **deriva** del estándar as code por elemento
+> (skills, hooks, rules, subagents, commands, mcp, plugins, settings, output-styles, statusline,
+> headless). Cada nodo del árbol lleva dos capas — **L1 estándar oficial+expertos** y **L2 nuestra
+> adaptación** (obligada a derivar de L1) — y emite una **rúbrica de checks evaluables** (121 al
+> corte fundacional 2026-07-04) que es el ruleset de conformidad de §6. El árbol se actualiza
+> **cada semana** (mecanismo en [`knowledge/CADENCE.md`](./knowledge/CADENCE.md)); cuando cambia,
+> esta metodología se re-alinea. Regla dura: nuestra forma de trabajo no puede divergir del
+> estándar de los expertos sin marcarlo y justificarlo.
 
 ## 0. ArnesIA es dueño de CREAR y de MANTENER
 
@@ -39,8 +49,20 @@ Un arnés es una **fábrica**: el trabajo entra, cruza cajas y sale transformado
 
 ## 2. Qué debe tener cada componente — estructura obligatoria (EN CONSTRUCCIÓN)
 
+> **Fuente de verdad = el árbol [`knowledge/elements/`](./knowledge/INDEX.md).** Un nodo por
+> elemento con L1 (estándar oficial+expertos, con fuente y fecha), L2 (nuestra adaptación) y su
+> checklist evaluable. Lo de abajo es el **resumen de negocio**; el detalle vivo y las fuentes
+> viven en el árbol. Cuando el árbol crezca (cadencia semanal), este resumen se re-alinea.
+
 Reglas por tipo de componente. Se cementan a medida que las acordamos; hoy firme lo de
-skills-caja y el bloque de contrato.
+skills-caja y el bloque de contrato. Estándar completo por elemento en el árbol: skills-caja/
+apoyo ([`skills`](./knowledge/elements/skills.md)) · Guardia ([`hooks`](./knowledge/elements/hooks.md),
+[`settings-permissions`](./knowledge/elements/settings-permissions.md)) · Base
+([`rules`](./knowledge/elements/rules.md)) · maquinaria ([`subagents`](./knowledge/elements/subagents.md)) ·
+[`commands`](./knowledge/elements/commands.md) · terceros ([`mcp`](./knowledge/elements/mcp.md)) ·
+distribución ([`plugins`](./knowledge/elements/plugins.md)) ·
+[`output-styles`](./knowledge/elements/output-styles.md) ·
+[`statusline`](./knowledge/elements/statusline.md) · motor conductor ([`headless-sdk`](./knowledge/elements/headless-sdk.md)).
 
 **Skill que es CAJA de proceso:**
 - Frontmatter: `name`, `description`, `version`, `model`, `clase` (contrato L0 `meta.clase`,
@@ -132,8 +154,25 @@ Loop en curso: el prompt de kit-dev (UX.md it.10) formaliza los contratos en los
 emite `docs/process/contracts.index.yaml` + `contracts-gaps.md`, que ArnesIA extrae para
 reemplazar los contratos inferidos por los reales.
 
+## 7. El estándar as code es un árbol vivo (no un doc congelado)
+
+- **ArnesIA fija un paradigma propio (principio 8), pero anclado a las mejores prácticas
+  vigentes de Anthropic y los expertos** — no a una opinión estática. Ese anclaje vive en
+  [`knowledge/`](./knowledge/INDEX.md) como árbol versionado: L1 (evidencia oficial+experta,
+  fechada y con fuente) + L2 (nuestra adaptación, que **deriva** de L1) + checks evaluables.
+- **Se investiga y actualiza cada semana** (nuevos comandos tipo `/goal`, features, eventos de
+  hook, deprecaciones). El árbol **crece y adiciona**, no se reescribe (lo viejo se marca
+  `deprecado`). Mecanismo en [`knowledge/CADENCE.md`](./knowledge/CADENCE.md).
+- **Excepción a «firmado = congelado»:** cuando HS-03 se firme, la UX y esta metodología se
+  congelan; **el árbol de conocimiento NO** — por diseño sigue evolucionando, porque el estándar
+  que ArnesIA enforca tiene que seguir al ecosistema. Un arnés que ayer cumplía puede necesitar
+  mejora hoy porque salió algo nuevo: ése es exactamente el «punto de mejora» que el mapa muestra.
+- **Los 121 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA correrá
+  (fase 5) y la fuente de los badges de mejora que la UX empieza a pintar (it.11+).
+
 ## Estado
 
-Documento vivo. **Cementado hasta la iteración 10 de HS-03.** Crece con los comentarios de
+Documento vivo. **Cementado hasta la iteración 11 de HS-03.** Crece con los comentarios de
 UX del operador (quedan muchos). Cuando HS-03 se firme, esta metodología se congela junto a
-la UX (regla Rust: firmado = congelado) y pasa a ser la base de las specs de fase 4.
+la UX (regla Rust: firmado = congelado) y pasa a ser la base de las specs de fase 4 — **salvo el
+árbol [`knowledge/`](./knowledge/INDEX.md), que por diseño sigue vivo** (§7).

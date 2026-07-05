@@ -213,6 +213,49 @@ consumidor de la ventana principal» y tok30 del arnés dev ajustado 1.94M→2.6
 portafolio $44) para que la suma sea defendible. Auditado: ~50 asserts nuevos en verde +
 reload de deep-link + dark/light + consola limpia.
 
+## Iteración 11 — metodología as code: árbol de conocimiento vivo (2026-07-04)
+
+Pedido del operador: la metodología tiene que ser **as code** — entender cómo se debe
+estructurar cada elemento (skill, hook, rule, subagente, command, mcp, plugin, settings,
+output-style, statusline, headless) según las mejores prácticas VIGENTES de Anthropic y los
+expertos, para poder **evaluar cada elemento y el conjunto** y que el mapa muestre puntos de
+mejora al instante. Requisito clave: conocimiento **vivo** — se investiga cada semana lo nuevo
+(comandos como `/goal`, features, eventos), el árbol crece y adiciona, **no es un `.md` que se
+lee una vez**. Cruce en dos capas: L1 estándar experto ↔ L2 nuestra forma (obligada a derivar
+de L1; «nuestra forma no puede no ser la recomendada»).
+
+**Construido (nuevo directorio `knowledge/`, no toca el mockup todavía):**
+- **[`knowledge/INDEX.md`](./knowledge/INDEX.md)** — raíz del árbol (11 nodos, estados, versiones,
+  reparto de checks, cross-checks transversales).
+- **[`knowledge/CADENCE.md`](./knowledge/CADENCE.md)** — el mecanismo vivo: anatomía de un nodo
+  (frontmatter `version/updated/status/fuentes` + L1 + L2 + checklist + changelog), el ritual
+  semanal (barrido → triage → append L1 → revisión L2 → evolución de checks → bump → propagar),
+  reglas del árbol (aditivo sin pérdida, fuente+fecha obligatorias, L2 deriva de L1).
+- **11 nodos `knowledge/elements/*.md`** — skills, hooks, rules, subagents, commands, mcp,
+  plugins, settings-permissions, output-styles, statusline, headless-sdk. Cada uno con L1
+  (docs oficiales code.claude.com/platform.claude.com + estándares abiertos agentskills.io/
+  AGENTS.md/MCP + expertos, todo fechado y con fuente), L2 amarrada a la fábrica de cajas, y su
+  checklist evaluable. **121 checks** en total; cada check declara `severidad` + `señal en el
+  mapa` (el puente a UX).
+
+**Investigación:** 11 subagentes en paralelo (uno por elemento), fuentes oficiales priorizadas +
+expertos + señales de seguridad recientes (arxiv skills, CVE-2025-59536 de hooks, scans MCP).
+Novedades capturadas que un doc estático se habría perdido: merge command↔skill (v2.1.3), Tool
+Search MCP default-on, `/goal` y set de built-ins nuevos, ~30 eventos de hook, rename Claude Code
+SDK→Agent SDK, `--bare`, auto memory, transparencia de costo de plugins.
+
+**Amarres de doctrina:** METODOLOGIA §2–3 ahora **derivan** del árbol (pointer + regla de no-
+divergencia); nuevo METODOLOGIA §7 «el estándar as code es un árbol vivo» con la **excepción a
+firmado=congelado**: al firmar HS-03 la UX/metodología se congelan pero el árbol NO — sigue
+evolucionando por diseño, porque un arnés que ayer cumplía puede necesitar mejora hoy por algo
+nuevo (ése es el «punto de mejora» del mapa).
+
+**Pendiente UX que esto habilita (próxima iteración de superficie):** pintar un subconjunto de
+los 121 checks como **señal de conformidad al estándar** sobre el mapa — badge por nodo
+(«cumple X/Y del estándar del elemento») + entrada en Diagnóstico por check fallado + posible
+5ª capa o refuerzo de Desempeño. El árbol ya da la data honesta (severidad + señal); falta la
+superficie. **No se tocó el mockup en esta iteración** — es groundwork de conocimiento.
+
 ## Iteración 10 — Contrato por caja reemplaza Relaciones (v3.7, 2026-07-04)
 
 Decisión del operador: cada caja-skill debe declarar **qué necesita para operar y qué

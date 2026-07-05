@@ -32,12 +32,17 @@ ejecutan; marketplace git elegible por proyecto.
 - Tauri 2 = milestone futuro "app vendible" (wrapper del mismo daemon, no rewrite). Wails
   v3 en watchlist.
 
-**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 10 de ~11-13**.
+**Estado:** fase 1 (Visión) ✓ · **fase 2 UX (HS-03) EN CURSO — iteración 11 de ~12-14**.
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
 cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·
 fábrica de cajas · qué debe tener cada componente · contrato de caja · reglas de honestidad ·
-proceso de conformación — doc vivo, crece con las iteraciones UX) · mockup vigente = `mockups/arnesia-mockup-v3.html`
+proceso de conformación — doc vivo, crece con las iteraciones UX) · **estándar as code por
+elemento** = [`knowledge/`](./knowledge/INDEX.md) (árbol de conocimiento VIVO: 11 nodos —skill·
+hook·rule·subagent·command·mcp·plugin·settings·output-style·statusline·headless—, cada uno L1
+oficial+expertos ↔ L2 nuestra adaptación + checklist evaluable = 121 checks; se actualiza CADA
+SEMANA vía [`knowledge/CADENCE.md`](./knowledge/CADENCE.md), NO se congela al firmar HS-03) ·
+mockup vigente = `mockups/arnesia-mockup-v3.html`
 (navegable, artifact único — URL en memoria auto) · estándares mapeados =
 `research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
 el repo · publicar siempre al MISMO artifact (parámetro `url`) · nada se entrega sin
