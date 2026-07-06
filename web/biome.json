@@ -36,6 +36,9 @@
         "useExhaustiveDependencies": "error",
         "useHookAtTopLevel": "error"
       },
+      "suspicious": {
+        "noThenProperty": "off"
+      },
       "style": {
         "useNamingConvention": {
           "level": "error",
