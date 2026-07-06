@@ -284,7 +284,57 @@ binario instalado) + diff-approval, las specs del MVP (Mapa primero), y los rest
 multisesión (worktree por sesión · gobierno de presupuesto costo/`%contexto` · OTel/api_retry). Debates
 de VISION heredados: segundo cerebro · config de marketplace por proyecto · renombre repo → `arnesia`.
 
-<!-- Próximas: HS-07, … -->
+### HS-07 · Doctrina propia v1 — operacionalizamos Agentic BPM (cruce DAOP + barrido externo) — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-05):* "necesito de una vez setear la doctrina de cómo construiremos
+nuestros arneses" → "vamos a replantear toda nuestra doctrina creando nuestro propio estándar, aquí
+una investigación que he hecho [DAOP v0.2] que necesito que adaptemos a nuestra visión… lanza
+subagentes para revisar cada una de las capas" → "necesito… me digas si nos ayuda… para no ser un
+[B]MAD clone sino nuestra propia doctrina basada en proceso e independiente al rubro" [+ 7 fuentes
+externas] → "si Ratifico y ejecuta todo as code… dando **prioridad total a que todo esto sea nuestra
+doctrina**".
+
+*Desarrollo:* tres pasos. (1) Se cementó METODOLOGIA §2 (estructura obligatoria de subagente·hook·
+rule/conocimiento, derivada de `knowledge/`). (2) **Cruce de DAOP v0.2** (investigación del operador,
+derivada de BMAD v6 + Agent SDK) contra las 5 capas vía estudio 5-subagentes → propuesta
+`research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`. Regla de Rosetta: **DAOP-«Arnés» ≈ nuestra
+CAJA · DAOP-«manifiesto de rol» ≈ nuestro ARNÉS** (VISION intacta). Firewall CC-native: los BMAD-ismos
+(`persistent_facts`, `customize.toml`, sanctum) que CC ignora en silencio se RECHAZAN/traducen. **3
+decisiones firmadas:** producto-puro + META de enganche (L1/organigrama = sistema externo futuro) ·
+dogfood-first (arnés real antes del Mapa) · frontera P6/Guardia por scope. (3) **Barrido de 7 fuentes
+externas** (4 subagentes) → el reencuadre clave: el **manifiesto Agentic BPM** («A Research Manifesto»,
+18 autores BPM; *Information Systems* 2026 / arXiv 2603.18916) da el **linaje que nos saca de clon de
+BMAD** — **operacionalizamos Agentic Business Process Management** (disciplina de proceso, independiente
+de dominio). Vocabulario propio: *framed autonomy*, *autonomy≠automation*, *adaptation/evolution*, 4+1
+capacidades. Sierra ADLC valida el ciclo-de-vida-de-producción; Salesforce Agentforce valida el eje
+despliegue-en-orgs. Único gap conceptual nuevo = **explainability**.
+
+*Materializado (as-code, prioridad = doctrina PROPIA):* **VISION** — nota aditiva «Linaje doctrinal y
+precisiones» (APM, framed autonomy, precisión P6 ratificada, seam producto-puro, dogfood-first) sin
+tocar los 11 principios. **METODOLOGIA** — §3 contrato de caja FUSIONADO (intención SPEC-kernel
+why/capabilities/constraints/non-goals + cableado it.10 intacto + aceptación Gherkin + `arquetipo` +
+`perfil_harness` + `escritor_unico` + `handoff`) · **§8 doctrina de proceso** (arquetipos · perfil de
+harness T1–T3 · document-as-cache · gate de fidelidad · frontera P6/Guardia · firewall CC-native).
+**knowledge/** — nace el **nodo 12 [`harness-profile`](./knowledge/elements/harness-profile.md)** (11
+checks; L1 = APM+Sierra+Salesforce+CC) + skills/rules/subagents bumpeados (+5 checks del firewall) →
+**12 nodos · 138 checks**. **arch/** — **2 boundaries draft** ([`orquestacion-determinista-entre-cajas`](./arch/boundaries/orquestacion-determinista-entre-cajas.md)
+· [`permisos-derivan-del-rol`](./arch/boundaries/permisos-derivan-del-rol.md); 8 checks) → **16
+boundaries · 97 checks**. Bibliografía embebida en cada doc («Para profundizar»).
+
+*Conecta:* HS-02 (VISION — los 11 principios que esto ancla, no altera) · HS-04/05 (arch as code que
+esto extiende; el `contract:` schema) · HS-06 (multisesión/conductor sobre el que corre el loop T3;
+`permisos-gui` que `permisos-derivan-del-rol` extiende de fase→rol) · `knowledge/` (los 12 nodos) ·
+`research/…inyeccion-knowhow` (el `KitProvisioner` que parametriza permisos por rol) · fuentes externas
+(manifiesto Agentic BPM · Sierra ADLC · Salesforce Agentforce · DAOP v0.2 filtrado).
+
+*Siguiente:* **HS-08 = fase 4, specs** (heredada de HS-06, que reservaba «HS-07 specs»; la doctrina v1
+tomó HS-07 por ser fundacional a las specs): schemas del dominio (fase/estado spine · `meta.clase` +
+`arquetipo`/`perfil_harness` en el contrato) · **spike `control_request`** (adoptando permisos-por-rol
++ TTL) · specs del MVP con **dogfood-first** (forjar el arnés dev-full-cycle real antes del Mapa) ·
+restos multisesión (worktree · gobierno de presupuesto · OTel). Abiertas de doctrina: persona-state/
+DevHub · nombre de la doctrina · detalle A2 (quién ejecuta `ruta`).
+
+<!-- Próximas: HS-08, … -->
 
 ## Log
 
@@ -296,3 +346,4 @@ de VISION heredados: segundo cerebro · config de marketplace por proyecto · re
 | 2026-07-05 | Fase 3 (arquitectura) arrancada: investigación 5-frentes verificada → stack completo (Tauri 2, subproceso-conductor stream-json, modernc SQLite, SSE, React Flow 12+Zustand, **AG-UI+assistant-ui+CodeMirror6**, schema-first Go+TS, go-arch-lint). Fork firmado: **shell = Tauri 2 desde v1** (divergencia declarada vs browser-first del research). **Arquitectura as code materializada:** árbol `arch/` (7 boundaries · 29 checks · model/ · contracts/ · fitness/) espejando `knowledge/`. Corrección `--bare`/auth propagada a knowledge (→122 checks). | HS-04 |
 | 2026-07-05 | Fase 3 completada al FE: investigación 5-frentes (FSD · atomic · storybook · convenciones · tokens) verificada → **arquitectura FE as code**. Veredictos: **FSD-lite** + dependency-cruiser · 6 capas direccionales (canvas⊥chrome) + **shadcn/Base UI** · **Storybook 10** story=test (Chromatic descartado) · **golangci-lint v2 + Biome v2.4 + tsc strictest + lefthook** · **DTCG→Style Dictionary v5→Tailwind v4**. Materializado: **5 boundary nodes FE (22 checks) + `arch/conventions/` (8 nodes · 26 checks)** + config files declarados → **arch/ = 77 checks**. Specs corren a HS-06. | HS-05 |
 | 2026-07-05 | Auditoría del shell Tauri v1: aislamiento CC por-tab CONFIRMADO real; 7 huecos → **endurecimiento multisesión + confinamiento local**. Forks firmados: **S2 registro explícito arnés→ruta** (WorkdirResolver, cwd por sesión, nunca global) · **S1 shell emite el token** (Host+Origin+token, adiós CORS `*`). Materializado (nace **enforced**, fitness tests PASAN `-race`): **2 boundaries** (superficie-local-confinada · sesion-viva-consistente) + 2 checks a permisos-gui + `--max-turns` + OpenAPI reconciliado + `store` mapeado en go-arch-lint → **arch/ = 14 boundaries · 89 checks**. Shell Rust escrito, no compilado aquí. Specs + spike de permisos → HS-07. | HS-06 |
+| 2026-07-05 | **Doctrina propia v1**: cruce de DAOP v0.2 (BMAD+Agent SDK, 5 subagentes) + barrido de 7 fuentes externas (4 subagentes). Reencuadre clave: **operacionalizamos Agentic BPM** (manifiesto *Information Systems* 2026) — doctrina PROPIA basada en proceso e independiente de rubro, **no clon de BMAD**. Regla de Rosetta (DAOP-Arnés→CAJA), firewall CC-native (`no-phantom-frontmatter`), vocabulario framed-autonomy. 3 decisiones firmadas: producto-puro+META · dogfood-first · P6-por-scope. **As-code:** VISION §Linaje · METODOLOGIA §3 contrato fusionado + §8 doctrina de proceso · **nodo 12 `harness-profile`** → knowledge 12 nodos·138 checks · 2 boundaries → arch 16·97. Specs → HS-08. | HS-07 |

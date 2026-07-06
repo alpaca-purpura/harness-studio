@@ -15,8 +15,9 @@
   técnicas fundacionales** (HS-02). El **norte**; esta capa las aterriza y las enforça.
 - [`../METODOLOGIA.md`](../METODOLOGIA.md) — reglas de negocio. El `contract:` de caja (§3) es
   **el mismo schema** que valida [`contracts/schema/box.contract.schema.json`](./contracts/schema/box.contract.schema.json).
-- [`../knowledge/`](../knowledge/INDEX.md) — estándar as code por **elemento de arnés** (122
-  checks). `arch/` es el gemelo: estándar as code de **la app ArnesIA misma** (dogfood). Un solo
+- [`../knowledge/`](../knowledge/INDEX.md) — estándar as code por **elemento de arnés** (138
+  checks · 12 nodos, incl. `harness-profile`). `arch/` es el gemelo: estándar as code de **la app
+  ArnesIA misma** (dogfood). Un solo
   runner (`arnesia conformance`) corre ambos árboles — **aspiración pendiente-HS-06**: hoy `arch/`
   ya declara `enforced_by:` por check, pero los checks de `knowledge/` aún no; la ejecución
   conjunta requiere un **contrato de check común** (schema con `enforced_by`/mecanismo por check)
@@ -55,12 +56,15 @@ check llega con HS-06, ver runner unificado arriba).
 | [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
 | [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌱 vivo | 1.0 | 4 | stylelint · tokens-sync |
 | [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌱 vivo | 1.0 | 5 | vitest + Storybook 10 |
+| [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌱 vivo | 1.0 | 4 | arch_test.go |
+| [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌱 vivo | 1.0 | 4 | arch_test.go |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 14 · 63 checks** — fundacional HS-04
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 71 checks** — fundacional HS-04
 (backend, 7 boundaries · 29 checks) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
-· 10 checks + 2 checks nuevos a permisos-gui = 12 checks)**. **+ [`conventions/`](./conventions/INDEX.md): 8
-convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 89 checks.**
+· 10 checks + 2 checks nuevos a permisos-gui = 12 checks)** + **HS-07 doctrina v1 (2 boundaries draft ·
+8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol`)**. **+ [`conventions/`](./conventions/INDEX.md): 8
+convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
 > no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**

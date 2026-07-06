@@ -5,7 +5,10 @@
 > Este documento **baja la anatomía a reglas de negocio concretas que el producto va a
 > enforcar**. Registro de iteraciones y detalle de UX: [`UX.md`](./UX.md). Cementado hasta la
 > **iteración 13 de HS-03** (2026-07-05; §4 reconciliado con el retiro del andamiaje REAL vs
-> DEMO del mockup).
+> DEMO del mockup); **§2 extendido 2026-07-05 — estructura de subagente · hook · rule/conocimiento
+> cementada (derivada de `knowledge/`); solo restan commands/mcp/plugins/settings/output-styles/
+> statusline/headless).** **Doctrina v1 bajada as-code 2026-07-05 (§3 contrato fusionado + §8 doctrina
+> de proceso / framed autonomy): operacionalizamos Agentic BPM, no clonamos BMAD — ver VISION §Linaje.**
 >
 > **Base de evidencia = [`knowledge/`](./knowledge/INDEX.md) (árbol de conocimiento VIVO).**
 > El «qué debe tener cada componente» (§2–3) **deriva** del estándar as code por elemento
@@ -48,22 +51,32 @@ Un arnés es una **fábrica**: el trabajo entra, cruza cajas y sale transformado
   paralelo** (una línea por variante: marca, tipo de trabajo).
 - **La infraestructura compartida (Guardia/Base) vive en bandas,** no dentro de una caja.
 
-## 2. Qué debe tener cada componente — estructura obligatoria (EN CONSTRUCCIÓN)
+## 2. Qué debe tener cada componente — estructura obligatoria (núcleo de fábrica FIRME)
 
 > **Fuente de verdad = el árbol [`knowledge/elements/`](./knowledge/INDEX.md).** Un nodo por
 > elemento con L1 (estándar oficial+expertos, con fuente y fecha), L2 (nuestra adaptación) y su
 > checklist evaluable. Lo de abajo es el **resumen de negocio**; el detalle vivo y las fuentes
 > viven en el árbol. Cuando el árbol crezca (cadencia semanal), este resumen se re-alinea.
 
-Reglas por tipo de componente. Se cementan a medida que las acordamos; hoy firme lo de
-skills-caja y el bloque de contrato. Estándar completo por elemento en el árbol: skills-caja/
+Reglas por tipo de componente. Se cementan a medida que las acordamos; **firme el núcleo de
+fábrica — skill-caja · skill-apoyo · subagente · hook · rule/conocimiento — + el bloque de
+contrato** (§3). Distribución/infra (commands · mcp · plugins · settings · output-styles ·
+statusline · headless) siguen derivando del árbol, sin bajar aún a regla de negocio.
+Estándar completo por elemento en el árbol: skills-caja/
 apoyo ([`skills`](./knowledge/elements/skills.md)) · Guardia ([`hooks`](./knowledge/elements/hooks.md),
 [`settings-permissions`](./knowledge/elements/settings-permissions.md)) · Base
 ([`rules`](./knowledge/elements/rules.md)) · maquinaria ([`subagents`](./knowledge/elements/subagents.md)) ·
 [`commands`](./knowledge/elements/commands.md) · terceros ([`mcp`](./knowledge/elements/mcp.md)) ·
 distribución ([`plugins`](./knowledge/elements/plugins.md)) ·
 [`output-styles`](./knowledge/elements/output-styles.md) ·
-[`statusline`](./knowledge/elements/statusline.md) · motor conductor ([`headless-sdk`](./knowledge/elements/headless-sdk.md)).
+[`statusline`](./knowledge/elements/statusline.md) · motor conductor ([`headless-sdk`](./knowledge/elements/headless-sdk.md)) ·
+**perfil de harness** ([`harness-profile`](./knowledge/elements/harness-profile.md), nodo 12 — cómo la
+caja ejecuta el loop / subagentes / routing; doctrina v1 §8.2).
+
+> **Firewall CC-native (doctrina v1 §8.6):** todo frontmatter usa solo claves que Claude Code
+> reconoce. Prohibido `persistent_facts` / `activation_steps_prepend` / `customize.toml` / sanctum
+> (CC los ignora en silencio → hacen CERO). Check `no-phantom-frontmatter`. Nos mantiene doctrina
+> PROPIA anclada a CC.
 
 **Skill que es CAJA de proceso:**
 - Frontmatter: `name`, `description`, `version`, `model`, `clase` (contrato L0 `meta.clase`,
@@ -74,38 +87,110 @@ distribución ([`plugins`](./knowledge/elements/plugins.md)) ·
 - Frontmatter con `contract.caja: false` + `rol:` (`libreria-experta | utilidad | tercero |
   meta-harness`). No es una caja: no declara transición de estado ni gate.
 
-**Agentes · hooks · rules · knowledge:** reglas de estructura **pendientes de acordar** en
-próximas iteraciones (los agentes ya tienen contrato implícito anti-telephone
-«`<veredicto> → <path>`»; los hooks su evento; las rules su ámbito always-on/condicional).
+**Subagente = MAQUINARIA de una caja** (no es caja; ⇐ [`subagents`](./knowledge/elements/subagents.md) L2):
+- Frontmatter: `name` (lowercase-hyphen, único por scope) · `description` **con condición de
+  disparo concreta** (no rol vago — la auto-delegación rutea por aquí) · `tools` **allowlist
+  explícita** (jamás omitido = acceso total incl. MCP) · `model` deliberado por rol (no `inherit`
+  silencioso). `isolation: worktree` si escribe en cajas paralelas (A5).
+- Cuerpo (system prompt): **contrato de retorno anti-telephone** obligatorio — declara la salida
+  como `<veredicto> → <path>` (o estructurado equivalente), **nunca «resume / investiga»**.
+- NO declara `contract.estado` ni `gate`: sirve a la caja que lo invoca (aparece como
+  `de: maquinaria:<agente>` en el contrato de ésa).
+- Honestidad / hallazgos: si tiene `Write/Edit/Bash` el cuerpo justifica modificar (vs
+  describirse «solo-lectura») · descripciones solapadas → consolidar (auto-delegación rota) ·
+  0 lanzamientos 30d con caja activa = **maquinaria muerta** (poda) · `bypassPermissions` = flag
+  de Guardia.
 
-## 3. El contrato de caja — schema formal (acordado iteración 10)
+**Hook = GUARDIA** (banda transversal, actúa sobre TODAS las cajas — no vive dentro de una;
+⇐ [`hooks`](./knowledge/elements/hooks.md) L2):
+- Estructura: declara **evento** + matcher (exacto / lista `|` / regex; **nunca `*` para
+  auto-`allow`**) + **type** (`command` en prod; `agent` experimental = evitar). Vive en config
+  **versionada** de fuente confiable (lección CVE-2025-59536).
+- Bloqueo: **exit `2`** (exit `1` para «bloquear» = bug silencioso, no bloquea nada).
+- Seguridad dura: `"$VAR"` con comillas · ruta absoluta o `${CLAUDE_PROJECT_DIR}` · guardia de
+  `.env` / `.git/` / keys · **PreToolUse liviano** (<500 ms; scans/tests pesados → PostToolUse/async).
+- Par **regla ↔ hook**: toda «nunca X» destructiva / de-secreto de la banda Base tiene su
+  PreToolUse que la enforca — sin él la regla es solo advisory (hallazgo).
+- `telemetry-emit` (KIT-03, OTLP) = el sensor: **nace en todo arnés** (telemetría de nacimiento,
+  principio 9) — no es opt-in.
 
-Bloque `contract:` en el frontmatter del SKILL.md. **Inferible de la prosa hoy, formal
-mañana.** Es lo que vuelve reales el eval-gate por-skill, la detección de precondición
-(saltos de fase / guía sin bloqueo) y la validación de composición (huérfanos/mismatch).
+**Rule / conocimiento = BASE** (banda always-on, infraestructura compartida — no una caja;
+⇐ [`rules`](./knowledge/elements/rules.md) L2):
+- Dos ámbitos, no confundir: **always-on** (`CLAUDE.md` / rules sin scope, se paga CADA turno)
+  vs **conocimiento scoped** (`.claude/rules/` con `paths:` — carga solo al tocar archivos que
+  matchean; retrieval just-in-time > pre-load).
+- Estructura: específico > verboso · headers/bullets · `file:line` en vez de pegar código (se
+  pone stale) · `@import` que resuelve, depth ≤4, sin ciclo · AGENTS.md por `@import`/symlink,
+  **nunca duplicado** (CC no lo lee nativo).
+- Presupuesto medible (principio 11): `CLAUDE.md` + rules sin scope **<~200 líneas**; total
+  always-on bajo el techo, medido y pintado en banda Base — superarlo = hallazgo.
+- Honestidad: **sin contradicciones cross-capa** (error — el modelo elige arbitrario) · regla
+  dura ⇒ hook (ver Guardia) · procedimiento multi-paso → **skill**, no rule.
+
+## 3. El contrato de caja — schema fusionado (it.10 + doctrina v1, 2026-07-05)
+
+Bloque `contract:` en el frontmatter del SKILL.md. **Un solo contrato con tres ejes
+perpendiculares:** INTENCIÓN (qué promete la caja), CABLEADO (cómo se conecta) y ACEPTACIÓN
+(cómo se prueba su salida). Es lo que vuelve reales el eval-gate por-caja, la detección de
+precondición (guía sin bloqueo) y la validación de composición (huérfanos/mismatch). El eje de
+intención + aceptación se sumó de la doctrina v1 (SPEC-kernel + Gherkin ejecutable); el cableado
+es el §3 original de it.10, intacto. Schema validado por
+[`arch/contracts/schema/box.contract.schema.json`](./arch/contracts/schema/box.contract.schema.json).
 
 ```yaml
 contract:
-  caja: true                       # true si es skill-frente de una fase
+  # ── INTENCIÓN (qué promete esta parte-de-proceso) ──
+  why: "<propósito inmutable>"                 # el "goal"; blinda la deriva
+  capabilities:
+    - id: CAP-01                               # IDs estables entre versiones (semver del contrato)
+      what: "<qué logra — WHAT, no HOW>"
+      success: "<señal concreta y verificable>"
+  constraints: ["<solo los que doblan decisiones>"]
+  non_goals:  ["<lo que explícitamente NO hace>"]
+
+  # ── CLASIFICACIÓN (dos ejes ortogonales — ver §8) ──
+  clase: <skill|agente|hook|knowledge|mcp|regla|command>   # meta.clase L0 (I-75) — qué ELEMENTO es
+  arquetipo: <pipeline|excepcion|abierto|no-arnesar>       # FORMA del trabajo (§8.1)
+  perfil_harness: <T1|T2|T3>                               # cómo EJECUTA (§8.2; T4 = shell, no caja)
+
+  # ── CABLEADO (it.10, intacto) ──
+  caja: true
   fase: <id-de-fase>
-  estado: "<estado_entra> -> <estado_sale>"   # la transición que posee (spine de estados)
-  necesita:                        # inputs — qué necesita para operar bien
+  estado: "<estado_entra> -> <estado_sale>"    # la transición que posee (spine de estados)
+  necesita:
     - art: "<artefacto o precondición>"
       de: "usuario | base:<id> | caja:<skill> | libreria:<skill> | maquinaria:<agente>"
       requerido: true
-  entrega:                         # outputs — qué produce como artefacto as code
+  entrega:
     - art: "<artefacto>"
-  ruta:                            # a quién entrega, CONDICIONAL
+      escritor_unico: true                     # un solo escritor autorizado por artefacto (mutation contract)
+  ruta:
     - a: "<skill | rol>"
-      si: "<condición>"            # omitir para el happy path
-  gate:                            # cómo se evalúa su SALIDA (A4) — HONESTO
+      si: "<condición>"                        # omitir para el happy path
+
+  # ── ACEPTACIÓN (cómo se evalúa la SALIDA — A4 — HONESTO) ──
+  gate:
     tipo: "auto | manual | parcial | none"
-    detalle: "<cómo; si no hay eval, por qué falta>"
+    detalle: "<cómo; si none, POR QUÉ falta>"
+    aceptacion:                                # Gherkin = gate.detalle hecho ejecutable
+      - given: "<precondición>"
+        when:  "<acción>"
+        then:  "<invariante verificable>"
+    evidencia: "<registro de auditoría emitido — telemetría de nacimiento (p9)>"
+  handoff:                                     # cuándo escala a humano (frontera P6/Guardia hecha dato)
+    cuando: "<condición de alto riesgo / no-convergencia>"
+    a: "humano | caja:<skill>"
 ```
 
-**Regla de honestidad del gate:** `tipo: none` cuando la skill NO tiene eval real. Nunca se
-fabrica un eval para rellenar — el objetivo es que los huecos se vean (es el hueco del
-principio 10 hecho dato).
+**Reglas del contrato fusionado:**
+- **Honestidad del gate (intacta):** `tipo: none` cuando la caja NO tiene eval real — jamás se
+  fabrica un eval. El hueco se ve (principio 10 hecho dato). **Existir tolera `none`; PROMOVER
+  exige gate verde** (dos umbrales distintos, no se contradicen).
+- **Gherkin ejecutable:** cuando `tipo: auto`, el `aceptacion` (Gherkin) ES el eval.
+- **`escritor_unico`:** un artefacto = un solo escritor autorizado. Dos cajas escribiendo el
+  mismo `art` = hallazgo de conformidad.
+- **`arquetipo` obligatorio:** clasifica la forma del trabajo — arregla que el contrato dejaba de
+  lado el trabajo abierto/no-arnesable (antes solo cabía como `gate: none`). Ver §8.1.
 
 ## 4. Reglas de honestidad y medición (acordadas iteraciones 6–8)
 
@@ -173,13 +258,96 @@ reemplazar los contratos inferidos por los reales.
   por decisión del operador — siguen creciendo con nuevas iteraciones. **El árbol de conocimiento
   tampoco se congela** — por diseño sigue al ecosistema. Un arnés que ayer cumplía puede necesitar
   mejora hoy porque salió algo nuevo: ése es exactamente el «punto de mejora» que el mapa muestra.
-- **Los 122 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA correrá
+- **Los 138 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA correrá
   (fase 5) y la fuente de los badges de mejora que la UX empieza a pintar (it.11+).
+
+## 8. Doctrina de proceso — framed autonomy (doctrina v1, 2026-07-05)
+
+> Bajada as-code de [`research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md),
+> ratificada por el operador. **Operacionalizamos Agentic BPM** (VISION §Linaje): un arnés da
+> *framed autonomy* a Claude Code por rol×proceso. Detalle por elemento del perfil de harness =
+> nodo nuevo [`knowledge/elements/harness-profile.md`](./knowledge/elements/harness-profile.md).
+
+### 8.1 Arquetipos de trabajo (la FORMA — autonomía ≠ automatización)
+
+Toda caja declara su `arquetipo`. Cuatro:
+- **pipeline** — determinista / verificable. Output = artefacto exacto; gate auto; document-as-cache
+  estricto. (Es **automatización**.)
+- **excepcion** — flujo feliz + casos raros. Output = invariantes; gate en bifurcaciones; checkpoints
+  en handoffs. (**Framed autonomy** acotada.)
+- **abierto** — generativo / relacional. Restringe *scope*, no *pasos*; gate = guardrails + aceptación
+  (parcial/manual); puede acumular estado de sesión (excepción a document-as-cache estricto). (**Framed
+  autonomy** plena.)
+- **no-arnesar** — juicio puro / político / relacional que no descompone en partes con contrato. **NO
+  es una caja:** se clasifica explícitamente y sale del grafo (asistente general). Saber cuándo NO
+  arnesar es doctrina, no omisión.
+
+### 8.2 Perfil de harness (cómo EJECUTA — eje ortogonal a `clase`)
+
+Toda caja declara su `perfil_harness`. `clase` dice qué ELEMENTO es (skill/hook/…); el perfil dice
+cómo corre el loop:
+- **T1 · Tarea** — un pase, sin loop, sin subagente; modelo barato, effort bajo.
+- **T2 · Workflow** — multi-paso, stateful, a menudo interactivo; **document-as-cache** obligatorio (§8.3).
+- **T3 · Worker autónomo** — loop desatendido; **el conductor Go dueña el loop** (NO Agent SDK):
+  spawnea `claude -p --max-turns N`, lee el evento `result` de stream-json + el `status` del artefacto
+  (jamás infiere del texto), aplica **cap de reparación explícito** además de `--max-turns`, y termina
+  en `blocked` → handoff. La FSM interna `draft→…→blocked` (**adaptation**) anida DENTRO de la caja; el
+  spine `idea→done` (**evolution** / cross-caja) solo avanza al `done` interno.
+- **T4 = shell / sesión, NO una caja.** El agente-de-rol persistente (menú, persona) es la sesión del
+  shell (frente N:1 con arnés, HS-06), no una caja de fábrica.
+
+Detalle, patrones de subagentes y checks del perfil = nodo `harness-profile.md`.
+
+### 8.3 Document-as-cache — el estado vive en el artefacto (A7 de APM)
+
+El estado del TRABAJO vive en un artefacto durable (frontmatter YAML: inputs · `status` · timestamps
++ secciones-borrador), NO en la conversación. Sobrevive compactación (la etapa siguiente relee el
+doc), habilita pausa/resume/reset limpio. Obligatorio en T2/T3. CC no «resume del doc solo» → es
+convención con disciplina: la caja/conductor DEBE releerlo.
+
+### 8.4 Gate de fidelidad — honestidad de PROCESO (≠ honestidad de DATO §4)
+
+La §4 protege que los NÚMEROS no mientan; ésta protege que el FLUJO no encode la operación idealizada.
+Validar el camino feliz de la caja contra el **uso REAL** del rol, no el ideal documentado. Como
+ArnesIA es producto puro, esto = **dogfooding elevado a gate de promoción** de nuestros arneses.
+Encaja con p6 (las excepciones son datos de mejora).
+
+### 8.5 Frontera P6 ↔ Guardia + tolerancia por capas
+
+Ratificado (VISION §Linaje): la **guía** de proceso/calidad nunca bloquea (p6); la **banda Guardia**
+SÍ bloquea (exit 2) efectos externos peligrosos + HITL. Cada `capability`/`constraint` del contrato
+puede declarar su **nivel de tolerancia**: bajo → hook que bloquea; alto → guía que advierte. El
+`handoff` del contrato (§3) hace ejecutable el *cuándo escala a humano*.
+
+### 8.6 Firewall CC-native — no clonar mecanismos que Claude Code ignora
+
+Todo lo que declaramos debe ser **primitiva nativa de Claude Code** (verificado en `knowledge/`).
+Prohibido escribir en el frontmatter claves que CC ignora en silencio (harían CERO):
+`persistent_facts`, `activation_steps_prepend`, `customize.toml`, sanctum PERSONA/CREED. El
+conocimiento estático entra por `CLAUDE.md` / rules con `paths:` / `@import` / `SessionStart` hook; la
+memoria por auto-memory nativa (≤200 líneas). Check `no-phantom-frontmatter` ([`skills`](./knowledge/elements/skills.md)).
+**Es lo que nos mantiene doctrina PROPIA anclada a CC, no adaptación de un framework ajeno.**
+
+**Para profundizar (bibliografía):** manifiesto Agentic BPM ([arXiv 2603.18916](https://arxiv.org/abs/2603.18916)
+· *Information Systems* 2026, DOI [10.1016/j.is.2026.102738](https://doi.org/10.1016/j.is.2026.102738))
+· gobernanza práctica ([arXiv 2504.03693](https://arxiv.org/abs/2504.03693)) · Sierra ADLC
+(https://sierra.ai/blog/agent-development-life-cycle · .../enterprise-grade-agents) · Salesforce
+Agentforce (https://architect.salesforce.com/docs/architect/fundamentals/guide/agentic-patterns.html)
+· 12-Factor Agents (https://github.com/humanlayer/12-factor-agents) · DAOP v0.2 (insumo local, filtrado).
 
 ## Estado
 
 Documento vivo. **HS-03 FIRMADA** (it.13, 2026-07-05; §4 al día: retirado el andamiaje REAL vs
-DEMO del mockup; la honestidad sigue). Por **excepción declarada** (§7), la firma congela la fase
-pero **NO** esta metodología ni la UX: ambas siguen creciendo con los comentarios del operador
-(quedan muchos) y son la base de las specs de fase 4 (HS-06). El árbol
-[`knowledge/`](./knowledge/INDEX.md) también sigue vivo por diseño (§7).
+DEMO del mockup; la honestidad sigue). **§2 extendido 2026-07-05:** cementada la estructura
+obligatoria de **subagente · hook · rule/conocimiento** (derivada de los nodos `knowledge/` ya
+firmados — no doctrina nueva, promoción de checks L2 a regla de negocio) → el núcleo de la
+fábrica (skill · maquinaria · Guardia · Base) queda firme; restan solo los elementos de
+distribución/infra (commands · mcp · plugins · settings · output-styles · statusline · headless).
+Por **excepción declarada** (§7), la firma congela la fase pero **NO** esta metodología ni la UX:
+ambas siguen creciendo con los comentarios del operador (quedan muchos) y son la base de las specs
+de fase 4 (HS-06). El árbol [`knowledge/`](./knowledge/INDEX.md) también sigue vivo por diseño (§7).
+**Doctrina v1 (2026-07-05, ficha HS-07):** cruce de DAOP/BMAD + barrido de 7 fuentes externas (manifiesto
+Agentic BPM, Sierra ADLC, Salesforce Agentforce) → bajada as-code: §3 contrato fusionado · §8 doctrina de
+proceso (framed autonomy) · nodo `harness-profile` (nº12) · nota de linaje en VISION · 2 boundaries nuevos.
+Reencuadre: **operacionalizamos Agentic BPM, no clonamos un framework**; la doctrina es PROPIA, basada en
+proceso e independiente de rubro.

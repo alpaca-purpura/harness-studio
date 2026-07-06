@@ -128,9 +128,17 @@ METODOLOGIA §2):
 | skill-time-sensitive | sin lenguaje con fecha/deadline fuera de sección «patrones antiguos» | info | badge «contenido caduca» | L1.7 |
 | skill-cold-30d | skill propia con 0 activaciones en 30d | info | punteado frío + hallazgo «candidata a poda» | L2.6 |
 | skill-has-evals | skill-caja con evals asociados (≥3 casos, delta con/sin) | warn | badge «sin evals — efectividad no medida» | L1.6 · L2.4 |
+| no-phantom-frontmatter | frontmatter solo con claves que CC reconoce — **cero `persistent_facts` / `activation_steps_prepend` / `customize`** (BMAD-ismos que CC ignora en silencio) | error | badge «clave fantasma — la config no hace NADA» | doctrina v1 §8.6 |
+| skill-script-for-deterministic | trabajo frágil/determinista empaquetado como `scripts/` (se ejecuta), no prosa-LLM | warn | badge «lógica frágil en prosa — mover a script» | L1.5 · L1.7 |
+| skill-document-as-cache | skill-caja T2/T3 stateful persiste su estado en el frontmatter del artefacto (sobrevive compactación) | warn | badge «estado en conversación — no sobrevive resume» | doctrina v1 §8.3 |
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +3 checks del firewall CC-native y progressive
+  disclosure — `no-phantom-frontmatter` (defensa contra BMAD-ismos que CC ignora),
+  `skill-script-for-deterministic` (scripts > prosa para lo frágil, L1.7 hecho check),
+  `skill-document-as-cache` (estado en artefacto para T2/T3). 14→17 checks. · disparado por el barrido
+  externo de 7 fuentes (VISION §Linaje) + cruce DAOP.
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales + agentskills.io (estándar abierto
   publicado 2025-12-18) + estudio de seguridad arxiv 2601.10338. L2 amarra skill-caja/apoyo al
   modelo de fábrica de cajas (contrato + gate honesto). 14 checks. Novedades registradas:

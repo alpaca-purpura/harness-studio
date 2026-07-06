@@ -86,6 +86,45 @@ proceso** y sale transformado. Reglas de cómo se arma todo arnés nuestro:
   (skill) de cada una, su contrato input→output y la transición de estado que posee. Agentes,
   rules y hooks se cuelgan después como maquinaria y apoyo.
 
+## Linaje doctrinal y precisiones (aditivo · 2026-07-05)
+
+> Nota aditiva firmada por el operador (2026-07-05). **No altera los 11 principios ni A1–A7:** los
+> ancla a una disciplina y precisa una frontera. Detalle, evidencia y bibliografía:
+> [`research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
+
+**Qué operacionalizamos — no clonamos un framework.** ArnesIA **operacionaliza Agentic Business
+Process Management (APM)**: una disciplina de PROCESO, independiente de dominio, con ~30 años de
+linaje BPM. Un arnés ES un *framing mechanism* instanciado (frame normativo + operacional +
+conocimiento + tools) que da **framed autonomy** a Claude Code por rol×proceso. Esto blinda dos
+principios firmados: p1 «proceso implícito» (el frame ES el proceso) y p7 «agnóstico a rubro» (APM
+deja la implementación abierta por diseño). BMAD/DAOP, Sierra y Salesforce son **insumos filtrados**,
+no el padre de la doctrina.
+
+**Distinción rectora — autonomía ≠ automatización.** Una caja *pipeline* es automatización (ejecuta
+lo especificado); una caja *abierta / excepción* es framed autonomy (percibe, razona y elige DENTRO
+del frame). Es el eje de nuestros **arquetipos de trabajo** (METODOLOGIA §8).
+
+**Vocabulario propio (renombra mejor lo que ya teníamos):** banda Guardia + permisos + rules =
+**frame normativo (deóntico) + operacional** · loop de mejora = **adaptation** (instancia, efímero)
+vs **evolution** (modelo, persistente) · creación conversacional + dock = **conversational
+actionability**. Las **4+1 capacidades** que todo arnés debe proveer: framed autonomy ·
+**explainability** · conversational actionability · self-modification.
+
+**Precisión del principio 6 (frontera guía / Guardia — RATIFICADA).** «Guía sin bloqueo» (p6) rige
+la **guía de proceso/calidad**: el arnés nunca detiene al trabajador por incumplir el proceso — la
+excepción es dato de mejora. Es un plano DISTINTO de la **banda Guardia**: los hooks SÍ bloquean
+(exit 2) efectos externos destructivos / de-secreto / de alto riesgo (HITL). Dos planos, sin
+contradicción — p6 no autoriza efectos peligrosos, y la Guardia no bloquea el flujo de trabajo.
+
+**Seam organizacional (producto puro — RATIFICADO).** ArnesIA NO modela el proceso de la empresa
+(MOF / organigrama): eso vive en OTRO sistema, futuro; su salida será el input para *crear* arneses.
+Nuestro seam = la **META de enganche** que ya carga cada arnés (rol · proceso · reporta-a · empresa).
+No construimos el organigrama; exponemos la superficie para engancharlo.
+
+**Roadmap (dogfood-first — RATIFICADO).** El primer entregable de producto es UN arnés real
+end-to-end (el dev-full-cycle) sobre nuestro propio proceso, ANTES del Mapa/compilador — para que el
+Mapa renderice datos reales, no mocks.
+
 ## Ecosistema y fronteras
 
 ```

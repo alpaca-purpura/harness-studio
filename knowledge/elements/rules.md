@@ -105,9 +105,13 @@ en it.6 como 6º tipo de primera clase).
 | rules-staleness | referencia comandos/paths/versiones ausentes del repo | warn | conteo de referencias muertas | L1.6 |
 | rules-procedural-leak | pasos multi-step («primero…luego…») mejor como skill | info | conteo de bloques secuenciales fuera de skills | L1.6 · L2 |
 | rules-managed-gap | org sin managed `claudeMd`/`allowManagedPermissionRulesOnly` mientras cada proyecto puede aflojar | info | overlap managed vs proyecto | L1.8 |
+| context-injection-native | reglas-negocio/conocimiento estático entran por `CLAUDE.md` / rules `paths:` / `@import` / SessionStart hook — **nunca** por `persistent_facts`/`activation_steps_prepend` (BMAD-ismos que CC ignora) | warn | banda Base «conocimiento inyectado por clave fantasma — no carga» | doctrina v1 §8.6 · L1.4 |
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +1 check `context-injection-native` — el conocimiento
+  estático (reglas de negocio, MOF del cliente) entra por primitivas CC nativas, no por los globs
+  `persistent_facts` de BMAD que CC ignora en silencio. 12→13 checks. · barrido externo (VISION §Linaje).
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales (memory, features-overview,
   context-window, engineering context post) + agents.md (Linux Foundation). L2 amarra reglas a
   banda Base + principio 11 (presupuesto medido) + frontera regla-advisory/hook-enforced.

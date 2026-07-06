@@ -103,9 +103,18 @@ ni gate propio; sirve a la caja que lo invoca.
 | agent-overlap | descripciones solapadas entre agentes del árbol | warn | «N agentes solapados — auto-delegación no confiable» | L1.3 · L2.4 |
 | agent-cold-30d | maquinaria de una caja con 0 lanzamientos en 30d pese a caja activa | warn | punteado + hallazgo «maquinaria muerta» | L2.4 |
 | agent-vcs | agente de proyecto versionado en git | info | «agente de proyecto no versionado» | L1.3 |
+| agent-return-schema-strict | la salida cumple un schema JSON estricto + summary ≤~200 tok (no prosa libre) | warn | badge «retorno sin schema — el orquestador re-parsea» | doctrina v1 · [[harness-profile]] L1.3 |
+
+> **Los 6 patrones de orquestación** (Delegated Data Access · Temp File Assembly · Shared-File ·
+> Hierarchical Lead-Worker · Persona-Driven Parallel · Evolutionary) y la disciplina «el padre no lee
+> lo que delega» viven en el nodo [`harness-profile`](./harness-profile.md) (doctrina v1 §8.2), que
+> gobierna el *cómo ejecuta*; este nodo gobierna *qué es* un subagente (maquinaria de caja).
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +1 check `agent-return-schema-strict` (schema JSON +
+  summary ≤200 tok, extiende el anti-telephone de retorno). Los 6 patrones de orquestación + «padre no
+  lee lo delegado» se registran en el nodo nuevo [[harness-profile]]. 12→13 checks. · barrido externo.
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales + blog subagentes (2026-04-07) +
   multi-agent research post + Kinney/PubNub. L2 amarra subagente = maquinaria dedicada de una
   caja; anti-telephone `<veredicto>→<path>` anclado a L1.4. 12 checks. Novedades: `memory`,

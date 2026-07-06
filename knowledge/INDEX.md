@@ -1,10 +1,16 @@
 # knowledge/ — árbol de conocimiento vivo de ArnesIA
 
 > **La metodología as code.** Cómo se debe estructurar cada elemento de un arnés (skill,
-> hook, rule, subagent, command, MCP, plugin, settings, output-style, statusline, headless)
-> según las mejores prácticas actuales de Anthropic y los expertos — y cómo lo adaptamos a
-> nuestra forma de trabajo. **No es un doc que se lee una vez: es un árbol que crece cada
-> semana** (mecanismo en [`CADENCE.md`](./CADENCE.md)).
+> hook, rule, subagent, command, MCP, plugin, settings, output-style, statusline, headless,
+> **perfil de harness**) según las mejores prácticas actuales de Anthropic y los expertos — y
+> cómo lo adaptamos a nuestra forma de trabajo. **No es un doc que se lee una vez: es un árbol
+> que crece cada semana** (mecanismo en [`CADENCE.md`](./CADENCE.md)).
+>
+> **Linaje (doctrina v1, 2026-07-05):** este árbol es la realización as-code de que
+> **operacionalizamos Agentic BPM** — un arnés da *framed autonomy* a Claude Code por rol×proceso.
+> Cada L1 se ancla a primitivas CC nativas (firewall §8.6 de METODOLOGIA); las fuentes académicas/
+> industria (manifiesto Agentic BPM, Sierra ADLC, Salesforce) son insumos, no el padre. Detalle:
+> [`../research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](../research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
 
 ## Cómo se relaciona con el resto del repo
 
@@ -31,10 +37,10 @@ señal en el mapa) que vuelve el estándar algo que ArnesIA puede **medir** por 
 
 | Nodo | Elemento | Estado | Versión | Checks |
 |------|----------|--------|---------|--------|
-| [`elements/skills.md`](./elements/skills.md) | Skills (SKILL.md, agent skills) | 🌱 vivo | 1.0 | 14 |
+| [`elements/skills.md`](./elements/skills.md) | Skills (SKILL.md, agent skills) | 🌱 vivo | 1.1 | 17 |
 | [`elements/hooks.md`](./elements/hooks.md) | Hooks (settings.json events) | 🌱 vivo | 1.0 | 12 |
-| [`elements/rules.md`](./elements/rules.md) | Rules / memoria (CLAUDE.md, AGENTS.md, imports) | 🌱 vivo | 1.0 | 12 |
-| [`elements/subagents.md`](./elements/subagents.md) | Subagents (.claude/agents) | 🌱 vivo | 1.0 | 12 |
+| [`elements/rules.md`](./elements/rules.md) | Rules / memoria (CLAUDE.md, AGENTS.md, imports) | 🌱 vivo | 1.1 | 13 |
+| [`elements/subagents.md`](./elements/subagents.md) | Subagents (.claude/agents) | 🌱 vivo | 1.1 | 13 |
 | [`elements/commands.md`](./elements/commands.md) | Slash commands (custom + built-in) | 🌱 vivo | 1.0 | 11 |
 | [`elements/mcp.md`](./elements/mcp.md) | MCP servers | 🌱 vivo | 1.0 | 11 |
 | [`elements/plugins.md`](./elements/plugins.md) | Plugins & marketplaces | 🌱 vivo | 1.0 | 12 |
@@ -42,10 +48,12 @@ señal en el mapa) que vuelve el estándar algo que ArnesIA puede **medir** por 
 | [`elements/output-styles.md`](./elements/output-styles.md) | Output styles | 🌱 vivo | 1.0 | 8 |
 | [`elements/statusline.md`](./elements/statusline.md) | Status line | 🌱 vivo | 1.0 | 8 |
 | [`elements/headless-sdk.md`](./elements/headless-sdk.md) | Headless / Agent SDK | 🌱 vivo | 1.1 | 11 |
+| [`elements/harness-profile.md`](./elements/harness-profile.md) | Perfil de harness (loop · subagentes · routing) | 🌱 vivo | 1.0 | 11 |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se actualiza) · 🌳 estable · 🔍 en-revisión.
-**Total: 11 nodos · 122 checks evaluables · pasada fundacional 2026-07-04; headless bumpeado a
-v1.1 en HS-04 (2026-07-05, corrección `--bare`/auth + `%contexto` derivado).**
+**Total: 12 nodos · 138 checks evaluables · pasada fundacional 2026-07-04; headless→v1.1 en HS-04;
+**doctrina v1 (HS-07, 2026-07-05):** nace el nodo 12 `harness-profile` (11 checks) + skills/rules/
+subagents bumpeados (+5 checks del firewall CC-native y perfil de harness).**
 
 ## Cómo crece
 
@@ -55,7 +63,7 @@ checks → bump + changelog → propagar a METODOLOGIA/UX. Detalle y reglas del 
 
 ## Índice de checks (agregado)
 
-La unión de los `Checklist evaluable` de los 11 nodos = **122 checks** = el ruleset que el
+La unión de los `Checklist evaluable` de los 12 nodos = **138 checks** = el ruleset que el
 linter de conformidad de ArnesIA correrá sobre un arnés (METODOLOGIA §6). Reparto por elemento
 en la tabla de arriba. Severidades: `error` rompe el estándar · `warn` huele mal · `info` mejora
 posible. Cada check declara su **señal en el mapa** (columna 4 de cada nodo) — ése es el puente a
@@ -72,7 +80,7 @@ la UX: qué badge/estado pinta ArnesIA en Diagnóstico / capa Desempeño / banda
 - **anti-telephone**: contrato de retorno `<veredicto>→<path>` en [[subagents]], que el conductor
   headless ([[headless-sdk]]) consume estructurado.
 
-> **Próximo:** cuando ArnesIA tenga motor (fase 5), estos 122 checks se vuelven reglas de linter
+> **Próximo:** cuando ArnesIA tenga motor (fase 5), estos 138 checks se vuelven reglas de linter
 > ejecutables; hoy son el estándar as code que la UX (it.11+) empieza a pintar sobre el mapa.
 > **Ejecución unificada knowledge + `arch/` por un solo runner (`arnesia conformance`) requiere un
 > contrato de check común** (schema unificado con `enforced_by`/mecanismo por check) **planificado
