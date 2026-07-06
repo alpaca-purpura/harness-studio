@@ -1,9 +1,9 @@
 ---
 regla: permisos-derivan-del-rol
-version: 1.0
+version: 1.1
 updated: 2026-07-05
-status: proposed
-ledger: HS-07
+status: enforced
+ledger: HS-08
 sources:
   - url: https://architect.salesforce.com/docs/architect/fundamentals/guide/enterprise-agentic-architecture.html
     autoridad: experto
@@ -52,12 +52,18 @@ puro + META de enganche» (VISION §Linaje): la autoridad del rol viene de la **
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
 | permisos-parametrizados-por-rol | el permission-set lo resuelve el `KitProvisioner` según el rol que hidrata, no un default fijo | warn | banda Guardia «permisos no derivados del rol» | arch_test.go:TestPermissionSetParametrizedByRole |
-| guardrail-en-hook-no-prompt | el límite duro vive en `PreToolUse`/`control_request` (exit 2/deny), no en prosa | error | banda Guardia «límite solo advisory — no aplicado» | arch_test.go |
-| permiso-efimero-ttl | (spike) los grants de `control_request` pueden expirar / ser por-tarea, no perpetuos | info | banda Guardia «permiso perpetuo — mínimo privilegio temporal ausente» | arch_test.go (spike) |
-| meta-de-enganche-completa | el arnés declara META completa (rol·proceso·reporta-a·empresa) — el seam del sistema L1 externo | warn | «META incompleta — no enganchable» | schema graph.l0 |
+| guardrail-en-hook-no-prompt | el límite duro vive en `PreToolUse`/`control_request` (exit 2/deny), no en prosa | error | banda Guardia «límite solo advisory — no aplicado» | arch_test.go:TestNoBypassPermissions |
+| permiso-efimero-ttl | los grants (`Grant.Vigente`) expiran / son por-tarea, no perpetuos | info | banda Guardia «permiso perpetuo — mínimo privilegio temporal ausente» | arch_test.go:TestPermissionSetParametrizedByRole |
+| meta-de-enganche-completa | el arnés declara META completa (rol·proceso·reporta-a·empresa) — el seam del sistema L1 externo | warn | «META incompleta — no enganchable» | box.contract/graph.l0.schema.json |
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **status → `enforced` (HS-08, spike aterrizado).** `domain.PermissionSet` +
+  `permission.KitProvisioner` resuelven el permission-set por rol (el MISMO tool decide distinto según
+  el rol) y `domain.Grant.Vigente` hace los grants efímeros (TTL/por-tarea, no perpetuos).
+  `TestPermissionSetParametrizedByRole` lo enforça. `meta-de-enganche-completa` se valida contra el
+  schema graph.l0 (arnés declara rol·proceso·reporta_a·empresa, required). Falta la superficie HTTP
+  `control_request` con role/ttl (endpoint) — anotado en openapi como pendiente.
 - 2026-07-05 · v1.0 · Nodo draft (HS-07, doctrina v1). L1 = permisos = autoridad del rol impuesta
   fuera del razonamiento (Salesforce + frame normativo APM). L2: `KitProvisioner` parametriza por rol;
   autoridad externa (META de enganche / sistema L1 futuro); permiso efímero = spike `control_request`;

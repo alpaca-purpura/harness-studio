@@ -35,7 +35,11 @@ type AgentEvent struct {
 	ClaudeSessionID string
 	Model           string
 	CtxPct          int
-	Raw             []byte
+	// Subtype carries the `result` frame subtype (e.g. "success", "error_max_turns").
+	// The T3 conductor reads THIS machine signal to decide continue/stop — never the chat
+	// text (arch/boundaries/orquestacion-determinista-entre-cajas.md).
+	Subtype string
+	Raw     []byte
 }
 
 // SpawnOpts parameterizes a conductor. Resume, when non-empty, continues an existing

@@ -1,0 +1,383 @@
+<title>ArnesIA · Inyección de know-how a Claude Code</title>
+<style>
+  /* ── Tokens: lift exacto de web/tokens/base.tokens.json (SSOT DTCG, shell-A firmado) ── */
+  :root{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --skill-soft:rgba(47,116,181,.12); --agent-soft:rgba(116,85,194,.12); --hook-soft:rgba(187,76,133,.12); --know-soft:rgba(32,130,111,.12);
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545; --ok-soft:rgba(46,143,94,.13);
+    --shadow:0 5px 18px rgba(0,0,0,.08);
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --r-sm:6px; --r-md:8px; --r-lg:9px; --r-xl:12px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+      --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+      --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+      --skill-soft:rgba(91,157,217,.15); --agent-soft:rgba(155,127,212,.16); --hook-soft:rgba(212,106,158,.15); --know-soft:rgba(79,179,161,.15);
+      --ok:#57b380; --warn:#e0904f; --crit:#e25b5b; --ok-soft:rgba(87,179,128,.14);
+      --shadow:0 6px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f2f4f7; --surface:#ffffff; --surface2:#e9edf2; --line:#d5dbe3; --line2:#c3cbd6;
+    --text:#212832; --muted:#5d6a79; --accent:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85; --c-know:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --skill-soft:rgba(47,116,181,.12); --agent-soft:rgba(116,85,194,.12); --hook-soft:rgba(187,76,133,.12); --know-soft:rgba(32,130,111,.12);
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545; --ok-soft:rgba(46,143,94,.13);
+    --shadow:0 5px 18px rgba(0,0,0,.08);
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171c; --surface:#1b2027; --surface2:#242b34; --line:#2d3743; --line2:#3a4655;
+    --text:#e8ecf1; --muted:#94a1af; --accent:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+    --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e; --c-know:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+    --skill-soft:rgba(91,157,217,.15); --agent-soft:rgba(155,127,212,.16); --hook-soft:rgba(212,106,158,.15); --know-soft:rgba(79,179,161,.15);
+    --ok:#57b380; --warn:#e0904f; --crit:#e25b5b; --ok-soft:rgba(87,179,128,.14);
+    --shadow:0 6px 22px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 64px}
+  h1,h2,h3,p{margin:0}
+  code,.mono{font-family:var(--mono)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+  /* ── Topbar (idioma del shell-A: brand square + std chip) ── */
+  .top{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;padding:11px 20px;
+       background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(8px);
+       border-bottom:1px solid var(--line)}
+  .top .in{max-width:1080px;margin:0 auto;width:100%;display:flex;align-items:center;gap:12px}
+  .brand{width:34px;height:34px;border-radius:var(--r-lg);background:var(--accent);color:#fff;font-weight:800;font-size:16px;display:grid;place-items:center;flex:none}
+  .top h1{font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+  .top .sub{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .stdchip{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:var(--r-sm);padding:4px 8px;white-space:nowrap}
+  .tglbtn{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--r-md);padding:5px 9px;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  .tglbtn:hover{color:var(--text);border-color:var(--line2)}
+
+  /* ── Section scaffolding ── */
+  section{margin-top:38px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
+  .sec-h{font-size:19px;font-weight:680;letter-spacing:-.02em;text-wrap:balance;margin-bottom:5px}
+  .sec-d{color:var(--muted);font-size:13px;max-width:64ch;margin-bottom:18px}
+
+  .lede{margin-top:22px;font-size:16px;line-height:1.55;text-wrap:pretty;max-width:70ch}
+  .lede b{color:var(--accent);font-weight:650}
+  .constraint{margin-top:14px;border-left:2px solid var(--accent);background:var(--accent-soft);
+      border-radius:0 var(--r-md) var(--r-md) 0;padding:11px 15px;font-size:13.5px;max-width:70ch}
+
+  /* ── The 3 bodies ── */
+  .bodies{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .body{border:1px solid var(--line);border-left:3px solid var(--pc);border-radius:var(--r-xl);
+        background:var(--surface);padding:15px 16px;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow)}
+  .body .num{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--pc);letter-spacing:.06em}
+  .body .bt{font-size:15.5px;font-weight:680;letter-spacing:-.01em}
+  .body .bt small{display:block;font-weight:500;font-size:11.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+  .row{display:flex;gap:9px;font-size:12.5px;line-height:1.45}
+  .row .k{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;flex:none;width:44px;padding-top:2px}
+  .row .v{color:var(--text)}
+  .row .v .lit{font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+  .body--doctrina{--pc:var(--c-know);--pc-soft:var(--know-soft)}
+  .body--maquina{--pc:var(--c-agent);--pc-soft:var(--agent-soft)}
+  .body--producto{--pc:var(--c-skill);--pc-soft:var(--skill-soft)}
+  .body .dot{width:8px;height:8px;border-radius:50%;background:var(--pc);display:inline-block}
+
+  /* ── Spawn hero ── */
+  .spawn{border:1px solid var(--line);border-radius:var(--r-xl);background:var(--surface);overflow:hidden;box-shadow:var(--shadow)}
+  .spawn-hd{display:flex;align-items:center;gap:8px;padding:10px 15px;background:var(--surface2);border-bottom:1px solid var(--line);
+            font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .spawn-hd .lights{display:flex;gap:5px}
+  .spawn-hd .lights i{width:9px;height:9px;border-radius:50%;background:var(--line2)}
+  .spawn-body{overflow-x:auto;padding:15px 16px}
+  pre{margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.9;white-space:pre;min-width:max-content}
+  .fl{border-radius:4px;padding:1px 4px;font-weight:600}
+  .fl-b{color:var(--muted)}
+  .fl-p{color:var(--c-skill);background:var(--skill-soft)}
+  .fl-m{color:var(--c-agent);background:var(--agent-soft)}
+  .fl-d{color:var(--c-know);background:var(--know-soft)}
+  .fl-t{color:var(--c-hook);background:var(--hook-soft)}
+  .cmt{color:var(--muted);opacity:.85}
+  .spawn-legend{display:flex;flex-wrap:wrap;gap:7px;padding:0 16px 15px}
+  .lg{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text);border:1px solid var(--line);border-radius:var(--r-full,99px);padding:3px 9px 3px 7px;background:var(--surface2)}
+  .lg .sw{width:9px;height:9px;border-radius:2px}
+  .lg .mono{font-size:10.5px;color:var(--muted)}
+  .nobare{margin-top:12px;display:flex;gap:9px;align-items:flex-start;border:1px dashed var(--line2);border-radius:var(--r-md);
+          padding:10px 13px;font-size:12.5px;background:var(--surface2)}
+  .nobare b{color:var(--warn)}
+
+  /* ── Flow: dónde vive ── */
+  .flow{display:flex;flex-direction:column;gap:10px}
+  .fstep{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:stretch}
+  .fstep .lbl{display:flex;flex-direction:column;justify-content:center;gap:3px;border:1px solid var(--line);border-radius:var(--r-lg);
+              background:var(--surface2);padding:10px 12px}
+  .fstep .lbl b{font-family:var(--mono);font-size:12px;font-weight:680}
+  .fstep .lbl span{font-size:10.5px;color:var(--muted)}
+  .fstep .cnt{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);padding:11px 13px;display:flex;flex-direction:column;gap:6px}
+  .fstep .cnt .line{font-size:12.5px}
+  .path{font-family:var(--mono);font-size:11px;color:var(--accent)}
+  .arrow{display:grid;place-items:center;color:var(--muted);font-size:15px;height:14px;margin:-4px 0}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .split .fstep{grid-template-columns:1fr}
+  .split .lbl{flex-direction:row;align-items:center;gap:9px}
+  .split .lbl .badge{font-family:var(--mono);font-size:9px;font-weight:700;border-radius:4px;padding:2px 6px;color:#fff;flex:none}
+
+  /* ── Cycle ── */
+  .cycle{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .cyc{border:1px solid var(--line);border-radius:var(--r-xl);background:var(--surface);padding:14px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+  .cyc .verb{font-size:15px;font-weight:680;display:flex;align-items:center;gap:8px}
+  .cyc .verb .ic{width:26px;height:26px;border-radius:var(--r-md);display:grid;place-items:center;font-size:14px;background:var(--accent-soft);color:var(--accent)}
+  .cyc p{font-size:12px;color:var(--text);line-height:1.5}
+  .cyc .who{display:flex;gap:5px;margin-top:auto;padding-top:4px}
+  .cyc .who .d{width:12px;height:12px;border-radius:3px;font-family:var(--mono);font-size:8px;color:#fff;display:grid;place-items:center;font-weight:700}
+
+  /* ── Two representations ── */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .rep{border:1px solid var(--line);border-radius:var(--r-xl);background:var(--surface);padding:15px 16px;display:flex;flex-direction:column;gap:9px}
+  .rep .tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .rep h3{font-size:15px;font-weight:670}
+  .rep .arrowto{font-family:var(--mono);font-size:12px;color:var(--accent)}
+  .rep p{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .rep.rep--data{border-top:3px solid var(--ok)}
+  .rep.rep--cc{border-top:3px solid var(--c-agent)}
+  .src{text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:12px}
+  .src b{color:var(--c-know)}
+
+  /* ── Footer resolutions ── */
+  .foot{margin-top:34px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .res{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);padding:13px 15px;display:flex;flex-direction:column;gap:5px}
+  .res .h{font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:7px}
+  .res .h .mk{font-size:13px}
+  .res .ok .mk{color:var(--ok)} .res .open .mk{color:var(--warn)}
+  .res p{font-size:12px;color:var(--muted);line-height:1.45}
+  .res p .lit{font-family:var(--mono);font-size:10.5px;background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--text)}
+  .colophon{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 14px}
+  .colophon .mono{font-size:10.5px}
+
+  @media (max-width:820px){
+    .bodies,.cycle,.two,.foot{grid-template-columns:1fr}
+    .fstep{grid-template-columns:1fr}
+    .split{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="in">
+    <div class="brand" aria-hidden="true">A</div>
+    <div>
+      <h1>Inyección de know-how a Claude Code</h1>
+      <div class="sub">ArnesIA · cómo la fábrica posee su doctrina y la implementa</div>
+    </div>
+    <span class="stdchip">HS-07 · insumo · 2026-07-05</span>
+    <button class="tglbtn" id="tgl" type="button" aria-label="Cambiar tema">
+      <span id="tglic">◐</span><span id="tgltx">Tema</span>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <p class="lede">
+    El usuario instala Claude Code, instala ArnesIA, y <b>usa ArnesIA</b>. Nunca entra a Claude Code
+    a configurar nada. Todo el know-how de cómo se hace el mejor arnés viaja con el binario y se
+    aplica por detrás. El diseño entero cuelga de separar <b>tres cuerpos</b> y hacerlos converger
+    en un solo spawn.
+  </p>
+  <div class="constraint">
+    <b>Restricción cero-config.</b> Instalar CC (con suscripción activa) → instalar ArnesIA → usar.
+    Los updates los aplica ArnesIA. El usuario no toca <code>~/.claude</code> ni corre
+    <code>/plugin install</code> jamás.
+  </div>
+
+  <section aria-labelledby="s1">
+    <div class="eyebrow">La separación que resuelve todo</div>
+    <h2 class="sec-h" id="s1">Los tres cuerpos</h2>
+    <p class="sec-d">Nunca se confunden. ② nunca se escribe en el árbol de ③; ③ nunca contiene la
+      maquinaria de ArnesIA. Esa línea es lo que hace verdad el «cero config».</p>
+
+    <div class="bodies">
+      <article class="body body--doctrina">
+        <div class="num">① DOCTRINA</div>
+        <div class="bt">El know-how<small>11 elementos · 122 checks</small></div>
+        <div class="row"><span class="k">Qué</span><span class="v">Plantillas, contrato de caja y la metodología entera, as code.</span></div>
+        <div class="row"><span class="k">Vive</span><span class="v"><span class="lit">knowledge/</span> + <span class="lit">arch/</span> → compilada y <span class="lit">go:embed</span> en el binario.</span></div>
+        <div class="row"><span class="k">Lee</span><span class="v">El runner Go <b>y</b> el meta-arnés.</span></div>
+      </article>
+      <article class="body body--maquina">
+        <div class="num">② MAQUINARIA</div>
+        <div class="bt">El meta-arnés<small>kit harness@prenter-marketplace</small></div>
+        <div class="row"><span class="k">Qué</span><span class="v">Skills + subagents que <em>encarnan</em> la doctrina para que CC produzca conforme.</span></div>
+        <div class="row"><span class="k">Vive</span><span class="v"><span class="lit">~/.arnesia/kit/</span> — materializado del embed al abrir.</span></div>
+        <div class="row"><span class="k">Lee</span><span class="v">El <span class="lit">claude</span> local, inyectado <b>al spawn</b>.</span></div>
+      </article>
+      <article class="body body--producto">
+        <div class="num">③ ARNÉS-PRODUCTO</div>
+        <div class="bt">Lo vendible<small>luana-platform, …</small></div>
+        <div class="row"><span class="k">Qué</span><span class="v">El <span class="lit">.claude/</span> real que se crea, edita y publica.</span></div>
+        <div class="row"><span class="k">Vive</span><span class="v">Su <b>ruta local</b> (<span class="lit">arnes_registry</span>) → plugin a marketplace git.</span></div>
+        <div class="row"><span class="k">Lee</span><span class="v">CC <b>nativo por cwd</b>.</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="s2">
+    <div class="eyebrow">El mecanismo estrella</div>
+    <h2 class="sec-h" id="s2">Un spawn: los tres cuerpos convergen</h2>
+    <p class="sec-d"><span class="lit" style="font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:0 4px">--plugin-dir</span>
+      carga la maquinaria para <em>esa</em> sesión — sin install, sin tocar el árbol del usuario, y <b>sin
+      <code>--bare</code></b>, así la suscripción del <code>claude</code> local queda intacta.</p>
+
+    <div class="spawn">
+      <div class="spawn-hd"><span class="lights"><i></i><i></i><i></i></span>internal/adapters/agent/claudecode/conductor.go · Spawn()</div>
+      <div class="spawn-body"><pre><span class="fl fl-b">claude</span> -p --input-format stream-json --output-format stream-json --verbose  <span class="cmt"># base (HS-06)</span>
+  <span class="fl fl-b">--resume</span> ID  <span class="fl fl-b">--model</span> M  <span class="fl fl-b">--max-turns</span> N                        <span class="cmt"># sesión viva (HS-06)</span>
+  <span class="fl fl-p">--cwd ~/arneses/luana-platform</span>                          <span class="cmt"># ③ editar el arnés-producto</span>
+  <span class="fl fl-m">--plugin-dir ~/.arnesia/kit</span>                             <span class="cmt"># ② meta-arnés (skills+subagents+hooks)</span>
+  <span class="fl fl-d">--append-system-prompt-file ~/.arnesia/doctrine.md</span>      <span class="cmt"># ① doctrina (overlay)</span>
+  <span class="fl fl-d">--add-dir ~/.arnesia/knowhow</span>                            <span class="cmt"># ① los 122 checks (read-only)</span>
+  <span class="fl fl-t">--mcp-config ~/.arnesia/mcp.json</span>                        <span class="cmt"># sensor + langfuse-espejo</span>
+  <span class="fl fl-b">--permission-mode</span> …                                     <span class="cmt"># spike control_request (HS-07)</span></pre></div>
+      <div class="spawn-legend">
+        <span class="lg"><span class="sw" style="background:var(--c-skill)"></span>③ producto <span class="mono">cwd</span></span>
+        <span class="lg"><span class="sw" style="background:var(--c-agent)"></span>② maquinaria <span class="mono">--plugin-dir</span></span>
+        <span class="lg"><span class="sw" style="background:var(--c-know)"></span>① doctrina <span class="mono">--append-system-prompt-file</span></span>
+        <span class="lg"><span class="sw" style="background:var(--c-hook)"></span>telemetría <span class="mono">--mcp-config</span></span>
+        <span class="lg"><span class="sw" style="background:var(--muted)"></span>base HS-06</span>
+      </div>
+    </div>
+    <div class="nobare">
+      <span aria-hidden="true">⚠️</span>
+      <div><b><code>--bare</code> y suscripción-propia son excluyentes.</b> Bare salta OAuth y exige
+      <code>ANTHROPIC_API_KEY</code>. Elegimos suscripción-propia (legítimo: app local sobre el CC del
+      propio usuario). La zona prohibida por terms es hostear login de terceros — no es nuestro caso.
+      <b>Nada de <code>--bare</code>.</b></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s3">
+    <div class="eyebrow">Dónde vive físicamente</div>
+    <h2 class="sec-h" id="s3">Del repo al arnés del cliente — todo por detrás</h2>
+    <p class="sec-d">Una sola cadena: la doctrina se compila, se embebe, se materializa invisible, y
+      se inyecta. El usuario no ve ningún paso.</p>
+
+    <div class="flow">
+      <div class="fstep">
+        <div class="lbl"><b>REPO fábrica</b><span>fuente de verdad</span></div>
+        <div class="cnt">
+          <div class="line"><span class="path">knowledge/ · arch/ · kit/ · plantillas/</span></div>
+          <div class="line" style="color:var(--muted);font-size:12px">build (<code>arnesia build-kit</code>) compila → <code>ruleset.json</code> · <code>kit/</code> · <code>doctrine.md</code></div>
+        </div>
+      </div>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <div class="fstep">
+        <div class="lbl"><b>binario arnesia</b><span>go:embed</span></div>
+        <div class="cnt"><div class="line">Lleva la doctrina + el meta-arnés <b>dentro</b>. Viaja con el instalador (GoReleaser → brew/scoop/deb, dentro del shell Tauri).</div></div>
+      </div>
+      <div class="arrow" aria-hidden="true">↓ <span style="font-size:11px;font-family:var(--mono)">primer serve — idempotente, invisible</span></div>
+      <div class="fstep">
+        <div class="lbl"><b>~/.arnesia/</b><span>provisión</span></div>
+        <div class="cnt">
+          <div class="line"><span class="path">kit/ · doctrine.md · knowhow/ · ruleset.json · mcp.json</span></div>
+          <div class="line" style="color:var(--muted);font-size:12px">+ estado: arneses.json · sessions.json · index.sqlite</div>
+        </div>
+      </div>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <div class="split">
+        <div class="fstep">
+          <div class="lbl"><span class="badge" style="background:var(--c-skill)">cwd</span><b>ruta del arnés</b></div>
+          <div class="cnt"><div class="line">ArnesIA autora <span class="path">&lt;ruta&gt;/.claude/</span>; CC lo lee nativo. Nace con el hook <code>telemetry-emit</code>.</div></div>
+        </div>
+        <div class="fstep">
+          <div class="lbl"><span class="badge" style="background:var(--accent)">publish</span><b>marketplace git</b></div>
+          <div class="cnt"><div class="line"><code>arnesia publish</code> → <code>plugin.json</code> + <code>marketplace.json</code> + semver/SHA.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s4">
+    <div class="eyebrow">Crear · Evaluar · Monitorear · Mejorar</div>
+    <h2 class="sec-h" id="s4">El ciclo, mapeado a mecanismo</h2>
+    <p class="sec-d">Cada verbo del producto aterriza en una superficie concreta de Claude Code o del runner Go.</p>
+
+    <div class="cycle">
+      <div class="cyc">
+        <div class="verb"><span class="ic">✦</span>Crear</div>
+        <p>Conductor con el kit en la ruta nueva; grill→spec→build materializa el <code>.claude/</code> desde plantilla. Nace con telemetría (p9).</p>
+        <div class="who"><span class="d" style="background:var(--c-know)">1</span><span class="d" style="background:var(--c-agent)">2</span><span class="d" style="background:var(--c-skill)">3</span></div>
+      </div>
+      <div class="cyc">
+        <div class="verb"><span class="ic">⚖</span>Evaluar</div>
+        <p><code>arnesia conformance</code> (Go, determinista) sobre el <code>.claude/</code> = gate estático + evals runtime. Gate en promote (A4).</p>
+        <div class="who"><span class="d" style="background:var(--c-know)">1</span><span class="d" style="background:var(--c-skill)">3</span></div>
+      </div>
+      <div class="cyc">
+        <div class="verb"><span class="ic">◉</span>Monitorear</div>
+        <p>El arnés ya emite OTLP (<code>telemetry-emit</code> del kit) → collector embebido → índice; JSONL de <code>~/.claude</code> = verdad.</p>
+        <div class="who"><span class="d" style="background:var(--c-skill)">3</span></div>
+      </div>
+      <div class="cyc">
+        <div class="verb"><span class="ic">↻</span>Mejorar</div>
+        <p>Hallazgos → puntos en el mapa → turno al conductor (doctrina inyectada) → corrige → re-eval → publish.</p>
+        <div class="who"><span class="d" style="background:var(--c-know)">1</span><span class="d" style="background:var(--c-agent)">2</span><span class="d" style="background:var(--c-skill)">3</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s5">
+    <div class="eyebrow">Una fuente, dos targets</div>
+    <h2 class="sec-h" id="s5">El know-how tiene dos representaciones</h2>
+    <p class="sec-d">Lo que vuelve real el principio 10 («nada sin eval»): la misma doctrina se compila
+      en un ruleset ejecutable <em>y</em> en una guía generativa.</p>
+
+    <div class="two">
+      <div class="rep rep--data">
+        <span class="tag">Como DATA</span>
+        <h3>ruleset.json <span class="arrowto">→</span> arnesia conformance</h3>
+        <p>Runner <b>Go, sin LLM</b>. Barato, exacto, determinista. Es el gate estático: cargar → chequear → reporte de brechas → corregir.</p>
+      </div>
+      <div class="rep rep--cc">
+        <span class="tag">Como PRIMITIVAS CC</span>
+        <h3>kit/ <span class="arrowto">→</span> el conductor genera conforme</h3>
+        <p>Skills tipo <em>authoring-a-skill-caja</em> + subagents de forja. LLM, para crear y mejorar el <code>.claude/</code> del arnés.</p>
+      </div>
+    </div>
+    <p class="src">ambas derivan del mismo <b>knowledge/elements/*.md</b> — el build las mantiene sincronizadas · drift = check rojo</p>
+  </section>
+
+  <div class="foot">
+    <div class="res">
+      <div class="h ok"><span class="mk">✓</span> Auth · resuelta</div>
+      <p>Local-first, suscripción-propia, sin <span class="lit">--bare</span>.</p>
+    </div>
+    <div class="res">
+      <div class="h ok"><span class="mk">✓</span> Formato ② · resuelto</div>
+      <p><span class="lit">--plugin-dir</span> session-scoped, no install persistente.</p>
+    </div>
+    <div class="res">
+      <div class="h open"><span class="mk">◔</span> Abiertas · HS-07</div>
+      <p>Sandbox/<span class="lit">auto</span> mode (cwd no es frontera) · aislar build vs eval · DevHub carga ③.</p>
+    </div>
+  </div>
+
+  <div class="colophon">
+    <span>Tokens: <span class="mono">web/tokens/base.tokens.json</span> (DTCG, shell-A firmado).</span>
+    <span>Spec: <span class="mono">research/2026-07-05-arquitectura-inyeccion-knowhow.md</span>.</span>
+    <span>Verificado live vs <span class="mono">code.claude.com/docs</span> · CC v2.1.x · 2026-07-05.</span>
+  </div>
+</main>
+
+<script>
+  (function(){
+    var btn=document.getElementById('tgl'), ic=document.getElementById('tglic'), tx=document.getElementById('tgltx');
+    function cur(){var a=document.documentElement.getAttribute('data-theme'); if(a) return a;
+      return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    function paint(t){ic.textContent=t==='dark'?'☾':'☀'; tx.textContent=t==='dark'?'Oscuro':'Claro';}
+    paint(cur());
+    btn.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';
+      document.documentElement.setAttribute('data-theme',n); paint(n);});
+  })();
+</script>

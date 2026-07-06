@@ -267,7 +267,9 @@ componente `store` faltante. **arch/ = 14 boundaries · 63 checks + 26 conventio
 
 **Honestidad:** el shell Rust (`lib.rs` + `Cargo.toml` `getrandom`) se ESCRIBIÓ pero **no se compiló
 aquí** (sin toolchain Rust ni red — coherente con «verificar al instalar» del Cargo.toml); se valida
-con `cargo build` en la máquina provisionada. **Explícitamente fuera de scope → HS-07:** diff-approval
+con `cargo build` en la máquina provisionada. [*Actualización HS-09:* confirmado **compilado +
+corriendo** — `web/src-tauri/target/debug/arnesia` + sidecar `arnesia-daemon`, commit `a0e4fe2`; la nota
+describe el delta Rust de HS-06 sin recompilar en esa ola.] **Explícitamente fuera de scope → HS-07:** diff-approval
 / `--permission-mode` / protocolo `control_request` (el spike de permisos que HS-04 ya reservaba) ·
 OTel + `system/api_retry` (warn) · worktree-git-por-sesión · UX completa de registro de ruta + gobierno
 de presupuesto (c.2/c.3 restantes). El backend Go compila + vetea limpio; el FE typa (tsc strictest) +
@@ -334,7 +336,101 @@ tomó HS-07 por ser fundacional a las specs): schemas del dominio (fase/estado s
 restos multisesión (worktree · gobierno de presupuesto · OTel). Abiertas de doctrina: persona-state/
 DevHub · nombre de la doctrina · detalle A2 (quién ejecuta `ruta`).
 
-<!-- Próximas: HS-08, … -->
+### HS-08 · Fase 4 specs (dogfood-first) — doctrina BAJADA A EJECUTABLE — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-05):* "la doctrina v1 quedó as-code pero SIN diente — el schema rechaza el
+contrato fusionado, no hay spine de estados, los `enforced_by:` cuelgan de una herramienta que no existe;
+antes del Mapa, forja el arnés `dev-full-cycle` real y hazlo verificable de verdad" (dogfood-first — la
+§Linaje de VISION exige el arnés real ANTES del Mapa).
+
+*Desarrollo:* la auditoría (`research/2026-07-05-auditoria-doctrina-v1-aplicabilidad.md`) confirmó el hueco:
+doctrina declarada, no ejecutable. HS-08 la aterriza. (1) **Contrato de caja fusionado con diente** — bajado
+a `box.contract.schema.json` + `domain.Contract` (3 ejes: intención + cableado + aceptación), con
+`TestBoxContractValidatesAgainstSchema` activo (el schema ya no rechaza el contrato de METODOLOGIA §3). (2)
+**`Clase` canónica de 10 primitivas** (enum único, se acabó el doble enum). (3) **Manifiesto del arnés en
+`graph.l0`** — carga `fases` · `spine` (estados DECLARADOS por el arnés, no fijos) · META `rol`·`proceso`·
+`reporta_a`·`empresa`. (4) **Motor `arnesia conformance` CONSTRUIDO** (hexagonal): `RulesetPort` parsea
+`knowledge/` + `arch/` = **235 checks a datos**; `ConformancePort` + adapters por mecanismo (arch-test ·
+schema-validation · go-arch-lint · static-scan · nl-judge); los checks de consistencia de spine se
+parametrizan por el **spine declarado** del arnés (agnóstico). Los `enforced_by:` ya no cuelgan.
+
+*Materializado (as-code):* **motor** `arnesia conformance` (hexagonal, RulesetPort + ConformancePort + 5
+adapters de mecanismo) · **fixture dogfood** `dogfood/dev-full-cycle.graph.json` valida **verde 13/13**
+(4 contratos fusionados + spine-auto-consistente + estado-en-spine + transicion-legal + una-transicion-por-caja
++ spine-cobertura + fase-en-fases + escritor-unico + firewall) · gate **G1** (contrato de caja real verde con
+los 3 ejes) · gate **G2** (`conformance <elemento>` da veredictos reales) · gate **G3** (`--todo` = 235 checks,
+**0 fail, 0 error** = cero `enforced_by` colgante). **Loop conductor T3 REAL** (`usecase.BoxConductor` +
+`domain.AvanzarCaja`/`RutaSiguiente` + FSM `caja_fsm.go`): el conductor Go dueña el loop, lee `result`+`status`
+(NUNCA el texto del chat — garantía anti-scrape testeada), cap de reparación, `blocked→handoff`, ejecuta
+`contract.ruta`. **Spike permisos por rol/TTL** (`domain.PermissionSet` + `permission.KitProvisioner`): el
+MISMO tool decide distinto por rol, grants efímeros (`Grant.Vigente`). **3 boundaries SUBIDOS a `enforced`**
+(orquestacion-determinista + permisos-derivan-del-rol + contrato-de-caja-es-fitness-function) con
+`TestConductorOwnsBoxRouting` · `TestPermissionSetParametrizedByRole` · `TestBoxContractValidatesAgainstSchema`
+pasando → **5 boundaries enforced** (2 HS-06 + 3 HS-08). Checks nuevos ejecutables: `escritor-unico`,
+`spine-auto-consistente`, `no-arnesar⇒no-caja` (schema). **Auditoría final 2-frentes limpia** (código VERDE
+9/9 blockers + docs VERDE tras cerrar residuos); **arXiv 2603.18916 verificado en web** (existe · 4 capacidades
+textuales). Deps nuevas: `google/jsonschema-go`, `yaml.v3`. Doctrina intacta: **knowledge 12 nodos · 138 checks ·
+arch 16 boundaries · 97 checks**. Sincronización mecánica de docs de prosa (VISION §gran plan · METODOLOGIA
+§3/§5/§8 · CLAUDE Estado · INDEX de knowledge/arch · re-atribución DAOP-A2/A7 · 4 capacidades) en la misma ola.
+
+*Conecta:* HS-07 (la doctrina v1 que esto hace ejecutable — contrato fusionado, nodo `harness-profile`, 2
+boundaries) · HS-04/05 (`arch/` as code que el motor parsea) · HS-06 (conductor multisesión sobre el que
+corre el routing de cajas T3) · la auditoría en `research/…auditoria-doctrina-v1-aplicabilidad.md`.
+
+*Siguiente:* MVP del Mapa (ahora con el arnés dogfood real como base) · superficie HTTP `control_request` con
+`role`/`ttl` (el modelo de permisos ya existe; falta el endpoint) · gate de fidelidad §8.4 ejecutable (hoy
+`deferred`, ficha posterior) · 6 patrones de subagente ya detallados · restos multisesión (worktree · presupuesto · OTel).
+
+### HS-09 · Fase 5 arrancada — MVP del Mapa (dogfood real), tras auditoría 5-frentes del estado — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-06):* "Puedes revisar con subagentes todo el estado actual del proyecto, hasta el
+último detalle, y con ello, actualizar el plan? en cuanto a funcionalidades primero implementaría el mapa."
+
+*Desarrollo:* apertura de la **fase 5 (Implementación)** del gran plan (fase 4 specs cerrada en HS-08).
+Precedida por una **auditoría de 5 subagentes en paralelo, VERIFICADA con build/test real** (no lectura de
+docs): (A) backend Go · (B) motor conformance + dogfood · (C) FE + shell Tauri · (D) doctrina as-code ·
+(E) readiness del Mapa. **Veredictos clave:** backend **compila + vetea limpio, todos los tests PASS
+(`-race`)**; el **shell Tauri v1 SÍ compiló y corre** (multisesión + CC real — corrige la nota stale de HS-06);
+**React Flow 12 ya instalado** y `GET /api/harnesses/{id}/graph` **vivo**, pero el Mapa es **0% código**
+(`workspace-stage.tsx` = `<ComingSoon>`) y el endpoint sirve un **demo de 2 nodos**, no el dogfood. Honestidad
+del motor destapada: `conformance --todo` = **235 checks pero 211 `deferred`** (187 nl-judge + 3 go-arch-lint
+sin binario/config + 5 schema/scan que solo corren en ruta `--arnes`) → **solo 24 pass real** (vía ~16 arch-tests);
+la potencia determinista real vive **fuera de los 235**, en la ruta `--arnes` (**13/13 verde** en el dogfood, con
+test adversarial). Real-pero-**no-cableado** al daemon: `BoxConductor` (loop T3) + `KitProvisioner` (permisos) —
+falta adapter concreto `ArtifactReader`.
+
+*Materializado (sincronización as-code, misma ola):* **commit de HS-08** (estaba íntegro en working tree, verde,
+sin commitear sobre `1d6880d`). **3 drifts muertos:** CLAUDE.md ya no dice «cero código de producto aún» (HS-08
+aterrizó ~1500 LOC) · METODOLOGIA §5 deja de enmarcar el linter como «fase 5 futuro» (ya construido, con la
+salvedad de los `deferred`) · nota del shell actualizada. **Conteos intactos** (knowledge 12·138 · arch 16·97 ·
+5 boundaries enforced). Sin código de producto nuevo aún — esta ficha **abre el plan**, no lo ejecuta.
+
+*Plan (Mapa primero, dogfood-first):*
+- **Hito 1 — Mapa read-only navegable del dogfood.** Backend: loader `dogfood/dev-full-cycle.graph.json` →
+  índice bajo id `dev-full-cycle` (~30 LOC, **único cambio backend imprescindible**). FE: tipos TS del grafo
+  (claves español exactas) + `api.getGraph(id)` · slice `entities/arnes` (store + selectores por banda/fase) ·
+  `widgets/map-canvas` (`<ReactFlow>` + **layout de carriles custom** determinista: Guardia arriba · 1 carril
+  por `arnes.fases[]` · Base abajo — React Flow NO da esto) · nodos custom por `clase` (tokens `var(--c-*)`,
+  regla **canvas⊥chrome**) · swap del `ComingSoon` · story=test con el fixture dogfood.
+- **Hito 2 — Inspector + picker.** Backend `getNode` (Box+contract) + `listHarnesses` (hoy 501/`[]`). FE:
+  panel inspector S3 (el contrato fusionado ya lo alimenta) + click nodo→inspector. Solo capa **Estructura**;
+  Tokens/Desempeño/Proceso esperan telemetría (indexer JSONL real).
+- **Hito 3 (diferible):** realtime SSE `event: map` + indexer JSONL real (reemplaza el índice stub in-memory) +
+  crear/editar sobre el lienzo (dock + nodos punteados).
+
+*Deuda paralela registrada (no bloquea el Mapa):* cablear `BoxConductor`+`KitProvisioner` al daemon (falta
+`ArtifactReader`) · endpoint HTTP `control_request` con `role`/`ttl` · go-arch-lint (binario + `.go-arch-lint.yml`;
+declarado en 3 boundaries, hoy inoperable) · convertir `deferred`→real cableando linters externos (biome/golangci/
+tsc/dependency-cruiser) a CI · gate de fidelidad §8.4 · restos multisesión (worktree · presupuesto · OTel).
+
+*Conecta:* HS-08 (el motor + el arnés dogfood real que el Mapa renderiza) · HS-05 (arch FE FSD-lite + canvas⊥chrome
++ tokens que el lienzo respeta) · HS-03 (UX firmada S2 lienzo/carriles/capas + S3 inspector) · mockups
+`arnesia-mockup-v3.html` (superficie del Mapa) + `arnesia-shell-A-galaxia.html` (`mapView()` a portar).
+
+*Siguiente:* ejecutar el **Hito 1** (loader Go → tipos+`getGraph` → `entities/arnes` → `widgets/map-canvas` con
+carriles → swap del placeholder → story=test).
+
+<!-- Próximas: HS-10, … -->
 
 ## Log
 
@@ -347,3 +443,5 @@ DevHub · nombre de la doctrina · detalle A2 (quién ejecuta `ruta`).
 | 2026-07-05 | Fase 3 completada al FE: investigación 5-frentes (FSD · atomic · storybook · convenciones · tokens) verificada → **arquitectura FE as code**. Veredictos: **FSD-lite** + dependency-cruiser · 6 capas direccionales (canvas⊥chrome) + **shadcn/Base UI** · **Storybook 10** story=test (Chromatic descartado) · **golangci-lint v2 + Biome v2.4 + tsc strictest + lefthook** · **DTCG→Style Dictionary v5→Tailwind v4**. Materializado: **5 boundary nodes FE (22 checks) + `arch/conventions/` (8 nodes · 26 checks)** + config files declarados → **arch/ = 77 checks**. Specs corren a HS-06. | HS-05 |
 | 2026-07-05 | Auditoría del shell Tauri v1: aislamiento CC por-tab CONFIRMADO real; 7 huecos → **endurecimiento multisesión + confinamiento local**. Forks firmados: **S2 registro explícito arnés→ruta** (WorkdirResolver, cwd por sesión, nunca global) · **S1 shell emite el token** (Host+Origin+token, adiós CORS `*`). Materializado (nace **enforced**, fitness tests PASAN `-race`): **2 boundaries** (superficie-local-confinada · sesion-viva-consistente) + 2 checks a permisos-gui + `--max-turns` + OpenAPI reconciliado + `store` mapeado en go-arch-lint → **arch/ = 14 boundaries · 89 checks**. Shell Rust escrito, no compilado aquí. Specs + spike de permisos → HS-07. | HS-06 |
 | 2026-07-05 | **Doctrina propia v1**: cruce de DAOP v0.2 (BMAD+Agent SDK, 5 subagentes) + barrido de 7 fuentes externas (4 subagentes). Reencuadre clave: **operacionalizamos Agentic BPM** (manifiesto *Information Systems* 2026) — doctrina PROPIA basada en proceso e independiente de rubro, **no clon de BMAD**. Regla de Rosetta (DAOP-Arnés→CAJA), firewall CC-native (`no-phantom-frontmatter`), vocabulario framed-autonomy. 3 decisiones firmadas: producto-puro+META · dogfood-first · P6-por-scope. **As-code:** VISION §Linaje · METODOLOGIA §3 contrato fusionado + §8 doctrina de proceso · **nodo 12 `harness-profile`** → knowledge 12 nodos·138 checks · 2 boundaries → arch 16·97. Specs → HS-08. | HS-07 |
+| 2026-07-05 | **Fase 4 specs (dogfood-first): doctrina BAJADA A EJECUTABLE.** Contrato de caja fusionado con diente (`box.contract.schema.json` + `domain.Contract`, 3 ejes, `TestBoxContractValidatesAgainstSchema` verde) · `Clase` canónica de 10 primitivas · manifiesto del arnés en `graph.l0` (`fases`·`spine` declarado·META rol·proceso·reporta_a·empresa). **Motor `arnesia conformance` construido** (hexagonal: RulesetPort parsea knowledge/+arch/ = 235 checks a datos; ConformancePort + adapters arch-test/schema-validation/go-arch-lint/static-scan/nl-judge; consistencia de spine parametrizada por el spine declarado). Fixture dogfood `dev-full-cycle.graph.json` verde; gates G1 (schema) + G2 (spine); stubs conductor/permisos aterrizan los `enforced_by:`. Conteos intactos (knowledge 12·138 · arch 16·97). Deps: google/jsonschema-go, yaml.v3. | HS-08 |
+| 2026-07-06 | **Fase 5 (Implementación) arrancada: MVP del Mapa, dogfood-first.** Auditoría de 5 subagentes VERIFICADA con build/test real: backend compila+tests PASS `-race`; **shell Tauri v1 confirmado compilado+corriendo** (corrige nota HS-06); React Flow 12 instalado + endpoint del grafo vivo, pero **Mapa 0% código** y sirve un demo (no el dogfood). Honestidad del motor: `--todo` = 235 checks pero **211 `deferred`** (24 pass real); el enforcement determinista vive en la ruta `--arnes` (13/13 verde). **HS-08 commiteado** (estaba verde sin commit) + 3 drifts muertos (cero-código, linter-fase-5, shell-no-compiló). **Plan Mapa:** Hito 1 read-only navegable (loader Go dogfood→índice + `entities/arnes` + `widgets/map-canvas` carriles custom) · Hito 2 inspector+picker · Hito 3 realtime/edición diferido. Deuda paralela registrada (cablear conductor/permisos, `control_request`, go-arch-lint, deferred→CI). | HS-09 |

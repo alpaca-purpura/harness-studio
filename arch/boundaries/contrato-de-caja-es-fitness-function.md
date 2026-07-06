@@ -1,9 +1,9 @@
 ---
 regla: contrato-de-caja-es-fitness-function
-version: 1.0
+version: 1.1
 updated: 2026-07-05
-status: proposed
-ledger: HS-04
+status: enforced
+ledger: HS-08
 sources:
   - url: https://json-schema.org/draft/2020-12
     autoridad: estándar

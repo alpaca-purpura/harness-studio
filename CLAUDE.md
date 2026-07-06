@@ -66,7 +66,7 @@ arXiv 2603.18916) — doctrina PROPIA basada en proceso e independiente de rubro
 Regla de Rosetta: DAOP-«Arnés»→nuestra **CAJA** · DAOP-«manifiesto de rol»→nuestro **ARNÉS** (VISION
 intacta). **Firewall CC-native** (`no-phantom-frontmatter`: prohibido `persistent_facts`/`customize.toml`/
 sanctum — CC los ignora). Vocabulario propio: framed autonomy · autonomy≠automation · adaptation/evolution ·
-4+1 capacidades (nueva: **explainability**). **3 decisiones firmadas:** producto-puro + **META de enganche**
+4 capacidades APM (**explainability** elevada a faceta evaluable propia, no una 5ª capacidad). **3 decisiones firmadas:** producto-puro + **META de enganche**
 (L1/organigrama = sistema externo futuro; cada arnés carga rol·proceso·reporta-a·empresa) · **dogfood-first**
 (arnés real antes del Mapa) · **P6/Guardia por scope**. As-code: VISION §Linaje · METODOLOGIA §3 contrato
 FUSIONADO (intención+cableado+Gherkin+arquetipo+perfil_harness) + §8 doctrina de proceso · **nodo 12
@@ -77,18 +77,28 @@ backend + HS-05 frontend) — as code COMPLETA** · **HS-06 endurecimiento multi
 (aislamiento CC por-tab confirmado real; S1 auth Host+Origin+token · S2 cwd por arnés · S3–S6 stream
 confiable; 2 boundaries nacen enforced)** · **HS-07 doctrina propia v1 as-code (operacionalizamos Agentic
 BPM; contrato fusionado + nodo `harness-profile` + 2 boundaries → knowledge 12 nodos·138 checks · arch
-16 boundaries·97 checks) — siguiente HS-08 = specs (dogfood-first)**. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
+16 boundaries·97 checks)** · **HS-08 fase 4 specs (dogfood-first) — doctrina BAJADA A EJECUTABLE: contrato
+de caja fusionado con diente (`box.contract.schema.json`+`domain.Contract`, 3 ejes, test verde) · `Clase`
+canónica de 10 primitivas · manifiesto del arnés en `graph.l0` (fases·spine·META) · motor `arnesia conformance`
+construido (hexagonal, RulesetPort parsea knowledge/+arch/ = 235 checks a datos, adapters arch-test/schema/
+go-arch-lint/static-scan/nl-judge; G1 schema-gate + G2 spine-consistencia parametrizados por el spine declarado)
+· fixture dogfood `dev-full-cycle.graph.json` verde**. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
 un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
 N:1 con arnés, con su conversación CC viva; estado CC vivo `streaming/await/idle`; persisten) · vistas =
 tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K) como dock derecho colapsable. Portafolio con
 2 lentes: **Organigrama** (arneses por empresa/puesto, «reporta a», libre 2D) ↔ Cuadrícula.
 App = fábrica de arneses (crear + mantener), NO cockpit de empresa; metadata puesto·empresa·
 reporta-a + marketplace por empresa/arnés. Mockups de shell: `mockups/arnesia-shell-lab.html`
-(compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada). **Próximo:
-fase 4 specs (HS-08, dogfood-first: forjar el arnés dev-full-cycle real end-to-end ANTES del Mapa) →
-schemas del dominio (fase/estado · `meta.clase`+arquetipo+perfil_harness) + spike de permisos
-(control_request, adoptando permisos-por-rol+TTL) + MVP Mapa; restos multisesión (worktree, gobierno
-de presupuesto, OTel).**
+(compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada). **Próximo
+(fase 5 — Implementación, HS-09): MVP del Mapa** sobre el arnés dogfood real (`dev-full-cycle`).
+Hito 1 = Mapa read-only navegable (backend: loader dogfood→índice, único cambio imprescindible —hoy el
+endpoint sirve un demo de 2 nodos—; FE: tipos del grafo + `api.getGraph` + slice `entities/arnes` +
+`widgets/map-canvas` con **layout de carriles custom** [Guardia·fases·Base] + nodos por `clase`; swap del
+`ComingSoon`). Hito 2 = inspector S3 (`getNode`) + picker (`listHarnesses`); solo capa **Estructura**
+(Tokens/Desempeño/Proceso esperan telemetría JSONL → indexer real). **Deuda paralela registrada (no
+bloquea Mapa):** cablear `BoxConductor`+`KitProvisioner` al daemon (falta adapter `ArtifactReader`) ·
+endpoint `control_request` role/ttl · go-arch-lint config+binario · los 211 checks `deferred` del ruleset
+(linters externos a CI). Restos multisesión: worktree · gobierno de presupuesto · OTel.**
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
 cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·
@@ -99,8 +109,8 @@ hook·rule·subagent·command·mcp·plugin·settings·output-style·statusline·
 (HS-07)—, cada uno L1 oficial+expertos ↔ L2 nuestra adaptación + checklist evaluable = **138 checks**; se
 actualiza CADA SEMANA vía [`knowledge/CADENCE.md`](./knowledge/CADENCE.md), NO se congela al firmar HS-03) ·
 **arquitectura y diseño técnico as code** = [`arch/`](./arch/INDEX.md) (árbol gemelo de knowledge:
-**16 boundary nodes** [9 backend + 5 FE; HS-06 sumó superficie-local-confinada + sesion-viva-consistente;
-HS-07 sumó orquestacion-determinista-entre-cajas + permisos-derivan-del-rol]
+**16 boundary nodes** [11 backend + 5 FE; HS-04 nació con 7 backend + 5 FE, HS-06 sumó superficie-local-
+confinada + sesion-viva-consistente, HS-07 sumó orquestacion-determinista-entre-cajas + permisos-derivan-del-rol]
 L1↔L2 + [`conventions/`](./arch/conventions/INDEX.md) [8 nodes:
 go/ts-style·types·naming·commits·hooks·editor·ci] = **97 checks** `enforced_by:` · `model/` C4 ·
 `contracts/` schemas L0+contrato · `fitness/` go-arch-lint [Go] + enforcers FE en `web/`
@@ -114,8 +124,9 @@ persisten) + `mockups/arnesia-session-lab.html` (lab de 4 paradigmas de navegaci
 estándares mapeados =
 `research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
 el repo · publicar siempre al MISMO artifact (parámetro `url`) · nada se entrega sin
-click-through con asserts + screenshots revisados + consola limpia. Cero código de
-producto aún; port del monorepo gobernado por la regla de VISION.md.
+click-through con asserts + screenshots revisados + consola limpia. El daemon Go, el shell Tauri v1
+(compilado + corriendo, multisesión + CC real) y el motor `arnesia conformance` ya viven en el repo
+(HS-06/HS-08); el port restante del monorepo sigue gobernado por la regla de VISION.md.
 
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se

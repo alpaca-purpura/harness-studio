@@ -94,8 +94,9 @@ proceso** y sale transformado. Reglas de cómo se arma todo arnés nuestro:
 
 **Qué operacionalizamos — no clonamos un framework.** ArnesIA **operacionaliza Agentic Business
 Process Management (APM)**: una disciplina de PROCESO, independiente de dominio, con ~30 años de
-linaje BPM. Un arnés ES un *framing mechanism* instanciado (frame normativo + operacional +
-conocimiento + tools) que da **framed autonomy** a Claude Code por rol×proceso. Esto blinda dos
+linaje BPM. Un arnés ES un *framing mechanism* instanciado: las **2 capas del estándar APM** (frame
+**normativo** deóntico + **operacional**) que nuestra realización **suma** conocimiento (banda Base) y
+tools (MCP), dando **framed autonomy** a Claude Code por rol×proceso. Esto blinda dos
 principios firmados: p1 «proceso implícito» (el frame ES el proceso) y p7 «agnóstico a rubro» (APM
 deja la implementación abierta por diseño). BMAD/DAOP, Sierra y Salesforce son **insumos filtrados**,
 no el padre de la doctrina.
@@ -107,8 +108,10 @@ del frame). Es el eje de nuestros **arquetipos de trabajo** (METODOLOGIA §8).
 **Vocabulario propio (renombra mejor lo que ya teníamos):** banda Guardia + permisos + rules =
 **frame normativo (deóntico) + operacional** · loop de mejora = **adaptation** (instancia, efímero)
 vs **evolution** (modelo, persistente) · creación conversacional + dock = **conversational
-actionability**. Las **4+1 capacidades** que todo arnés debe proveer: framed autonomy ·
-**explainability** · conversational actionability · self-modification.
+actionability**. Las **4 capacidades APM** que todo arnés provee: framed autonomy ·
+**explainability** · conversational actionability · self-modification. De esas cuatro,
+**explainability** la **elevamos a faceta evaluable** de nuestra observabilidad (el «+1» propio: junto
+a la honestidad-de-dato §4 y la atribución traza→componente del Mapa) — no es una quinta capacidad APM.
 
 **Precisión del principio 6 (frontera guía / Guardia — RATIFICADA).** «Guía sin bloqueo» (p6) rige
 la **guía de proceso/calidad**: el arnés nunca detiene al trabajador por incumplir el proceso — la
@@ -222,9 +225,9 @@ será ficha futura — no es esta visión.)
 |---|------|--------|
 | 1 | Visión del producto | **esta ficha (HS-02)** ✓ |
 | 2 | UX del producto (mapa a fondo, inspector, flujos) | ✓ firmada (HS-03, it.13) |
-| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend) — stack cerrado + `arch/` = 77 checks |
-| 4 | Definición de specs | **siguiente (HS-06)** |
-| 5 | Implementación y pruebas (MVP = Mapa primero) | pendiente |
+| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend; HS-06 endurecimiento multisesión + HS-07 doctrina v1) — stack cerrado + `arch/` = 97 checks |
+| 4 | Definición de specs | **en curso (HS-08, dogfood-first)** |
+| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | pendiente |
 | 6 | Instalación y dogfood | pendiente |
 
 **Port del monorepo (regla):** nada se porta sin pasar por la fase del gran plan que le

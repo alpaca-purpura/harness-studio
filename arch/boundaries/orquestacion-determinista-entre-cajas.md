@@ -1,9 +1,9 @@
 ---
 regla: orquestacion-determinista-entre-cajas
-version: 1.0
+version: 1.1
 updated: 2026-07-05
-status: proposed
-ledger: HS-07
+status: enforced
+ledger: HS-08
 sources:
   - url: https://github.com/humanlayer/12-factor-agents
     autoridad: experto
@@ -11,7 +11,7 @@ sources:
     revisado: 2026-07-05
   - url: https://arxiv.org/abs/2603.18916
     autoridad: académica
-    nota: "Agentic BPM: A2 — orquestación determinista, agencia acotada (framed autonomy)."
+    nota: "Agentic BPM: framed autonomy · autonomía≠automatización (la agencia acotada del modelo). El axioma de orquestación determinista es DAOP-A2 (12-Factor), NO un tenet del manifiesto."
     revisado: 2026-07-05
 enforced_by:
   - fitness/arch_test.go:TestConductorOwnsBoxRouting
@@ -22,7 +22,7 @@ severity: high
 
 ## L1 · Principio (estándar de industria)
 
-**Orquestación determinista, agencia acotada (A2 de Agentic BPM + 12-Factor «own your control
+**Orquestación determinista, agencia acotada (DAOP-A2 · 12-Factor «own your control
 flow»).** En un sistema de proceso, **la secuencia entre unidades de trabajo es determinista** — la
 mueve código, no la decisión del LLM. La autonomía del modelo (*framed autonomy*) vive **dentro** de
 una unidad, acotada por su frame. El fin de una unidad se lee de una señal **legible por máquina**
@@ -49,13 +49,18 @@ El **conductor Go** dueña el control-flow; el `contract:` de caja (METODOLOGIA 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
 | conductor-dueña-el-loop | el loop de una caja T3 lo corre el conductor Go, no un skill que «llama» loop | error | capa Proceso «loop en el skill — control-flow invertido» | arch_test.go:TestConductorOwnsBoxRouting |
-| ruta-ejecutada-por-codigo | el hand-off caja→caja lo decide código leyendo `contract.ruta/si`, no el LLM | warn | capa Proceso «hand-off no determinista» | arch_test.go |
-| no-infiere-del-texto | continue/stop/block se decide de `result`+`status`, no del texto del chat | error | «orquestador scrapea texto — frágil» | arch_test.go |
+| ruta-ejecutada-por-codigo | el hand-off caja→caja lo decide código leyendo `contract.ruta/si`, no el LLM | warn | capa Proceso «hand-off no determinista» | arch_test.go:TestConductorOwnsBoxRouting |
+| no-infiere-del-texto | continue/stop/block se decide de `result`+`status`, no del texto del chat | error | «orquestador scrapea texto — frágil» | arch_test.go:TestConductorOwnsBoxRouting |
 | agencia-dentro-del-frame | la autonomía del modelo está acotada por la Guardia/permisos de la caja | warn | banda Guardia «agencia sin frame» | arch_test.go |
 
 ## Changelog
 
-- 2026-07-05 · v1.0 · Nodo draft (HS-07, doctrina v1). L1 = A2 de Agentic BPM + 12-Factor. L2: el
+- 2026-07-05 · v1.1 · **status → `enforced` (HS-08).** El loop conductor T3 aterrizó
+  (`usecase.BoxConductor` + `domain.AvanzarCaja`/`RutaSiguiente`): el conductor Go dueña el loop, aplica
+  cap de reparación, lee `result`+`status` (nunca el texto del chat) y ejecuta `contract.ruta`.
+  `TestConductorOwnsBoxRouting` lo enforça (incl. la garantía anti-scrape: un texto engañoso NO cambia
+  la decisión). 3 de 4 checks apuntan al test real; `agencia-dentro-del-frame` queda nl-judge.
+- 2026-07-05 · v1.0 · Nodo draft (HS-07, doctrina v1). L1 = DAOP-A2 (12-Factor «own your control flow») + distinción APM autonomía≠automatización. L2: el
   conductor Go dueña el loop y ejecuta `contract.ruta`; la agencia vive dentro de la caja (framed
   autonomy). 4 checks · `status: proposed` (se enforça cuando el conductor aterrice el ruteo). ·
   disparado por la doctrina v1 (VISION §Linaje).

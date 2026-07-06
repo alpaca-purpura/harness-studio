@@ -18,11 +18,10 @@
 - [`../knowledge/`](../knowledge/INDEX.md) — estándar as code por **elemento de arnés** (138
   checks · 12 nodos, incl. `harness-profile`). `arch/` es el gemelo: estándar as code de **la app
   ArnesIA misma** (dogfood). Un solo
-  runner (`arnesia conformance`) corre ambos árboles — **aspiración pendiente-HS-06**: hoy `arch/`
-  ya declara `enforced_by:` por check, pero los checks de `knowledge/` aún no; la ejecución
-  conjunta requiere un **contrato de check común** (schema con `enforced_by`/mecanismo por check)
-  planificado como ficha HS-06. Hasta entonces cada árbol corre por separado; la aspiración sigue
-  viva, solo no es realidad actual.
+  runner (`arnesia conformance`) corre ambos árboles — **construido en HS-08**: el `RulesetPort` parsea
+  `knowledge/` + `arch/` = 235 checks a datos y el `ConformancePort` los corre con adapters por mecanismo
+  (arch-test/schema-validation/go-arch-lint/static-scan/nl-judge). El **contrato de check común** (mecanismo
+  por check) ya existe; los `enforced_by:` de `arch/` y los checks de `knowledge/` corren por el mismo motor.
 - [`../LEDGER.md`](../LEDGER.md) — el diario firmado. Cada boundary cita su ficha en `ledger:`.
 
 ## Las dos capas (en cada boundary node)
@@ -36,7 +35,7 @@ Y cada nodo emite un **`Checklist evaluable`**: la rúbrica as code (checks con 
 que un linter (`go-arch-lint`/`depguard`/validación de schema/`arch_test.go`) corre para probar
 que el código NO viola la arquitectura. Cada check declara su `enforced_by:` — el link 1:1 a la
 check ejecutable que lo guarda (esto ya rige en `arch/`; en `knowledge/` el `enforced_by:` por
-check llega con HS-06, ver runner unificado arriba).
+check llega con HS-08, ver runner unificado arriba).
 
 ## El árbol — boundary nodes
 
@@ -50,20 +49,21 @@ check llega con HS-06, ver runner unificado arriba).
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
 | [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.0 | 6 | arch_test.go |
 | [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
-| [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌱 vivo | 1.0 | 4 | schema · arch_test.go |
+| [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌳 enforced | 1.1 | 4 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
 | [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
 | [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
 | [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌱 vivo | 1.0 | 4 | stylelint · tokens-sync |
 | [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌱 vivo | 1.0 | 5 | vitest + Storybook 10 |
-| [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌱 vivo | 1.0 | 4 | arch_test.go |
-| [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌱 vivo | 1.0 | 4 | arch_test.go |
+| [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
+| [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
 (código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 71 checks** — fundacional HS-04
 (backend, 7 boundaries · 29 checks) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
-· 10 checks + 2 checks nuevos a permisos-gui = 12 checks)** + **HS-07 doctrina v1 (2 boundaries draft ·
-8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol`)**. **+ [`conventions/`](./conventions/INDEX.md): 8
+· 10 checks + 2 checks nuevos a permisos-gui = 12 checks)** + **HS-07/HS-08 doctrina v1 (2 boundaries ·
+8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol` — nacieron draft en HS-07,
+**enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)**. **+ [`conventions/`](./conventions/INDEX.md): 8
 convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
@@ -72,8 +72,12 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
 > `permisos-gui` **nacen `enforced`**: su código (daemon Go + shell) y sus fitness tests
 > (`fitness/arch_test.go`: `TestNoWildcardCORS`, `TestLocalSurfaceConfined`, `TestOneTurnAtATime`,
 > `TestFramesCarryRunID`, `TestNoSilentEventDrop`, `TestMaxTurnsAlways`, `TestSessionSpawnsInArnesPath`,
-> `TestArnesPathContainment`) shippean juntos y **PASAN** (`go test ./arch/fitness/...`). El resto (los 77
-> previos) sigue `proposed`; los config files FE (`web/biome.json`, `web/.dependency-cruiser.js`…) y el
+> `TestArnesPathContainment`) shippean juntos y **PASAN** (`go test ./arch/fitness/...`). **HS-08 sumó 2
+> boundaries `enforced`** (`orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol`, con
+> `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole` pasando) + subió
+> `contrato-de-caja-es-fitness-function` a enforced (`TestBoxContractValidatesAgainstSchema`) —
+> **5 boundaries enforced en total** (2 de HS-06 + 3 de HS-08). El resto
+> sigue `proposed`; los config files FE (`web/biome.json`, `web/.dependency-cruiser.js`…) y el
 > `go-arch-lint check` se corren cuando su tooling se instale. Estado del enforcer por nodo en su frontmatter.
 
 ## Subdirectorios

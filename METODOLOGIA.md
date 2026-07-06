@@ -15,7 +15,8 @@
 > (skills, hooks, rules, subagents, commands, mcp, plugins, settings, output-styles, statusline,
 > headless). Cada nodo del árbol lleva dos capas — **L1 estándar oficial+expertos** y **L2 nuestra
 > adaptación** (obligada a derivar de L1) — y emite una **rúbrica de checks evaluables** (121 al
-> corte fundacional 2026-07-04) que es el ruleset de conformidad de §6. El árbol se actualiza
+> corte fundacional 2026-07-04; **138 al corte HS-07** con el nodo `harness-profile`) que es el
+> ruleset de conformidad de §6. El árbol se actualiza
 > **cada semana** (mecanismo en [`knowledge/CADENCE.md`](./knowledge/CADENCE.md)); cuando cambia,
 > esta metodología se re-alinea. Regla dura: nuestra forma de trabajo no puede divergir del
 > estándar de los expertos sin marcarlo y justificarlo.
@@ -148,8 +149,8 @@ contract:
   constraints: ["<solo los que doblan decisiones>"]
   non_goals:  ["<lo que explícitamente NO hace>"]
 
-  # ── CLASIFICACIÓN (dos ejes ortogonales — ver §8) ──
-  clase: <skill|agente|hook|knowledge|mcp|regla|command>   # meta.clase L0 (I-75) — qué ELEMENTO es
+  # ── CLASIFICACIÓN (tres ejes ortogonales — clase ⊥ arquetipo ⊥ perfil; ver §8) ──
+  clase: <skill|subagent|hook|rule|command|mcp|plugin|settings|output-style|statusline>  # meta.clase L0 (I-75) — qué ELEMENTO es (10 primitivas CC-native canónicas; B3)
   arquetipo: <pipeline|excepcion|abierto|no-arnesar>       # FORMA del trabajo (§8.1)
   perfil_harness: <T1|T2|T3>                               # cómo EJECUTA (§8.2; T4 = shell, no caja)
 
@@ -224,7 +225,8 @@ Cómo el producto muestra datos, para que jamás mienta:
 - **La superficie fría es un hallazgo.** Skills sin uso, marcas dormidas, terceros,
   deprecadas — hay que distinguirlas y el arnés debe cazar el bloat (poda / lazy-load).
 - **Dos vistas distintas conviven:** el **mapa de COMPONENTES** (piezas del arnés) vs el
-  **tablero de FLUJO del trabajo** (spine de 10 estados, WIP caps, historias moviéndose). La
+  **tablero de FLUJO del trabajo** (spine de estados del arnés —ejemplo: el del arnés luana—, WIP
+  caps, historias moviéndose; el producto es agnóstico: no fija un número de estados). La
   capa Proceso muestra el flujo de contratos; el tablero de estados como vista aparte sigue
   **en debate**.
 - **El sensor ya existe:** el `telemetry-emit` del kit (KIT-03, OTLP GenAI-semconv) es el
@@ -258,8 +260,11 @@ reemplazar los contratos inferidos por los reales.
   por decisión del operador — siguen creciendo con nuevas iteraciones. **El árbol de conocimiento
   tampoco se congela** — por diseño sigue al ecosistema. Un arnés que ayer cumplía puede necesitar
   mejora hoy porque salió algo nuevo: ése es exactamente el «punto de mejora» que el mapa muestra.
-- **Los 138 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA correrá
-  (fase 5) y la fuente de los badges de mejora que la UX empieza a pintar (it.11+).
+- **Los 138 checks son el ruleset de conformidad (§6)** hecho dato: el linter que ArnesIA **YA corre**
+  (`arnesia conformance`, construido en HS-08). La ruta `--arnes` da veredictos deterministas reales
+  (schema + spine + firewall + escritor-único, verde en el dogfood, con test adversarial); la mayoría del
+  ruleset de knowledge queda `deferred` hasta cablear sus enforcers (linters externos, nl-judge). Es la
+  fuente de los badges de mejora que la UX empieza a pintar (it.11+).
 
 ## 8. Doctrina de proceso — framed autonomy (doctrina v1, 2026-07-05)
 
@@ -298,12 +303,27 @@ cómo corre el loop:
 
 Detalle, patrones de subagentes y checks del perfil = nodo `harness-profile.md`.
 
-### 8.3 Document-as-cache — el estado vive en el artefacto (A7 de APM)
+### 8.3 Document-as-cache — el estado vive en el artefacto (DAOP-A7 · document-as-cache de BMAD)
 
 El estado del TRABAJO vive en un artefacto durable (frontmatter YAML: inputs · `status` · timestamps
 + secciones-borrador), NO en la conversación. Sobrevive compactación (la etapa siguiente relee el
-doc), habilita pausa/resume/reset limpio. Obligatorio en T2/T3. CC no «resume del doc solo» → es
-convención con disciplina: la caja/conductor DEBE releerlo.
+doc), habilita pausa/resume/reset limpio. CC no «resume del doc solo» → es convención con disciplina:
+la caja/conductor DEBE releerlo.
+
+**Precedencia `arquetipo` > `perfil_harness` (resuelve el cruce abierto×T2 — hereda DAOP `[PENDIENTE
+7.A]`):** document-as-cache estricto es **obligatorio para `pipeline`/`excepcion` en T2/T3**. Una caja
+`arquetipo: abierto` está **EXENTA** del document-as-cache estricto aun si su perfil es T2/T3 —
+acumula estado de sesión y **destila al cierre** (§8.1). Cuando `arquetipo` y `perfil_harness`
+apuntan a exigencias distintas, manda `arquetipo` (es la FORMA del trabajo). Operacionalizado en el
+dominio como `RequiereDocumentAsCache(arquetipo, perfil)`.
+
+> **Nota de linaje (no clon de BMAD):** el concepto *document-as-cache* viene de **BMAD** vía DAOP
+> (axioma **DAOP-A7**), anclado en 12-Factor «unify execution & business state» — **no** es un tenet
+> del manifiesto académico Agentic BPM. El manifiesto APM aporta *framed autonomy*, *autonomía≠
+> automatización*, las **4 capacidades** (framed autonomy · explainability · conversational
+> actionability · self-modification) y *adaptation/evolution*; los mecanismos de framework
+> (document-as-cache, orquestación determinista) vienen de BMAD/12-Factor. Ver §8.6 (firewall) y la
+> auditoría B7.
 
 ### 8.4 Gate de fidelidad — honestidad de PROCESO (≠ honestidad de DATO §4)
 
@@ -311,6 +331,15 @@ La §4 protege que los NÚMEROS no mientan; ésta protege que el FLUJO no encode
 Validar el camino feliz de la caja contra el **uso REAL** del rol, no el ideal documentado. Como
 ArnesIA es producto puro, esto = **dogfooding elevado a gate de promoción** de nuestros arneses.
 Encaja con p6 (las excepciones son datos de mejora).
+
+**Procedimiento (borrador operable):** en el `promote` de un arnés (release train KIT-06), (1) se toma
+una traza REAL de una corrida del rol (JSONL del arnés dogfood), (2) se compara el camino recorrido
+contra el `ruta`/`estado` declarado en los contratos de sus cajas, (3) toda divergencia (una caja que
+el uso real saltó, un handoff que nunca se disparó, una fase muerta) es un **hallazgo de fidelidad** que
+bloquea la promoción hasta reconciliar contrato↔uso. El eval vive junto al arnés; lo dispara el gate de
+`promote`. **Estado: `deferred` (HS-09)** — hoy es procedimiento escrito, NO un check ejecutable
+(`mecanismo: nl-judge`); no hay `enforced_by` que fabrique un veredicto. Honesto: gap declarado, no
+disfrazado. Su realización depende de tener trazas reales del dogfood corriendo end-to-end.
 
 ### 8.5 Frontera P6 ↔ Guardia + tolerancia por capas
 
@@ -345,7 +374,7 @@ fábrica (skill · maquinaria · Guardia · Base) queda firme; restan solo los e
 distribución/infra (commands · mcp · plugins · settings · output-styles · statusline · headless).
 Por **excepción declarada** (§7), la firma congela la fase pero **NO** esta metodología ni la UX:
 ambas siguen creciendo con los comentarios del operador (quedan muchos) y son la base de las specs
-de fase 4 (HS-06). El árbol [`knowledge/`](./knowledge/INDEX.md) también sigue vivo por diseño (§7).
+de fase 4 (HS-08). El árbol [`knowledge/`](./knowledge/INDEX.md) también sigue vivo por diseño (§7).
 **Doctrina v1 (2026-07-05, ficha HS-07):** cruce de DAOP/BMAD + barrido de 7 fuentes externas (manifiesto
 Agentic BPM, Sierra ADLC, Salesforce Agentforce) → bajada as-code: §3 contrato fusionado · §8 doctrina de
 proceso (framed autonomy) · nodo `harness-profile` (nº12) · nota de linaje en VISION · 2 boundaries nuevos.

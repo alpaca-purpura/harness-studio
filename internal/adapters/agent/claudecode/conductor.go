@@ -279,7 +279,7 @@ func translate(line []byte) (ports.AgentEvent, bool) {
 		return ports.AgentEvent{Kind: ports.EventMessage, Text: assistantText(f.Message), Raw: line}, true
 
 	case "result":
-		return ports.AgentEvent{Kind: ports.EventResult, Text: f.Result, CtxPct: ctxPct(f), Raw: line}, true
+		return ports.AgentEvent{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f), Raw: line}, true
 
 	default:
 		return ports.AgentEvent{}, false

@@ -6,7 +6,7 @@ status: vivo
 fuentes:
   - url: https://arxiv.org/abs/2603.18916
     autoridad: académica
-    nota: "Agentic BPM: A Research Manifesto (Information Systems 2026, DOI 10.1016/j.is.2026.102738). Framed autonomy · autonomy≠automation · 4+1 capacidades."
+    nota: "Agentic BPM: A Research Manifesto (Information Systems 2026, DOI 10.1016/j.is.2026.102738; existencia + 4 capacidades verificadas en web 2026-07-05). 4 capacidades: framed autonomy · explainability · conversational actionability · self-modification. Autonomy≠automation."
     revisado: 2026-07-05
   - url: https://arxiv.org/abs/2504.03693
     autoridad: académica
@@ -62,9 +62,21 @@ SDK TS/Py spawnean el mismo binario). *(oficial: headless, cli-reference; expert
 
 **Subagentes = cajas negras sin estado; el filesystem es la verdad (L1.3, CC + patrones).** El
 contexto del padre queda diminuto (punteros + plan); cada subagente recibe instrucciones y devuelve
-**solo su resultado final** (aislamiento de contexto). Seis patrones de orquestación: *Delegated Data
-Access · Temp File Assembly · Shared-File · Hierarchical Lead-Worker · Persona-Driven Parallel ·
-Evolutionary*. **Error #1: el padre lee lo que delega** → los tokens ya se gastaron; fix = lenguaje
+**solo su resultado final** (aislamiento de contexto). **Seis patrones de orquestación — cuándo/cómo:**
+- **Delegated Data Access** — el subagente lee el material voluminoso y devuelve solo el destilado;
+  *usar cuando* el fuente no debe/ no cabe entrar al contexto del padre (el anti-telephone de entrada).
+- **Temp File Assembly** — cada worker escribe su parte a un archivo temporal y el padre ensambla;
+  *usar para* outputs grandes producidos en paralelo que luego se concatenan.
+- **Shared-File** — varios agentes coordinan vía un archivo compartido (append/lock); *usar para*
+  estado compartido entre cajas paralelas (con `isolation: worktree` si mutan, A5).
+- **Hierarchical Lead-Worker** — un lead descompone y N workers ejecutan las hojas; *usar para*
+  fan-out con síntesis (el conductor enruta por nombre, no lee lo delegado).
+- **Persona-Driven Parallel** — N agentes con lentes/personas distintas sobre el MISMO input; *usar
+  para* verificación adversarial / diversidad de perspectiva (cada lente ve lo que otra no).
+- **Evolutionary** — rondas iteradas hasta converger (loop-until-dry); *usar para* descubrimiento de
+  tamaño desconocido (bugs, edge cases) donde un solo pase deja cola.
+
+**Error #1: el padre lee lo que delega** → los tokens ya se gastaron; fix = lenguaje
 defensivo («tu rol es ORQUESTACIÓN, NO leas los archivos objetivo, lístalos por nombre»). Salida con
 **schema estricto** + summary ≤~200 tok. *(oficial: sub-agents + multi-agent research post)*
 
@@ -97,7 +109,8 @@ nuestro ES un *framing mechanism* instanciado: banda Guardia + permisos + rules 
 operacional**; la caja da **framed autonomy** a Claude Code para una etapa del proceso.
 
 1. **`perfil_harness` obligatorio por caja (T1–T3):** T1 pase único · T2 workflow stateful
-   (document-as-cache obligatorio) · T3 worker autónomo. **T4 = shell/sesión, NO una caja** (el
+   (document-as-cache obligatorio salvo `arquetipo: abierto` — precedencia §8.3) · T3 worker autónomo.
+   **T4 = shell/sesión, NO una caja** (el
    agente-de-rol persistente vive en la sesión, HS-06). ⇐ L1.1/L1.2.
 2. **El conductor Go dueña el loop, no el Agent SDK.** T3 = for-loop en Go que spawnea
    `claude -p --max-turns N`, lee `result` (stream-json) + `status` del artefacto, aplica **cap de
@@ -107,14 +120,15 @@ operacional**; la caja da **framed autonomy** a Claude Code para una etapa del p
 3. **El padre no lee lo que delega + schema estricto de retorno.** Extiende el anti-telephone de
    [[subagents]] (contrato de RETORNO) con la disciplina de ENTRADA (el orquestador no toca el
    material delegado). ⇐ L1.3.
-4. **Explainability = 5ª faceta evaluable del arnés.** Además de honestidad-de-dato (§4) y atribución
-   traza→componente (el Mapa), el arnés emite el **rationale accionable** de por qué decidió X (que
+4. **Explainability — capacidad APM elevada a faceta evaluable de nuestra observabilidad** (no una 5ª
+   capacidad APM; son 4). Junto a la honestidad-de-dato (§4) y la atribución traza→componente (el
+   Mapa), el arnés emite el **rationale accionable** de por qué decidió X (que
    indique la corrección sin escalar). Cae en nuestro moat de observabilidad. ⇐ L1.1 (capacidad APM).
 5. **Autonomía acotada por riesgo, impuesta en la Guardia.** El nivel de autonomía se declara y el
    efecto peligroso se bloquea en hooks (exit 2), nunca por prompt. Frontera P6/Guardia (§8.5). ⇐
    L1.5/L1.7.
 6. **Bounded-error-rate + immutable snapshot + anotación→regresión** aterrizan en observar/mejorar:
-   `arnés@version` como bundle atómico (refuerza reuso por referencia A12); la anotación humana de una
+   `arnés@version` como bundle atómico (refuerza el reuso por referencia); la anotación humana de una
    traza se captura como eval de regresión (superficie en la lente observar del Mapa); heat=percentil
    (§4) ya apunta al bounded-error. ⇐ L1.6. *(candidatos de producto, no solo checks)*
 7. **Degradación elegante:** una caja multi-agente cae a ejecución secuencial si la maquinaria no está.
@@ -143,6 +157,6 @@ operacional**; la caja da **framed autonomy** a Claude Code para una etapa del p
   (manifiesto Agentic BPM arXiv 2603.18916 + gobernanza arXiv 2504.03693) + industria (Sierra ADLC,
   Salesforce Agentforce) + primitivas CC (headless, sub-agents, hooks). L2 amarra: perfil T1–T3 por
   caja (T4=shell), conductor Go dueña el loop (no Agent SDK), padre-no-lee-lo-delegado, explainability
-  como 5ª faceta, autonomía-por-riesgo en la Guardia, bounded-error/snapshot/anotación→regresión en
+  (1 de las 4 capacidades APM) elevada a faceta evaluable, autonomía-por-riesgo en la Guardia, bounded-error/snapshot/anotación→regresión en
   observar/mejorar. 11 checks. **Reencuadre doctrinal: operacionalizamos Agentic BPM, no clonamos un
   framework de agentes.** · disparado por el barrido externo de 7 fuentes (VISION §Linaje).

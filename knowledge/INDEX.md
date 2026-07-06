@@ -80,9 +80,9 @@ la UX: qué badge/estado pinta ArnesIA en Diagnóstico / capa Desempeño / banda
 - **anti-telephone**: contrato de retorno `<veredicto>→<path>` en [[subagents]], que el conductor
   headless ([[headless-sdk]]) consume estructurado.
 
-> **Próximo:** cuando ArnesIA tenga motor (fase 5), estos 138 checks se vuelven reglas de linter
-> ejecutables; hoy son el estándar as code que la UX (it.11+) empieza a pintar sobre el mapa.
-> **Ejecución unificada knowledge + `arch/` por un solo runner (`arnesia conformance`) requiere un
-> contrato de check común** (schema unificado con `enforced_by`/mecanismo por check) **planificado
-> como ficha HS-06**; hoy estos checks NO llevan `enforced_by` (muchos son telemetría/juicio-NL), así
-> que la unificación es meta, no soportada por el formato actual.
+> **Estado (HS-08):** el motor **`arnesia conformance` ya está construido** (fase 4, dogfood-first) —
+> estos 138 checks (+ los de `arch/`) se parsean a datos y se corren; la UX (it.11+) los pinta sobre el mapa.
+> **Ejecución unificada knowledge + `arch/` por un solo runner (`arnesia conformance`) — construida en
+> HS-08** (hexagonal: `RulesetPort` parsea AMBOS árboles = 235 checks a datos; `ConformancePort` + adapters
+> por mecanismo arch-test/schema-validation/go-arch-lint/static-scan/nl-judge). Muchos checks siguen siendo
+> telemetría/juicio-NL — los cubre el adapter `nl-judge`; el contrato de check común (mecanismo por check) ya existe.

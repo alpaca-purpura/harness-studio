@@ -54,11 +54,20 @@ func (s *Store) Query(_ context.Context, harnessID string) (domain.Graph, error)
 // seed loads a minimal demo harness so the wiring is observable.
 func (s *Store) seed() {
 	demo := domain.Graph{
-		Arnes: domain.Arnes{
-			ID:      "demo",
-			Puesto:  "backend",
-			Empresa: "alpacapurpura",
-			Canal:   domain.CanalBeta,
+		Arnes: &domain.Arnes{
+			ID:       "demo",
+			Rol:      "backend",
+			Proceso:  "desarrollo",
+			Empresa:  "alpacapurpura",
+			ReportaA: nil, // raíz (emite null, válido contra graph.l0).
+			Canal:    domain.CanalBeta,
+			Fases:    []domain.Fase{"spec"},
+			Spine: &domain.Spine{
+				Inicial:      "grill",
+				Terminales:   []string{"spec"},
+				Estados:      []string{"grill", "spec"},
+				Transiciones: []domain.Transicion{{De: "grill", A: "spec"}},
+			},
 		},
 		Nodes: []domain.Box{
 			{
@@ -75,15 +84,19 @@ func (s *Store) seed() {
 				Fase:   "spec",
 				Estado: "grill -> spec",
 				Contract: &domain.Contract{
-					Caja:   true,
-					Fase:   "spec",
-					Estado: "grill -> spec",
-					Gate:   &domain.Gate{Tipo: domain.GateManual},
+					Why:       "convertir la conversación en un spec ejecutable",
+					Clase:     domain.ClaseSkill,
+					Arquetipo: domain.ArqExcepcion,
+					Perfil:    domain.PerfilT2,
+					Caja:      true,
+					Fase:      "spec",
+					Estado:    "grill -> spec",
+					Gate:      &domain.Gate{Tipo: domain.GateManual, Detalle: "revisión humana del spec"},
 				},
 			},
 			{
 				ID:     "std-go",
-				Clase:  domain.ClaseKnowledge,
+				Clase:  domain.ClaseRule,
 				Nombre: "estándar Go",
 				Banda:  domain.BandaBase,
 			},

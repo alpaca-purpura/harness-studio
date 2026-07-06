@@ -1,7 +1,7 @@
 ---
 elemento: rule
-version: 1.0
-updated: 2026-07-04
+version: 1.1
+updated: 2026-07-05
 status: vivo
 fuentes:
   - url: https://code.claude.com/docs/en/memory
@@ -109,6 +109,8 @@ en it.6 como 6º tipo de primera clase).
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **HS-08 (sync):** frontmatter `version`/`updated` alineado a v1.1 (el bump de
+  contenido lo hizo HS-07; el INDEX ya lo listaba en 1.1). Sin cambio de checks.
 - 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +1 check `context-injection-native` — el conocimiento
   estático (reglas de negocio, MOF del cliente) entra por primitivas CC nativas, no por los globs
   `persistent_facts` de BMAD que CC ignora en silencio. 12→13 checks. · barrido externo (VISION §Linaje).

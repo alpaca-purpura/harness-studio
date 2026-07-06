@@ -1,0 +1,56 @@
+package ports
+
+import (
+	"context"
+
+	"github.com/alpacapurpura/arnesia/internal/domain"
+)
+
+// This file declares the ports of the conformance engine (HS-08, pillar P0). The core
+// use case orchestrates; it never knows HOW a check runs or WHERE the ruleset comes
+// from. RulesetPort + MechanismAdapter are outbound (driven); ConformancePort is the
+// inbound (driving) port the CLI/HTTP call.
+
+// TargetKind distinguishes what a conformance run points at.
+type TargetKind string
+
+const (
+	// TargetElemento — run one knowledge/arch element node's checks (e.g. "skills").
+	TargetElemento TargetKind = "elemento"
+	// TargetArnes — validate a concrete arnés graph (its box contracts + spine consistency).
+	TargetArnes TargetKind = "arnes"
+	// TargetTodo — run the whole ruleset.
+	TargetTodo TargetKind = "todo"
+)
+
+// Target is what `arnesia conformance <target>` points at.
+type Target struct {
+	Kind TargetKind
+	// Nombre is the element name when Kind=elemento.
+	Nombre string
+	// GraphPath is the path to a graph.l0 JSON (an arnés manifiesto) when Kind=arnes.
+	GraphPath string
+}
+
+// RulesetPort loads knowledge/ + arch/ as a parsed ruleset of DATA (principle 2). Its
+// adapter is a markdown frontmatter+table parser; changing the standard = changing the
+// .md files this port re-reads, never the engine.
+type RulesetPort interface {
+	Load(ctx context.Context) (domain.Ruleset, error)
+}
+
+// MechanismAdapter runs a single check against a target and returns its verdict. One
+// adapter per domain.Mecanismo; the runner routes by check.Mecanismo. A mechanism that
+// cannot execute here returns VeredictoDiferido (honest), never a fabricated pass.
+type MechanismAdapter interface {
+	// Mecanismo reports which mechanism this adapter handles.
+	Mecanismo() domain.Mecanismo
+	// Run evaluates one check against the target.
+	Run(ctx context.Context, check domain.Check, target Target) domain.CheckResult
+}
+
+// ConformancePort is the inbound port: "run the ruleset relevant to target → report".
+// The CLI and (future) HTTP handler depend on this, not on the concrete engine.
+type ConformancePort interface {
+	Run(ctx context.Context, target Target) (domain.ConformanceReport, error)
+}

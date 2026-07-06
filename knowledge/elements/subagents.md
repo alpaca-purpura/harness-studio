@@ -1,7 +1,7 @@
 ---
 elemento: subagent
-version: 1.0
-updated: 2026-07-04
+version: 1.1
+updated: 2026-07-05
 status: vivo
 fuentes:
   - url: https://code.claude.com/docs/en/sub-agents
@@ -112,6 +112,8 @@ ni gate propio; sirve a la caja que lo invoca.
 
 ## Changelog
 
+- 2026-07-05 · v1.1 · **HS-08 (sync):** frontmatter `version`/`updated` alineado a v1.1 (el bump de
+  contenido lo hizo HS-07; el INDEX ya lo listaba en 1.1). Sin cambio de checks.
 - 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +1 check `agent-return-schema-strict` (schema JSON +
   summary ≤200 tok, extiende el anti-telephone de retorno). Los 6 patrones de orquestación + «padre no
   lee lo delegado» se registran en el nodo nuevo [[harness-profile]]. 12→13 checks. · barrido externo.

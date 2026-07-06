@@ -27,10 +27,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 // repoRoot walks up from the test's cwd until it finds a go.mod (the future module root).
@@ -188,9 +190,304 @@ func TestWriteRequiresApproval(t *testing.T) {
 
 // --- contrato-de-caja-es-fitness-function.md ---
 
+// resolveSchema loads a repo-relative JSON Schema and resolves it for validation.
+func resolveSchema(t *testing.T, rel string) *jsonschema.Resolved {
+	t.Helper()
+	raw := readSourceFile(t, rel)
+	if raw == "" {
+		t.Skipf("schema %s unavailable (pre-module)", rel)
+	}
+	var s jsonschema.Schema
+	if err := json.Unmarshal([]byte(raw), &s); err != nil {
+		t.Fatalf("unmarshal schema %s: %v", rel, err)
+	}
+	res, err := s.Resolve(nil)
+	if err != nil {
+		t.Fatalf("resolve schema %s: %v", rel, err)
+	}
+	return res
+}
+
+// mustInstance decodes a JSON literal into the generic value validate expects.
+func mustInstance(t *testing.T, doc string) any {
+	t.Helper()
+	var v any
+	if err := json.Unmarshal([]byte(doc), &v); err != nil {
+		t.Fatalf("decode instance: %v", err)
+	}
+	return v
+}
+
+// TestBoxContractValidatesAgainstSchema is the fitness function of the fused box
+// contract (contrato-de-caja-es-fitness-function.md, eval-gate A4). Validating a
+// contract: block against box.contract.schema.json IS the eval-gate: a well-formed
+// fused caja with all three axes passes; each malformed one fails on the right axis.
 func TestBoxContractValidatesAgainstSchema(t *testing.T) {
-	t.Skip("TODO(fase 5): cada contract: de caja valida contra contracts/schema/box.contract.schema.json " +
-		"vía google/jsonschema-go — la fitness function del dominio (eval-gate A4, huérfanos, gate honesto).")
+	schema := resolveSchema(t, "arch/contracts/schema/box.contract.schema.json")
+
+	// A real fused caja: INTENCIÓN + CLASIFICACIÓN (3 ejes) + CABLEADO + ACEPTACIÓN.
+	validFused := `{
+		"why": "convertir la conversación en un spec ejecutable",
+		"capabilities": [{"id":"CAP-01","what":"emitir spec","success":"spec valida contra schema"}],
+		"constraints": ["no inventa requisitos"],
+		"non_goals": ["no construye código"],
+		"clase": "skill",
+		"arquetipo": "excepcion",
+		"perfil_harness": "T2",
+		"caja": true,
+		"fase": "spec",
+		"estado": "grill -> spec",
+		"necesita": [{"art":"idea del usuario","de":"usuario","requerido":true}],
+		"entrega": [{"art":"spec.md","escritor_unico":true}],
+		"ruta": [{"a":"build","si":"gate verde"}],
+		"gate": {
+			"tipo": "auto",
+			"detalle": "gherkin ejecutable",
+			"aceptacion": [{"given":"un spec","when":"se valida","then":"cumple el schema"}],
+			"evidencia": "registro de auditoría emitido"
+		},
+		"handoff": {"cuando":"no converge en 3 vueltas","a":"humano"}
+	}`
+	if err := schema.Validate(mustInstance(t, validFused)); err != nil {
+		t.Errorf("a well-formed fused caja must validate, got: %v", err)
+	}
+
+	// A support skill (caja=false) needs none of the caja-required axes.
+	if err := schema.Validate(mustInstance(t, `{"caja": false, "clase": "rule"}`)); err != nil {
+		t.Errorf("a support skill (caja=false) must validate, got: %v", err)
+	}
+
+	// no-arnesar is legitimately NOT a caja (out of the process graph).
+	if err := schema.Validate(mustInstance(t, `{"caja": false, "clase": "skill", "arquetipo": "no-arnesar"}`)); err != nil {
+		t.Errorf("no-arnesar (caja=false) must validate, got: %v", err)
+	}
+
+	// Each of these MUST fail — the schema has diente on every axis.
+	bad := map[string]string{
+		"caja sin why (INTENCIÓN)":              `{"caja":true,"clase":"skill","arquetipo":"pipeline","perfil_harness":"T1","fase":"f","estado":"a -> b","gate":{"tipo":"none"}}`,
+		"caja sin arquetipo (CLASIFICACIÓN)":    `{"why":"x","caja":true,"clase":"skill","perfil_harness":"T1","fase":"f","estado":"a -> b","gate":{"tipo":"none"}}`,
+		"clase legacy 'agente' (CLASIFICACIÓN)": `{"why":"x","caja":true,"clase":"agente","arquetipo":"pipeline","perfil_harness":"T1","fase":"f","estado":"a -> b","gate":{"tipo":"none"}}`,
+		"perfil T4 no es caja (CLASIFICACIÓN)":  `{"why":"x","caja":true,"clase":"skill","arquetipo":"pipeline","perfil_harness":"T4","fase":"f","estado":"a -> b","gate":{"tipo":"none"}}`,
+		"estado sin patrón X -> Y (CABLEADO)":   `{"why":"x","caja":true,"clase":"skill","arquetipo":"pipeline","perfil_harness":"T1","fase":"f","estado":"listo","gate":{"tipo":"none"}}`,
+		"gate.tipo desconocido (ACEPTACIÓN)":    `{"why":"x","caja":true,"clase":"skill","arquetipo":"pipeline","perfil_harness":"T1","fase":"f","estado":"a -> b","gate":{"tipo":"quiza"}}`,
+		"clave fantasma (firewall CC-native)":   `{"caja":false,"clase":"skill","sanctum":"PERSONA"}`,
+		"no-arnesar no puede ser caja (§8.1)":   `{"why":"x","caja":true,"clase":"skill","arquetipo":"no-arnesar","perfil_harness":"T1","fase":"f","estado":"a -> b","gate":{"tipo":"none"}}`,
+	}
+	for name, doc := range bad {
+		if err := schema.Validate(mustInstance(t, doc)); err == nil {
+			t.Errorf("%s: expected schema rejection, got none", name)
+		}
+	}
+}
+
+// ============================================================================
+// HS-07/HS-08 · doctrina v1 boundaries (proposed → enforced when the conductor loop
+// and the permission spike land). These are honest t.Skip STUBS: the enforcer named in
+// each boundary's `enforced_by:` EXISTS (no dangling pointer — resolves B4), and reports
+// `deferred` through `arnesia conformance` until the behaviour is built (Ola 2).
+// ============================================================================
+
+// --- orquestacion-determinista-entre-cajas.md (enforced) ---
+
+// scriptedSession emits one scripted `result` event per Send, so the conductor loop
+// advances deterministically under test. The channel is buffered so Send never blocks.
+type scriptedSession struct {
+	events  chan ports.AgentEvent
+	results []ports.AgentEvent
+	idx     int
+	mu      sync.Mutex
+	sends   int
+}
+
+func (s *scriptedSession) Send(_ context.Context, _ string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sends++
+	ev := ports.AgentEvent{Kind: ports.EventResult, Subtype: "success"}
+	if s.idx < len(s.results) {
+		ev = s.results[s.idx]
+		s.idx++
+	}
+	s.events <- ev
+	return nil
+}
+func (s *scriptedSession) Events() <-chan ports.AgentEvent { return s.events }
+func (s *scriptedSession) Close() error                    { return nil }
+
+type scriptedAgent struct{ sess *scriptedSession }
+
+func (a *scriptedAgent) Spawn(_ context.Context, _ ports.SpawnOpts) (ports.AgentSession, error) {
+	return a.sess, nil
+}
+
+// scriptedArtifacts returns a scripted document-as-cache status per read.
+type scriptedArtifacts struct {
+	statuses []string
+	idx      int
+	reads    int
+}
+
+func (a *scriptedArtifacts) Status(_ context.Context, _ string) (string, bool, error) {
+	st := "working"
+	if a.idx < len(a.statuses) {
+		st = a.statuses[a.idx]
+		a.idx++
+	}
+	a.reads++
+	return st, true, nil
+}
+
+func boxWithRuta(ruta []domain.Route, handoff *domain.Handoff) domain.Box {
+	return domain.Box{ID: "caja-x", Clase: domain.ClaseSkill, Nombre: "caja x",
+		Contract: &domain.Contract{
+			Why: "hacer x", Clase: domain.ClaseSkill, Arquetipo: domain.ArqExcepcion,
+			Perfil: domain.PerfilT3, Caja: true, Fase: "f", Estado: "a -> b",
+			Entrega: []domain.Output{{Art: "art-x"}}, Ruta: ruta, Handoff: handoff,
+			Gate: &domain.Gate{Tipo: domain.GateAuto},
+		}}
+}
+
+// TestConductorOwnsBoxRouting enforces orquestacion-determinista-entre-cajas: the Go
+// conductor — not the LLM — owns the loop and the hand-off. It reads the result subtype +
+// the artifact status (document-as-cache), bounds iterations with a repair cap, blocks on
+// non-convergence → handoff, and routes via contract.ruta. Crucially, a misleading chat
+// text does NOT change the decision.
+func TestConductorOwnsBoxRouting(t *testing.T) {
+	newConductor := func(results []ports.AgentEvent, statuses []string, cap int) (*usecase.BoxConductor, *scriptedSession, *scriptedArtifacts) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, cap+2), results: results}
+		arts := &scriptedArtifacts{statuses: statuses}
+		return usecase.NewBoxConductor(&scriptedAgent{sess: sess}, arts, cap, 40), sess, arts
+	}
+
+	t.Run("happy path routes by contract.ruta, not the LLM", func(t *testing.T) {
+		c, _, _ := newConductor(
+			[]ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success"}, {Kind: ports.EventResult, Subtype: "success"}},
+			[]string{"working", "done"}, 5)
+		out, err := c.Run(context.Background(), boxWithRuta([]domain.Route{{A: "reviewer"}}, nil))
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.Estado != domain.CajaDone {
+			t.Errorf("estado = %q, want done", out.Estado)
+		}
+		if out.Siguiente != "reviewer" {
+			t.Errorf("siguiente = %q, want reviewer (code read contract.ruta)", out.Siguiente)
+		}
+		if out.Iteraciones != 2 {
+			t.Errorf("iteraciones = %d, want 2", out.Iteraciones)
+		}
+	})
+
+	t.Run("repair cap bounds the loop and blocks → handoff", func(t *testing.T) {
+		c, sess, _ := newConductor(nil, []string{"working", "working", "working", "working"}, 3)
+		out, err := c.Run(context.Background(), boxWithRuta(nil, &domain.Handoff{Cuando: "no converge", A: "humano"}))
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.Estado != domain.CajaBlocked {
+			t.Errorf("estado = %q, want blocked (cap hit)", out.Estado)
+		}
+		if sess.sends != 3 {
+			t.Errorf("sends = %d, want exactly 3 (the cap bounds the loop — not unbounded)", sess.sends)
+		}
+		if !out.Handoff || out.Siguiente != "humano" {
+			t.Errorf("blocked must handoff to humano, got handoff=%v siguiente=%q", out.Handoff, out.Siguiente)
+		}
+	})
+
+	t.Run("reads artifact status, NOT chat text", func(t *testing.T) {
+		// The chat text screams success; the artifact status says working. The conductor
+		// must ignore the text and NOT finish — this is the anti-scrape guarantee.
+		c, _, arts := newConductor(
+			[]ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success", Text: "¡LISTO! done done done ✅"}},
+			[]string{"working"}, 1)
+		out, err := c.Run(context.Background(), boxWithRuta(nil, &domain.Handoff{Cuando: "x", A: "humano"}))
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.Estado == domain.CajaDone {
+			t.Error("conductor finished on misleading chat text — it must read the artifact status, not the chat")
+		}
+		if arts.reads == 0 {
+			t.Error("conductor never read the artifact status (document-as-cache)")
+		}
+	})
+
+	t.Run("explicit blocked artifact stops immediately", func(t *testing.T) {
+		c, sess, _ := newConductor(
+			[]ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success"}},
+			[]string{"blocked"}, 5)
+		out, err := c.Run(context.Background(), boxWithRuta(nil, &domain.Handoff{Cuando: "x", A: "caja:fix"}))
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.Estado != domain.CajaBlocked {
+			t.Errorf("estado = %q, want blocked", out.Estado)
+		}
+		if sess.sends != 1 {
+			t.Errorf("sends = %d, want 1 (stopped immediately on blocked)", sess.sends)
+		}
+	})
+}
+
+// --- permisos-derivan-del-rol.md (enforced) ---
+
+// TestPermissionSetParametrizedByRole enforces permisos-derivan-del-rol: the permission-set
+// is f(role), not a fixed default — the SAME tool carries different decisions per role —
+// and grants are task-based / expiring (least temporal privilege), never perpetual.
+func TestPermissionSetParametrizedByRole(t *testing.T) {
+	k := permission.NewKitProvisioner()
+	ctx := context.Background()
+
+	dev, err := k.ResolveForRole(ctx, "backend-dev")
+	if err != nil {
+		t.Fatalf("resolve dev: %v", err)
+	}
+	rev, err := k.ResolveForRole(ctx, "reviewer")
+	if err != nil {
+		t.Fatalf("resolve reviewer: %v", err)
+	}
+
+	// The SAME tool must resolve differently by role — permission = f(role), not a default.
+	if got := dev.Decide("Write"); got != domain.DecisionAllow {
+		t.Errorf("backend-dev Write = %q, want allow", got)
+	}
+	if got := rev.Decide("Write"); got != domain.DecisionDeny {
+		t.Errorf("reviewer Write = %q, want deny (same tool, different role)", got)
+	}
+	if dev.Decide("Write") == rev.Decide("Write") {
+		t.Error("Write resolves identically for dev and reviewer — permission is NOT parametrized by role")
+	}
+
+	// Deny-by-default: an unlisted tool needs approval, never a silent allow.
+	if got := dev.Decide("SomeUnlistedTool"); got != domain.DecisionAsk {
+		t.Errorf("unlisted tool = %q, want ask (deny-by-default)", got)
+	}
+
+	// An unknown role degrades to the base deny-by-default set (mutations denied).
+	unknown, err := k.ResolveForRole(ctx, "rol-desconocido")
+	if err != nil {
+		t.Fatalf("resolve unknown: %v", err)
+	}
+	if got := unknown.Decide("Write"); got != domain.DecisionDeny {
+		t.Errorf("unknown role Write = %q, want deny (least privilege fallback)", got)
+	}
+
+	// Grants EXPIRE (least temporal privilege) — not perpetual access.
+	base := time.Unix(1_700_000_000, 0)
+	g := dev.NuevoGrant("Bash", base) // TTL 15m for backend-dev.
+	if !g.Vigente(base.Add(14 * time.Minute)) {
+		t.Error("grant should be valid within its TTL")
+	}
+	if g.Vigente(base.Add(16 * time.Minute)) {
+		t.Error("grant must EXPIRE past its TTL — no perpetual permission")
+	}
+
+	// A per-task role (TTL 0) yields an already-expired grant: valid only for the turn.
+	perTask := domain.PermissionSet{Rol: "x", TTL: 0}
+	if perTask.NuevoGrant("Bash", base).Vigente(base.Add(time.Nanosecond)) {
+		t.Error("per-task grant (TTL 0) must not persist beyond the approving turn")
+	}
 }
 
 // ============================================================================

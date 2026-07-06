@@ -41,6 +41,8 @@ func main() {
 		err = runIndex(os.Args[2:])
 	case "publish":
 		err = runPublish(os.Args[2:])
+	case "conformance":
+		err = runConformance(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -65,6 +67,7 @@ commands:
   open      open the UI (stub)
   index     rebuild the disposable index from the JSONL corpus (stub)
   publish   publish a harness to its marketplace repo (stub)
+  conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
 `)
 }
 
