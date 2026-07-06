@@ -24,7 +24,17 @@
 			"orange-600": { "$value": "#c96a2e" },
 			"orange-400": { "$value": "#e0904f" },
 			"red-600": { "$value": "#c94545" },
-			"red-400": { "$value": "#e25b5b" }
+			"red-400": { "$value": "#e25b5b" },
+			"cyan-600": { "$value": "#0f7f96" },
+			"cyan-400": { "$value": "#49aec7" },
+			"amber-600": { "$value": "#9c7b1a" },
+			"amber-400": { "$value": "#cdae54" },
+			"taupe-600": { "$value": "#766753" },
+			"taupe-400": { "$value": "#a4917c" },
+			"rose-600": { "$value": "#a85274" },
+			"rose-400": { "$value": "#cc7d9c" },
+			"sage-600": { "$value": "#5f7a52" },
+			"sage-400": { "$value": "#8aa87d" }
 		},
 		"semantic": {
 			"$description": "intent — vocabulario shadcn COMPLETO que consumen los componentes. light = raíz; dark en $extensions.mode.dark. Valores neutrales = mockup firmado (--bg/--surface/--surface2/--line/--line2/--text/--muted); marca = sand (gold).",
@@ -153,7 +163,7 @@
 			"5": { "$value": "{color.kind.mcp}" }
 		},
 		"kind": {
-			"$description": "tipo de componente de arnés (mapea a knowledge/); light/dark",
+			"$description": "tipo de componente de arnés (mapea a knowledge/, 10 primitivas Clase); light/dark. skill/agent/hook/knowledge/mcp/rule = lift del shell firmado; command/plugin/settings/output-style/statusline = AÑADIDOS HS-09 (propuestos, cierran el gap 6→10; la familia config comparte matices vecinos, la sub-distinción la carga el glyph).",
 			"skill": {
 				"$value": "{color.primitive.blue-500}",
 				"$extensions": { "mode": { "dark": "{color.primitive.blue-400}" } }
@@ -177,6 +187,26 @@
 			"rule": {
 				"$value": "{color.primitive.olive-600}",
 				"$extensions": { "mode": { "dark": "{color.primitive.olive-400}" } }
+			},
+			"command": {
+				"$value": "{color.primitive.cyan-600}",
+				"$extensions": { "mode": { "dark": "{color.primitive.cyan-400}" } }
+			},
+			"plugin": {
+				"$value": "{color.primitive.amber-600}",
+				"$extensions": { "mode": { "dark": "{color.primitive.amber-400}" } }
+			},
+			"settings": {
+				"$value": "{color.primitive.taupe-600}",
+				"$extensions": { "mode": { "dark": "{color.primitive.taupe-400}" } }
+			},
+			"output-style": {
+				"$value": "{color.primitive.rose-600}",
+				"$extensions": { "mode": { "dark": "{color.primitive.rose-400}" } }
+			},
+			"statusline": {
+				"$value": "{color.primitive.sage-600}",
+				"$extensions": { "mode": { "dark": "{color.primitive.sage-400}" } }
 			}
 		},
 		"health": {
