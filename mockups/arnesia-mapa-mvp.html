@@ -1,181 +1,127 @@
 <!--
-  ArnesIA — Mapa · MVP (Hito 1), superficie derivada de los componentes reales de Storybook (SSOT).
-  Fiel al mockup firmado v3 (bandas/carriles + edges SVG), sustrato HTML+SVG (NO React Flow).
-  Tokens = web/tokens/base.tokens.json (los mismos hex que theme.css). Datos = arnés dogfood
-  dev-full-cycle. Capa Estructura (única del MVP). Body-content: el visor del Artifact envuelve head/body
-  y provee el toggle de tema (data-theme). Abierto directo, arranca en light + prefers-color-scheme.
+  ArnesIA — Mapa · MVP (Hito 1). Superficie derivada de los componentes reales de Storybook (SSOT):
+  mismas clases/tokens + misma lógica de selectores y medición de edges. Data-driven: renderiza un
+  Graph completo. Por defecto el arnés Luana (caso completo: 7 fases, 24 nodos, 10 clases, edges de
+  los 3 tipos); toggle al dogfood dev-full-cycle. Tokens = web/tokens/base.tokens.json. Capa
+  Estructura. Body-content: el visor del Artifact envuelve head/body + provee el toggle de tema.
 -->
 <style>
   :root {
-    /* neutros / superficie */
-    --background: #f2f4f7; --card: #ffffff; --secondary: #e9edf2;
-    --foreground: #212832; --muted-foreground: #5d6a79;
-    --border: #d5dbe3; --input: #c3cbd6; --primary: #a8742c;
-    /* kind (tipo de componente) */
-    --c-skill: #2f74b5; --c-agent: #7455c2; --c-hook: #bb4c85;
-    --c-knowledge: #20826f; --c-mcp: #586c80; --c-rule: #7a7a24;
-    /* escala */
-    --radius-md: 8px; --radius-lg: 9px; --radius-full: 9999px;
-    --text-xs: 11px; --text-sm: 12.5px; --text-base: 14px; --text-lg: 16px;
-    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --background:#f2f4f7; --card:#ffffff; --secondary:#e9edf2;
+    --foreground:#212832; --muted-foreground:#5d6a79;
+    --border:#d5dbe3; --input:#c3cbd6; --primary:#a8742c;
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85;
+    --c-knowledge:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
+    --radius-md:8px; --radius-lg:9px; --radius-full:9999px;
+    --text-xs:11px; --text-sm:12.5px; --text-base:14px; --text-lg:16px;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: #14171c; --card: #1b2027; --secondary: #242b34;
-      --foreground: #e8ecf1; --muted-foreground: #94a1af;
-      --border: #2d3743; --input: #3a4655; --primary: #d9a35b;
-      --c-skill: #5b9dd9; --c-agent: #9b7fd4; --c-hook: #d46a9e;
-      --c-knowledge: #4fb3a1; --c-mcp: #8195a9; --c-rule: #b5b558;
-    }
+  @media (prefers-color-scheme:dark){:root{
+    --background:#14171c; --card:#1b2027; --secondary:#242b34;
+    --foreground:#e8ecf1; --muted-foreground:#94a1af;
+    --border:#2d3743; --input:#3a4655; --primary:#d9a35b;
+    --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e;
+    --c-knowledge:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
+  }}
+  :root[data-theme="dark"]{
+    --background:#14171c; --card:#1b2027; --secondary:#242b34;
+    --foreground:#e8ecf1; --muted-foreground:#94a1af;
+    --border:#2d3743; --input:#3a4655; --primary:#d9a35b;
+    --c-skill:#5b9dd9; --c-agent:#9b7fd4; --c-hook:#d46a9e;
+    --c-knowledge:#4fb3a1; --c-mcp:#8195a9; --c-rule:#b5b558;
   }
-  :root[data-theme="dark"] {
-    --background: #14171c; --card: #1b2027; --secondary: #242b34;
-    --foreground: #e8ecf1; --muted-foreground: #94a1af;
-    --border: #2d3743; --input: #3a4655; --primary: #d9a35b;
-    --c-skill: #5b9dd9; --c-agent: #9b7fd4; --c-hook: #d46a9e;
-    --c-knowledge: #4fb3a1; --c-mcp: #8195a9; --c-rule: #b5b558;
-  }
-  :root[data-theme="light"] {
-    --background: #f2f4f7; --card: #ffffff; --secondary: #e9edf2;
-    --foreground: #212832; --muted-foreground: #5d6a79;
-    --border: #d5dbe3; --input: #c3cbd6; --primary: #a8742c;
-    --c-skill: #2f74b5; --c-agent: #7455c2; --c-hook: #bb4c85;
-    --c-knowledge: #20826f; --c-mcp: #586c80; --c-rule: #7a7a24;
+  :root[data-theme="light"]{
+    --background:#f2f4f7; --card:#ffffff; --secondary:#e9edf2;
+    --foreground:#212832; --muted-foreground:#5d6a79;
+    --border:#d5dbe3; --input:#c3cbd6; --primary:#a8742c;
+    --c-skill:#2f74b5; --c-agent:#7455c2; --c-hook:#bb4c85;
+    --c-knowledge:#20826f; --c-mcp:#586c80; --c-rule:#7a7a24;
   }
 
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--background); color: var(--foreground);
-    font-family: var(--font-sans); font-size: var(--text-base);
-    -webkit-font-smoothing: antialiased;
-  }
-  .page { max-width: 1180px; margin: 0 auto; padding: 28px 20px 56px; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:var(--text-base);-webkit-font-smoothing:antialiased}
+  .page{max-width:1240px;margin:0 auto;padding:24px 16px 48px}
 
-  /* ---- doc header (explica el artifact; no es parte del componente) ---- */
-  .doc-hd { margin-bottom: 20px; }
-  .doc-hd h1 { font-size: 22px; font-weight: 650; margin: 0 0 6px; letter-spacing: -.01em; }
-  .doc-hd p { margin: 0; color: var(--muted-foreground); font-size: var(--text-sm); max-width: 68ch; }
-  .doc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .doc-tag {
-    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground);
-    border: 1px solid var(--border); background: var(--card); border-radius: 6px; padding: 3px 8px;
-  }
+  .doc-hd{margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+  .doc-hd h1{font-size:20px;font-weight:650;margin:0;letter-spacing:-.01em}
+  .doc-hd p{margin:2px 0 0;color:var(--muted-foreground);font-size:var(--text-sm);max-width:64ch}
+  .switch{margin-left:auto;display:flex;gap:2px;border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-md);padding:2px}
+  .switch button{font:inherit;font-size:var(--text-xs);color:var(--muted-foreground);cursor:pointer;border:0;background:transparent;border-radius:6px;padding:5px 12px}
+  .switch button[aria-pressed="true"]{background:var(--card);color:var(--foreground);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
 
-  /* ---- superficie del mapa (mirror de widgets/map-canvas) ---- */
-  .mapwrap {
-    display: flex; flex-direction: column; border: 1px solid var(--border);
-    border-radius: var(--radius-lg); background: var(--background); overflow: hidden;
-  }
-  .mapbar {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-    border-bottom: 1px solid var(--border); background: var(--card); padding: 10px 16px;
-  }
-  .arnes-id { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground); }
-  .metastrip { display: flex; flex-wrap: wrap; gap: 6px; }
-  .mchip {
-    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground);
-    border: 1px solid var(--border); background: var(--secondary); border-radius: 6px; padding: 2px 7px;
-  }
-  .mchip b { font-weight: 600; color: var(--foreground); }
-  .layers {
-    margin-left: auto; display: flex; gap: 2px; border: 1px solid var(--border);
-    background: var(--secondary); border-radius: var(--radius-md); padding: 2px;
-  }
-  .layer {
-    font: inherit; font-size: var(--text-xs); color: var(--muted-foreground); cursor: pointer;
-    border: 0; background: transparent; border-radius: 6px; padding: 4px 11px;
-  }
-  .layer[aria-selected="true"] {
-    background: var(--card); color: var(--foreground); font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0,0,0,.15);
-  }
-  .layer[disabled] { opacity: .4; cursor: not-allowed; }
+  .mapwrap{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--background);overflow:hidden}
+  .mapbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:var(--card);padding:10px 16px}
+  .arnes-id{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted-foreground)}
+  .metastrip{display:flex;flex-wrap:wrap;gap:6px}
+  .mchip{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted-foreground);border:1px solid var(--border);background:var(--secondary);border-radius:6px;padding:2px 7px}
+  .mchip b{font-weight:600;color:var(--foreground)}
+  .layers{margin-left:auto;display:flex;gap:2px;border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-md);padding:2px}
+  .layer{font:inherit;font-size:var(--text-xs);color:var(--muted-foreground);cursor:default;border:0;background:transparent;border-radius:6px;padding:4px 11px}
+  .layer[aria-selected="true"]{background:var(--card);color:var(--foreground);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .layer[disabled]{opacity:.4}
 
-  .scroller { overflow: auto; }
-  .content { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 16px; min-width: 900px; }
-  svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
+  .scroller{overflow:auto;max-height:70vh}
+  .content{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px;min-width:900px}
+  svg.edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible}
 
-  .band { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); padding: 10px; }
-  .band-hd { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-  .band-hd h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
-  .band-hd span { font-size: var(--text-xs); color: var(--muted-foreground); }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .row .node-w { width: 176px; }
-  .empty { font-size: var(--text-xs); font-style: italic; color: var(--muted-foreground); }
+  .band{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);padding:10px}
+  .band-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+  .band-hd h2{margin:0;font-size:var(--text-sm);font-weight:600}
+  .band-hd span{font-size:var(--text-xs);color:var(--muted-foreground)}
+  .row{display:flex;flex-wrap:wrap;gap:8px}
+  .row .node-w{width:176px}
+  .empty{font-size:var(--text-xs);font-style:italic;color:var(--muted-foreground)}
 
-  .lanes { display: flex; align-items: flex-start; gap: 12px; }
-  .lane { flex: 1; min-width: 176px; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
-  .lane-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding: 8px 10px; }
-  .lane-hd h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
-  .count { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground); border: 1px solid var(--border); background: var(--secondary); border-radius: var(--radius-full); padding: 1px 7px; }
-  .lane-body { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .lanes{display:flex;align-items:flex-start;gap:12px}
+  .lane{flex:1;min-width:176px;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card)}
+  .lane-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--border);padding:8px 10px}
+  .lane-hd h2{margin:0;font-size:var(--text-sm);font-weight:600}
+  .count{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted-foreground);border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-full);padding:1px 7px}
+  .lane-body{display:flex;flex-direction:column;gap:8px;padding:10px}
 
-  /* ---- nodo (mirror de entities/arnes ArnesNode) ---- */
-  .node {
-    display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; cursor: pointer;
-    border: 1px solid var(--border); border-left: 3px solid var(--tc, var(--border));
-    border-radius: var(--radius-md); background: var(--secondary); padding: 8px 10px;
-    font: inherit; color: var(--foreground); transition: border-color .12s;
-  }
-  .node:hover { border-color: var(--input); }
-  .node:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-  .node-top { display: flex; align-items: center; gap: 6px; }
-  .node-nm { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .node-ty { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); }
-  .glyph {
-    flex: none; display: grid; place-items: center; width: 15px; height: 15px;
-    background: var(--tc); color: var(--background); font-family: var(--font-mono);
-    font-weight: 600; font-size: 9px; line-height: 1;
-  }
-  .glyph.square { border-radius: 3px; }
-  .glyph.circle { border-radius: 50%; }
-  .glyph.shield { clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%); }
+  .node{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;cursor:pointer;border:1px solid var(--border);border-left:3px solid var(--tc,var(--border));border-radius:var(--radius-md);background:var(--secondary);padding:8px 10px;font:inherit;color:var(--foreground);transition:border-color .12s}
+  .node:hover{border-color:var(--input)}
+  .node-top{display:flex;align-items:center;gap:6px}
+  .node-nm{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .node-ty{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--muted-foreground)}
+  .glyph{flex:none;display:grid;place-items:center;width:15px;height:15px;background:var(--tc);color:var(--background);font-family:var(--font-mono);font-weight:600;font-size:9px;line-height:1}
+  .glyph.square{border-radius:3px}
+  .glyph.circle{border-radius:50%}
+  .glyph.rounded{border-radius:4px}
+  .glyph.diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .glyph.hexagon{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+  .glyph.shield{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)}
 
-  /* ---- legend / notas ---- */
-  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 22px; }
-  .note { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); padding: 14px 16px; }
-  .note h3 { margin: 0 0 8px; font-size: var(--text-sm); font-weight: 650; }
-  .note ul { margin: 0; padding-left: 16px; color: var(--muted-foreground); font-size: var(--text-sm); }
-  .note li { margin: 3px 0; }
-  .note li b { color: var(--foreground); font-weight: 600; }
-  .lg-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: var(--text-sm); color: var(--muted-foreground); }
-  .lg-line { width: 34px; height: 0; border-top: 2px solid var(--input); }
-  .lg-line.lee { border-top-style: dashed; opacity: .6; }
-  .lg-line.escribe { border-top-style: dashed; border-top-color: var(--primary); }
+  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:20px}
+  .note{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);padding:14px 16px}
+  .note h3{margin:0 0 8px;font-size:var(--text-sm);font-weight:650}
+  .note ul{margin:0;padding-left:16px;color:var(--muted-foreground);font-size:var(--text-sm)}
+  .note li{margin:3px 0}
+  .note li b{color:var(--foreground);font-weight:600}
+  .lg-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:var(--text-sm);color:var(--muted-foreground)}
+  .lg-line{width:34px;height:0;border-top:2px solid var(--input)}
+  .lg-line.lee{border-top-style:dashed;opacity:.6}
+  .lg-line.escribe{border-top-style:dashed;border-top-color:var(--primary)}
+  .lg-glyphs{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .lg-g{display:flex;align-items:center;gap:5px;font-size:var(--text-xs);color:var(--muted-foreground)}
 </style>
 
 <div class="page">
   <header class="doc-hd">
-    <h1>ArnesIA · Mapa — MVP (Hito&nbsp;1)</h1>
-    <p>Superficie del Mapa <b>read-only</b>, capa <b>Estructura</b>, sobre el arnés dogfood real
-      <code>dev-full-cycle</code>. Este mockup está <b>derivado de los componentes reales de Storybook</b>
-      (el SSOT del FE): misma estructura, mismas clases, mismos tokens DTCG — no es un dibujo aparte.</p>
-    <div class="doc-tags">
-      <span class="doc-tag">sustrato: HTML bandas/carriles + SVG</span>
-      <span class="doc-tag">fiel al v3 firmado</span>
-      <span class="doc-tag">React Flow → reservado al Organigrama</span>
-      <span class="doc-tag">tokens: base.tokens.json</span>
+    <div>
+      <h1>ArnesIA · Mapa — MVP (Hito&nbsp;1)</h1>
+      <p>Superficie read-only, capa <b>Estructura</b>, <b>derivada de los componentes reales de Storybook</b>
+        (mismas clases · tokens · lógica). Caso completo: arnés <b>Luana</b>.</p>
+    </div>
+    <div class="switch" id="switch">
+      <button data-g="luana" aria-pressed="true">Luana (completo)</button>
+      <button data-g="dogfood" aria-pressed="false">dev-full-cycle</button>
     </div>
   </header>
 
   <div class="mapwrap">
-    <div class="mapbar">
-      <span class="arnes-id">dev-full-cycle</span>
-      <div class="metastrip">
-        <span class="mchip">empresa <b>alpacapurpura</b></span>
-        <span class="mchip">rol <b>Ingeniería · Desarrollo full-cycle</b></span>
-        <span class="mchip">reporta a <b>—</b></span>
-        <span class="mchip">⬡ <b>alpacapurpura/prenter-marketplace</b></span>
-      </div>
-      <div class="layers" role="tablist" aria-label="Capas del mapa">
-        <button class="layer" role="tab" aria-selected="true">Estructura</button>
-        <button class="layer" role="tab" aria-selected="false" disabled title="Necesita telemetría (indexer JSONL)">Tokens</button>
-        <button class="layer" role="tab" aria-selected="false" disabled title="Necesita telemetría (indexer JSONL)">Desempeño</button>
-        <button class="layer" role="tab" aria-selected="false" disabled title="Necesita telemetría (indexer JSONL)">Proceso</button>
-      </div>
-    </div>
-
+    <div class="mapbar" id="mapbar"></div>
     <div class="scroller">
       <div class="content" id="content">
         <svg class="edges" id="edges" aria-hidden="true">
@@ -185,73 +131,17 @@
             </marker>
           </defs>
         </svg>
-
-        <section class="band">
-          <div class="band-hd"><h2>Guardia</h2><span>hooks transversales — actúan en todas las fases</span></div>
-          <span class="empty">— sin nodos —</span>
-        </section>
-
-        <div class="lanes">
-          <section class="lane">
-            <div class="lane-hd"><h2>spec</h2><span class="count">1</span></div>
-            <div class="lane-body">
-              <button class="node" data-node-id="spec-writer" style="--tc: var(--c-skill)">
-                <span class="node-top"><span class="glyph square">S</span><span class="node-nm">escribir el spec</span></span>
-                <span class="node-ty">Skill</span>
-              </button>
-            </div>
-          </section>
-          <section class="lane">
-            <div class="lane-hd"><h2>build</h2><span class="count">1</span></div>
-            <div class="lane-body">
-              <button class="node" data-node-id="builder" style="--tc: var(--c-skill)">
-                <span class="node-top"><span class="glyph square">S</span><span class="node-nm">construir contra el spec</span></span>
-                <span class="node-ty">Skill</span>
-              </button>
-            </div>
-          </section>
-          <section class="lane">
-            <div class="lane-hd"><h2>review</h2><span class="count">1</span></div>
-            <div class="lane-body">
-              <button class="node" data-node-id="reviewer" style="--tc: var(--c-skill)">
-                <span class="node-top"><span class="glyph square">S</span><span class="node-nm">revisar el build</span></span>
-                <span class="node-ty">Skill</span>
-              </button>
-            </div>
-          </section>
-          <section class="lane">
-            <div class="lane-hd"><h2>release</h2><span class="count">1</span></div>
-            <div class="lane-body">
-              <button class="node" data-node-id="releaser" style="--tc: var(--c-skill)">
-                <span class="node-top"><span class="glyph square">S</span><span class="node-nm">promover a released</span></span>
-                <span class="node-ty">Skill</span>
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <section class="band">
-          <div class="band-hd"><h2>Base</h2><span>siempre en contexto — reglas · knowledge · mcp</span></div>
-          <div class="row">
-            <div class="node-w">
-              <button class="node" data-node-id="std-spec" style="--tc: var(--c-rule)">
-                <span class="node-top"><span class="glyph shield">R</span><span class="node-nm">estándar de spec</span></span>
-                <span class="node-ty">Regla</span>
-              </button>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   </div>
 
   <section class="notes">
     <div class="note">
-      <h3>Leyenda — edges</h3>
+      <h3>Leyenda</h3>
       <div class="lg-row"><span class="lg-line"></span> invoca (con flecha)</div>
       <div class="lg-row"><span class="lg-line lee"></span> lee (punteado, sin flecha)</div>
       <div class="lg-row"><span class="lg-line escribe"></span> escribe (punteado, accent)</div>
-      <p class="empty" style="margin-top:8px">Glyph = color <b>y</b> forma por clase (lectura daltónica): cuadro=Skill · círculo=Subagente · rombo=Hook · escudo=Regla · hexágono=MCP.</p>
+      <div class="lg-glyphs" id="legend-glyphs"></div>
     </div>
     <div class="note">
       <h3>Conservado del v3</h3>
@@ -267,7 +157,7 @@
       <ul>
         <li><b>Sustrato HTML+SVG</b> (no React Flow) — RF va al Organigrama.</li>
         <li>Solo capa <b>Estructura</b>; Tokens/Desempeño/Proceso esperan telemetría JSONL.</li>
-        <li>Métricas <b>«—»</b> (arnés recién nacido, sin telemetría — legítimo por UX).</li>
+        <li>Métricas <b>«—»</b> hasta que haya telemetría (legítimo por UX).</li>
         <li>Gap: 6 colores de token vs 10 clases (command/plugin/… a <b>muted</b>) → Fase D.</li>
       </ul>
     </div>
@@ -275,46 +165,186 @@
 </div>
 
 <script>
-  // Mismo enfoque que use-edge-paths.ts: medir anclas de nodos y dibujar beziers en el overlay.
-  const EDGES = [
-    { de: "spec-writer", a: "std-spec", tipo: "lee" },
-    { de: "spec-writer", a: "builder", tipo: "invoca" },
-    { de: "builder", a: "reviewer", tipo: "invoca" },
-    { de: "reviewer", a: "releaser", tipo: "invoca" },
-  ];
-  const STROKE = {
-    invoca: { color: "var(--input)", opacity: .55, dash: "" },
-    lee: { color: "var(--input)", opacity: .3, dash: "4 4" },
-    escribe: { color: "var(--primary)", opacity: .5, dash: "2 3" },
+  const KIND = {
+    skill:{color:"var(--c-skill)",shape:"square",char:"S",label:"Skill"},
+    subagent:{color:"var(--c-agent)",shape:"circle",char:"A",label:"Subagente"},
+    hook:{color:"var(--c-hook)",shape:"diamond",char:"H",label:"Hook"},
+    rule:{color:"var(--c-rule)",shape:"shield",char:"R",label:"Regla"},
+    mcp:{color:"var(--c-mcp)",shape:"hexagon",char:"M",label:"MCP"},
+    command:{color:"var(--muted-foreground)",shape:"rounded",char:"/",label:"Comando"},
+    plugin:{color:"var(--muted-foreground)",shape:"rounded",char:"P",label:"Plugin"},
+    settings:{color:"var(--muted-foreground)",shape:"rounded",char:"⚙",label:"Ajustes"},
+    "output-style":{color:"var(--muted-foreground)",shape:"rounded",char:"◐",label:"Output style"},
+    statusline:{color:"var(--muted-foreground)",shape:"rounded",char:"▭",label:"Statusline"},
   };
-  function draw() {
-    const content = document.getElementById("content");
-    const svg = document.getElementById("edges");
-    if (!content || !svg) return;
-    [...svg.querySelectorAll("path.edge")].forEach((p) => p.remove());
-    const base = content.getBoundingClientRect();
-    for (const e of EDGES) {
-      const from = content.querySelector('[data-node-id="' + e.de + '"]');
-      const to = content.querySelector('[data-node-id="' + e.a + '"]');
-      if (!from || !to) continue;
-      const f = from.getBoundingClientRect(), t = to.getBoundingClientRect();
-      const x1 = f.right - base.left, y1 = f.top + f.height / 2 - base.top;
-      const x2 = t.left - base.left, y2 = t.top + t.height / 2 - base.top;
-      const dx = Math.max(28, Math.abs(x2 - x1) / 2);
-      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("class", "edge");
-      p.setAttribute("d", `M ${x1},${y1} C ${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`);
-      p.setAttribute("fill", "none");
-      p.setAttribute("stroke-width", "1.4");
-      const s = STROKE[e.tipo];
-      p.setAttribute("stroke", s.color);
-      p.setAttribute("opacity", s.opacity);
-      if (s.dash) p.setAttribute("stroke-dasharray", s.dash);
-      if (e.tipo !== "lee") p.setAttribute("marker-end", "url(#arr)");
+  const BASE_BANDS = new Set(["base","libreria-expertos","meta-harness","marcas-dormidas","terceros"]);
+
+  const GRAPHS = {
+    luana: {
+      arnes:{id:"luana-feature-cycle",empresa:"luana",rol:"Producto · Ciclo de feature end-to-end",reporta_a:"luana-plataforma",marketplace:"alpacapurpura/prenter-marketplace",fases:["descubrimiento","spec","diseño","build","review","release","operación"]},
+      nodos:[
+        {id:"guard-format",clase:"hook",nombre:"formato pre-write",banda:"guardia"},
+        {id:"guard-pii",clase:"hook",nombre:"guardia PII/compliance",banda:"guardia"},
+        {id:"telemetry-emit",clase:"hook",nombre:"telemetría de nacimiento",banda:"guardia"},
+        {id:"discovery-interviewer",clase:"subagent",nombre:"entrevistar al usuario",banda:"fase",fase:"descubrimiento"},
+        {id:"need-distiller",clase:"skill",nombre:"destilar la necesidad",banda:"fase",fase:"descubrimiento"},
+        {id:"spec-writer",clase:"skill",nombre:"escribir el spec",banda:"fase",fase:"spec"},
+        {id:"spec-review",clase:"command",nombre:"/spec-review",banda:"fase",fase:"spec"},
+        {id:"ux-designer",clase:"skill",nombre:"diseñar la experiencia",banda:"fase",fase:"diseño"},
+        {id:"design-critic",clase:"subagent",nombre:"criticar el diseño",banda:"fase",fase:"diseño"},
+        {id:"builder",clase:"skill",nombre:"construir la feature",banda:"fase",fase:"build"},
+        {id:"test-author",clase:"subagent",nombre:"escribir las pruebas",banda:"fase",fase:"build"},
+        {id:"reviewer",clase:"skill",nombre:"revisar el build",banda:"fase",fase:"review"},
+        {id:"security-reviewer",clase:"subagent",nombre:"revisar seguridad",banda:"fase",fase:"review"},
+        {id:"releaser",clase:"skill",nombre:"promover a producción",banda:"fase",fase:"release"},
+        {id:"promote",clase:"command",nombre:"/promote",banda:"fase",fase:"release"},
+        {id:"ops-monitor",clase:"skill",nombre:"monitorear en producción",banda:"fase",fase:"operación"},
+        {id:"incident-triage",clase:"subagent",nombre:"triage de incidentes",banda:"fase",fase:"operación"},
+        {id:"std-producto",clase:"rule",nombre:"estándar de producto",banda:"base"},
+        {id:"domain-glossary",clase:"rule",nombre:"glosario de dominio",banda:"base"},
+        {id:"api-mcp",clase:"mcp",nombre:"acceso a la API",banda:"base"},
+        {id:"docs-mcp",clase:"mcp",nombre:"base de conocimiento",banda:"base"},
+        {id:"luana-plugin",clase:"plugin",nombre:"kit luana",banda:"meta-harness"},
+        {id:"guardrails-settings",clase:"settings",nombre:"permisos por rol",banda:"meta-harness"},
+        {id:"product-style",clase:"output-style",nombre:"estilo de producto",banda:"meta-harness"},
+        {id:"health-statusline",clase:"statusline",nombre:"salud del arnés",banda:"meta-harness"},
+      ],
+      edges:[
+        {de:"discovery-interviewer",a:"need-distiller",tipo:"invoca"},
+        {de:"need-distiller",a:"spec-writer",tipo:"invoca"},
+        {de:"spec-writer",a:"ux-designer",tipo:"invoca"},
+        {de:"ux-designer",a:"design-critic",tipo:"invoca"},
+        {de:"design-critic",a:"builder",tipo:"invoca"},
+        {de:"builder",a:"test-author",tipo:"invoca"},
+        {de:"test-author",a:"reviewer",tipo:"invoca"},
+        {de:"reviewer",a:"security-reviewer",tipo:"invoca"},
+        {de:"security-reviewer",a:"releaser",tipo:"invoca"},
+        {de:"releaser",a:"ops-monitor",tipo:"invoca"},
+        {de:"ops-monitor",a:"incident-triage",tipo:"invoca"},
+        {de:"spec-writer",a:"std-producto",tipo:"lee"},
+        {de:"spec-writer",a:"domain-glossary",tipo:"lee"},
+        {de:"need-distiller",a:"docs-mcp",tipo:"lee"},
+        {de:"builder",a:"api-mcp",tipo:"lee"},
+        {de:"reviewer",a:"std-producto",tipo:"lee"},
+        {de:"guard-pii",a:"domain-glossary",tipo:"escribe"},
+      ],
+    },
+    dogfood: {
+      arnes:{id:"dev-full-cycle",empresa:"alpacapurpura",rol:"Ingeniería · Desarrollo full-cycle",reporta_a:null,marketplace:"alpacapurpura/prenter-marketplace",fases:["spec","build","review","release"]},
+      nodos:[
+        {id:"spec-writer",clase:"skill",nombre:"escribir el spec",banda:"fase",fase:"spec"},
+        {id:"builder",clase:"skill",nombre:"construir contra el spec",banda:"fase",fase:"build"},
+        {id:"reviewer",clase:"skill",nombre:"revisar el build",banda:"fase",fase:"review"},
+        {id:"releaser",clase:"skill",nombre:"promover a released",banda:"fase",fase:"release"},
+        {id:"std-spec",clase:"rule",nombre:"estándar de spec",banda:"base"},
+      ],
+      edges:[
+        {de:"spec-writer",a:"std-spec",tipo:"lee"},
+        {de:"spec-writer",a:"builder",tipo:"invoca"},
+        {de:"builder",a:"reviewer",tipo:"invoca"},
+        {de:"reviewer",a:"releaser",tipo:"invoca"},
+      ],
+    },
+  };
+
+  const STROKE = {
+    invoca:{color:"var(--input)",opacity:.55,dash:""},
+    lee:{color:"var(--input)",opacity:.3,dash:"4 4"},
+    escribe:{color:"var(--primary)",opacity:.5,dash:"2 3"},
+  };
+  const LAYERS = [["estructura","Estructura",false],["tokens","Tokens",true],["perf","Desempeño",true],["proceso","Proceso",true]];
+
+  function selGuardia(g){return g.nodos.filter(n=>n.banda==="guardia")}
+  function selBase(g){return g.nodos.filter(n=>BASE_BANDS.has(n.banda))}
+  function selLanes(g){
+    const declared=(g.arnes&&g.arnes.fases)||[];
+    const fn=g.nodos.filter(n=>n.banda==="fase");
+    const order=[...declared];
+    for(const n of fn){const f=n.fase||"";if(f&&!order.includes(f))order.push(f)}
+    return order.map(fase=>({fase,nodos:fn.filter(n=>(n.fase||"")===fase)}));
+  }
+  function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
+  function nodeEl(box){
+    const k=KIND[box.clase]||KIND.skill;
+    const el=document.createElement("button");
+    el.className="node";el.dataset.nodeId=box.id;el.style.setProperty("--tc",k.color);
+    el.innerHTML=`<span class="node-top"><span class="glyph ${k.shape}">${esc(k.char)}</span><span class="node-nm">${esc(box.nombre)}</span></span><span class="node-ty">${esc(k.label)}</span>`;
+    return el;
+  }
+  function bandEl(label,sub,nodes){
+    const s=document.createElement("section");s.className="band";
+    let body;
+    if(!nodes.length){body=`<span class="empty">— sin nodos —</span>`;}
+    else{body=`<div class="row">`+nodes.map(()=>"").join("")+`</div>`;}
+    s.innerHTML=`<div class="band-hd"><h2>${esc(label)}</h2><span>${esc(sub)}</span></div>`+body;
+    if(nodes.length){const row=s.querySelector(".row");nodes.forEach(b=>{const w=document.createElement("div");w.className="node-w";w.appendChild(nodeEl(b));row.appendChild(w)});}
+    return s;
+  }
+
+  function renderBar(g){
+    const bar=document.getElementById("mapbar");
+    const a=g.arnes||{};
+    const chips=[["empresa",a.empresa],["rol",a.rol],["reporta a",a.reporta_a||"—"],["⬡",a.marketplace]]
+      .filter(([,v])=>v).map(([k,v])=>`<span class="mchip">${esc(k)} <b>${esc(v)}</b></span>`).join("");
+    const tabs=LAYERS.map(([id,label,dis])=>`<button class="layer" aria-selected="${id==="estructura"}" ${dis?"disabled":""}>${esc(label)}</button>`).join("");
+    bar.innerHTML=`<span class="arnes-id">${esc(a.id||"—")}</span><div class="metastrip">${chips}</div><div class="layers">${tabs}</div>`;
+  }
+  function renderContent(g){
+    const content=document.getElementById("content");
+    const svg=document.getElementById("edges");
+    [...content.querySelectorAll(".band,.lanes")].forEach(n=>n.remove());
+    content.appendChild(bandEl("Guardia","hooks transversales — actúan en todas las fases",selGuardia(g)));
+    const lanes=document.createElement("div");lanes.className="lanes";
+    for(const l of selLanes(g)){
+      const sec=document.createElement("section");sec.className="lane";
+      sec.innerHTML=`<div class="lane-hd"><h2>${esc(l.fase)}</h2><span class="count">${l.nodos.length}</span></div>`;
+      const body=document.createElement("div");body.className="lane-body";
+      l.nodos.forEach(b=>body.appendChild(nodeEl(b)));
+      sec.appendChild(body);lanes.appendChild(sec);
+    }
+    content.appendChild(lanes);
+    content.appendChild(bandEl("Base","siempre en contexto — reglas · knowledge · mcp",selBase(g)));
+    content.appendChild(svg); // keep overlay last
+    drawEdges(g);
+  }
+  function drawEdges(g){
+    const content=document.getElementById("content"), svg=document.getElementById("edges");
+    [...svg.querySelectorAll("path.edge")].forEach(p=>p.remove());
+    const base=content.getBoundingClientRect();
+    for(const e of (g.edges||[])){
+      const from=content.querySelector(`[data-node-id="${e.de}"]`), to=content.querySelector(`[data-node-id="${e.a}"]`);
+      if(!from||!to)continue;
+      const f=from.getBoundingClientRect(), t=to.getBoundingClientRect();
+      const x1=f.right-base.left, y1=f.top+f.height/2-base.top;
+      const x2=t.left-base.left, y2=t.top+t.height/2-base.top;
+      const dx=Math.max(28,Math.abs(x2-x1)/2);
+      const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+      p.setAttribute("class","edge");
+      p.setAttribute("d",`M ${x1},${y1} C ${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`);
+      p.setAttribute("fill","none");p.setAttribute("stroke-width","1.4");
+      const s=STROKE[e.tipo]||STROKE.invoca;
+      p.setAttribute("stroke",s.color);p.setAttribute("opacity",s.opacity);
+      if(s.dash)p.setAttribute("stroke-dasharray",s.dash);
+      if(e.tipo!=="lee")p.setAttribute("marker-end","url(#arr)");
       svg.appendChild(p);
     }
   }
-  draw();
-  new ResizeObserver(draw).observe(document.getElementById("content"));
-  window.addEventListener("resize", draw);
+  function renderLegendGlyphs(){
+    const el=document.getElementById("legend-glyphs");
+    el.innerHTML=Object.values(KIND).filter((v,i,a)=>a.findIndex(x=>x.shape===v.shape)===i)
+      .map(k=>`<span class="lg-g"><span class="glyph ${k.shape}" style="--tc:${k.color}">${esc(k.char)}</span>${esc(k.label)}</span>`).join("");
+  }
+
+  let current="luana";
+  function render(){renderBar(GRAPHS[current]);renderContent(GRAPHS[current]);}
+  document.getElementById("switch").addEventListener("click",(ev)=>{
+    const b=ev.target.closest("button[data-g]");if(!b)return;
+    current=b.dataset.g;
+    [...document.querySelectorAll("#switch button")].forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.g===current)));
+    render();
+  });
+  renderLegendGlyphs();
+  render();
+  new ResizeObserver(()=>drawEdges(GRAPHS[current])).observe(document.getElementById("content"));
+  window.addEventListener("resize",()=>drawEdges(GRAPHS[current]));
 </script>

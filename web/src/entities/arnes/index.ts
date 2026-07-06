@@ -21,4 +21,5 @@ export type {
   Transicion,
 } from "./model/types"
 export { devFullCycle } from "./testing/dev-full-cycle"
+export { luanaFeatureCycle } from "./testing/luana-feature-cycle"
 export { ArnesNode } from "./ui/arnes-node"
