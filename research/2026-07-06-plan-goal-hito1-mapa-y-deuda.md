@@ -8,6 +8,69 @@
 
 ---
 
+## ⚑ Bitácora de avance · estado · aprendizajes (act. 2026-07-06)
+
+### Avance por fase
+- **Fase A ✓ COMPLETA** (commit `a8721e9`). Entregable `research/2026-07-06-shell-map.md` — shell exacto
+  `archivo:línea` (3 subagentes verificados). Seam del Mapa = `workspace-stage.tsx:40-46`, branch
+  `s.view==="Mapa"` → `<MapCanvas arnesId={s.arnes}/>`.
+- **Fase B · EN CURSO — parado en 🛑 Gate 1 (mockup) sin firmar.** Construido y verde (typecheck+biome+
+  storybook build; render verificado light/dark por chrome-devtools):
+  - Componentes SSOT (commit `a8721e9`): `shared/canvas/glyph` · `entities/arnes` (types/selectors/kind/
+    ArnesNode/fixtures) · `widgets/map-canvas` (MapBar/Band/Lane/EdgeLayer/MapCanvas + use-edge-paths) + stories.
+  - Fixture completo **Luana** (commit `5207e94`) — empresa canónica de los mockups; 7 fases · 24 nodos ·
+    10 clases · edges 3 tipos.
+  - Mockup **v2** (commit `4b438db`) tras feedback del operador (7 cambios, abajo). Data-driven, toggle
+    Luana↔dogfood. Artifact `08d31cde-3f91-4808-a14f-fe8d31ae7572`.
+- **Deuda · diseño de arquitectura ✓** (commit `3a8a278`) — `research/2026-07-06-deuda-backend-arch.md`
+  (track independiente; análisis read-only, sin código).
+- **Fases C/D/E/F — bloqueadas** por el gate 1.
+
+### Decisiones firmadas / tomadas
+1. **Sustrato del Mapa = HTML bandas/carriles + SVG overlay** (NO React Flow). Operador eligió; RF se reserva
+   al Organigrama. Revierte "React Flow para el Mapa" de CLAUDE.md/HS-04. → memoria `hs-09-mapa-sustrato-html-svg`.
+2. **7 cambios del operador sobre el mockup (v2):** (1) vista limpia + ayuda en botón «?» flotante · (2) edges
+   **invoca=rojo · escribe=verde · lee=ámbar** · (3) tag de comando/invocación por nodo · (4) zoom +/−/ajustar
+   + pan + más aire · (5) **distintivo de caja de proceso** (`contract.caja`) · (6) separadores de región
+   Guardia/Proceso/Soporte · (7) región **Soporte** con sub-bandas.
+3. **Iteración de diseño en el mockup** (superficie rápida, menos tokens); los componentes de Storybook (SSOT
+   real) se sincronizan al **congelar el look**. Divergencia temporal declarada.
+
+### Aprendizajes (doctrina — investigados, no inventados)
+- **Caja de proceso = `contract.caja == true`** (skill-frente de una fase; posee 1 transición + gate). vs skill
+  de **apoyo** (`caja:false` + `rol:`). En capa Estructura la doctrina NO marca visualmente la caja (solo la
+  capa Proceso lo hacía) → el distintivo es una decisión NUEVA del operador. (`box.go:186-208`, `skills.md:93-100`)
+- **"Soporte" NO es término doctrinal — el canónico es "Base"** (VISION A6). ⚠️ pendiente decisión del operador:
+  ¿oficializar Base→Soporte en VISION/METODOLOGIA (Fase D) o mantener "Base"?
+- **"Knowledge" NO es una clase** — se pliega en `rule` (firewall CC-native §8.6). Los "tipos de soporte" reales
+  = **bandas** `base · libreria-expertos · meta-harness · terceros · marcas-dormidas` (no un subtipo "Knowledge").
+- **No existe campo "comando/invocación"** en el modelo — el `id` es la clave. El handle se **deriva por clase**
+  (command/skill→`/id` · subagent→name · hook→evento · rule→always-on).
+
+### Aprendizajes (técnicos / deuda destapada → Fase D)
+- `.dependency-cruiser.js` **roto**: `module.exports` en repo `type:module` ESM + globs `canvas⊥chrome` con
+  rutas stale (`widgets/command-rail|dock`, `app/shell` inexistentes; el chrome real = `session-rail|chat-dock|
+  topbar|view-strip` + `pages/shell`). Enforcer inerte.
+- `vitest.workspace.ts` obsoleto (vitest 4 dropeó `defineWorkspace` → `test.projects`) → los **story-tests no
+  ejecutan** aún; render verificado por chrome-devtools en su lugar. Playwright chromium instalado (fallback).
+- **Gap 6→10 colores:** tokens `kind` traen 6; `Clase` tiene 10 → command/plugin/settings/output-style/
+  statusline caen a `--muted-foreground`. Extender tokens en Fase D.
+- `biome.json`: `noThenProperty` off (Gherkin `then` = vocabulario de contrato de caja).
+- **Meta-proceso:** el goal por Stop-hook entra en loop cuando choca con un gate de aprobación HUMANO — el hook
+  no distingue "bloqueado en humano" de "parado antes de tiempo". El operador limpió el goal con `/goal clear`.
+
+### Pendiente inmediato (para desbloquear)
+1. **🛑 Firma del mockup (Gate 1)** + decisión **Base vs Soporte** y corte de sub-bandas de soporte.
+2. Al firmar → **Fase C (spec)** → 🛑 Gate 2 → **Fase D (arquitectura)** → **E/F**.
+3. **Al congelar el look:** sincronizar los componentes de Storybook con el mockup v2 (regiones, caja,
+   zoom/pan, edge colors, tag de comando).
+
+### Preguntas abiertas de la deuda (de `…deuda-backend-arch.md`)
+Superficie del conductor T3 (`POST /boxes/{id}/run`?) · `control_request` ask→UI · worktree vs main · ¿arrancar
+la deuda en paralelo ya?
+
+---
+
 ## 0 · Contexto y doctrina (leer ANTES de tocar nada)
 
 Trabajas en **ArnesIA** (`/home/chalreme/Proyectos/harness-studio`), la fábrica de arneses por rol × proceso.
