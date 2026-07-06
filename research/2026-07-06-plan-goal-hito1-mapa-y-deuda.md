@@ -14,8 +14,22 @@
 - **Fase A ✓ COMPLETA** (commit `a8721e9`). Entregable `research/2026-07-06-shell-map.md` — shell exacto
   `archivo:línea` (3 subagentes verificados). Seam del Mapa = `workspace-stage.tsx:40-46`, branch
   `s.view==="Mapa"` → `<MapCanvas arnesId={s.arnes}/>`.
-- **Fase B · EN CURSO — parado en 🛑 Gate 1 (mockup) sin firmar.** Construido y verde (typecheck+biome+
-  storybook build; render verificado light/dark por chrome-devtools):
+- **Fase B ✓ COMPLETA — 🛑 Gate 1 (mockup) FIRMADO por el operador (2026-07-06, commit `0736d2c`).**
+  Iteración crítica final en chrome-devtools con fixture **Luana** (goal: ser el crítico de la UX). Aprobado
+  tras bajar 6 decisiones doctrinales (verificadas por 3 subagentes, cero contradicción) + los 3 refinamientos:
+  - **Base canónica** (elimina el falso «Soporte · siempre en contexto», VISION A6) · **activación honesta
+    por-nodo** (siempre/condicional/bajo-demanda/leído/dormida) · **reglas colapsables** (siempre-on vs `paths:`).
+  - **Facet `origen`** (estándar del kit vs del-puesto llenado en onboarding = borde punteado) · **índice
+    semántico opcional** (`propuesto`; knowledge as-code path-scoped = norma, semántico opcional, NO dep dura).
+  - **Discovery = dato del arnés** (no doctrina; fixture) · **paquete de trabajo = artefacto/spine**: cada caja
+    muestra la transición que posee (`idea→…→operando`); detalle al click = Inspector (Hito 2); paquete vivo
+    moviéndose = tablero «Flujo del trabajo» (lente futura, en debate).
+  - **Refinamientos**: Guardia compacta (hooks=chips) · apoyo sin la palabra (hairline+indent) · **gap 6→10
+    colores RESUELTO** (5 tokens `kind` nuevos en `web/tokens/base.tokens.json`, propuestos HS-09).
+  - Base de interacción firmada: overview-first (fit real) · spine siempre + lee/escribe on-hover · nombres
+    2 líneas · `<!doctype>` (consola limpia). Memoria: `hs-09-mapa-decisiones-doctrina`.
+  - **Las 6 decisiones son PROPUESTAS a cementar as-code (VISION/METODOLOGIA/knowledge/arch) en Fase D.**
+- **Fase B (registro previo) — construido y verde** (typecheck+biome+storybook build; render light/dark):
   - Componentes SSOT (commit `a8721e9`): `shared/canvas/glyph` · `entities/arnes` (types/selectors/kind/
     ArnesNode/fixtures) · `widgets/map-canvas` (MapBar/Band/Lane/EdgeLayer/MapCanvas + use-edge-paths) + stories.
   - Fixture completo **Luana** (commit `5207e94`) — empresa canónica de los mockups; 7 fases · 24 nodos ·
@@ -59,11 +73,16 @@
 - **Meta-proceso:** el goal por Stop-hook entra en loop cuando choca con un gate de aprobación HUMANO — el hook
   no distingue "bloqueado en humano" de "parado antes de tiempo". El operador limpió el goal con `/goal clear`.
 
-### Pendiente inmediato (para desbloquear)
-1. **🛑 Firma del mockup (Gate 1)** + decisión **Base vs Soporte** y corte de sub-bandas de soporte.
-2. Al firmar → **Fase C (spec)** → 🛑 Gate 2 → **Fase D (arquitectura)** → **E/F**.
-3. **Al congelar el look:** sincronizar los componentes de Storybook con el mockup v2 (regiones, caja,
-   zoom/pan, edge colors, tag de comando).
+### Pendiente inmediato (Gate 1 ya firmado → siguiente ola)
+1. ✓ **Gate 1 FIRMADO** (2026-07-06). Base vs Soporte resuelto = **Base** (canónico). Sub-bandas conservadas
+   como doctrinales pero re-encuadradas por **activación**.
+2. **Fase C (spec)** → 🛑 Gate 2 → **Fase D (arquitectura, cementar las 6 decisiones as-code)** → **E/F**.
+3. **Sincronizar los componentes de Storybook (SSOT) con el mockup firmado v3**: regiones tinte, caja+badge,
+   spine-align + tier apoyo, activación/reglas colapsables, facet `origen`, transición del spine por caja,
+   Guardia compacta, tokens `kind` 6→10. (El mockup divergió del Storybook durante la iteración rápida.)
+4. **Bajar as-code (Fase D)** las 6 decisiones firmadas (VISION/METODOLOGIA/knowledge/arch): término «Base»,
+   facet `activacion`, facet `origen`, knowledge as-code+semántico-opcional, discovery=data, la superficie del
+   paquete/spine en la capa Estructura + el Inspector Hito 2.
 
 ### Preguntas abiertas de la deuda (de `…deuda-backend-arch.md`)
 Superficie del conductor T3 (`POST /boxes/{id}/run`?) · `control_request` ask→UI · worktree vs main · ¿arrancar
