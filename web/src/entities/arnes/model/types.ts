@@ -160,3 +160,21 @@ export interface Graph {
   nodos: Box[]
   edges?: Edge[]
 }
+
+// ConformanceCheck / ConformanceResult — minimal mirror of the daemon's conformance
+// report (internal/domain/conformance.go: Check + CheckResult), the shape
+// GET /api/harnesses/{id}/conformance returns. Lives here (not shared/api) so the
+// entity's selectors can filter it without a transport import (domain-not-transport).
+export type Veredicto = "pass" | "fail" | "error" | "deferred" | "n/a"
+
+export interface ConformanceCheck {
+  id: string
+  severidad?: string
+  que?: string
+}
+
+export interface ConformanceResult {
+  check: ConformanceCheck
+  veredicto: Veredicto
+  detalle?: string
+}

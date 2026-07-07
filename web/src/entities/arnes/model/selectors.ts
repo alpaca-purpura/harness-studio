@@ -3,7 +3,7 @@
 // of "which node goes where"; the canvas only lays out what these return. No React, no
 // transport — safe to import from anywhere (kept in entities/*/model per FSD).
 
-import type { Banda, Box, Edge, Graph } from "./types"
+import type { Banda, Box, ConformanceResult, Edge, Graph, TipoEdge } from "./types"
 
 // A lane is one process phase with the boxes that declared that fase.
 export interface Lane {
@@ -87,4 +87,33 @@ export function selectLanes(g: Graph): Lane[] {
 // selectEdges — the relations (invoca/lee/escribe).
 export function selectEdges(g: Graph): Edge[] {
   return g.edges ?? []
+}
+
+// VieneDe — one inverse edge of a node: who acts ON it and how (RF-89).
+export interface VieneDe {
+  de: string
+  tipo: TipoEdge
+}
+
+// selectVieneDe — the INVERSE edges of a node, derived from the already-loaded
+// graph.edges (never declared by hand): every edge whose target is nodeId, as
+// (source, tipo). Empty array ⇒ the drawer hides the section (faithful to the data).
+export function selectVieneDe(g: Graph, nodeId: string): VieneDe[] {
+  return (g.edges ?? []).filter((e) => e.a === nodeId).map((e) => ({ de: e.de, tipo: e.tipo }))
+}
+
+// selectHallazgosConformance — the RED checks (fail|error) of a harness conformance
+// report that mention nodeId (RF-91). The arnes-scope checks are GRAPH-level with the
+// violating node ids listed inside `detalle` («id (motivo); id2 (…)», domain.
+// veredictoDeLista) — per-node attribution does not exist as data in the report, so a
+// word-boundary match over detalle is the honest filter (see plan-implementacion.md §3;
+// if the engine ever attributes nodes as data, this selector simplifies).
+export function selectHallazgosConformance(
+  results: readonly ConformanceResult[],
+  nodeId: string,
+): ConformanceResult[] {
+  const word = new RegExp(`(^|[^\\w-])${nodeId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\w-])`)
+  return results.filter(
+    (r) => (r.veredicto === "fail" || r.veredicto === "error") && word.test(r.detalle ?? ""),
+  )
 }

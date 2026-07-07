@@ -5,6 +5,7 @@
 // `devFullCycle` is the recorded dogfood fixture, exported for stories/mockup during Fase B.
 // TEMPORAL: once api.getGraph lands (Hito 1) the live graph replaces it; the fixture stays for tests.
 
+export { DEF_CAMPO, DEF_VALOR, PROP_NOTE, SEC_TIP, tipDe } from "./model/doctrina"
 export { KIND, type KindVisual } from "./model/kind"
 export { handleFor, isCaja, isPropuesto, transLabel } from "./model/node-view"
 export { alwFor, isDelPuesto } from "./model/proposals"
@@ -14,8 +15,11 @@ export {
   selectBase,
   selectEdges,
   selectGuardia,
+  selectHallazgosConformance,
   selectLanes,
   selectSoporte,
+  selectVieneDe,
+  type VieneDe,
 } from "./model/selectors"
 export type {
   Arnes,
@@ -23,12 +27,15 @@ export type {
   Box,
   Canal,
   Clase,
+  ConformanceCheck,
+  ConformanceResult,
   Contract,
   Edge,
   Graph,
   Spine,
   TipoEdge,
   Transicion,
+  Veredicto,
 } from "./model/types"
 export { devFullCycle } from "./testing/dev-full-cycle"
 export { luanaFeatureCycle } from "./testing/luana-feature-cycle"

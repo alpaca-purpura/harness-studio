@@ -92,8 +92,16 @@
   arranque vive en [`PROMPT-implementacion.md`](./PROMPT-implementacion.md) (fase de
   revisión previa → diseño técnico → implementación por RF → validación tests +
   Chrome DevTools funcional Y visual → PARIDAD fila por fila).
-- **Próximo paso:** nueva conversación ejecuta ese prompt. Al cerrar: PARIDAD ✅,
-  gates verdes, «Retomar aquí» actualizado.
+- **FASE 1 SELLADA (2026-07-07):** diseño técnico + mini-plan de 7 commits en
+  [`plan-implementacion.md`](./plan-implementacion.md). Claves: diccionario →
+  `entities/arnes/model/doctrina.ts` · viene-de/hallazgos → selectors.ts · conformance
+  por nodo = FILTRO EN FE (justificado: la atribución por nodo no existe como dato en el
+  reporte) · transporte queda en la página (inyecta `conformance` + `loadFuente`) ·
+  endpoint fuente = puerto `FuenteReader` + adapter confinado (patrón artifact) +
+  `FuenteService` + ruta text/plain + OpenAPI 0.2.0-hs09 · interpretación RF-81↔RF-84
+  registrada (tras ✕ queda el drawer VACÍO affordance — a consultar en paridad).
+- **Próximo paso:** FASE 2 — implementar commits 1..6 del plan; luego FASE 3 validación
+  Chrome DevTools + PARIDAD fila por fila.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
