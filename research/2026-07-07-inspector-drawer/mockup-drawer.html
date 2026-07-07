@@ -20,6 +20,9 @@
        Corridas = «donde actuó» con estado honesto «necesita indexer JSONL» + nota de qué lista primero.
   v5.1 · 2026-07-07 · fix: en expandido, la tab Contenido pintaba el Resumen encima — la regla grid del
        expandido le ganaba en especificidad al [hidden] (→ :not([hidden])). Cazado en review ojo-UI.
+  v6 · 2026-07-07 · decisión #5 (FIRMADA): expandido — tabs sticky bajo el header + compactas a la izquierda ·
+       botonera = fila completa al pie de la rejilla · columna de lectura 920px en Contenido/Corridas ·
+       semántica de cierre: ✕ CIERRA (mapa sin drawer) vs ⤡ colapsa al drawer normal.
 -->
 <title>Mockup — drawer del Mapa (inspector)</title>
 <style>
@@ -155,6 +158,13 @@
   .tabpane[hidden] { display:none; }
   .drawer.expanded .tabpane-resumen:not([hidden]) { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
     gap:20px 36px; align-content:start; max-width:1280px; padding:20px 24px; }
+  /* ══ v6 · decisión #5 — UI del expandido ══ */
+  .drawer.expanded .dw-tabs { position:sticky; top:57px; background:var(--card); z-index:1; justify-content:flex-start; }
+  .drawer.expanded .dw-tab { flex:0 0 auto; padding:8px 16px; }
+  .drawer.expanded .tabpane-resumen .dw-actions { grid-column:1 / -1; flex-direction:row; flex-wrap:wrap;
+    align-items:center; border-top:1px solid var(--border) !important; padding-top:12px !important; }
+  .drawer.expanded .tabpane-resumen .act { flex:0 0 auto; }
+  .drawer.expanded .tabpane:not(.tabpane-resumen) { max-width:920px; }
   .chip-versiona { align-self:flex-start; font-size:9px; font-weight:700; letter-spacing:.04em; padding:1px 7px;
     border-radius:999px; border:1px solid var(--primary); color:var(--primary); background:var(--accent-soft); }
   .src { background:var(--muted); border-radius:var(--radius-md); padding:10px 8px; overflow-x:auto;
@@ -511,8 +521,8 @@ function drawer(box) {
         <div class="dw-nombre">${esc(box.nombre)}</div>
         <div class="dw-handle">${esc(k.label)} · <span class="mono">${esc(handleFor(box,alw))}</span></div>
       </div>
-      <button type="button" class="dw-expand" aria-label="Ampliar inspector" aria-pressed="false">⤢</button>
-      <button type="button" class="dw-close" aria-label="Cerrar inspector">✕</button>
+      <button type="button" class="dw-expand" aria-label="Ampliar inspector" aria-pressed="false" title="Ampliar: el drawer ocupa todo el espacio del mapa">⤢</button>
+      <button type="button" class="dw-close" aria-label="Cerrar inspector" title="Cerrar: quita el drawer y deja el mapa (≠ colapsar ⤡)">✕</button>
     </header>
     <nav class="dw-tabs" role="tablist">
       <button type="button" class="dw-tab" role="tab" data-tab="resumen" aria-selected="true">Resumen</button>
@@ -543,9 +553,20 @@ function setExpanded(drawer, on) {
   drawer.classList.toggle("expanded", on);
   const b = drawer.querySelector(".dw-expand");
   b.textContent = on ? "⤡" : "⤢";
-  b.setAttribute("aria-label", on ? "Restaurar inspector" : "Ampliar inspector");
+  b.setAttribute("aria-label", on ? "Colapsar al drawer normal" : "Ampliar inspector");
+  b.setAttribute("title", on ? "Colapsar: vuelve al drawer lateral normal" : "Ampliar: el drawer ocupa todo el espacio del mapa");
   b.setAttribute("aria-pressed", String(on));
 }
+// v6 · decisión #5e — ✕ CIERRA (en la app: mapa sin drawer) ≠ ⤡ colapsa (drawer normal).
+// En la galería del mockup «cerrar» se demuestra colapsando + apagando la tarjeta un instante.
+document.addEventListener("click", (e) => {
+  const x = e.target.closest(".dw-close");
+  if (!x) return;
+  const d = x.closest(".drawer");
+  if (d.classList.contains("expanded")) setExpanded(d, false);
+  const card = d.closest(".case");
+  if (card) { card.style.opacity = ".35"; setTimeout(() => { card.style.opacity = ""; }, 900); }
+});
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".dw-expand");
   if (!b) return;
