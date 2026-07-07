@@ -109,8 +109,12 @@ repo: 235 embebidos, `--arnes` 12/13 honesto). Extra: ErrorBoundary + banda-fall
 · UX 12/10 · debate 3 VISION cerrado). **Próximo:** Hito 2 del Mapa (plan showcase kitchen-sink +
 doctrina-visible, gates 0/1 firmados, `research/2026-07-06-plan-hito2-doctrina-edicion-showcase/`,
 working tree del operador) · cablear loader→índice del daemon · bundle instalador.
-**Deuda restante (no bloquea):** cablear `BoxConductor` al daemon + endpoint `control_request` role/ttl
-(Fase E del plan Hito 2) · loader→índice daemon · go:embed de la SPA · instalador GoReleaser · codegen
+**Cierre HS-11 (mismo día):** loader→índice VIVO («Cargar carpeta» = PUT /api/arneses/{id} reconoce+indexa)
+· **Fase E COMPLETA** (adapters/artifact · SpawnOpts.Permisos→flags · control_request Dock ·
+`POST …/boxes/{boxId}/run` · permission REAL grants TTL · 2 arch-tests flipados) · **instalador REAL**
+(SPA go:embed servida por el daemon · scripts/bundle.sh · bundles .deb 7.6M/.AppImage 80M/.rpm con el
+binario del paquete probado E2E) · WIP Hito 2 del operador en main. **Deuda restante (no bloquea):**
+spike wire-format `control_response` vs claude real · run async+202 · gate conformance post-run · codegen
 `gen/` · capas Tokens/Desempeño/Proceso esperan telemetría · los 211 checks `deferred` del ruleset → CI ·
 3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel). Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
 un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
