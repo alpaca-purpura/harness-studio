@@ -100,8 +100,17 @@
   endpoint fuente = puerto `FuenteReader` + adapter confinado (patrón artifact) +
   `FuenteService` + ruta text/plain + OpenAPI 0.2.0-hs09 · interpretación RF-81↔RF-84
   registrada (tras ✕ queda el drawer VACÍO affordance — a consultar en paridad).
-- **Próximo paso:** FASE 2 — implementar commits 1..6 del plan; luego FASE 3 validación
-  Chrome DevTools + PARIDAD fila por fila.
+- **FASE 2 COMPLETA (2026-07-07):** commits 1..6 del plan en main (`b93f1bd` entities ·
+  `6e61b30` shell · `ea18172` tooltips · `7bec2ef` Resumen · `54ce6a1` fuente Go ·
+  `f9d2976` Contenido/Corridas FE). **9/9 gates verdes** (tsc · biome · depcruise ·
+  steiger · stylelint · 62/62 story-tests · go test -race · golangci 0 · go-arch-lint OK).
+  PARIDAD toda 🔶 + 5 desviaciones registradas (2 ajustes AA que el axe forzó sobre el
+  mockup · interpretación ✕↔vacío · sticky siempre · showcase sin disco = 404 honesto).
+  Incidente: cuelgue de máquina corrompió .git (objeto vacío); reparado desde reflog
+  sin pérdida (commit fantasma descartado, contenido re-commiteado).
+- **Próximo paso:** FASE 3 — daemon :4200 + vite :5173 + Chrome DevTools: recorrer cada
+  RF contra showcase y dogfood (registrar dev-full-cycle para ver la fuente real), lado
+  a lado con mockup v6, screenshots, consola limpia → PARIDAD fila por fila ✅ → commit 7.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
