@@ -29,7 +29,8 @@
 
 ## Estado
 
-- [ ] mockup-drawer.html clonado del drawer actual
+- [x] mockup-drawer.html clonado del drawer actual (v1, 2026-07-07) — **artifact
+      (publicar SIEMPRE a esta URL):** https://claude.ai/code/artifact/99e127f9-b7f2-48c8-b506-ae0fb376743d
 - [ ] iteraciones sobre el mockup → firma
 - [ ] decisiones.md (crece por iteración)
 - [ ] spec.md + design.md → firma
@@ -41,14 +42,16 @@
 > Se actualiza al cierre de cada turno de trabajo (METODOLOGIA §10). Una sesión nueva
 > lee esto y continúa como si fuera la misma conversación.
 
-- **Último hecho (2026-07-07):** paquete creado; disciplina de desarrollo FIRMADA y
-  cementada (METODOLOGIA §10 + CLAUDE.md); Tier A del inspector por clase YA vive en
-  la app (commit `3cf9d43`: encuadre por clase · Fuente · Activación · no-reconocido);
-  bundle `.deb` regenerado con esos cambios para la app instalada del operador.
-- **Próximo paso:** crear `mockup-drawer.html` — clon fiel del inspector actual
-  (`web/src/widgets/map-canvas/ui/inspector.tsx`), tokens de `web/src/app/styles/theme.css`,
-  datos del `showcase.graph.json`, ~12 casuísticas lado a lado (una por clase + caja rica
-  + no-reconocido); publicarlo como artifact y arrancar las iteraciones del operador.
+- **Último hecho (2026-07-07):** `mockup-drawer.html` **v1 creado, verificado
+  (ojo-UI: 15/15 drawers renderizan, tri-estado de reglas, warn no-reconocido; consola
+  limpia) y publicado como artifact** (URL arriba — SIEMPRE redeploy a la misma).
+  15 casuísticas numeradas 01–15 (referencia para iterar: «cambia la 07»); datos reales
+  del showcase, stubs rotulados «sintético» (08 · 09 · 15). Clon de `inspector.tsx`
+  @`3cf9d43` (Tier A incluido). Antes en el mismo día: disciplina §10 firmada, Tier A
+  en la app, bundle `.deb` regenerado.
+- **Próximo paso:** el operador revisa el artifact y dicta cambios casuística por
+  casuística → cada cambio a `decisiones.md` EN EL MISMO TURNO + nueva versión del
+  mockup (vN en el changelog del HTML) redeployada a la MISMA URL.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
