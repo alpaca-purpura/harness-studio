@@ -50,6 +50,16 @@ export const api = {
   },
   token: () => authToken,
 
+  // Map / Portfolio / Inspector reads (S1–S3). shared/api stays domain-free (it must not
+  // import entities/*, an upward dependency) — these are generic so the page (composition-root)
+  // parameterizes them with the domain type it owns: `api.getGraph<Graph>(id)`.
+  getGraph: <T = unknown>(id: string) => req<T>(`/api/harnesses/${encodeURIComponent(id)}/graph`),
+
+  listHarnesses: <T = unknown>() => req<T>("/api/harnesses"),
+
+  getNode: <T = unknown>(id: string, nodeId: string) =>
+    req<T>(`/api/harnesses/${encodeURIComponent(id)}/nodes/${encodeURIComponent(nodeId)}`),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   createSession: (input: NewSession) =>

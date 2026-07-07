@@ -19,4 +19,18 @@ export default defineConfig([
 		files: ["./src/entities/*/@x/**"],
 		rules: { "fsd/no-cross-imports": "off" },
 	},
+	{
+		// FSD-LITE (HS-05, decisión firmada): `shared` expone UN barrel de capa (`shared/index.ts`),
+		// no una public-api por segmento — y todo el código importa `@/shared`. Las reglas de FSD
+		// completo `no-layer-public-api` (shared no debería tener index) y `public-api` por segmento
+		// contradicen esa decisión; dependency-cruiser ya obliga a importar por la Public API. Acotado
+		// a shared: los slices de entities/widgets siguen exigiendo su public-api.
+		files: ["./src/shared/**"],
+		rules: { "fsd/no-layer-public-api": "off", "fsd/public-api": "off" },
+	},
+	{
+		// `insignificant-slice` es advisory (sugiere fusionar slices con una sola referencia). Los
+		// widgets del shell (topbar/view-strip) son slices legítimos que crecen; no es un gate.
+		rules: { "fsd/insignificant-slice": "off" },
+	},
 ]);

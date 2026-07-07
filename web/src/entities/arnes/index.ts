@@ -6,6 +6,8 @@
 // TEMPORAL: once api.getGraph lands (Hito 1) the live graph replaces it; the fixture stays for tests.
 
 export { KIND, type KindVisual } from "./model/kind"
+export { handleFor, isCaja, isPropuesto, transLabel } from "./model/node-view"
+export { alwFor, isDelPuesto } from "./model/proposals"
 export { type Lane, selectBase, selectEdges, selectGuardia, selectLanes } from "./model/selectors"
 export type {
   Arnes,

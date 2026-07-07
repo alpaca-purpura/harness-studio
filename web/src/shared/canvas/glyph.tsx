@@ -23,7 +23,7 @@ interface GlyphProps {
   size?: number
 }
 
-export function Glyph({ color, char, shape, size = 15 }: GlyphProps) {
+export function Glyph({ color, char, shape, size = 17 }: GlyphProps) {
   return (
     <span
       aria-hidden

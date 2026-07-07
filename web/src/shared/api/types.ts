@@ -42,6 +42,16 @@ export interface NewSession {
   path?: string
 }
 
+// HarnessSummary is one entry of GET /api/harnesses (S1 portfolio / the Map picker, RF-72):
+// a lightweight row, not the full graph. The domain Graph/Box types live in entities/arnes
+// (shared/api must not import upward), so the page maps this to whatever it renders.
+export interface HarnessSummary {
+  id: string
+  rol?: string
+  proceso?: string
+  empresa?: string
+}
+
 // DockFrame is one SSE `dock` event payload. Every frame carries session_id so one
 // connection multiplexes N conversations (fase 4 c.1).
 export interface DockFrame {

@@ -1,5 +1,5 @@
 {
-	"//": "stylelint — anti-magic-value (enforced_by de arch/boundaries/fe-tokens-contrato.md). Obliga var(--…) en lugar de hex/valores crudos. DECLARADO; se activa con la SPA web/ (fase 5).",
+	"//": "stylelint — anti-magic-value (enforced_by de arch/boundaries/fe-tokens-contrato.md). Obliga var(--…) en lugar de hex/valores crudos en las propiedades de UN color. `box-shadow` queda FUERA a propósito: es compuesta (offsets+blur+color), el plugin (single-value) no separa el color y falso-marca hasta sombras tokenizadas (`0 0 0 1px var(--ring)`); design.md §12 acota la regla dura a color, y las sombras de elevación son deuda `--shadow-*` diferida (design §5.4).",
 	"plugins": ["stylelint-declaration-strict-value"],
 	"rules": {
 		"scale-unlimited/declaration-strict-value": [
@@ -8,8 +8,7 @@
 				"background-color",
 				"border-color",
 				"fill",
-				"stroke",
-				"box-shadow"
+				"stroke"
 			],
 			{
 				"ignoreValues": [

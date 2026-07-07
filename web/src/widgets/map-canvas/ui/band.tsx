@@ -1,34 +1,41 @@
 import { ArnesNode, type Box } from "@/entities/arnes"
+import { ACT, type SupportBand } from "../model/bands"
+import { ActivationChip } from "./activation-chip"
 
-// Band is a transversal region of the map: Guardia (hooks, top) or Base (rules · knowledge · mcp,
-// bottom). Nodes flow in a wrapped row. Empty is legit (a newborn arnés with no hooks yet).
+// Band is a simple support block of the Base region (mockup:355-361, bandBlock): a header
+// (label + activation chip + count) and a wrapped row of 232px node cells. Used for
+// libreria-expertos · meta-harness · terceros · marcas-dormidas (the `base` band renders
+// BaseBand instead). `marcas-dormidas` dims the whole band (RF-44).
 
 interface BandProps {
-  label: string
-  sublabel: string
+  band: SupportBand
   nodes: Box[]
+  related?: ReadonlySet<string> | undefined
   selectedId?: string | undefined
   onSelect?: ((id: string) => void) | undefined
 }
 
-export function Band({ label, sublabel, nodes, selectedId, onSelect }: BandProps) {
+export function Band({ band, nodes, related, selectedId, onSelect }: BandProps) {
+  const act = ACT[band.act]
   return (
-    <section className="rounded-lg border border-border bg-card p-2.5">
-      <div className="mb-2 flex items-baseline gap-2">
-        <h2 className="text-sm font-semibold text-foreground">{label}</h2>
-        <span className="text-xs text-muted-foreground">{sublabel}</span>
+    <div className={band.act === "dormida" ? "band dormida" : "band"}>
+      <div className="band-hd">
+        <h3>{band.label}</h3>
+        <ActivationChip label={act.label} tone={act.tone} />
+        <span className="count">{nodes.length}</span>
       </div>
-      {nodes.length === 0 ? (
-        <span className="text-xs italic text-muted-foreground">— sin nodos —</span>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {nodes.map((b) => (
-            <div key={b.id} className="w-44">
-              <ArnesNode box={b} selected={b.id === selectedId} onSelect={onSelect} />
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+      <div className="row">
+        {nodes.map((b) => (
+          <div key={b.id} className="node-w">
+            <ArnesNode
+              box={b}
+              dim={related !== undefined && !related.has(b.id)}
+              selected={b.id === selectedId}
+              onSelect={onSelect}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

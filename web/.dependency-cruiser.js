@@ -2,10 +2,11 @@
 // enforced_by de arch/boundaries/fe-topologia-fsd.md · fe-taxonomia-componentes.md · fe-transporte-independiente.md.
 // Correr (cwd = web/): `depcruise src --config .dependency-cruiser.js`.
 //
-// NOTA (honestidad, arch/CADENCE): la SPA aún no existe (fase 5). Esto DECLARA el grafo objetivo;
-// los globs asumen la disposición FSD `src/{app,pages,widgets,features,entities,shared}/**`.
+// ESM: el paquete es `type:module`, así que la config exporta con `export default` (no
+// `module.exports`, que rompe en ámbito ESM). Los globs de canvas⊥chrome apuntan a los widgets
+// reales del shell (session-rail·chat-dock·topbar·view-strip) + pages/shell (HS-09).
 /** @type {import('dependency-cruiser').IConfiguration} */
-module.exports = {
+export default {
 	forbidden: [
 		// ---- FSD: dirección de capa (fe-topologia-fsd) ----
 		{
@@ -55,12 +56,13 @@ module.exports = {
 		{
 			name: "no-deep-import",
 			comment:
-				"importa la slice por su public API (index.ts), no por deep-import a internos",
+				"importa OTRA slice por su public API (index.ts), no por deep-import a sus internos; los imports dentro de la MISMA slice (hermanos ui/model) son válidos",
 			severity: "warn",
-			from: { pathNot: "^src/(app)/" },
+			// $1 = capa, $2 = slice de origen → se excluyen los imports de la MISMA slice.
+			from: { path: "^src/(entities|features|widgets|pages)/([^/]+)/" },
 			to: {
-				path: "^src/(entities|features|widgets)/[^/]+/(?!index).+/.+",
-				pathNot: "\\.(css|svg|png)$",
+				path: "^src/(entities|features|widgets)/[^/]+/(?!index)",
+				pathNot: ["^src/$1/$2/", "\\.(css|svg|png)$"],
 			},
 		},
 
@@ -68,17 +70,21 @@ module.exports = {
 		{
 			name: "canvas-not-chrome",
 			comment:
-				"el canvas (map-canvas, shared/canvas) no importa chrome (rail, dock, app/shell)",
+				"el canvas (map-canvas, shared/canvas) no importa chrome (session-rail, chat-dock, topbar, view-strip, pages/shell)",
 			severity: "error",
 			from: { path: "^src/(shared/canvas|widgets/map-canvas)/" },
-			to: { path: "^src/(widgets/(command-rail|dock)|app/shell)/" },
+			to: {
+				path: "^src/(widgets/(session-rail|chat-dock|topbar|view-strip)|pages/shell)/",
+			},
 		},
 		{
 			name: "chrome-not-canvas-internals",
 			comment:
 				"el chrome no hace deep-import a internos del canvas (solo props/store)",
 			severity: "error",
-			from: { path: "^src/(widgets/(command-rail|dock)|app/shell)/" },
+			from: {
+				path: "^src/(widgets/(session-rail|chat-dock|topbar|view-strip)|pages/shell)/",
+			},
 			to: { path: "^src/(shared/canvas|widgets/map-canvas)/(?!index).+" },
 		},
 		{
@@ -123,9 +129,14 @@ module.exports = {
 		},
 		{
 			name: "not-to-unresolvable",
+			comment:
+				"imports que no resuelven (typo/ruta muerta). Exime los paquetes de Storybook: `storybook/test` y `@storybook/*` usan subpaths de `exports` que el resolver de depcruise no sigue, aunque sí resuelven en Vite/Vitest.",
 			severity: "error",
 			from: {},
-			to: { couldNotResolve: true },
+			to: {
+				couldNotResolve: true,
+				pathNot: "^(@storybook/|storybook/)",
+			},
 		},
 	],
 	options: {

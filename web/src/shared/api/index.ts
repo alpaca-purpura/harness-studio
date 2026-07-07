@@ -4,6 +4,7 @@ export { connectDock, type DockConnection } from "./sse"
 export {
   type DockFrame,
   GLOBAL_VIEWS,
+  type HarnessSummary,
   type NewSession,
   type Rol,
   SALUD_LABEL,

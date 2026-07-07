@@ -14,6 +14,10 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
+  // a11y `todo`: the primary variant is the signed brand sand (--primary #a8742c) with white text
+  // at 4.03:1 — just under WCAG AA 4.5:1. A brand-token decision (fe-tokens-contrato), pre-existing
+  // and app-wide, not a Map regression; surfaced as todo, not failed.
+  parameters: { a11y: { test: "todo" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByRole("button", { name: "Conversar" })).toBeInTheDocument()

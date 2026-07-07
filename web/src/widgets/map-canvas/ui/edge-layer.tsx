@@ -1,26 +1,18 @@
-import type { CSSProperties } from "react"
 import type { EdgePath } from "../model/use-edge-paths"
 
-// EdgeLayer is the SVG overlay that draws the measured connectors over the bands/lanes. Styling by
-// tipo mirrors the signed v3 mockup: invoca = solid + arrow · lee = dotted, no arrow · escribe =
-// accent-dashed + arrow. Non-interactive (pointer-events:none) so node clicks pass through.
-
-const STYLE: Record<EdgePath["tipo"], CSSProperties> = {
-  invoca: { stroke: "var(--input)", opacity: 0.55 },
-  lee: { stroke: "var(--input)", opacity: 0.3, strokeDasharray: "4 4" },
-  escribe: { stroke: "var(--primary)", opacity: 0.5, strokeDasharray: "2 3" },
-}
+// EdgeLayer is the SVG overlay drawn over the bands/lanes (mockup:152-158,460-497). It is a
+// dumb renderer: useEdgePaths already measured geometry and resolved each path's stroke/opacity/
+// width/dash/marker (spine-always + hover-reveal gating). It lives INSIDE `.content` so its
+// coordinate space matches the measured anchors; `pointer-events:none` lets node clicks pass
+// through. Styling (position/overflow) is in map.css (`.arnesia-map svg.edges`).
 
 export function EdgeLayer({ paths }: { paths: EdgePath[] }) {
   return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-[3] h-full w-full overflow-visible"
-    >
-      <title>Conexiones entre nodos del arnés</title>
+    <svg className="edges" aria-hidden>
+      <title>Relaciones entre nodos del arnés</title>
       <defs>
         <marker
-          id="arnes-arrow"
+          id="arnes-arr"
           viewBox="0 0 10 10"
           refX="8"
           refY="5"
@@ -36,9 +28,11 @@ export function EdgeLayer({ paths }: { paths: EdgePath[] }) {
           key={p.key}
           d={p.d}
           fill="none"
-          strokeWidth={1.4}
-          style={STYLE[p.tipo]}
-          markerEnd={p.tipo === "lee" ? undefined : "url(#arnes-arrow)"}
+          stroke={p.stroke}
+          strokeWidth={p.width}
+          strokeDasharray={p.dash}
+          opacity={p.opacity}
+          markerEnd={p.marker ? "url(#arnes-arr)" : undefined}
         />
       ))}
     </svg>

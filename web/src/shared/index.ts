@@ -7,6 +7,7 @@ export {
   type DockConnection,
   type DockFrame,
   GLOBAL_VIEWS,
+  type HarnessSummary,
   type NewSession,
   type Rol,
   SALUD_LABEL,
