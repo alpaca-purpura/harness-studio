@@ -153,6 +153,20 @@ click-through con asserts + screenshots revisados + consola limpia. El daemon Go
 (compilado + corriendo, multisesión + CC real) y el motor `arnesia conformance` ya viven en el repo
 (HS-06/HS-08); el port restante del monorepo sigue gobernado por la regla de VISION.md.
 
+**Disciplina de desarrollo por paquete de trabajo (FIRMADA 2026-07-07 — obligatoria para TODA
+funcionalidad nueva; detalle canónico = METODOLOGIA §10):** cada feature vive en
+`research/AAAA-MM-DD-<slug>/` y el código NO se toca hasta specs firmados. Flujo:
+`mockup-*.html` (tokens DTCG reales + datos reales del showcase/dogfood) → iterar con el operador
+→ 🧑‍⚖️ firma → `spec.md`+`design.md` (RF trazados a `mockup:línea`) → 🧑‍⚖️ firma → implementar
+(story=test por marca) → `PARIDAD.md` (mockup↔componente↔story↔RF) → 🧑‍⚖️ gate final lado a lado.
+**Reglas anti-pérdida de contexto:** toda decisión conversada se escribe en `decisiones.md` del
+paquete EN EL MISMO TURNO (la conversación jamás es el único registro) · el `INDEX.md` del paquete
+mantiene «Retomar aquí» (último hecho · próximo paso · firmas pendientes) al cierre de cada turno ·
+cada iteración firmada se commitea a main · **sesión nueva arranca leyendo el INDEX.md del paquete
+activo y sigue como si fuera la misma conversación.** **Paquete activo:**
+[`research/2026-07-07-inspector-drawer/`](./research/2026-07-07-inspector-drawer/INDEX.md)
+(drawer del Mapa; próximo paso = crear `mockup-drawer.html` clon del inspector actual).
+
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se
 upstreamean al kit (backflow I-59), jamás fork silencioso.

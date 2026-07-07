@@ -29,12 +29,32 @@
 
 ## Estado
 
-- [ ] mockup-drawer.html clonado del drawer actual (pendiente — lo pide el operador)
+- [ ] mockup-drawer.html clonado del drawer actual
 - [ ] iteraciones sobre el mockup → firma
 - [ ] decisiones.md (crece por iteración)
 - [ ] spec.md + design.md → firma
 - [ ] implementación + stories
 - [ ] PARIDAD.md verificada → gate final
+
+## Retomar aquí
+
+> Se actualiza al cierre de cada turno de trabajo (METODOLOGIA §10). Una sesión nueva
+> lee esto y continúa como si fuera la misma conversación.
+
+- **Último hecho (2026-07-07):** paquete creado; disciplina de desarrollo FIRMADA y
+  cementada (METODOLOGIA §10 + CLAUDE.md); Tier A del inspector por clase YA vive en
+  la app (commit `3cf9d43`: encuadre por clase · Fuente · Activación · no-reconocido);
+  bundle `.deb` regenerado con esos cambios para la app instalada del operador.
+- **Próximo paso:** crear `mockup-drawer.html` — clon fiel del inspector actual
+  (`web/src/widgets/map-canvas/ui/inspector.tsx`), tokens de `web/src/app/styles/theme.css`,
+  datos del `showcase.graph.json`, ~12 casuísticas lado a lado (una por clase + caja rica
+  + no-reconocido); publicarlo como artifact y arrancar las iteraciones del operador.
+- **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
+  en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
+- **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
+  tocar código; el inspector de contrato (constraints/non_goals/Gherkin/evidencia/
+  mini-spine, `ui-doctrina-visible.md` §Inspector) queda EN PAUSA — sus decisiones ahora
+  se toman dentro de este paquete, no por fuera.
 
 ## Contexto que este paquete NO duplica (solo enlaza)
 

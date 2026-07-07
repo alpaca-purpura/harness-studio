@@ -407,6 +407,51 @@ producto — lo que ③ contiene es solo suyo, más lo que el provisioning ESTAM
 (`graph.l0.schema.json`, campo `origen`) cita «los 3 cuerpos» — esta sección es su definición
 canónica.
 
+## 10. Disciplina de desarrollo por paquete de trabajo (FIRMADA 2026-07-07)
+
+> Origen: orden del operador (sesión inspector-drawer, HS-09/Hito 2): TODA funcionalidad
+> nueva se desarrolla por este flujo, y NADA vive solo en la conversación — una sesión
+> nueva retoma como si fuera la misma. Paquete de referencia (plantilla viva):
+> [`research/2026-07-07-inspector-drawer/`](./research/2026-07-07-inspector-drawer/INDEX.md).
+
+**Unidad = paquete de trabajo**: carpeta `research/AAAA-MM-DD-<slug>/` por funcionalidad.
+El código NO se toca hasta que el paquete lo autorice (specs firmados).
+
+### Los archivos del paquete — qué contiene cada uno y CUÁNDO se llena
+
+| Archivo | Qué contiene | Cuándo se llena |
+|---|---|---|
+| `INDEX.md` | Encuadre · flujo con gates · checklist **Estado** · sección **«Retomar aquí»** (último hecho · próximo paso concreto · firmas pendientes) | Nace con el paquete; «Retomar aquí» se actualiza **al cierre de cada turno de trabajo** |
+| `mockup-*.html` | Clon iterable de la superficie, con changelog de iteraciones en comentario de cabecera | Antes de conversar cambios; una versión por iteración |
+| `decisiones.md` | Una entrada por decisión: qué · porqué · estado PROPUESTA→FIRMADA | **En el MISMO turno en que se conversa** — jamás al final |
+| `spec.md` | El QUÉ: RF numerados + Gherkin, **cada RF trazado a `mockup:línea`** | Tras la firma del mockup |
+| `design.md` | El UI al pixel: secciones/orden · tabla de campos · tokens por marca · estados | Junto con spec.md |
+| `PARIDAD.md` | Matriz mockup ↔ componente real ↔ story=test ↔ RF | Durante la implementación, fila por fila |
+
+### El flujo (gates humanos 🧑‍⚖️, en orden)
+
+1. **Mockup** → iterar con el operador → 🧑‍⚖️ firma del mockup.
+2. **Decisiones** → cada cambio conversado queda en `decisiones.md` al instante.
+3. **Specs** (`spec.md` + `design.md`) → 🧑‍⚖️ firma del paquete.
+4. **Implementación** contra el spec firmado; story=test por marca nueva; gates
+   técnicos verdes (tsc · biome · depcruise · stylelint · steiger · vitest · go race · lint).
+5. **Paridad** → 🧑‍⚖️ gate final: click-through app vs mockup lado a lado, consola
+   limpia, screenshots revisados.
+
+### Reglas duras de continuidad (anti-pérdida de contexto)
+
+1. **La conversación jamás es el único registro.** Toda decisión, hallazgo u orden del
+   operador se escribe en el archivo del paquete que corresponde EN EL MISMO TURNO.
+2. **«Retomar aquí» siempre al día.** Si el operador dice «seguimos en otra conversación»,
+   el INDEX.md ya lo contiene todo; la actualización es continua, no un ritual de cierre.
+3. **Cada iteración firmada se commitea a main** (trunk-based) — git es la memoria durable.
+4. **Sesión nueva arranca así:** CLAUDE.md apunta al paquete activo → leer su INDEX.md
+   («Retomar aquí») → `decisiones.md` → continuar exactamente donde quedó.
+5. **Mockups fieles o no sirven:** tokens DTCG reales (norma «pegarse al Storybook»),
+   datos REALES (showcase/dogfood, jamás inventados), publicar siempre al MISMO artifact.
+6. **Nada llega al código sin spec firmado; nada se firma sin verse** (click-through con
+   asserts + screenshots + consola limpia — disciplina UX.md, aquí obligatoria por fase).
+
 ## Estado
 
 Documento vivo. **HS-03 FIRMADA** (it.13, 2026-07-05; §4 al día: retirado el andamiaje REAL vs
@@ -427,3 +472,6 @@ proceso e independiente de rubro.
 +`marcas-dormidas:`) · notas de supersesión en §0 y §6 (dogfood-first: el primer arnés real fue
 `dev-full-cycle`, HS-08; luana = candidato futuro, no mandato) · nueva **§9 «Los 3 cuerpos»**
 (posesión e inyección del know-how — definición canónica FIRMADA HS-10, antes solo en research).
+**§10 «Disciplina de desarrollo por paquete de trabajo» (2026-07-07, orden del operador):** toda
+funcionalidad nueva itera por mockup en `research/<fecha>-<slug>/` con decisiones/spec/design/PARIDAD
+y reglas de continuidad entre sesiones — la conversación jamás es el único registro.
