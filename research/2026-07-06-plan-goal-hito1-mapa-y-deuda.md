@@ -59,8 +59,12 @@
   conteos (knowledge/arch) + C4/contratos + graduar las PROPUESTAs (`origen`/`alw`) de fixture a L0
   (decisión doctrinal pendiente en D — tensión `origen` vs `maquinaria-no-contamina-arnes`). (3) **RECIÉN
   AHÍ** commitear el código como Fase F. Deuda E queda **diferida honesta**.
-- **Fases D → F — desbloqueadas por Gate 2**; ejecutar en el orden retro-ajustado (D **antes** de
-  commitear el código de F). Fase E (deuda backend) sigue como track paralelo honestamente diferido.
+- **Fases D → F — EJECUTADAS en orden** (commits `9cd8e77` D · `31a7532` + `c013dc3` F). Fase D cerrada
+  ANTES del código: pass fabricado corregido (`fe-visual-fitness`) · 3 boundaries FE enforced con
+  enforcers verificados corriendo (→ 8 enforced, 97 checks intacto) · 6 decisiones as-code (`origen` en
+  schema, `alw` derivado en `rules.md`) · C4 + propagación HTML+SVG a VISION/CLAUDE. Fase F = **Hito 1 del
+  Mapa VIVO** sobre el dogfood real (loader + `<MapCanvas>` montado), todo verde (go/tsc/biome/depcruise/
+  steiger/stylelint/40 story-tests). Fase E (deuda backend) sigue diferida honesta.
 
 ### Decisiones firmadas / tomadas
 1. **Sustrato del Mapa = HTML bandas/carriles + SVG overlay** (NO React Flow). Operador eligió; RF se reserva
