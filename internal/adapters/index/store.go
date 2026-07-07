@@ -134,24 +134,29 @@ func (s *Store) seed() {
 	}
 	s.mu.Lock()
 	s.graphs[demo.Arnes.ID] = demo
-	// Seed the real dogfood arnés (dev-full-cycle) so GET /api/harnesses/{id}/graph
-	// serves it (HS-09 Hito 1). A decode failure of the embedded, tested asset is a
-	// programmer error, but we log-and-continue so the demo still serves the daemon.
-	if g, err := dogfoodGraph(); err != nil {
-		slog.Error("index: seed dogfood graph", "err", err)
-	} else if g.Arnes != nil {
-		s.graphs[g.Arnes.ID] = g
+	// Seed the embedded arnés graphs so GET /api/harnesses/{id}/graph serves them and the
+	// picker can alternate: dev-full-cycle (the REAL, honest dogfood) + content-studio-full
+	// (the showcase kitchen-sink, HS-09 Hito 2). A decode failure of an embedded, tested
+	// asset is a programmer error, but we log-and-continue so the demo still serves.
+	for name, raw := range map[string][]byte{
+		"dev-full-cycle":      dogfood.DevFullCycleJSON,
+		"content-studio-full": dogfood.ContentStudioFullJSON,
+	} {
+		if g, err := decodeGraph(raw); err != nil {
+			slog.Error("index: seed embedded graph", "arnes", name, "err", err)
+		} else if g.Arnes != nil {
+			s.graphs[g.Arnes.ID] = g
+		}
 	}
 	s.mu.Unlock()
 }
 
-// dogfoodGraph unmarshals the embedded dogfood arnés (dev-full-cycle). The JSON keys
-// mirror the domain tags exactly, so it decodes straight into a Graph with no field
-// mapping — the recorded arnés the Map renders in Hito 1.
-func dogfoodGraph() (domain.Graph, error) {
+// decodeGraph unmarshals an embedded L0 graph. The JSON keys mirror the domain tags
+// exactly, so it decodes straight into a Graph with no field mapping.
+func decodeGraph(raw []byte) (domain.Graph, error) {
 	var g domain.Graph
-	if err := json.Unmarshal(dogfood.DevFullCycleJSON, &g); err != nil {
-		return domain.Graph{}, fmt.Errorf("decode dogfood graph: %w", err)
+	if err := json.Unmarshal(raw, &g); err != nil {
+		return domain.Graph{}, fmt.Errorf("decode embedded graph: %w", err)
 	}
 	return g, nil
 }

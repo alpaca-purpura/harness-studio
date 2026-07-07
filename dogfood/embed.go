@@ -13,3 +13,13 @@ import _ "embed"
 //
 //go:embed dev-full-cycle.graph.json
 var DevFullCycleJSON []byte
+
+// ContentStudioFullJSON is the showcase arnés (content-studio-full): a deliberately
+// maximal, kitchen-sink graph that exercises every L0 casuistic (10 clases · 7 bandas ·
+// 4 canal · 5 procedencia · 4 arquetipo · 3 perfil · 4 gate.tipo · both origen · rework
+// spine). Its rol is Editorial — NON-engineering, on purpose — so the Map proves the
+// agnostic-to-rubro principle (VISION P7). Conformance-valid (arnesia conformance --arnes).
+// Design record: research/2026-07-06-plan-hito2-doctrina-edicion-showcase/. HS-09 Hito 2.
+//
+//go:embed content-studio-full.graph.json
+var ContentStudioFullJSON []byte

@@ -393,6 +393,70 @@
   opacity: 0.8;
 }
 
+/* ── fila-meta doctrinal de la caja (HS-09 Fase 2): arquetipo · perfil · gate ──
+   Hace visibles los 3 ejes de CLASIFICACIÓN (clase⊥arquetipo⊥perfil) + la honestidad
+   del gate (§8, A4) en la tarjeta misma — no solo en el inspector. Cero tokens nuevos. */
+.arnesia-map .node-meta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+}
+/* arquetipo (§8.1): char-badge; el COLOR no discrimina (muted) — lo carga el char + tooltip */
+.arnesia-map .nm-arq {
+  width: 13px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+/* perfil_harness (§8.2): pill con opacidad creciente = «más autonomía → más presencia» */
+.arnesia-map .nm-perfil {
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 9%, transparent);
+}
+.arnesia-map .nm-perfil.p-t1 {
+  opacity: 0.5;
+}
+.arnesia-map .nm-perfil.p-t2 {
+  opacity: 0.76;
+}
+.arnesia-map .nm-perfil.p-t3 {
+  opacity: 1;
+}
+/* gate.tipo (A4): punto de estado; `none` = hueco honesto → hollow + anillo punteado crit */
+.arnesia-map .nm-gate {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--gate, var(--muted-foreground));
+}
+.arnesia-map .nm-gate.hollow {
+  background: transparent;
+  border: 1.5px dotted var(--gate, var(--crit));
+}
+.arnesia-map .node.compact .node-meta {
+  display: none;
+}
+/* procedencia (honestidad del dato, §4): gris ≠ verde — modula el borde-izq de todo nodo.
+   medido/declarado = borde pleno · estimado/inferido = punteado (incierto) · no-declarado = gris. */
+.arnesia-map .node[data-proc="estimado"],
+.arnesia-map .node[data-proc="inferido"] {
+  border-left-style: dashed;
+}
+.arnesia-map .node[data-proc="no-declarado"] {
+  border-left-color: var(--muted-foreground);
+}
+
 /* ── floating controls (mockup:123-145) ── */
 .arnesia-map .ctl {
   position: absolute;

@@ -46,9 +46,9 @@ func TestSeedServesDogfood(t *testing.T) {
 // TestSeedFases asserts the dogfood declares its four phases in order (the lane order the
 // Map renders, RF-12) and that the base-band rule is present.
 func TestSeedFases(t *testing.T) {
-	g, err := dogfoodGraph()
+	g, err := New().Query(context.Background(), "dev-full-cycle")
 	if err != nil {
-		t.Fatalf("dogfoodGraph() = %v", err)
+		t.Fatalf("Query(dev-full-cycle) = %v", err)
 	}
 	want := []string{"spec", "build", "review", "release"}
 	if len(g.Arnes.Fases) != len(want) {
@@ -61,6 +61,32 @@ func TestSeedFases(t *testing.T) {
 	}
 	if std, ok := g.NodeByID("std-spec"); !ok || std.Banda != domain.BandaBase {
 		t.Errorf("std-spec banda = %v, want base", std.Banda)
+	}
+}
+
+// TestSeedServesShowcase asserts the index seeds the showcase arnés (content-studio-full,
+// HS-09 Hito 2): a maximal graph whose rol is Editorial (agnostic-to-rubro proof) and that
+// exercises all 10 clases so the Map can render every casuistic. Conformance-valid.
+func TestSeedServesShowcase(t *testing.T) {
+	g, err := New().Query(context.Background(), "content-studio-full")
+	if err != nil {
+		t.Fatalf("Query(content-studio-full) = %v, want nil", err)
+	}
+	if g.Arnes == nil || g.Arnes.Rol != "Editorial · Content Lead" {
+		t.Fatalf("showcase rol = %v, want Editorial · Content Lead", g.Arnes)
+	}
+	seen := map[domain.Clase]bool{}
+	for _, n := range g.Nodes {
+		seen[n.Clase] = true
+	}
+	for _, c := range []domain.Clase{
+		domain.ClaseSkill, domain.ClaseSubagent, domain.ClaseHook, domain.ClaseRule,
+		domain.ClaseCommand, domain.ClaseMCP, domain.ClasePlugin, domain.ClaseSettings,
+		domain.ClaseOutputStyle, domain.ClaseStatusline,
+	} {
+		if !seen[c] {
+			t.Errorf("showcase missing clase %q — the kitchen-sink must exercise all 10", c)
+		}
 	}
 }
 
@@ -86,8 +112,15 @@ func TestListPortfolio(t *testing.T) {
 			ids = append(ids, g.Arnes.ID)
 		}
 	}
-	// New() seeds demo + dev-full-cycle; sorted → demo before dev-full-cycle.
-	if len(ids) != 2 || ids[0] != "demo" || ids[1] != "dev-full-cycle" {
-		t.Errorf("List ids = %v, want [demo dev-full-cycle]", ids)
+	// New() seeds demo + dev-full-cycle + content-studio-full; sorted by id.
+	want := []string{"content-studio-full", "demo", "dev-full-cycle"}
+	if len(ids) != len(want) {
+		t.Fatalf("List ids = %v, want %v", ids, want)
+	}
+	for i, w := range want {
+		if ids[i] != w {
+			t.Errorf("List ids = %v, want %v", ids, want)
+			break
+		}
 	}
 }

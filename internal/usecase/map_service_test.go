@@ -39,7 +39,7 @@ func TestMapServiceHarnesses(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Harnesses() = %v", err)
 	}
-	if len(gs) != 2 {
-		t.Errorf("Harnesses len = %d, want 2 (demo + dev-full-cycle)", len(gs))
+	if len(gs) != 3 {
+		t.Errorf("Harnesses len = %d, want 3 (demo + dev-full-cycle + content-studio-full)", len(gs))
 	}
 }

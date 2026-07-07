@@ -2,7 +2,14 @@ import type { CSSProperties } from "react"
 import { Glyph } from "@/shared/canvas"
 import { cn } from "@/shared/lib/cn"
 import { KIND } from "../model/kind"
-import { handleFor, isCaja, isPropuesto, transLabel } from "../model/node-view"
+import {
+  ARQUETIPO_MARK,
+  GATE_TONE,
+  handleFor,
+  isCaja,
+  isPropuesto,
+  transLabel,
+} from "../model/node-view"
 import { alwFor, isDelPuesto } from "../model/proposals"
 import type { Box } from "../model/types"
 
@@ -16,6 +23,7 @@ import type { Box } from "../model/types"
 // NodeStyle extends CSSProperties with the per-node type-color custom property (--tc), which
 // map.css reads for the left border, tint, badges and transition tag.
 type NodeStyle = CSSProperties & { "--tc"?: string }
+type GateStyle = CSSProperties & { "--gate"?: string }
 
 interface ArnesNodeProps {
   box: Box
@@ -34,12 +42,17 @@ export function ArnesNode({ box, support, compact, dim, selected, onSelect }: Ar
   const propuesto = isPropuesto(box)
   const alw = alwFor(box.id)
   const trans = transLabel(box)
+  // Classification marks (§8.1/§8.2) — from REAL contract data; only cajas carry them.
+  const arq = box.contract?.arquetipo
+  const perfil = box.contract?.perfil_harness
+  const gate = box.contract?.gate?.tipo
   const style: NodeStyle = { "--tc": k.color }
 
   return (
     <button
       type="button"
       data-node-id={box.id}
+      data-proc={box.procedencia}
       aria-pressed={selected}
       onClick={() => onSelect?.(box.id)}
       style={style}
@@ -63,6 +76,37 @@ export function ArnesNode({ box, support, compact, dim, selected, onSelect }: Ar
       {trans && (
         <span className="node-trans" title="transición del spine que posee esta caja">
           {trans}
+        </span>
+      )}
+      {caja && (arq || perfil || gate) && (
+        <span className="node-meta">
+          {arq && (
+            <span
+              className="nm-arq"
+              role="img"
+              title={ARQUETIPO_MARK[arq].label}
+              aria-label={ARQUETIPO_MARK[arq].label}
+            >
+              {ARQUETIPO_MARK[arq].char}
+            </span>
+          )}
+          {perfil && (
+            <span
+              className={cn("nm-perfil", `p-${perfil.toLowerCase()}`)}
+              title={`perfil ${perfil}`}
+            >
+              {perfil}
+            </span>
+          )}
+          {gate && (
+            <span
+              className={cn("nm-gate", GATE_TONE[gate].hollow && "hollow")}
+              style={{ "--gate": GATE_TONE[gate].color } as GateStyle}
+              role="img"
+              title={GATE_TONE[gate].label}
+              aria-label={GATE_TONE[gate].label}
+            />
+          )}
         </span>
       )}
     </button>

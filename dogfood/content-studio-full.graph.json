@@ -1,0 +1,264 @@
+{
+  "arnes": {
+    "id": "content-studio-full",
+    "rol": "Editorial · Content Lead",
+    "proceso": "producción editorial end-to-end (idea → publicado → medido)",
+    "empresa": "alpacapurpura",
+    "reporta_a": "marketing-lead",
+    "canal": "estable",
+    "marketplace": "alpacapurpura/prenter-marketplace",
+    "fases": ["brief", "research", "draft", "edit", "review", "publish", "measure"],
+    "spine": {
+      "inicial": "idea",
+      "terminales": ["medido"],
+      "estados": ["idea", "brief", "investigado", "borrador", "editado", "aprobado", "publicado", "medido"],
+      "transiciones": [
+        { "de": "idea", "a": "brief" },
+        { "de": "brief", "a": "investigado" },
+        { "de": "investigado", "a": "borrador" },
+        { "de": "borrador", "a": "editado" },
+        { "de": "editado", "a": "aprobado" },
+        { "de": "aprobado", "a": "publicado" },
+        { "de": "publicado", "a": "medido" },
+        { "de": "editado", "a": "borrador" }
+      ]
+    }
+  },
+  "nodos": [
+    { "id": "fmt-pre-write", "clase": "hook", "nombre": "formato pre-write", "banda": "guardia", "fase": null, "canal": "estable", "procedencia": "medido" },
+    { "id": "pii-guard", "clase": "hook", "nombre": "guardia PII", "banda": "guardia", "fase": null, "canal": "estable", "procedencia": "declarado" },
+    { "id": "telemetry-emit", "clase": "hook", "nombre": "telemetría de nacimiento", "banda": "guardia", "fase": null, "canal": "beta", "procedencia": "medido" },
+
+    {
+      "id": "brief-caja", "clase": "skill", "nombre": "destilar el brief", "banda": "fase", "fase": "brief",
+      "canal": "estable", "procedencia": "medido", "origen": "estandar",
+      "fuente_path": ".claude/skills/brief/SKILL.md",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "excepcion", "perfil_harness": "T2", "fase": "brief", "estado": "idea -> brief",
+        "why": "Convertir una idea cruda en un brief accionable con ángulo, audiencia y criterio de éxito.",
+        "capabilities": [
+          { "id": "angulo", "what": "fija el ángulo editorial", "success": "un ángulo declarado + audiencia objetivo" }
+        ],
+        "constraints": ["no inventa datos de mercado sin fuente"],
+        "non_goals": ["no redacta el contenido"],
+        "necesita": [
+          { "art": "idea de contenido", "de": "usuario", "requerido": true },
+          { "art": "voz de marca", "de": "base:brand-voice", "requerido": true }
+        ],
+        "entrega": [{ "art": "brief.md", "escritor_unico": true }],
+        "ruta": [{ "a": "research-caja" }],
+        "gate": {
+          "tipo": "manual", "detalle": "el content lead aprueba el brief antes de investigar",
+          "aceptacion": [{ "given": "una idea cruda", "when": "se destila el brief", "then": "el brief nombra ángulo, audiencia y criterio de éxito" }],
+          "evidencia": "brief aprobado por humano en 42/45 corridas (30d)"
+        },
+        "handoff": { "cuando": "brief aprobado", "a": "caja:research-caja" }
+      }
+    },
+    {
+      "id": "research-caja", "clase": "skill", "nombre": "investigar el tema", "banda": "fase", "fase": "research",
+      "canal": "beta", "procedencia": "estimado", "origen": "estandar",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "abierto", "perfil_harness": "T3", "fase": "research", "estado": "brief -> investigado",
+        "why": "Reunir evidencia, fuentes y ganchos SEO para sostener el contenido.",
+        "capabilities": [
+          { "id": "fuentes", "what": "reúne fuentes citables", "success": "≥3 fuentes verificables por afirmación clave" }
+        ],
+        "constraints": ["cita siempre la fuente primaria"],
+        "non_goals": ["no fija el ángulo (lo hace el brief)"],
+        "necesita": [
+          { "art": "brief.md", "de": "caja:brief-caja", "requerido": true },
+          { "art": "criterios SEO", "de": "libreria:seo-expert", "requerido": false },
+          { "art": "resultados de búsqueda", "de": "terceros:web-search", "requerido": true }
+        ],
+        "entrega": [{ "art": "research.md", "escritor_unico": true }],
+        "ruta": [{ "a": "draft-caja" }],
+        "gate": {
+          "tipo": "parcial", "detalle": "verificación automática de que cada afirmación cita fuente; el resto queda a juicio",
+          "aceptacion": [{ "given": "un brief aprobado", "when": "se investiga", "then": "cada afirmación clave tiene ≥1 fuente citada" }],
+          "evidencia": "cobertura de citas medida en 60% de corridas (parcial)"
+        },
+        "handoff": { "cuando": "research con fuentes", "a": "caja:draft-caja" }
+      }
+    },
+    {
+      "id": "draft-caja", "clase": "skill", "nombre": "redactar el borrador", "banda": "fase", "fase": "draft",
+      "canal": "beta", "procedencia": "estimado", "origen": "estandar",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "abierto", "perfil_harness": "T3", "fase": "draft", "estado": "investigado -> borrador",
+        "why": "Producir el primer borrador completo desde el research y la guía de estilo.",
+        "capabilities": [
+          { "id": "borrador", "what": "redacta el borrador completo", "success": "borrador que cubre todos los puntos del brief" }
+        ],
+        "constraints": ["respeta la guía de estilo cargada"],
+        "non_goals": ["no pule el tono final (lo hace edit)"],
+        "necesita": [
+          { "art": "research.md", "de": "caja:research-caja", "requerido": true },
+          { "art": "guía de estilo", "de": "base:style-guide", "requerido": true }
+        ],
+        "entrega": [{ "art": "draft.md", "escritor_unico": true }],
+        "ruta": [{ "a": "edit-caja" }],
+        "gate": { "tipo": "none", "detalle": "HALLAZGO: caja generativa sin eval formal aún — el hueco es visible a propósito (METODOLOGIA §3, gris ≠ verde)" },
+        "handoff": { "cuando": "borrador listo", "a": "caja:edit-caja" }
+      }
+    },
+    {
+      "id": "edit-caja", "clase": "skill", "nombre": "editar y pulir", "banda": "fase", "fase": "edit",
+      "canal": "estable", "procedencia": "medido", "origen": "estandar",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "excepcion", "perfil_harness": "T2", "fase": "edit", "estado": "borrador -> editado",
+        "why": "Pulir claridad, tono y estructura; devolver a borrador si requiere reescritura.",
+        "capabilities": [
+          { "id": "pulido", "what": "corrige claridad y tono", "success": "0 errores de estilo detectados por el linter editorial" }
+        ],
+        "constraints": ["no cambia el ángulo aprobado"],
+        "non_goals": ["no aprueba para publicar"],
+        "necesita": [
+          { "art": "draft.md", "de": "caja:draft-caja", "requerido": true },
+          { "art": "linter editorial", "de": "maquinaria:lint-runner", "requerido": true }
+        ],
+        "entrega": [{ "art": "edited.md", "escritor_unico": true }],
+        "ruta": [
+          { "a": "review-caja" },
+          { "a": "draft-caja", "si": "requiere reescritura profunda" }
+        ],
+        "gate": {
+          "tipo": "auto", "detalle": "linter editorial bloquea si hay errores de estilo",
+          "aceptacion": [{ "given": "un borrador", "when": "se edita", "then": "el linter reporta 0 errores de estilo" }],
+          "evidencia": "linter verde en 96% de corridas (medido, 30d)"
+        },
+        "handoff": { "cuando": "linter verde", "a": "caja:review-caja" }
+      }
+    },
+    {
+      "id": "review-caja", "clase": "skill", "nombre": "revisión editorial", "banda": "fase", "fase": "review",
+      "canal": "estable", "procedencia": "declarado", "origen": "estandar",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "pipeline", "perfil_harness": "T1", "fase": "review", "estado": "editado -> aprobado",
+        "why": "Aprobación final humana con checklist legal y de marca antes de publicar.",
+        "capabilities": [
+          { "id": "aprobacion", "what": "aprueba o devuelve", "success": "decisión registrada con motivo" }
+        ],
+        "constraints": ["no publica; solo aprueba"],
+        "non_goals": ["no reescribe"],
+        "necesita": [
+          { "art": "edited.md", "de": "caja:edit-caja", "requerido": true },
+          { "art": "plantilla legacy", "de": "marcas-dormidas:legacy-cms", "requerido": false }
+        ],
+        "entrega": [{ "art": "approval.md", "escritor_unico": true }],
+        "ruta": [
+          { "a": "publish-caja" },
+          { "a": "draft-caja", "si": "cambios mayores solicitados" }
+        ],
+        "gate": {
+          "tipo": "manual", "detalle": "el content lead firma la aprobación",
+          "aceptacion": [{ "given": "un contenido editado", "when": "se revisa", "then": "queda aprobado o devuelto con motivo explícito" }],
+          "evidencia": "aprobación humana registrada (declarado, sin telemetría fina)"
+        },
+        "handoff": { "cuando": "aprobado", "a": "humano" }
+      }
+    },
+    {
+      "id": "publish-caja", "clase": "skill", "nombre": "publicar", "banda": "fase", "fase": "publish",
+      "canal": "estable", "procedencia": "medido", "origen": "del-puesto",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "pipeline", "perfil_harness": "T1", "fase": "publish", "estado": "aprobado -> publicado",
+        "why": "Publicar el contenido aprobado en el canal de la empresa (paso a medida de este puesto).",
+        "capabilities": [
+          { "id": "publicar", "what": "publica en el CMS", "success": "URL viva devuelta" }
+        ],
+        "constraints": ["solo publica contenido aprobado"],
+        "non_goals": ["no mide desempeño (lo hace measure)"],
+        "necesita": [{ "art": "approval.md", "de": "caja:review-caja", "requerido": true }],
+        "entrega": [{ "art": "published-url", "escritor_unico": true }],
+        "ruta": [{ "a": "measure-caja" }],
+        "gate": {
+          "tipo": "auto", "detalle": "el CMS confirma publicación con 200 + URL",
+          "aceptacion": [{ "given": "contenido aprobado", "when": "se publica", "then": "el CMS responde 200 con URL viva" }],
+          "evidencia": "publicación confirmada en 99% de corridas (medido)"
+        },
+        "handoff": { "cuando": "URL viva", "a": "caja:measure-caja" }
+      }
+    },
+    {
+      "id": "measure-caja", "clase": "skill", "nombre": "medir desempeño", "banda": "fase", "fase": "measure",
+      "canal": "beta", "procedencia": "inferido", "origen": "estandar",
+      "contract": {
+        "caja": true, "clase": "skill", "arquetipo": "pipeline", "perfil_harness": "T1", "fase": "measure", "estado": "publicado -> medido",
+        "why": "Registrar métricas de desempeño del contenido publicado para retroalimentar el brief.",
+        "capabilities": [
+          { "id": "metricas", "what": "recolecta métricas 7d", "success": "métricas 7d anexadas al log compartido" }
+        ],
+        "constraints": ["no altera el contenido publicado"],
+        "non_goals": ["no decide próximos temas"],
+        "necesita": [
+          { "art": "published-url", "de": "caja:publish-caja", "requerido": true },
+          { "art": "analítica", "de": "terceros:analytics-api", "requerido": true }
+        ],
+        "entrega": [{ "art": "metrics.log", "escritor_unico": false }],
+        "ruta": [],
+        "gate": { "tipo": "none", "detalle": "HALLAZGO: la medición no tiene umbral de éxito definido aún — hueco honesto" },
+        "handoff": { "cuando": "métricas registradas", "a": "humano" }
+      }
+    },
+
+    {
+      "id": "fact-checker", "clase": "subagent", "nombre": "verificador de hechos", "banda": "fase", "fase": "research",
+      "canal": "estable", "procedencia": "declarado", "origen": "estandar",
+      "contract": {
+        "caja": false, "clase": "subagent",
+        "why": "Apoyo de verificación de afirmaciones bajo demanda del research; no es una caja del spine.",
+        "capabilities": [{ "id": "verificar", "what": "contrasta una afirmación contra fuentes", "success": "veredicto verificado/dudoso con cita" }]
+      }
+    },
+    {
+      "id": "tone-guardian", "clase": "subagent", "nombre": "guardián de tono", "banda": "fase", "fase": "edit",
+      "canal": "estable", "procedencia": "declarado", "origen": "del-puesto",
+      "contract": {
+        "caja": false, "clase": "subagent", "arquetipo": "no-arnesar",
+        "why": "Juicio puro de tono de marca — no se arnesa (sale del grafo como caja), vive como apoyo consultivo."
+      }
+    },
+    { "id": "publish-now", "clase": "command", "nombre": "publicar ahora", "banda": "fase", "fase": "publish", "canal": "estable", "procedencia": "declarado", "origen": "del-puesto" },
+
+    { "id": "style-guide", "clase": "rule", "nombre": "guía de estilo", "banda": "base", "fase": null, "canal": "estable", "procedencia": "declarado"},
+    { "id": "brand-voice", "clase": "rule", "nombre": "voz de marca", "banda": "base", "fase": null, "canal": "estable", "procedencia": "declarado"},
+    { "id": "tone-rules", "clase": "rule", "nombre": "reglas de tono", "banda": "base", "fase": null, "canal": "estable", "procedencia": "declarado"},
+    { "id": "seo-rules", "clase": "rule", "nombre": "reglas SEO", "banda": "base", "fase": null, "canal": "beta", "procedencia": "estimado"},
+    { "id": "legal-checklist", "clase": "rule", "nombre": "checklist legal (deprecado)", "banda": "base", "fase": null, "canal": "deprecado", "procedencia": "no-declarado"},
+
+    { "id": "content-db", "clase": "mcp", "nombre": "base de conocimiento", "banda": "base", "fase": null, "canal": "estable", "procedencia": "medido" },
+    { "id": "asset-store", "clase": "mcp", "nombre": "almacén de activos", "banda": "base", "fase": null, "canal": "estable", "procedencia": "declarado" },
+    { "id": "semantic-index", "clase": "mcp", "nombre": "índice semántico", "banda": "base", "fase": null, "canal": "propuesto", "procedencia": "estimado" },
+
+    { "id": "seo-expert", "clase": "skill", "nombre": "experto SEO", "banda": "libreria-expertos", "fase": null, "canal": "beta", "procedencia": "declarado" },
+    { "id": "legal-expert", "clase": "skill", "nombre": "experto legal", "banda": "libreria-expertos", "fase": null, "canal": "beta", "procedencia": "declarado" },
+
+    { "id": "content-kit", "clase": "plugin", "nombre": "kit de contenidos", "banda": "meta-harness", "fase": null, "canal": "estable", "procedencia": "declarado" },
+    { "id": "role-permissions", "clase": "settings", "nombre": "permisos por rol", "banda": "meta-harness", "fase": null, "canal": "estable", "procedencia": "declarado" },
+    { "id": "product-style", "clase": "output-style", "nombre": "estilo de producto", "banda": "meta-harness", "fase": null, "canal": "estable", "procedencia": "declarado" },
+    { "id": "arnes-health", "clase": "statusline", "nombre": "salud del arnés", "banda": "meta-harness", "fase": null, "canal": "beta", "procedencia": "medido" },
+
+    { "id": "web-search", "clase": "mcp", "nombre": "búsqueda web · terceros", "banda": "terceros", "fase": null, "canal": "estable", "procedencia": "declarado" },
+    { "id": "analytics-api", "clase": "mcp", "nombre": "API de analítica", "banda": "terceros", "fase": null, "canal": "estable", "procedencia": "medido" },
+
+    { "id": "legacy-cms", "clase": "command", "nombre": "CMS heredado", "banda": "marcas-dormidas", "fase": null, "canal": "deprecado", "procedencia": "no-declarado" }
+  ],
+  "edges": [
+    { "de": "brief-caja", "a": "research-caja", "tipo": "invoca" },
+    { "de": "research-caja", "a": "draft-caja", "tipo": "invoca" },
+    { "de": "draft-caja", "a": "edit-caja", "tipo": "invoca" },
+    { "de": "edit-caja", "a": "review-caja", "tipo": "invoca" },
+    { "de": "review-caja", "a": "publish-caja", "tipo": "invoca" },
+    { "de": "publish-caja", "a": "measure-caja", "tipo": "invoca" },
+    { "de": "review-caja", "a": "draft-caja", "tipo": "invoca" },
+
+    { "de": "brief-caja", "a": "brand-voice", "tipo": "lee" },
+    { "de": "draft-caja", "a": "style-guide", "tipo": "lee" },
+    { "de": "research-caja", "a": "seo-expert", "tipo": "lee" },
+    { "de": "research-caja", "a": "web-search", "tipo": "lee" },
+
+    { "de": "publish-caja", "a": "content-db", "tipo": "escribe" },
+    { "de": "measure-caja", "a": "analytics-api", "tipo": "escribe" }
+  ]
+}

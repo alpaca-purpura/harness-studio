@@ -29,6 +29,9 @@ export function WorkspaceStage() {
   const [loadErr, setLoadErr] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string>()
   const [harnesses, setHarnesses] = useState<HarnessSummary[]>([])
+  // Whether the portfolio has been fetched at least once — gates the graph load so a session
+  // pointing at a non-indexed arnés never fires a 404 before we know the portfolio.
+  const [harnessesLoaded, setHarnessesLoaded] = useState(false)
   // Only Estructura is enabled in the MVP; the switcher lives in MapBar (chrome), staged layers
   // render disabled with the "Necesita telemetría" tooltip (RF-60 / spec §8).
   const [capa, setCapa] = useState<Capa>("estructura")
@@ -42,10 +45,21 @@ export function WorkspaceStage() {
   // only transport seam; the entity/canvas never fetch.
   useEffect(() => {
     if (!viewedId || !isMapa) return
+    // Wait until the portfolio is known before deciding: a session may point at an arnés the
+    // index doesn't hold (e.g. a persisted session to a since-removed arnés). Fetching it blindly
+    // spams the console with a 404; instead we degrade to a clean "no indexado" state and let the
+    // picker be the escape hatch.
+    if (!harnessesLoaded) return
     let alive = true
     setGraph(null)
     setLoadErr(null)
     setSelectedId(undefined)
+    if (!harnesses.some((h) => h.id === viewedId)) {
+      setLoadErr(`«${viewedId}» no está en el índice del daemon.`)
+      return () => {
+        alive = false
+      }
+    }
     api
       .getGraph<Graph>(viewedId)
       .then((g) => {
@@ -57,7 +71,7 @@ export function WorkspaceStage() {
     return () => {
       alive = false
     }
-  }, [viewedId, isMapa])
+  }, [viewedId, isMapa, harnesses, harnessesLoaded])
 
   // Portfolio for the picker (RF-72). Empty until the daemon lists harnesses (Hito 2 backend).
   useEffect(() => {
@@ -66,10 +80,16 @@ export function WorkspaceStage() {
     api
       .listHarnesses<HarnessSummary[]>()
       .then((hs) => {
-        if (alive) setHarnesses(hs ?? [])
+        if (alive) {
+          setHarnesses(hs ?? [])
+          setHarnessesLoaded(true)
+        }
       })
       .catch(() => {
-        if (alive) setHarnesses([])
+        if (alive) {
+          setHarnesses([])
+          setHarnessesLoaded(true)
+        }
       })
     return () => {
       alive = false

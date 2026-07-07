@@ -23,7 +23,9 @@ const cajaBox: Box = {
   fase: "spec",
   estado: "idea -> spec",
   canal: "beta",
-  contract: { caja: true },
+  procedencia: "medido",
+  // Full classification so the doctrinal meta-row (arquetipo · perfil · gate) renders (Fase 2).
+  contract: { caja: true, arquetipo: "excepcion", perfil_harness: "T2", gate: { tipo: "manual" } },
 }
 
 const meta = {
@@ -58,6 +60,56 @@ export const Caja: Story = {
     await expect(c.getByText("caja")).toBeInTheDocument()
     // Transition normalized from the real estado "idea -> spec".
     await expect(c.getByText("idea → spec")).toBeInTheDocument()
+    // Doctrinal meta-row (Fase 2): the 3 classification marks are on the card, not just inspector.
+    await expect(c.getByText("T2")).toBeInTheDocument() // perfil_harness pill
+    await expect(c.getByText("≈")).toBeInTheDocument() // arquetipo excepcion char-badge
+    await expect(c.getByLabelText(/gate manual/)).toBeInTheDocument() // gate dot (skill-blue)
+  },
+}
+
+// The eval-gate honesty (A4): a caja whose gate is `none` must SURFACE the hole (hollow crit dot
+// + a "hallazgo" label), never hide it. Also exercises arquetipo=abierto/perfil=T3/procedencia
+// dashed border. This is the strongest doctrinal mark on the card.
+export const CajaGateNone: Story = {
+  args: {
+    box: {
+      id: "draft-caja",
+      clase: "skill",
+      nombre: "redactar el borrador",
+      banda: "fase",
+      fase: "draft",
+      estado: "investigado -> borrador",
+      procedencia: "estimado",
+      contract: { caja: true, arquetipo: "abierto", perfil_harness: "T3", gate: { tipo: "none" } },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByLabelText(/gate none — SIN eval/)).toBeInTheDocument()
+    await expect(c.getByText("T3")).toBeInTheDocument()
+    await expect(c.getByText("✳")).toBeInTheDocument() // abierto
+  },
+}
+
+// The determinista end: pipeline · T1 · auto — the other extreme of the classification axes.
+export const CajaPipelineAuto: Story = {
+  args: {
+    box: {
+      id: "publish-caja",
+      clase: "skill",
+      nombre: "publicar",
+      banda: "fase",
+      fase: "publish",
+      estado: "aprobado -> publicado",
+      procedencia: "medido",
+      contract: { caja: true, arquetipo: "pipeline", perfil_harness: "T1", gate: { tipo: "auto" } },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("T1")).toBeInTheDocument()
+    await expect(c.getByText("═")).toBeInTheDocument() // pipeline
+    await expect(c.getByLabelText(/gate auto/)).toBeInTheDocument()
   },
 }
 
