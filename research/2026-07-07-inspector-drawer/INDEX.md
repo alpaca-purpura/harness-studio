@@ -31,11 +31,13 @@
 
 - [x] mockup-drawer.html clonado del drawer actual (v1, 2026-07-07) — **artifact
       (publicar SIEMPRE a esta URL):** https://claude.ai/code/artifact/99e127f9-b7f2-48c8-b506-ae0fb376743d
-- [ ] iteraciones sobre el mockup → firma
-- [ ] decisiones.md (crece por iteración)
-- [ ] spec.md + design.md → firma
+- [x] iteraciones sobre el mockup → **FIRMADO** (v6; decisiones #1–#5 firmadas, #6
+      resuelto por medición — «Firmo de momento», 2026-07-07)
+- [x] decisiones.md (6 entradas, todas cerradas)
+- [x] spec.md (RF-80..96 + Gherkin + trazabilidad) + design.md (UI al pixel) — 🧑‍⚖️
+      **esperando firma del paquete**
 - [ ] implementación + stories
-- [ ] PARIDAD.md verificada → gate final
+- [ ] PARIDAD.md verificada → gate final (esqueleto listo, 16 filas)
 
 ## Retomar aquí
 
@@ -82,8 +84,13 @@
   el CUERPO de la skill al activar (~187 tok); el contrato fusionado en frontmatter =
   0 tokens de contexto. El yml hermano es innecesario para skills; contrato fusionado
   validado. Rules/CLAUDE.md = única superficie sensible (ya cubierta).
-- **Próximo paso:** el operador prueba v6 → firma #2 (tooltips, única en PROPUESTA) y
-  dicta el siguiente cambio; cuando declare el mockup completo → spec.md + design.md.
+- **#2 FIRMADA («Firmo de momento» — redacciones ajustables en paridad) → mockup v6 =
+  FIRMADO completo.** Specs escritos: `spec.md` (RF-80..96, Gherkin, trazabilidad a
+  mockup:línea de v6/`b2b7104`) + `design.md` (anatomía, tokens, tabla clase→contenido,
+  estados, a11y) + `PARIDAD.md` esqueleto (16 filas).
+- **Próximo paso:** 🧑‍⚖️ el operador firma el PAQUETE (spec+design) → arranca la
+  implementación (FE: inspector.tsx + entities/arnes/model/doctrina.ts + selectors ·
+  Go: endpoint fuente confinado) llenando PARIDAD fila por fila.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
