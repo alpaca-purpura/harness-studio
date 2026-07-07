@@ -19,7 +19,8 @@ pre-commit:
       root: "web/"
       glob: "*.{ts,tsx}"
       # pnpm exec: biome vive en node_modules/.bin, no en el PATH del hook.
-      run: pnpm exec biome check --write --staged {staged_files}
+      # --no-errors-on-unmatched: un staged que biome ignora (vite.config, etc.) no rompe el commit.
+      run: pnpm exec biome check --write --staged --no-errors-on-unmatched {staged_files}
     rust:
       root: "web/src-tauri/"
       glob: "*.rs"
