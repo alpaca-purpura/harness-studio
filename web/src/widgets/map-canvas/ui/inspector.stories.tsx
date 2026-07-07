@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactNode } from "react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import type { Box } from "@/entities/arnes"
+import type { Box, Graph } from "@/entities/arnes"
 import { Inspector } from "./inspector"
 
 // Inspector is a right-docked, full-height overlay → give it a positioned, sized frame.
@@ -108,6 +108,100 @@ export const CorridasHonesta: Story = {
     await expect(c.getByText(/indexer JSONL/)).toBeInTheDocument()
     await expect(c.getByText(/boxes\/spec-writer\/run/)).toBeInTheDocument()
     await expect(c.getByRole("button", { name: /Ver todas las corridas/ })).toBeDisabled()
+  },
+}
+
+// Grafo mínimo alrededor de cajaBox para RF-89/90: builder existe (chip navegable),
+// std-spec lee (edge inverso), y la ruta apunta a builder.
+const miniGraph: Graph = {
+  arnes: { reporta_a: null },
+  nodos: [
+    cajaBox,
+    { id: "builder", clase: "skill", nombre: "construir", banda: "fase", fase: "build" },
+    { id: "std-spec", clase: "rule", nombre: "estándar de spec", banda: "base" },
+  ],
+  edges: [
+    { de: "builder", a: "spec-writer", tipo: "invoca" },
+    { de: "spec-writer", a: "std-spec", tipo: "lee" },
+  ],
+}
+
+// RF-89/90 — Viene de (edges inversos con tipo) + chips navegables en Necesita/Ruta:
+// click en chip cuyo destino existe → onSelect; destino ausente → chip inerte rotulado.
+export const VieneDeChips: Story = {
+  args: { box: cajaBox, graph: miniGraph, onSelect: fn(), onClose: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    // Viene de: builder invoca a spec-writer (derivado de graph.edges).
+    await expect(c.getByText("Viene de")).toBeInTheDocument()
+    const inverso = c.getByRole("button", { name: /builder invoca/ })
+    await inverso.click()
+    await expect(args.onSelect).toHaveBeenCalledWith("builder")
+    // Ruta: chip navegable a builder + condición como badge punteado.
+    const rutaChip = c.getAllByRole("button", { name: /^builder$/ })[0]
+    await expect(rutaChip).toBeEnabled()
+    await expect(c.getByText("si gate del spec verde")).toBeInTheDocument()
+    // Necesita: "usuario" no tiene id de nodo → chip inerte rotulado.
+    const inerte = c.getByRole("button", { name: /idea del usuario/ })
+    await expect(inerte).toBeDisabled()
+    await expect(inerte).toHaveAttribute("title", "nodo fuera del grafo cargado")
+  },
+}
+
+// RF-91 — hallazgo determinista gate:none (crit-soft, A4) — nunca «sin hallazgos».
+export const HallazgoGateNone: Story = {
+  args: {
+    box: {
+      ...cajaBox,
+      id: "draft-caja",
+      nombre: "redactar el borrador",
+      contract: {
+        ...cajaBox.contract,
+        caja: true,
+        gate: { tipo: "none", detalle: "caja generativa sin eval formal aún" },
+      },
+    },
+    conformance: [],
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("gate:none")).toBeInTheDocument()
+    await expect(c.getByText(/caja sin eval formal/)).toBeInTheDocument()
+    await expect(c.queryByText("Sin hallazgos abiertos.")).not.toBeInTheDocument()
+  },
+}
+
+// RF-91/92 — sin hallazgos como estado + checks rojos de conformance filtrados por nodo
+// + botonera staged (disabled, rotulada — jamás finge funcionar).
+export const HallazgosBotonera: Story = {
+  args: {
+    box: cajaBox,
+    conformance: [
+      {
+        check: { id: "estado-en-spine-declarado", severidad: "error" },
+        veredicto: "fail",
+        detalle: "spec-writer (estado mal formado)",
+      },
+      {
+        check: { id: "escritor-unico", severidad: "error" },
+        veredicto: "fail",
+        detalle: "otra-caja escribe spec.md",
+      },
+      { check: { id: "spine-auto-consistente", severidad: "error" }, veredicto: "pass" },
+    ],
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // Solo el check rojo que MENCIONA a este nodo (word-boundary sobre detalle).
+    await expect(c.getByText("estado-en-spine-declarado")).toBeInTheDocument()
+    await expect(c.queryByText("escritor-unico")).not.toBeInTheDocument()
+    await expect(c.queryByText("Sin hallazgos abiertos.")).not.toBeInTheDocument()
+    // Botonera staged: primaria + 3, todas disabled y rotuladas.
+    await expect(c.getByRole("button", { name: "Editar conversando" })).toBeDisabled()
+    await expect(c.getByRole("button", { name: "Promover a estable" })).toBeDisabled()
+    await expect(c.getByText(/se cablea en Fase 3\/4/)).toBeInTheDocument()
   },
 }
 

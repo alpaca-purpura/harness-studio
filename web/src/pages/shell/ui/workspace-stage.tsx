@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import type { Graph } from "@/entities/arnes"
+import type { ConformanceResult, Graph } from "@/entities/arnes"
 import {
   api,
   ComingSoon,
@@ -28,6 +28,9 @@ export function WorkspaceStage() {
   const [graph, setGraph] = useState<Graph | null>(null)
   const [loadErr, setLoadErr] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string>()
+  // Reporte de conformance del arnés visto (RF-91). undefined = no disponible — el
+  // inspector lo DICE; jamás se finge un «sin hallazgos» sin dato.
+  const [conformance, setConformance] = useState<ConformanceResult[]>()
   const [harnesses, setHarnesses] = useState<HarnessSummary[]>([])
   // Whether the portfolio has been fetched at least once — gates the graph load so a session
   // pointing at a non-indexed arnés never fires a 404 before we know the portfolio.
@@ -54,6 +57,7 @@ export function WorkspaceStage() {
     setGraph(null)
     setLoadErr(null)
     setSelectedId(undefined)
+    setConformance(undefined)
     if (!harnesses.some((h) => h.id === viewedId)) {
       setLoadErr(`«${viewedId}» no está en el índice del daemon.`)
       return () => {
@@ -67,6 +71,16 @@ export function WorkspaceStage() {
       })
       .catch((e: unknown) => {
         if (alive) setLoadErr(e instanceof Error ? e.message : String(e))
+      })
+    // Conformance del arnés (RF-91): un fetch por arnés; si falla queda undefined y el
+    // inspector muestra el estado honesto «no disponible».
+    api
+      .getConformance<{ results?: ConformanceResult[] }>(viewedId)
+      .then((r) => {
+        if (alive) setConformance(r.results ?? [])
+      })
+      .catch(() => {
+        if (alive) setConformance(undefined)
       })
     return () => {
       alive = false
@@ -175,7 +189,13 @@ export function WorkspaceStage() {
                 <>
                   <MapCanvas graph={graph} selectedId={selectedId} onSelect={setSelectedId} />
                   {/* Siempre montado (RF-84): sin selección = affordance, no ausencia. */}
-                  <Inspector box={selectedBox} onClose={() => setSelectedId(undefined)} />
+                  <Inspector
+                    box={selectedBox}
+                    onClose={() => setSelectedId(undefined)}
+                    graph={graph}
+                    onSelect={setSelectedId}
+                    conformance={conformance}
+                  />
                 </>
               )}
             </div>

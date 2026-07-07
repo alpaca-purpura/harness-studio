@@ -3,10 +3,14 @@ import {
   alwFor,
   type Box,
   type Clase,
+  type ConformanceResult,
+  type Graph,
   handleFor,
   isDelPuesto,
   KIND,
   SEC_TIP,
+  selectHallazgosConformance,
+  selectVieneDe,
   tipDe,
 } from "@/entities/arnes"
 import { Glyph } from "@/shared/canvas"
@@ -114,9 +118,15 @@ export interface InspectorProps {
   // Sin box = estado vacío (RF-84): la línea de affordance, no un panel en blanco ni ausencia.
   box?: Box | undefined
   onClose: () => void
+  // El grafo cargado: alimenta Viene de (edges inversos) y la navegabilidad de los chips.
+  graph?: Graph | undefined
+  // Navegación de chips (RF-90): el mismo mecanismo que click en nodo — lo inyecta la página.
+  onSelect?: ((id: string) => void) | undefined
+  // Resultados de GET …/conformance (los inyecta la página); undefined = no disponible (se dice).
+  conformance?: readonly ConformanceResult[] | undefined
 }
 
-export function Inspector({ box, onClose }: InspectorProps) {
+export function Inspector({ box, onClose, graph, onSelect, conformance }: InspectorProps) {
   const [expanded, setExpanded] = useState(false)
   const [tab, setTab] = useState<Tab>("resumen")
 
@@ -221,7 +231,7 @@ export function Inspector({ box, onClose }: InspectorProps) {
           aria-labelledby="dw-tab-resumen"
           hidden={tab !== "resumen"}
         >
-          <Resumen box={box} />
+          <Resumen box={box} graph={graph} onSelect={onSelect} conformance={conformance} />
         </div>
         <div
           className="tabpane"
@@ -246,12 +256,142 @@ export function Inspector({ box, onClose }: InspectorProps) {
   )
 }
 
+// Chip — insumo/destino tipado y NAVEGABLE (RF-90): click en un chip cuyo destino existe
+// en el grafo cargado selecciona ese nodo (mismo mecanismo que click en nodo, vía el
+// onSelect que inyecta la página); destino ausente → chip inerte rotulado, jamás muerto
+// en silencio.
+function Chip({
+  label,
+  org,
+  targetId,
+  graph,
+  onSelect,
+}: {
+  label: string
+  org?: string | undefined
+  targetId?: string | undefined
+  graph?: Graph | undefined
+  onSelect?: ((id: string) => void) | undefined
+}) {
+  const navegable =
+    targetId !== undefined && onSelect !== undefined && graph?.nodos.some((n) => n.id === targetId)
+  return (
+    <button
+      type="button"
+      className="chip"
+      disabled={!navegable}
+      title={navegable ? `Ver ${targetId} en el mapa` : "nodo fuera del grafo cargado"}
+      onClick={navegable ? () => onSelect(targetId) : undefined}
+    >
+      {label}
+      {org ? <span className="org">{org}</span> : null}
+    </button>
+  )
+}
+
+// Hallazgos — SIEMPRE presente (RF-91), determinista del dato: gate:none (A4, crit) ·
+// no-reconocido (D-c, warn) · checks rojos del endpoint de conformance filtrados por
+// nodo. «Sin hallazgos abiertos» también informa; conformance ausente se DICE.
+function Hallazgos({
+  box,
+  conformance,
+}: {
+  box: Box
+  conformance?: readonly ConformanceResult[] | undefined
+}) {
+  const rojos = conformance ? selectHallazgosConformance(conformance, box.id) : []
+  const gateNone = box.contract?.gate?.tipo === "none"
+  const noReconocido = box.clase === "no-reconocido"
+  const sinHallazgos = !gateNone && !noReconocido && rojos.length === 0
+  return (
+    <Section title="Hallazgos">
+      {gateNone && (
+        <p className="hallazgo crit">
+          <b>gate:none</b> — caja sin eval formal (A4): el hueco es un hallazgo visible, no un
+          blanco.
+        </p>
+      )}
+      {noReconocido && (
+        <p className="hallazgo warn">
+          <b>no-reconocido</b> — el loader no entendió el artefacto (D-c): revisa su celda canónica.
+        </p>
+      )}
+      {rojos.map((r) => (
+        <p
+          key={r.check.id}
+          className={cn("hallazgo", r.check.severidad === "error" ? "crit" : "warn")}
+        >
+          <b>{r.check.id}</b> — {r.detalle ?? r.check.que ?? "check rojo de conformance"}
+        </p>
+      ))}
+      {sinHallazgos && <p className="mut">Sin hallazgos abiertos.</p>}
+      {conformance === undefined && (
+        <p className="src-note">
+          checks de conformance no disponibles — el daemon no respondió{" "}
+          <span className="mono">GET …/conformance</span>.
+        </p>
+      )}
+    </Section>
+  )
+}
+
+// Botonera staged (RF-92): acciones del NODO al pie del Resumen — disabled + rotuladas
+// con la fase que las cablea, jamás fingiendo funcionar.
+function BotoneraStaged() {
+  return (
+    <footer className="dw-actions">
+      <button
+        type="button"
+        className="act primary"
+        disabled
+        title="Se cablea en Fase 3/4 del Hito 2 — el backend (Fase E) ya vive"
+      >
+        Editar conversando
+      </button>
+      <button
+        type="button"
+        className="act"
+        disabled
+        title="Release train (KIT-06) — fuera de este paquete"
+      >
+        Evaluar A/B contra v anterior
+      </button>
+      <button
+        type="button"
+        className="act"
+        disabled
+        title="Release train (KIT-06) — fuera de este paquete"
+      >
+        Promover a estable
+      </button>
+      <button type="button" className="act" disabled title="Vista Historia — fuera de este paquete">
+        Ver en Historia
+      </button>
+      <p className="act-note">
+        staged — «Editar conversando» se cablea en Fase 3/4; el resto espera tren/Historia.
+      </p>
+    </footer>
+  )
+}
+
 // Resumen — identidad doctrinal + contrato fusionado del nodo (tab por defecto).
-function Resumen({ box }: { box: Box }) {
+function Resumen({
+  box,
+  graph,
+  onSelect,
+  conformance,
+}: {
+  box: Box
+  graph?: Graph | undefined
+  onSelect?: ((id: string) => void) | undefined
+  conformance?: readonly ConformanceResult[] | undefined
+}) {
   const c = box.contract
   const role = CLASS_ROLE[box.clase]
   // origen: the real L0 field wins; the proposals fixture stands in, labeled (spec §2.3).
   const origen = box.origen ?? (isDelPuesto(box.id) ? "del-puesto · PROPUESTA" : undefined)
+  // Viene de (RF-89): edges inversos derivados del grafo; sin entradas → sección ausente.
+  const vieneDe = graph ? selectVieneDe(graph, box.id) : []
 
   return (
     <>
@@ -316,14 +456,24 @@ function Resumen({ box }: { box: Box }) {
 
           {c.necesita && c.necesita.length > 0 && (
             <Section title="Necesita">
-              <ul>
-                {c.necesita.map((inp) => (
-                  <li key={`${inp.art}-${inp.de}`}>
-                    {inp.art} <span className="mut">← {inp.de}</span>
-                    {inp.requerido ? "" : " (opcional)"}
-                  </li>
-                ))}
-              </ul>
+              <div className="chips">
+                {c.necesita.map((inp) => {
+                  // Origen tipado del insumo: "caja:edit-caja" → tipo=caja, id=edit-caja;
+                  // "usuario" (sin `:`) → solo tipo, chip inerte.
+                  const idx = inp.de.indexOf(":")
+                  const targetId = idx >= 0 ? inp.de.slice(idx + 1) : undefined
+                  return (
+                    <Chip
+                      key={`${inp.art}-${inp.de}`}
+                      label={inp.art + (inp.requerido === false ? " (opcional)" : "")}
+                      org={`← ${idx >= 0 ? `${inp.de.slice(0, idx)}: ${targetId}` : inp.de}`}
+                      targetId={targetId}
+                      graph={graph}
+                      onSelect={onSelect}
+                    />
+                  )
+                })}
+              </div>
             </Section>
           )}
 
@@ -342,14 +492,14 @@ function Resumen({ box }: { box: Box }) {
 
           {c.ruta && c.ruta.length > 0 && (
             <Section title="Ruta">
-              <ul>
+              <div className="chips">
                 {c.ruta.map((r) => (
-                  <li key={`${r.a}-${r.si ?? ""}`}>
-                    → <span className="mono">{r.a}</span>
-                    {r.si ? <span className="mut"> si {r.si}</span> : null}
-                  </li>
+                  <span key={`${r.a}-${r.si ?? ""}`} className="chiprow">
+                    → <Chip label={r.a} targetId={r.a} graph={graph} onSelect={onSelect} />
+                    {r.si ? <span className="cond">si {r.si}</span> : null}
+                  </span>
                 ))}
-              </ul>
+              </div>
             </Section>
           )}
 
@@ -369,6 +519,23 @@ function Resumen({ box }: { box: Box }) {
           )}
         </>
       )}
+
+      {/* Viene de (RF-89): edges INVERSOS reales con su tipo; sin entradas = ausente. */}
+      {vieneDe.length > 0 && (
+        <Section title="Viene de">
+          <div className="chips">
+            {vieneDe.map((v) => (
+              <span key={`${v.de}-${v.tipo}`} className="chiprow">
+                <Chip label={v.de} org={v.tipo} targetId={v.de} graph={graph} onSelect={onSelect} />
+              </span>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      <Hallazgos box={box} conformance={conformance} />
+
+      <BotoneraStaged />
     </>
   )
 }

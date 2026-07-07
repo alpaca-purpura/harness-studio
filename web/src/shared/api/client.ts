@@ -60,6 +60,11 @@ export const api = {
   getNode: <T = unknown>(id: string, nodeId: string) =>
     req<T>(`/api/harnesses/${encodeURIComponent(id)}/nodes/${encodeURIComponent(nodeId)}`),
 
+  // getConformance (S9) — la auditoría del grafo indexado (ConformanceReport). El caller
+  // (la página) filtra por nodo con el selector de la entity (RF-91).
+  getConformance: <T = unknown>(id: string) =>
+    req<T>(`/api/harnesses/${encodeURIComponent(id)}/conformance`),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   createSession: (input: NewSession) =>
