@@ -562,6 +562,15 @@ instalador.
 > honesta restante: spike del wire format `control_response` contra claude real · run síncrono
 > (async+202 futuro) · gate de conformance no auto-invocado tras run · telemetría/indexer JSONL ·
 > codegen gen/ · 3 boundaries del research a arch/ formal.
+>
+> **G-instalación VERIFICADO EN MÁQUINA REAL (2026-07-07):** `sudo dpkg -i ArnesIA_0.1.0_amd64.deb`
+> por el operador → app GUI lanzada (shell Tauri + sidecar `/usr/bin/arnesia-daemon` spawneado con
+> token) → `healthz` ok · **UI servida por el daemon del paquete** · API confinada (401 sin token) →
+> stamp de doctrina BORRADO a propósito y **re-provisionado por el binario instalado**
+> (`~/.arnesia/{kit,doctrine.md,knowhow}` frescos) → sesión CC REAL sobre el arnés dogfood con la
+> doctrina inyectada por flags: turno «Responde únicamente: OK» → **respuesta `OK` de
+> `claude-fable-5`**, `claude_session_id` persistido, sesión `idle` resumible. El constraint de UX
+> («el usuario solo necesita Claude Code instalado y logueado») quedó DEMOSTRADO end-to-end.
 
 <!-- Próximas: HS-12, … -->
 
