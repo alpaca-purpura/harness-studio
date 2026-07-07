@@ -11,6 +11,10 @@
        visual del mapa; ⤡ o Esc restauran; en modo amplio las secciones fluyen en columnas. INTERACTIVO: pruébalo.
   v3 · 2026-07-07 · decisión #2: tooltips en dos niveles — «i» junto a cada título de sección (qué agrupa)
        + nombres de campo con subrayado punteado cuyo tooltip explica el campo Y el valor concreto que muestra.
+  v4 · 2026-07-07 · decisión #3 (FIRMADA, análisis drawer v3 §A): VIENE DE (edges inversos reales con tipo) ·
+       chips tipados NAVEGABLES en Necesita/Ruta (click → salta a la casuística) + condición como badge ·
+       HALLAZGOS por nodo (gate:none A4 · no-reconocido D-c · nota de conformance) · botonera staged al pie
+       (Editar conversando primaria; resto disabled rotulado) · estado vacío (tarjeta 00).
 -->
 <title>Mockup — drawer del Mapa (inspector)</title>
 <style>
@@ -117,6 +121,27 @@
     text-transform:none; letter-spacing:0; margin-left:2px; vertical-align:1px; cursor:help;
     font-family:var(--font-mono); font-weight:600; }
   .drawer { overflow:visible; } /* los tooltips no se recortan; expanded conserva su overflow:auto */
+  /* ══ v4 · decisión #3 — chips navegables · hallazgos · acciones staged ══ */
+  .chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chiprow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chip { display:inline-flex; gap:6px; align-items:baseline; border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:2px 7px; font-size:var(--text-xs);
+    font-family:var(--font-mono); color:var(--foreground); background:none; cursor:pointer; text-align:left; }
+  .chip:hover, .chip:focus-visible { border-color:var(--muted-foreground); }
+  .chip[data-off] { cursor:default; opacity:.85; }
+  .chip .org { color:var(--muted-foreground); font-size:10px; }
+  .cond { border:1px dashed var(--warn); color:var(--warn); border-radius:999px; padding:1px 7px;
+    font-size:10px; font-family:var(--font-mono); }
+  .hallazgo { margin:0; border-radius:var(--radius-md); padding:7px 9px; font-size:var(--text-xs); color:var(--foreground); }
+  .hallazgo.crit { background:var(--crit-soft); }
+  .hallazgo.warn { background:var(--warn-soft); }
+  .dw-actions { border-top:1px solid var(--border); padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+  .act { padding:8px 10px; border-radius:var(--radius-md); border:1px solid var(--border); background:none;
+    color:var(--muted-foreground); font:inherit; font-size:var(--text-sm); opacity:.68; cursor:not-allowed; }
+  .act.primary { background:var(--accent-soft); border-color:var(--primary); color:var(--foreground); }
+  .act-note { margin:0; font-size:10px; color:var(--muted-foreground); }
+  .case-target { outline:2px solid var(--primary); outline-offset:3px; border-radius:var(--radius-sm); }
+  .drawer.empty .dw-body { color:var(--muted-foreground); font-size:var(--text-sm); line-height:1.5; }
   /* body: flex col gap-4 p-4 */
   .dw-body { display:flex; flex-direction:column; gap:16px; padding:16px; }
   /* Section: flex col gap-1.5 · h4 text-xs semibold uppercase tracking-wide muted */
@@ -195,6 +220,8 @@ const CASES = [
   {"id":"legacy-cms","clase":"command","nombre":"CMS heredado","banda":"marcas-dormidas","canal":"deprecado","procedencia":"no-declarado"}},
  {num:"15", tag:"no-reconocido (D-c: visible con warn)", sint:true, box:
   {"id":"misterio","clase":"no-reconocido","nombre":"misterio (no reconocido)","fuente_path":".claude/skills/misterio"}},
+ {num:"16", tag:"caja con RUTA CONDICIONAL real + necesita de marca dormida", box:
+  {"id":"review-caja","clase":"skill","nombre":"revisión editorial","banda":"fase","fase":"review","canal":"estable","procedencia":"declarado","origen":"estandar","contract":{"caja":true,"clase":"skill","arquetipo":"pipeline","perfil_harness":"T1","fase":"review","estado":"editado -> aprobado","why":"Aprobación final humana con checklist legal y de marca antes de publicar.","capabilities":[{"id":"aprobacion","what":"aprueba o devuelve","success":"decisión registrada con motivo"}],"constraints":["no publica; solo aprueba"],"non_goals":["no reescribe"],"necesita":[{"art":"edited.md","de":"caja:edit-caja","requerido":true},{"art":"plantilla legacy","de":"marcas-dormidas:legacy-cms","requerido":false}],"entrega":[{"art":"approval.md","escritor_unico":true}],"ruta":[{"a":"publish-caja"},{"a":"draft-caja","si":"cambios mayores solicitados"}],"gate":{"tipo":"manual","detalle":"el content lead firma la aprobación","aceptacion":[{"given":"un contenido editado","when":"se revisa","then":"queda aprobado o devuelto con motivo explícito"}],"evidencia":"aprobación humana registrada (declarado, sin telemetría fina)"},"handoff":{"cuando":"aprobado","a":"humano"}}}},
 ];
 
 // ══ Lógica clonada de entities/arnes (kind.ts · node-view.ts · proposals.ts) ══
@@ -260,6 +287,8 @@ const SEC_TIP = {
   "Ruta":"Eje CABLEADO: a qué caja pasa el trabajo y bajo qué condición — orquestación determinista entre cajas.",
   "Gate":"Eje ACEPTACIÓN (A4, «nada sin eval»): cómo se comprueba lo entregado. `none` es un HALLAZGO visible — gris ≠ verde (METODOLOGIA §4).",
   "Handoff":"Eje ACEPTACIÓN: cuándo la caja se rinde y a quién escala (framed autonomy — autonomía acotada, no automatización ciega).",
+  "Viene de":"Eje CABLEADO, sentido inverso: quién invoca, lee o escribe sobre ESTE nodo. Derivado de los edges del grafo (invoca/lee/escribe), no declarado.",
+  "Hallazgos":"Honestidad del nodo (METODOLOGIA §4): hallazgos deterministas — gate:none (A4), no-reconocido (D-c) y checks rojos de conformance filtrados por nodo. Gris ≠ verde: el hueco se muestra, no se esconde.",
 };
 const DEF_CAMPO = {
   banda:"Región fija de la geografía del mapa donde vive el nodo (eje ortogonal a clase y perfil).",
@@ -294,6 +323,34 @@ function tipDe(k, v) {
   let t = def + (vv ? " — " + vv : (k==="fase" ? ` — «${base}» es una fase declarada por ESTE arnés.` : k==="estado" ? ` — esta caja transiciona «${base}».` : ""));
   if (String(v).includes("PROPUESTA")) t += PROP_NOTE;
   return t;
+}
+
+// ══ v4 · decisión #3 — edges inversos REALES del showcase (13 edges; derivados de
+// necesita/ruta por el loader, jamás cableados a mano). Nodo sin entradas = sección oculta.
+const VIENE_DE = {
+  "draft-caja":[["research-caja","invoca"],["review-caja","invoca"]],
+  "style-guide":[["draft-caja","lee"]],
+  "seo-expert":[["research-caja","lee"]],
+  "content-db":[["publish-caja","escribe"]],
+  "review-caja":[["edit-caja","invoca"]],
+};
+// Ids presentes como casuística en ESTE mockup (chips navegables saltan a su tarjeta).
+const EN_MOCKUP = new Set(["brief-caja","draft-caja","fact-checker","seo-expert","publish-now","pii-guard","style-guide","std-producto","code-style","content-db","content-kit","role-permissions","product-style","arnes-health","legacy-cms","misterio","review-caja"]);
+function chip(label, org, targetId) {
+  const here = targetId && EN_MOCKUP.has(targetId);
+  const attrs = here ? `data-goto="${esc(targetId)}"` : `data-off="1" title="nodo fuera de las casuísticas del mockup"`;
+  return `<button type="button" class="chip" ${attrs}>${esc(label)}${org?` <span class="org">${esc(org)}</span>`:""}</button>`;
+}
+// hallazgosDe — deterministas desde el dato (sin telemetría): gate:none (A4) · no-reconocido (D-c).
+function hallazgosDe(box) {
+  const h = [];
+  if (box.contract?.gate?.tipo === "none")
+    h.push(`<p class="hallazgo crit"><b>gate:none</b> — caja sin eval formal (A4): el hueco es un hallazgo visible, no un blanco.</p>`);
+  if (box.clase === "no-reconocido")
+    h.push(`<p class="hallazgo warn"><b>no-reconocido</b> — el loader no entendió el artefacto (D-c): revisa su celda canónica.</p>`);
+  if (!h.length) h.push(`<p class="mut">Sin hallazgos abiertos.</p>`);
+  h.push(`<p class="mut" style="font-size:10px">+ al implementar: checks rojos de <span class="mono">GET …/conformance</span> filtrados por este nodo (endpoint ya vivo, HS-11).</p>`);
+  return h.join("");
 }
 
 // ══ Render — espejo del JSX de inspector.tsx, sección por sección ══
@@ -337,14 +394,36 @@ function drawer(box) {
       `<ul class="caps">` + c.capabilities.map(cap =>
         `<li><span class="mono mut">${esc(cap.id)}</span> ${esc(cap.what)}<div class="mut">✓ ${esc(cap.success)}</div></li>`).join("") + `</ul>`);
     if (c.necesita?.length) body += sec("Necesita",
-      `<ul>` + c.necesita.map(i => `<li>${esc(i.art)} <span class="mut">← ${esc(i.de)}</span>${i.requerido?"":" (opcional)"}</li>`).join("") + `</ul>`);
+      `<div class="chips">` + c.necesita.map(i => {
+        const [tipo, id] = i.de.includes(":") ? i.de.split(":") : [i.de, null];
+        return chip(i.art + (i.requerido===false?" (opcional)":""), "← " + (id?`${tipo}: ${id}`:tipo), id ?? undefined);
+      }).join("") + `</div>`);
     if (c.entrega?.length) body += sec("Entrega",
       `<ul>` + c.entrega.map(o => `<li>${esc(o.art)}${o.escritor_unico?'<span class="mut"> · escritor único</span>':""}</li>`).join("") + `</ul>`);
     if (c.ruta?.length) body += sec("Ruta",
-      `<ul>` + c.ruta.map(r => `<li>→ <span class="mono">${esc(r.a)}</span>${r.si?`<span class="mut"> si ${esc(r.si)}</span>`:""}</li>`).join("") + `</ul>`);
+      `<div class="chips">` + c.ruta.map(r =>
+        `<span class="chiprow">→ ${chip(r.a, null, r.a)}${r.si?`<span class="cond">si ${esc(r.si)}</span>`:""}</span>`
+      ).join("") + `</div>`);
     if (c.gate) body += sec("Gate", field("tipo",c.gate.tipo) + (c.gate.detalle?`<p class="fg">${esc(c.gate.detalle)}</p>`:""));
     if (c.handoff) body += sec("Handoff", `<p class="fg">${esc(c.handoff.cuando)} <span class="mut">→ ${esc(c.handoff.a)}</span></p>`);
   }
+
+  // v4 · VIENE DE — edges inversos reales; sin entradas = sección ausente (fiel al dato).
+  const inv = VIENE_DE[box.id];
+  if (inv?.length) body += sec("Viene de",
+    `<div class="chips">` + inv.map(([de, tipo]) => `<span class="chiprow">${chip(de, tipo, de)}</span>`).join("") + `</div>`);
+
+  // v4 · HALLAZGOS — deterministas del dato; siempre presente (el «sin hallazgos» también informa).
+  body += sec("Hallazgos", hallazgosDe(box));
+
+  // v4 · botonera staged: nada finge funcionar — disabled + rotulado hasta su fase.
+  const actions = `<footer class="dw-actions">
+    <button type="button" class="act primary" disabled title="Se cablea en Fase 3/4 del Hito 2 — el backend (Fase E) ya vive">Editar conversando</button>
+    <button type="button" class="act" disabled title="Release train (KIT-06) — fuera de este paquete">Evaluar A/B contra v anterior</button>
+    <button type="button" class="act" disabled title="Release train (KIT-06) — fuera de este paquete">Promover a estable</button>
+    <button type="button" class="act" disabled title="Vista Historia — fuera de este paquete">Ver en Historia</button>
+    <p class="act-note">staged — «Editar conversando» se cablea en Fase 3/4; el resto espera tren/Historia.</p>
+  </footer>`;
 
   return `<aside class="drawer" aria-label="Inspector · ${esc(box.nombre)}">
     <header class="dw-head">
@@ -357,6 +436,18 @@ function drawer(box) {
       <button type="button" class="dw-close" aria-label="Cerrar inspector">✕</button>
     </header>
     <div class="dw-body">${body}</div>
+    ${actions}
+  </aside>`;
+}
+
+// v4 · estado vacío del inspector (tarjeta 00) — affordance, no un panel en blanco.
+function drawerVacio() {
+  return `<aside class="drawer empty" aria-label="Inspector · sin selección">
+    <div class="dw-body">
+      <section class="sec"><h4>Inspector</h4>
+        <p>Clic en un nodo del mapa: identidad, clasificación doctrinal, contrato, fuente y hallazgos.</p>
+      </section>
+    </div>
   </aside>`;
 }
 
@@ -380,9 +471,25 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") document.querySelectorAll(".drawer.expanded").forEach(x => setExpanded(x, false));
 });
 
-document.getElementById("gallery").innerHTML = CASES.map(cs =>
-  `<div class="case">
+document.getElementById("gallery").innerHTML =
+  `<div class="case" data-case-id="__vacio__">
+     <div class="case-label"><span class="num">00</span><span>estado vacío — sin selección</span></div>
+     ${drawerVacio()}
+   </div>` +
+  CASES.map(cs =>
+  `<div class="case" data-case-id="${esc(cs.box.id)}">
      <div class="case-label"><span class="num">${cs.num}</span><span>${esc(cs.tag)}</span>${cs.sint?'<span class="chip-sint">sintético</span>':""}</div>
      ${drawer(cs.box)}
    </div>`).join("");
+
+// v4 · chips navegables: click → salta a la tarjeta de ese nodo y la resalta un instante.
+document.addEventListener("click", (e) => {
+  const ch = e.target.closest(".chip[data-goto]");
+  if (!ch) return;
+  const target = document.querySelector(`.case[data-case-id="${ch.getAttribute("data-goto")}"]`);
+  if (!target) return;
+  target.scrollIntoView({ block:"center", behavior: matchMedia("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto" });
+  target.classList.add("case-target");
+  setTimeout(() => target.classList.remove("case-target"), 1600);
+});
 </script>

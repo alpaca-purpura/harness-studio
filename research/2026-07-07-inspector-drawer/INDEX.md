@@ -56,8 +56,18 @@
   mockup con fuentes citadas (METODOLOGIA §3/§4/§8 · VISION A1–A7 · schema L0 · rules
   L2.6); al implementar se cementa en la entity FE. Verificado ojo-UI: 65 campos con
   tip · 51 «i» de sección · consola limpia.
-- **Próximo paso:** el operador prueba los tooltips en el artifact → firma #2 (o
-  corrige redacciones) y dicta el siguiente cambio.
+- **Decisión #3 FIRMADA + materializada (v4):** bloque «traer YA» del análisis v3
+  (`analisis-drawer-v3.md §A`) — VIENE DE (edges inversos reales con tipo; solo 5 nodos
+  del showcase los tienen, el resto oculta la sección) · chips tipados NAVEGABLES en
+  Necesita/Ruta (click → salta a la casuística; fuera del mockup = data-off rotulado) ·
+  condición de ruta como badge (caso real: tarjeta 16 review-caja «si cambios mayores
+  solicitados») · HALLAZGOS por nodo (gate:none crit · no-reconocido warn · «sin
+  hallazgos» + nota del endpoint conformance) · botonera staged (Editar conversando
+  primaria disabled «Fase 3/4»; resto rotulado tren/Historia) · tarjeta 00 estado vacío.
+  Ahora 17 tarjetas (00–16; 16 = review-caja, ruta condicional real). Verificado ojo-UI
+  (navegación de chips OK, consola limpia).
+- **Próximo paso:** el operador prueba v4 → confirma la materialización de #3, firma #2
+  (tooltips) si le convencen las redacciones, y dicta el siguiente cambio.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
