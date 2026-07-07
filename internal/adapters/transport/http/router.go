@@ -24,7 +24,7 @@ type errorBody struct {
 // arnés→path registry (per-session workdir confinement); events is the SSE broker
 // mounted at /events. auth confines the whole surface (Host+Origin+token, boundary
 // superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 
 	// UI embebida (HS-11): el daemon sirve la SPA en "/" cuando el build la trae
@@ -48,6 +48,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	mux.HandleFunc("GET /api/harnesses", listHarnesses(maps))
 	mux.HandleFunc("GET /api/harnesses/{id}/graph", getHarnessGraph(maps))
 	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}", getNode(maps))
+	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}/fuente", getNodeFuente(fuentes))
 	mux.HandleFunc("GET /api/harnesses/{id}/runs", listRuns)
 	mux.HandleFunc("GET /api/harnesses/{id}/conformance", getConformance(maps, conf, confBase))
 

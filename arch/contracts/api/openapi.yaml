@@ -1,7 +1,9 @@
 openapi: 3.1.0
 info:
   title: ArnesIA daemon API
-  version: 0.1.0-hs06
+  # 0.2.0-hs09: + GET /harnesses/{id}/nodes/{nodeId}/fuente (tab Contenido del
+  # inspector, paquete inspector-drawer RF-93 — lectura confinada S2).
+  version: 0.2.0-hs09
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -51,6 +53,26 @@ paths:
         - { name: nodeId, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Nodo con contrato (valida box.contract.schema.json) y métricas. }
+  /harnesses/{id}/nodes/{nodeId}/fuente:
+    get:
+      operationId: getNodeFuente
+      summary: >-
+        Fuente del nodo (RF-93, tab Contenido del inspector): el artefacto REAL que el loader
+        reconoció (fuente_path), servido tal cual (read-only) — autodocumentación como efecto.
+        Lectura CONFINADA al directorio REGISTRADO del arnés (S2, valida traversal; un arnés sin
+        directorio registrado responde 404 honesto — los fixtures embebidos no viven en disco).
+        La ruta servida viaja en el header X-Arnesia-Fuente-Path.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: nodeId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: El archivo fuente, tal cual está en disco.
+          content:
+            text/plain:
+              schema: { type: string }
+        "403": { description: La fuente resuelta escapa del directorio del arnés (traversal). }
+        "404": { description: "Arnés no indexado · nodo inexistente · nodo sin fuente_path (pendiente del reconocedor) · arnés sin directorio registrado · archivo ausente — el cuerpo dice cuál." }
   /harnesses/{id}/runs:
     get:
       operationId: listRuns

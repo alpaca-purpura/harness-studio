@@ -184,6 +184,9 @@ func runServe(args []string) error {
 	// `status:` del artefacto (document-as-cache) confinado al árbol del arnés.
 	conductor := usecase.NewBoxConductor(agent, artifact.NewReader(), *repairCap, *maxTurns)
 	runSvc := usecase.NewRunService(idx, conductor, perms, arnesReg, injector, brokerPublisher{broker})
+	// Fuente del nodo (RF-93, tab Contenido del inspector): lectura confinada al dir
+	// registrado del arnés (S2) — el drawer muestra el archivo REAL, jamás reconstruye.
+	fuenteSvc := usecase.NewFuenteService(idx, arnesReg, artifact.NewFuenteReader())
 	// baseFor: el dir del arnés registrado resuelve los fuente_path relativos del
 	// firewall; un arnés no registrado (fixtures embebidos) usa el repo si existe.
 	confBase := func(id string) string {
@@ -198,7 +201,7 @@ func runServe(args []string) error {
 		return ""
 	}
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, arnesReg, confSvc, confBase, loadArnesDir, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {
