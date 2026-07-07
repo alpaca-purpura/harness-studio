@@ -25,6 +25,22 @@ func (s *MapService) Graph(ctx context.Context, harnessID string) (domain.Graph,
 	return s.index.Query(ctx, harnessID)
 }
 
+// Harnesses returns every indexed harness graph — the portfolio the picker lists (S1, RF-72).
+func (s *MapService) Harnesses(ctx context.Context) ([]domain.Graph, error) {
+	return s.index.List(ctx)
+}
+
+// Node returns one node of a harness graph for the inspector (S3, RF-71). The bool is false
+// when the harness exists but has no such node; err is set when the harness is unknown.
+func (s *MapService) Node(ctx context.Context, harnessID, nodeID string) (domain.Box, bool, error) {
+	g, err := s.index.Query(ctx, harnessID)
+	if err != nil {
+		return domain.Box{}, false, err
+	}
+	b, ok := g.NodeByID(nodeID)
+	return b, ok, nil
+}
+
 // Rebuild reconstructs the disposable index from the JSONL corpus.
 func (s *MapService) Rebuild(ctx context.Context) error {
 	return s.index.Rebuild(ctx)

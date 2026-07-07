@@ -458,12 +458,13 @@ func errNotFound(id string) error {
 }
 
 // seedSessions returns illustrative work-fronts shown on first run (empty registry) so
-// the rail is populated, mirroring the signed mockup (it.14). The conversations are
-// real the moment a turn is sent — only the arnés/company labels are illustrative
-// until a real graph is indexed.
+// the rail is populated, mirroring the signed mockup (it.14). The FIRST session points at
+// the real indexed dogfood arnés (dev-full-cycle) with the Mapa view, so the map loads
+// immediately on first run; the other two are illustrative (their arnés/company labels are
+// placeholders until a real graph is indexed, and their views don't fetch a graph).
 func seedSessions() []domain.Session {
 	return []domain.Session{
-		{ID: newID(), Frente: "timeout de contract-guard", Arnes: "luana-platform", Empresa: "Luana", Puesto: "Plataforma · Desarrollo", Salud: domain.SaludCrit, Status: domain.StatusIdle, View: "Mapa", Parked: "nodo contract-guard"},
+		{ID: newID(), Frente: "ciclo full-cycle · spec→released", Arnes: "dev-full-cycle", Empresa: "alpacapurpura", Puesto: "Ingeniería · Desarrollo full-cycle", Salud: domain.SaludInfo, Status: domain.StatusIdle, View: "Mapa", Parked: "spec-writer"},
 		{ID: newID(), Frente: "eval-gate de po-ux", Arnes: "ux-nordia", Empresa: "Nordia", Puesto: "Diseño · UX", Salud: domain.SaludWarn, Status: domain.StatusIdle, View: "Diag", Parked: "hallazgo éxito 87%"},
 		{ID: newID(), Frente: "corrida r3 · 3 hallazgos", Arnes: "backend-nordia", Empresa: "Nordia", Puesto: "Backend", Salud: domain.SaludCrit, Status: domain.StatusIdle, View: "Corridas", Parked: "corrida r3"},
 	}

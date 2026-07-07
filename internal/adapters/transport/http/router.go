@@ -32,9 +32,9 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arne
 	mux.Handle("GET /api/events", events) // OpenAPI server base is /api.
 
 	// Portfolio / Map / Inspector / Runs (S1–S3, S8).
-	mux.HandleFunc("GET /api/harnesses", listHarnesses)
+	mux.HandleFunc("GET /api/harnesses", listHarnesses(maps))
 	mux.HandleFunc("GET /api/harnesses/{id}/graph", getHarnessGraph(maps))
-	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}", getNode)
+	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}", getNode(maps))
 	mux.HandleFunc("GET /api/harnesses/{id}/runs", listRuns)
 
 	// Arnés registry (S2) — maps an arnés to the working dir its sessions run claude in.
@@ -57,9 +57,37 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// listHarnesses (S1) — portfolio. Stub: empty list.
-func listHarnesses(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, []any{})
+// harnessSummary is one row of GET /api/harnesses — the lightweight portfolio entry the Map
+// picker (RF-72) consumes; the full graph is a separate call (getHarnessGraph).
+type harnessSummary struct {
+	ID      string `json:"id"`
+	Rol     string `json:"rol,omitempty"`
+	Proceso string `json:"proceso,omitempty"`
+	Empresa string `json:"empresa,omitempty"`
+}
+
+// listHarnesses (S1) — portfolio, from the index (RF-72).
+func listHarnesses(maps *usecase.MapService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gs, err := maps.Harnesses(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			return
+		}
+		out := make([]harnessSummary, 0, len(gs))
+		for _, g := range gs {
+			if g.Arnes == nil {
+				continue
+			}
+			out = append(out, harnessSummary{
+				ID:      g.Arnes.ID,
+				Rol:     g.Arnes.Rol,
+				Proceso: g.Arnes.Proceso,
+				Empresa: g.Arnes.Empresa,
+			})
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
 }
 
 // getHarnessGraph (S2) — the agnostic graph of one harness (real, from the index).
@@ -75,9 +103,20 @@ func getHarnessGraph(maps *usecase.MapService) http.HandlerFunc {
 	}
 }
 
-// getNode (S3) — inspector. Stub.
-func getNode(w http.ResponseWriter, _ *http.Request) {
-	notImplemented(w)
+// getNode (S3) — inspector: one node (Box + fused Contract) of a harness (RF-71).
+func getNode(maps *usecase.MapService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		box, ok, err := maps.Node(r.Context(), r.PathValue("id"), r.PathValue("nodeId"))
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			return
+		}
+		if !ok {
+			writeJSON(w, http.StatusNotFound, errorBody{Error: "node not found"})
+			return
+		}
+		writeJSON(w, http.StatusOK, box)
+	}
 }
 
 // listRuns (S8) — runs derived from the JSONL. Stub.

@@ -13,4 +13,6 @@ type IndexPort interface {
 	Rebuild(ctx context.Context) error
 	// Query returns the agnostic graph of one harness.
 	Query(ctx context.Context, harnessID string) (domain.Graph, error)
+	// List returns every harness graph currently indexed (portfolio, S1).
+	List(ctx context.Context) ([]domain.Graph, error)
 }

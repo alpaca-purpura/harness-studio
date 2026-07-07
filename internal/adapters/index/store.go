@@ -7,9 +7,14 @@ package index
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
+	"sort"
 	"sync"
 
+	"github.com/alpacapurpura/arnesia/dogfood"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 )
@@ -49,6 +54,28 @@ func (s *Store) Query(_ context.Context, harnessID string) (domain.Graph, error)
 		return domain.Graph{}, ErrNotFound
 	}
 	return g, nil
+}
+
+// List returns every indexed harness graph, ordered by id for a stable portfolio (S1).
+func (s *Store) List(_ context.Context) ([]domain.Graph, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]domain.Graph, 0, len(s.graphs))
+	for _, g := range s.graphs {
+		out = append(out, g)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return graphID(out[i]) < graphID(out[j])
+	})
+	return out, nil
+}
+
+// graphID is the harness id of a graph ("" if it carries no manifiesto).
+func graphID(g domain.Graph) string {
+	if g.Arnes == nil {
+		return ""
+	}
+	return g.Arnes.ID
 }
 
 // seed loads a minimal demo harness so the wiring is observable.
@@ -107,5 +134,24 @@ func (s *Store) seed() {
 	}
 	s.mu.Lock()
 	s.graphs[demo.Arnes.ID] = demo
+	// Seed the real dogfood arnés (dev-full-cycle) so GET /api/harnesses/{id}/graph
+	// serves it (HS-09 Hito 1). A decode failure of the embedded, tested asset is a
+	// programmer error, but we log-and-continue so the demo still serves the daemon.
+	if g, err := dogfoodGraph(); err != nil {
+		slog.Error("index: seed dogfood graph", "err", err)
+	} else if g.Arnes != nil {
+		s.graphs[g.Arnes.ID] = g
+	}
 	s.mu.Unlock()
+}
+
+// dogfoodGraph unmarshals the embedded dogfood arnés (dev-full-cycle). The JSON keys
+// mirror the domain tags exactly, so it decodes straight into a Graph with no field
+// mapping — the recorded arnés the Map renders in Hito 1.
+func dogfoodGraph() (domain.Graph, error) {
+	var g domain.Graph
+	if err := json.Unmarshal(dogfood.DevFullCycleJSON, &g); err != nil {
+		return domain.Graph{}, fmt.Errorf("decode dogfood graph: %w", err)
+	}
+	return g, nil
 }

@@ -7,6 +7,8 @@ dist/
 # Go
 bin/
 *.exe
+/arnesia
+
 
 # Tauri sidecar (daemon binario, se compila con `go build -o web/src-tauri/binaries/...`)
 web/src-tauri/binaries/arnesia-*
