@@ -75,7 +75,14 @@
   (runs D2 + sesión viva) + «Ver todas» disabled (detalle/replay = Hito 3). Análisis
   de base: `analisis-drawer-v3.md` §tabs (modelo completo del v3 leído de su código:
   RUNS/pasos tipados/3 vistas/replay). Verificado ojo-UI, consola limpia.
-- **Próximo paso:** el operador prueba v5 → firma #2 (tooltips, única en PROPUESTA) y
+- **Decisión #5 FIRMADA + v6:** UI del expandido (tabs sticky+compactas · botonera fila
+  al pie · columna lectura 920px) + semántica ✕ cierra ≠ ⤡ colapsa. Fix v5.1 (pane
+  colado por especificidad).
+- **Debate #6 RESUELTO POR MEDICIÓN** (`spike-medicion-contrato.md`): CC inyecta solo
+  el CUERPO de la skill al activar (~187 tok); el contrato fusionado en frontmatter =
+  0 tokens de contexto. El yml hermano es innecesario para skills; contrato fusionado
+  validado. Rules/CLAUDE.md = única superficie sensible (ya cubierta).
+- **Próximo paso:** el operador prueba v6 → firma #2 (tooltips, única en PROPUESTA) y
   dicta el siguiente cambio; cuando declare el mockup completo → spec.md + design.md.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
