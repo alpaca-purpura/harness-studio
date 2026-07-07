@@ -1,10 +1,10 @@
 # Nomenclatura de reconocimiento — directorio de arnés ⟷ grafo L0
 
-> **Estado: PROPUESTA v0 — PENDIENTE DE FIRMA (HS-10).** Este contrato define cómo ArnesIA
-> RECONOCE un arnés leyendo sus archivos y lo convierte en un `graph.l0` — el algoritmo que
-> el loader real (Hito 3, reemplaza los fixtures `go:embed`) implementará y que hasta hoy
-> no estaba escrito en ningún documento (hallazgo de la auditoría 2026-07-07: los grafos
-> dogfood están armados A MANO; `fuente_path` era «puntero, no contrato»).
+> **Estado: FIRMADA v1 (operador, 2026-07-07 — HS-10; D-a/D-b/D-c resueltas abajo).** Este
+> contrato define cómo ArnesIA RECONOCE un arnés leyendo sus archivos y lo convierte en un
+> `graph.l0` — el algoritmo que el loader real (Hito 3, reemplaza los fixtures `go:embed`)
+> implementará y que hasta la auditoría 2026-07-07 no estaba escrito en ningún documento
+> (los grafos dogfood están armados A MANO; `fuente_path` era «puntero, no contrato»).
 >
 > Norte: [`../../VISION.md`](../../VISION.md) (A1–A7) · [`../../METODOLOGIA.md`](../../METODOLOGIA.md)
 > §3 (contrato fusionado) · [`schema/graph.l0.schema.json`](./schema/graph.l0.schema.json) ·
@@ -79,15 +79,22 @@ esta tabla fija QUÉ escanea el loader y qué nodo emite:
 - `graph.l0.schema.json`: `fuente_path` pasa de «puntero, no contrato» a «estampado por el
   loader según nomenclatura-arnes.md».
 
-## Decisiones abiertas (firma del operador)
+## Decisiones FIRMADAS (operador, 2026-07-07)
 
-| # | Decisión | Recomendación |
+| # | Decisión | Resolución firmada |
 |---|---|---|
-| D-a | Nombre/lugar del manifiesto | `arnes.l0.json` en la raíz del arnés (visible, versionable, no escondido en `.claude-plugin/`) |
-| D-b | ¿Arnés instalado (.claude/ sin plugin.json) es ciudadano de primera? | SÍ — es la forma en que se audita in situ; sin él no hay «instalar en proyecto existente» |
-| D-c | Elemento no reconocido | nodo `no-reconocido` visible con warn (honestidad > limpieza) |
+| D-a | Nombre/lugar del manifiesto | **`arnes.l0.json` en la raíz del arnés** (visible, versionable, no escondido en `.claude-plugin/`) |
+| D-b | ¿Arnés instalado (.claude/ sin plugin.json) es ciudadano de primera? | **SÍ** — es la forma en que se audita in situ; sin él no hay «instalar en proyecto existente» |
+| D-c | Elemento no reconocido | **nodo `no-reconocido` visible con warn** (honestidad > limpieza) |
+
+Firmada junto con la **estrategia de empaquetado (c)** del diseño 3-cuerpos
+(`research/2026-07-05-arquitectura-inyeccion-knowhow.md`): `go:embed` del ruleset (conformance
+portable, cero contexto LLM) + doctrina como plugin CC propio inyectado por flags al spawn
+(progressive disclosure). La implementación de ambos = los puentes (ficha siguiente).
 
 ## Changelog
 
+- 2026-07-07 · v1 — **FIRMADA** (HS-10): D-a/D-b/D-c resueltas según recomendación; se firma en el
+  mismo acto la estrategia de empaquetado (c) embed+plugin.
 - 2026-07-07 · v0 — draft inicial (HS-10), sale de la auditoría 4-frentes: el hueco «nomenclatura
-  no escrita» era el mayor hallazgo doctrinal. Pendiente de firma.
+  no escrita» era el mayor hallazgo doctrinal.

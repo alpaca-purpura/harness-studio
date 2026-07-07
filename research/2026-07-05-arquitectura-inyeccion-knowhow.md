@@ -3,6 +3,14 @@
 > **Estado:** propuesta arquitectónica detallada — insumo para **HS-07** (specs). 2026-07-05.
 > No firmada; baja a detalle para que la siguiente sesión se enfoque en la **doctrina**
 > (`knowledge/` — los 122 checks + L2) y no en re-derivar el mecanismo.
+>
+> **⇑ SUPERADO: FIRMADA (operador, 2026-07-07 — HS-10).** La estrategia **(c) embed+plugin**
+> (3 cuerpos: `go:embed` del ruleset para conformance portable + kit materializado en
+> `~/.arnesia/` inyectado por flags al spawn, ② jamás se escribe en ③) queda **vigente**.
+> Firmada junto con `arch/contracts/nomenclatura-arnes.md` v1 (D-a/D-b/D-c). Los conteos de
+> abajo (122/89 checks, 11 elementos) son la foto de 2026-07-05 — hoy 138+97=235 y 12 nodos.
+> Implementación = los 3 puentes (loader por nomenclatura · inyección al conductor ·
+> conformance embebido + endpoint), ficha siguiente.
 > **Norte:** [`VISION.md`](../VISION.md) (11 principios + A1–A7) · [`METODOLOGIA.md`](../METODOLOGIA.md)
 > (§0 dueño de crear+mantener · §5 sensor=telemetry-emit del kit · §6 conformación) ·
 > [`knowledge/`](../knowledge/INDEX.md) (11 elementos · 122 checks) · [`arch/`](../arch/INDEX.md)
