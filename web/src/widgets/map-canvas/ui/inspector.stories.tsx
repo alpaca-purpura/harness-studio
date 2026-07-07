@@ -205,6 +205,63 @@ export const HallazgosBotonera: Story = {
   },
 }
 
+// RF-93/95 — tab Contenido con la fuente REAL: viewer con números de línea, chip
+// «versiona con el arnés», acciones staged disabled. loadFuente lo inyecta la página.
+export const ContenidoFuenteReal: Story = {
+  args: {
+    box: { ...cajaBox, fuente_path: "skills/spec-writer/SKILL.md" },
+    loadFuente: fn(async () => "---\nname: spec-writer\n---\n# spec-writer"),
+    onClose: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    await expect(args.loadFuente).toHaveBeenCalledWith("spec-writer")
+    // Viewer con números de línea y el texto TAL CUAL.
+    await expect(await c.findByText("# spec-writer")).toBeInTheDocument()
+    await expect(c.getByText("name: spec-writer")).toBeInTheDocument()
+    await expect(c.getByText("versiona con el arnés")).toBeInTheDocument()
+    // Acciones staged: disabled y rotuladas (RF-95).
+    await expect(c.getByRole("button", { name: "Editar fuente" })).toBeDisabled()
+    await expect(c.getByRole("button", { name: "Editar conversando (dock)" })).toBeDisabled()
+  },
+}
+
+// RF-93 (Gherkin «nodo sin fuente») — sin fuente_path la tab dice el estado honesto.
+export const ContenidoSinFuente: Story = {
+  args: {
+    box: { id: "pii-guard", clase: "hook", nombre: "guardia PII", banda: "guardia" },
+    loadFuente: fn(async () => ""),
+    onClose: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    // «pendiente del reconocedor» también vive en el Rol del Resumen (pane oculto) → getAll.
+    await expect(c.getAllByText(/pendiente del reconocedor/).length).toBeGreaterThan(0)
+    await expect(c.getByText(/el loader aún no estampa/)).toBeInTheDocument()
+    await expect(args.loadFuente).not.toHaveBeenCalled()
+  },
+}
+
+// RF-93 — el daemon niega la lectura (404 honesto: arnés sin dir registrado, archivo
+// ausente…): la tab muestra el motivo, jamás inventa contenido.
+export const ContenidoErrorHonesto: Story = {
+  args: {
+    box: { ...cajaBox, fuente_path: "skills/spec-writer/SKILL.md" },
+    loadFuente: fn(async () => {
+      throw new Error("404 el arnés no tiene directorio registrado — carga la carpeta")
+    }),
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    await expect(await c.findByText(/No se pudo leer la fuente/)).toBeInTheDocument()
+    await expect(c.getByText(/no tiene directorio registrado/)).toBeInTheDocument()
+  },
+}
+
 // RF-85/86/88 — tooltips doctrinales: «i» por sección (qué agrupa) + campo punteado
 // (definición del campo Y del valor concreto), ambos operables por teclado.
 export const TooltipsDoctrinales: Story = {

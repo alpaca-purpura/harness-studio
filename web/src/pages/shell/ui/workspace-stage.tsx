@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type { ConformanceResult, Graph } from "@/entities/arnes"
 import {
   api,
@@ -121,6 +121,16 @@ export function WorkspaceStage() {
     [graph, selectedId],
   )
 
+  // Lectura de la fuente real del nodo (RF-93) — el transporte vive en la página; el
+  // inspector recibe el callback (fe-transporte-independiente).
+  const loadFuente = useCallback(
+    (nodeId: string) =>
+      viewedId
+        ? api.getNodeFuente(viewedId, nodeId)
+        : Promise.reject(new Error("sin arnés activo")),
+    [viewedId],
+  )
+
   if (!s) {
     return (
       <ComingSoon
@@ -195,6 +205,7 @@ export function WorkspaceStage() {
                     graph={graph}
                     onSelect={setSelectedId}
                     conformance={conformance}
+                    loadFuente={loadFuente}
                   />
                 </>
               )}

@@ -25,6 +25,14 @@ export class ApiError extends Error {
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  // 202 (turn accepted) and 204 (deleted) carry no body; empty text → undefined.
+  const text = await reqText(path, init)
+  return (text ? JSON.parse(text) : undefined) as T
+}
+
+// reqText — same auth/error discipline as req, but returns the raw body (text/plain
+// endpoints like the node fuente, RF-93).
+async function reqText(path: string, init?: RequestInit): Promise<string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`
   const res = await fetch(`${BASE}${path}`, { ...init, headers: { ...headers, ...init?.headers } })
@@ -35,9 +43,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
       `arnesia ${init?.method ?? "GET"} ${path}: ${res.status} ${body}`,
     )
   }
-  // 202 (turn accepted) and 204 (deleted) carry no body; empty text → undefined.
-  const text = await res.text()
-  return (text ? JSON.parse(text) : undefined) as T
+  return res.text()
 }
 
 export const api = {
@@ -64,6 +70,11 @@ export const api = {
   // (la página) filtra por nodo con el selector de la entity (RF-91).
   getConformance: <T = unknown>(id: string) =>
     req<T>(`/api/harnesses/${encodeURIComponent(id)}/conformance`),
+
+  // getNodeFuente (RF-93) — el archivo REAL del nodo, servido text/plain por el daemon,
+  // confinado al dir registrado del arnés (S2). 404 honesto cuando no hay fuente/dir.
+  getNodeFuente: (id: string, nodeId: string) =>
+    reqText(`/api/harnesses/${encodeURIComponent(id)}/nodes/${encodeURIComponent(nodeId)}/fuente`),
 
   listSessions: () => req<Session[]>("/api/sessions"),
 

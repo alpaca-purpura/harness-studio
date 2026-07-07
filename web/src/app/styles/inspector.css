@@ -370,6 +370,8 @@
 }
 
 /* ── v5 · tab Contenido: viewer de fuente + chip versiona (mockup:168-174) ── */
+/* Desviación AA sobre el mockup (RF-88): texto --primary a 9px sobre accent-soft da
+   3.44:1 (axe) — el texto pasa a foreground; borde/fondo conservan la marca primary. */
 .arnesia-inspector .chip-versiona {
   align-self: flex-start;
   font-size: 9px;
@@ -378,7 +380,7 @@
   padding: 1px 7px;
   border-radius: var(--radius-full);
   border: 1px solid var(--primary);
-  color: var(--primary);
+  color: var(--foreground);
   background: var(--accent-soft);
 }
 .arnesia-inspector .src {

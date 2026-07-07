@@ -124,9 +124,19 @@ export interface InspectorProps {
   onSelect?: ((id: string) => void) | undefined
   // Resultados de GET …/conformance (los inyecta la página); undefined = no disponible (se dice).
   conformance?: readonly ConformanceResult[] | undefined
+  // Lectura de la fuente real del nodo (RF-93, GET …/nodes/{id}/fuente) — la inyecta la
+  // página (el widget jamás fetchea); ausente = la tab lo dice.
+  loadFuente?: ((nodeId: string) => Promise<string>) | undefined
 }
 
-export function Inspector({ box, onClose, graph, onSelect, conformance }: InspectorProps) {
+export function Inspector({
+  box,
+  onClose,
+  graph,
+  onSelect,
+  conformance,
+  loadFuente,
+}: InspectorProps) {
   const [expanded, setExpanded] = useState(false)
   const [tab, setTab] = useState<Tab>("resumen")
 
@@ -240,7 +250,7 @@ export function Inspector({ box, onClose, graph, onSelect, conformance }: Inspec
           aria-labelledby="dw-tab-contenido"
           hidden={tab !== "contenido"}
         >
-          <Contenido box={box} />
+          <Contenido box={box} active={tab === "contenido"} loadFuente={loadFuente} />
         </div>
         <div
           className="tabpane"
@@ -540,26 +550,115 @@ function Resumen({
   )
 }
 
-// Contenido — la fuente del componente (RF-93..95). Sin conexión al daemon (esta
-// versión aún no recibe loadFuente) el estado se DICE — jamás contenido inventado.
-function Contenido({ box }: { box: Box }) {
+// SrcView — viewer read-only con números de línea (RF-93): el archivo tal cual, jamás
+// resaltado ni reconstruido.
+function SrcView({ texto }: { texto: string }) {
+  return (
+    <div className="src">
+      {texto.split("\n").map((l, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: la línea i ES la identidad (viewer estático de un texto plano).
+        <div key={i} className="ln">
+          <span>{i + 1}</span>
+          <code>{l}</code>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Estado de la lectura de fuente de UN nodo (id = a quién pertenece lo cargado).
+interface FuenteState {
+  id: string
+  estado: "cargando" | "ok" | "error"
+  texto?: string
+  detalle?: string
+}
+
+// Contenido — la fuente REAL del componente (RF-93..95): el daemon la sirve confinada
+// al dir registrado del arnés; universal por clase (no-reconocido → el artefacto RAW,
+// RF-94). Todo estado sin dato se DICE — jamás contenido inventado.
+function Contenido({
+  box,
+  active,
+  loadFuente,
+}: {
+  box: Box
+  active: boolean
+  loadFuente?: ((nodeId: string) => Promise<string>) | undefined
+}) {
+  const [fuente, setFuente] = useState<FuenteState>()
+
+  // Carga perezosa: solo al activar la tab, una vez por nodo.
+  useEffect(() => {
+    if (!active || !loadFuente || !box.fuente_path) return
+    if (fuente?.id === box.id) return
+    let alive = true
+    setFuente({ id: box.id, estado: "cargando" })
+    loadFuente(box.id).then(
+      (texto) => {
+        if (alive) setFuente({ id: box.id, estado: "ok", texto })
+      },
+      (e: unknown) => {
+        if (alive)
+          setFuente({
+            id: box.id,
+            estado: "error",
+            detalle: e instanceof Error ? e.message : String(e),
+          })
+      },
+    )
+    return () => {
+      alive = false
+    }
+  }, [active, loadFuente, box.id, box.fuente_path, fuente?.id])
+
   return (
     <>
       <span className="chip-versiona">versiona con el arnés</span>
       <Section title="Fuente del componente">
         <Field k="fuente" v={box.fuente_path} />
-        {box.fuente_path ? (
-          <p className="mut">
-            El daemon sirve el archivo real confinado al dir del arnés (S2) — lectura no disponible
-            en esta vista.
-          </p>
-        ) : (
+        {!box.fuente_path ? (
           <p className="mut">
             Sin <span className="mono">fuente_path</span> — pendiente del reconocedor (nomenclatura
             §3): el loader aún no estampa la celda canónica de esta clase.
           </p>
+        ) : !loadFuente ? (
+          <p className="mut">
+            El daemon sirve el archivo real confinado al dir del arnés (S2) — lectura no disponible
+            en esta vista.
+          </p>
+        ) : fuente?.estado === "ok" && fuente.texto !== undefined ? (
+          <SrcView texto={fuente.texto} />
+        ) : fuente?.estado === "error" ? (
+          <p className="warnbox">
+            No se pudo leer la fuente — {fuente.detalle ?? "error desconocido"}
+          </p>
+        ) : (
+          <p className="mut">Leyendo el archivo del arnés…</p>
         )}
       </Section>
+      <div className="dw-actions">
+        <button
+          type="button"
+          className="act primary"
+          disabled
+          title="Se cablea en Fase 3/4 — CodeMirror 6/merge, diff antes de confirmar, nace beta → tren"
+        >
+          Editar fuente
+        </button>
+        <button
+          type="button"
+          className="act"
+          disabled
+          title="Se cablea en Fase 3/4 — conversación gobernada vía Dock (backend Fase E vivo)"
+        >
+          Editar conversando (dock)
+        </button>
+        <p className="act-note">
+          staged — guardar = diff antes de confirmar + nota de cambio → nace beta → tren; versiones
+          inmutables.
+        </p>
+      </div>
     </>
   )
 }
