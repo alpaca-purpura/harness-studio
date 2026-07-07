@@ -38,7 +38,29 @@
     Luana↔dogfood. Artifact `08d31cde-3f91-4808-a14f-fe8d31ae7572`.
 - **Deuda · diseño de arquitectura ✓** (commit `3a8a278`) — `research/2026-07-06-deuda-backend-arch.md`
   (track independiente; análisis read-only, sin código).
-- **Fases C/D/E/F — bloqueadas** por el gate 1.
+- **Fase C ✓ COMPLETA — 🛑 Gate 2 (spec) FIRMADO por el operador (2026-07-06).** Paquete en
+  `research/2026-07-06-mapa-mvp/`: `spec.md` (QUÉ — RF numerados + Gherkin, cada uno trazado a
+  `mockup:línea`+shot) · `design.md` (UI al pixel — tokens/medidas) · `architecture.md` (CÓMO —
+  hexagonal+FSD-lite, loader backend, secuencia de PRs, plan de cementado de las 6 decisiones) ·
+  `PARIDAD.md` (round-trip visual + deferred honesto). Fiel al mockup firmado; corrige un dato stale
+  (el seed es **3 nodos/1 edge keyed «demo»**, no 2 → `dev-full-cycle` da **404** hoy).
+- **⚠️ Auditoría 5-subagentes (2026-07-06, build/test real) destapó INVERSIÓN DE ORDEN.** Se escribió
+  **código adelantándose a los gates**: Fase F (Hito 1) YA implementada en el working-tree (loader del
+  dogfood + `<MapCanvas>` montado, adiós `ComingSoon` + adelanto de Hito 2 inspector/picker) con **build
+  verde** (go build/vet/test `-race` · tsc · biome · depcruise · steiger · stylelint), **sin** cerrar
+  Fase D (arquitectura as-code) ni Fase E (deuda), y con Fase C **sin firmar**. El **código respeta la
+  doctrina** (backend agnóstico `fase`/`estado`=dato; canvas⊥chrome; tokens `var(--…)`; contrato fusionado;
+  las PROPUESTAs `origen`/`alw` aisladas en `proposals.ts` y etiquetadas). PERO: (i) la doctrina as-code
+  (VISION/METODOLOGIA/knowledge/arch) **NO refleja** las 6 decisiones que el código ya materializó; (ii)
+  🚩 `arch/boundaries/fe-visual-fitness.md` quedó flipado a `status: enforced` apuntando a un enforcer
+  **BORRADO** (`web/vitest.workspace.ts`) = **pass fabricado** (viola «no fabricar pass»).
+- **Decisión del operador: RETRO-AJUSTAR EN ORDEN.** (1) ✓ **Gate 2 FIRMADO**. (2) **Fase D de verdad**:
+  cementar las 6 decisiones as-code + arreglar el `enforced` falso + cuerpos de boundaries + re-sincronizar
+  conteos (knowledge/arch) + C4/contratos + graduar las PROPUESTAs (`origen`/`alw`) de fixture a L0
+  (decisión doctrinal pendiente en D — tensión `origen` vs `maquinaria-no-contamina-arnes`). (3) **RECIÉN
+  AHÍ** commitear el código como Fase F. Deuda E queda **diferida honesta**.
+- **Fases D → F — desbloqueadas por Gate 2**; ejecutar en el orden retro-ajustado (D **antes** de
+  commitear el código de F). Fase E (deuda backend) sigue como track paralelo honestamente diferido.
 
 ### Decisiones firmadas / tomadas
 1. **Sustrato del Mapa = HTML bandas/carriles + SVG overlay** (NO React Flow). Operador eligió; RF se reserva
