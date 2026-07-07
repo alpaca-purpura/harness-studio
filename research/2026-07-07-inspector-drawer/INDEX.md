@@ -42,16 +42,15 @@
 > Se actualiza al cierre de cada turno de trabajo (METODOLOGIA §10). Una sesión nueva
 > lee esto y continúa como si fuera la misma conversación.
 
-- **Último hecho (2026-07-07):** `mockup-drawer.html` **v1 creado, verificado
-  (ojo-UI: 15/15 drawers renderizan, tri-estado de reglas, warn no-reconocido; consola
-  limpia) y publicado como artifact** (URL arriba — SIEMPRE redeploy a la misma).
-  15 casuísticas numeradas 01–15 (referencia para iterar: «cambia la 07»); datos reales
-  del showcase, stubs rotulados «sintético» (08 · 09 · 15). Clon de `inspector.tsx`
-  @`3cf9d43` (Tier A incluido). Antes en el mismo día: disciplina §10 firmada, Tier A
-  en la app, bundle `.deb` regenerado.
-- **Próximo paso:** el operador revisa el artifact y dicta cambios casuística por
-  casuística → cada cambio a `decisiones.md` EN EL MISMO TURNO + nueva versión del
-  mockup (vN en el changelog del HTML) redeployada a la MISMA URL.
+- **Último hecho (2026-07-07):** mockup **v2** publicado (misma URL) con la
+  **decisión #1 en PROPUESTA** (`decisiones.md`): botón «ampliar» ⤢ junto al de
+  cerrar → el drawer ocupa todo el espacio visual del mapa; ⤡/Esc restauran; en
+  amplio las secciones fluyen en columnas (`minmax(280px,1fr)`). INTERACTIVO en el
+  mockup — verificado ojo-UI (toggle+Esc+aria-pressed, consola limpia). v1 = clon
+  fiel, 15 casuísticas 01–15, stubs «sintético» (08 · 09 · 15).
+- **Próximo paso:** el operador prueba ⤢ en el artifact → firma la decisión #1 (o
+  la corrige) y sigue dictando cambios; cada uno a `decisiones.md` EN EL MISMO
+  TURNO + vN redeployada a la MISMA URL.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN

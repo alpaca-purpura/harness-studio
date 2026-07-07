@@ -7,6 +7,8 @@
 
   CHANGELOG DE ITERACIONES (una línea por versión; METODOLOGIA §10)
   v1 · 2026-07-07 · clon fiel del estado actual (Tier A incluido: encuadre por clase · Fuente · Activación).
+  v2 · 2026-07-07 · decisión #1: botón «ampliar» (⤢) junto al de cerrar — el drawer ocupa todo el espacio
+       visual del mapa; ⤡ o Esc restauran; en modo amplio las secciones fluyen en columnas. INTERACTIVO: pruébalo.
 -->
 <title>Mockup — drawer del Mapa (inspector)</title>
 <style>
@@ -86,9 +88,17 @@
   .dw-handle { font-size:var(--text-xs); color:var(--muted-foreground); margin-top:1px; }
   .dw-handle .mono { font-family:var(--font-mono); }
   /* close: grid size-6 border rounded-md */
-  .dw-close { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0; border:1px solid var(--border);
+  .dw-close, .dw-expand { display:grid; place-items:center; width:24px; height:24px; flex-shrink:0; border:1px solid var(--border);
     border-radius:var(--radius-md); background:none; color:var(--muted-foreground); font:inherit; font-size:11px; cursor:pointer; }
-  .dw-close:hover, .dw-close:focus-visible { color:var(--foreground); outline-offset:2px; }
+  .dw-close:hover, .dw-close:focus-visible, .dw-expand:hover, .dw-expand:focus-visible { color:var(--foreground); outline-offset:2px; }
+  /* ══ v2 · decisión #1 — modo AMPLIO: el drawer ocupa todo el espacio visual del mapa ══ */
+  .drawer.expanded { position:fixed; inset:0; z-index:10; width:auto; border-radius:0; border:none;
+    overflow:auto; box-shadow:0 0 0 100vmax rgba(0,0,0,.25); }
+  .drawer.expanded .dw-head { position:sticky; top:0; background:var(--card); z-index:1; }
+  /* en amplio, las secciones aprovechan el ancho fluyendo en columnas */
+  .drawer.expanded .dw-body { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px 36px; align-content:start; max-width:1280px; padding:20px 24px; }
+  @media (prefers-reduced-motion: no-preference) { .drawer { transition:box-shadow .15s ease; } }
   /* body: flex col gap-4 p-4 */
   .dw-body { display:flex; flex-direction:column; gap:16px; padding:16px; }
   /* Section: flex col gap-1.5 · h4 text-xs semibold uppercase tracking-wide muted */
@@ -261,11 +271,32 @@ function drawer(box) {
         <div class="dw-nombre">${esc(box.nombre)}</div>
         <div class="dw-handle">${esc(k.label)} · <span class="mono">${esc(handleFor(box,alw))}</span></div>
       </div>
+      <button type="button" class="dw-expand" aria-label="Ampliar inspector" aria-pressed="false">⤢</button>
       <button type="button" class="dw-close" aria-label="Cerrar inspector">✕</button>
     </header>
     <div class="dw-body">${body}</div>
   </aside>`;
 }
+
+// v2 · decisión #1 — toggle del modo amplio (⤢/⤡; Esc restaura)
+function setExpanded(drawer, on) {
+  drawer.classList.toggle("expanded", on);
+  const b = drawer.querySelector(".dw-expand");
+  b.textContent = on ? "⤡" : "⤢";
+  b.setAttribute("aria-label", on ? "Restaurar inspector" : "Ampliar inspector");
+  b.setAttribute("aria-pressed", String(on));
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".dw-expand");
+  if (!b) return;
+  const d = b.closest(".drawer");
+  const on = !d.classList.contains("expanded");
+  document.querySelectorAll(".drawer.expanded").forEach(x => setExpanded(x, false));
+  setExpanded(d, on);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") document.querySelectorAll(".drawer.expanded").forEach(x => setExpanded(x, false));
+});
 
 document.getElementById("gallery").innerHTML = CASES.map(cs =>
   `<div class="case">
