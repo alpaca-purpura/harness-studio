@@ -1,7 +1,7 @@
 ---
 regla: permisos-gui-human-in-the-loop
-version: 1.1
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-07
 status: proposed
 ledger: HS-04
 sources:
@@ -61,13 +61,24 @@ control):
 | no-bypass | ningún path de código pasa `--dangerously-skip-permissions`/`bypassPermissions` en el conductor de cara al usuario | error | banda Guardia «automatización con permisos saltados» | arch_test.go:TestNoBypassPermissions |
 | write-requiere-aprobacion | Write/Edit no están en `--allowedTools`; pasan por el diff-approval del GUI | error | «escritura auto-aprobada sin diff» | arch_test.go:TestWriteRequiresApproval |
 | modo-por-fase | evals-gate/promote corren `dontAsk`; grill/spec corren `plan` | warn | «fase sin humano corriendo en modo interactivo (o viceversa)» | arch_test.go |
-| allowedtools-readonly | `--allowedTools` solo lista tools read-only | warn | «allowlist incluye tools que escriben» | arch_test.go |
+| allowedtools-readonly | `--allowedTools` solo lista tools read-only | warn | «allowlist incluye tools que escriben» | arch_test.go:TestWriteRequiresApproval |
 | max-turns-siempre | toda corrida del conductor fija `--max-turns` | error | «sin turn-cap — loop/costo runaway» | arch_test.go:TestMaxTurnsAlways |
 | sesion-aislada-por-cwd | cada sesión spawnea `claude` en la ruta de SU arnés (WorkdirResolver), nunca un cwd global compartido | error | «N sesiones en un cwd → se pisan archivos + contención ~/.claude» | arch_test.go:TestSessionSpawnsInArnesPath |
 | cwd-path-contenido | la ruta registrada de un arnés pasa validación (absoluta, dir existente, no `/`/`$HOME`/`~/.claude`/`~/.ssh`) | error | banda Guardia «cwd de sesión sobre ubicación protegida» | arch_test.go:TestArnesPathContainment |
 
 ## Changelog
 
+- 2026-07-07 · v1.2 · **realizado en vivo (HS-11/Fase E).** El diff-approval reservado desde v1.0
+  aterriza: el adapter claudecode REENVÍA `control_request:can_use_tool` (antes lo descartaba) como
+  evento normalizado; el daemon lo pinta como tarjeta `permission` del Dock por SSE (D3) y `POST
+  /api/sessions/{id}/permission` (reemplaza el 501) responde `control_response` por stdin — allow
+  eco del input / deny con message, deny del rol gana al click. `write-requiere-aprobacion` pasa de
+  t.Skip a test REAL (`TestWriteRequiresApproval`: Write/Edit filtrados de `--allowedTools` aunque
+  el rol los permita + loop humano con fakes + grant efímero sin re-pregunta), que también cubre
+  `allowedtools-readonly` (celda actualizada, sin-test → con-test). El shape del control channel
+  sigue semi-documentado (issue #24594): implementación best-effort contra el protocolo del Agent
+  SDK, incertidumbre anotada en el adapter. `status` sigue `proposed` honesto: `modo-por-fase`
+  (plan/dontAsk por fase) aún no tiene enforcement real.
 - 2026-07-05 · v1.1 · **HS-06 — la prosa L2 «aislar sesiones por cwd/worktree» se vuelve
   ejecutable.** La auditoría del shell Tauri v1 encontró que el conductor corría TODO en un cwd
   global (arnés = metadata cosmética). Fix: puerto `WorkdirResolver` + registro explícito arnés→ruta

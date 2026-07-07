@@ -42,9 +42,28 @@ type BoxOutcome struct {
 	Senal       domain.SenalIteracion
 }
 
-// Run drives the box loop to a terminal state and returns the routing decision.
+// defaultMaxTurns is the last-resort turn cap: a T3 run NEVER spawns uncapped
+// (boundary permisos-gui `max-turns-siempre`), even if the config left it 0.
+const defaultMaxTurns = 40
+
+// Run drives the box loop to a terminal state and returns the routing decision, with
+// the conductor's default spawn parameters (no cwd, no permission-set).
 func (c *BoxConductor) Run(ctx context.Context, box domain.Box) (BoxOutcome, error) {
-	sess, err := c.agent.Spawn(ctx, ports.SpawnOpts{Cwd: "", MaxTurns: c.maxTurns})
+	return c.RunWith(ctx, box, ports.SpawnOpts{})
+}
+
+// RunWith drives the box loop with explicit spawn parameters — the daemon path (Fase E):
+// opts carries the arnés cwd (confinement), the role-derived Permisos and the doctrine
+// Injection. MaxTurns is ALWAYS enforced: an unset cap falls back to the conductor's,
+// then to defaultMaxTurns — never unbounded.
+func (c *BoxConductor) RunWith(ctx context.Context, box domain.Box, opts ports.SpawnOpts) (BoxOutcome, error) {
+	if opts.MaxTurns <= 0 {
+		opts.MaxTurns = c.maxTurns
+	}
+	if opts.MaxTurns <= 0 {
+		opts.MaxTurns = defaultMaxTurns
+	}
+	sess, err := c.agent.Spawn(ctx, opts)
 	if err != nil {
 		return BoxOutcome{}, fmt.Errorf("conductor: spawn: %w", err)
 	}
@@ -66,8 +85,9 @@ func (c *BoxConductor) Run(ctx context.Context, box domain.Box) (BoxOutcome, err
 			break
 		}
 		// Read ONLY machine signals: the result subtype + the artifact's document-as-cache
-		// status. The chat text (res.Text) is deliberately ignored for control flow.
-		status, _, _ := c.artifacts.Status(ctx, artifact)
+		// status. The chat text (res.Text) is deliberately ignored for control flow. The
+		// read is confined under the run's cwd (the arnés tree the spawn ran in).
+		status, _, _ := c.artifacts.Status(ctx, opts.Cwd, artifact)
 		senal = domain.SenalIteracion{Subtipo: mapSubtipo(res), EstadoArtefacto: status}
 		estado = domain.AvanzarCaja(estado, senal)
 	}

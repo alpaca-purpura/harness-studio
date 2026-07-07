@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 )
 
@@ -51,9 +52,10 @@ func New(bin string) *Conductor {
 	return &Conductor{bin: bin}
 }
 
-// Spawn starts a persistent conductor in streaming stream-json mode and returns the
-// live session. The subprocess stays alive across turns until Close.
-func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.AgentSession, error) {
+// SpawnArgs returns the argv (sans binary) a SpawnOpts materializes. Exported so the
+// fitness tests (arch/fitness) can assert the permission/turn-cap flags without
+// spawning a real process — the flags ARE the enforcement surface.
+func SpawnArgs(opts ports.SpawnOpts) []string {
 	args := []string{
 		"-p",
 		"--input-format", "stream-json",
@@ -85,10 +87,59 @@ func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.Agen
 	for _, d := range opts.Injection.AddDirs {
 		args = append(args, "--add-dir", d)
 	}
+	return append(args, permissionArgs(opts.Permisos)...)
+}
 
+// escrituraDirecta are the file-mutating tools that NEVER ride --allowedTools: even when
+// the role's set allows them, each write goes through the GUI diff-approval
+// (control_request → Dock), per boundary permisos-gui `write-requiere-aprobacion` +
+// `allowedtools-readonly`. The role's allow means "approvable by this role", not "auto".
+var escrituraDirecta = map[string]bool{
+	"Write": true, "Edit": true, "MultiEdit": true, "NotebookEdit": true,
+}
+
+// permissionArgs materializes a role-derived PermissionSet in CC-native flags — the
+// sanctioned surface per knowledge/elements/settings-permissions.md L1:
+//
+//   - `--permission-mode default` — deny-by-default «Manual» (L1.4); never bypass.
+//   - `--allowedTools` — ONLY the genuinely read-only part of the role's allow
+//     (escrituraDirecta filtered out; auto-approved tools never reach the callback).
+//   - `--disallowedTools` — the role's hard deny (deny > ask > allow, enforced by CC
+//     outside the model's reasoning).
+//   - `--permission-prompt-tool stdio` — routes every non-pre-approved tool to the
+//     control channel (`control_request:can_use_tool`), which the adapter forwards to
+//     the daemon (research fase3 §frente B command line).
+//
+// GAP honesto: `Ask` has no dedicated CC flag — it is realized by NOT pre-approving +
+// prompt-tool stdio (deny-by-default posture: unlisted/ask tools hit the control
+// channel). `TTL` maps to no flag either: the ephemeral grants live in the daemon
+// (SessionService), not in the CLI. A zero-value set emits NO flags (Dock unchanged).
+func permissionArgs(ps domain.PermissionSet) []string {
+	if ps.Rol == "" && len(ps.Allow) == 0 && len(ps.Ask) == 0 && len(ps.Deny) == 0 && ps.TTL == 0 {
+		return nil
+	}
+	args := []string{"--permission-mode", "default"}
+	var readOnly []string
+	for _, tool := range ps.Allow {
+		if !escrituraDirecta[tool] {
+			readOnly = append(readOnly, tool)
+		}
+	}
+	if len(readOnly) > 0 {
+		args = append(args, "--allowedTools", strings.Join(readOnly, ","))
+	}
+	if len(ps.Deny) > 0 {
+		args = append(args, "--disallowedTools", strings.Join(ps.Deny, ","))
+	}
+	return append(args, "--permission-prompt-tool", "stdio")
+}
+
+// Spawn starts a persistent conductor in streaming stream-json mode and returns the
+// live session. The subprocess stays alive across turns until Close.
+func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.AgentSession, error) {
 	// The binary is the operator-configured local `claude` (conductor pattern,
 	// local-first) and the args are built right here — never remote input.
-	cmd := exec.CommandContext(ctx, c.bin, args...) //nolint:gosec // G204: c.bin is local daemon configuration (the --claude flag), never external input.
+	cmd := exec.CommandContext(ctx, c.bin, SpawnArgs(opts)...) //nolint:gosec // G204: c.bin is local daemon configuration (the --claude flag), never external input.
 	if opts.Cwd != "" {
 		cmd.Dir = opts.Cwd
 	}
@@ -172,6 +223,77 @@ func (s *ccSession) Send(_ context.Context, turn string) error {
 // Events returns the normalized event stream (closed when the subprocess exits).
 func (s *ccSession) Events() <-chan ports.AgentEvent { return s.events }
 
+// ctrlAllow / ctrlDeny are the inner permission results of a control_response.
+type ctrlAllow struct {
+	Behavior     string          `json:"behavior"`
+	UpdatedInput json.RawMessage `json:"updatedInput"`
+}
+
+type ctrlDeny struct {
+	Behavior string `json:"behavior"`
+	Message  string `json:"message,omitempty"`
+}
+
+// ctrlResponseEnvelope is the stdin frame answering a control_request.
+type ctrlResponseEnvelope struct {
+	Type     string           `json:"type"`
+	Response ctrlResponseBody `json:"response"`
+}
+
+type ctrlResponseBody struct {
+	Subtype   string `json:"subtype"`
+	RequestID string `json:"request_id"`
+	Response  any    `json:"response"`
+}
+
+// controlResponseLine renders one control_response NDJSON line.
+//
+// HONESTIDAD sobre el wire format: el shape del canal control del binario `claude` está
+// semi-documentado (oficial solo para el Agent SDK; anthropics/claude-code#24594 sigue
+// abierto). Este envelope — {"type":"control_response","response":{subtype:"success",
+// request_id, response:{behavior:"allow",updatedInput}|{behavior:"deny",message}}} — es
+// el que implementan los SDKs oficiales y el que el research del repo cementó
+// (research/2026-07-05-arquitectura-fase3.md §frente B ·
+// research/2026-07-06-deuda-backend-arch.md item 2: «{behavior, updatedInput?,
+// message?} — verificar el exacto al implementar contra el binario»). Best-effort
+// verificado contra los SDKs; el cableado se prueba con fakes (arch/fitness).
+func controlResponseLine(requestID string, d ports.ControlDecision) ([]byte, error) {
+	var inner any
+	if d.Allow {
+		upd := json.RawMessage(d.UpdatedInput)
+		if len(upd) == 0 {
+			upd = json.RawMessage("{}")
+		}
+		inner = ctrlAllow{Behavior: "allow", UpdatedInput: upd}
+	} else {
+		inner = ctrlDeny{Behavior: "deny", Message: d.Message}
+	}
+	line, err := json.Marshal(ctrlResponseEnvelope{
+		Type:     "control_response",
+		Response: ctrlResponseBody{Subtype: "success", RequestID: requestID, Response: inner},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("claudecode: marshal control_response: %w", err)
+	}
+	return append(line, '\n'), nil
+}
+
+// RespondControl answers a forwarded control_request over stdin. The adapter never
+// decides — the daemon (role permission-set + Dock approval) already did; this only
+// speaks the wire format (see controlResponseLine for the honest-uncertainty note).
+func (s *ccSession) RespondControl(_ context.Context, requestID string, d ports.ControlDecision) error {
+	line, err := controlResponseLine(requestID, d)
+	if err != nil {
+		return err
+	}
+	s.sendMu.Lock()
+	defer s.sendMu.Unlock()
+	if _, err := s.stdin.Write(line); err != nil {
+		return fmt.Errorf("claudecode: write control_response: %w", err)
+	}
+	return nil
+}
+
 // Close ends the subprocess: closing stdin signals EOF (a clean exit), then we wait.
 func (s *ccSession) Close() error {
 	s.closeOnce.Do(func() {
@@ -193,6 +315,15 @@ type rawFrame struct {
 	Result     string          `json:"result"`
 	Usage      *usage          `json:"usage"`
 	ModelUsage map[string]cwin `json:"modelUsage"`
+	RequestID  string          `json:"request_id"`
+	Request    *ctrlRequest    `json:"request"`
+}
+
+// ctrlRequest is the inner payload of a control_request frame (can_use_tool).
+type ctrlRequest struct {
+	Subtype  string          `json:"subtype"`
+	ToolName string          `json:"tool_name"`
+	Input    json.RawMessage `json:"input"`
 }
 
 type assistantMsg struct {
@@ -295,6 +426,22 @@ func translate(line []byte) (ports.AgentEvent, bool) {
 
 	case "result":
 		return ports.AgentEvent{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f), Raw: line}, true
+
+	case "control_request":
+		// Forward can_use_tool VERBATIM instead of discarding it (Fase E): the daemon —
+		// role permission-set + Dock human-in-the-loop — resolves it and answers via
+		// RespondControl. Other control subtypes (hook_callback, mcp_message…) stay
+		// out of scope: not forwarded, honestly ignored.
+		if f.Request != nil && f.Request.Subtype == "can_use_tool" {
+			return ports.AgentEvent{
+				Kind:      ports.EventControlRequest,
+				RequestID: f.RequestID,
+				Tool:      f.Request.ToolName,
+				Input:     f.Request.Input,
+				Raw:       line,
+			}, true
+		}
+		return ports.AgentEvent{}, false
 
 	default:
 		return ports.AgentEvent{}, false

@@ -105,14 +105,23 @@ func withAuth(cfg AuthConfig, next http.Handler) http.Handler {
 			return
 		}
 
-		// 3. Token gate — capability. Skipped when no token is configured (dev).
-		if cfg.Token != "" && !validToken(r, cfg.Token) {
+		// 3. Token gate — capability. Skipped when no token is configured (dev). Aplica a
+		// la API y al stream; la UI estática embebida (assets inertes en "/") queda tras
+		// los gates 1+2 solamente — un browser debe poder CARGARLA antes de tener token
+		// (el token viaja luego en cada llamada de la SPA a /api).
+		if cfg.Token != "" && isAPIPath(r.URL.Path) && !validToken(r, cfg.Token) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// isAPIPath reports whether the path carries capability (API o stream) — lo que el
+// token protege. Todo lo demás bajo el mux es la SPA embebida (estática).
+func isAPIPath(p string) bool {
+	return strings.HasPrefix(p, "/api") || p == "/events"
 }
 
 // validToken reads the token from a header (Authorization: Bearer / X-Arnesia-Token) or,

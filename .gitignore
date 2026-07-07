@@ -1,6 +1,9 @@
 # Node / UI
 node_modules/
-dist/
+# dist se ignora POR CONTENIDO (no el dir): web/dist/.gitkeep viaja commiteado para que
+# el go:embed de la SPA (embed_webdist.go) compile siempre; el bundle real lo llena.
+web/dist/*
+!web/dist/.gitkeep
 .next/
 *.tsbuildinfo
 

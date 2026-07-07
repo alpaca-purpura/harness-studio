@@ -73,6 +73,32 @@ paths:
         "200": { description: "ConformanceReport: target + results[] {check{id,severidad,que,mecanismo,enforced_by}, veredicto pass|fail|error|deferred|n/a, detalle}." }
         "404": { description: Arnés no indexado. }
 
+  /harnesses/{id}/boxes/{boxId}/run:
+    post:
+      operationId: runBox
+      summary: >-
+        Conductor T3 (Fase E, D2 gate-0): corre el loop determinista de UNA caja — recurso propio,
+        separado del turno conversacional del Dock (arch/boundaries/orquestacion-determinista-entre-
+        cajas.md). El daemon resuelve el rol del arnés (META `arnes.rol` del grafo indexado) →
+        permission-set del rol (permisos-derivan-del-rol) → spawnea `claude` confinado al árbol del
+        arnés con `--max-turns` SIEMPRE + flags de permisos CC-native + inyección de doctrina; el
+        loop lee `result.subtype` + el `status:` del artefacto (document-as-cache, jamás el texto del
+        chat) y rutea por `contract.ruta`. SÍNCRONO: el loop está acotado (repair-cap × --max-turns)
+        y el desenlace ES la respuesta (un fallo de spawn llega al caller, no se pierde en un 202);
+        el progreso vivo viaja en paralelo por /events (event: run).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: boxId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Desenlace terminal del loop (estado interno + ruteo decidido por CÓDIGO).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunResult" }
+        "404": { description: Arnés no indexado, o el nodo no existe en su grafo. }
+        "422": { description: El nodo no es una caja con contrato (solo una caja de proceso corre T3), o el arnés no declara rol (META de enganche incompleta — el permission-set deriva del rol). }
+        "500": { description: Fallo del spawn/conductor — el error REAL, nunca un 501 genérico. }
+
   /arneses:
     get:
       operationId: listArneses
@@ -102,7 +128,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ArnesPath" }
-        "400": { description: Ruta inválida o protegida (`/`, `$HOME`, `~/.claude`, `~/.ssh`, relativa…). }
+        "400": { description: "Ruta inválida o protegida (`/`, `$HOME`, `~/.claude`, `~/.ssh`, relativa…)." }
 
   /sessions:
     get:
@@ -190,8 +216,15 @@ paths:
     post:
       operationId: resolvePermission
       summary: >-
-        Diff-approval (human-in-the-loop). Resuelve un control_request:can_use_tool. Ver
-        arch/boundaries/permisos-gui-human-in-the-loop.md. (Stub — spike de permisos = HS-07.)
+        Diff-approval (human-in-the-loop, REAL desde Fase E — reemplaza el 501). Resuelve el
+        control_request:can_use_tool que el adapter reenvió como tarjeta `permission` del Dock (D3):
+        la decisión humana corre BAJO la autoridad del rol — `PermissionSet.Decide` con deny > ask >
+        allow, así que un deny del rol gana incluso al click de aprobar (la autoridad se impone fuera
+        del razonamiento Y fuera del click); un allow mintea un Grant EFÍMERO (TTL del rol; el
+        operador solo puede ACOTARLO con ttl_segundos, nunca ampliarlo) y mientras esté vigente el
+        mismo tool no re-pregunta en la sesión. La respuesta viaja al conductor como
+        control_response por stdin. Ver arch/boundaries/permisos-gui-human-in-the-loop.md +
+        permisos-derivan-del-rol.md.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       requestBody:
@@ -200,14 +233,21 @@ paths:
           application/json:
             schema:
               type: object
-              required: [requestId, decision]
+              required: [request_id, decision, role]
               properties:
-                requestId: { type: string }
+                request_id: { type: string, description: el id del control_request pendiente (llegó en la tarjeta `permission` del Dock). }
                 decision: { type: string, enum: [allow, deny] }
-                updatedInput: { type: object, description: requerido si decision=allow }
-                message: { type: string, description: requerido si decision=deny }
+                role: { type: string, description: el rol bajo cuya autoridad se decide (deny-by-default — sin rol no hay resolución). }
+                ttl_segundos: { type: integer, description: "opcional: ACOTA el TTL del grant por debajo del que el rol autoriza (jamás lo amplía)." }
       responses:
-        "200": { description: Resuelto. }
+        "200":
+          description: Resuelto — la decisión EFECTIVA tras aplicar la autoridad del rol.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionResolution" }
+        "400": { description: Decisión inválida, rol vacío/irresoluble, o request_id ausente. }
+        "404": { description: No hay control_request pendiente con ese id en esa sesión. }
+        "500": { description: La respuesta no llegó al conductor (proceso muerto / stdin roto). }
 
   /events:
     get:
@@ -294,12 +334,42 @@ components:
       properties:
         session_id: { type: string, description: "rutea N conversaciones en una conexión." }
         run_id: { type: string, description: "el turno al que pertenece el frame (idempotencia)." }
-        kind: { type: string, enum: [status, init, delta, message, result, error] }
+        kind:
+          type: string
+          enum: [status, init, delta, message, result, error, permission, permission_result]
+          description: >-
+            permission = tarjeta ask→UI de un control_request (lleva request_id + tool + input crudo
+            para pintar el diff; la sesión pasa a `await`); permission_result la cierra con la
+            decisión efectiva.
         text: { type: string }
         status: { type: string, enum: [streaming, await, idle] }
         ctx_pct: { type: integer }
         model: { type: string }
         claude_session_id: { type: string }
+        request_id: { type: string, description: "id del control_request (kinds permission*)." }
+        tool: { type: string, description: "el tool que Claude Code pide correr." }
+        input: { type: object, description: "input crudo del tool (file_path/old_string/new_string…) — el GUI pinta el diff de aquí." }
+        decision: { type: string, enum: [allow, deny], description: "decisión efectiva (kind=permission_result)." }
+    RunResult:
+      type: object
+      required: [run_id, box, estado, iteraciones, handoff]
+      properties:
+        run_id: { type: string }
+        box: { type: string }
+        rol: { type: string, description: "el rol cuya autoridad parametrizó la corrida." }
+        estado: { type: string, enum: [draft, working, review, done, blocked], description: "estado interno terminal de la caja (FSM del conductor)." }
+        iteraciones: { type: integer }
+        siguiente: { type: string, description: "a dónde ruteó CÓDIGO leyendo contract.ruta (o el handoff)." }
+        handoff: { type: boolean, description: "true = blocked → escalación humana." }
+    PermissionResolution:
+      type: object
+      required: [request_id, tool, efectiva]
+      properties:
+        request_id: { type: string }
+        tool: { type: string }
+        efectiva: { type: string, enum: [allow, deny], description: "la decisión tras aplicar deny-del-rol > click humano." }
+        motivo: { type: string }
+        expira: { type: string, format: date-time, description: "fin del grant efímero (solo efectiva=allow)." }
     ArnesPath:
       type: object
       required: [arnes, path]

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -152,6 +153,47 @@ func sessionTurn(svc *usecase.SessionService) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+// permissionBody is the POST /api/sessions/{id}/permission payload: the human answer
+// to a control_request card of the Dock (D3). role names the authority the decision
+// runs under; ttl_segundos optionally NARROWS the role's grant TTL (never widens it).
+type permissionBody struct {
+	RequestID   string `json:"request_id"`
+	Decision    string `json:"decision"` // allow | deny
+	Role        string `json:"role"`
+	TTLSegundos int    `json:"ttl_segundos"`
+}
+
+// resolvePermission resolves a pending control_request: role permission-set + human
+// decision → deny-wins → ephemeral Grant on allow → control_response al conductor.
+// Realiza permisos-gui-human-in-the-loop + permisos-derivan-del-rol (reemplaza el 501).
+func resolvePermission(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body permissionBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		if body.RequestID == "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "request_id requerido"})
+			return
+		}
+		res, err := svc.ResolvePermission(r.PathValue("id"), body.RequestID, body.Decision, body.Role,
+			time.Duration(body.TTLSegundos)*time.Second)
+		if err != nil {
+			switch {
+			case errors.Is(err, usecase.ErrPermisoNoPendiente):
+				writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			case errors.Is(err, usecase.ErrEnvioControl):
+				writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			default:
+				// decisión inválida / rol vacío o irresoluble → petición mal formada.
+				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
 	}
 }
 

@@ -49,6 +49,8 @@ components:
   # --- adaptadores de salida ---
   agent-adapters:
     in: internal/adapters/agent/**
+  artifact:
+    in: internal/adapters/artifact/**
   index:
     in: internal/adapters/index/**
   watch:
@@ -97,6 +99,8 @@ deps:
   # Los adaptadores implementan puertos: dependen del dominio/ports, no entre sí.
   agent-adapters:
     mayDependOn: [domain, ports]
+  artifact:
+    mayDependOn: [domain, ports]   # lector de `status:` frontmatter (document-as-cache, Fase E)
   index:
     mayDependOn: [domain, ports, dogfood]   # seed de fixtures embebidos (HS-09; sale con el loader real)
   watch:
@@ -120,4 +124,4 @@ deps:
 
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, store, conformance, permission, provision, loader, dogfood, doctrina]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, dogfood, doctrina]

@@ -3,7 +3,11 @@
 // watch, publish) implement them. Only the composition root (cmd) wires the two.
 package ports
 
-import "context"
+import (
+	"context"
+
+	"github.com/alpacapurpura/arnesia/internal/domain"
+)
 
 // AgentEventKind is the normalized meaning of a conductor event. The claudecode
 // adapter owns the Claude Code stream-json protocol and translates its raw frames
@@ -25,6 +29,12 @@ const (
 	EventResult AgentEventKind = "result"
 	// EventError — the conductor failed (Text is the reason).
 	EventError AgentEventKind = "error"
+	// EventControlRequest — a `control_request:can_use_tool` frame: Claude Code asks
+	// permission to run a tool (RequestID + Tool + raw Input). The adapter FORWARDS it
+	// (never auto-resolves): the daemon decides via the role's PermissionSet and the
+	// human-in-the-loop Dock (boundaries permisos-derivan-del-rol +
+	// permisos-gui-human-in-the-loop), answering through AgentSession.RespondControl.
+	EventControlRequest AgentEventKind = "control_request"
 )
 
 // AgentEvent is one normalized message from the conductor. Raw is the untouched
@@ -39,7 +49,13 @@ type AgentEvent struct {
 	// The T3 conductor reads THIS machine signal to decide continue/stop — never the chat
 	// text (arch/boundaries/orquestacion-determinista-entre-cajas.md).
 	Subtype string
-	Raw     []byte
+	// RequestID / Tool / Input carry a forwarded control_request (Kind=
+	// EventControlRequest): the id to answer with RespondControl, the tool Claude Code
+	// wants to run, and the raw JSON input of the call (the GUI paints the diff from it).
+	RequestID string
+	Tool      string
+	Input     []byte
+	Raw       []byte
 }
 
 // SpawnOpts parameterizes a conductor. Resume, when non-empty, continues an existing
@@ -61,6 +77,19 @@ type SpawnOpts struct {
 	// --append-system-prompt-file / --add-dir; HS-11 puente 2). Zero value = spawn sin
 	// doctrina (degradación honesta, jamás bloquea la sesión).
 	Injection Injection
+	// Permisos is the role-derived permission-set the spawn materializes in CC-native
+	// flags (boundary permisos-derivan-del-rol: permission = f(rol), resolved by the
+	// PermissionPort at hydration). Zero value = no extra restriction (the interactive
+	// Dock spawn keeps Claude Code's own defaults).
+	Permisos domain.PermissionSet
+}
+
+// ControlDecision is the daemon's answer to a forwarded control_request. On allow the
+// original tool input is echoed back (UpdatedInput, raw JSON); on deny Message says why.
+type ControlDecision struct {
+	Allow        bool
+	UpdatedInput []byte
+	Message      string
 }
 
 // AgentSession is a live `claude` conductor: streaming user turns in, normalized
@@ -71,6 +100,10 @@ type AgentSession interface {
 	Send(ctx context.Context, turn string) error
 	// Events yields normalized events until the session closes.
 	Events() <-chan AgentEvent
+	// RespondControl answers a pending control_request (EventControlRequest) over the
+	// agent's control channel (stdin for the claudecode adapter). The daemon — role
+	// permission-set + human approval — is the only caller; the adapter never decides.
+	RespondControl(ctx context.Context, requestID string, d ControlDecision) error
 	// Close terminates the subprocess (closing stdin, then waiting).
 	Close() error
 }

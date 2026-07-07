@@ -20,11 +20,24 @@ type errorBody struct {
 }
 
 // NewHandler builds the daemon's router. maps serves the Map/graph endpoints; sessions
-// drives the multisesión Dock; arneses is the arnés→path registry (per-session workdir
-// confinement); events is the SSE broker mounted at /events. auth confines the whole
-// surface (Host+Origin+token, boundary superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, events http.Handler, auth AuthConfig) http.Handler {
+// drives the multisesión Dock; runs is the T3 conductor entry (D2); arneses is the
+// arnés→path registry (per-session workdir confinement); events is the SSE broker
+// mounted at /events. auth confines the whole surface (Host+Origin+token, boundary
+// superficie-local-confinada).
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
+
+	// UI embebida (HS-11): el daemon sirve la SPA en "/" cuando el build la trae
+	// (scripts/bundle.sh compila web/dist ANTES del daemon). Queda DENTRO de withAuth:
+	// gates Host+Origin aplican; el token solo protege /api|/events (isAPIPath — la
+	// SPA debe cargar antes de tener token). Un build de dev sin dist responde honesto.
+	if ui != nil {
+		mux.Handle("/", ui)
+	} else {
+		mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "arnesia: este build no embebe la UI (scripts/bundle.sh la incluye); la API vive en /api", http.StatusNotFound)
+		})
+	}
 
 	// Liveness + the multiplexed SSE stream (the two endpoints the shell polls first).
 	mux.HandleFunc("GET /healthz", healthz)
@@ -38,6 +51,9 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arne
 	mux.HandleFunc("GET /api/harnesses/{id}/runs", listRuns)
 	mux.HandleFunc("GET /api/harnesses/{id}/conformance", getConformance(maps, conf, confBase))
 
+	// Conductor T3 (Fase E, D2): correr una caja = recurso propio, NO un turno del Dock.
+	mux.HandleFunc("POST /api/harnesses/{id}/boxes/{boxId}/run", runBox(runs))
+
 	// Arnés registry (S2) — maps an arnés to the working dir its sessions run claude in.
 	mux.HandleFunc("GET /api/arneses", listArneses(arneses))
 	mux.HandleFunc("PUT /api/arneses/{id}", registerArnes(arneses, onArnesRegistered))
@@ -49,7 +65,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arne
 	mux.HandleFunc("PATCH /api/sessions/{id}", patchSession(sessions))
 	mux.HandleFunc("DELETE /api/sessions/{id}", deleteSession(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/turn", sessionTurn(sessions))
-	mux.HandleFunc("POST /api/sessions/{id}/permission", resolvePermission)
+	mux.HandleFunc("POST /api/sessions/{id}/permission", resolvePermission(sessions))
 
 	return withAuth(auth, mux)
 }
@@ -122,11 +138,6 @@ func getNode(maps *usecase.MapService) http.HandlerFunc {
 
 // listRuns (S8) — runs derived from the JSONL. Stub.
 func listRuns(w http.ResponseWriter, _ *http.Request) {
-	notImplemented(w)
-}
-
-// resolvePermission — diff-approval (human-in-the-loop). Stub (fase 4 spec S4).
-func resolvePermission(w http.ResponseWriter, _ *http.Request) {
 	notImplemented(w)
 }
 

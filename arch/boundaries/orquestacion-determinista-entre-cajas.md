@@ -1,7 +1,7 @@
 ---
 regla: orquestacion-determinista-entre-cajas
-version: 1.1
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-07
 status: enforced
 ledger: HS-08
 sources:
@@ -55,6 +55,14 @@ El **conductor Go** dueña el control-flow; el `contract:` de caja (METODOLOGIA 
 
 ## Changelog
 
+- 2026-07-07 · v1.2 · **realizado en vivo (HS-11/Fase E).** El loop deja de vivir solo en tests:
+  `POST /api/harnesses/{id}/boxes/{boxId}/run` (D2) entra a `BoxConductor.RunWith` cableado en el
+  daemon, con el adapter REAL `internal/adapters/artifact` leyendo SOLO el `status:` del frontmatter
+  del artefacto, confinado bajo el dir del arnés (join + `filepath.Rel`, tests de escape). El spawn
+  corre en el cwd del arnés con `--max-turns` siempre + permisos del rol + inyección de doctrina; el
+  ruteo sigue siendo `contract.ruta` ejecutado por código. Ciclo de vida por SSE `event: run`
+  (publisher del broker cableado). Los 4 checks quedan como estaban (el enforcer no cambió, ahora
+  el camino productivo existe).
 - 2026-07-05 · v1.1 · **status → `enforced` (HS-08).** El loop conductor T3 aterrizó
   (`usecase.BoxConductor` + `domain.AvanzarCaja`/`RutaSiguiente`): el conductor Go dueña el loop, aplica
   cap de reparación, lee `result`+`status` (nunca el texto del chat) y ejecuta `contract.ruta`.

@@ -22,10 +22,12 @@ import (
 
 	doctrina "github.com/alpacapurpura/arnesia"
 	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
+	"github.com/alpacapurpura/arnesia/internal/adapters/artifact"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
+	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/provision"
 	"github.com/alpacapurpura/arnesia/internal/adapters/publish"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
@@ -74,7 +76,7 @@ func usage() {
 usage: arnesia <command> [flags]
 
 commands:
-  serve     watcher + index + HTTP/SSE API on :4200 (la UI la sirve Tauri/vite; go:embed de la SPA = deuda)
+  serve     watcher + index + HTTP/SSE API + UI embebida on :4200 (dev sin dist: solo API; el bundle la trae)
   open      open the UI (stub)
   index     load an arnés directory into a graph.l0 (nomenclatura-arnes.md)
   publish   publish a harness to its marketplace repo (stub)
@@ -92,6 +94,7 @@ func runServe(args []string) error {
 	arnesesPath := fs.String("arneses", "", "arnés→path registry file (default ~/.arnesia/arneses.json)")
 	arnesRoot := fs.String("arnes-root", "", "root for unregistered-arnés fallback dirs (default ~/.arnesia/arneses)")
 	maxTurns := fs.Int("max-turns", 40, "cap on the agent loop per turn (--max-turns); 0 disables the cap")
+	repairCap := fs.Int("repair-cap", 3, "iteraciones máximas de reparación de una caja T3 (BoxConductor)")
 	authToken := fs.String("auth-token", os.Getenv("ARNESIA_AUTH_TOKEN"),
 		"capability token required on the API (default $ARNESIA_AUTH_TOKEN; empty = Host+Origin only, dev)")
 	if err := fs.Parse(args); err != nil {
@@ -167,10 +170,20 @@ func runServe(args []string) error {
 			mechanism.NLJudge{}, mechanism.StaticScan{}, mechanism.SchemaAdapter{},
 		})
 
-	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns, injector)
+	// Permisos por rol (Fase E): el KitProvisioner resuelve el permission-set del rol
+	// que hidrata (permisos-derivan-del-rol); las sesiones lo usan al responder un
+	// control_request y el conductor T3 lo materializa en flags CC-native al spawn.
+	perms := permission.NewKitProvisioner()
+
+	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns, injector, perms)
 	if err != nil {
 		return fmt.Errorf("session service: %w", err)
 	}
+
+	// Conductor T3 (Fase E): el loop determinista de una caja, con el lector de
+	// `status:` del artefacto (document-as-cache) confinado al árbol del arnés.
+	conductor := usecase.NewBoxConductor(agent, artifact.NewReader(), *repairCap, *maxTurns)
+	runSvc := usecase.NewRunService(idx, conductor, perms, arnesReg, injector, brokerPublisher{broker})
 	// baseFor: el dir del arnés registrado resuelve los fuente_path relativos del
 	// firewall; un arnés no registrado (fixtures embebidos) usa el repo si existe.
 	confBase := func(id string) string {
@@ -185,7 +198,7 @@ func runServe(args []string) error {
 		return ""
 	}
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, arnesReg, confSvc, confBase, loadArnesDir, broker, httpapi.AuthConfigFor(*addr, *authToken))
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, arnesReg, confSvc, confBase, loadArnesDir, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {
@@ -224,6 +237,33 @@ func runServe(args []string) error {
 type brokerPublisher struct{ b *sse.Broker }
 
 func (p brokerPublisher) Publish(eventType string, data []byte) { p.b.Publish(eventType, data) }
+
+// embeddedUI returns the SPA handler when this build carries web/dist (scripts/
+// bundle.sh la compila antes del daemon), or nil for an honest dev build without UI.
+// Fallback SPA: cualquier ruta sin archivo sirve index.html (la app navega por
+// hash-state, sin router — pero los deep-links no deben 404).
+func embeddedUI() http.Handler {
+	ui, err := iofs.Sub(doctrina.WebDist, "web/dist")
+	if err != nil {
+		return nil
+	}
+	if _, err := iofs.Stat(ui, "index.html"); err != nil {
+		return nil // build de dev: el dist embebido solo trae .gitkeep.
+	}
+	files := http.FileServerFS(ui)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimPrefix(r.URL.Path, "/")
+		if p != "" {
+			if _, err := iofs.Stat(ui, p); err == nil {
+				files.ServeHTTP(w, r)
+				return
+			}
+		}
+		r2 := r.Clone(r.Context())
+		r2.URL.Path = "/"
+		files.ServeHTTP(w, r2)
+	})
+}
 
 // resolveClaudeBin hardens `claude` discovery for GUI launches: una app de escritorio
 // Linux (lanzada desde .desktop, no desde una shell) frecuentemente NO lleva

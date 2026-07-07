@@ -1,7 +1,7 @@
 ---
 regla: permisos-derivan-del-rol
-version: 1.1
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-07
 status: enforced
 ledger: HS-08
 sources:
@@ -53,11 +53,21 @@ puro + META de enganche» (VISION §Linaje): la autoridad del rol viene de la **
 |----|-------------|-----------|------------------|----------|
 | permisos-parametrizados-por-rol | el permission-set lo resuelve el `KitProvisioner` según el rol que hidrata, no un default fijo | warn | banda Guardia «permisos no derivados del rol» | arch_test.go:TestPermissionSetParametrizedByRole |
 | guardrail-en-hook-no-prompt | el límite duro vive en `PreToolUse`/`control_request` (exit 2/deny), no en prosa | error | banda Guardia «límite solo advisory — no aplicado» | arch_test.go:TestNoBypassPermissions |
-| permiso-efimero-ttl | los grants (`Grant.Vigente`) expiran / son por-tarea, no perpetuos | info | banda Guardia «permiso perpetuo — mínimo privilegio temporal ausente» | arch_test.go:TestPermissionSetParametrizedByRole |
+| permiso-efimero-ttl | los grants (`Grant.Vigente`) expiran / son por-tarea, no perpetuos | info | banda Guardia «permiso perpetuo — mínimo privilegio temporal ausente» | arch_test.go:TestPermissionSetParametrizedByRole + arch_test.go:TestWriteRequiresApproval |
 | meta-de-enganche-completa | el arnés declara META completa (rol·proceso·reporta-a·empresa) — el seam del sistema L1 externo | warn | «META incompleta — no enganchable» | box.contract/graph.l0.schema.json |
 
 ## Changelog
 
+- 2026-07-07 · v1.2 · **realizado en vivo (HS-11/Fase E).** Cierra el pendiente de v1.1: (a) seam
+  `ports.SpawnOpts.Permisos` — el adapter claudecode materializa el set del rol en flags CC-native
+  (`--permission-mode default` · `--allowedTools` solo read-only · `--disallowedTools` ·
+  `--permission-prompt-tool stdio`; gap honesto: Ask y TTL no tienen flag — Ask se realiza por
+  deny-by-default + control channel, los grants viven en el daemon); (b) la superficie HTTP
+  `control_request` con role/ttl EXISTE: `POST /api/sessions/{id}/permission` resuelve con
+  `PermissionSet.Decide` (deny del rol gana al click humano) y mintea `NuevoGrant` efímero — el
+  operador solo puede ACOTAR el TTL del rol; (c) el run T3 resuelve el rol desde la META del grafo
+  (`arnes.rol`) → `ResolveForRole` → spawn. `permiso-efimero-ttl` gana enforcement adicional en
+  `TestWriteRequiresApproval` (grant vigente no re-pregunta; expirado re-aprueba).
 - 2026-07-05 · v1.1 · **status → `enforced` (HS-08, spike aterrizado).** `domain.PermissionSet` +
   `permission.KitProvisioner` resuelven el permission-set por rol (el MISMO tool decide distinto según
   el rol) y `domain.Grant.Vigente` hace los grants efímeros (TTL/por-tarea, no perpetuos).

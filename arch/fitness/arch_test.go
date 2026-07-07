@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -150,8 +151,79 @@ func TestNoJSONLSchemaParsing(t *testing.T) {
 		"los eventos vivos vienen de stream-json (ver conductor-no-parsea-jsonl.md).")
 }
 
+// TestLiveEventsFromStreamJSON (real desde Fase E): los eventos vivos salen del
+// stream-json del SUBPROCESO conductor — nunca de tail del JSONL. Un binario fake emite
+// frames stream-json reales por stdout; el adaptador claudecode debe traducirlos a los
+// eventos normalizados que alimentan el Dock, y responder el control_request por stdin
+// (el canal de vuelta del human-in-the-loop). Sin `claude` real: el protocolo es lo
+// que se prueba.
 func TestLiveEventsFromStreamJSON(t *testing.T) {
-	t.Skip("TODO(fase 5): el bus de eventos del dock se alimenta del stream-json del conductor, no de tail del JSONL.")
+	dir := t.TempDir()
+	stdinCopy := filepath.Join(dir, "stdin-recibido.ndjson")
+	frames := []string{
+		`{"type":"system","subtype":"init","session_id":"cc-fit","model":"claude-x"}`,
+		`{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"hola"}}}`,
+		`{"type":"control_request","request_id":"req-9","request":{"subtype":"can_use_tool","tool_name":"Write","input":{"file_path":"a.md"}}}`,
+		`{"type":"result","subtype":"success","result":"ok"}`,
+	}
+	var script strings.Builder
+	script.WriteString("#!/bin/sh\n")
+	for _, f := range frames {
+		script.WriteString("echo '" + f + "'\n")
+	}
+	script.WriteString("cat > " + stdinCopy + "\n")
+	bin := filepath.Join(dir, "claude-fake")
+	if err := os.WriteFile(bin, []byte(script.String()), 0o700); err != nil { //nolint:gosec // G306: test fixture must be executable.
+		t.Fatalf("write fake binary: %v", err)
+	}
+
+	sess, err := claudecode.New(bin).Spawn(context.Background(), ports.SpawnOpts{MaxTurns: 3})
+	if err != nil {
+		t.Fatalf("spawn fake: %v", err)
+	}
+
+	got := map[ports.AgentEventKind]ports.AgentEvent{}
+	deadline := time.After(5 * time.Second)
+	for got[ports.EventResult].Kind == "" {
+		select {
+		case ev, ok := <-sess.Events():
+			if !ok {
+				t.Fatal("el stream cerró antes del result")
+			}
+			if _, seen := got[ev.Kind]; !seen {
+				got[ev.Kind] = ev
+			}
+		case <-deadline:
+			t.Fatal("timeout esperando los frames stream-json del subproceso")
+		}
+	}
+
+	if init := got[ports.EventInit]; init.ClaudeSessionID != "cc-fit" || init.Model != "claude-x" {
+		t.Errorf("init = %+v, want session cc-fit / model claude-x (del frame system/init)", init)
+	}
+	if delta := got[ports.EventDelta]; delta.Text != "hola" {
+		t.Errorf("delta.Text = %q, want hola (del stream_event, no del JSONL)", delta.Text)
+	}
+	ctrl := got[ports.EventControlRequest]
+	if ctrl.RequestID != "req-9" || ctrl.Tool != "Write" {
+		t.Errorf("control_request = %+v, want req-9/Write reenviado (no descartado)", ctrl)
+	}
+
+	// La vuelta: responder el control_request viaja por stdin como control_response.
+	if rerr := sess.RespondControl(context.Background(), "req-9", ports.ControlDecision{Allow: true, UpdatedInput: ctrl.Input}); rerr != nil {
+		t.Fatalf("respond control: %v", rerr)
+	}
+	_ = sess.Close() // cierra stdin → el fake persiste lo recibido y termina.
+
+	stdin, err := os.ReadFile(stdinCopy) //nolint:gosec // G304: fixture path built in this test.
+	if err != nil {
+		t.Fatalf("leer stdin capturado: %v", err)
+	}
+	for _, must := range []string{`"type":"control_response"`, `"request_id":"req-9"`, `"behavior":"allow"`} {
+		if !strings.Contains(string(stdin), must) {
+			t.Errorf("el stdin del conductor no lleva %s — got %q", must, stdin)
+		}
+	}
 }
 
 // --- indice-desechable-jsonl-es-verdad.md (comportamiento) ---
@@ -197,8 +269,98 @@ func TestNoBypassPermissions(t *testing.T) {
 	}
 }
 
+// TestWriteRequiresApproval (real desde Fase E) — write-requiere-aprobacion: Write/Edit
+// jamás se pre-aprueban en --allowedTools (aunque el rol los permita, «allow del rol» =
+// aprobable, no automático) y cada escritura pasa por el diff-approval del GUI: el
+// control_request llega como tarjeta al Dock, la autoridad del rol manda (deny del rol
+// gana al click humano) y el allow mintea un grant EFÍMERO que evita re-preguntar solo
+// mientras está vigente.
 func TestWriteRequiresApproval(t *testing.T) {
-	t.Skip("TODO(fase 5): Write/Edit no van en --allowedTools; pasan por el diff-approval del GUI (control_request).")
+	// (1) Flags del spawn: la materialización CC-native del permission-set.
+	k := permission.NewKitProvisioner()
+	dev, err := k.ResolveForRole(context.Background(), "backend-dev")
+	if err != nil {
+		t.Fatalf("resolve backend-dev: %v", err)
+	}
+	args := claudecode.SpawnArgs(ports.SpawnOpts{MaxTurns: 40, Permisos: dev})
+	joined := " " + strings.Join(args, " ") + " "
+	for _, must := range []string{" --permission-mode default ", " --permission-prompt-tool stdio ", " --max-turns 40 "} {
+		if !strings.Contains(joined, must) {
+			t.Errorf("spawn args sin %q — got %q", must, joined)
+		}
+	}
+	allowed := ""
+	for i, a := range args {
+		if a == "--allowedTools" && i+1 < len(args) {
+			allowed = args[i+1]
+		}
+	}
+	for _, writeTool := range []string{"Write", "Edit"} {
+		if strings.Contains(allowed, writeTool) {
+			t.Errorf("--allowedTools %q pre-aprueba %s — la escritura debe pasar por el diff-approval del GUI", allowed, writeTool)
+		}
+	}
+
+	// (2) El loop humano end-to-end con fakes (sin claude real).
+	agent := &fakeAgent{}
+	pub := &fakePub{}
+	svc := newTestService(t, agent, pub, t.TempDir())
+	id := svc.List()[0].ID
+	if terr := svc.Turn(id, "edita el spec"); terr != nil {
+		t.Fatalf("turn: %v", terr)
+	}
+	sess := agent.sessions[0]
+
+	askFrame := func(reqID string) func() bool {
+		return func() bool {
+			for _, f := range pub.snapshot() {
+				if f["kind"] == "permission" && f["request_id"] == reqID {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	// Un Write pide permiso → tarjeta `permission` en el Dock (ask→UI, D3).
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-1", Tool: "Write", Input: []byte(`{"file_path":"spec.md"}`)}
+	waitFor(t, 2*time.Second, askFrame("cr-1"))
+
+	// El deny del ROL gana al click humano: reviewer deniega Write aunque se apruebe.
+	res, err := svc.ResolvePermission(id, "cr-1", "allow", "reviewer", 0)
+	if err != nil {
+		t.Fatalf("resolve cr-1: %v", err)
+	}
+	if res.Efectiva != domain.DecisionDeny {
+		t.Errorf("reviewer + click allow ⇒ efectiva %q, want deny (la autoridad del rol se impone)", res.Efectiva)
+	}
+	if got := sess.respondedSnapshot(); len(got) != 1 || got[0].requestID != "cr-1" || got[0].decision.Allow {
+		t.Errorf("control_response = %+v, want deny de cr-1 hacia el conductor", got)
+	}
+
+	// backend-dev SÍ puede aprobar Write — con grant que EXPIRA (nunca perpetuo).
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-2", Tool: "Write", Input: []byte(`{"file_path":"spec.md"}`)}
+	waitFor(t, 2*time.Second, askFrame("cr-2"))
+	res, err = svc.ResolvePermission(id, "cr-2", "allow", "backend-dev", time.Minute)
+	if err != nil {
+		t.Fatalf("resolve cr-2: %v", err)
+	}
+	if res.Efectiva != domain.DecisionAllow || res.Expira == nil {
+		t.Fatalf("resolución = %+v, want allow con expiración (grant efímero)", res)
+	}
+	if remaining := time.Until(*res.Expira); remaining > time.Minute+time.Second {
+		t.Errorf("el ttl del operador debía ACOTAR el grant a ≤1m, expira en %v", remaining)
+	}
+
+	// Mientras el grant está vigente, el MISMO tool no re-pregunta: auto-allow sin tarjeta.
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-3", Tool: "Write", Input: []byte(`{"file_path":"spec.md"}`)}
+	waitFor(t, 3*time.Second, func() bool { return len(sess.respondedSnapshot()) == 3 })
+	if got := sess.respondedSnapshot(); !got[2].decision.Allow {
+		t.Errorf("con grant vigente el Write debía auto-aprobarse, got %+v", got[2])
+	}
+	if askFrame("cr-3")() {
+		t.Error("cr-3 generó tarjeta de ask pese al grant vigente — re-pregunta de más")
+	}
 }
 
 // --- contrato-de-caja-es-fitness-function.md ---
@@ -327,6 +489,9 @@ func (s *scriptedSession) Send(_ context.Context, _ string) error {
 }
 func (s *scriptedSession) Events() <-chan ports.AgentEvent { return s.events }
 func (s *scriptedSession) Close() error                    { return nil }
+func (s *scriptedSession) RespondControl(context.Context, string, ports.ControlDecision) error {
+	return nil
+}
 
 type scriptedAgent struct{ sess *scriptedSession }
 
@@ -341,7 +506,7 @@ type scriptedArtifacts struct {
 	reads    int
 }
 
-func (a *scriptedArtifacts) Status(_ context.Context, _ string) (string, bool, error) {
+func (a *scriptedArtifacts) Status(_ context.Context, _, _ string) (string, bool, error) {
 	st := "working"
 	if a.idx < len(a.statuses) {
 		st = a.statuses[a.idx]
@@ -615,6 +780,13 @@ type fakeSession struct {
 	events chan ports.AgentEvent
 	mu     sync.Mutex
 	sent   []string
+	// responded records every RespondControl (the control_response wire the daemon sent).
+	responded []respondedControl
+}
+
+type respondedControl struct {
+	requestID string
+	decision  ports.ControlDecision
 }
 
 func (f *fakeSession) Send(_ context.Context, turn string) error {
@@ -625,6 +797,21 @@ func (f *fakeSession) Send(_ context.Context, turn string) error {
 }
 func (f *fakeSession) Events() <-chan ports.AgentEvent { return f.events }
 func (f *fakeSession) Close() error                    { return nil }
+
+func (f *fakeSession) RespondControl(_ context.Context, requestID string, d ports.ControlDecision) error {
+	f.mu.Lock()
+	f.responded = append(f.responded, respondedControl{requestID: requestID, decision: d})
+	f.mu.Unlock()
+	return nil
+}
+
+func (f *fakeSession) respondedSnapshot() []respondedControl {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]respondedControl, len(f.responded))
+	copy(out, f.responded)
+	return out
+}
 
 type fakeAgent struct {
 	mu       sync.Mutex
@@ -674,7 +861,9 @@ func (p *fakePub) snapshot() []map[string]any {
 
 func newTestService(t *testing.T, agent ports.AgentPort, pub usecase.EventPublisher, cwd string) *usecase.SessionService {
 	t.Helper()
-	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40, nil)
+	// The REAL role provisioner backs the permission seam: the fitness runs against the
+	// same authority the daemon wires (permisos-derivan-del-rol).
+	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40, nil, permission.NewKitProvisioner())
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}

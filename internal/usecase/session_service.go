@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -37,15 +38,30 @@ type EventPublisher interface {
 // carries session_id so the shell can route N parallel conversations off one connection,
 // and run_id so each frame is attributable to a single turn (idempotent apply on the FE —
 // boundary sesion-viva-consistente `frames-idempotentes-run-id`).
+//
+// kind=permission is the ask→UI card (D3: el canal del control_request es el Dock): it
+// carries request_id + tool + the raw input so the shell paints the diff and answers via
+// POST /sessions/{id}/permission. kind=permission_result closes the card.
 type dockFrame struct {
-	SessionID       string `json:"session_id"`
-	RunID           string `json:"run_id,omitempty"`
-	Kind            string `json:"kind"` // status|init|delta|message|result|error
-	Text            string `json:"text,omitempty"`
-	Status          string `json:"status,omitempty"`
-	CtxPct          int    `json:"ctx_pct,omitempty"`
-	Model           string `json:"model,omitempty"`
-	ClaudeSessionID string `json:"claude_session_id,omitempty"`
+	SessionID       string          `json:"session_id"`
+	RunID           string          `json:"run_id,omitempty"`
+	Kind            string          `json:"kind"` // status|init|delta|message|result|error|permission|permission_result
+	Text            string          `json:"text,omitempty"`
+	Status          string          `json:"status,omitempty"`
+	CtxPct          int             `json:"ctx_pct,omitempty"`
+	Model           string          `json:"model,omitempty"`
+	ClaudeSessionID string          `json:"claude_session_id,omitempty"`
+	RequestID       string          `json:"request_id,omitempty"`
+	Tool            string          `json:"tool,omitempty"`
+	Input           json.RawMessage `json:"input,omitempty"`
+	Decision        string          `json:"decision,omitempty"`
+}
+
+// pendingPermission is a forwarded control_request waiting for the human (or the role
+// authority) to resolve it.
+type pendingPermission struct {
+	Tool  string
+	Input []byte
 }
 
 // sessionRuntime pairs a persisted session with its live conductor (nil until the first
@@ -62,6 +78,11 @@ type sessionRuntime struct {
 	wasResume     bool   // this process life was spawned with --resume.
 	sawInit       bool   // an init frame arrived this life (resume/spawn succeeded).
 	resumeRetried bool   // a heal already happened this turn — do not loop.
+
+	// human-in-the-loop (Fase E): forwarded control_requests awaiting a decision, and
+	// the ephemeral grants already approved (least temporal privilege — they expire).
+	pendingPerm map[string]pendingPermission // request_id → pending ask.
+	grants      map[string]domain.Grant      // tool → live grant.
 }
 
 // SessionService owns the registry of work-fronts and drives their Claude Code
@@ -76,6 +97,7 @@ type SessionService struct {
 	pub      EventPublisher
 	resolver ports.WorkdirResolver
 	injector ports.InjectionProvisioner // nil = spawns sin doctrina (degradación honesta).
+	perms    ports.PermissionPort       // resuelve el set del rol al responder un control_request.
 	baseCtx  context.Context
 	maxTurns int
 }
@@ -85,7 +107,9 @@ type SessionService struct {
 // maps each session's arnés to the working directory its conductor runs in (per-session
 // confinement, never a shared cwd); maxTurns caps every turn's agent loop; injector
 // materializa la doctrina/kit e inyecta los flags a cada spawn (nil = sin inyección).
-func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int, injector ports.InjectionProvisioner) (*SessionService, error) {
+// perms resuelve el permission-set del rol al responder un control_request (nil = el
+// endpoint de permisos responde honesto que no hay autoridad cableada).
+func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int, injector ports.InjectionProvisioner, perms ports.PermissionPort) (*SessionService, error) {
 	s := &SessionService{
 		rt:       map[string]*sessionRuntime{},
 		agent:    agent,
@@ -93,6 +117,7 @@ func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store por
 		pub:      pub,
 		resolver: resolver,
 		injector: injector,
+		perms:    perms,
 		baseCtx:  baseCtx,
 		maxTurns: maxTurns,
 	}
@@ -363,6 +388,9 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 			s.mu.Unlock()
 			s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "error", Text: ev.Text, Status: string(domain.StatusIdle)})
 
+		case ports.EventControlRequest:
+			s.onControlRequest(id, live, ev)
+
 		case ports.EventMessage:
 			// Full assistant message: ignored when deltas already assembled the text;
 			// kept for protocol completeness (tool-only turns emit no text deltas).
@@ -419,6 +447,163 @@ func (s *SessionService) tryHealResume(id string, live ports.AgentSession) bool 
 		}
 	}
 	return true
+}
+
+// onControlRequest handles one forwarded control_request (human-in-the-loop, Fase E).
+// A live, unexpired grant for the same tool auto-allows without re-asking (permiso
+// efímero: mientras Vigente no se re-pregunta; expirado → re-aprobación). Anything else
+// parks the ask as pending, flips the session to `await` and emits the Dock card (D3);
+// POST /sessions/{id}/permission resolves it.
+func (s *SessionService) onControlRequest(id string, live ports.AgentSession, ev ports.AgentEvent) {
+	now := time.Now()
+	autoAllow := false
+
+	s.mu.Lock()
+	r := s.rt[id]
+	if r == nil || r.live != live {
+		s.mu.Unlock()
+		return // stale process: nothing to answer against.
+	}
+	runID := r.curRun
+	if g, ok := r.grants[ev.Tool]; ok && g.Vigente(now) {
+		autoAllow = true
+	} else {
+		if r.pendingPerm == nil {
+			r.pendingPerm = map[string]pendingPermission{}
+		}
+		r.pendingPerm[ev.RequestID] = pendingPermission{Tool: ev.Tool, Input: ev.Input}
+		r.meta.Status = domain.StatusAwait
+		s.persistLocked()
+	}
+	s.mu.Unlock()
+
+	if autoAllow {
+		if err := live.RespondControl(s.baseCtx, ev.RequestID, ports.ControlDecision{Allow: true, UpdatedInput: ev.Input}); err != nil {
+			slog.Error("session: responder control_request con grant vigente", "session", id, "err", err)
+			return
+		}
+		s.publish(dockFrame{
+			SessionID: id, RunID: runID, Kind: "permission_result",
+			RequestID: ev.RequestID, Tool: ev.Tool, Decision: string(domain.DecisionAllow),
+			Text: "grant vigente — sin re-pregunta",
+		})
+		return
+	}
+	s.publish(dockFrame{
+		SessionID: id, RunID: runID, Kind: "permission",
+		RequestID: ev.RequestID, Tool: ev.Tool, Input: ev.Input,
+		Status: string(domain.StatusAwait),
+	})
+}
+
+// PermissionResolution is the effective outcome of resolving a control_request.
+type PermissionResolution struct {
+	RequestID string          `json:"request_id"`
+	Tool      string          `json:"tool"`
+	Efectiva  domain.Decision `json:"efectiva"`
+	Motivo    string          `json:"motivo,omitempty"`
+	Expira    *time.Time      `json:"expira,omitempty"` // fin del grant cuando Efectiva=allow.
+}
+
+// Permission sentinels the transport maps to status codes.
+var (
+	// ErrPermisoNoPendiente — no session/control_request matches (HTTP 404).
+	ErrPermisoNoPendiente = errors.New("no hay control_request pendiente con ese id")
+	// ErrEnvioControl — the answer could not reach the conductor's stdin (HTTP 500).
+	ErrEnvioControl = errors.New("no pude entregar la respuesta al conductor")
+)
+
+// ResolvePermission resolves a pending control_request with the ROLE's authority plus
+// the human decision (permisos-derivan-del-rol + permisos-gui-human-in-the-loop):
+//
+//   - el set del rol manda: si ps.Decide(tool) es deny, la respuesta efectiva es deny
+//     aunque el humano haya aprobado (la autoridad se impone fuera del razonamiento —
+//     y fuera del click);
+//   - allow mintea un Grant efímero (TTL del rol, o ttl si el operador lo acota más);
+//     mientras Vigente, el mismo tool no re-pregunta en esta sesión;
+//   - deny-by-default: sin rol no hay resolución (ResolveForRole exige rol).
+func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, ttl time.Duration) (PermissionResolution, error) {
+	if decision != string(domain.DecisionAllow) && decision != string(domain.DecisionDeny) {
+		return PermissionResolution{}, fmt.Errorf("decision %q inválida: allow|deny", decision)
+	}
+	if s.perms == nil {
+		return PermissionResolution{}, errors.New("sin PermissionPort cableado — no hay autoridad de rol para resolver")
+	}
+
+	s.mu.Lock()
+	r := s.rt[id]
+	if r == nil {
+		s.mu.Unlock()
+		return PermissionResolution{}, fmt.Errorf("%w (sesión %q)", ErrPermisoNoPendiente, id)
+	}
+	p, ok := r.pendingPerm[requestID]
+	live := r.live
+	s.mu.Unlock()
+	if !ok {
+		return PermissionResolution{}, fmt.Errorf("%w (request %q)", ErrPermisoNoPendiente, requestID)
+	}
+
+	ps, err := s.perms.ResolveForRole(s.baseCtx, rol)
+	if err != nil {
+		return PermissionResolution{}, fmt.Errorf("resolver rol: %w", err)
+	}
+
+	res := PermissionResolution{RequestID: requestID, Tool: p.Tool, Efectiva: domain.Decision(decision)}
+	switch {
+	case ps.Decide(p.Tool) == domain.DecisionDeny:
+		// Deny del rol gana SIEMPRE (deny > ask > allow) — incluso sobre el click humano.
+		res.Efectiva = domain.DecisionDeny
+		res.Motivo = fmt.Sprintf("el rol %q deniega %s — la autoridad del rol gana sobre la aprobación", ps.Rol, p.Tool)
+	case res.Efectiva == domain.DecisionDeny:
+		res.Motivo = "denegado por el operador"
+	default:
+		res.Motivo = "aprobado por el operador"
+	}
+
+	var grant domain.Grant
+	if res.Efectiva == domain.DecisionAllow {
+		grantSet := ps
+		if ttl > 0 && (grantSet.TTL == 0 || ttl < grantSet.TTL) {
+			grantSet.TTL = ttl // el operador solo puede ACOTAR el TTL del rol, nunca ampliarlo.
+		}
+		grant = grantSet.NuevoGrant(p.Tool, time.Now())
+		res.Expira = &grant.Expira
+	}
+
+	s.mu.Lock()
+	if r2 := s.rt[id]; r2 != nil {
+		delete(r2.pendingPerm, requestID)
+		if res.Efectiva == domain.DecisionAllow {
+			if r2.grants == nil {
+				r2.grants = map[string]domain.Grant{}
+			}
+			r2.grants[p.Tool] = grant
+		}
+		if len(r2.pendingPerm) == 0 && r2.meta.Status == domain.StatusAwait {
+			r2.meta.Status = domain.StatusStreaming // el turno sigue vivo tras la decisión.
+		}
+		s.persistLocked()
+	}
+	s.mu.Unlock()
+
+	if live == nil {
+		return res, fmt.Errorf("%w: la sesión ya no tiene conductor vivo", ErrEnvioControl)
+	}
+	d := ports.ControlDecision{Allow: res.Efectiva == domain.DecisionAllow, Message: res.Motivo}
+	if d.Allow {
+		d.UpdatedInput = p.Input // echo del input original (control protocol).
+	}
+	if err := live.RespondControl(s.baseCtx, requestID, d); err != nil {
+		return res, fmt.Errorf("%w: %w", ErrEnvioControl, err)
+	}
+
+	s.publish(dockFrame{
+		SessionID: id, Kind: "permission_result",
+		RequestID: requestID, Tool: p.Tool,
+		Decision: string(res.Efectiva), Text: res.Motivo,
+		Status: string(domain.StatusStreaming),
+	})
+	return res, nil
 }
 
 // publish marshals a Dock frame and fans it out on the SSE stream.

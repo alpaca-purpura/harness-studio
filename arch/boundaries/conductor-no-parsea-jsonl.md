@@ -1,7 +1,7 @@
 ---
 regla: conductor-no-parsea-jsonl
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-07
 status: proposed
 ledger: HS-04
 sources:
@@ -61,6 +61,12 @@ Event sourcing en 3 fuentes con roles fijos (la trampa de parsear JSONL ya se vi
 
 ## Changelog
 
+- 2026-07-07 · v1.1 · **realizado en vivo (HS-11/Fase E).** `live-desde-stream-json` pasa de t.Skip
+  a test REAL: `TestLiveEventsFromStreamJSON` spawnea un binario fake que emite frames stream-json
+  reales por stdout y verifica que el adapter claudecode los traduce a los eventos normalizados del
+  Dock (init/delta/result) — incluido el reenvío del `control_request` y la respuesta
+  `control_response` por stdin (el canal de vuelta), sin tocar jamás el JSONL. `no-jsonl-parse`
+  (TestNoJSONLSchemaParsing) sigue t.Skip honesto → `status` permanece `proposed`.
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = event sourcing sobre contratos estables. L2:
   stream-json (live) + OTel (hooks/skills) + JSONL (enumerar/replay, nunca parsear); `%contexto`
   derivado; corrección `--bare` rompe auth de suscripción. 4 checks.

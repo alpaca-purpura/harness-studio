@@ -12,5 +12,8 @@ import "context"
 // adapter reads the frontmatter of the artifact file; a fake drives tests.
 type ArtifactReader interface {
 	// Status returns the artifact's `status:` value and whether the artifact exists yet.
-	Status(ctx context.Context, artifactRef string) (status string, exists bool, err error)
+	// dir is the arnés working directory the run is confined to (the conductor's cwd);
+	// artifactRef resolves UNDER dir and must not escape it (boundary permisos-gui
+	// `sesion-aislada-por-cwd` extended to reads: the conductor only looks inside its tree).
+	Status(ctx context.Context, dir, artifactRef string) (status string, exists bool, err error)
 }
