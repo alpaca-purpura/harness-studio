@@ -9,6 +9,8 @@
   v1 · 2026-07-07 · clon fiel del estado actual (Tier A incluido: encuadre por clase · Fuente · Activación).
   v2 · 2026-07-07 · decisión #1: botón «ampliar» (⤢) junto al de cerrar — el drawer ocupa todo el espacio
        visual del mapa; ⤡ o Esc restauran; en modo amplio las secciones fluyen en columnas. INTERACTIVO: pruébalo.
+  v3 · 2026-07-07 · decisión #2: tooltips en dos niveles — «i» junto a cada título de sección (qué agrupa)
+       + nombres de campo con subrayado punteado cuyo tooltip explica el campo Y el valor concreto que muestra.
 -->
 <title>Mockup — drawer del Mapa (inspector)</title>
 <style>
@@ -99,6 +101,22 @@
   .drawer.expanded .dw-body { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
     gap:20px 36px; align-content:start; max-width:1280px; padding:20px 24px; }
   @media (prefers-reduced-motion: no-preference) { .drawer { transition:box-shadow .15s ease; } }
+  /* ══ v3 · decisión #2 — tooltips: «i» por sección + campos con punteado ══ */
+  [data-tip] { position:relative; }
+  [data-tip]::after { content:attr(data-tip); position:absolute; left:0; bottom:calc(100% + 6px);
+    width:max-content; max-width:250px; background:var(--card); color:var(--foreground);
+    border:1px solid var(--border); border-radius:var(--radius-md); padding:7px 9px;
+    font-size:var(--text-xs); font-family:var(--font-sans); font-weight:400; line-height:1.45;
+    text-transform:none; letter-spacing:0; white-space:normal; text-align:left;
+    box-shadow:0 4px 14px rgba(0,0,0,.18); opacity:0; visibility:hidden; z-index:30; pointer-events:none; }
+  [data-tip]:hover::after, [data-tip]:focus-visible::after { opacity:1; visibility:visible; }
+  @media (prefers-reduced-motion: no-preference) { [data-tip]::after { transition:opacity .12s ease; } }
+  .field .k.tip { border-bottom:1px dotted var(--muted-foreground); cursor:help; }
+  .info { display:inline-grid; place-items:center; width:13px; height:13px; border-radius:50%;
+    border:1px solid var(--muted-foreground); color:var(--muted-foreground); font-size:9px; line-height:1;
+    text-transform:none; letter-spacing:0; margin-left:2px; vertical-align:1px; cursor:help;
+    font-family:var(--font-mono); font-weight:600; }
+  .drawer { overflow:visible; } /* los tooltips no se recortan; expanded conserva su overflow:auto */
   /* body: flex col gap-4 p-4 */
   .dw-body { display:flex; flex-direction:column; gap:16px; padding:16px; }
   /* Section: flex col gap-1.5 · h4 text-xs semibold uppercase tracking-wide muted */
@@ -224,9 +242,73 @@ function handleFor(box, alw) {
 const activacionRegla = alw => alw === true ? "siempre en contexto · PROPUESTA" : alw === false ? "condicional (paths:) · PROPUESTA" : "desconocida";
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
+// ══ v3 · decisión #2 — diccionario DOCTRINAL de tooltips ══
+// Fuente de cada definición: METODOLOGIA §3 (contrato fusionado, 4 ejes) · §4 (honestidad,
+// medido>estimado, gris≠verde) · §8.1 (arquetipo) · §8.2 (perfil T1-T3) · VISION Anatomía
+// A1–A7 (caja/gate/Guardia/Base) · graph.l0.schema.json (banda · canal · origen) ·
+// knowledge/rules.md L2.6 (alw derivado de paths:). Nada redactado por fuera de la doctrina.
+const SEC_TIP = {
+  "Clasificación":"Dónde y cómo vive el nodo: banda/fase (geografía del mapa), canal (release), procedencia (honestidad del dato) y — si es caja — sus 3 ejes perpendiculares: clase ⊥ arquetipo ⊥ perfil (METODOLOGIA §8).",
+  "Fuente":"De dónde sale el nodo: el archivo real que el loader reconoció (fuente_path, nomenclatura §4.1) y quién lo puso en la instancia del arnés (origen — lo estampa el provisioner).",
+  "Activación":"Cuándo entra la regla en contexto: siempre (CLAUDE.md) o condicional (paths:). Derivado del archivo, no declarado (rules L2.6).",
+  "Rol":"Qué ES este nodo en la doctrina cuando no es caja de proceso — no tener contrato es su estado LEGAL, no un faltante.",
+  "Reconciliación":"Marcador honesto D-c (nomenclatura §4.5): el reconocedor no entendió el artefacto. Visible con warn, jamás descarte silencioso.",
+  "Intención":"Eje INTENCIÓN del contrato fusionado (METODOLOGIA §3): el porqué de la caja — qué promete.",
+  "Capabilities":"Eje INTENCIÓN: capacidades verificables — qué hace (what) y cómo se sabe que lo logró (success). Cada capability debe ser comprobable.",
+  "Necesita":"Eje CABLEADO: los insumos del contrato — qué artefactos requiere y de qué origen (usuario · caja: · base: · terceros: …).",
+  "Entrega":"Eje CABLEADO: los artefactos que produce. «Escritor único» = ningún otro componente escribe ese artefacto (A5).",
+  "Ruta":"Eje CABLEADO: a qué caja pasa el trabajo y bajo qué condición — orquestación determinista entre cajas.",
+  "Gate":"Eje ACEPTACIÓN (A4, «nada sin eval»): cómo se comprueba lo entregado. `none` es un HALLAZGO visible — gris ≠ verde (METODOLOGIA §4).",
+  "Handoff":"Eje ACEPTACIÓN: cuándo la caja se rinde y a quién escala (framed autonomy — autonomía acotada, no automatización ciega).",
+};
+const DEF_CAMPO = {
+  banda:"Región fija de la geografía del mapa donde vive el nodo (eje ortogonal a clase y perfil).",
+  fase:"Fase del proceso a la que pertenece — DATO que declara este arnés, no doctrina del producto (agnosticismo, VISION p3/p7).",
+  estado:"La transición de la máquina de estados (spine) que esta caja POSEE — una caja = una transición (A2).",
+  canal:"Canal de release del nodo en el train del kit (KIT-06).",
+  procedencia:"Honestidad del dato: de dónde salió lo que ves (METODOLOGIA §4 — «medido» manda sobre «estimado»).",
+  arquetipo:"La FORMA del trabajo (METODOLOGIA §8.1) — autonomía ≠ automatización.",
+  perfil:"CÓMO ejecuta su loop (METODOLOGIA §8.2, perfil de harness T1–T3).",
+  caja:"Si es caja de proceso: el frente de su fase, con contrato fusionado y una transición del spine (A1–A2).",
+  fuente:"Ruta del artefacto real reconocido por el loader — la estampa la fábrica, no se escribe a mano (nomenclatura §4.1).",
+  origen:"Quién puso el nodo en ESTA instancia del arnés — lo estampa el provisioner, no lo declara el autor (L0, HS-09 Fase D).",
+  carga:"Cómo entra la regla en contexto — derivado del archivo real (CLAUDE.md vs paths:), rules L2.6.",
+  tipo:"Tipo de eval del gate (A4).",
+};
+const DEF_VALOR = {
+  banda:{guardia:"Guardia — banda superior: hooks transversales que corren en eventos del ciclo, cuidan sin bloquear.",fase:"Carriles del proceso — el nodo vive dentro de una fase del spine.",base:"Base — banda inferior: conocimiento, reglas y servicios que las skills leen (A6).","libreria-expertos":"Librería de expertos — estante lateral, expertos bajo demanda.","meta-harness":"Meta-harness — configuración del propio arnés (permisos, estilos, salud).","marcas-dormidas":"Marcas dormidas — instalado pero sin uso (0 corridas): candidato a podar o despertar.",terceros:"Terceros — capacidades externas al arnés."},
+  canal:{beta:"beta — en prueba dentro del arnés; aún no es el estándar.",estable:"estable — en producción, versión vigente del release train.",propuesto:"propuesto — sugerido, aún NO aceptado por el operador.",deprecado:"deprecado — en salida; no usarlo en cableados nuevos."},
+  procedencia:{medido:"medido — telemetría REAL; manda sobre cualquier estimación.",estimado:"estimado — proyección sin telemetría; se dibuja atenuado (gris ≠ verde).",declarado:"declarado — lo afirmó el autor del componente; sin verificación automática.",inferido:"inferido — lo dedujo la fábrica a partir de otros datos.","no-declarado":"no-declarado — la AUSENCIA de dato hecha explícita, nunca silenciosa."},
+  arquetipo:{pipeline:"pipeline — determinista/verificable: salida exacta, gate auto (automatización).",excepcion:"excepción — flujo feliz + casos raros: invariantes, gate en las ramas (autonomía acotada).",abierto:"abierto — generativo/relacional: acota el alcance, no los pasos (framed autonomy plena).","no-arnesar":"no-arnesar — juicio puro que no se descompone en partes contratables: queda FUERA del grafo, y saberlo es doctrina."},
+  perfil:{T1:"T1 — una sola pasada, sin loop ni subagentes; modelo barato.",T2:"T2 — multi-paso con estado, a menudo interactivo; document-as-cache obligatorio salvo arquetipo abierto.",T3:"T3 — worker desatendido: el conductor Go posee el loop (spawn `claude -p`, repair-cap, blocked→handoff)."},
+  caja:{"sí":"sí — caja de proceso: posee una transición del spine y responde por su contrato.",no:"no — componente de apoyo: sirve a una caja, no posee transición."},
+  origen:{estandar:"estandar — proviene del kit genérico del rol.","del-puesto":"del-puesto — añadido/llenado en el onboarding del puesto (rol·proceso·empresa)."},
+  carga:{"siempre en contexto":"siempre — vive en CLAUDE.md: entra en TODO contexto de la sesión.","condicional (paths:)":"condicional — carga solo cuando el trabajo toca sus paths: declarados.",desconocida:"desconocida — sin dato aún: el loader todavía no deriva la carga de esta regla."},
+  tipo:{auto:"auto — eval automático: la fábrica comprueba sola la salida.",manual:"manual — decide un humano: el gate es una aprobación.",parcial:"parcial — auto + juicio humano.",none:"none — SIN eval formal: HALLAZGO visible a propósito (A4, gris ≠ verde)."},
+};
+const PROP_NOTE = " · PROPUESTA: derivado de un fixture rotulado hasta que el dato real (provisioning/loader) lo estampe.";
+function tipDe(k, v) {
+  const def = DEF_CAMPO[k]; if (!def) return "";
+  const base = String(v).replace(" · PROPUESTA","");
+  const vv = DEF_VALOR[k]?.[base];
+  let t = def + (vv ? " — " + vv : (k==="fase" ? ` — «${base}» es una fase declarada por ESTE arnés.` : k==="estado" ? ` — esta caja transiciona «${base}».` : ""));
+  if (String(v).includes("PROPUESTA")) t += PROP_NOTE;
+  return t;
+}
+
 // ══ Render — espejo del JSX de inspector.tsx, sección por sección ══
-const field = (k,v) => v ? `<div class="field"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>` : "";
-const sec = (t,inner) => inner ? `<section class="sec"><h4>${esc(t)}</h4>${inner}</section>` : "";
+function field(k, v) {
+  if (!v) return "";
+  const tip = tipDe(k, v);
+  const kk = tip ? `<span class="k tip" tabindex="0" data-tip="${esc(tip)}">${esc(k)}</span>` : `<span class="k">${esc(k)}</span>`;
+  return `<div class="field">${kk}<span class="v">${esc(v)}</span></div>`;
+}
+function sec(t, inner) {
+  if (!inner) return "";
+  const tip = SEC_TIP[t];
+  const info = tip ? ` <span class="info" tabindex="0" data-tip="${esc(tip)}" aria-label="Qué agrupa ${esc(t)}">i</span>` : "";
+  return `<section class="sec"><h4>${esc(t)}${info}</h4>${inner}</section>`;
+}
 
 function drawer(box) {
   const k = KIND[box.clase], c = box.contract, role = CLASS_ROLE[box.clase];

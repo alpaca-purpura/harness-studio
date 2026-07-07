@@ -49,8 +49,15 @@
   mockup — verificado ojo-UI (toggle+Esc+aria-pressed, consola limpia). v1 = clon
   fiel, 15 casuísticas 01–15, stubs «sintético» (08 · 09 · 15).
 - **Decisión #1 FIRMADA** (operador, 2026-07-07): botón «ampliar» tal como está en v2.
-- **Próximo paso:** el operador dicta el siguiente cambio → `decisiones.md` en el
-  mismo turno + vN a la MISMA URL.
+- **Decisión #2 en PROPUESTA (v3):** tooltips en dos niveles — «i» por título de sección
+  (qué agrupa) + campos con subrayado punteado (tooltip = qué significa el campo Y qué
+  significa el valor concreto). **Restricción firmada del operador: contenido 100%
+  consistente con la doctrina** — diccionario `SEC_TIP`/`DEF_CAMPO`/`DEF_VALOR` en el
+  mockup con fuentes citadas (METODOLOGIA §3/§4/§8 · VISION A1–A7 · schema L0 · rules
+  L2.6); al implementar se cementa en la entity FE. Verificado ojo-UI: 65 campos con
+  tip · 51 «i» de sección · consola limpia.
+- **Próximo paso:** el operador prueba los tooltips en el artifact → firma #2 (o
+  corrige redacciones) y dicta el siguiente cambio.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
