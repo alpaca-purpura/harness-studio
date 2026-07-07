@@ -252,9 +252,12 @@
   border-bottom: 1px dotted var(--muted-foreground);
   cursor: help;
 }
+/* botón real (focusable nativo, RF-88) normalizado a la «i» circulada del mockup */
 .arnesia-inspector .info {
   display: inline-grid;
   place-items: center;
+  background: none;
+  padding: 0;
   width: 13px;
   height: 13px;
   border-radius: var(--radius-full);

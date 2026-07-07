@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react"
-import { alwFor, type Box, type Clase, handleFor, isDelPuesto, KIND } from "@/entities/arnes"
+import {
+  alwFor,
+  type Box,
+  type Clase,
+  handleFor,
+  isDelPuesto,
+  KIND,
+  SEC_TIP,
+  tipDe,
+} from "@/entities/arnes"
 import { Glyph } from "@/shared/canvas"
 import { cn } from "@/shared/lib/cn"
 
@@ -52,20 +61,42 @@ function activacionRegla(alw: boolean | undefined): string {
   return "desconocida"
 }
 
+// Section — título + «i» doctrinal (RF-85): el tooltip dice qué agrupa la sección y su
+// eje del contrato fusionado. La «i» es un botón real (focusable nativo, aria-label
+// legal) operable por teclado (RF-88); el texto viene del diccionario de la entity.
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const tip = SEC_TIP.get(title)
   return (
     <section className="sec">
-      <h4>{title}</h4>
+      <h4>
+        {title}
+        {tip && (
+          <button type="button" className="info" data-tip={tip} aria-label={`Qué agrupa ${title}`}>
+            i
+          </button>
+        )}
+      </h4>
       {children}
     </section>
   )
 }
 
+// Field — k/v con tooltip doctrinal (RF-86): el nombre del campo se subraya punteado y
+// su tooltip explica el campo Y el valor concreto (tipDe, diccionario de la entity).
+// Campos fuera del diccionario no se subrayan (jamás un tooltip vacío).
 function Field({ k, v }: { k: string; v?: string | undefined }) {
   if (!v) return null
+  const tip = tipDe(k, v)
   return (
     <div className="field">
-      <span className="k">{k}</span>
+      {tip ? (
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: tooltip CSS-only operable por teclado (RF-88) — el foco dispara :focus-visible::after.
+        <span className="k tip" tabIndex={0} data-tip={tip}>
+          {k}
+        </span>
+      ) : (
+        <span className="k">{k}</span>
+      )}
       <span className="v">{v}</span>
     </div>
   )

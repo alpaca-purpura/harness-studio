@@ -111,6 +111,32 @@ export const CorridasHonesta: Story = {
   },
 }
 
+// RF-85/86/88 — tooltips doctrinales: «i» por sección (qué agrupa) + campo punteado
+// (definición del campo Y del valor concreto), ambos operables por teclado.
+export const TooltipsDoctrinales: Story = {
+  args: {
+    box: {
+      ...cajaBox,
+      procedencia: "estimado",
+    },
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // «i» de sección: botón focusable con el texto del diccionario SEC_TIP (RF-85).
+    const info = c.getByRole("button", { name: "Qué agrupa Clasificación" })
+    await expect(info).toHaveAttribute("data-tip", expect.stringContaining("clase ⊥ arquetipo"))
+    // Campo con valor explicado (RF-86, Gherkin): procedencia "estimado" → atenuado, gris ≠ verde.
+    const kProc = c.getByText("procedencia", { selector: ".k" })
+    await expect(kProc).toHaveClass("tip")
+    await expect(kProc).toHaveAttribute("tabindex", "0")
+    await expect(kProc).toHaveAttribute("data-tip", expect.stringContaining("se dibuja atenuado"))
+    // Foco con teclado dispara el tooltip (:focus-visible) — el ancla es tabulable.
+    kProc.focus()
+    await expect(kProc).toHaveFocus()
+  },
+}
+
 // RF-84 — estado vacío: línea de affordance, no un panel en blanco ni ausencia.
 export const Vacio: Story = {
   args: { box: undefined, onClose: fn() },
