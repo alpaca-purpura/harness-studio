@@ -174,9 +174,8 @@ export function WorkspaceStage() {
               ) : (
                 <>
                   <MapCanvas graph={graph} selectedId={selectedId} onSelect={setSelectedId} />
-                  {selectedBox && (
-                    <Inspector box={selectedBox} onClose={() => setSelectedId(undefined)} />
-                  )}
+                  {/* Siempre montado (RF-84): sin selección = affordance, no ausencia. */}
+                  <Inspector box={selectedBox} onClose={() => setSelectedId(undefined)} />
                 </>
               )}
             </div>

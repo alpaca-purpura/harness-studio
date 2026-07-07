@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactNode } from "react"
-import { expect, fn, within } from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import type { Box } from "@/entities/arnes"
 import { Inspector } from "./inspector"
 
@@ -61,6 +61,65 @@ export const Caja: Story = {
   },
 }
 
+// RF-80/81 — ⤢ expande (header/tabs sticky, cubre el mapa), Esc COLAPSA, ✕ CIERRA
+// incluso expandido (cerrar ≠ colapsar, decisión #5e).
+export const ExpandeColapsaCierra: Story = {
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const aside = canvasElement.querySelector("aside.arnesia-inspector") as HTMLElement
+    const expand = c.getByRole("button", { name: "Ampliar inspector" })
+    await expect(expand).toHaveAttribute("aria-pressed", "false")
+    await expand.click()
+    await expect(aside).toHaveClass("expanded")
+    const collapse = c.getByRole("button", { name: "Colapsar al drawer normal" })
+    await expect(collapse).toHaveAttribute("aria-pressed", "true")
+    // Esc colapsa al drawer normal (no cierra).
+    await userEvent.keyboard("{Escape}")
+    await expect(aside).not.toHaveClass("expanded")
+    await expect(args.onClose).not.toHaveBeenCalled()
+    // ✕ cierra del todo, también estando expandido.
+    await c.getByRole("button", { name: "Ampliar inspector" }).click()
+    await c.getByRole("button", { name: "Cerrar inspector" }).click()
+    await expect(args.onClose).toHaveBeenCalled()
+  },
+}
+
+// RF-82 — tres tabs con roles ARIA; conmutan panes sin perder el header.
+export const Tabs: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const tabs = c.getAllByRole("tab")
+    await expect(tabs).toHaveLength(3)
+    await expect(c.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true")
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    await expect(c.getByText("versiona con el arnés")).toBeInTheDocument()
+    await c.getByRole("tab", { name: "Corridas" }).click()
+    await expect(c.getByText(/Sin corridas indexadas/)).toBeInTheDocument()
+    // El header (identidad) nunca se pierde al conmutar.
+    await expect(c.getByText("escribir el spec")).toBeInTheDocument()
+  },
+}
+
+// RF-96 — Corridas honesta: estado + nota de caja (qué listará primero) + acción staged.
+export const CorridasHonesta: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Corridas" }).click()
+    await expect(c.getByText(/indexer JSONL/)).toBeInTheDocument()
+    await expect(c.getByText(/boxes\/spec-writer\/run/)).toBeInTheDocument()
+    await expect(c.getByRole("button", { name: /Ver todas las corridas/ })).toBeDisabled()
+  },
+}
+
+// RF-84 — estado vacío: línea de affordance, no un panel en blanco ni ausencia.
+export const Vacio: Story = {
+  args: { box: undefined, onClose: fn() },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/Clic en un nodo del mapa/)).toBeInTheDocument()
+  },
+}
+
 // A contract-less rule → per-class framing (inspector-por-clase.md Tier A): doctrinal role,
 // Activación (unknown here — not in the proposal sets) and Fuente, never a generic "lacks".
 export const Regla: Story = {
@@ -78,7 +137,8 @@ export const Regla: Story = {
     const c = within(canvasElement)
     await expect(c.getByText(/Regla de la Base/)).toBeInTheDocument()
     await expect(c.getByText("desconocida")).toBeInTheDocument()
-    await expect(c.getByText("dogfood/dev-full-cycle/CLAUDE.md")).toBeInTheDocument()
+    // fuente_path aparece en Resumen y en la tab Contenido (pane oculto) → getAll.
+    await expect(c.getAllByText("dogfood/dev-full-cycle/CLAUDE.md")[0]).toBeInTheDocument()
   },
 }
 
@@ -123,6 +183,7 @@ export const NoReconocido: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     await expect(c.getByText(/reconocedor no entendió/)).toBeInTheDocument()
-    await expect(c.getByText("dogfood/dev-full-cycle/skills/misterio")).toBeInTheDocument()
+    // fuente_path aparece en Resumen y en la tab Contenido (pane oculto) → getAll.
+    await expect(c.getAllByText("dogfood/dev-full-cycle/skills/misterio")[0]).toBeInTheDocument()
   },
 }

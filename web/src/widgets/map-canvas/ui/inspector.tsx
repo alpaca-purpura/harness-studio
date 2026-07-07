@@ -1,16 +1,21 @@
+import { useEffect, useState } from "react"
 import { alwFor, type Box, type Clase, handleFor, isDelPuesto, KIND } from "@/entities/arnes"
 import { Glyph } from "@/shared/canvas"
+import { cn } from "@/shared/lib/cn"
 
-// Inspector is the read-only node detail surface (S3, RF-71/73). It renders the selected node's
-// fused `contract` (why · capabilities · arquetipo/perfil · necesita/entrega/ruta · gate · handoff)
-// straight from the loaded graph — real, complete data (the dogfood/luana nodes carry it), so no
-// getNode round-trip is needed in the MVP. Not in the signed shots (Hito 2), so it is chrome the
-// page composes over the canvas; editing is Hito 3+.
+// Inspector is the read-only node drawer of the Map (S3, RF-71/73 + paquete
+// inspector-drawer RF-80..96). It renders the selected node's fused `contract` straight
+// from the loaded graph, in three tabs (Resumen | Contenido | Corridas) with an expanded
+// mode that covers the map area. Styles live in app/styles/inspector.css (verbatim port
+// of mockup v6, scoped .arnesia-inspector). It is chrome the page composes over the
+// canvas; it never fetches (fe-transporte-independiente: the page injects data/callbacks).
 //
-// Per-class view (inspector-por-clase.md, Tier A): a node WITHOUT a fused contract is framed by
-// what it IS (a rule/hook/mcp without contract is its LEGAL state, not a lack), the per-class
-// fields the loader does not extract yet are listed honestly as pending (Tier B recognizers),
-// and every node shows its Fuente (fuente_path · origen).
+// Close semantics (decisión #5e): ✕ CLOSES the drawer entirely (onClose — the map stays
+// without a node drawer); ⤡ collapses expanded→normal; Esc collapses only in expanded.
+//
+// Per-class view (inspector-por-clase.md, Tier A): a node WITHOUT a fused contract is
+// framed by what it IS, pending per-class fields are named honestly, every node shows
+// its Fuente (fuente_path · origen).
 
 // CLASS_ROLE — doctrinal framing per clase for contract-less nodes. `pendiente` names the
 // fields waiting on the nomenclatura §3 recognizers — said out loud, never invented.
@@ -49,10 +54,8 @@ function activacionRegla(alw: boolean | undefined): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-1.5">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </h4>
+    <section className="sec">
+      <h4>{title}</h4>
       {children}
     </section>
   )
@@ -61,169 +64,334 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ k, v }: { k: string; v?: string | undefined }) {
   if (!v) return null
   return (
-    <div className="flex gap-2 text-xs">
-      <span className="shrink-0 text-muted-foreground">{k}</span>
-      <span className="font-mono text-foreground">{v}</span>
+    <div className="field">
+      <span className="k">{k}</span>
+      <span className="v">{v}</span>
     </div>
   )
 }
 
-export function Inspector({ box, onClose }: { box: Box; onClose: () => void }) {
+type Tab = "resumen" | "contenido" | "corridas"
+
+const TABS: readonly { id: Tab; label: string }[] = [
+  { id: "resumen", label: "Resumen" },
+  { id: "contenido", label: "Contenido" },
+  { id: "corridas", label: "Corridas" },
+]
+
+export interface InspectorProps {
+  // Sin box = estado vacío (RF-84): la línea de affordance, no un panel en blanco ni ausencia.
+  box?: Box | undefined
+  onClose: () => void
+}
+
+export function Inspector({ box, onClose }: InspectorProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [tab, setTab] = useState<Tab>("resumen")
+
+  // Changing node resets to Resumen (each drawer opens on its summary, as the mockup's
+  // per-card default); losing the selection also drops the expanded overlay.
+  const boxId = box?.id
+  useEffect(() => {
+    setTab("resumen")
+    if (!boxId) setExpanded(false)
+  }, [boxId])
+
+  // Esc COLLAPSES (never closes) — only listening while expanded (decisión #5e).
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [expanded])
+
+  if (!box) {
+    return (
+      <aside aria-label="Inspector · sin selección" className="arnesia-inspector empty">
+        <div className="dw-body">
+          <div className="tabpane">
+            <Section title="Inspector">
+              <p>
+                Clic en un nodo del mapa: identidad, clasificación doctrinal, contrato, fuente,
+                corridas y hallazgos.
+              </p>
+            </Section>
+          </div>
+        </div>
+      </aside>
+    )
+  }
+
   const k = KIND[box.clase]
+
+  return (
+    <aside
+      aria-label={`Inspector · ${box.nombre}`}
+      className={cn("arnesia-inspector", expanded && "expanded")}
+    >
+      <header className="dw-head">
+        <Glyph color={k.color} char={k.char} shape={k.shape} />
+        <div className="dw-id">
+          <div className="dw-nombre">{box.nombre}</div>
+          <div className="dw-handle">
+            {k.label} · <span className="mono">{handleFor(box, alwFor(box.id))}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="dw-expand"
+          aria-pressed={expanded}
+          aria-label={expanded ? "Colapsar al drawer normal" : "Ampliar inspector"}
+          title={
+            expanded
+              ? "Colapsar: vuelve al drawer lateral normal"
+              : "Ampliar: el drawer ocupa todo el espacio del mapa"
+          }
+          onClick={() => setExpanded((e) => !e)}
+        >
+          {expanded ? "⤡" : "⤢"}
+        </button>
+        <button
+          type="button"
+          className="dw-close"
+          aria-label="Cerrar inspector"
+          title="Cerrar: quita el drawer y deja el mapa (≠ colapsar ⤡)"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+      </header>
+
+      {/* div (no nav): a11y noNoninteractiveElementToInteractiveRole — tablist ARIA puro. */}
+      <div className="dw-tabs" role="tablist" aria-label="Vistas del nodo">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className="dw-tab"
+            role="tab"
+            id={`dw-tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`dw-pane-${t.id}`}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="dw-body">
+        <div
+          className="tabpane tabpane-resumen"
+          role="tabpanel"
+          id="dw-pane-resumen"
+          aria-labelledby="dw-tab-resumen"
+          hidden={tab !== "resumen"}
+        >
+          <Resumen box={box} />
+        </div>
+        <div
+          className="tabpane"
+          role="tabpanel"
+          id="dw-pane-contenido"
+          aria-labelledby="dw-tab-contenido"
+          hidden={tab !== "contenido"}
+        >
+          <Contenido box={box} />
+        </div>
+        <div
+          className="tabpane"
+          role="tabpanel"
+          id="dw-pane-corridas"
+          aria-labelledby="dw-tab-corridas"
+          hidden={tab !== "corridas"}
+        >
+          <Corridas box={box} />
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+// Resumen — identidad doctrinal + contrato fusionado del nodo (tab por defecto).
+function Resumen({ box }: { box: Box }) {
   const c = box.contract
   const role = CLASS_ROLE[box.clase]
   // origen: the real L0 field wins; the proposals fixture stands in, labeled (spec §2.3).
   const origen = box.origen ?? (isDelPuesto(box.id) ? "del-puesto · PROPUESTA" : undefined)
 
   return (
-    <aside
-      aria-label={`Inspector · ${box.nombre}`}
-      className="absolute right-0 top-0 flex h-full w-[340px] flex-col overflow-auto border-l border-border bg-card"
-    >
-      <header className="flex items-start gap-2.5 border-b border-border p-4">
-        <Glyph color={k.color} char={k.char} shape={k.shape} />
-        <div className="min-w-0 flex-1">
-          <div className="font-mono text-sm font-semibold text-foreground">{box.nombre}</div>
-          <div className="text-xs text-muted-foreground">
-            {k.label} · <span className="font-mono">{handleFor(box, alwFor(box.id))}</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          aria-label="Cerrar inspector"
-          onClick={onClose}
-          className="grid size-6 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:text-foreground"
-        >
-          ✕
-        </button>
-      </header>
-
-      <div className="flex flex-col gap-4 p-4">
-        <Section title="Clasificación">
-          <Field k="banda" v={box.banda} />
-          <Field k="fase" v={box.fase} />
-          <Field k="estado" v={box.estado} />
-          <Field k="canal" v={box.canal} />
-          <Field k="procedencia" v={box.procedencia} />
-          {c && (
-            <>
-              <Field k="arquetipo" v={c.arquetipo} />
-              <Field k="perfil" v={c.perfil_harness} />
-              <Field k="caja" v={c.caja ? "sí" : "no"} />
-            </>
-          )}
-        </Section>
-
-        {(box.fuente_path || origen) && (
-          <Section title="Fuente">
-            <Field k="fuente" v={box.fuente_path} />
-            <Field k="origen" v={origen} />
-          </Section>
-        )}
-
-        {box.clase === "rule" && (
-          <Section title="Activación">
-            <Field k="carga" v={activacionRegla(alwFor(box.id))} />
-          </Section>
-        )}
-
-        {!c ? (
-          <Section title={box.clase === "no-reconocido" ? "Reconciliación" : "Rol"}>
-            {/* Warn = fondo suave, texto normal — text-warn a 11px no pasa contraste AA. */}
-            <p
-              className={
-                box.clase === "no-reconocido"
-                  ? "rounded-md bg-warn-soft px-2 py-1.5 text-xs text-foreground"
-                  : "text-xs text-muted-foreground"
-              }
-            >
-              {role.rol}
-            </p>
-            {role.pendiente && (
-              <p className="text-xs text-muted-foreground">
-                pendiente del reconocedor: <span className="font-mono">{role.pendiente}</span>
-              </p>
-            )}
-          </Section>
-        ) : (
+    <>
+      <Section title="Clasificación">
+        <Field k="banda" v={box.banda} />
+        <Field k="fase" v={box.fase} />
+        <Field k="estado" v={box.estado} />
+        <Field k="canal" v={box.canal} />
+        <Field k="procedencia" v={box.procedencia} />
+        {c && (
           <>
-            {c.why && (
-              <Section title="Intención">
-                <p className="text-xs text-foreground">{c.why}</p>
-              </Section>
-            )}
-
-            {c.capabilities && c.capabilities.length > 0 && (
-              <Section title="Capabilities">
-                <ul className="flex flex-col gap-1.5">
-                  {c.capabilities.map((cap) => (
-                    <li key={cap.id} className="text-xs">
-                      <span className="font-mono text-muted-foreground">{cap.id}</span> {cap.what}
-                      <div className="text-muted-foreground">✓ {cap.success}</div>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {c.necesita && c.necesita.length > 0 && (
-              <Section title="Necesita">
-                <ul className="flex flex-col gap-1 text-xs">
-                  {c.necesita.map((inp) => (
-                    <li key={`${inp.art}-${inp.de}`}>
-                      {inp.art} <span className="text-muted-foreground">← {inp.de}</span>
-                      {inp.requerido ? "" : " (opcional)"}
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {c.entrega && c.entrega.length > 0 && (
-              <Section title="Entrega">
-                <ul className="flex flex-col gap-1 text-xs">
-                  {c.entrega.map((out) => (
-                    <li key={out.art}>
-                      {out.art}
-                      {out.escritor_unico ? (
-                        <span className="text-muted-foreground"> · escritor único</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {c.ruta && c.ruta.length > 0 && (
-              <Section title="Ruta">
-                <ul className="flex flex-col gap-1 text-xs">
-                  {c.ruta.map((r) => (
-                    <li key={`${r.a}-${r.si ?? ""}`}>
-                      → <span className="font-mono">{r.a}</span>
-                      {r.si ? <span className="text-muted-foreground"> si {r.si}</span> : null}
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {c.gate && (
-              <Section title="Gate">
-                <Field k="tipo" v={c.gate.tipo} />
-                {c.gate.detalle && <p className="text-xs text-foreground">{c.gate.detalle}</p>}
-              </Section>
-            )}
-
-            {c.handoff && (
-              <Section title="Handoff">
-                <p className="text-xs text-foreground">
-                  {c.handoff.cuando} <span className="text-muted-foreground">→ {c.handoff.a}</span>
-                </p>
-              </Section>
-            )}
+            <Field k="arquetipo" v={c.arquetipo} />
+            <Field k="perfil" v={c.perfil_harness} />
+            <Field k="caja" v={c.caja ? "sí" : "no"} />
           </>
         )}
+      </Section>
+
+      {(box.fuente_path || origen) && (
+        <Section title="Fuente">
+          <Field k="fuente" v={box.fuente_path} />
+          <Field k="origen" v={origen} />
+        </Section>
+      )}
+
+      {box.clase === "rule" && (
+        <Section title="Activación">
+          <Field k="carga" v={activacionRegla(alwFor(box.id))} />
+        </Section>
+      )}
+
+      {!c ? (
+        <Section title={box.clase === "no-reconocido" ? "Reconciliación" : "Rol"}>
+          {/* Warn = fondo suave, texto normal — text-warn a 11px no pasa contraste AA. */}
+          <p className={box.clase === "no-reconocido" ? "warnbox" : "mut"}>{role.rol}</p>
+          {role.pendiente && (
+            <p className="mut">
+              pendiente del reconocedor: <span className="mono">{role.pendiente}</span>
+            </p>
+          )}
+        </Section>
+      ) : (
+        <>
+          {c.why && (
+            <Section title="Intención">
+              <p className="fg">{c.why}</p>
+            </Section>
+          )}
+
+          {c.capabilities && c.capabilities.length > 0 && (
+            <Section title="Capabilities">
+              <ul className="caps">
+                {c.capabilities.map((cap) => (
+                  <li key={cap.id}>
+                    <span className="mono mut">{cap.id}</span> {cap.what}
+                    <div className="mut">✓ {cap.success}</div>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {c.necesita && c.necesita.length > 0 && (
+            <Section title="Necesita">
+              <ul>
+                {c.necesita.map((inp) => (
+                  <li key={`${inp.art}-${inp.de}`}>
+                    {inp.art} <span className="mut">← {inp.de}</span>
+                    {inp.requerido ? "" : " (opcional)"}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {c.entrega && c.entrega.length > 0 && (
+            <Section title="Entrega">
+              <ul>
+                {c.entrega.map((out) => (
+                  <li key={out.art}>
+                    {out.art}
+                    {out.escritor_unico ? <span className="mut"> · escritor único</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {c.ruta && c.ruta.length > 0 && (
+            <Section title="Ruta">
+              <ul>
+                {c.ruta.map((r) => (
+                  <li key={`${r.a}-${r.si ?? ""}`}>
+                    → <span className="mono">{r.a}</span>
+                    {r.si ? <span className="mut"> si {r.si}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {c.gate && (
+            <Section title="Gate">
+              <Field k="tipo" v={c.gate.tipo} />
+              {c.gate.detalle && <p className="fg">{c.gate.detalle}</p>}
+            </Section>
+          )}
+
+          {c.handoff && (
+            <Section title="Handoff">
+              <p className="fg">
+                {c.handoff.cuando} <span className="mut">→ {c.handoff.a}</span>
+              </p>
+            </Section>
+          )}
+        </>
+      )}
+    </>
+  )
+}
+
+// Contenido — la fuente del componente (RF-93..95). Sin conexión al daemon (esta
+// versión aún no recibe loadFuente) el estado se DICE — jamás contenido inventado.
+function Contenido({ box }: { box: Box }) {
+  return (
+    <>
+      <span className="chip-versiona">versiona con el arnés</span>
+      <Section title="Fuente del componente">
+        <Field k="fuente" v={box.fuente_path} />
+        {box.fuente_path ? (
+          <p className="mut">
+            El daemon sirve el archivo real confinado al dir del arnés (S2) — lectura no disponible
+            en esta vista.
+          </p>
+        ) : (
+          <p className="mut">
+            Sin <span className="mono">fuente_path</span> — pendiente del reconocedor (nomenclatura
+            §3): el loader aún no estampa la celda canónica de esta clase.
+          </p>
+        )}
+      </Section>
+    </>
+  )
+}
+
+// Corridas — estado honesto: el indexer JSONL aún no existe (Hito 3). Para cajas se
+// dice qué listará primero (runs D2 + la sesión CC viva del frente).
+function Corridas({ box }: { box: Box }) {
+  const esCaja = box.contract?.caja === true
+  return (
+    <>
+      <Section title="Corridas donde actuó">
+        <p className="mut">Sin corridas indexadas — llegan con el indexer JSONL (Hito 3).</p>
+        {esCaja && (
+          <p className="src-note">
+            al implementar listan primero: las corridas de caja de{" "}
+            <span className="mono">POST …/boxes/{box.id}/run</span> (D2, ya vivo) y la sesión CC
+            viva del frente.
+          </p>
+        )}
+      </Section>
+      <div className="dw-actions">
+        <button
+          type="button"
+          className="act"
+          disabled
+          title="Vista Corridas del arnés — Hito 3 (detalle: Conversación · Árbol · Waterfall · replay en el mapa)"
+        >
+          Ver todas las corridas del arnés
+        </button>
       </div>
-    </aside>
+    </>
   )
 }

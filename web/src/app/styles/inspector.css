@@ -1,0 +1,412 @@
+/* Inspector/drawer del Mapa — port VERBATIM del CSS del mockup v6 firmado
+   (research/2026-07-07-inspector-drawer/mockup-drawer.html:95-201), el contrato al pixel
+   del paquete inspector-drawer (design.md). Mismo patrón que map.css: scoped bajo
+   .arnesia-inspector, todo color es un token var(--…) (fe-tokens-contrato); los literales
+   no-color (px/%) son las medidas citadas en design.md. */
+
+/* ── shell: drawer lateral 340px dockeado a la derecha del canvas (design §Anatomía) ── */
+.arnesia-inspector {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+/* v2/v6 · modo expandido: cubre el área del mapa (inset:0 del contenedor del canvas);
+   sobre los controles flotantes del canvas (.ctl/help-fab, z-20). ✕ CIERRA ≠ ⤡ colapsa. */
+.arnesia-inspector.expanded {
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-left: none;
+  z-index: 30;
+}
+
+/* ── header (mockup:99-107): identidad fija; sticky para no perderse al scrollear ── */
+.arnesia-inspector .dw-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 2;
+}
+.arnesia-inspector .dw-id {
+  min-width: 0;
+  flex: 1;
+}
+.arnesia-inspector .dw-nombre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--foreground);
+}
+.arnesia-inspector .dw-handle {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  margin-top: 1px;
+}
+.arnesia-inspector .dw-close,
+.arnesia-inspector .dw-expand {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.arnesia-inspector .dw-close:hover,
+.arnesia-inspector .dw-close:focus-visible,
+.arnesia-inspector .dw-expand:hover,
+.arnesia-inspector .dw-expand:focus-visible {
+  color: var(--foreground);
+  outline-offset: 2px;
+}
+
+/* ── v5 · tabs Resumen | Contenido | Corridas (mockup:152-158) ── */
+.arnesia-inspector .dw-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 57px; /* alto real del header (design §Modo expandido) */
+  background: var(--card);
+  z-index: 1;
+}
+.arnesia-inspector .dw-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.arnesia-inspector .dw-tab[aria-selected="true"] {
+  color: var(--foreground);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+.arnesia-inspector .dw-body {
+  padding: 0;
+}
+.arnesia-inspector .tabpane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+.arnesia-inspector .tabpane[hidden] {
+  display: none;
+}
+/* v5.1 · :not([hidden]) — la regla grid del expandido no le gana al [hidden] */
+.arnesia-inspector.expanded .tabpane-resumen:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px 36px;
+  align-content: start;
+  max-width: 1280px;
+  padding: 20px 24px;
+}
+/* v6 · decisión #5: tabs compactas a la izquierda · botonera fila al pie · columna 920 */
+.arnesia-inspector.expanded .dw-tabs {
+  justify-content: flex-start;
+}
+.arnesia-inspector.expanded .dw-tab {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+}
+.arnesia-inspector.expanded .tabpane-resumen .dw-actions {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.arnesia-inspector.expanded .tabpane-resumen .act {
+  flex: 0 0 auto;
+}
+.arnesia-inspector.expanded .tabpane:not(.tabpane-resumen) {
+  max-width: 920px;
+}
+
+/* ── secciones y campos (mockup:180-193) ── */
+.arnesia-inspector .sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arnesia-inspector .sec h4 {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+.arnesia-inspector .field {
+  display: flex;
+  gap: 8px;
+  font-size: var(--text-xs);
+}
+.arnesia-inspector .field .k {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.arnesia-inspector .field .v {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.arnesia-inspector .sec p {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+.arnesia-inspector .fg {
+  color: var(--foreground);
+}
+.arnesia-inspector .mut {
+  color: var(--muted-foreground);
+}
+.arnesia-inspector .sec p.warnbox {
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  padding: 6px 8px;
+  color: var(--foreground);
+}
+.arnesia-inspector .sec ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--foreground);
+}
+.arnesia-inspector .sec ul.caps {
+  gap: 6px;
+}
+.arnesia-inspector .mono {
+  font-family: var(--font-mono);
+}
+
+/* ── v3 · tooltips doctrinales: «i» por sección + campos punteados (mockup:114-129) ── */
+.arnesia-inspector [data-tip] {
+  position: relative;
+}
+.arnesia-inspector [data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  width: max-content;
+  max-width: 250px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 7px 9px;
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: normal;
+  text-align: left;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+  opacity: 0;
+  visibility: hidden;
+  z-index: 30;
+  pointer-events: none;
+}
+.arnesia-inspector [data-tip]:hover::after,
+.arnesia-inspector [data-tip]:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .arnesia-inspector [data-tip]::after {
+    transition: opacity 0.12s ease;
+  }
+}
+.arnesia-inspector .field .k.tip {
+  border-bottom: 1px dotted var(--muted-foreground);
+  cursor: help;
+}
+.arnesia-inspector .info {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--muted-foreground);
+  color: var(--muted-foreground);
+  font-size: 9px;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 2px;
+  vertical-align: 1px;
+  cursor: help;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+/* ── v4 · chips navegables · condición · hallazgos (mockup:130-143) ── */
+.arnesia-inspector .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.arnesia-inspector .chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--text-xs);
+}
+.arnesia-inspector .chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.arnesia-inspector .chip:hover,
+.arnesia-inspector .chip:focus-visible {
+  border-color: var(--muted-foreground);
+}
+.arnesia-inspector .chip:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.arnesia-inspector .chip .org {
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.arnesia-inspector .cond {
+  border: 1px dashed var(--warn);
+  color: var(--warn);
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+.arnesia-inspector .hallazgo {
+  margin: 0;
+  border-radius: var(--radius-md);
+  padding: 7px 9px;
+  font-size: var(--text-xs);
+  color: var(--foreground);
+}
+.arnesia-inspector .hallazgo.crit {
+  background: var(--crit-soft);
+}
+.arnesia-inspector .hallazgo.warn {
+  background: var(--warn-soft);
+}
+
+/* ── v4 · botonera staged (mockup:144-148): disabled + rotulada, jamás finge ── */
+.arnesia-inspector .dw-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.arnesia-inspector .act {
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+.arnesia-inspector .act:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+.arnesia-inspector .act.primary {
+  background: var(--accent-soft);
+  border-color: var(--primary);
+  color: var(--foreground);
+}
+.arnesia-inspector .act-note {
+  margin: 0;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+
+/* ── v5 · tab Contenido: viewer de fuente + chip versiona (mockup:168-174) ── */
+.arnesia-inspector .chip-versiona {
+  align-self: flex-start;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: var(--accent-soft);
+}
+.arnesia-inspector .src {
+  background: var(--muted);
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+.arnesia-inspector .src .ln {
+  display: flex;
+  gap: 10px;
+  white-space: pre;
+}
+.arnesia-inspector .src .ln > span {
+  color: var(--muted-foreground);
+  opacity: 0.6;
+  min-width: 2ch;
+  text-align: right;
+  user-select: none;
+}
+.arnesia-inspector .src-note {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+
+/* ── estado vacío (RF-84): affordance, no un panel en blanco ── */
+.arnesia-inspector.empty .dw-body {
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.arnesia-inspector.empty .dw-body p {
+  font-size: var(--text-sm);
+}
