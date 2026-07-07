@@ -106,6 +106,16 @@ func runServe(args []string) error {
 	if err := idx.Rebuild(ctx); err != nil {
 		return fmt.Errorf("index rebuild: %w", err)
 	}
+	// loadArnesDir: la vía viva del loader real (HS-11) — un directorio registrado se
+	// reconoce archivo-por-archivo (nomenclatura v1) y entra al índice. Falla honesto
+	// (el registro queda; el índice no inventa).
+	loadArnesDir := func(id, path string) error {
+		g, err := loader.LoadArnes(path)
+		if err != nil {
+			return fmt.Errorf("cargar arnés %s desde %s: %w", id, path, err)
+		}
+		return idx.Upsert(ctx, g)
+	}
 	agent := claudecode.New(resolveClaudeBin(*claudeBin)) // the Dock conductor.
 
 	sessionStore, err := store.NewRegistry(*sessionsPath)
@@ -118,6 +128,13 @@ func runServe(args []string) error {
 	arnesReg, err := store.NewArnesRegistry(*arnesesPath, *arnesRoot)
 	if err != nil {
 		return fmt.Errorf("arnes registry: %w", err)
+	}
+	// Al boot, los arneses ya registrados se re-cargan del disco al índice (el índice
+	// es desechable; el directorio es la verdad).
+	for _, ap := range arnesReg.List() {
+		if lerr := loadArnesDir(ap.Arnes, ap.Path); lerr != nil {
+			slog.Warn("boot: arnés registrado no indexable aún", "arnes", ap.Arnes, "err", lerr)
+		}
 	}
 
 	watcher := watch.New()
@@ -168,7 +185,7 @@ func runServe(args []string) error {
 		return ""
 	}
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, arnesReg, confSvc, confBase, broker, httpapi.AuthConfigFor(*addr, *authToken))
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, arnesReg, confSvc, confBase, loadArnesDir, broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {

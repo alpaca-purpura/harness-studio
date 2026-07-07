@@ -24,8 +24,10 @@ type registerArnesBody struct {
 }
 
 // registerArnes records (or replaces) the working directory for an arnés. A rejected path
-// (relative, missing, or protected) returns 400 with the validation reason.
-func registerArnes(reg ports.ArnesRegistry) http.HandlerFunc {
+// (relative, missing, or protected) returns 400 with the validation reason. onRegistered
+// (inyectado por el composition root — el transporte no importa el loader) carga el
+// directorio al índice según la nomenclatura: «Cargar» una carpeta = verla en el Mapa.
+func registerArnes(reg ports.ArnesRegistry, onRegistered func(id, path string) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		var body registerArnesBody
@@ -36,6 +38,27 @@ func registerArnes(reg ports.ArnesRegistry) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, ports.ArnesPath{Arnes: id, Path: body.Path})
+		indexed := true
+		var detail string
+		if onRegistered != nil {
+			if err := onRegistered(id, body.Path); err != nil {
+				// Registrar SÍ, indexar NO (p.ej. el dir aún no es un arnés reconocible):
+				// honesto en la respuesta, jamás un grafo inventado.
+				indexed, detail = false, err.Error()
+			}
+		}
+		writeJSON(w, http.StatusOK, registerArnesResponse{
+			ArnesPath: ports.ArnesPath{Arnes: id, Path: body.Path},
+			Indexed:   indexed,
+			Detail:    detail,
+		})
 	}
+}
+
+// registerArnesResponse es la respuesta del PUT: el registro + si el directorio se
+// reconoció e indexó como arnés (nomenclatura-arnes.md).
+type registerArnesResponse struct {
+	ports.ArnesPath
+	Indexed bool   `json:"indexed"`
+	Detail  string `json:"detail,omitempty"`
 }

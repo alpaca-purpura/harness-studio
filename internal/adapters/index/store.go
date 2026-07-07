@@ -70,6 +70,20 @@ func (s *Store) List(_ context.Context) ([]domain.Graph, error) {
 	return out, nil
 }
 
+// Upsert inserts or replaces one harness graph by its manifiesto id. A graph without
+// manifiesto no es indexable (no hay clave honesta) — error explícito, jamás una clave
+// inventada.
+func (s *Store) Upsert(_ context.Context, g domain.Graph) error {
+	id := graphID(g)
+	if id == "" {
+		return errors.New("index: grafo sin manifiesto (arnes.id) — no indexable")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.graphs[id] = g
+	return nil
+}
+
 // graphID is the harness id of a graph ("" if it carries no manifiesto).
 func graphID(g domain.Graph) string {
 	if g.Arnes == nil {

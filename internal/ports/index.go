@@ -15,4 +15,8 @@ type IndexPort interface {
 	Query(ctx context.Context, harnessID string) (domain.Graph, error)
 	// List returns every harness graph currently indexed (portfolio, S1).
 	List(ctx context.Context) ([]domain.Graph, error)
+	// Upsert inserts or replaces one harness graph (HS-11: la vía del loader real —
+	// «Cargar» un arnés del disco lo indexa en vivo). El índice sigue desechable: lo
+	// upserteado se reconstruye re-cargando el directorio, jamás es fuente de verdad.
+	Upsert(ctx context.Context, g domain.Graph) error
 }
