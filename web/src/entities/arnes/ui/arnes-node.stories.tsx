@@ -161,3 +161,14 @@ export const Propuesto: Story = {
 
 export const Dim: Story = { args: { dim: true } }
 export const Selected: Story = { args: { selected: true } }
+
+// A no-reconocido node stays VISIBLE with the warn KIND (D-c, nomenclatura §4.5) — before
+// the KIND entry existed this crashed the whole canvas into the ErrorBoundary.
+export const NoReconocido: Story = {
+  args: {
+    box: { id: "misterio", clase: "no-reconocido", nombre: "misterio (no reconocido)" },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("misterio (no reconocido)")).toBeInTheDocument()
+  },
+}

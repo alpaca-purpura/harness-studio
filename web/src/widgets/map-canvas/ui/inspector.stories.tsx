@@ -61,13 +61,68 @@ export const Caja: Story = {
   },
 }
 
-// A non-caja node has no contract → honest empty state.
-export const SinContrato: Story = {
+// A contract-less rule → per-class framing (inspector-por-clase.md Tier A): doctrinal role,
+// Activación (unknown here — not in the proposal sets) and Fuente, never a generic "lacks".
+export const Regla: Story = {
   args: {
-    box: { id: "std-spec", clase: "rule", nombre: "estándar de spec", banda: "base" },
+    box: {
+      id: "std-spec",
+      clase: "rule",
+      nombre: "estándar de spec",
+      banda: "base",
+      fuente_path: "dogfood/dev-full-cycle/CLAUDE.md",
+    },
     onClose: fn(),
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/Sin contrato/)).toBeInTheDocument()
+    const c = within(canvasElement)
+    await expect(c.getByText(/Regla de la Base/)).toBeInTheDocument()
+    await expect(c.getByText("desconocida")).toBeInTheDocument()
+    await expect(c.getByText("dogfood/dev-full-cycle/CLAUDE.md")).toBeInTheDocument()
+  },
+}
+
+// A conditional rule (PROPOSED_CONDITIONAL) → the header handle AND Activación say so.
+export const ReglaCondicional: Story = {
+  args: {
+    box: { id: "code-style", clase: "rule", nombre: "estilo de código", banda: "base" },
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/condicional \(paths:\)/)).toBeInTheDocument()
+    // The header handle span reads exactly "condicional" (alw=false → handleFor).
+    await expect(c.getByText("condicional")).toBeInTheDocument()
+  },
+}
+
+// A hook → Guardia framing + the pending per-class fields named honestly (Tier B).
+export const Hook: Story = {
+  args: {
+    box: { id: "pii-guard", clase: "hook", nombre: "guardia PII", banda: "guardia" },
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/Hook de la Guardia/)).toBeInTheDocument()
+    await expect(c.getByText(/evento · matcher/)).toBeInTheDocument()
+  },
+}
+
+// A no-reconocido node (D-c) → the inspector renders (no crash) with the warn framing.
+export const NoReconocido: Story = {
+  args: {
+    box: {
+      id: "misterio",
+      clase: "no-reconocido",
+      nombre: "misterio (no reconocido)",
+      fuente_path: "dogfood/dev-full-cycle/skills/misterio",
+    },
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/reconocedor no entendió/)).toBeInTheDocument()
+    await expect(c.getByText("dogfood/dev-full-cycle/skills/misterio")).toBeInTheDocument()
   },
 }

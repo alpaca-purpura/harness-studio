@@ -9,6 +9,8 @@
 // `domain-not-transport`). Fase D reconciles the generated-types seam.
 
 // Clase — the ten CC-native placeable primitives (meta.clase / I-75). ⊥ Banda ⊥ PerfilHarness.
+// "no-reconocido" is NOT an 11th primitive: it is the loader's reconciliation marker (D-c,
+// nomenclatura §4.5, box.go:39-44) — the node must stay VISIBLE with a warn, never kill the map.
 export type Clase =
   | "skill"
   | "subagent"
@@ -20,6 +22,7 @@ export type Clase =
   | "settings"
   | "output-style"
   | "statusline"
+  | "no-reconocido"
 
 // Banda — the fixed map region a node lives in.
 export type Banda =
@@ -35,6 +38,10 @@ export type Banda =
 export type TipoEdge = "invoca" | "lee" | "escribe"
 
 export type Canal = "beta" | "estable" | "propuesto" | "deprecado"
+// Origen — who put the node in the arnés: the agnostic kit vs the rol·proceso·empresa
+// onboarding. L0 field (graph.l0.schema.json $defs.nodo.origen); the PROVISIONER stamps it,
+// so until that exists most nodes come without it (the map falls back to proposals.ts).
+export type Origen = "estandar" | "del-puesto"
 export type Arquetipo = "pipeline" | "excepcion" | "abierto" | "no-arnesar"
 export type PerfilHarness = "T1" | "T2" | "T3"
 export type GateTipo = "auto" | "manual" | "parcial" | "none"
@@ -137,6 +144,7 @@ export interface Box {
   canal?: Canal
   fuente_path?: string
   procedencia?: Procedencia
+  origen?: Origen
   contract?: Contract
 }
 

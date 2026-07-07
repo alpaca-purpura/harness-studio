@@ -35,4 +35,13 @@ export const KIND: Record<Clase, KindVisual> = {
     char: "▭",
     label: "Statusline",
   },
+  // Marcador de reconciliación (D-c, nomenclatura §4.5) — no es primitiva: tono warn, nunca
+  // un color --c-* de clase. Sin esta entrada un nodo no-reconocido tumbaba el canvas entero
+  // al ErrorBoundary (KIND[clase] undefined), lo contrario de «visible con warn».
+  "no-reconocido": {
+    color: "var(--warn)",
+    shape: "rounded",
+    char: "?",
+    label: "No reconocido",
+  },
 }

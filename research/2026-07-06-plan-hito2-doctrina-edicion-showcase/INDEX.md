@@ -53,6 +53,7 @@ El retro encontró una **inversión de orden** (se codeó antes de firmar los ga
 - ✅ **Story = test (hecho):** `Caja` enriquecida + `CajaGateNone` (honestidad) + `CajaPipelineAuto`. **42 story-tests verdes** (eran 40). tsc strictest · biome · stylelint · depcruise verdes.
 - ✅ **Ojo-UI mío (parcial):** verificado live en el showcase — las 7 cajas muestran su clasificación; los 2 `gate:none` (draft/measure) surgen como anillo hollow; riesgo manual=azul vs skill-azul **descartado** (separados arriba/abajo). Menor: punto gate 8px, matiz sutil a zoom default (aria-label/tooltip cargan el significado). Evidencia: `scratchpad/{showcase-marks,caja-brief,caja-draft}.png`.
 - ⏳ **Inspector (pendiente):** `constraints` + `non_goals` + Gherkin (`gate.aceptacion`) + `evidencia` + mini-spine + stories.
+- ⏳ **Inspector por clase** (pedido operador 2026-07-07) → [`inspector-por-clase.md`](./inspector-por-clase.md): qué ve el usuario por tipo de elemento. **Tier A** (dato existente, pre-Gate 2): encuadre por clase en vez del genérico «Sin contrato», sección Fuente, Activación de reglas (`alw` PROPUESTA), fix `no-reconocido` en `Clase`/`KIND` FE (D-c: hoy tumbaría el canvas). **Tier B** (post-firma): campo `meta` per-class en L0 + 8 reconocedores pendientes de nomenclatura §3.
 - ⏳ **Cablear `origen`/split-reglas desde el dato** (hoy FE-fixture-backed en `proposals.ts`).
 - **Gate 2 (ojo-UI mío + operador):** al cerrar tarjeta + inspector — doctrina inconfundible en mapa Y nodo; comparar showcase vs dev-full-cycle.
 

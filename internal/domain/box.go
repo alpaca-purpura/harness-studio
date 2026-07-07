@@ -168,6 +168,18 @@ const (
 	ProcNoDeclarado Procedencia = "no-declarado"
 )
 
+// Origen is nodo.origen (graph.l0.schema.json, HS-09 Fase D): who put the node in the
+// INSTANCE of the arnés — the agnostic kit ("estandar") vs the rol·proceso·empresa
+// onboarding ("del-puesto"). The PROVISIONER stamps it (never the author); orthogonal to
+// Procedencia (data honesty) and Canal (release).
+type Origen string
+
+// The two instance origins of nodo.origen.
+const (
+	OrigenEstandar  Origen = "estandar"
+	OrigenDelPuesto Origen = "del-puesto"
+)
+
 // Fase is the id of a process phase a box belongs to (null in Guardia/Base). It is
 // DATA the arnés declares (see Arnes.Fases), NOT a product constant — deliberately a
 // bare string with no enum: ArnesIA is agnostic to any arnés's process (VISION p3/p7).
@@ -192,7 +204,10 @@ type Box struct {
 	Canal       Canal       `json:"canal,omitempty"`
 	FuentePath  string      `json:"fuente_path,omitempty"`
 	Procedencia Procedencia `json:"procedencia,omitempty"`
-	Contract    *Contract   `json:"contract,omitempty"`
+	// Origen (L0 $defs.nodo.origen, HS-09 Fase D): estandar|del-puesto, lo estampa el
+	// provisioner. Sin este espejo el daemon TIRABA el campo al round-trip por el struct.
+	Origen   Origen    `json:"origen,omitempty"`
+	Contract *Contract `json:"contract,omitempty"`
 }
 
 // IsCaja reports whether the box is a process box (the skill-front of a phase), i.e.
