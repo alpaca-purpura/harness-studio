@@ -15,6 +15,9 @@
        chips tipados NAVEGABLES en Necesita/Ruta (click → salta a la casuística) + condición como badge ·
        HALLAZGOS por nodo (gate:none A4 · no-reconocido D-c · nota de conformance) · botonera staged al pie
        (Editar conversando primaria; resto disabled rotulado) · estado vacío (tarjeta 00).
+  v5 · 2026-07-07 · decisión #4 (FIRMADA): tabs Resumen | Contenido | Corridas. Contenido = fuente read-only
+       (reconstruida del dato real, rotulada; lo no reconstruible muestra su estado) + acciones staged.
+       Corridas = «donde actuó» con estado honesto «necesita indexer JSONL» + nota de qué lista primero.
 -->
 <title>Mockup — drawer del Mapa (inspector)</title>
 <style>
@@ -101,9 +104,7 @@
   .drawer.expanded { position:fixed; inset:0; z-index:10; width:auto; border-radius:0; border:none;
     overflow:auto; box-shadow:0 0 0 100vmax rgba(0,0,0,.25); }
   .drawer.expanded .dw-head { position:sticky; top:0; background:var(--card); z-index:1; }
-  /* en amplio, las secciones aprovechan el ancho fluyendo en columnas */
-  .drawer.expanded .dw-body { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:20px 36px; align-content:start; max-width:1280px; padding:20px 24px; }
+  /* en amplio, las secciones del Resumen fluyen en columnas (regla v5: .tabpane-resumen) */
   @media (prefers-reduced-motion: no-preference) { .drawer { transition:box-shadow .15s ease; } }
   /* ══ v3 · decisión #2 — tooltips: «i» por sección + campos con punteado ══ */
   [data-tip] { position:relative; }
@@ -142,6 +143,25 @@
   .act-note { margin:0; font-size:10px; color:var(--muted-foreground); }
   .case-target { outline:2px solid var(--primary); outline-offset:3px; border-radius:var(--radius-sm); }
   .drawer.empty .dw-body { color:var(--muted-foreground); font-size:var(--text-sm); line-height:1.5; }
+  /* ══ v5 · decisión #4 — tabs Resumen | Contenido | Corridas ══ */
+  .dw-tabs { display:flex; border-bottom:1px solid var(--border); }
+  .dw-tab { flex:1; padding:8px 4px; font:inherit; font-size:var(--text-xs); color:var(--muted-foreground);
+    background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; }
+  .dw-tab[aria-selected="true"] { color:var(--foreground); border-bottom-color:var(--primary); font-weight:600; }
+  .dw-body { padding:0; gap:0; }
+  .tabpane { display:flex; flex-direction:column; gap:16px; padding:16px; }
+  .tabpane[hidden] { display:none; }
+  .drawer.expanded .tabpane-resumen { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px 36px; align-content:start; max-width:1280px; padding:20px 24px; }
+  .chip-versiona { align-self:flex-start; font-size:9px; font-weight:700; letter-spacing:.04em; padding:1px 7px;
+    border-radius:999px; border:1px solid var(--primary); color:var(--primary); background:var(--accent-soft); }
+  .src { background:var(--muted); border-radius:var(--radius-md); padding:10px 8px; overflow-x:auto;
+    font-family:var(--font-mono); font-size:10.5px; line-height:1.55; }
+  .src .ln { display:flex; gap:10px; white-space:pre; }
+  .src .ln > span { color:var(--muted-foreground); opacity:.6; min-width:2ch; text-align:right; user-select:none; }
+  .src-note { font-size:10px; color:var(--muted-foreground); }
+  .run-row { display:flex; gap:8px; align-items:baseline; font-size:var(--text-xs); font-family:var(--font-mono);
+    border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 9px; }
   /* body: flex col gap-4 p-4 */
   .dw-body { display:flex; flex-direction:column; gap:16px; padding:16px; }
   /* Section: flex col gap-1.5 · h4 text-xs semibold uppercase tracking-wide muted */
@@ -289,6 +309,8 @@ const SEC_TIP = {
   "Handoff":"Eje ACEPTACIÓN: cuándo la caja se rinde y a quién escala (framed autonomy — autonomía acotada, no automatización ciega).",
   "Viene de":"Eje CABLEADO, sentido inverso: quién invoca, lee o escribe sobre ESTE nodo. Derivado de los edges del grafo (invoca/lee/escribe), no declarado.",
   "Hallazgos":"Honestidad del nodo (METODOLOGIA §4): hallazgos deterministas — gate:none (A4), no-reconocido (D-c) y checks rojos de conformance filtrados por nodo. Gris ≠ verde: el hueco se muestra, no se esconde.",
+  "Fuente del componente":"El artefacto real reconocido por el loader (autodocumentación como efecto): la fuente ES la verdad del componente. Lectura confinada al dir del arnés (S2).",
+  "Corridas donde actuó":"Sesiones REALES de Claude Code (JSONL de ~/.claude) en las que este nodo actuó — nada es flujo ideal: es lo que el usuario vivió. Esperan el indexer JSONL (telemetría de nacimiento, principio 9).",
 };
 const DEF_CAMPO = {
   banda:"Región fija de la geografía del mapa donde vive el nodo (eje ortogonal a clase y perfil).",
@@ -351,6 +373,60 @@ function hallazgosDe(box) {
   if (!h.length) h.push(`<p class="mut">Sin hallazgos abiertos.</p>`);
   h.push(`<p class="mut" style="font-size:10px">+ al implementar: checks rojos de <span class="mono">GET …/conformance</span> filtrados por este nodo (endpoint ya vivo, HS-11).</p>`);
   return h.join("");
+}
+
+// ══ v5 · decisión #4 — tab CONTENIDO: fuente reconstruida del dato REAL del grafo ══
+// El showcase no vive en disco: la fuente se RECONSTRUYE del contrato/identidad y se
+// rotula. Clases sin forma reconstruible muestran su estado — jamás contenido inventado.
+function yamlize(v, ind) {
+  const pad = "  ".repeat(ind);
+  if (Array.isArray(v)) return v.map(x => typeof x === "object"
+    ? pad + "- " + yamlize(x, ind + 1).trimStart().replace(/\n/g, "\n" + pad + "  ")
+    : pad + "- " + JSON.stringify(x)).join("\n");
+  if (v && typeof v === "object") return Object.entries(v).map(([k, x]) =>
+    typeof x === "object" && x !== null
+      ? pad + k + ":\n" + yamlize(x, ind + 1)
+      : pad + k + ": " + (typeof x === "string" && /[:#]/.test(x) ? JSON.stringify(x) : String(x))).join("\n");
+  return pad + String(v);
+}
+function srcView(texto, nota) {
+  const lineas = texto.split("\n");
+  return `<div class="src">` + lineas.map((l, i) =>
+    `<div class="ln"><span>${i + 1}</span><code>${esc(l)}</code></div>`).join("") + `</div>` +
+    (nota ? `<p class="src-note">${esc(nota)}</p>` : "");
+}
+function contenidoDe(box) {
+  const c = box.contract;
+  let inner = "";
+  if (box.clase === "no-reconocido") {
+    inner = `<p class="hallazgo warn">Artefacto que el reconocedor no entendió — al implementar, esta tab lo muestra TAL CUAL (raw) para que el humano decida (D-c).</p>`;
+  } else if (c || box.clase === "skill" || box.clase === "subagent") {
+    const fm = { name: box.id, nombre: box.nombre, ...(c ? { contract: c } : {}) };
+    const texto = `---\n${yamlize(fm, 0)}\n---\n\n# ${box.nombre}\n\n(cuerpo de la ${box.clase} — el showcase no vive en disco)`;
+    inner = srcView(texto, "reconstruido del grafo — el daemon servirá el archivo real, confinado al dir del arnés");
+  } else if (box.clase === "rule") {
+    inner = srcView(`# ${box.id} — ${box.nombre}\n\n(cuerpo de la regla — el showcase no vive en disco)`,
+      "reconstruido del grafo (convención de identidad del CLAUDE.md) — el daemon servirá el archivo real");
+  } else {
+    inner = `<p class="mut">Fuente no reconstruible desde el grafo (${esc(box.clase)}) — al implementar, el daemon la sirve confinada desde <span class="mono">${esc(box.fuente_path ?? "fuente_path pendiente del reconocedor")}</span>.</p>`;
+  }
+  return `<span class="chip-versiona">versiona con el arnés</span>` +
+    sec("Fuente del componente", (box.fuente_path ? field("fuente", box.fuente_path) : "") + inner) +
+    `<div class="dw-actions" style="border-top:none;padding:0">
+      <button type="button" class="act primary" disabled title="Se cablea en Fase 3/4 — CodeMirror 6/merge, diff antes de confirmar, nace beta → tren">Editar fuente</button>
+      <button type="button" class="act" disabled title="Se cablea en Fase 3/4 — conversación gobernada vía Dock (backend Fase E vivo)">Editar conversando (dock)</button>
+      <p class="act-note">staged — guardar = diff antes de confirmar + nota de cambio → nace beta → tren; versiones inmutables.</p>
+    </div>`;
+}
+// v5 · tab CORRIDAS: estado honesto — el indexer JSONL aún no existe (Hito 3).
+function corridasDe(box) {
+  const esCaja = box.contract?.caja === true;
+  return sec("Corridas donde actuó",
+    `<p class="mut">Sin corridas indexadas — llegan con el indexer JSONL (telemetría, Hito 3).</p>` +
+    (esCaja ? `<p class="src-note">al implementar listan primero: las corridas de caja de <span class="mono">POST …/boxes/${esc(box.id)}/run</span> (D2, ya vivo) y la sesión CC viva del frente.</p>` : "")) +
+    `<div class="dw-actions" style="border-top:none;padding:0">
+      <button type="button" class="act" disabled title="Vista Corridas del arnés — Hito 3 (detalle: Conversación · Árbol · Waterfall · replay en el mapa)">Ver todas las corridas del arnés</button>
+    </div>`;
 }
 
 // ══ Render — espejo del JSX de inspector.tsx, sección por sección ══
@@ -417,7 +493,7 @@ function drawer(box) {
   body += sec("Hallazgos", hallazgosDe(box));
 
   // v4 · botonera staged: nada finge funcionar — disabled + rotulado hasta su fase.
-  const actions = `<footer class="dw-actions">
+  const actions = `<footer class="dw-actions" style="border-top:none;padding:0">
     <button type="button" class="act primary" disabled title="Se cablea en Fase 3/4 del Hito 2 — el backend (Fase E) ya vive">Editar conversando</button>
     <button type="button" class="act" disabled title="Release train (KIT-06) — fuera de este paquete">Evaluar A/B contra v anterior</button>
     <button type="button" class="act" disabled title="Release train (KIT-06) — fuera de este paquete">Promover a estable</button>
@@ -425,6 +501,7 @@ function drawer(box) {
     <p class="act-note">staged — «Editar conversando» se cablea en Fase 3/4; el resto espera tren/Historia.</p>
   </footer>`;
 
+  // v5 · decisión #4: tabs — identidad fija arriba; cada tab es un pane.
   return `<aside class="drawer" aria-label="Inspector · ${esc(box.nombre)}">
     <header class="dw-head">
       <span class="glyph g-${k.shape}" style="background:${k.color}" aria-hidden="true">${esc(k.char)}</span>
@@ -435,19 +512,27 @@ function drawer(box) {
       <button type="button" class="dw-expand" aria-label="Ampliar inspector" aria-pressed="false">⤢</button>
       <button type="button" class="dw-close" aria-label="Cerrar inspector">✕</button>
     </header>
-    <div class="dw-body">${body}</div>
-    ${actions}
+    <nav class="dw-tabs" role="tablist">
+      <button type="button" class="dw-tab" role="tab" data-tab="resumen" aria-selected="true">Resumen</button>
+      <button type="button" class="dw-tab" role="tab" data-tab="contenido" aria-selected="false">Contenido</button>
+      <button type="button" class="dw-tab" role="tab" data-tab="corridas" aria-selected="false">Corridas</button>
+    </nav>
+    <div class="dw-body">
+      <div class="tabpane tabpane-resumen" data-pane="resumen">${body}${actions}</div>
+      <div class="tabpane" data-pane="contenido" hidden>${contenidoDe(box)}</div>
+      <div class="tabpane" data-pane="corridas" hidden>${corridasDe(box)}</div>
+    </div>
   </aside>`;
 }
 
 // v4 · estado vacío del inspector (tarjeta 00) — affordance, no un panel en blanco.
 function drawerVacio() {
   return `<aside class="drawer empty" aria-label="Inspector · sin selección">
-    <div class="dw-body">
+    <div class="dw-body"><div class="tabpane">
       <section class="sec"><h4>Inspector</h4>
-        <p>Clic en un nodo del mapa: identidad, clasificación doctrinal, contrato, fuente y hallazgos.</p>
+        <p>Clic en un nodo del mapa: identidad, clasificación doctrinal, contrato, fuente, corridas y hallazgos.</p>
       </section>
-    </div>
+    </div></div>
   </aside>`;
 }
 
@@ -481,6 +566,15 @@ document.getElementById("gallery").innerHTML =
      <div class="case-label"><span class="num">${cs.num}</span><span>${esc(cs.tag)}</span>${cs.sint?'<span class="chip-sint">sintético</span>':""}</div>
      ${drawer(cs.box)}
    </div>`).join("");
+
+// v5 · switching de tabs por drawer.
+document.addEventListener("click", (e) => {
+  const t = e.target.closest(".dw-tab");
+  if (!t) return;
+  const d = t.closest(".drawer");
+  d.querySelectorAll(".dw-tab").forEach(b => b.setAttribute("aria-selected", String(b === t)));
+  d.querySelectorAll(".tabpane").forEach(p => { p.hidden = p.getAttribute("data-pane") !== t.getAttribute("data-tab"); });
+});
 
 // v4 · chips navegables: click → salta a la tarjeta de ese nodo y la resalta un instante.
 document.addEventListener("click", (e) => {

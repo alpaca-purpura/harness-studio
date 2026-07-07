@@ -66,8 +66,17 @@
   primaria disabled «Fase 3/4»; resto rotulado tren/Historia) · tarjeta 00 estado vacío.
   Ahora 17 tarjetas (00–16; 16 = review-caja, ruta condicional real). Verificado ojo-UI
   (navegación de chips OK, consola limpia).
-- **Próximo paso:** el operador prueba v4 → confirma la materialización de #3, firma #2
-  (tooltips) si le convencen las redacciones, y dicta el siguiente cambio.
+- **Decisión #4 FIRMADA + materializada (v5):** tabs `Resumen | Contenido | Corridas`.
+  Contenido = fuente read-only con números de línea (reconstruida del dato real y
+  rotulada: cajas/subagentes → frontmatter+contract YAML · rule → convención CLAUDE.md ·
+  clases sin forma → estado honesto · no-reconocido → nota raw D-c) + chip «versiona
+  con el arnés» + acciones staged (Editar fuente/conversando, Fase 3/4). Corridas =
+  estado honesto «necesita indexer JSONL» + para cajas la nota de qué lista primero
+  (runs D2 + sesión viva) + «Ver todas» disabled (detalle/replay = Hito 3). Análisis
+  de base: `analisis-drawer-v3.md` §tabs (modelo completo del v3 leído de su código:
+  RUNS/pasos tipados/3 vistas/replay). Verificado ojo-UI, consola limpia.
+- **Próximo paso:** el operador prueba v5 → firma #2 (tooltips, única en PROPUESTA) y
+  dicta el siguiente cambio; cuando declare el mockup completo → spec.md + design.md.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
