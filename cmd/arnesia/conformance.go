@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -57,7 +58,8 @@ func runConformance(args []string) error {
 		mechanism.StaticScan{},
 		mechanism.SchemaAdapter{},
 	}
-	svc := usecase.NewConformanceService(repoRoot, rs, adapters)
+	schemas := mechanism.NewSchemaSet(filepath.Join(repoRoot, "arch", "contracts", "schema"))
+	svc := usecase.NewConformanceService(repoRoot, rs, schemas, adapters)
 
 	target, err := resolveTarget(fs.Arg(0), *arnes, *todo)
 	if err != nil {
@@ -95,7 +97,7 @@ func resolveTarget(elemento, arnes string, todo bool) (ports.Target, error) {
 	case elemento != "":
 		return ports.Target{Kind: ports.TargetElemento, Nombre: elemento}, nil
 	default:
-		return ports.Target{}, fmt.Errorf("falta el target: un <elemento>, --arnes <path> o --todo")
+		return ports.Target{}, errors.New("falta el target: un <elemento>, --arnes <path> o --todo")
 	}
 }
 
@@ -111,7 +113,7 @@ func findRepoRoot() (string, error) {
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("no se encontró go.mod (¿estás dentro del repo?)")
+			return "", errors.New("no se encontró go.mod (¿estás dentro del repo?)")
 		}
 		dir = parent
 	}

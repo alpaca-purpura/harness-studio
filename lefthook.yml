@@ -9,7 +9,9 @@ pre-commit:
   commands:
     go-lint:
       glob: "*.go"
-      run: golangci-lint run --new-from-rev=HEAD {staged_files}
+      # ./... y no {staged_files}: golangci exige archivos de UN solo paquete por invocación;
+      # --new-from-rev=HEAD limita el costo a lo nuevo del commit.
+      run: golangci-lint run --new-from-rev=HEAD ./...
     go-fmt:
       glob: "*.go"
       run: golangci-lint fmt {staged_files}
@@ -18,6 +20,7 @@ pre-commit:
       glob: "*.{ts,tsx}"
       run: biome check --write --staged {staged_files}
     rust:
+      root: "web/src-tauri/"
       glob: "*.rs"
       run: cargo fmt
 

@@ -10,8 +10,8 @@
 //! ninguna web ajena en el navegador puede conducir el agente. El token viaja shell→daemon por
 //! env y shell→WebView por comando; el core sigue sin importar al shell.
 
-use std::sync::{Arc, Mutex};
 use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};

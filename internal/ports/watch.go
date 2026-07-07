@@ -5,6 +5,8 @@ import "context"
 // WatchOp is the kind of filesystem change observed (fsnotify-shaped, fase 5).
 type WatchOp string
 
+// The three change kinds the watcher reports: an appended/updated file, a new file,
+// and a removed file (the JSONL corpus only ever sees these).
 const (
 	WatchWrite  WatchOp = "write"
 	WatchCreate WatchOp = "create"

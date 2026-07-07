@@ -67,7 +67,7 @@ func (r *Registry) Save(_ context.Context, sessions []domain.Session) error {
 	defer r.mu.Unlock()
 
 	dir := filepath.Dir(r.path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("store: mkdir %s: %w", dir, err)
 	}
 	b, err := json.MarshalIndent(sessions, "", "  ")
@@ -79,10 +79,12 @@ func (r *Registry) Save(_ context.Context, sessions []domain.Session) error {
 		return fmt.Errorf("store: temp file: %w", err)
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op after a successful rename.
+	// Best-effort cleanup: a no-op after a successful rename, and on the error paths the
+	// write/close error below is the one worth reporting, not the leftover-temp removal.
+	defer func() { _ = os.Remove(tmpName) }()
 
 	if _, err := tmp.Write(b); err != nil {
-		tmp.Close()
+		_ = tmp.Close() // the write error is the root cause; Close only releases the fd.
 		return fmt.Errorf("store: write temp: %w", err)
 	}
 	if err := tmp.Close(); err != nil {

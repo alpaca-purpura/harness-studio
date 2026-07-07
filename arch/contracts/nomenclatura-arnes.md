@@ -1,0 +1,93 @@
+# Nomenclatura de reconocimiento — directorio de arnés ⟷ grafo L0
+
+> **Estado: PROPUESTA v0 — PENDIENTE DE FIRMA (HS-10).** Este contrato define cómo ArnesIA
+> RECONOCE un arnés leyendo sus archivos y lo convierte en un `graph.l0` — el algoritmo que
+> el loader real (Hito 3, reemplaza los fixtures `go:embed`) implementará y que hasta hoy
+> no estaba escrito en ningún documento (hallazgo de la auditoría 2026-07-07: los grafos
+> dogfood están armados A MANO; `fuente_path` era «puntero, no contrato»).
+>
+> Norte: [`../../VISION.md`](../../VISION.md) (A1–A7) · [`../../METODOLOGIA.md`](../../METODOLOGIA.md)
+> §3 (contrato fusionado) · [`schema/graph.l0.schema.json`](./schema/graph.l0.schema.json) ·
+> los L1 de [`../../knowledge/elements/`](../../knowledge/INDEX.md) (ubicación oficial CC de
+> cada elemento — esta tabla los ANCLA, no los duplica).
+
+## 1. La unidad reconocible
+
+Un arnés se reconoce en DOS formas físicas (ambas ciudadanas de primera):
+
+| Forma | Qué es | Cuándo |
+|---|---|---|
+| **Plugin CC** | repo con `.claude-plugin/plugin.json` (layout oficial de plugin) | el arnés como se distribuye por marketplace git — la forma canónica de «Cargar» para modificar |
+| **Arnés instalado** | proyecto con `.claude/` poblado (skills/agents/commands/settings) | el arnés desplegado en un proyecto de cliente — auditoría/observación in situ |
+
+El detector: si hay `.claude-plugin/plugin.json` → plugin; si hay `.claude/` → instalado;
+si hay ambos, plugin manda. Ninguno → no es arnés (error honesto, jamás grafo vacío).
+
+## 2. El manifiesto: `arnes.l0.json`
+
+En la raíz del arnés vive **`arnes.l0.json`**: la parte del grafo que NO es derivable de
+archivos — `id`, `nombre`, `fases[]`, `spine` (estados + transiciones), `meta` de enganche
+(rol · proceso · reporta_a · empresa), `marketplace`. Es el subconjunto arnés-level de
+`graph.l0.schema.json`; se valida contra él (gate G1).
+
+- Lo escribe ArnesIA al crear el arnés; lo mantiene ArnesIA al modificar. Un arnés sin
+  manifiesto se carga en modo **degradado honesto**: nodos sin carriles de fase ni spine,
+  con check `manifiesto-ausente` rojo — visible, nunca inventado.
+- El `.graph.json` completo (como los dogfood) queda como **formato de export/intercambio**;
+  la fuente de verdad en un arnés real es `arnes.l0.json` + los archivos.
+
+## 3. Mapeo clase → ubicación (los 10 reconocedores)
+
+La celda canónica de cada clase vive en el L1 de su nodo `knowledge/elements/<clase>.md`;
+esta tabla fija QUÉ escanea el loader y qué nodo emite:
+
+| `clase` | En plugin | En arnés instalado | Nodo emitido |
+|---|---|---|---|
+| `skill` | `skills/<id>/SKILL.md` | `.claude/skills/<id>/SKILL.md` | caja (si `contract.caja`) o soporte |
+| `subagent` | `agents/<id>.md` | `.claude/agents/<id>.md` | soporte de su caja |
+| `command` | `commands/<id>.md` | `.claude/commands/<id>.md` | soporte |
+| `hook` | `hooks/hooks.json` (una entrada = un nodo) | `.claude/settings.json#hooks` | banda **Guardia** |
+| `mcp` | `.mcp.json` (un server = un nodo) | `.mcp.json` | soporte |
+| `rule` | `CLAUDE.md` + reglas declaradas | `CLAUDE.md` | banda **Base** |
+| `settings` | `settings.json` del plugin | `.claude/settings.json` | soporte |
+| `output-style` | `output-styles/<id>.md` | `.claude/output-styles/<id>.md` | soporte |
+| `statusline` | entrada en settings | entrada en settings | soporte |
+| `plugin` | el contenedor mismo (`.claude-plugin/plugin.json`) | entrada de plugin en config | nodo raíz del arnés |
+
+## 4. Reglas de derivación (archivo → grafo)
+
+1. **Nodos**: scan según la tabla §3. El loader ESTAMPA `fuente_path` (deja de ser manual)
+   y `clase` según el reconocedor que disparó.
+2. **Cajas**: el frontmatter fusionado (METODOLOGIA §3) de cada `SKILL.md` es el
+   `contract:` del nodo — `caja`, `fase`, `estado` (la transición del spine), 3 ejes.
+   Frontmatter inválido → nodo visible + check G1 rojo (no se descarta el nodo).
+3. **Edges**: derivados, jamás declarados sueltos — `necesita.de: caja:<id>` → edge
+   `de→a`; `hooks` matchers → edges de Guardia; `entrega` compartida → hand-off.
+4. **Bandas**: `hook`→Guardia · `rule`→Base · cajas→su carril de fase · resto→soporte.
+5. **Reconciliación honesta** (regla estrella, espeja «gris ≠ verde»):
+   - archivo presente que ningún reconocedor entiende → **nodo `no-reconocido` VISIBLE**
+     (check warn) — nunca invisible, nunca crash (obliga fallback en FE);
+   - declarado en manifiesto sin archivo en disco → check G1 **rojo**;
+   - elemento fuera del enum de 10 → nodo visible con clase `no-reconocido`.
+
+## 5. Consecuencias inmediatas (al firmar)
+
+- **Migrar `dogfood/skills/spec-writer.SKILL.md`** → `dogfood/skills/spec-writer/SKILL.md`
+  (hoy el arnés insignia viola el layout que skills.md L1 predica).
+- FE: fallback `no-reconocido` en `arnes-node.tsx` + ErrorBoundary (hoy: `TypeError` con
+  clase fuera de enum; banda desconocida = nodo invisible — ambos violan §4.5).
+- `graph.l0.schema.json`: `fuente_path` pasa de «puntero, no contrato» a «estampado por el
+  loader según nomenclatura-arnes.md».
+
+## Decisiones abiertas (firma del operador)
+
+| # | Decisión | Recomendación |
+|---|---|---|
+| D-a | Nombre/lugar del manifiesto | `arnes.l0.json` en la raíz del arnés (visible, versionable, no escondido en `.claude-plugin/`) |
+| D-b | ¿Arnés instalado (.claude/ sin plugin.json) es ciudadano de primera? | SÍ — es la forma en que se audita in situ; sin él no hay «instalar en proyecto existente» |
+| D-c | Elemento no reconocido | nodo `no-reconocido` visible con warn (honestidad > limpieza) |
+
+## Changelog
+
+- 2026-07-07 · v0 — draft inicial (HS-10), sale de la auditoría 4-frentes: el hueco «nomenclatura
+  no escrita» era el mayor hallazgo doctrinal. Pendiente de firma.

@@ -39,6 +39,17 @@ type RulesetPort interface {
 	Load(ctx context.Context) (domain.Ruleset, error)
 }
 
+// SchemaValidator validates an instance against a named JSON schema of the contract set
+// (graph.l0 + box.contract). Outbound port: the use case asks "does this validate?" and
+// never knows the schema engine nor where the .json files live — the composition root
+// wires the concrete set (hoy disco del repo; mañana go:embed portable, misma interfaz).
+type SchemaValidator interface {
+	// Validate checks instance against the schema file (e.g. "graph.l0.schema.json").
+	Validate(schemaFile string, instance any) error
+	// ValidateJSON round-trips v through JSON before validating (for typed structs).
+	ValidateJSON(schemaFile string, v any) error
+}
+
 // MechanismAdapter runs a single check against a target and returns its verdict. One
 // adapter per domain.Mecanismo; the runner routes by check.Mecanismo. A mechanism that
 // cannot execute here returns VeredictoDiferido (honest), never a fabricated pass.

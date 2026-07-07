@@ -3,10 +3,12 @@
 // its own tree (boundary permisos-gui `sesion-aislada-por-cwd`, HS-06). The mapping is a
 // small JSON file under the user's home (~/.arnesia/arneses.json); an unregistered arnés
 // resolves to a dedicated per-arnés fallback dir — NEVER a shared global cwd.
+
 package store
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -66,7 +68,7 @@ func (r *ArnesRegistry) Resolve(arnesID string) (string, bool, error) {
 	}
 	// Fallback: an isolated per-arnés tree. slug keeps a hostile id from escaping the root.
 	fallback := filepath.Join(r.fallbackRoot, slug(arnesID))
-	if err := os.MkdirAll(fallback, 0o755); err != nil {
+	if err := os.MkdirAll(fallback, 0o750); err != nil {
 		return "", false, fmt.Errorf("arnes registry: mkdir fallback %s: %w", fallback, err)
 	}
 	return fallback, false, nil
@@ -75,7 +77,7 @@ func (r *ArnesRegistry) Resolve(arnesID string) (string, bool, error) {
 // Register validates path and records it for arnesID (replacing any prior entry).
 func (r *ArnesRegistry) Register(arnesID, path string) error {
 	if strings.TrimSpace(arnesID) == "" {
-		return fmt.Errorf("arnes registry: empty arnés id")
+		return errors.New("arnes registry: empty arnés id")
 	}
 	clean, err := r.validate(path)
 	if err != nil {
@@ -104,7 +106,7 @@ func (r *ArnesRegistry) List() []ports.ArnesPath {
 func (r *ArnesRegistry) validate(path string) (string, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return "", fmt.Errorf("arnes registry: empty path")
+		return "", errors.New("arnes registry: empty path")
 	}
 	if !filepath.IsAbs(path) {
 		return "", fmt.Errorf("arnes registry: path %q must be absolute", path)
@@ -197,7 +199,7 @@ func (r *ArnesRegistry) load() error {
 // saveLocked snapshots the mapping to disk atomically (temp + rename). Caller holds r.mu.
 func (r *ArnesRegistry) saveLocked() error {
 	dir := filepath.Dir(r.path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("arnes registry: mkdir %s: %w", dir, err)
 	}
 	list := make([]ports.ArnesPath, 0, len(r.entries))
@@ -213,9 +215,11 @@ func (r *ArnesRegistry) saveLocked() error {
 		return fmt.Errorf("arnes registry: temp file: %w", err)
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op after a successful rename.
+	// Best-effort cleanup: a no-op after a successful rename, and on the error paths the
+	// write/close error below is the one worth reporting, not the leftover-temp removal.
+	defer func() { _ = os.Remove(tmpName) }()
 	if _, err := tmp.Write(b); err != nil {
-		tmp.Close()
+		_ = tmp.Close() // the write error is the root cause; Close only releases the fd.
 		return fmt.Errorf("arnes registry: write temp: %w", err)
 	}
 	if err := tmp.Close(); err != nil {

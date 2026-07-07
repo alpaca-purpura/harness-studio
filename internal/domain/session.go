@@ -33,6 +33,7 @@ func (s SessionStatus) Valid() bool {
 // Mirrors the mockup's ok|warn|crit|info scale.
 type Salud string
 
+// The four health grades painted on the rail dot, from healthy to newborn.
 const (
 	SaludOK   Salud = "ok"   // sano.
 	SaludWarn Salud = "warn" // atención.
@@ -44,6 +45,8 @@ const (
 // (skill_activated, hand-offs) — not a chat bubble.
 type Rol string
 
+// The three turn authors: the human, the conductor's assistant, and the inline
+// system breadcrumb (see the Rol comment).
 const (
 	RolUser      Rol = "user"
 	RolAssistant Rol = "assistant"

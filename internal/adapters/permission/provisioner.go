@@ -7,7 +7,7 @@ package permission
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -58,7 +58,7 @@ func NewKitProvisioner() *KitProvisioner {
 // base for an unknown role. It never errors on an unknown role — it degrades to minimum.
 func (k *KitProvisioner) ResolveForRole(_ context.Context, rol string) (domain.PermissionSet, error) {
 	if rol == "" {
-		return domain.PermissionSet{}, fmt.Errorf("rol vacío: el permission-set deriva del rol (META de enganche)")
+		return domain.PermissionSet{}, errors.New("rol vacío: el permission-set deriva del rol (META de enganche)")
 	}
 	if ps, ok := k.policy[rol]; ok {
 		return ps, nil

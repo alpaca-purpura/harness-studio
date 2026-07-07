@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 )
@@ -20,7 +19,7 @@ import (
 type ConformanceService struct {
 	repoRoot string
 	ruleset  ports.RulesetPort
-	schemas  *mechanism.SchemaSet
+	schemas  ports.SchemaValidator
 	adapters map[domain.Mecanismo]ports.MechanismAdapter
 
 	loaded *domain.Ruleset // cached ruleset.
@@ -28,9 +27,11 @@ type ConformanceService struct {
 
 var _ ports.ConformancePort = (*ConformanceService)(nil)
 
-// NewConformanceService wires the engine: the ruleset port, the schema set (rooted at
-// arch/contracts/schema) and the mechanism adapters.
-func NewConformanceService(repoRoot string, rs ports.RulesetPort, adapters []ports.MechanismAdapter) *ConformanceService {
+// NewConformanceService wires the engine: the ruleset port, the schema validator (el
+// composition root cablea el SchemaSet concreto — el usecase no importa adapters,
+// boundary dominio-independiente-de-transporte, cazado por go-arch-lint en HS-10) and
+// the mechanism adapters.
+func NewConformanceService(repoRoot string, rs ports.RulesetPort, schemas ports.SchemaValidator, adapters []ports.MechanismAdapter) *ConformanceService {
 	m := map[domain.Mecanismo]ports.MechanismAdapter{}
 	for _, a := range adapters {
 		m[a.Mecanismo()] = a
@@ -38,7 +39,7 @@ func NewConformanceService(repoRoot string, rs ports.RulesetPort, adapters []por
 	return &ConformanceService{
 		repoRoot: repoRoot,
 		ruleset:  rs,
-		schemas:  mechanism.NewSchemaSet(filepath.Join(repoRoot, "arch", "contracts", "schema")),
+		schemas:  schemas,
 		adapters: m,
 	}
 }
@@ -91,8 +92,10 @@ func (s *ConformanceService) runTodo(ctx context.Context, target ports.Target) (
 func (s *ConformanceService) route(ctx context.Context, c domain.Check, target ports.Target) domain.CheckResult {
 	a, ok := s.adapters[c.Mecanismo]
 	if !ok {
-		return domain.CheckResult{Check: c, Veredicto: domain.VeredictoDiferido,
-			Detalle: "sin adaptador para el mecanismo " + string(c.Mecanismo)}
+		return domain.CheckResult{
+			Check: c, Veredicto: domain.VeredictoDiferido,
+			Detalle: "sin adaptador para el mecanismo " + string(c.Mecanismo),
+		}
 	}
 	return a.Run(ctx, c, target)
 }
@@ -163,8 +166,10 @@ func (s *ConformanceService) runArnes(_ context.Context, target ports.Target) (d
 
 // schemaCheck validates an instance against a schema file and returns a CheckResult.
 func (s *ConformanceService) schemaCheck(id string, sev domain.Severidad, que, schemaFile string, instance any) domain.CheckResult {
-	c := domain.Check{ID: id, Elemento: "conformance", Mecanismo: domain.MecSchema,
-		EnforcedBy: schemaFile, Severidad: sev, Que: que}
+	c := domain.Check{
+		ID: id, Elemento: "conformance", Mecanismo: domain.MecSchema,
+		EnforcedBy: schemaFile, Severidad: sev, Que: que,
+	}
 	if err := s.schemas.Validate(schemaFile, instance); err != nil {
 		return domain.CheckResult{Check: c, Veredicto: domain.VeredictoFail, Detalle: err.Error()}
 	}
@@ -175,9 +180,11 @@ func (s *ConformanceService) schemaCheck(id string, sev domain.Severidad, que, s
 // node's source file. Keys CC ignores silently would do NOTHING — declaring them is a
 // finding. Scans FuentePath files that exist; if none, defers honestly.
 func (s *ConformanceService) firewallScan(g domain.Graph) domain.CheckResult {
-	c := domain.Check{ID: "no-phantom-frontmatter", Elemento: "conformance",
+	c := domain.Check{
+		ID: "no-phantom-frontmatter", Elemento: "conformance",
 		Mecanismo: domain.MecStaticScan, EnforcedBy: "usecase.firewallScan", Severidad: domain.SevError,
-		Que: "sin claves de frontmatter que CC ignora (persistent_facts/activation_steps_prepend/customize/sanctum)"}
+		Que: "sin claves de frontmatter que CC ignora (persistent_facts/activation_steps_prepend/customize/sanctum)",
+	}
 	forbidden := []string{"persistent_facts", "activation_steps_prepend", "customize", "sanctum"}
 	var scanned int
 	var findings []string
@@ -189,7 +196,7 @@ func (s *ConformanceService) firewallScan(g domain.Graph) domain.CheckResult {
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(s.repoRoot, p) // repo-relative fuente_path.
 		}
-		b, err := os.ReadFile(p)
+		b, err := os.ReadFile(p) //nolint:gosec // G304: fuente_path is declared by the arnés graph under validation; reading it IS the firewall scan (local-first).
 		if err != nil {
 			continue
 		}
@@ -202,13 +209,17 @@ func (s *ConformanceService) firewallScan(g domain.Graph) domain.CheckResult {
 	}
 	switch {
 	case scanned == 0:
-		return domain.CheckResult{Check: c, Veredicto: domain.VeredictoDiferido,
-			Detalle: "ningún nodo declara fuente_path escaneable — firewall diferido"}
+		return domain.CheckResult{
+			Check: c, Veredicto: domain.VeredictoDiferido,
+			Detalle: "ningún nodo declara fuente_path escaneable — firewall diferido",
+		}
 	case len(findings) > 0:
 		return domain.CheckResult{Check: c, Veredicto: domain.VeredictoFail, Detalle: strings.Join(findings, "; ")}
 	default:
-		return domain.CheckResult{Check: c, Veredicto: domain.VeredictoPass,
-			Detalle: fmt.Sprintf("%d fuentes sin claves fantasma", scanned)}
+		return domain.CheckResult{
+			Check: c, Veredicto: domain.VeredictoPass,
+			Detalle: fmt.Sprintf("%d fuentes sin claves fantasma", scanned),
+		}
 	}
 }
 

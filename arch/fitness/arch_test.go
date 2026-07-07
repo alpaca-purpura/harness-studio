@@ -1,16 +1,17 @@
 // Package fitness holds ArnesIA's architecture fitness functions — tests that FAIL CI
 // when the code violates the boundaries declared in arch/boundaries/.
 //
-// STATUS (2026-07-05, HS-04): there is no product Go code yet (phase 5). These tests are the
-// declared enforcement that matches each boundary node's `enforced_by:`. The import-boundary
-// tests below are stdlib-only source scanners — they work the moment the module lands and there
-// is nothing to run against until then (they no-op cleanly on a missing tree). The behavioral
-// tests skip with a TODO. When the module exists (`go mod init`), drop this file at the repo
-// root's `arch/fitness/` and it runs in CI alongside `go-arch-lint check`.
+// STATUS (2026-07-07, HS-08/HS-09): the `arnesia` module is real and these tests run in CI
+// against it. Each test matches a boundary node's `enforced_by:`. The import-boundary tests
+// are stdlib-only source scanners over the module tree; the doctrine (HS-07/HS-08) and HS-06
+// tests exercise the conductor loop, the role-derived permission-sets and the session service
+// with fakes — real pass/fail. Only the checks still gated on telemetry (the JSONL indexer,
+// fase 5) remain honest t.Skip TODOs.
 //
-// This is the arch-side twin of knowledge/'s 122-check linter: `arnesia conformance` runs
-// go-arch-lint + these tests + schema validation + the methodology checks in one severity+signal
-// report. See arch/CADENCE.md.
+// This is the arch-side twin of the knowledge/ checklists: `arnesia conformance` parses
+// knowledge/ (138 checks) + arch/ (97 checks) = 235 checks as data and runs go-arch-lint +
+// these tests + schema validation + the methodology checks in one severity+signal report.
+// See arch/CADENCE.md.
 package fitness
 
 import (
@@ -68,8 +69,11 @@ func importsOf(t *testing.T, pkgPrefix string) map[string][]string {
 		return out // package tree doesn't exist yet — nothing to enforce.
 	}
 	fset := token.NewFileSet()
-	_ = filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
+	if werr := filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err // an unreadable entry must fail the scan, not silently narrow it.
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
 		}
 		f, perr := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
@@ -81,7 +85,9 @@ func importsOf(t *testing.T, pkgPrefix string) map[string][]string {
 			out[path] = append(out[path], strings.Trim(imp.Path.Value, `"`))
 		}
 		return nil
-	})
+	}); werr != nil {
+		t.Errorf("walk %s: %v", base, werr)
+	}
 	return out
 }
 
@@ -127,8 +133,10 @@ func TestNoDuckDBOrCGOStore(t *testing.T) {
 
 func TestAgentPortHasNoConcreteLeak(t *testing.T) {
 	// Fuera del adaptador concreto, nadie importa el paquete claudecode.
-	for _, pkg := range []string{"internal/domain", "internal/usecase", "internal/ports",
-		"internal/adapters/transport"} {
+	for _, pkg := range []string{
+		"internal/domain", "internal/usecase", "internal/ports",
+		"internal/adapters/transport",
+	} {
 		assertNoImport(t, pkg, []string{"adapters/agent/claudecode"}, "adaptadores-de-agente-intercambiables")
 	}
 }
@@ -168,20 +176,25 @@ func TestNoBypassPermissions(t *testing.T) {
 	if _, err := os.Stat(base); err != nil {
 		return
 	}
-	_ = filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
+	if werr := filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err // an unreadable entry must fail the scan, not silently narrow it.
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
 		}
-		b, rerr := os.ReadFile(path)
+		b, rerr := os.ReadFile(path) //nolint:gosec // G304: test-only scanner; path comes from walking the repo's own source tree.
 		if rerr != nil {
-			return nil
+			return rerr
 		}
 		if strings.Contains(string(b), "dangerously-skip-permissions") ||
 			strings.Contains(string(b), "bypassPermissions") {
 			t.Errorf("%s references a permission-bypass flag — violates permisos-gui-human-in-the-loop", path)
 		}
 		return nil
-	})
+	}); werr != nil {
+		t.Errorf("walk %s: %v", base, werr)
+	}
 }
 
 func TestWriteRequiresApproval(t *testing.T) {
@@ -281,10 +294,11 @@ func TestBoxContractValidatesAgainstSchema(t *testing.T) {
 }
 
 // ============================================================================
-// HS-07/HS-08 · doctrina v1 boundaries (proposed → enforced when the conductor loop
-// and the permission spike land). These are honest t.Skip STUBS: the enforcer named in
-// each boundary's `enforced_by:` EXISTS (no dangling pointer — resolves B4), and reports
-// `deferred` through `arnesia conformance` until the behaviour is built (Ola 2).
+// HS-07/HS-08 · doctrina v1 boundaries (enforced). The conductor loop and the
+// permission spike landed: the enforcer named in each boundary's `enforced_by:`
+// EXISTS and RUNS for real (no dangling pointer — resolves B4). The tests below
+// drive usecase.BoxConductor and permission.KitProvisioner with scripted fakes
+// and emit genuine pass/fail — no t.Skip left in this section.
 // ============================================================================
 
 // --- orquestacion-determinista-entre-cajas.md (enforced) ---
@@ -338,13 +352,15 @@ func (a *scriptedArtifacts) Status(_ context.Context, _ string) (string, bool, e
 }
 
 func boxWithRuta(ruta []domain.Route, handoff *domain.Handoff) domain.Box {
-	return domain.Box{ID: "caja-x", Clase: domain.ClaseSkill, Nombre: "caja x",
+	return domain.Box{
+		ID: "caja-x", Clase: domain.ClaseSkill, Nombre: "caja x",
 		Contract: &domain.Contract{
 			Why: "hacer x", Clase: domain.ClaseSkill, Arquetipo: domain.ArqExcepcion,
 			Perfil: domain.PerfilT3, Caja: true, Fase: "f", Estado: "a -> b",
 			Entrega: []domain.Output{{Art: "art-x"}}, Ruta: ruta, Handoff: handoff,
 			Gate: &domain.Gate{Tipo: domain.GateAuto},
-		}}
+		},
+	}
 }
 
 // TestConductorOwnsBoxRouting enforces orquestacion-determinista-entre-cajas: the Go
@@ -353,10 +369,10 @@ func boxWithRuta(ruta []domain.Route, handoff *domain.Handoff) domain.Box {
 // non-convergence → handoff, and routes via contract.ruta. Crucially, a misleading chat
 // text does NOT change the decision.
 func TestConductorOwnsBoxRouting(t *testing.T) {
-	newConductor := func(results []ports.AgentEvent, statuses []string, cap int) (*usecase.BoxConductor, *scriptedSession, *scriptedArtifacts) {
-		sess := &scriptedSession{events: make(chan ports.AgentEvent, cap+2), results: results}
+	newConductor := func(results []ports.AgentEvent, statuses []string, repairCap int) (*usecase.BoxConductor, *scriptedSession, *scriptedArtifacts) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, repairCap+2), results: results}
 		arts := &scriptedArtifacts{statuses: statuses}
-		return usecase.NewBoxConductor(&scriptedAgent{sess: sess}, arts, cap, 40), sess, arts
+		return usecase.NewBoxConductor(&scriptedAgent{sess: sess}, arts, repairCap, 40), sess, arts
 	}
 
 	t.Run("happy path routes by contract.ruta, not the LLM", func(t *testing.T) {
@@ -502,7 +518,7 @@ func readSourceFile(t *testing.T, rel string) string {
 	if root == "" {
 		return ""
 	}
-	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel))) //nolint:gosec // G304: rel is a repo-relative literal written in this test file, never external input.
 	if err != nil {
 		t.Fatalf("read %s: %v", rel, err)
 	}
@@ -520,19 +536,24 @@ func TestNoWildcardCORS(t *testing.T) {
 	if _, err := os.Stat(base); err != nil {
 		return
 	}
-	_ = filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
+	if werr := filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err // an unreadable entry must fail the scan, not silently narrow it.
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
 		}
-		b, rerr := os.ReadFile(path)
+		b, rerr := os.ReadFile(path) //nolint:gosec // G304: test-only scanner; path comes from walking the repo's own source tree.
 		if rerr != nil {
-			return nil
+			return rerr
 		}
 		if strings.Contains(string(b), `Access-Control-Allow-Origin", "*"`) {
 			t.Errorf("%s sets a wildcard CORS origin — violates superficie-local-confinada", path)
 		}
 		return nil
-	})
+	}); werr != nil {
+		t.Errorf("walk %s: %v", base, werr)
+	}
 }
 
 func TestLocalSurfaceConfined(t *testing.T) {

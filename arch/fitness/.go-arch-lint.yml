@@ -1,16 +1,35 @@
 # go-arch-lint (config version 3) — el grafo de imports permitido de ArnesIA.
 # Falla CI si el código viola los boundaries de arch/boundaries/.
-# Correr: `go-arch-lint check --project-path .`  (activa en fase 5, cuando el módulo aterrice).
+# Correr desde la raíz del repo:
+#   go run github.com/fe3dback/go-arch-lint@latest check --project-path . --arch-file arch/fitness/.go-arch-lint.yml
 #
-# NOTA: el módulo Go aún no existe (cero código de producto). Este archivo DECLARA la
-# arquitectura objetivo; los globs asumen la disposición `internal/**` + `cmd/**` + `shell/`.
-# El module path (`github.com/alpacapurpura/arnesia`) es PROVISIONAL — se fija al `go mod init`.
+# Semántica v3 = ALLOW-LIST: todo import interno no listado en mayDependOn está prohibido.
+# (No existe `cannotDependOn`; el default-deny lo cubre.)
+# El shell (Tauri, web/src-tauri/) es Rust — go-arch-lint no lo ve; su frontera la enforcea
+# arch/fitness/arch_test.go (TestCoreHasNoShellImport) + el boundary superficie-local-confinada.
 
 version: 3
-workdir: ../..            # la raíz del repo (arch/fitness -> repo root)
+workdir: .
 
 allow:
   depOnAnyVendor: false   # las deps externas se declaran; nada implícito
+  deepScan: false         # el scan de inyecciones flaggea al composition root pasando adapters
+                          # concretos a los usecases vía puertos — exactamente el patrón que la
+                          # doctrina ORDENA («SOLO cmd cablea concretos»). El linter base de
+                          # IMPORTS es el que enforcea los boundaries; deepScan lo contradice.
+
+exclude:
+  - arch/fitness          # meta-tests de arquitectura: no son componente del producto
+  - web                   # FE + node_modules (hay .go de terceros dentro de node_modules)
+
+excludeFiles:
+  - "_test\\.go$"         # los tests cablean concretos a propósito; la regla aplica a producción
+
+vendors:
+  jsonschema:
+    in: github.com/google/jsonschema-go/**
+  yaml:
+    in: gopkg.in/yaml.v3
 
 components:
   # --- el core: dominio + casos de uso. No conoce nada de afuera. ---
@@ -38,63 +57,56 @@ components:
     in: internal/adapters/publish/**
   store:
     in: internal/adapters/store/**
+  conformance:
+    in: internal/adapters/conformance/**
+  permission:
+    in: internal/adapters/permission/**
 
-  # --- composition root + shell ---
+  # --- datos embebidos (fixtures dogfood, go:embed) ---
+  dogfood:
+    in: dogfood/**
+
+  # --- composition root ---
   cmd:
     in: cmd/**
-  shell:
-    in: shell/**
 
 deps:
-  # El dominio no depende de NADIE interno (ni transporte, ni store, ni ports concretos).
-  domain:
-    mayDependOn: []
-    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, store, cmd, shell]
+  # El dominio no depende de NADIE interno: sin entrada aquí = default-deny total
+  # (v3 no admite `mayDependOn: []`; la ausencia es la prohibición). Ídem `dogfood`.
 
   # Los casos de uso dependen solo del dominio y de los puertos (interfaces) — NUNCA del store
   # concreto (usan ports.SessionStore / ports.WorkdirResolver; el cmd cablea el adaptador).
   usecase:
     mayDependOn: [domain, ports]
-    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, store, shell]
 
   ports:
     mayDependOn: [domain]
-    cannotDependOn: [transport-http, transport-sse, agent-adapters, index, watch, publish, store, cmd, shell]
 
-  # El transporte traduce request<->caso-de-uso; no toca adaptadores de salida ni el shell.
+  # El transporte traduce request<->caso-de-uso; no toca adaptadores de salida.
   transport-http:
     mayDependOn: [domain, usecase, ports]
-    cannotDependOn: [shell, agent-adapters, index, watch]
   transport-sse:
     mayDependOn: [domain, usecase, ports]
-    cannotDependOn: [shell, agent-adapters, index, watch]
 
-  # Los adaptadores implementan puertos: dependen del dominio/ports, no del shell ni entre sí.
+  # Los adaptadores implementan puertos: dependen del dominio/ports, no entre sí.
   agent-adapters:
     mayDependOn: [domain, ports]
-    cannotDependOn: [shell, transport-http, transport-sse, index, watch, cmd]
   index:
-    mayDependOn: [domain, ports]
-    cannotDependOn: [shell, transport-http, transport-sse, agent-adapters, cmd]
+    mayDependOn: [domain, ports, dogfood]   # seed de fixtures embebidos (HS-09; sale con el loader real)
   watch:
     mayDependOn: [domain, ports]
-    cannotDependOn: [shell, transport-http, transport-sse, cmd]
   publish:
     mayDependOn: [domain, ports]
-    cannotDependOn: [shell, cmd]
+  conformance:
+    mayDependOn: [domain, ports]
+    canUse: [jsonschema, yaml]   # valida schemas L0 + parsea frontmatter del ruleset
+  permission:
+    mayDependOn: [domain, ports]
 
-  # El store (registro de sesiones + registro arnés→ruta) implementa puertos; depende del
-  # dominio/ports, no del transporte, adaptadores de agente, ni el shell.
+  # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
     mayDependOn: [domain, ports]
-    cannotDependOn: [shell, transport-http, transport-sse, agent-adapters, index, watch, publish, cmd]
 
-  # SOLO la composition root cablea adaptadores concretos (agente, store) con los puertos.
+  # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, store]
-    cannotDependOn: [shell]
-
-  # El shell (Tauri/launcher) NO importa el core: es cliente del daemon vía HTTP/SSE.
-  shell:
-    mayDependOn: []
-    cannotDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, cmd]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, store, conformance, permission, dogfood]

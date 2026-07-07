@@ -121,7 +121,7 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			writeEvent(w, e)
 		}
 	}
-	fmt.Fprint(w, ": connected\n\n") // open the stream
+	_, _ = fmt.Fprint(w, ": connected\n\n") // open the stream; a dead client surfaces as ctx.Done below.
 	flusher.Flush()
 
 	ctx := r.Context()
@@ -170,16 +170,19 @@ func (b *Broker) replay(lastID string) []Event {
 	return out
 }
 
-// writeEvent renders one SSE frame (id / event / data lines).
+// writeEvent renders one SSE frame (id / event / data lines). Write errors are
+// deliberately discarded: SSE has no in-band error channel, and a broken connection
+// surfaces as the request context's Done in ServeHTTP's loop — the client then
+// reconnects and replays the gap via Last-Event-ID (never a silent loss).
 func writeEvent(w io.Writer, e Event) {
 	if e.ID != "" {
-		fmt.Fprintf(w, "id: %s\n", e.ID)
+		_, _ = fmt.Fprintf(w, "id: %s\n", e.ID)
 	}
 	if e.Type != "" {
-		fmt.Fprintf(w, "event: %s\n", e.Type)
+		_, _ = fmt.Fprintf(w, "event: %s\n", e.Type)
 	}
 	for _, line := range bytes.Split(e.Data, []byte("\n")) {
-		fmt.Fprintf(w, "data: %s\n", line)
+		_, _ = fmt.Fprintf(w, "data: %s\n", line)
 	}
-	fmt.Fprint(w, "\n")
+	_, _ = fmt.Fprint(w, "\n")
 }

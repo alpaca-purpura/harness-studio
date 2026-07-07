@@ -41,9 +41,12 @@ func (m Mecanismo) Valid() bool {
 type Severidad string
 
 const (
+	// SevError — the check breaks the standard; a fail/error here blocks the gate.
 	SevError Severidad = "error"
-	SevWarn  Severidad = "warn"
-	SevInfo  Severidad = "info"
+	// SevWarn — a smell: reported in the verdict, never blocks the gate.
+	SevWarn Severidad = "warn"
+	// SevInfo — a possible improvement; informative only.
+	SevInfo Severidad = "info"
 )
 
 // Check is the common check contract: one row of a `Checklist evaluable` (knowledge) or
@@ -211,10 +214,12 @@ func VerificarSpine(g Graph) []CheckResult {
 	{
 		c := spineCheck("spine-auto-consistente", SevError,
 			"el spine declarado es coherente: inicial · terminales · extremos de transiciones ∈ estados")
-		switch {
-		case spine == nil:
-			out = append(out, CheckResult{Check: c, Veredicto: VeredictoDiferido,
-				Detalle: "el arnés no declara spine"})
+		switch spine {
+		case nil:
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara spine",
+			})
 		default:
 			var bad []string
 			if spine.Inicial != "" && !spine.TieneEstado(spine.Inicial) {
@@ -241,10 +246,12 @@ func VerificarSpine(g Graph) []CheckResult {
 	{
 		c := spineCheck("estado-en-spine-declarado", SevError,
 			"cada extremo de la transición de una caja ∈ arnes.spine.estados")
-		switch {
-		case spine == nil:
-			out = append(out, CheckResult{Check: c, Veredicto: VeredictoDiferido,
-				Detalle: "el arnés no declara spine — nada contra qué validar (agnóstico)"})
+		switch spine {
+		case nil:
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara spine — nada contra qué validar (agnóstico)",
+			})
 		default:
 			var bad []string
 			for _, cj := range cajas {
@@ -269,8 +276,10 @@ func VerificarSpine(g Graph) []CheckResult {
 			"cada transición de caja X→Y ∈ arnes.spine.transiciones")
 		switch {
 		case spine == nil || len(spine.Transiciones) == 0:
-			out = append(out, CheckResult{Check: c, Veredicto: VeredictoDiferido,
-				Detalle: "el arnés no declara transiciones legales — no se puede validar legalidad"})
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara transiciones legales — no se puede validar legalidad",
+			})
 		default:
 			var bad []string
 			for _, cj := range cajas {
@@ -308,11 +317,15 @@ func VerificarSpine(g Graph) []CheckResult {
 			"todo estado del spine es alcanzable desde `inicial` (sin huérfanos/inalcanzables)")
 		switch {
 		case spine == nil:
-			out = append(out, CheckResult{Check: c, Veredicto: VeredictoDiferido,
-				Detalle: "el arnés no declara spine"})
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara spine",
+			})
 		case spine.Inicial == "" || len(spine.Transiciones) == 0:
-			out = append(out, CheckResult{Check: c, Veredicto: VeredictoDiferido,
-				Detalle: "spine sin `inicial` o sin transiciones — cobertura no computable"})
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "spine sin `inicial` o sin transiciones — cobertura no computable",
+			})
 		default:
 			reachable := reachableFrom(spine.Inicial, spine.Transiciones)
 			var bad []string
@@ -331,8 +344,10 @@ func VerificarSpine(g Graph) []CheckResult {
 			"cada nodo.fase ∈ arnes.fases; cada fase declarada cubierta por ≥1 caja")
 		switch {
 		case len(fases) == 0:
-			out = append(out, CheckResult{Check: c, Veredicto: VeredictoDiferido,
-				Detalle: "el arnés no declara fases — nada contra qué validar"})
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara fases — nada contra qué validar",
+			})
 		default:
 			declared := map[string]bool{}
 			for _, f := range fases {
@@ -367,9 +382,11 @@ func VerificarSpine(g Graph) []CheckResult {
 // `art` with escritor_unico (the default) are a conformance finding. Reads only the
 // declared contracts — no product state.
 func VerificarEscritorUnico(g Graph) CheckResult {
-	c := Check{ID: "escritor-unico", Elemento: "conformance", Mecanismo: MecStaticScan,
+	c := Check{
+		ID: "escritor-unico", Elemento: "conformance", Mecanismo: MecStaticScan,
 		EnforcedBy: "domain.VerificarEscritorUnico", Severidad: SevError,
-		Que: "un solo escritor autorizado por artefacto (dos cajas escribiendo el mismo art = hallazgo)"}
+		Que: "un solo escritor autorizado por artefacto (dos cajas escribiendo el mismo art = hallazgo)",
+	}
 	writers := map[string][]string{} // art → caja ids that claim single-writer.
 	for _, n := range g.Nodes {
 		if n.Contract == nil {

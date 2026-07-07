@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -55,7 +56,7 @@ func (c *BoxConductor) Run(ctx context.Context, box domain.Box) (BoxOutcome, err
 
 	iters := 0
 	for iters < c.repairCap && !estado.EsTerminal() {
-		if err := sess.Send(ctx, c.tarea(box, estado, iters)); err != nil {
+		if err := sess.Send(ctx, c.tarea(box, iters)); err != nil {
 			return BoxOutcome{}, fmt.Errorf("conductor: send: %w", err)
 		}
 		iters++
@@ -85,13 +86,13 @@ func (c *BoxConductor) Run(ctx context.Context, box domain.Box) (BoxOutcome, err
 	}, nil
 }
 
-// tarea builds the per-iteration prompt. Draft = the box's task; later = a repair nudge.
-// The content is not a control signal — routing never depends on it.
-func (c *BoxConductor) tarea(box domain.Box, estado domain.EstadoCaja, iter int) string {
+// tarea builds the per-iteration prompt. Iteration 0 = the box's task; later = a repair
+// nudge. The content is not a control signal — routing never depends on it.
+func (c *BoxConductor) tarea(box domain.Box, iter int) string {
 	if box.Contract != nil && box.Contract.Why != "" && iter == 0 {
 		return "Tarea de la caja " + box.ID + ": " + box.Contract.Why
 	}
-	return "Continúa la caja " + box.ID + " (iteración de reparación " + fmt.Sprint(iter) + ")."
+	return "Continúa la caja " + box.ID + " (iteración de reparación " + strconv.Itoa(iter) + ")."
 }
 
 // artifactRef returns the box's primary output artifact (document-as-cache target).

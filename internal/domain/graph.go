@@ -5,6 +5,8 @@ package domain
 // $defs.edge.tipo in graph.l0.schema.json.
 type TipoEdge string
 
+// The three relation kinds between nodes: invoca (calls into), lee (reads knowledge)
+// and escribe (writes an artifact). See the TipoEdge comment for how each is drawn.
 const (
 	EdgeInvoca  TipoEdge = "invoca"
 	EdgeLee     TipoEdge = "lee"

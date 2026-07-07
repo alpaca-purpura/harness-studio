@@ -33,9 +33,12 @@ func newService(t *testing.T) (*usecase.ConformanceService, string) {
 	root := repoRoot(t)
 	adapters := []ports.MechanismAdapter{
 		mechanism.NewArchTest(root), mechanism.NewGoArchLint(root),
-		mechanism.NLJudge{}, mechanism.StaticScan{}, mechanism.SchemaAdapter{},
+		mechanism.NLJudge{},
+		mechanism.StaticScan{},
+		mechanism.SchemaAdapter{},
 	}
-	return usecase.NewConformanceService(root, ruleset.New(root), adapters), root
+	schemas := mechanism.NewSchemaSet(filepath.Join(root, "arch", "contracts", "schema"))
+	return usecase.NewConformanceService(root, ruleset.New(root), schemas, adapters), root
 }
 
 // TestDogfoodArnesConforms is G1: the dev-full-cycle dogfood arnés validates green — every
@@ -86,7 +89,7 @@ func TestBrokenArnesFailsRightChecks(t *testing.T) {
 
 	// A node source file with a phantom frontmatter key the firewall must catch.
 	badSkill := filepath.Join(dir, "bad.SKILL.md")
-	if err := os.WriteFile(badSkill, []byte("---\nname: bad\nsanctum: PERSONA\n---\nx\n"), 0o644); err != nil {
+	if err := os.WriteFile(badSkill, []byte("---\nname: bad\nsanctum: PERSONA\n---\nx\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -109,7 +112,7 @@ func TestBrokenArnesFailsRightChecks(t *testing.T) {
       ]
     }`
 	path := filepath.Join(dir, "roto.graph.json")
-	if err := os.WriteFile(path, []byte(broken), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(broken), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

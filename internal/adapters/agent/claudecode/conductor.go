@@ -27,6 +27,7 @@ import (
 	"math"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -73,7 +74,9 @@ func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.Agen
 		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
 	}
 
-	cmd := exec.CommandContext(ctx, c.bin, args...)
+	// The binary is the operator-configured local `claude` (conductor pattern,
+	// local-first) and the args are built right here — never remote input.
+	cmd := exec.CommandContext(ctx, c.bin, args...) //nolint:gosec // G204: c.bin is local daemon configuration (the --claude flag), never external input.
 	if opts.Cwd != "" {
 		cmd.Dir = opts.Cwd
 	}
@@ -291,13 +294,13 @@ func assistantText(m *assistantMsg) string {
 	if m == nil {
 		return ""
 	}
-	var out string
+	var out strings.Builder
 	for _, b := range m.Content {
 		if b.Type == "text" {
-			out += b.Text
+			out.WriteString(b.Text)
 		}
 	}
-	return out
+	return out.String()
 }
 
 // ctxPct estimates context-window usage (0–100) from a result frame: the prompt

@@ -432,9 +432,9 @@ func (s *SessionService) persistLocked() {
 // deriveFrente turns the first user message into a short work-front label.
 func deriveFrente(text string) string {
 	text = strings.TrimSpace(strings.Join(strings.Fields(text), " "))
-	const max = 48
-	if len(text) > max {
-		return text[:max] + "…"
+	const maxLen = 48
+	if len(text) > maxLen {
+		return text[:maxLen] + "…"
 	}
 	if text == "" {
 		return "nuevo frente"

@@ -52,7 +52,10 @@ func (l *Loader) Load(_ context.Context) (domain.Ruleset, error) {
 			continue
 		}
 		err := filepath.WalkDir(base, func(path string, de fs.DirEntry, err error) error {
-			if err != nil || de.IsDir() || !strings.HasSuffix(path, ".md") {
+			if err != nil {
+				return err // an unreadable entry must surface, not silently shrink the ruleset.
+			}
+			if de.IsDir() || !strings.HasSuffix(path, ".md") {
 				return nil
 			}
 			name := strings.TrimSuffix(filepath.Base(path), ".md")
@@ -90,7 +93,7 @@ var (
 
 // parseFile reads one node .md and returns its checks. elemento = the file basename.
 func parseFile(path string) ([]domain.Check, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // G304: path comes from walking the repo's own knowledge/+arch/ trees — the ruleset IS those files (local-first).
 	if err != nil {
 		return nil, err
 	}

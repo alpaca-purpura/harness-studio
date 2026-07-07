@@ -430,7 +430,53 @@ tsc/dependency-cruiser) a CI · gate de fidelidad §8.4 · restos multisesión (
 *Siguiente:* ejecutar el **Hito 1** (loader Go → tipos+`getGraph` → `entities/arnes` → `widgets/map-canvas` con
 carriles → swap del placeholder → story=test).
 
-<!-- Próximas: HS-10, … -->
+### HS-10 · Auditoría integral doctrina⇄app + enforcement reparado (CI verde de raíz) + nomenclatura de reconocimiento — `en-curso` · `vig:vigente`
+
+*Cruda (operador, 2026-07-07):* "quiero que revises y audites archivo por archivo de nuestra doctrina y me
+indiques inconsistencias, puntos flacos […] revisa si está siendo bien implementada por nuestra aplicación y
+esta la 'contiene' […] La aplicación debe ser instalada en cualquier computadora y siempre que tenga el usuario
+instalado claude code, debería funcionar sin que el usuario tenga que hacer nada más." Y al recibir el informe:
+"Ficha Propia YA" (nomenclatura) · "Arreglarlo ahora para probar cada cosa que avancemos" (CI).
+
+*Desarrollo:* **auditoría 4-frentes en paralelo, VERIFICADA en vivo** (knowledge/ · arch/ · docs-norte ·
+implementación; conformance ejecutado, schemas validados con el motor real, `gh run list` revisado).
+**Veredictos:** doctrina estructuralmente sana y aritméticamente honesta (138+97=235 ✓ · 8 enforced ✓ · ambos
+dogfoods validan 0 violaciones) pero con deriva de sincronización (CADENCE 2 fichas atrás · CLAUDE.md 2–3 olas ·
+ficha HS-09 aún decía React Flow · METODOLOGIA §3 5 orígenes vs schema 7 · UX «11 elementos»). **La app NO
+contiene la doctrina — 3 puentes bloqueantes:** (1) sin loader real de arneses (índice = demo + 2 `go:embed`
+a mano), (2) doctrina no viaja a las sesiones CC (spawn sin `--plugin-dir`/`--append-system-prompt`), (3)
+conformance atado al repo fuente + toolchain Go y sin endpoint. **Hueco doctrinal mayor:** la nomenclatura de
+reconocimiento archivo→grafo NO estaba escrita en ningún doc (dogfoods armados A MANO; «nomenclatura» = 0 hits).
+**Hallazgo estrella:** CI de main llevaba **≥5 pushes en rojo** (npm ci vs pnpm-lock → los enforcers FE JAMÁS
+corrieron en CI; golangci con 66 hallazgos reales; go-arch-lint roto por construcción; step `openapi:gen`
+fantasma; lefthook sin instalar) — TODO el enforcement era disciplina local.
+
+**Ejecutado (mismo día):** ① `ci.yml` reescrito — pnpm (+`packageManager` en web/package.json) · go-arch-lint
+con invocación correcta (`--project-path . --arch-file arch/fitness/.go-arch-lint.yml`) · guard honesto de
+openapi-gen sobre el dir generado · **job rust ACTIVADO** (clippy verde verificado local + deps webkit del
+runner + rust-cache) · playwright install para story-tests. ② `.go-arch-lint.yml` saneado a sintaxis v3 REAL
+(era inválido: `cannotDependOn` no existe; allow-list + default-deny) + componentes nuevos (conformance ·
+permission · dogfood) + `deepScan: false` justificado (flaggeaba al composition root inyectando concretos —
+el patrón que la doctrina ORDENA). **Al arrancar cazó una violación real que arch_test.go no veía:** `usecase`
+importaba el adapter concreto `conformance/mechanism` → fix: puerto `ports.SchemaValidator` + inyección desde
+cmd (hexagonal restaurado). ③ golangci **66→0** (causa raíz; 8 `nolint:gosec` con razón concreta local-first;
+godoc reales; nilerr ya no traga errores de WalkDir; contextcheck con `context.WithoutCancel`). ④ lefthook
+instalado (hooks commit-msg + pre-commit vivos). ⑤ `arch/contracts/nomenclatura-arnes.md` **draft v0**: unidad
+reconocible (plugin CC | arnés instalado) · manifiesto `arnes.l0.json` · tabla clase→ubicación (10
+reconocedores) · derivación archivo→grafo · reconciliación honesta (`no-reconocido` visible, jamás crash) —
+**PENDIENTE DE FIRMA** (D-a manifiesto · D-b instalado-primera-clase · D-c no-reconocido).
+
+*Pendiente de firma del operador:* nomenclatura D-a/D-b/D-c · estrategia de empaquetado de doctrina
+(recomendación: **(c) ambas** — `go:embed` del ruleset para conformance portable SIN contexto LLM + doctrina
+como plugin CC propio inyectado por flags con progressive disclosure, diseño 3-cuerpos ya sancionado en
+`research/2026-07-05-arquitectura-inyeccion-knowhow.md`).
+
+*Siguiente:* ola de sync mecánico (CLAUDE.md · CADENCE ×2 · UX 11→12 · nota React Flow en ficha HS-09 ·
+METODOLOGIA 5→7 orígenes · debate 3 VISION · tensión `alw` en proposals.ts) · los 3 puentes (= Hito 3+:
+loader real por nomenclatura · inyección al conductor · conformance embebido + endpoint) · ErrorBoundary +
+fallback `no-reconocido` en FE · migrar `dogfood/skills/` al layout L1.
+
+<!-- Próximas: HS-11, … -->
 
 ## Log
 
@@ -447,3 +493,4 @@ carriles → swap del placeholder → story=test).
 | 2026-07-06 | **Fase 5 (Implementación) arrancada: MVP del Mapa, dogfood-first.** Auditoría de 5 subagentes VERIFICADA con build/test real: backend compila+tests PASS `-race`; **shell Tauri v1 confirmado compilado+corriendo** (corrige nota HS-06); React Flow 12 instalado + endpoint del grafo vivo, pero **Mapa 0% código** y sirve un demo (no el dogfood). Honestidad del motor: `--todo` = 235 checks pero **211 `deferred`** (24 pass real); el enforcement determinista vive en la ruta `--arnes` (13/13 verde). **HS-08 commiteado** (estaba verde sin commit) + 3 drifts muertos (cero-código, linter-fase-5, shell-no-compiló). **Plan Mapa:** Hito 1 read-only navegable (loader Go dogfood→índice + `entities/arnes` + `widgets/map-canvas` carriles custom) · Hito 2 inspector+picker · Hito 3 realtime/edición diferido. Deuda paralela registrada (cablear conductor/permisos, `control_request`, go-arch-lint, deferred→CI). | HS-09 |
 | 2026-07-06 | **Gate 1 (mockup) + Gate 2 (spec) del Mapa FIRMADOS; auditoría destapa inversión de orden → retro-ajuste.** Gate 1 (mockup `arnesia-mapa-mvp.html`, commit `0736d2c`) firmado con 6 decisiones doctrinales (Base canónica · activación por-nodo · facet `origen` · knowledge as-code+semántico-opcional · discovery=data · paquete/spine). **Paquete Fase C** redactado (`research/2026-07-06-mapa-mvp/`: `spec`=QUÉ/RF+Gherkin trazado a `mockup:línea`+shot · `design`=UI al pixel · `architecture`=CÓMO hexagonal+FSD + secuencia de PRs + cementado · `PARIDAD`=round-trip) y **Gate 2 FIRMADO**. Corrige dato stale: seed = 3 nodos/1 edge keyed «demo» (no 2) → `dev-full-cycle` da **404** hoy. **Auditoría 5-subagentes (build/test real) revela INVERSIÓN DE ORDEN:** se programó adelantándose a los gates — Fase F (Hito 1: loader dogfood + `<MapCanvas>` montado + inspector/picker de Hito 2) YA en working-tree y **verde** (go/tsc/biome/depcruise/steiger/stylelint), SIN cerrar Fase D (arch as-code) ni Fase E (deuda), Fase C sin firmar. Código **doctrinalmente limpio** (backend agnóstico, canvas⊥chrome, tokens, PROPUESTAs aisladas+etiquetadas) PERO doctrina as-code NO refleja las 6 decisiones + `fe-visual-fitness` flipado a `enforced` apuntando a enforcer **BORRADO** (`vitest.workspace.ts`) = **pass fabricado**. **Operador ordena RETRO-AJUSTAR:** Gate 2 ✓ → **Fase D real** (cementar 6 decisiones + arreglar `enforced` falso + cuerpos boundaries + re-sync conteos + C4/contratos + graduar `origen`/`alw` a L0) → **recién ahí** commitear código como Fase F. Deuda E **diferida honesta**. | HS-09 |
 | 2026-07-06 | **Retro-ajuste EJECUTADO: Fase D (arq as-code) + Fase F (código) en orden — Hito 1 del Mapa VIVO.** **Fase D** (commit `9cd8e77`): 🚩 corregido el pass FABRICADO (`fe-visual-fitness` enforced apuntaba a `vitest.workspace.ts` BORRADO → migrado a `vitest.config.ts`; verificado **40 story-tests verdes**); 3 boundaries FE proposed→**enforced** con enforcers verificados corriendo (`fe-taxonomia-componentes`/canvas⊥chrome = depcruise 76 mód/0 viol · `fe-tokens-contrato`/stylelint + kind 6→10 regenerado · `fe-visual-fitness`) → **8 enforced** (2 HS-06 + 3 HS-08 + 3 HS-09; sin sumar checks, 97 intacto). Las 6 decisiones del Gate 1 cementadas as-code: **#3 `origen`** = campo nuevo en `graph.l0.schema.json` (`$defs.nodo`, `estandar\|del-puesto`, ESTAMPADO al provisionar la instancia ③ — no maquinaria filtrándose, 3 cuerpos); **#2 `alw`** = DERIVADO de `fuente_path` en `rules.md` (sin campo nuevo); #1/#4/#5/#6 ya doctrina. C4 (`container.d2`) + propagación de la reversión firmada **HTML+SVG** del Mapa a VISION.md/CLAUDE.md (supera «React Flow para el Mapa» → RF = Organigrama) + tabla del gran plan al día (fase 4 ✓, fase 5 en curso). **Fase F** (commits `31a7532` backend + `c013dc3` frontend): loader del dogfood real (`dev-full-cycle`, 5 nodos/4 edges) al índice + `getNode`/`listHarnesses` cableados + `<MapCanvas>` HTML+SVG montado (swap del `ComingSoon`) + seed de la 1ª sesión al Mapa real. **Todo verde**: go build/vet/test `-race` · tsc strictest · biome · depcruise · steiger · stylelint · 40 story-tests (Playwright Chromium). Capas Tokens/Desempeño/Proceso staged (telemetría JSONL → Hito 3); `origen`/`alw` se dibujan PROPUESTA hasta que provisioning/telemetría los pueble. **Gate `G-hito1` VERIFICADO EN VIVO** (daemon `arnesia serve` :4200 + vite :5173 → browser Chromium): `GET /api/harnesses/dev-full-cycle/graph` sirve el dogfood real (5 nodos/4 edges, 200) y la vista Mapa lo RENDERIZA — Guardia «— sin hooks —» · 4 carriles spec/build/review/release con 1 caja c/u (handle `/spec-writer`… + transición del spine ◇ idea→spec…review→released) + edges invoca (backbone rojo) · Base con la regla `std-spec` (0 siempre/1 condicional) · capas Tokens/Desempeño/Proceso disabled «necesita telemetría» · **consola 0 errores/warnings**; screenshot revisado. Nota: el daemon NO sirve la SPA embebida aún (skeleton TODO); en dev la carga vite, en prod la cargará Tauri. **Deuda Fase E (conductor/permisos/`control_request`/go-arch-lint/`deferred`→CI) sigue diferida honesta.** | HS-09 |
+| 2026-07-07 | **Auditoría integral doctrina⇄app (4 frentes, verificada en vivo) + enforcement REPARADO DE RAÍZ.** Doctrina sana y aritmética honesta (138+97=235 ✓ · 8 enforced ✓ · dogfoods validan 0 viol.) pero **la app NO la contiene** (3 puentes bloqueantes: loader real · inyección a CC · conformance portable+endpoint) y **CI de main llevaba ≥5 pushes ROJO** sin bloquear nada (npm vs pnpm → enforcers FE jamás corrieron en CI · 66 hallazgos golangci · go-arch-lint roto por construcción · `openapi:gen` fantasma · lefthook sin instalar). **Reparado el mismo día:** ci.yml → pnpm + job rust activado (clippy verde) + guard honesto openapi · `.go-arch-lint.yml` a sintaxis v3 real (`cannotDependOn` no existía; deepScan off justificado) — **al arrancar cazó violación real**: `usecase` importaba `conformance/mechanism` → puerto `ports.SchemaValidator` + inyección desde cmd · golangci **66→0** (causa raíz, 8 nolint:gosec razonados) · lefthook vivo. **Hueco doctrinal mayor destapado:** la nomenclatura de reconocimiento archivo→grafo no estaba escrita → `arch/contracts/nomenclatura-arnes.md` **draft v0 PENDIENTE DE FIRMA** (plugin CC \| instalado · `arnes.l0.json` · 10 reconocedores · `no-reconocido` visible). Pendiente firma: D-a/D-b/D-c + empaquetado doctrina (rec.: embed ruleset + plugin propio, 3 cuerpos). | HS-10 |

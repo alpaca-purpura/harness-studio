@@ -105,7 +105,7 @@ func (p PerfilHarness) Valid() bool {
 	}
 }
 
-// PrecedeArquetipoSobrePerfil resolves B8 (the imported abierto×T2 contradiction):
+// RequiereDocumentAsCache resolves B8 (the imported abierto×T2 contradiction):
 // Arquetipo takes precedence over PerfilHarness for document-as-cache. A box requires
 // strict document-as-cache when its profile is T2/T3 AND its archetype is not abierto;
 // an `abierto` box is exempt (it keeps session state with a distillation at close),
@@ -121,6 +121,9 @@ func RequiereDocumentAsCache(arq Arquetipo, perfil PerfilHarness) bool {
 // axis, orthogonal to Clase. Mirrors $defs.banda in graph.l0.schema.json.
 type Banda string
 
+// The map's fixed regions, as $defs.banda enumerates them: the Guardia band (hooks)
+// across the top, the per-fase process lanes, the Base band (knowledge) at the bottom,
+// plus the side shelves (expert library, meta-harness, dormant marks, third-party).
 const (
 	BandaGuardia         Banda = "guardia"
 	BandaFase            Banda = "fase"
@@ -135,6 +138,8 @@ const (
 // schema (arnes.canal = beta|estable; nodo.canal adds propuesto|deprecado).
 type Canal string
 
+// The four channels: an arnés releases as beta|estable (KIT-06 release train); a node
+// additionally moves through propuesto (not yet accepted) and deprecado (on the way out).
 const (
 	CanalBeta      Canal = "beta"
 	CanalEstable   Canal = "estable"
@@ -146,6 +151,8 @@ const (
 // METODOLOGIA §4 ("medido" overrides "estimado"). Mirrors nodo.procedencia.
 type Procedencia string
 
+// The five provenance grades of nodo.procedencia. "medido" (real telemetry) always
+// overrides "estimado"; "no-declarado" makes the absence of data explicit, never silent.
 const (
 	ProcMedido      Procedencia = "medido"
 	ProcEstimado    Procedencia = "estimado"
@@ -252,6 +259,9 @@ type Route struct {
 // real eval (the gap of principle 10 turned into data). Mirrors contract.gate.tipo.
 type GateTipo string
 
+// The four gate types: auto (the Gherkin acceptance IS the executable eval), manual
+// (a human signs off), parcial (mixed), none (the box declares it has no real eval —
+// an honest gap, never a hidden one).
 const (
 	GateAuto    GateTipo = "auto"
 	GateManual  GateTipo = "manual"

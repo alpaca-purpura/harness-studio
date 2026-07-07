@@ -1,9 +1,10 @@
 # CI — todo check rompe el merge (enforced_by de arch/conventions/ci.md).
-# Jobs paralelos = required status checks en main. Este workflow vuelve «enforced» los `status:
-# proposed` de arch/ cuando el código aterrice.
+# Jobs paralelos = required status checks en main. Es la garantía dura de los boundaries
+# `enforced` de arch/: lo que aquí corre es lo mismo que corre local (lefthook / pnpm / go test).
 #
-# NOTA (honestidad): declarado; hoy no hay código (fase 5). Los `if: hashFiles(...)` evitan que los
-# jobs fallen en un repo sin fuentes todavía. Module path y `web/` son provisionales.
+# Historial: hasta 2026-07-07 este workflow estuvo ROTO (npm ci vs pnpm-lock, go-arch-lint mal
+# invocado, step openapi:gen fantasma) — main acumuló ≥5 pushes rojos sin que nada bloqueara.
+# Reparado en HS-10; si un job vuelve a fallar, se arregla ANTES de seguir empujando features.
 name: ci
 
 on:
@@ -22,19 +23,14 @@ jobs:
       - uses: actions/setup-go@v5
         with: { go-version: "stable" }
       - name: golangci-lint
-        if: ${{ hashFiles('go.mod') != '' }}
         uses: golangci/golangci-lint-action@v7    # v7 = golangci-lint v2
       - name: format check
-        if: ${{ hashFiles('go.mod') != '' }}
         run: golangci-lint fmt --diff
-      - name: go-arch-lint (grafo de imports, arch/fitness)
-        if: ${{ hashFiles('go.mod') != '' }}
-        run: go run github.com/fe3dback/go-arch-lint@latest check --project-path arch/fitness
+      - name: go-arch-lint (grafo de imports permitido)
+        run: go run github.com/fe3dback/go-arch-lint@latest check --project-path . --arch-file arch/fitness/.go-arch-lint.yml
       - name: test
-        if: ${{ hashFiles('go.mod') != '' }}
         run: go test ./... -race
       - name: build
-        if: ${{ hashFiles('go.mod') != '' }}
         run: go build ./...
 
   ts:
@@ -42,44 +38,49 @@ jobs:
     defaults: { run: { working-directory: web } }
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4                # lee `packageManager` de web/package.json
+        with: { package_json_file: web/package.json }
       - uses: actions/setup-node@v4
-        with: { node-version: "22.19" }           # Storybook 10 = ESM-only, Node ≥ 20.16/22.19/24
-      - run: ${{ hashFiles('web/package.json') != '' && 'npm ci' || 'echo no-web-yet' }}
+        with:
+          node-version: "22.19"                   # Storybook 10 = ESM-only, Node ≥ 20.16/22.19/24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
       - name: biome
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npx biome ci .
+        run: pnpm exec biome ci .
       - name: types
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
       - name: boundaries (dependency-cruiser, FSD)
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npx depcruise src --config .dependency-cruiser.js
+        run: pnpm exec depcruise src --config .dependency-cruiser.js
       - name: fsd-estructural (steiger)
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npx steiger src
+        run: pnpm exec steiger src
       - name: tokens (stylelint anti-magic-value)
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npx stylelint "src/**/*.css"
+        run: pnpm exec stylelint "src/**/*.css"
       - name: fitness visual (Storybook 10 = tests)
         id: visual-fitness
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npx vitest --project=storybook run
+        run: pnpm exec playwright install --with-deps chromium && pnpm exec vitest --project=storybook run
       - name: tokens-sync (.tokens.json ⟷ @theme)
-        if: ${{ hashFiles('web/package.json') != '' }}
-        run: npm run tokens:build && git diff --exit-code src/app/styles/theme.css
+        run: pnpm run tokens:build && git diff --exit-code src/app/styles/theme.css
       - name: openapi-gen-check (tipos generados ⟷ contrato)
         id: openapi-gen-check
-        # se activa al haber contracts/gen: regenera src/shared/api/generated del OpenAPI y verifica
-        # diff-cero (quicktype para TS · oapi-codegen para Go); patrón espejo de tokens-sync.
-        if: ${{ hashFiles('web/package.json') != '' && hashFiles('arch/contracts/api/openapi.yaml') != '' }}
-        run: npm run openapi:gen && git diff --exit-code src/shared/api/generated
+        # Se activa cuando el codegen exista de verdad (arch/contracts/gen/ → src/shared/api/generated).
+        # Hoy los tipos son a mano (checks `tipos-generados` = warn, deuda registrada); guard honesto
+        # sobre el DIRECTORIO GENERADO, no sobre el yaml — el yaml existe desde HS-04.
+        if: ${{ hashFiles('web/src/shared/api/generated/**') != '' }}
+        run: pnpm run openapi:gen && git diff --exit-code src/shared/api/generated
 
   rust:
     runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web/src-tauri } }
     steps:
       - uses: actions/checkout@v4
+      - name: deps de sistema (webkit2gtk 4.1 — Tauri 2 en Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: web/src-tauri }
       - name: clippy + fmt (shell Tauri)
-        if: ${{ hashFiles('shell/Cargo.toml') != '' }}
         run: |
           cargo clippy --all-targets -- -D warnings
           cargo fmt --check

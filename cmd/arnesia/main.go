@@ -139,7 +139,9 @@ func runServe(args []string) error {
 
 	go func() {
 		<-ctx.Done()
-		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		// WithoutCancel: the parent ctx is already done (that is why we are here); the
+		// shutdown needs its own deadline, inheriting values but not the cancellation.
+		shutCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutCtx); err != nil {
 			slog.Error("shutdown", "err", err)

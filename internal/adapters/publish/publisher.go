@@ -32,7 +32,7 @@ func New(git string) *Publisher {
 // Publish wires the git push to target. Running it (behind the evals-gate) is fase-5
 // work.
 func (p *Publisher) Publish(ctx context.Context, harnessID, target string) error {
-	cmd := exec.CommandContext(ctx, p.git, "push", target, harnessID)
-	_ = cmd // TODO(fase 5): run the release-train publish once the evals-gate passes.
+	cmd := exec.CommandContext(ctx, p.git, "push", target, harnessID) //nolint:gosec // G204: p.git is local configuration and target/harnessID come from the operator's own CLI flags; the command is wired but never run (fase-5 stub).
+	_ = cmd                                                           // TODO(fase 5): run the release-train publish once the evals-gate passes.
 	return fmt.Errorf("publish %q -> %q: %w", harnessID, target, errNotImplemented)
 }
