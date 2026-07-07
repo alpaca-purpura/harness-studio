@@ -1,9 +1,9 @@
 ---
 regla: fe-taxonomia-componentes
-version: 1.0
-updated: 2026-07-05
-status: proposed
-ledger: HS-05
+version: 1.1
+updated: 2026-07-06
+status: enforced
+ledger: HS-09
 sources:
   - url: https://feature-sliced.design/blog/atomic-design-architecture
     autoridad: estándar
@@ -34,10 +34,11 @@ buen *vocabulario mental* pero mala *estructura de carpetas* — la frontera ato
 difusa, y esa ambigüedad es el modo de falla. Lo enforçable no es «de qué está hecho un componente»
 sino **quién puede importar a quién**. *(experto: Frost; estándar: FSD atomic-vs-topology)*
 
-**Componente de canvas ≠ átomo reutilizable.** Un custom node de un grafo (React Flow) vive dentro de
-su `ReactFlowProvider`, con handles/ports/selección gobernados por el store del canvas — no es un
-primitivo de chrome recomponible. La separación de runtimes (canvas vs shell) es una frontera real.
-*(oficial: React Flow custom nodes)*
+**Componente de canvas ≠ átomo reutilizable.** Un nodo del Mapa (HTML+SVG con geografía de bandas/
+carriles y edges medidos por `getBoundingClientRect`) vive dentro del viewport del canvas, con
+posición/hover/foco gobernados por su store — no es un primitivo de chrome recomponible. (El Organigrama
+usará React Flow, mismo principio: custom node dentro de `ReactFlowProvider`.) La separación de runtimes
+(canvas vs shell) es una frontera real. *(oficial: React Flow custom nodes — patrón análogo)*
 
 **Primitivos copy-in.** shadcn/ui (sobre Base UI) trae los primitivos como archivos EN el repo →
 lintables y enforçables (no opacos en `node_modules`), bundle chico, sin `ThemeProvider` lock-in.
@@ -58,8 +59,10 @@ Atomic vive DENTRO de `shared/ui` como vocabulario; la estructura real = **6 cap
 | views/pages | `pages/*` | Vista Mapa, Vista Portafolio | ser importado |
 
 - **canvas ⊥ chrome = la frontera de mayor valor** (runtimes distintos): `widgets/map-canvas` (canvas) no
-  importa `widgets/command-rail`/`widgets/dock` (chrome), ni al revés a los internos del canvas. ⇐ L1:
-  canvas ≠ átomo. El Dock (assistant-ui/AG-UI) es **chrome**, no canvas.
+  importa el chrome real (`widgets/{session-rail,chat-dock,topbar,view-strip}`, `pages/shell`), ni al revés
+  a los internos del canvas (solo props/store). ⇐ L1: canvas ≠ átomo. El Dock (assistant-ui/AG-UI) es
+  **chrome**, no canvas. **Verificado enforced (HS-09):** `pnpm depcruise` verde sobre el Mapa real (76
+  módulos, 0 violaciones); `canvas-not-chrome`·`chrome-not-canvas-internals`·`ui-not-domain` en `error`.
 - **primitives puros:** no tocan store ni dominio; consumen **solo tokens semánticos** (`var(--…)`),
   nunca hex (ver [`fe-tokens-contrato`](./fe-tokens-contrato.md)). ⇐ L1: atomic = vocabulario.
 - **Primitivos = shadcn sobre Base UI** (copy-in en `shared/ui/primitives/`); React Flow UI se trae por
@@ -72,13 +75,20 @@ Atomic vive DENTRO de `shared/ui` como vocabulario; la estructura real = **6 cap
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| canvas-not-chrome | el canvas (`map-canvas`, `shared/canvas`) no importa chrome (`command-rail`, `dock`, `app/shell`) | error | «nodo del Mapa importa el Rail/Dock (mezcla runtimes canvas/shell)» | dependency-cruiser#canvas-not-chrome |
+| canvas-not-chrome | el canvas (`map-canvas`, `shared/canvas`) no importa chrome (`session-rail`, `chat-dock`, `topbar`, `view-strip`, `pages/shell`) | error | «nodo del Mapa importa el Rail/Dock (mezcla runtimes canvas/shell)» | dependency-cruiser#canvas-not-chrome |
 | chrome-not-canvas-internals | el chrome no hace deep-import a internos del canvas (solo props/store) | error | «chrome alcanza los internos de React Flow» | dependency-cruiser#chrome-not-canvas-internals |
 | ui-not-domain | `shared/ui/**` no importa `entities/features/*/model` ni el store | error | «primitivo/molécula acoplado al dominio» | dependency-cruiser#ui-not-domain |
 | primitives-solo-semanticos | `shared/ui/**` no usa colores/valores crudos, solo `var(--…)` | warn | banda Base «primitivo con valor mágico (no tokenizado)» | stylelint (ver fe-tokens-contrato) |
 
 ## Changelog
 
+- 2026-07-06 · v1.1 · `proposed → enforced` (HS-09, Fase D). El Mapa MVP es la primera superficie que
+  ejercita **canvas⊥chrome** de verdad: `widgets/map-canvas` importa solo `entities/arnes` + `shared/*`,
+  cero chrome; `pnpm depcruise` verde (76 módulos, 0 violaciones) con `canvas-not-chrome`·
+  `chrome-not-canvas-internals`·`ui-not-domain` en `error`. Corregidos los nombres stale del chrome
+  (`command-rail`/`dock` → los reales `session-rail`/`chat-dock`/`topbar`/`view-strip` + `pages/shell`,
+  casando el enforcer) y el ejemplo canvas≠átomo (Mapa HTML+SVG; React Flow queda para el Organigrama).
+  Sin cambio de checks (4).
 - 2026-07-05 · v1.0 · Nodo fundacional FE (HS-05). L1 = atomic-es-taxonomía (Frost/FSD) + canvas≠átomo
   (React Flow) + shadcn copy-in. L2 = 6 capas de UI direccionales dentro de FSD; canvas⊥chrome como
   frontera estrella; shadcn sobre Base UI. No se enforça el ladder de 5. 4 checks.

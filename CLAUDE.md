@@ -19,8 +19,9 @@ ejecutan; marketplace git elegible por proyecto.
 **Decisiones técnicas vigentes (HS-02):**
 - Binario Go único `arnesia`: `serve` (watcher + indexer JSONL + API HTTP/SSE + UI
   embebida, :4200) · `open` · `index` · `publish`. Topología Syncthing/opencode.
-- UI: **Vite + React SPA** vía `go:embed` (Next muere) · Mapa: **React Flow 12** + layout
-  de carriles custom · **SQLite puro-Go** (modernc, WAL) como índice desechable; los JSONL
+- UI: **Vite + React SPA** vía `go:embed` (Next muere) · Mapa: **sustrato HTML+SVG** bandas/carriles
+  + overlay SVG (layout custom determinista; **React Flow 12 → Organigrama**, revisión firmada
+  HS-09/Gate 1) · **SQLite puro-Go** (modernc, WAL) como índice desechable; los JSONL
   de `~/.claude` son la fuente de verdad; Langfuse = espejo opcional, jamás dependencia dura.
 - Mapa = lienzo único: banda Guardia (hooks) · carriles por fase del proceso · banda Base
   (knowledge); capas Estructura/Tokens/Desempeño/Proceso; crear/editar = acciones sobre el

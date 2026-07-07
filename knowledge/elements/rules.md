@@ -88,6 +88,13 @@ en it.6 como 6º tipo de primera clase).
    (el modelo elige arbitrario). ⇐ L1.6.
 5. **AGENTS.md por import/symlink, nunca duplicado:** un arnés nuestro que convive con otras
    tools usa `@AGENTS.md`, no copia. ⇐ L1.7 (VISION ya adoptó AGENTS.md como estándar ganador).
+6. **Activación = DERIVADA del scope, no un campo nuevo** (HS-09, Fase D — decisión firmada del
+   Mapa, Gate 1). El facet de activación que el Mapa pinta en la subbanda Reglas —«siempre en
+   contexto (CLAUDE.md)» vs «carga condicional (`paths:`)»— se **deriva** de si la regla tiene
+   scope (`fuente_path` / frontmatter `paths:`): **sin scope → always-on**; **con scope →
+   condicional**. NO se añade un campo `alw` al modelo; la fuente de verdad es el scope real de la
+   regla. ⇐ L1.4. *Honestidad:* la activación por-nodo de las bandas transversales (bajo-demanda /
+   leído / dormida) sigue **PROPUESTA** hasta que la telemetría la mida.
 
 ## Checklist evaluable
 

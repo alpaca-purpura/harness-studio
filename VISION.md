@@ -201,7 +201,10 @@ será ficha futura — no es esta visión.)
 - **Binario Go único** `arnesia` — modos `serve` (watcher + indexer + API HTTP/SSE + UI
   embebida), `open`, `index`, `publish`. Topología Syncthing/opencode, validada 2026.
 - **UI: Vite + React SPA** embebida vía go:embed (Next.js muere: pelea con export estático).
-- **Mapa: React Flow 12** + layout de carriles custom (~200 líneas; elkjs solo si hace falta).
+- **Mapa: sustrato HTML+SVG** bandas/carriles + overlay SVG de edges (layout de carriles custom
+  determinista, ~200 líneas). *(Revisión firmada HS-09/Gate 1, 2026-07-06: supera la lectura previa
+  «React Flow 12 para el Mapa» — RF impone su modelo de nodos/edges/viewport y pelea con la geografía
+  fija swim-lane; **React Flow 12 se reserva al Organigrama** (lienzo libre 2D). Ver HS-09 en el LEDGER.)*
 - **Storage: SQLite puro-Go** (modernc, WAL, rollups) — cross-compile sin CGO. DuckDB solo
   si años de telemetría lo exigen.
 - **Empaque:** GoReleaser → brew/scoop/deb para el daemon. **Shell v1 = Tauri 2 desde el
@@ -226,8 +229,8 @@ será ficha futura — no es esta visión.)
 | 1 | Visión del producto | **esta ficha (HS-02)** ✓ |
 | 2 | UX del producto (mapa a fondo, inspector, flujos) | ✓ firmada (HS-03, it.13) |
 | 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend; HS-06 endurecimiento multisesión + HS-07 doctrina v1) — stack cerrado + `arch/` = 97 checks |
-| 4 | Definición de specs | **en curso (HS-08, dogfood-first)** |
-| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | pendiente |
+| 4 | Definición de specs | ✓ (HS-08, dogfood-first — doctrina bajada a ejecutable) |
+| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | **en curso (HS-09 — MVP del Mapa)** |
 | 6 | Instalación y dogfood | pendiente |
 
 **Port del monorepo (regla):** nada se porta sin pasar por la fase del gran plan que le

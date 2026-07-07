@@ -1,9 +1,9 @@
 ---
 regla: fe-visual-fitness
-version: 1.0
-updated: 2026-07-05
-status: proposed
-ledger: HS-05
+version: 1.1
+updated: 2026-07-06
+status: enforced
+ledger: HS-09
 sources:
   - url: https://storybook.js.org/docs/writing-tests/integrations/vitest-addon
     autoridad: oficial
@@ -19,7 +19,7 @@ sources:
     revisado: 2026-07-05
 enforced_by:
   - web/.storybook/main.ts
-  - web/vitest.workspace.ts#storybook
+  - web/vitest.config.ts#storybook
   - ci.yml:visual-fitness
 severity: medium
 ---
@@ -42,21 +42,25 @@ privado. *(oficial: Vitest visual regression; experto: storybook-addon-vis)*
 
 ## L2 · Realización (este árbol Go+React)
 
-ArnesIA dogfoodea su propio estándar: su FE ES un producto UI pesado (nodos React Flow, Dock, merge
-CM6), así que sus componentes se aíslan en un workshop con checks ejecutables — coherente con la tesis
-de fitness functions de todo el repo. ⇐ L1: story-as-test.
+ArnesIA dogfoodea su propio estándar: su FE ES un producto UI pesado (canvas del Mapa en HTML+SVG con
+overlay de edges, Dock, merge CM6; React Flow queda para el Organigrama), así que sus componentes se
+aíslan en un workshop con checks ejecutables — coherente con la tesis de fitness functions de todo el
+repo. ⇐ L1: story-as-test.
 
 - **Storybook 10** (ESM-only; exige Node 20.16+/22.19+/24+, fijado en CI) en `web/.storybook/`;
-  `web/vitest.workspace.ts` define el project `storybook` que transforma stories→tests.
-- **3 checks en una corrida** (`vitest --project=storybook`): render+`play` · a11y axe · coverage.
-  **Regresión visual** por `storybook-addon-vis` (baselines en `web/`), 100% local. ⇐ L1: a11y, visual.
+  `web/vitest.config.ts` define, vía `test.projects` (Vitest 4 removió `defineWorkspace`/
+  `vitest.workspace.ts`), el project `storybook` que transforma stories→tests.
+- **3 checks en una corrida** (`pnpm test` → `vitest run` → project `storybook`): render+`play` · a11y axe ·
+  coverage. **Regresión visual** por `storybook-addon-vis` (baselines en `web/`), 100% local. ⇐ L1: a11y,
+  visual. Estado real: **40 story-tests en 11 archivos, verdes** (Playwright Chromium headless).
 - **Determinismo Mint-first:** el visual corre en **Playwright Chromium dentro de contenedor Linux**
-  (casar con dev Mint, evitar drift de font-AA cross-OS); animaciones y `fitView` no-determinista
-  desactivados en snapshots.
-- **Gotchas del stack** (van en las stories, no en la arquitectura): React Flow necesita contenedor con
-  w/h explícitos + `ReactFlowProvider` (jsdom no mide → browser mode obligatorio); Zustand se resetea/
-  hidrata por story en decorator (singleton de módulo); SSE/assistant-ui = replay de fixtures grabados
-  (patrón «AG-UI Dojo»), nunca daemon vivo; CodeMirror necesita altura de contenedor.
+  (casar con dev Mint, evitar drift de font-AA cross-OS); animaciones y transiciones no-deterministas
+  desactivadas en snapshots; el viewport del canvas se mide en tamaño fijo (los 7 shots = 1680×1000).
+- **Gotchas del stack** (van en las stories, no en la arquitectura): el canvas del Mapa mide edges con
+  `getBoundingClientRect` → necesita contenedor con w/h explícitos (jsdom no mide → browser mode
+  obligatorio); Zustand se resetea/hidrata por story en decorator (singleton de módulo); SSE/assistant-ui
+  = replay de fixtures grabados (patrón «AG-UI Dojo»), nunca daemon vivo; CodeMirror y React Flow (futuro
+  Organigrama) necesitan altura de contenedor + su provider.
 - **Umbral honesto:** el nodo es `severity: medium` — Storybook se paga cuando hay ~10-20 componentes
   reutilizables; por debajo, `vitest` browser pelado basta. La story-como-test es obligatoria; el
   catálogo visual es el upside.
@@ -65,7 +69,7 @@ de fitness functions de todo el repo. ⇐ L1: story-as-test.
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| story-es-test | cada componente de `shared/ui` + widget tiene story; `vitest --project=storybook` verde | error | «componente sin story-test (fitness visual ausente)» | vitest.workspace.ts#storybook |
+| story-es-test | cada componente de `shared/ui` + widget tiene story; `vitest run` project `storybook` verde | error | «componente sin story-test (fitness visual ausente)» | vitest.config.ts#storybook |
 | a11y-axe | ninguna story viola reglas axe (configurable a error) | error | banda Base «violación a11y en componente» | addon-a11y + vitest |
 | regresion-visual-local | los snapshots casan con las baselines commiteadas (cero SaaS) | warn | «drift visual vs baseline» | storybook-addon-vis |
 | sin-chromatic | no hay dependencia de un SaaS de regresión visual (local-first) | error | banda Guardia «UI enviada a SaaS externo» | revisión ci.yml |
@@ -73,6 +77,11 @@ de fitness functions de todo el repo. ⇐ L1: story-as-test.
 
 ## Changelog
 
+- 2026-07-06 · v1.1 · `proposed → enforced` (HS-09, Fase D). El MVP del Mapa es la primera superficie que
+  ejercita story-as-test de verdad: **40 story-tests en 11 archivos, verdes** (`pnpm test`, Playwright
+  Chromium headless). Migrado el enforcer de `vitest.workspace.ts` (Vitest 4 removió `defineWorkspace`) a
+  `vitest.config.ts` (`test.projects`, project `storybook`). Corregido el ejemplo de UI pesada (canvas del
+  Mapa HTML+SVG, no «nodos React Flow» — RF se reserva al Organigrama). Sin cambio de checks (5).
 - 2026-07-05 · v1.0 · Nodo fundacional FE (HS-05). L1 = Storybook 10 story-as-test (addon-vitest) + a11y
   axe + regresión visual local. L2 = workshop en `web/.storybook`, 3 checks por corrida, determinismo en
   contenedor Linux, Chromatic descartado (local-first), gotchas RF/Zustand/SSE. `severity: medium`

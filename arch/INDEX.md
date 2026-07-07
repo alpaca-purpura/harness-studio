@@ -51,10 +51,10 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌳 enforced | 1.1 | 4 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
-| [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
+| [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌳 enforced | 1.1 | 4 | dependency-cruiser (verde sobre el Mapa) |
 | [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
-| [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌱 vivo | 1.0 | 4 | stylelint · tokens-sync |
-| [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌱 vivo | 1.0 | 5 | vitest + Storybook 10 |
+| [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌳 enforced | 1.1 | 4 | stylelint · tokens-sync |
+| [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌳 enforced | 1.1 | 5 | vitest.config.ts + Storybook 10 (40 tests verdes) |
 | [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 
@@ -75,10 +75,15 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
 > `TestArnesPathContainment`) shippean juntos y **PASAN** (`go test ./arch/fitness/...`). **HS-08 sumó 2
 > boundaries `enforced`** (`orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol`, con
 > `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole` pasando) + subió
-> `contrato-de-caja-es-fitness-function` a enforced (`TestBoxContractValidatesAgainstSchema`) —
-> **5 boundaries enforced en total** (2 de HS-06 + 3 de HS-08). El resto
-> sigue `proposed`; los config files FE (`web/biome.json`, `web/.dependency-cruiser.js`…) y el
-> `go-arch-lint check` se corren cuando su tooling se instale. Estado del enforcer por nodo en su frontmatter.
+> `contrato-de-caja-es-fitness-function` a enforced (`TestBoxContractValidatesAgainstSchema`). **HS-09
+> (Fase D del Mapa) sumó 3 boundaries FE `enforced`** — `fe-taxonomia-componentes` (canvas⊥chrome,
+> `pnpm depcruise` verde: 76 módulos/0 violaciones), `fe-tokens-contrato` (stylelint strict-value verde +
+> tokens 6→10 regenerados) y `fe-visual-fitness` (`pnpm test` = 40 story-tests verdes en Playwright
+> Chromium; migrado `vitest.workspace.ts`→`vitest.config.ts`) — **sin sumar checks** (solo cambio de
+> `status`). → **8 boundaries enforced en total** (2 HS-06 + 3 HS-08 + 3 HS-09). El resto sigue
+> `proposed`; `fe-topologia-fsd` y `fe-transporte-independiente` quedan proposed (el 2º hasta que exista
+> `app/realtime/` SSE en Hito 3). El `go-arch-lint check` corre cuando su binario/config se instale.
+> Estado del enforcer por nodo en su frontmatter.
 
 ## Subdirectorios
 
@@ -107,7 +112,7 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
 | Conexión CC | subproceso `claude` + **stream-json** por stdin/stdout (patrón conductor) |
 | Índice | **modernc.org/sqlite** (puro-Go, WAL, desechable) · JSONL = verdad |
 | Transporte | **SSE** multiplexado (`event: map\|dock\|run`) |
-| Frontend | Vite+React SPA `go:embed` · **React Flow 12** · **Zustand** + hash-state |
+| Frontend | Vite+React SPA `go:embed` · Mapa = **HTML+SVG** bandas/carriles (React Flow 12 → Organigrama, HS-09) · **Zustand** + hash-state |
 | Dock | **AG-UI** (taxonomía, emisor Go propio) · **assistant-ui** · **CodeMirror 6** + merge |
 | Arch as code | JSON Schema 2020-12 → quicktype (Go+TS) · go-arch-lint + depguard · D2+Mermaid · MADR-proyección del LEDGER |
 | FE topología (HS-05) | **FSD-lite** (`web/src/{app,pages,widgets,features,entities,shared}`; `pages`=composition-roots por hash-state, sin router) · **dependency-cruiser** (gate) + steiger |
