@@ -35,7 +35,7 @@
       resuelto por medición — «Firmo de momento», 2026-07-07)
 - [x] decisiones.md (6 entradas, todas cerradas)
 - [x] spec.md (RF-80..96 + Gherkin + trazabilidad) + design.md (UI al pixel) — 🧑‍⚖️
-      **esperando firma del paquete**
+      **PAQUETE FIRMADO** (operador «firmo», 2026-07-07) → implementación AUTORIZADA
 - [ ] implementación + stories
 - [ ] PARIDAD.md verificada → gate final (esqueleto listo, 16 filas)
 
@@ -88,9 +88,12 @@
   FIRMADO completo.** Specs escritos: `spec.md` (RF-80..96, Gherkin, trazabilidad a
   mockup:línea de v6/`b2b7104`) + `design.md` (anatomía, tokens, tabla clase→contenido,
   estados, a11y) + `PARIDAD.md` esqueleto (16 filas).
-- **Próximo paso:** 🧑‍⚖️ el operador firma el PAQUETE (spec+design) → arranca la
-  implementación (FE: inspector.tsx + entities/arnes/model/doctrina.ts + selectors ·
-  Go: endpoint fuente confinado) llenando PARIDAD fila por fila.
+- **PAQUETE FIRMADO (2026-07-07).** Implementación autorizada; el prompt riguroso de
+  arranque vive en [`PROMPT-implementacion.md`](./PROMPT-implementacion.md) (fase de
+  revisión previa → diseño técnico → implementación por RF → validación tests +
+  Chrome DevTools funcional Y visual → PARIDAD fila por fila).
+- **Próximo paso:** nueva conversación ejecuta ese prompt. Al cerrar: PARIDAD ✅,
+  gates verdes, «Retomar aquí» actualizado.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
