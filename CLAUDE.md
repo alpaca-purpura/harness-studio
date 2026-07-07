@@ -44,8 +44,8 @@ stream-json (live) + OTel (hooks/skills) + JSONL (enumerar/replay, jamás parsea
 taxonomía **AG-UI** sobre SSE (emisor Go propio) + **assistant-ui** + **CodeMirror 6/merge**;
 component-selection (format-authoring = trampa). **SSE** multiplexado 1 conexión. **Estado FE** =
 Zustand + hash-state. **Arquitectura as code** = árbol [`arch/`](./arch/INDEX.md) (16 boundaries +
-`conventions/` = **97 checks** · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; runner
-futuro `arnesia conformance` corre ambos. Corrección propagada: `--bare` rompe auth de suscripción
+`conventions/` = **97 checks** · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; el runner
+`arnesia conformance` (construido en HS-08) corre ambos. Corrección propagada: `--bare` rompe auth de suscripción
 (knowledge headless v1.1). **HS-06** endureció el shell v1 (2 boundaries `enforced`: superficie-local-
 confinada + sesion-viva-consistente; fitness tests corriendo).
 
@@ -76,30 +76,50 @@ FUSIONADO (intención+cableado+Gherkin+arquetipo+perfil_harness) + §8 doctrina 
 **Estado:** fase 1 (Visión) ✓ · fase 2 UX (HS-03) ✓ firmada it.13 · **fase 3 arquitectura (HS-04
 backend + HS-05 frontend) — as code COMPLETA** · **HS-06 endurecimiento multisesión + confinamiento local
 (aislamiento CC por-tab confirmado real; S1 auth Host+Origin+token · S2 cwd por arnés · S3–S6 stream
-confiable; 2 boundaries nacen enforced)** · **HS-07 doctrina propia v1 as-code (operacionalizamos Agentic
-BPM; contrato fusionado + nodo `harness-profile` + 2 boundaries → knowledge 12 nodos·138 checks · arch
-16 boundaries·97 checks)** · **HS-08 fase 4 specs (dogfood-first) — doctrina BAJADA A EJECUTABLE: contrato
-de caja fusionado con diente (`box.contract.schema.json`+`domain.Contract`, 3 ejes, test verde) · `Clase`
-canónica de 10 primitivas · manifiesto del arnés en `graph.l0` (fases·spine·META) · motor `arnesia conformance`
-construido (hexagonal, RulesetPort parsea knowledge/+arch/ = 235 checks a datos, adapters arch-test/schema/
-go-arch-lint/static-scan/nl-judge; G1 schema-gate + G2 spine-consistencia parametrizados por el spine declarado)
-· fixture dogfood `dev-full-cycle.graph.json` verde**. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
+confiable)** · **HS-07 doctrina propia v1 as-code (operacionalizamos Agentic BPM; contrato fusionado +
+nodo `harness-profile` → knowledge 12 nodos·138 checks · arch 16 boundaries·97 checks)** · **HS-08 fase 4
+specs (dogfood-first) — doctrina BAJADA A EJECUTABLE: contrato de caja fusionado con diente
+(`box.contract.schema.json`+`domain.Contract`, 3 ejes) · `Clase` canónica de 10 primitivas · manifiesto del
+arnés en `graph.l0` (fases·spine·META) · motor `arnesia conformance` construido (hexagonal; 235 checks a
+datos — honesto: **24 pass real + 211 `deferred`** en `--todo`; la potencia determinista vive en la ruta
+`--arnes` = **13/13 verde** en el dogfood)** · **fase 5 (Implementación, HS-09) EN CURSO — Hito 1 del Mapa
+LANDEADO y VERIFICADO EN VIVO** (commits `31a7532`/`c013dc3`/`9cd8e77`/`92b0bcf`): el Mapa (**sustrato
+HTML+SVG**, `<MapCanvas>` en `widgets/map-canvas`) renderiza el dogfood real `dev-full-cycle` servido por el
+loader dogfood→índice (Guardia · carriles por fase · Base; nodos por `clase`; `ComingSoon` ya swapeado;
+consola limpia) + **inspector S3 (`getNode`) y picker (`listHarnesses`) construidos**; solo capa
+**Estructura** (Tokens/Desempeño/Proceso esperan telemetría JSONL → indexer real). **8 boundaries enforced**
+(2 HS-06 + 3 HS-08 + 3 FE HS-09). **HS-10 (2026-07-07): auditoría 4-frentes + CI REPARADO 3/3 VERDE**
+(primer main verde en ≥7 pushes: pnpm · **go-arch-lint VIVO en CI** — al arrancar cazó violación real
+usecase→mechanism → puerto `SchemaValidator` · golangci 66→0 · lefthook activo · job rust con sidecar) +
+**nomenclatura de reconocimiento FIRMADA v1** (`arch/contracts/nomenclatura-arnes.md`: unidad reconocible =
+plugin CC | **arnés instalado primera clase** · manifiesto `arnes.l0.json` en la raíz · 10 reconocedores
+clase→ubicación · `no-reconocido` VISIBLE con warn) + **empaquetado (c) FIRMADO** (3 cuerpos VIGENTE,
+`research/2026-07-05-arquitectura-inyeccion-knowhow.md`: `go:embed` del ruleset + kit/doctrina
+materializados a `~/.arnesia/` e inyectados por flags al spawn; **② jamás se escribe en ③**; ver
+METODOLOGIA §9). **HS-11 (2026-07-07) LANDEADO — la app CONTIENE la doctrina, los 3 puentes E2E:**
+① loader real por nomenclatura (`internal/adapters/loader` + `arnesia index <dir>`; **dogfood = arnés
+REAL en disco** `dogfood/dev-full-cycle/` plugin-form; round-trip dir→grafo→`conformance --arnes`
+**13/13 PASS**; edges derivados de `necesita`, `ruta` NO cablea; `no-reconocido` visible) · ② doctrina
+inyectada al spawn (`kit/` arnesia-kit embebido `all:` → `~/.arnesia` por huella sha256 →
+`--plugin-dir`/`--append-system-prompt-file`/`--add-dir`, sin `--bare`; ② ↛ ③) · ③ conformance portable
+(paquete raíz `doctrina` go:embed · parser/schemas a fs.FS · scope `fabrica`|`arnes` ·
+`ConformancePort.RunGraph` + **endpoint `GET /api/harnesses/{id}/conformance`**; verificado fuera del
+repo: 235 embebidos, `--arnes` 12/13 honesto). Extra: ErrorBoundary + banda-fallback FE (suite 47/47) ·
+`claude` multi-PATH para GUI · ola de sync completa (METODOLOGIA §9 «3 cuerpos» · 7 orígenes · CADENCE×2
+· UX 12/10 · debate 3 VISION cerrado). **Próximo:** Hito 2 del Mapa (plan showcase kitchen-sink +
+doctrina-visible, gates 0/1 firmados, `research/2026-07-06-plan-hito2-doctrina-edicion-showcase/`,
+working tree del operador) · cablear loader→índice del daemon · bundle instalador.
+**Deuda restante (no bloquea):** cablear `BoxConductor` al daemon + endpoint `control_request` role/ttl
+(Fase E del plan Hito 2) · loader→índice daemon · go:embed de la SPA · instalador GoReleaser · codegen
+`gen/` · capas Tokens/Desempeño/Proceso esperan telemetría · los 211 checks `deferred` del ruleset → CI ·
+3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel). Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
 un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
 N:1 con arnés, con su conversación CC viva; estado CC vivo `streaming/await/idle`; persisten) · vistas =
 tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K) como dock derecho colapsable. Portafolio con
 2 lentes: **Organigrama** (arneses por empresa/puesto, «reporta a», libre 2D) ↔ Cuadrícula.
 App = fábrica de arneses (crear + mantener), NO cockpit de empresa; metadata puesto·empresa·
 reporta-a + marketplace por empresa/arnés. Mockups de shell: `mockups/arnesia-shell-lab.html`
-(compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada). **Próximo
-(fase 5 — Implementación, HS-09): MVP del Mapa** sobre el arnés dogfood real (`dev-full-cycle`).
-Hito 1 = Mapa read-only navegable (backend: loader dogfood→índice, único cambio imprescindible —hoy el
-endpoint sirve un demo de 2 nodos—; FE: tipos del grafo + `api.getGraph` + slice `entities/arnes` +
-`widgets/map-canvas` con **layout de carriles custom** [Guardia·fases·Base] + nodos por `clase`; swap del
-`ComingSoon`). Hito 2 = inspector S3 (`getNode`) + picker (`listHarnesses`); solo capa **Estructura**
-(Tokens/Desempeño/Proceso esperan telemetría JSONL → indexer real). **Deuda paralela registrada (no
-bloquea Mapa):** cablear `BoxConductor`+`KitProvisioner` al daemon (falta adapter `ArtifactReader`) ·
-endpoint `control_request` role/ttl · go-arch-lint config+binario · los 211 checks `deferred` del ruleset
-(linters externos a CI). Restos multisesión: worktree · gobierno de presupuesto · OTel.**
+(compara 4 paradigmas) · `mockups/arnesia-shell-A-galaxia.html` (dirección firmada).
 Norte de la fase = [`UX.md`](./UX.md) (decisiones firmadas · inventario de funcionalidades
 al corte · backlog · registro iteración por iteración). **Reglas de negocio / metodología
 cementadas** = [`METODOLOGIA.md`](./METODOLOGIA.md) (ArnesIA dueño de crear Y mantener ·

@@ -61,7 +61,12 @@ type MechanismAdapter interface {
 }
 
 // ConformancePort is the inbound port: "run the ruleset relevant to target → report".
-// The CLI and (future) HTTP handler depend on this, not on the concrete engine.
+// The CLI and the HTTP handler depend on this, not on the concrete engine.
 type ConformancePort interface {
 	Run(ctx context.Context, target Target) (domain.ConformanceReport, error)
+	// RunGraph validates an in-memory arnés graph (raw graph.l0 JSON) — la vía del
+	// endpoint del daemon: el Mapa audita lo que el índice ya sirve, sin pasar por
+	// disco. baseDir resuelve los fuente_path relativos del grafo para el firewall
+	// scan; vacío = firewall diferido honesto si ningún path resuelve.
+	RunGraph(ctx context.Context, raw []byte, baseDir string) (domain.ConformanceReport, error)
 }

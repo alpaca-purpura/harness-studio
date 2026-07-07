@@ -7,8 +7,12 @@ Los tipos de este directorio se **generan** desde el single source of truth en
 [`../../boundaries/contrato-de-caja-es-fitness-function.md`](../../boundaries/contrato-de-caja-es-fitness-function.md)
 (check `tipos-generados`).
 
-Vacío por ahora: no hay código Go/TS todavía (fase 5). Cuando aterrice el módulo, un
-`go:generate` / target de build corre:
+Vacío por ahora — pero NO porque falte código: el código Go/TS existe desde HS-06/HS-08
+(`internal/`+`cmd/`, `web/src/`). Lo que AÚN no corrió es el **codegen**: `gen/go` y `gen/ts`
+siguen vacíos, `domain.Contract` y los tipos TS del grafo están escritos **a mano**, y los checks
+`tipos-generados`/`dtos-generados` están en `warn` (deuda registrada; el step
+`openapi-gen-check` de CI se auto-activa cuando el directorio generado exista). Cuando se cablee,
+un `go:generate` / target de build corre:
 
 ```
 # dominio (Go + TS de una sola fuente)

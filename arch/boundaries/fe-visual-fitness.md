@@ -52,7 +52,7 @@ repo. ⇐ L1: story-as-test.
   `vitest.workspace.ts`), el project `storybook` que transforma stories→tests.
 - **3 checks en una corrida** (`pnpm test` → `vitest run` → project `storybook`): render+`play` · a11y axe ·
   coverage. **Regresión visual** por `storybook-addon-vis` (baselines en `web/`), 100% local. ⇐ L1: a11y,
-  visual. Estado real: **40 story-tests en 11 archivos, verdes** (Playwright Chromium headless).
+  visual. Estado real: **story-tests verdes en Playwright Chromium headless** — el conteo crece con cada story (40 al corte HS-09 · ≥45 HS-11); el número exacto no se cementa para no re-driftear.
 - **Determinismo Mint-first:** el visual corre en **Playwright Chromium dentro de contenedor Linux**
   (casar con dev Mint, evitar drift de font-AA cross-OS); animaciones y transiciones no-deterministas
   desactivadas en snapshots; el viewport del canvas se mide en tamaño fijo (los 7 shots = 1680×1000).
@@ -78,7 +78,7 @@ repo. ⇐ L1: story-as-test.
 ## Changelog
 
 - 2026-07-06 · v1.1 · `proposed → enforced` (HS-09, Fase D). El MVP del Mapa es la primera superficie que
-  ejercita story-as-test de verdad: **40 story-tests en 11 archivos, verdes** (`pnpm test`, Playwright
+  ejercita story-as-test de verdad: **suite verde completa** (40 al corte HS-09, crece con cada story) (`pnpm test`, Playwright
   Chromium headless). Migrado el enforcer de `vitest.workspace.ts` (Vitest 4 removió `defineWorkspace`) a
   `vitest.config.ts` (`test.projects`, project `storybook`). Corregido el ejemplo de UI pesada (canvas del
   Mapa HTML+SVG, no «nodos React Flow» — RF se reserva al Organigrama). Sin cambio de checks (5).

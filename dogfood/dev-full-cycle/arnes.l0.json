@@ -1,0 +1,22 @@
+{
+  "id": "dev-full-cycle",
+  "rol": "Ingeniería · Desarrollo full-cycle",
+  "proceso": "desarrollo de software end-to-end (idea → released)",
+  "empresa": "alpacapurpura",
+  "reporta_a": null,
+  "canal": "beta",
+  "marketplace": "alpacapurpura/prenter-marketplace",
+  "fases": ["spec", "build", "review", "release"],
+  "spine": {
+    "inicial": "idea",
+    "terminales": ["released"],
+    "estados": ["idea", "spec", "build", "review", "released"],
+    "transiciones": [
+      { "de": "idea", "a": "spec" },
+      { "de": "spec", "a": "build" },
+      { "de": "build", "a": "review" },
+      { "de": "review", "a": "released" },
+      { "de": "review", "a": "build" }
+    ]
+  }
+}

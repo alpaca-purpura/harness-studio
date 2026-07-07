@@ -1,12 +1,13 @@
-// PROPUESTA (HS-09 · Gate 1 · spec §2.3 · architecture §5). Two map facets are NOT L0
-// fields yet — doctrine is SILENT on `origen`, and the rule `alw` (always-on) axis lives
-// only as display (UX.md:534, no schema field). The Map draws them as PROPOSAL from these
-// ISOLATED fixture sets — never read off a node as if it were data — and labels them
-// PROPUESTA in the help panel, until they are ratified as-code (schema + Box). Isolating
-// the sets here (not in the canvas) is the mitigation of architecture §9.1.
-//
-// These ids are demo-fixture data (Luana + dogfood). When `origen`/`alw` land as real L0
-// fields, `isDelPuesto`/`alwFor` derive from the node and these sets disappear.
+// PROPUESTA (HS-09 · Gate 1 · spec §2.3 · architecture §5 · cementado en Fase D).
+// Estado as-code REAL de las dos facetas: `origen` YA es campo L0
+// (graph.l0.schema.json $defs.nodo.origen, estandar|del-puesto) pero lo ESTAMPA el
+// provisioner al instanciar ③ — hasta que ese provisioning exista, ningún nodo lo trae
+// poblado y el Mapa lo dibuja desde estos sets fixture AISLADOS, rotulados PROPUESTA.
+// `alw` NUNCA será campo L0: decisión firmada (knowledge/rules.md L2.6) — se DERIVA de
+// `fuente_path`/`paths:` de la regla; este set fixture es el stand-in hasta que el
+// loader real derive. Aislar los sets aquí (no en el canvas) es la mitigación de
+// architecture §9.1: cuando el dato real llegue, `isDelPuesto` pasa a leer node.origen,
+// `alwFor` pasa a derivar, y estos sets desaparecen.
 
 // PROPOSED_DEL_PUESTO — ids whose `origen` is "del-puesto" (filled at onboarding with
 // rol·proceso·empresa knowledge) → dashed left border. The rest are "estandar" (from the

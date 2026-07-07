@@ -73,6 +73,18 @@ func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.Agen
 	if opts.MaxTurns > 0 {
 		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
 	}
+	// Inyección de doctrina (HS-11 puente 2, research firmado HS-10): los cuerpos ①+②
+	// entran por FLAGS, session-scoped, desde dirs de la app — jamás se escribe nada en
+	// el árbol del arnés (② ↛ ③). Sin --bare: la suscripción del usuario queda intacta.
+	for _, d := range opts.Injection.PluginDirs {
+		args = append(args, "--plugin-dir", d)
+	}
+	if f := opts.Injection.SystemPromptFile; f != "" {
+		args = append(args, "--append-system-prompt-file", f)
+	}
+	for _, d := range opts.Injection.AddDirs {
+		args = append(args, "--add-dir", d)
+	}
 
 	// The binary is the operator-configured local `claude` (conductor pattern,
 	// local-first) and the args are built right here — never remote input.

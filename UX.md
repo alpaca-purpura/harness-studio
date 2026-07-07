@@ -4,6 +4,10 @@
 > HS-03 del LEDGER), la firma cierra la **fase** pero este doc queda **VIVO**: sigue creciendo con
 > nuevas iteraciones (no se congela). Norte: [`VISION.md`](./VISION.md) v3. Mockup v1 del Mapa =
 > herencia validada en esencia (HS-02).
+>
+> **Sync 2026-07-07 (HS-10, edición mecánica — doc vivo):** S9 pasa de «11 elementos/nodos» a
+> **12** (nodo `harness-profile`, HS-07) y el inventario S2 de «7 tipos» a **10 clases** (enum
+> canónico L0 de HS-08; tokens de color 6→10 resueltos en HS-09 Fase D). Sin cambio de diseño.
 
 ## Bifurcaciones firmadas (grill 2026-07-04)
 
@@ -61,7 +65,7 @@
 | S6 | **Tren** (pestaña hermana) | beta → eval-gate → promote → publish (release train KIT-06 operado, no duplicado) |
 | S7 | **Historia** (pestaña hermana) | Versiones, diffs, hitos del arnés |
 | S8 | **Corridas** (pestaña hermana) | Corridas reales JSONL: Conversación/Árbol/Waterfall + attribution paso→mapa + replay |
-| S9 | **Estándar** (screen global, cross-arnés) | El árbol de conocimiento vivo (`knowledge/`): 11 elementos con L1/L2/checks + botón «Actualizar estándar» → drawer de novedades. Chip global en el header |
+| S9 | **Estándar** (screen global, cross-arnés) | El árbol de conocimiento vivo (`knowledge/`): 12 elementos con L1/L2/checks (12º = `harness-profile`, HS-07) + botón «Actualizar estándar» → drawer de novedades. Chip global en el header |
 
 **Navegación:** toolbar global = wordmark · picker de arnés (con canal+versión) · pestañas
 Mapa / Diagnóstico / Tren / Historia · conmutador de capas (visible solo en Mapa).
@@ -633,8 +637,10 @@ focus · toasts honestos.
 
 **III · Superficies de detalle (v3).**
 - **S2 Mapa:** Guardia / carriles-fase / Base + **bandas transversales** (Librería de expertos ·
-  Meta-harness·Git·Utilidades·Comandos · Marcas dormidas · Terceros·Clerk). **7 tipos**
-  color+forma+etiqueta (skill·agente·hook·knowledge·mcp·regla·**command /**). **4 capas con
+  Meta-harness·Git·Utilidades·Comandos · Marcas dormidas · Terceros·Clerk). **10 clases**
+  color+forma+etiqueta (enum canónico L0 de HS-08: skill·subagent·hook·rule·command·mcp·plugin·
+  settings·output-style·statusline — al corte it.13 eran 7 tipos; gap de tokens de color 6→10
+  resuelto en HS-09 Fase D). **4 capas con
   contrato de datos:** Estructura · Tokens (carga+30d, fórmula única, heat percentil, Σ carril,
   budget+Pareto, solape declarado) · Desempeño (inv×·éxito%·p95/invocación·sin-uso·gate-fallado·
   grosor de edge) · **Proceso = pipeline de contratos por caja** (entra→cajas→eval-gate chip→sale,
@@ -651,7 +657,7 @@ focus · toasts honestos.
 - **S5 Diagnóstico:** bandeja unificada estático+runtime, severidad, capa sugerida, «ver en el
   mapa», badge de count. **S6 Tren:** horno / eval-gate / listo / publicado; gate-fallado →
   «Reabrir en fábrica»; promote bloqueado por gate; destinos publish. **S7 Historia:** versiones +
-  deltas + hitos. **S9 Estándar (global):** 11 nodos + rail L1/L2/checks (severidad) + botón
+  deltas + hitos. **S9 Estándar (global):** 12 nodos (12º = `harness-profile`, HS-07) + rail L1/L2/checks (severidad) + botón
   Actualizar → drawer de novedades (tier híbrido auto vs requiere-OK, arneses afectados, cómo-
   aplicarlo con diff); deep-link `#/estandar/<nodo>`. **S4 Dock fábrica** (equivalente al chat
   dock): 5 modos (editar · crear-componente · crear-arnés · capturar-base · **importar arnés** →

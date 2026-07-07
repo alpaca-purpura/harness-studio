@@ -246,5 +246,8 @@ principios ni A1–A7.]*
 
 1. **Segundo cerebro** del arnés (vector DB / SQLite obligatorio en la constitución) — fase 3.
 2. Diseño fino del mapa, inspector y acciones — fase 2.
-3. Config de marketplace por proyecto (¿dónde se declara el destino?) — fase 3/4.
+3. Config de marketplace por proyecto (¿dónde se declara el destino?) — fase 3/4. *[Resuelto
+   (HS-08/HS-09): `marketplace` vive en el manifiesto del arnés (`graph.l0.schema.json:22` —
+   repo destino de publish, default alpacapurpura) + UX it.13 (marketplace por empresa con
+   override por arnés). Nota aditiva 2026-07-07, sync HS-10; no altera el texto firmado.]*
 4. Renombrar el repo `harness-studio` → `arnesia` — operativo, decide el operador.

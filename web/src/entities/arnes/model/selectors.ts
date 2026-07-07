@@ -20,14 +20,50 @@ const BASE_BANDS: ReadonlySet<Banda> = new Set<Banda>([
   "terceros",
 ])
 
+// Every banda the fixed geography knows how to place. Graphs arrive as JSON at runtime —
+// nothing guarantees the TS union — so anything else (absent OR outside the contract enum)
+// is «banda desconocida».
+const KNOWN_BANDS: ReadonlySet<string> = new Set<string>(["guardia", "fase", ...BASE_BANDS])
+
+// Where banda-desconocida nodes land: the `base` band of the Base region (canónico VISION A6),
+// the catch-all support band the canvas already renders.
+const FALLBACK_BAND: Banda = "base"
+
 // selectGuardia — the transversal hooks band (top).
 export function selectGuardia(g: Graph): Box[] {
   return g.nodos.filter((n) => n.banda === "guardia")
 }
 
-// selectBase — knowledge / rules / mcp / library bands (bottom).
+// selectBandaDesconocida — ids of the nodes whose banda falls in NO known region (absent or
+// unknown). Reconciliación honesta (arch/contracts/nomenclatura-arnes.md §4.5): these nodes
+// must stay VISIBLE — selectSoporte folds them into FALLBACK_BAND, and this set is the
+// detectable mark for consumers. El badge visual sobre el nodo llega cuando el WIP del Hito 2
+// (node-view/arnes-node) landee — hasta entonces el dato queda expuesto aquí, sin tocar esos
+// archivos en obra.
+export function selectBandaDesconocida(g: Graph): ReadonlySet<string> {
+  const ids = new Set<string>()
+  for (const n of g.nodos) {
+    if (n.banda === undefined || !KNOWN_BANDS.has(n.banda)) ids.add(n.id)
+  }
+  return ids
+}
+
+// selectBase — knowledge / rules / mcp / library bands (bottom), PLUS every banda-desconocida
+// node: they belong nowhere else, and invisible is a lie (§4.5).
 export function selectBase(g: Graph): Box[] {
-  return g.nodos.filter((n) => n.banda !== undefined && BASE_BANDS.has(n.banda))
+  const desconocida = selectBandaDesconocida(g)
+  return g.nodos.filter(
+    (n) => (n.banda !== undefined && BASE_BANDS.has(n.banda)) || desconocida.has(n.id),
+  )
+}
+
+// selectSoporte — the nodes of ONE support band, exactly as the canvas groups the Base region
+// (map-canvas iterates SUPPORT_BANDS). The fallback band also receives the banda-desconocida
+// nodes so they render visibly instead of vanishing in silence.
+export function selectSoporte(g: Graph, banda: Banda): Box[] {
+  if (banda !== FALLBACK_BAND) return g.nodos.filter((n) => n.banda === banda)
+  const desconocida = selectBandaDesconocida(g)
+  return g.nodos.filter((n) => n.banda === FALLBACK_BAND || desconocida.has(n.id))
 }
 
 // selectLanes — the phase lanes, ordered by the arnés's declared `fases`. Fase-band nodes

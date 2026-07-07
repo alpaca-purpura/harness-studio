@@ -59,6 +59,19 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Lista de corridas. }
+  /harnesses/{id}/conformance:
+    get:
+      operationId: getConformance
+      summary: >-
+        Auditoría del arnés (HS-11, puente 3): el motor corre el scope `arnes` (schema graph.l0 +
+        contratos de caja + spine + escritor único + firewall CC-native) sobre el grafo indexado —
+        pass/fail real con ruleset EMBEBIDO en el binario, sin repo fuente. El scope `fabrica`
+        (arch-test/go-arch-lint) no pasa por aquí: vive en el CI del repo.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "ConformanceReport: target + results[] {check{id,severidad,que,mecanismo,enforced_by}, veredicto pass|fail|error|deferred|n/a, detalle}." }
+        "404": { description: Arnés no indexado. }
 
   /arneses:
     get:

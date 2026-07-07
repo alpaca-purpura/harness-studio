@@ -1,0 +1,67 @@
+package provision_test
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	doctrina "github.com/alpacapurpura/arnesia"
+	"github.com/alpacapurpura/arnesia/internal/adapters/provision"
+)
+
+// TestProvisionMaterializesAndIsIdempotent verifica el puente 2 (HS-11): la doctrina y
+// el kit embebidos se materializan bajo el dir de la app, la Injection apunta a rutas
+// reales FUERA de cualquier arnés (② ↛ ③), y una segunda provisión no re-escribe (la
+// huella de contenido gobierna el refresh).
+func TestProvisionMaterializesAndIsIdempotent(t *testing.T) {
+	base := t.TempDir()
+	p, err := provision.New(base, doctrina.Kit, doctrina.Files)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inj, err := p.Provision(context.Background())
+	if err != nil {
+		t.Fatalf("provision: %v", err)
+	}
+
+	// La Injection apunta a los tres cuerpos materializados.
+	wantFiles := []string{
+		filepath.Join(base, "kit", ".claude-plugin", "plugin.json"),
+		filepath.Join(base, "kit", "skills", "forjar-caja", "SKILL.md"),
+		filepath.Join(base, "kit", "skills", "auditar-arnes", "SKILL.md"),
+		inj.SystemPromptFile, // doctrine.md suelto (--append-system-prompt-file).
+		filepath.Join(base, "knowhow", "skills.md"),
+		filepath.Join(base, "knowhow", "harness-profile.md"),
+	}
+	for _, f := range wantFiles {
+		if _, err := os.Stat(f); err != nil {
+			t.Errorf("falta materializado: %s (%v)", f, err)
+		}
+	}
+	if len(inj.PluginDirs) != 1 || inj.PluginDirs[0] != filepath.Join(base, "kit") {
+		t.Errorf("PluginDirs = %v", inj.PluginDirs)
+	}
+	if len(inj.AddDirs) != 1 || inj.AddDirs[0] != filepath.Join(base, "knowhow") {
+		t.Errorf("AddDirs = %v", inj.AddDirs)
+	}
+
+	// Idempotencia: mismo binario → misma huella → el stamp no cambia y un archivo
+	// tocado a mano NO se re-escribe en el mismo proceso (cache) ni en otro (huella).
+	stamp := filepath.Join(base, ".doctrina-version")
+	before, rerr := os.ReadFile(stamp) //nolint:gosec // G304: ruta dentro del TempDir del propio test.
+	if rerr != nil {
+		t.Fatal(rerr)
+	}
+	if _, perr := p.Provision(context.Background()); perr != nil {
+		t.Fatal(perr)
+	}
+	after, rerr2 := os.ReadFile(stamp) //nolint:gosec // G304: ídem.
+	if rerr2 != nil {
+		t.Fatal(rerr2)
+	}
+	if string(before) != string(after) {
+		t.Error("el stamp cambió entre provisiones idénticas")
+	}
+}

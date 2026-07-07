@@ -37,9 +37,9 @@ señal en el mapa) que vuelve el estándar algo que ArnesIA puede **medir** por 
 
 | Nodo | Elemento | Estado | Versión | Checks |
 |------|----------|--------|---------|--------|
-| [`elements/skills.md`](./elements/skills.md) | Skills (SKILL.md, agent skills) | 🌱 vivo | 1.1 | 17 |
+| [`elements/skills.md`](./elements/skills.md) | Skills (SKILL.md, agent skills) | 🌱 vivo | 1.2 | 17 |
 | [`elements/hooks.md`](./elements/hooks.md) | Hooks (settings.json events) | 🌱 vivo | 1.0 | 12 |
-| [`elements/rules.md`](./elements/rules.md) | Rules / memoria (CLAUDE.md, AGENTS.md, imports) | 🌱 vivo | 1.1 | 13 |
+| [`elements/rules.md`](./elements/rules.md) | Rules / memoria (CLAUDE.md, AGENTS.md, imports) | 🌱 vivo | 1.2 | 13 |
 | [`elements/subagents.md`](./elements/subagents.md) | Subagents (.claude/agents) | 🌱 vivo | 1.1 | 13 |
 | [`elements/commands.md`](./elements/commands.md) | Slash commands (custom + built-in) | 🌱 vivo | 1.0 | 11 |
 | [`elements/mcp.md`](./elements/mcp.md) | MCP servers | 🌱 vivo | 1.0 | 11 |
@@ -48,9 +48,9 @@ señal en el mapa) que vuelve el estándar algo que ArnesIA puede **medir** por 
 | [`elements/output-styles.md`](./elements/output-styles.md) | Output styles | 🌱 vivo | 1.0 | 8 |
 | [`elements/statusline.md`](./elements/statusline.md) | Status line | 🌱 vivo | 1.0 | 8 |
 | [`elements/headless-sdk.md`](./elements/headless-sdk.md) | Headless / Agent SDK | 🌱 vivo | 1.1 | 11 |
-| [`elements/harness-profile.md`](./elements/harness-profile.md) | Perfil de harness (loop · subagentes · routing) | 🌱 vivo | 1.0 | 11 |
+| [`elements/harness-profile.md`](./elements/harness-profile.md) | Perfil de harness (loop · subagentes · routing) | 🌱 vivo | 1.1 | 11 |
 
-Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se actualiza) · 🌳 estable · 🔍 en-revisión.
+Leyenda de estado (enum `status` de CADENCE): 🌱 vivo (nace, se actualiza) · 🌳 estable · 🔍 en-revisión.
 **Total: 12 nodos · 138 checks evaluables · pasada fundacional 2026-07-04; headless→v1.1 en HS-04;
 **doctrina v1 (HS-07, 2026-07-05):** nace el nodo 12 `harness-profile` (11 checks) + skills/rules/
 subagents bumpeados (+5 checks del firewall CC-native y perfil de harness).**
@@ -75,7 +75,7 @@ la UX: qué badge/estado pinta ArnesIA en Diagnóstico / capa Desempeño / banda
 - **secreto en config**: mismo check en [[settings-permissions]], [[mcp]], [[plugins]], [[statusline]].
 - **costo de contexto always-on**: [[rules]] + [[mcp]] + [[plugins]] suman contra el presupuesto
   (principio 11); atribución solapada declarada (METODOLOGIA §4).
-- **frío / sin uso 30d**: [[skills]], [[subagents]] (maquinaria muerta), [[mcp]], [[plugins]] —
+- **frío / sin uso 30d**: [[skills]], [[subagents]] (maquinaria muerta), [[mcp]] —
   superficie fría = hallazgo de poda.
 - **anti-telephone**: contrato de retorno `<veredicto>→<path>` en [[subagents]], que el conductor
   headless ([[headless-sdk]]) consume estructurado.

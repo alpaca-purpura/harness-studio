@@ -6,10 +6,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	iofs "io/fs"
 	"os"
 	"path/filepath"
 	"sort"
 
+	doctrina "github.com/alpacapurpura/arnesia"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -41,16 +43,31 @@ func runConformance(args []string) error {
 		return err
 	}
 
+	// Fuente del ruleset: el repo en disco si existe (dev — árbol VIVO, editable), el
+	// go:embed del binario si no (máquina de cliente: portabilidad firmada HS-10). El
+	// scope `fabrica` (arch-test/go-arch-lint) exige el repo; sin él difiere honesto.
 	repoRoot := *root
 	if repoRoot == "" {
-		r, err := findRepoRoot()
-		if err != nil {
-			return err
+		if r, err := findRepoRoot(); err == nil {
+			repoRoot = r
 		}
-		repoRoot = r
 	}
-
-	rs := ruleset.New(repoRoot)
+	var (
+		rs      ports.RulesetPort
+		schemas *mechanism.SchemaSet
+	)
+	if repoRoot != "" {
+		rs = ruleset.New(repoRoot)
+		schemas = mechanism.NewSchemaSet(filepath.Join(repoRoot, "arch", "contracts", "schema"))
+	} else {
+		fmt.Fprintln(os.Stderr, "conformance: sin repo fuente — ruleset embebido en el binario (scope fabrica diferido)")
+		rs = ruleset.NewFromFS(doctrina.Files)
+		sub, err := iofs.Sub(doctrina.Files, "arch/contracts/schema")
+		if err != nil {
+			return fmt.Errorf("schemas embebidos: %w", err)
+		}
+		schemas = mechanism.NewSchemaSetFS(sub)
+	}
 	adapters := []ports.MechanismAdapter{
 		mechanism.NewArchTest(repoRoot),
 		mechanism.NewGoArchLint(repoRoot),
@@ -58,7 +75,6 @@ func runConformance(args []string) error {
 		mechanism.StaticScan{},
 		mechanism.SchemaAdapter{},
 	}
-	schemas := mechanism.NewSchemaSet(filepath.Join(repoRoot, "arch", "contracts", "schema"))
 	svc := usecase.NewConformanceService(repoRoot, rs, schemas, adapters)
 
 	target, err := resolveTarget(fs.Arg(0), *arnes, *todo)

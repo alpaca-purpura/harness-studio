@@ -5,23 +5,34 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	iofs "io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
+	doctrina "github.com/alpacapurpura/arnesia"
 	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
+	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
+	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
+	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
+	"github.com/alpacapurpura/arnesia/internal/adapters/provision"
 	"github.com/alpacapurpura/arnesia/internal/adapters/publish"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	httpapi "github.com/alpacapurpura/arnesia/internal/adapters/transport/http"
 	"github.com/alpacapurpura/arnesia/internal/adapters/transport/sse"
 	"github.com/alpacapurpura/arnesia/internal/adapters/watch"
+	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
@@ -63,9 +74,9 @@ func usage() {
 usage: arnesia <command> [flags]
 
 commands:
-  serve     watcher + index + HTTP/SSE API + embedded UI on :4200
+  serve     watcher + index + HTTP/SSE API on :4200 (la UI la sirve Tauri/vite; go:embed de la SPA = deuda)
   open      open the UI (stub)
-  index     rebuild the disposable index from the JSONL corpus (stub)
+  index     load an arnés directory into a graph.l0 (nomenclatura-arnes.md)
   publish   publish a harness to its marketplace repo (stub)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
 `)
@@ -95,7 +106,7 @@ func runServe(args []string) error {
 	if err := idx.Rebuild(ctx); err != nil {
 		return fmt.Errorf("index rebuild: %w", err)
 	}
-	agent := claudecode.New(*claudeBin) // the Dock conductor.
+	agent := claudecode.New(resolveClaudeBin(*claudeBin)) // the Dock conductor.
 
 	sessionStore, err := store.NewRegistry(*sessionsPath)
 	if err != nil {
@@ -118,11 +129,46 @@ func runServe(args []string) error {
 	// Transport + services.
 	broker := sse.NewBroker()
 	mapSvc := usecase.NewMapService(idx)
-	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns)
+	// Inyección de doctrina (HS-11, puente 2): materializa kit+knowhow embebidos a
+	// ~/.arnesia (idempotente por huella) e inyecta --plugin-dir/--append-system-prompt-
+	// file/--add-dir a cada spawn. El usuario no configura nada.
+	injector, err := provision.New("", doctrina.Kit, doctrina.Files)
+	if err != nil {
+		return fmt.Errorf("provisioner: %w", err)
+	}
+
+	// Conformance del daemon (HS-11, puente 3): SIEMPRE el ruleset/schemas embebidos —
+	// el binario instalado se comporta igual que el de dev; el scope `fabrica`
+	// (arch-test/go-arch-lint, repoRoot="") difiere honesto, el scope `arnes` (schema +
+	// spine + escritor único + firewall) da pass/fail real vía RunGraph.
+	schemaFS, err := iofs.Sub(doctrina.Files, "arch/contracts/schema")
+	if err != nil {
+		return fmt.Errorf("schemas embebidos: %w", err)
+	}
+	confSvc := usecase.NewConformanceService("", ruleset.NewFromFS(doctrina.Files),
+		mechanism.NewSchemaSetFS(schemaFS), []ports.MechanismAdapter{
+			mechanism.NLJudge{}, mechanism.StaticScan{}, mechanism.SchemaAdapter{},
+		})
+
+	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns, injector)
 	if err != nil {
 		return fmt.Errorf("session service: %w", err)
 	}
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, arnesReg, broker, httpapi.AuthConfigFor(*addr, *authToken))
+	// baseFor: el dir del arnés registrado resuelve los fuente_path relativos del
+	// firewall; un arnés no registrado (fixtures embebidos) usa el repo si existe.
+	confBase := func(id string) string {
+		for _, ap := range arnesReg.List() {
+			if ap.Arnes == id {
+				return ap.Path
+			}
+		}
+		if r, err := findRepoRoot(); err == nil {
+			return r
+		}
+		return ""
+	}
+
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, arnesReg, confSvc, confBase, broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {
@@ -162,20 +208,87 @@ type brokerPublisher struct{ b *sse.Broker }
 
 func (p brokerPublisher) Publish(eventType string, data []byte) { p.b.Publish(eventType, data) }
 
+// resolveClaudeBin hardens `claude` discovery for GUI launches: una app de escritorio
+// Linux (lanzada desde .desktop, no desde una shell) frecuentemente NO lleva
+// ~/.local/bin en su PATH — el binario existe pero LookPath no lo ve y el spawn moriría
+// silencioso hacia el Dock (hallazgo de la auditoría 2026-07-07). Un nombre pelado que
+// PATH no resuelve se sondea en las rutas de instalación conocidas; el error del spawn
+// sigue siendo la autoridad final.
+func resolveClaudeBin(bin string) string {
+	if strings.ContainsRune(bin, os.PathSeparator) {
+		return bin // ruta explícita del operador: se respeta tal cual.
+	}
+	if _, err := exec.LookPath(bin); err == nil {
+		return bin
+	}
+	home, _ := os.UserHomeDir()
+	for _, p := range []string{
+		filepath.Join(home, ".local", "bin", bin),
+		filepath.Join(home, ".claude", "local", bin),
+		filepath.Join("/usr/local/bin", bin),
+		filepath.Join("/opt/homebrew/bin", bin),
+	} {
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			slog.Info("claude resuelto fuera de PATH (entorno GUI)", "path", p)
+			return p
+		}
+	}
+	slog.Warn("claude no está en PATH ni en rutas conocidas — instala Claude Code o pasa --claude", "bin", bin)
+	return bin
+}
+
 // runOpen opens the UI. Stub.
 func runOpen(_ []string) error {
 	fmt.Println("arnesia open: TODO(fase 5) — open the embedded UI / Tauri shell")
 	return nil
 }
 
-// runIndex rebuilds the disposable index. Stub over the in-memory store.
-func runIndex(_ []string) error {
-	idx := index.New()
-	if err := idx.Rebuild(context.Background()); err != nil {
+// runIndex loads an arnés DIRECTORY into its graph.l0 via the nomenclatura loader
+// (HS-11, puente 1: archivo-por-archivo → grafo, nomenclatura-arnes.md v1) and emits
+// the graph. Sin argumento, re-seedea el índice in-memory (comportamiento previo).
+func runIndex(args []string) error {
+	fs := flag.NewFlagSet("index", flag.ExitOnError)
+	out := fs.String("o", "", "write the graph.l0 JSON to this file (default: stdout)")
+	fs.Usage = func() {
+		fmt.Fprint(os.Stderr, `usage: arnesia index [-o out.graph.json] [<dir-del-arnés>]   (flags ANTES del dir — semántica flag de Go)
+
+  <dir>   raíz de un arnés (plugin CC con .claude-plugin/, o proyecto con .claude/):
+          se reconoce archivo-por-archivo según arch/contracts/nomenclatura-arnes.md
+          y se emite su graph.l0 (fuente_path ESTAMPADOS; no-reconocido VISIBLE).
+  sin dir: re-seedea el índice in-memory embebido (fixtures dogfood).
+`)
+	}
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	fmt.Println("arnesia index: rebuilt (in-memory; TODO fase 5: modernc.org/sqlite)")
-	return nil
+	dir := fs.Arg(0)
+	if dir == "" {
+		idx := index.New()
+		if err := idx.Rebuild(context.Background()); err != nil {
+			return err
+		}
+		fmt.Println("arnesia index: rebuilt (in-memory; el índice SQLite llega con el indexer JSONL)")
+		return nil
+	}
+
+	g, err := loader.LoadArnes(dir)
+	if err != nil {
+		return fmt.Errorf("index %s: %w", dir, err)
+	}
+	b, err := json.MarshalIndent(g, "", "  ")
+	if err != nil {
+		return err
+	}
+	b = append(b, '\n')
+	if *out != "" {
+		if werr := os.WriteFile(*out, b, 0o600); werr != nil {
+			return werr
+		}
+		fmt.Fprintf(os.Stderr, "arnesia index: %s → %s (%d nodos, %d edges)\n", dir, *out, len(g.Nodes), len(g.Edges))
+		return nil
+	}
+	_, err = os.Stdout.Write(b)
+	return err
 }
 
 // runPublish publishes a harness. Stub over the git publisher.

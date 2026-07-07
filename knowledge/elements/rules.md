@@ -1,7 +1,7 @@
 ---
 elemento: rule
-version: 1.1
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-06
 status: vivo
 fuentes:
   - url: https://code.claude.com/docs/en/memory
@@ -116,6 +116,11 @@ en it.6 como 6º tipo de primera clase).
 
 ## Changelog
 
+- 2026-07-06 · v1.2 · **HS-09 Fase D — anillo RETROACTIVO (disciplina reparada en HS-10, 2026-07-07):**
+  +regla L2.6 «activación = DERIVADA del scope» — decisión firmada Gate 1 #2 del Mapa: el facet de
+  activación que pinta la subbanda Reglas (always-on vs condicional) se **deriva** de `fuente_path` /
+  frontmatter `paths:`; NO se añade un campo `alw` al modelo. Sin cambio de checks (13). La edición
+  entró el 2026-07-06 sin bump ni anillo; este anillo lo repara retroactivamente. · HS-09 Fase D.
 - 2026-07-05 · v1.1 · **HS-08 (sync):** frontmatter `version`/`updated` alineado a v1.1 (el bump de
   contenido lo hizo HS-07; el INDEX ya lo listaba en 1.1). Sin cambio de checks.
 - 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +1 check `context-injection-native` — el conocimiento

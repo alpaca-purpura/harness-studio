@@ -1,7 +1,7 @@
 ---
 regla: core-no-importa-shell
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-07
 status: proposed
 ledger: HS-04
 sources:
@@ -13,7 +13,9 @@ sources:
     revisado: 2026-07-05
 enforced_by:
   # «core» = agregado conceptual de {domain, usecase, ports}; NO existe un componente `core` en
-  # .go-arch-lint.yml — el boundary se enforça sobre esos tres (cada uno cannotDependOn: [shell]).
+  # .go-arch-lint.yml — v3 es allow-list (default-deny): ningún componente del core lista un shell
+  # en mayDependOn. El shell real es Rust (web/src-tauri/), fuera del grafo Go; su frontera la
+  # guarda arch_test.go:TestCoreHasNoShellImport.
   - fitness/.go-arch-lint.yml#domain
   - fitness/.go-arch-lint.yml#usecase
   - fitness/.go-arch-lint.yml#ports
@@ -41,12 +43,17 @@ El `serve` de `arnesia` expone TODO el producto como **HTTP/SSE `:4200` + SPA `g
 contrato único es lo que vuelve el shell intercambiable (decisión HS-04: shell v1 = **Tauri 2**,
 con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: sidecar.
 
-- **`internal/core/**` (dominio + casos de uso + puertos) NO importa `internal/shell/**` ni
-  ningún paquete de Tauri.** El shell es un cliente del daemon, no al revés. ⇐ L1: hexagonal.
+- **El core (`internal/{domain,usecase,ports}`) NO importa ningún paquete `shell` ni bindings de
+  Tauri/Wails.** El shell real es el crate Rust [`web/src-tauri/`](../../web/src-tauri/) (Tauri 2)
+  — un proceso aparte, fuera del grafo de imports Go; el check guarda además que jamás aparezca
+  un `shell` Go ni un binding (`tauri`, `wailsapp/wails`). El shell es un cliente del daemon, no
+  al revés. ⇐ L1: hexagonal.
   Nota: «core» es un **agregado conceptual** de los componentes reales `{domain, usecase, ports}`
   de [`.go-arch-lint.yml`](../fitness/.go-arch-lint.yml) (no hay componente `core`); el boundary se
-  enforça sobre esos tres + `arch_test.go:TestCoreHasNoShellImport`.
-- El shell (`shell/` = crate Tauri + launcher) **solo** conoce: cómo levantar/attach-ear el
+  enforça sobre esos tres + `arch_test.go:TestCoreHasNoShellImport`. Desde HS-10 el linter corre
+  en CI (`go-arch-lint check --project-path . --arch-file arch/fitness/.go-arch-lint.yml`,
+  deepScan off — el grafo de imports es el enforcement).
+- El shell ([`web/src-tauri/`](../../web/src-tauri/) = crate Tauri 2 + launcher) **solo** conoce: cómo levantar/attach-ear el
   daemon (`attach si :4200 está arriba, si no spawnea`), setear el env de Mint
   (`WEBKIT_DISABLE_DMABUF_RENDERER=1`), y abrir el WebView. No consume el dominio directo.
 - Consecuencia que protege la decisión de Tauri-desde-v1: **«servable headless» sigue gratis** —
@@ -62,7 +69,7 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| core-no-shell-import | ningún paquete de `internal/core/**` importa `internal/shell/**` o `tauri` | error | «core importa el shell (acopla el daemon a su envoltorio)» | arch_test.go:TestCoreHasNoShellImport · go-arch-lint#{domain,usecase,ports} |
+| core-no-shell-import | ningún paquete del core (`internal/{domain,usecase,ports}`) importa un paquete `shell` ni `tauri`/`wails` | error | «core importa el shell (acopla el daemon a su envoltorio)» | arch_test.go:TestCoreHasNoShellImport · go-arch-lint#{domain,usecase,ports} |
 | shell-solo-composition | solo el shell/launcher levanta o attachea el daemon; el core no auto-lanza ventana | warn | «lógica de ventana en el core» | arch_test.go:TestCoreHasNoShellImport |
 | daemon-servable-headless | existe un entrypoint `serve` que corre sin shell (test de humo) | error | «el daemon no arranca sin shell» | arch_test.go |
 | mint-env-en-launcher | el launcher setea `WEBKIT_DISABLE_DMABUF_RENDERER` (Tauri, Linux) | warn | banda Guardia «WebView Mint sin mitigación DMABUF» | arch_test.go |
@@ -72,3 +79,8 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = hexagonal (Cockburn) + sidecar Tauri 2. L2
   amarra shell v1 = Tauri sobre el daemon-core `:4200`; divergencia declarada vs browser-first del
   research (operador eligió Tauri-desde-v1). 4 checks.
+- 2026-07-07 · v1.1 · Sync HS-10: el shell real es el crate Rust `web/src-tauri/` (Tauri 2), no un
+  `shell/` en la raíz — rutas de L2 corregidas; `fitness/.go-arch-lint.yml` corre en CI desde
+  HS-10 (`--project-path . --arch-file arch/fitness/.go-arch-lint.yml`, deepScan off — el linter
+  de imports es el enforcement; v3 allow-list, sin `cannotDependOn`). Sin cambios de checks ni de
+  status.

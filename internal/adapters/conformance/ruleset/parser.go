@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 
@@ -21,23 +21,28 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Loader parses the on-disk knowledge/ + arch/ trees under repoRoot.
+// Loader parses the knowledge/ + arch/ trees of an fs.FS (el disco del repo en dev; el
+// embed del binario en una instalación de cliente — misma lógica, cero divergencia:
+// boundary doctrina-una-fuente-dos-targets del research de inyección, firmado HS-10).
 type Loader struct {
-	repoRoot string
-	dirs     []string
+	fsys fs.FS
+	dirs []string
 }
 
 var _ ports.RulesetPort = (*Loader)(nil)
 
-// New returns a Loader rooted at repoRoot. It reads the three check-bearing trees:
-// knowledge/elements, arch/boundaries and arch/conventions.
-func New(repoRoot string) *Loader {
+// New returns a Loader over the on-disk repo tree rooted at repoRoot.
+func New(repoRoot string) *Loader { return NewFromFS(os.DirFS(repoRoot)) }
+
+// NewFromFS returns a Loader over any fs.FS carrying the three check-bearing trees:
+// knowledge/elements, arch/boundaries and arch/conventions (rutas slash, raíz del FS).
+func NewFromFS(fsys fs.FS) *Loader {
 	return &Loader{
-		repoRoot: repoRoot,
+		fsys: fsys,
 		dirs: []string{
-			filepath.Join("knowledge", "elements"),
-			filepath.Join("arch", "boundaries"),
-			filepath.Join("arch", "conventions"),
+			"knowledge/elements",
+			"arch/boundaries",
+			"arch/conventions",
 		},
 	}
 }
@@ -47,24 +52,23 @@ func New(repoRoot string) *Loader {
 func (l *Loader) Load(_ context.Context) (domain.Ruleset, error) {
 	var rs domain.Ruleset
 	for _, d := range l.dirs {
-		base := filepath.Join(l.repoRoot, d)
-		if _, err := os.Stat(base); err != nil {
+		if _, err := fs.Stat(l.fsys, d); err != nil {
 			continue
 		}
-		err := filepath.WalkDir(base, func(path string, de fs.DirEntry, err error) error {
+		err := fs.WalkDir(l.fsys, d, func(p string, de fs.DirEntry, err error) error {
 			if err != nil {
 				return err // an unreadable entry must surface, not silently shrink the ruleset.
 			}
-			if de.IsDir() || !strings.HasSuffix(path, ".md") {
+			if de.IsDir() || !strings.HasSuffix(p, ".md") {
 				return nil
 			}
-			name := strings.TrimSuffix(filepath.Base(path), ".md")
+			name := strings.TrimSuffix(path.Base(p), ".md")
 			if strings.HasPrefix(name, "INDEX") || strings.HasPrefix(name, "CADENCE") {
 				return nil
 			}
-			checks, perr := parseFile(path)
+			checks, perr := parseFile(l.fsys, p)
 			if perr != nil {
-				return fmt.Errorf("%s: %w", path, perr)
+				return fmt.Errorf("%s: %w", p, perr)
 			}
 			rs.Checks = append(rs.Checks, checks...)
 			return nil
@@ -92,13 +96,13 @@ var (
 )
 
 // parseFile reads one node .md and returns its checks. elemento = the file basename.
-func parseFile(path string) ([]domain.Check, error) {
-	raw, err := os.ReadFile(path) //nolint:gosec // G304: path comes from walking the repo's own knowledge/+arch/ trees — the ruleset IS those files (local-first).
+func parseFile(fsys fs.FS, p string) ([]domain.Check, error) {
+	raw, err := fs.ReadFile(fsys, p)
 	if err != nil {
 		return nil, err
 	}
 	text := string(raw)
-	elemento := strings.TrimSuffix(filepath.Base(path), ".md")
+	elemento := strings.TrimSuffix(path.Base(p), ".md")
 
 	var fm frontmatter
 	if m := sepFrontmatter.FindStringSubmatch(text); m != nil {

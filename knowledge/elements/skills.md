@@ -1,7 +1,7 @@
 ---
 elemento: skill
-version: 1.1
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-07
 status: vivo
 conformance:
   # Subconjunto dogfood cableado a mecanismo real (HS-08, Ola 1.5). El resto de los
@@ -80,7 +80,9 @@ frente (trunca a 1.536) · nombres en **gerundio** (`processing-pdfs`), nunca `h
 casar «grados de libertad» con la fragilidad (prosa para juicio, script exacto para operaciones
 frágiles) · retar cada párrafo con «¿Claude ya sabe esto?» · scripts deterministas > código
 generado para lo frágil · `context: fork` + `agent:` cuando la skill es tarea autocontenida
-(no forkear contenido de solo-referencia). *(oficial: best-practices)*
+(no forkear contenido de solo-referencia) · evitar lenguaje time-sensitive (fechas/deadlines
+que caducan); lo obsoleto va a una sección «patrones antiguos», no al cuerpo vigente.
+*(oficial: best-practices)*
 
 **Seguridad (L1.8):** auditar scripts empaquetados de skills no propias (llamadas de red,
 instrucciones que no casan con el propósito). Estudio a escala (arxiv 2601.10338, 2026-01):
@@ -127,7 +129,7 @@ METODOLOGIA §2):
 | skill-name-format | `name` ≤64, lowercase+guiones, = dir, sin reservados | error | badge «nombre inválido — no carga como skill» | L1.3 |
 | skill-desc-missing | `description` presente | error | badge «sin trigger — el modelo nunca la invoca sola» | L1.3 |
 | skill-desc-what-when | description trae capacidad **y** cláusula «usar cuando…» | warn | badge «descripción débil (falta el cuándo)» | L1.7 · L2.2 |
-| skill-desc-length | description+when_to_use <1.536 chars, caso clave al frente | warn | badge «se trunca en el listado — reordena» | L1.5 |
+| skill-desc-length | description+when_to_use <1.536 chars, caso clave al frente | warn | badge «se trunca en el listado — reordena» | L1.4 |
 | skill-desc-pov | tercera persona (sin «I can help»/«you can») | info | badge «voz inconsistente en el matching» | L1.7 |
 | skill-body-linecount | cuerpo SKILL.md <500 líneas | warn | badge «cuerpo >500 líneas — mover a references/» | L1.5 |
 | skill-ref-depth | referencias a un nivel, sin cadena SKILL→A→B | warn | badge «referencia anidada — lectura parcial» | L1.5 |
@@ -144,6 +146,11 @@ METODOLOGIA §2):
 
 ## Changelog
 
+- 2026-07-07 · v1.2 · **HS-10 (ola de sync, auditoría 2026-07-07):** anclas reparadas —
+  `skill-desc-length` ahora deriva de L1.4 (ahí vive el dato del truncado a 1.536 chars; citaba
+  L1.5) · L1.7 gana la práctica «evitar lenguaje time-sensitive; lo obsoleto a sección "patrones
+  antiguos"» (best-practices oficial — aditivo, sin renumerar; respalda `skill-time-sensitive`,
+  que citaba L1.7 sin frase que lo sostuviera). Sin cambio de checks (17). · auditoría doctrina+app.
 - 2026-07-05 · v1.1 · **Doctrina v1 (HS-07):** +3 checks del firewall CC-native y progressive
   disclosure — `no-phantom-frontmatter` (defensa contra BMAD-ismos que CC ignora),
   `skill-script-for-deterministic` (scripts > prosa para lo frágil, L1.7 hecho check),

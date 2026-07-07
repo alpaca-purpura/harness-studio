@@ -7,27 +7,34 @@ package mechanism
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"sync"
 
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-// SchemaSet loads and caches JSON Schemas from a directory, resolving sibling $refs (e.g.
-// graph.l0.schema.json → box.contract.schema.json) from the same dir. It is the shared
+// SchemaSet loads and caches JSON Schemas from an fs.FS, resolving sibling $refs (e.g.
+// graph.l0.schema.json → box.contract.schema.json) from the same root. It is the shared
 // schema-validation engine used by the arnés conformance path and the schema adapter.
+// El FS es el disco del repo en dev y el go:embed del binario en cliente (portabilidad
+// firmada HS-10) — misma lógica, cero divergencia.
 type SchemaSet struct {
-	dir      string
+	fsys     fs.FS
 	mu       sync.Mutex
 	resolved map[string]*jsonschema.Resolved
 }
 
-// NewSchemaSet returns a SchemaSet rooted at the schema directory
+// NewSchemaSet returns a SchemaSet rooted at the on-disk schema directory
 // (arch/contracts/schema under the repo root).
-func NewSchemaSet(schemaDir string) *SchemaSet {
-	return &SchemaSet{dir: schemaDir, resolved: map[string]*jsonschema.Resolved{}}
+func NewSchemaSet(schemaDir string) *SchemaSet { return NewSchemaSetFS(os.DirFS(schemaDir)) }
+
+// NewSchemaSetFS returns a SchemaSet over any fs.FS whose root contains the schema
+// files (p.ej. fs.Sub(doctrina.Files, "arch/contracts/schema")).
+func NewSchemaSetFS(fsys fs.FS) *SchemaSet {
+	return &SchemaSet{fsys: fsys, resolved: map[string]*jsonschema.Resolved{}}
 }
 
 // resolvedFor loads+resolves a schema file (by basename), caching the result. The Loader
@@ -52,7 +59,7 @@ func (s *SchemaSet) resolvedFor(file string) (*jsonschema.Resolved, error) {
 }
 
 func (s *SchemaSet) loadSchema(file string) (*jsonschema.Schema, error) {
-	raw, err := os.ReadFile(filepath.Join(s.dir, filepath.Base(file)))
+	raw, err := fs.ReadFile(s.fsys, path.Base(file))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +73,7 @@ func (s *SchemaSet) loadSchema(file string) (*jsonschema.Schema, error) {
 // siblingLoader resolves a remote $ref URI to a schema file in the same directory,
 // matched by the URI's basename.
 func (s *SchemaSet) siblingLoader(uri *url.URL) (*jsonschema.Schema, error) {
-	return s.loadSchema(filepath.Base(uri.Path))
+	return s.loadSchema(path.Base(uri.Path))
 }
 
 // Validate checks a JSON-decoded instance against the named schema file. A nil error

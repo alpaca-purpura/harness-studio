@@ -8,7 +8,15 @@
 export { KIND, type KindVisual } from "./model/kind"
 export { handleFor, isCaja, isPropuesto, transLabel } from "./model/node-view"
 export { alwFor, isDelPuesto } from "./model/proposals"
-export { type Lane, selectBase, selectEdges, selectGuardia, selectLanes } from "./model/selectors"
+export {
+  type Lane,
+  selectBandaDesconocida,
+  selectBase,
+  selectEdges,
+  selectGuardia,
+  selectLanes,
+  selectSoporte,
+} from "./model/selectors"
 export type {
   Arnes,
   Banda,

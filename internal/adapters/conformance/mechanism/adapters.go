@@ -35,6 +35,14 @@ func (*ArchTest) Mecanismo() domain.Mecanismo { return domain.MecArchTest }
 // Run executes the check's named fitness test via `go test -run` and maps the outcome:
 // pass / fail (first FAIL line) / deferred (t.Skip stub) / error (dangling enforced_by).
 func (a *ArchTest) Run(ctx context.Context, c domain.Check, _ ports.Target) domain.CheckResult {
+	if a.repoRoot == "" {
+		// Scope `fabrica` (decisión HS-10): los arch-tests auditan el código FUENTE de
+		// ArnesIA y exigen repo + toolchain Go — en un binario instalado no hay ninguno
+		// de los dos. Fuera del repo difieren honesto; el scope `arnes` (schema, spine,
+		// firewall) es el que viaja al cliente.
+		return result(c, domain.VeredictoDiferido,
+			"scope fabrica: requiere el repo fuente + toolchain Go (no viaja en el binario instalado)")
+	}
 	test := testNameOf(c.EnforcedBy)
 	if test == "" {
 		return result(c, domain.VeredictoDiferido,
@@ -105,6 +113,12 @@ func (*GoArchLint) Mecanismo() domain.Mecanismo { return domain.MecGoArchLint }
 // Run invokes `go-arch-lint check` once, caches the verdict, and reuses it for every
 // check routed here; a missing binary defers honestly, never a fabricated pass.
 func (g *GoArchLint) Run(ctx context.Context, c domain.Check, _ ports.Target) domain.CheckResult {
+	if g.repoRoot == "" {
+		// Scope `fabrica` (HS-10): igual que arch-test, el grafo de imports solo existe
+		// donde está el código fuente — fuera del repo difiere honesto.
+		return result(c, domain.VeredictoDiferido,
+			"scope fabrica: requiere el repo fuente (no viaja en el binario instalado)")
+	}
 	if _, err := exec.LookPath("go-arch-lint"); err != nil {
 		return result(c, domain.VeredictoDiferido, "go-arch-lint no instalado — enforcer externo no corrido aquí")
 	}

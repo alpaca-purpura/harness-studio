@@ -86,6 +86,10 @@ firmadas + inventario + backlog) y [`METODOLOGIA.md`](./METODOLOGIA.md) (reglas 
 ArnesIA dueño de crear Y mantener · fábrica de cajas · contrato de caja §3 · reglas de honestidad).
 Base de evidencia = árbol [`knowledge/`](./knowledge/INDEX.md) (11 nodos · **122 checks** al corte).
 
+> **Nota (2026-07-07, sync HS-10):** al corte de la firma eran **121 checks**; el check 122 llegó
+> después, con la corrección `--bare` de HS-04 (nodo `headless-sdk` v1.0→v1.1). El «122 al corte»
+> de arriba se conserva como historia; la fila del Log de esta ficha arrastra el mismo matiz.
+
 *Excepción declarada (2026-07-05):* HS-03 está **firmada** (regla Rust: firmado = congelado), PERO
 `UX.md` y `METODOLOGIA.md` quedan **docs VIVOS** por decisión del operador — siguen creciendo con
 nuevas iteraciones; no se congelan. (El árbol `knowledge/` también vive por diseño.) La firma
@@ -418,6 +422,11 @@ salvedad de los `deferred`) · nota del shell actualizada. **Conteos intactos** 
 - **Hito 3 (diferible):** realtime SSE `event: map` + indexer JSONL real (reemplaza el índice stub in-memory) +
   crear/editar sobre el lienzo (dock + nodos punteados).
 
+> **Nota (2026-07-07, sync HS-10):** el `<ReactFlow>` del plan del Hito 1 quedó SUPERADO al
+> ejecutarse: el sustrato firmado del Mapa es **HTML+SVG** (bandas/carriles + overlay SVG de
+> edges — Gate 1 / Fase D de HS-09, commit `9cd8e77`); **React Flow 12 queda reservado al
+> Organigrama** (lienzo libre 2D). El texto del plan de arriba se conserva como historia.
+
 *Deuda paralela registrada (no bloquea el Mapa):* cablear `BoxConductor`+`KitProvisioner` al daemon (falta
 `ArtifactReader`) · endpoint HTTP `control_request` con `role`/`ttl` · go-arch-lint (binario + `.go-arch-lint.yml`;
 declarado en 3 boundaries, hoy inoperable) · convertir `deferred`→real cableando linters externos (biome/golangci/
@@ -481,7 +490,64 @@ METODOLOGIA 5→7 orígenes · debate 3 VISION · tensión `alw` en proposals.ts
 loader real por nomenclatura · inyección al conductor · conformance embebido + endpoint) · ErrorBoundary +
 fallback `no-reconocido` en FE · migrar `dogfood/skills/` al layout L1.
 
-<!-- Próximas: HS-11, … -->
+### HS-11 · Los 3 puentes — la app CONTIENE la doctrina (ola de sync + loader + inyección + conformance portable) — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-07):* "Haz la ola de sync mecánico y HS-11 y todo lo que falte resolver de la
+auditoría que has hecho." (Sobre las 4 firmas de HS-10 del mismo día.)
+
+*Desarrollo:* **Ola de sync mecánico** (3 agentes en paralelo, verificada con el motor: 235 intacto):
+knowledge/ (CADENCE des-staleado: 12 elementos + `académica` + runner HS-08 + filename-manda · rules.md
+v1.2 retroactivo por L2.6 · anclas skills.md reparadas · harness-profile v1.1 con 2 checks CABLEADOS a
+`box.contract.schema.json` → reparto real nl-judge 185 · arch-test 42 · schema 4 · go-arch-lint 3 ·
+static-scan 1) · arch/ (97/138/235 en CADENCE · gen/README y conventions/INDEX sin "fase 5" · shell =
+`web/src-tauri/` · go-arch-lint vivo en CI) · docs-norte (CLAUDE.md al día · METODOLOGIA 7 orígenes de
+`necesita.de` + **§9 «Los 3 cuerpos» canónica** + supersesión luana · VISION debate 3 CERRADO · UX 12
+elementos/10 clases · 2 notas aditivas en fichas HS-03/HS-09).
+
+**Los 3 puentes (código, todo verificado E2E):**
+**① Loader real por nomenclatura** — `internal/adapters/loader` implementa `nomenclatura-arnes.md` v1:
+detección plugin/`.claude/` · manifiesto `arnes.l0.json` · frontmatter fusionado → `domain.Contract` ·
+edges DERIVADOS (R1 `base:` → lee lector→conocimiento · R2 `caja:` → invoca; **`ruta[].a` NO genera
+edges** — decisión doctrinal: el rework vive en contrato+spine, no como cableado del Mapa) ·
+`no-reconocido` VISIBLE (nueva clase-marcador en schema+domain, NO 11ª primitiva) · CLI `arnesia index
+[-o out] <dir>`. **El dogfood se volvió arnés REAL en disco**: `dogfood/dev-full-cycle/` (plugin.json ·
+arnes.l0.json · 4 `skills/<id>/SKILL.md` con contrato fusionado completo · CLAUDE.md `std-spec`);
+migrado el layout plano viejo; `fuente_path` ×5 estampados en el fixture. **Round-trip verificado:
+dir → loader → graph.l0 → `conformance --arnes` = 13/13 PASS** (el firewall escanea los 5 fuentes reales).
+**② Inyección de doctrina al conductor** — `kit/` REAL en el repo (plugin `arnesia-kit`: `doctrine.md`
+overlay + skills `forjar-caja` y `auditar-arnes`) embebido (`all:kit`); `provision.Provisioner`
+materializa `~/.arnesia/{kit,doctrine.md,knowhow}` idempotente por huella sha256 del contenido;
+`SpawnOpts.Injection` → el conductor suma `--plugin-dir` / `--append-system-prompt-file` / `--add-dir`
+(SIN `--bare`; suscripción intacta); fallo de provisión = spawn sin doctrina + warn (guía sin bloqueo);
+**② jamás se escribe en ③** (METODOLOGIA §9). **③ Conformance portable** — paquete raíz `doctrina` con
+`go:embed` de knowledge/+arch/(md+schemas); parser y SchemaSet refactorizados a `fs.FS` (una lógica, dos
+fuentes); **scope `fabrica` vs `arnes`**: arch-test/go-arch-lint difieren honesto sin repo fuente; nuevo
+`ConformancePort.RunGraph` + **endpoint `GET /api/harnesses/{id}/conformance`** (el botón de auditoría
+del Mapa ya tiene sustrato). **Verificado fuera del repo**: binario en dir ajeno → 235 checks embebidos ·
+`--arnes` 12/13 (firewall diferido honesto sin baseDir).
+
+**Resto de la auditoría, resuelto:** ErrorBoundary FE (`shared/ui/error-boundary`) + banda desconocida →
+región Base VISIBLE + 2 stories de crash/fallback (**suite 47/47 verde**) · descubrimiento de `claude`
+multi-ruta para lanzamientos GUI (PATH de .desktop sin ~/.local/bin) · usage del daemon sin el "embedded
+UI" fantasma · `proposals.ts` des-staleado (`origen` = campo L0 real que estampa el provisioner; `alw`
+DERIVADO por decisión firmada, jamás campo) · openapi + path conformance · go-arch-lint con componentes
+nuevos (doctrina · provision · loader) · conteo de story-tests des-fragilizado en fe-visual-fitness.
+
+*Deuda que HS-11 deja registrada (no bloquea):* cablear el loader al índice del daemon (colisiona con el
+WIP del Hito 2 en `index/store.go`; hoy es CLI + los fixtures embebidos siguen) · BoxConductor +
+`control_request` (Fase E del plan Hito 2 del operador) · go:embed de la SPA en el daemon · bundle
+instalador (GoReleaser + sidecar automático) · bajar los 3 boundaries del research de inyección
+(`maquinaria-no-contamina-arnes` · `doctrina-una-fuente-dos-targets` · `telemetria-de-nacimiento`) a
+nodos formales de arch/ en la próxima cadencia.
+
+*Conecta:* HS-10 (las 4 firmas que habilitaron esto) · HS-08 (motor que ③ vuelve portable) · HS-07 (§8/
+harness-profile que el kit encarna) · research inyección 2026-07-05 (FIRMADO, ahora implementado) ·
+`arch/contracts/nomenclatura-arnes.md` v1 (spec de ①).
+
+*Siguiente:* Hito 2 del Mapa (working tree del operador, gates 2..6) · loader→índice del daemon ·
+instalador.
+
+<!-- Próximas: HS-12, … -->
 
 ## Log
 
@@ -500,3 +566,4 @@ fallback `no-reconocido` en FE · migrar `dogfood/skills/` al layout L1.
 | 2026-07-06 | **Retro-ajuste EJECUTADO: Fase D (arq as-code) + Fase F (código) en orden — Hito 1 del Mapa VIVO.** **Fase D** (commit `9cd8e77`): 🚩 corregido el pass FABRICADO (`fe-visual-fitness` enforced apuntaba a `vitest.workspace.ts` BORRADO → migrado a `vitest.config.ts`; verificado **40 story-tests verdes**); 3 boundaries FE proposed→**enforced** con enforcers verificados corriendo (`fe-taxonomia-componentes`/canvas⊥chrome = depcruise 76 mód/0 viol · `fe-tokens-contrato`/stylelint + kind 6→10 regenerado · `fe-visual-fitness`) → **8 enforced** (2 HS-06 + 3 HS-08 + 3 HS-09; sin sumar checks, 97 intacto). Las 6 decisiones del Gate 1 cementadas as-code: **#3 `origen`** = campo nuevo en `graph.l0.schema.json` (`$defs.nodo`, `estandar\|del-puesto`, ESTAMPADO al provisionar la instancia ③ — no maquinaria filtrándose, 3 cuerpos); **#2 `alw`** = DERIVADO de `fuente_path` en `rules.md` (sin campo nuevo); #1/#4/#5/#6 ya doctrina. C4 (`container.d2`) + propagación de la reversión firmada **HTML+SVG** del Mapa a VISION.md/CLAUDE.md (supera «React Flow para el Mapa» → RF = Organigrama) + tabla del gran plan al día (fase 4 ✓, fase 5 en curso). **Fase F** (commits `31a7532` backend + `c013dc3` frontend): loader del dogfood real (`dev-full-cycle`, 5 nodos/4 edges) al índice + `getNode`/`listHarnesses` cableados + `<MapCanvas>` HTML+SVG montado (swap del `ComingSoon`) + seed de la 1ª sesión al Mapa real. **Todo verde**: go build/vet/test `-race` · tsc strictest · biome · depcruise · steiger · stylelint · 40 story-tests (Playwright Chromium). Capas Tokens/Desempeño/Proceso staged (telemetría JSONL → Hito 3); `origen`/`alw` se dibujan PROPUESTA hasta que provisioning/telemetría los pueble. **Gate `G-hito1` VERIFICADO EN VIVO** (daemon `arnesia serve` :4200 + vite :5173 → browser Chromium): `GET /api/harnesses/dev-full-cycle/graph` sirve el dogfood real (5 nodos/4 edges, 200) y la vista Mapa lo RENDERIZA — Guardia «— sin hooks —» · 4 carriles spec/build/review/release con 1 caja c/u (handle `/spec-writer`… + transición del spine ◇ idea→spec…review→released) + edges invoca (backbone rojo) · Base con la regla `std-spec` (0 siempre/1 condicional) · capas Tokens/Desempeño/Proceso disabled «necesita telemetría» · **consola 0 errores/warnings**; screenshot revisado. Nota: el daemon NO sirve la SPA embebida aún (skeleton TODO); en dev la carga vite, en prod la cargará Tauri. **Deuda Fase E (conductor/permisos/`control_request`/go-arch-lint/`deferred`→CI) sigue diferida honesta.** | HS-09 |
 | 2026-07-07 | **Auditoría integral doctrina⇄app (4 frentes, verificada en vivo) + enforcement REPARADO DE RAÍZ.** Doctrina sana y aritmética honesta (138+97=235 ✓ · 8 enforced ✓ · dogfoods validan 0 viol.) pero **la app NO la contiene** (3 puentes bloqueantes: loader real · inyección a CC · conformance portable+endpoint) y **CI de main llevaba ≥5 pushes ROJO** sin bloquear nada (npm vs pnpm → enforcers FE jamás corrieron en CI · 66 hallazgos golangci · go-arch-lint roto por construcción · `openapi:gen` fantasma · lefthook sin instalar). **Reparado el mismo día:** ci.yml → pnpm + job rust activado (clippy verde) + guard honesto openapi · `.go-arch-lint.yml` a sintaxis v3 real (`cannotDependOn` no existía; deepScan off justificado) — **al arrancar cazó violación real**: `usecase` importaba `conformance/mechanism` → puerto `ports.SchemaValidator` + inyección desde cmd · golangci **66→0** (causa raíz, 8 nolint:gosec razonados) · lefthook vivo. **Hueco doctrinal mayor destapado:** la nomenclatura de reconocimiento archivo→grafo no estaba escrita → `arch/contracts/nomenclatura-arnes.md` **draft v0 PENDIENTE DE FIRMA** (plugin CC \| instalado · `arnes.l0.json` · 10 reconocedores · `no-reconocido` visible). Pendiente firma: D-a/D-b/D-c + empaquetado doctrina (rec.: embed ruleset + plugin propio, 3 cuerpos). | HS-10 |
 | 2026-07-07 | **4 firmas del operador ("Firmo las 4") — la ruta de los puentes queda decidida.** ① **Empaquetado (c) embed+plugin** (3 cuerpos VIGENTE: `go:embed` ruleset → conformance portable sin contexto LLM · kit/doctrina materializados en `~/.arnesia/` e inyectados por flags al spawn · ② jamás se escribe en ③) · ② **D-a** manifiesto `arnes.l0.json` en la raíz · ③ **D-b** arnés instalado = ciudadano de primera · ④ **D-c** `no-reconocido` visible con warn. `arch/contracts/nomenclatura-arnes.md` **v1 FIRMADA**; research de inyección estampado VIGENTE. Scope conformance: `fabrica` (CI del repo) vs `arnes` (portable). *Siguiente:* ola de sync mecánico + **HS-11 = los 3 puentes** (loader por nomenclatura · inyección al conductor · conformance embebido + endpoint). | HS-10 |
+| 2026-07-07 | **HS-11 EJECUTADO — la app CONTIENE la doctrina: ola de sync + los 3 puentes, todo E2E.** Sync (3 agentes, 235 intacto): CADENCE×2 des-staleados · rules v1.2 retroactivo · harness-profile v1.1 (2 checks→schema-validation) · METODOLOGIA 7 orígenes + **§9 «3 cuerpos»** · VISION debate 3 cerrado · UX 12/10 · CLAUDE.md al día. **① Loader real** (`internal/adapters/loader`, nomenclatura v1; edges derivados R1-lee/R2-invoca, `ruta` NO cablea; `no-reconocido` visible; `arnesia index <dir>`) + **dogfood = arnés REAL** (`dogfood/dev-full-cycle/` plugin-form) → **round-trip dir→grafo→conformance 13/13 PASS**. **② Inyección** (kit `arnesia-kit` embebido → `~/.arnesia` por huella → `--plugin-dir`/`--append-system-prompt-file`/`--add-dir`; ②↛③). **③ Conformance portable** (paquete raíz `doctrina` go:embed · parser/schemas a fs.FS · scope fabrica\|arnes · `RunGraph` + **endpoint `GET /api/harnesses/{id}/conformance`**) → verificado fuera del repo: 235 embebidos · --arnes 12/13 honesto. Extra: ErrorBoundary+banda-fallback FE (47/47) · claude multi-PATH GUI · proposals.ts honesto · clase-marcador en schema. Deuda registrada: loader→índice daemon (WIP Hito 2) · BoxConductor/control_request (Fase E operador) · SPA embed · instalador · 3 boundaries research→arch/. | HS-11 |

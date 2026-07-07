@@ -35,6 +35,13 @@ const (
 	ClaseSettings    Clase = "settings"
 	ClaseOutputStyle Clase = "output-style"
 	ClaseStatusline  Clase = "statusline"
+
+	// ClaseNoReconocido NO es una 11ª primitiva: es el marcador de reconciliación
+	// honesta del loader (nomenclatura-arnes.md §4.5, D-c firmada HS-10) — un archivo
+	// que ningún reconocedor entiende se emite VISIBLE con esta clase y un check warn,
+	// jamás se oculta ni se descarta. Excluida de Valid(): las 10 canónicas siguen
+	// siendo 10.
+	ClaseNoReconocido Clase = "no-reconocido"
 )
 
 // Valid reports whether c is one of the ten canonical L0 classes.

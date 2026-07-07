@@ -1,8 +1,19 @@
 ---
 elemento: harness-profile
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-07
 status: vivo
+conformance:
+  # Subconjunto dogfood cableado a mecanismo real (HS-10). El resto de los checks de este
+  # nodo son nl-judge → `arnesia conformance` los reporta `deferred` con honestidad. Estos
+  # dos corren de verdad en la ruta del arnés: el schema del contrato de caja exige
+  # `arquetipo` + `perfil_harness` en toda caja (allOf con diente, HS-08).
+  perfil-tipo-declarado:
+    mecanismo: schema-validation
+    enforced_by: box.contract.schema.json
+  arquetipo-declarado:
+    mecanismo: schema-validation
+    enforced_by: box.contract.schema.json
 fuentes:
   - url: https://arxiv.org/abs/2603.18916
     autoridad: académica
@@ -152,6 +163,11 @@ operacional**; la caja da **framed autonomy** a Claude Code para una etapa del p
 
 ## Changelog
 
+- 2026-07-07 · v1.1 · **HS-10 (ola de sync, auditoría 2026-07-07):** bloque `conformance:` en el
+  frontmatter — `perfil-tipo-declarado` y `arquetipo-declarado` cableados a mecanismo real
+  `schema-validation` / `box.contract.schema.json` (el schema exige `arquetipo`+`perfil_harness`
+  en toda caja vía allOf con diente — enforcement de facto desde HS-08, ahora declarado). Sin
+  cambio de checks (11). · auditoría doctrina+app.
 - 2026-07-05 · v1.0 · **Nodo fundacional (doctrina v1, ficha HS-07).** Nace el 12º elemento: el
   perfil de harness = 2º eje del contrato de caja (⊥ `meta.clase`). L1 de fuentes académicas
   (manifiesto Agentic BPM arXiv 2603.18916 + gobernanza arXiv 2504.03693) + industria (Sierra ADLC,

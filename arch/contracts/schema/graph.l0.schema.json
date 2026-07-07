@@ -66,8 +66,8 @@
     "clase": {
       "type": "string",
       "description": "La clase L0 del componente (meta.clase, I-75): qué primitiva CC-native ES. UNO de tres ejes ortogonales — clase (qué primitiva) ⊥ banda (región del mapa) ⊥ perfil_harness (cómo ejecuta); no se confunden. 10 primitivas placeables, alineadas a los nodos de knowledge/ que describen un componente ubicable. Labels canónicos (subagent/rule, no los legacy agente/regla). Aditivo: crece solo si la superficie CC suma una primitiva.",
-      "$comment": "HS-08 (doctrina v1): resuelto B3. Excluidos deliberadamente de `clase`: `headless` (run-mode/maquinaria, no un tipo de nodo) y `harness-profile` (el eje ortogonal perfil_harness). El legacy `knowledge` se pliega en `rule` (la memoria/imports CC-native de la banda Base — firewall §8.6). El eje banda/rol del mapa vive en `banda`, no aquí.",
-      "enum": ["skill", "subagent", "hook", "rule", "command", "mcp", "plugin", "settings", "output-style", "statusline"]
+      "$comment": "HS-08 (doctrina v1): resuelto B3. Excluidos deliberadamente de `clase`: `headless` (run-mode/maquinaria, no un tipo de nodo) y `harness-profile` (el eje ortogonal perfil_harness). El legacy `knowledge` se pliega en `rule` (la memoria/imports CC-native de la banda Base — firewall §8.6). El eje banda/rol del mapa vive en `banda`, no aquí. HS-11: `no-reconocido` NO es una 11ª primitiva — es el marcador de reconciliación honesta de nomenclatura-arnes.md §4.5 (D-c FIRMADA): un archivo que ningún reconocedor entiende se emite VISIBLE con esta clase (+ check warn), jamás se oculta ni crashea el Mapa.",
+      "enum": ["skill", "subagent", "hook", "rule", "command", "mcp", "plugin", "settings", "output-style", "statusline", "no-reconocido"]
     },
     "banda": {
       "type": "string",

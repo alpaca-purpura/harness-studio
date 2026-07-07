@@ -114,18 +114,25 @@ func (s *ConformanceService) ensureRuleset(ctx context.Context) (domain.Ruleset,
 
 // ── arnés conformance path (the dogfood's real verdicts, G1) ─────────────────
 
-// runArnes validates a concrete arnés graph: schema (manifiesto + each caja contract) +
-// spine/fase consistency + the CC-native firewall. These built-ins give real pass/fail.
-func (s *ConformanceService) runArnes(_ context.Context, target ports.Target) (domain.ConformanceReport, error) {
+// runArnes validates a concrete arnés graph from disk (la vía CLI `--arnes`).
+func (s *ConformanceService) runArnes(ctx context.Context, target ports.Target) (domain.ConformanceReport, error) {
 	raw, err := os.ReadFile(target.GraphPath)
 	if err != nil {
 		return domain.ConformanceReport{}, fmt.Errorf("leer arnés %s: %w", target.GraphPath, err)
 	}
+	return s.RunGraph(ctx, raw, s.repoRoot)
+}
+
+// RunGraph validates an in-memory arnés graph: schema (manifiesto + each caja contract)
+// + spine/fase consistency + the CC-native firewall. These built-ins give real
+// pass/fail — el scope `arnes` (HS-10): lo que viaja al binario instalado, sin repo
+// fuente ni toolchain. baseDir resuelve los fuente_path relativos para el firewall.
+func (s *ConformanceService) RunGraph(_ context.Context, raw []byte, baseDir string) (domain.ConformanceReport, error) {
 	var g domain.Graph
 	if err := json.Unmarshal(raw, &g); err != nil {
 		return domain.ConformanceReport{}, fmt.Errorf("decodificar arnés: %w", err)
 	}
-	rep := domain.ConformanceReport{Target: "arnes:" + arnesLabel(g, target.GraphPath)}
+	rep := domain.ConformanceReport{Target: "arnes:" + arnesLabel(g, "")}
 
 	// 1) Manifiesto + estructura del grafo contra graph.l0 (incluye META required y, vía
 	//    $ref, cada nodo.contract contra box.contract).

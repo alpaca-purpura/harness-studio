@@ -1,7 +1,7 @@
 ---
 regla: contrato-de-caja-es-fitness-function
-version: 1.1
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-07
 status: enforced
 ledger: HS-08
 sources:
@@ -46,8 +46,9 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
   METODOLOGIA §3/§6 pide: el eval-gate por-caja (A4), la detección de precondición (saltos de
   fase / guía sin bloqueo), y la validación de composición (huérfanos = input sin productor
   upstream; dead-ends = output que nadie consume). ⇐ L1: validar instancias.
-- **Puente con `knowledge/`:** este check es la versión-arquitectura del linter de 122 checks. El
-  runner `arnesia conformance` corre schema-validación (aquí) + go-arch-lint + los checks de
+- **Puente con `knowledge/`:** este check es la versión-arquitectura del estándar de `knowledge/`
+  (138 checks). El motor **`arnesia conformance`** (construido en HS-08) parsea `knowledge/` +
+  `arch/` = **235 checks a datos** y corre schema-validación (aquí) + go-arch-lint + los checks de
   metodología, mismo reporte severidad+señal.
 
 ## Checklist evaluable
@@ -64,4 +65,7 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = schema-first (JSON Schema 2020-12 +
   google/jsonschema-go). L2: `contract:` de caja y `meta.clase` L0 como single source → quicktype
   (Go+TS) + validación = fitness function del eval-gate A4 y la composición (huérfanos/dead-ends/
-  gate honesto). Puente con los 122 checks de knowledge. 4 checks.
+  gate honesto). Puente con el estándar de knowledge. 4 checks.
+- 2026-07-07 · v1.2 · Sync HS-10: la referencia «linter de 122 checks» apuntaba a un conteo y a un
+  runner futuros — el motor real es `arnesia conformance` (construido en HS-08; `knowledge/` = 138
+  checks, `knowledge/`+`arch/` = 235 checks a datos). Sin cambios de checks ni de status.

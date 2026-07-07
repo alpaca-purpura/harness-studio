@@ -10,8 +10,8 @@
 ## Por qué existe
 
 El arnés importa casi tanto como el modelo, y la superficie que lo dirige (skills, hooks,
-rules, subagents, commands, MCP, plugins, settings, output-styles, statusline, headless)
-**cambia cada semana**: aparecen comandos nuevos (hace un año no existía `/goal`), campos de
+rules, subagents, commands, MCP, plugins, settings, output-styles, statusline, headless,
+perfil de harness — 12 elementos; el nodo 12 nació en HS-07) **cambia cada semana**: aparecen comandos nuevos (hace un año no existía `/goal`), campos de
 frontmatter nuevos, eventos de hook nuevos, features que deprecan patrones viejos. Un estándar
 congelado envejece en días. Por eso el estándar de ArnesIA vive como **árbol versionado y
 aditivo**, no como doctrina de piedra.
@@ -27,13 +27,13 @@ Cada elemento de la superficie de Claude Code = un nodo = un archivo. Estructura
 
 ```markdown
 ---
-elemento: <skill|hook|rule|subagent|command|mcp|plugin|settings|output-style|statusline|headless>
+elemento: <skill|hook|rule|subagent|command|mcp|plugin|settings|output-style|statusline|headless|harness-profile>
 version: <n.m>              # sube con cada pasada que cambia el nodo (semver-lite)
 updated: <YYYY-MM-DD>       # fecha de la última pasada
 status: vivo | estable | en-revisión
 fuentes:                    # las fuentes vivas que se re-chequean en cada cadencia
   - url: <...>
-    autoridad: oficial | estándar-abierto | experto
+    autoridad: oficial | estándar-abierto | académica | experto
     revisado: <YYYY-MM-DD>
 ---
 
@@ -61,6 +61,11 @@ La columna «señal en el mapa» es el puente a UX: qué badge/estado pinta Arne
 Anillos de crecimiento. Una línea por pasada:
 `YYYY-MM-DD · vX.Y · qué se añadió/cambió/deprecó · quién/qué fuente lo disparó`
 ```
+
+> **El nombre de archivo ES el identificador del elemento** para el motor: el parser Go de
+> `arnesia conformance` usa el basename sin `.md` (no el campo `elemento:` del frontmatter).
+> Hoy `settings-permissions.md` (`elemento: settings`) y `headless-sdk.md` (`elemento: headless`)
+> divergen de su frontmatter — **el filename manda**.
 
 ## El ritual (cadencia semanal)
 
@@ -108,7 +113,9 @@ sobre cada arnés importado (METODOLOGIA §6 «conformación») y pinta puntos d
 propio» (VISION debate abierto #1). Por eso la disciplina importa: cada check mal puesto hoy
 es un falso positivo en el mapa mañana.
 
-> **Nota honesta (gap):** correr knowledge + `arch/` con **un solo runner** (`arnesia conformance`)
-> exige un **contrato de check común** — schema unificado con `enforced_by`/mecanismo por check —
-> **planificado como ficha HS-06**. Hoy los checks de este árbol NO llevan `enforced_by` (muchos son
-> telemetría/juicio-NL): la ejecución unificada es intención declarada, no soportada por el formato actual.
+> **Nota (actualizada 2026-07-07, HS-10):** el runner unificado **ya existe** — el motor
+> `arnesia conformance` se **construyó en HS-08** (hexagonal: `RulesetPort` parsea este árbol +
+> `arch/` = 235 checks a datos). Un nodo PUEDE cablear checks a mecanismo real vía bloque
+> `conformance:` en el frontmatter (`mecanismo` + `enforced_by` por check — `skills.md` ya lo
+> lleva); un check sin mecanismo real sale **`deferred` honesto** (muchos siguen siendo
+> telemetría/juicio-NL, cubiertos por el adapter `nl-judge`).

@@ -23,7 +23,7 @@ type errorBody struct {
 // drives the multisesión Dock; arneses is the arnés→path registry (per-session workdir
 // confinement); events is the SSE broker mounted at /events. auth confines the whole
 // surface (Host+Origin+token, boundary superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arneses ports.ArnesRegistry, events http.Handler, auth AuthConfig) http.Handler {
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 
 	// Liveness + the multiplexed SSE stream (the two endpoints the shell polls first).
@@ -36,6 +36,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, arne
 	mux.HandleFunc("GET /api/harnesses/{id}/graph", getHarnessGraph(maps))
 	mux.HandleFunc("GET /api/harnesses/{id}/nodes/{nodeId}", getNode(maps))
 	mux.HandleFunc("GET /api/harnesses/{id}/runs", listRuns)
+	mux.HandleFunc("GET /api/harnesses/{id}/conformance", getConformance(maps, conf, confBase))
 
 	// Arnés registry (S2) — maps an arnés to the working dir its sessions run claude in.
 	mux.HandleFunc("GET /api/arneses", listArneses(arneses))

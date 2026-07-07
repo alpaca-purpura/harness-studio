@@ -1,6 +1,14 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { ArnesNode, type Graph, selectEdges, selectGuardia, selectLanes } from "@/entities/arnes"
+import {
+  ArnesNode,
+  type Graph,
+  selectEdges,
+  selectGuardia,
+  selectLanes,
+  selectSoporte,
+} from "@/entities/arnes"
 import { cn } from "@/shared/lib/cn"
+import { ErrorBoundary } from "@/shared/ui/error-boundary"
 import { SUPPORT_BANDS } from "../model/bands"
 import { useEdgePaths } from "../model/use-edge-paths"
 import { useViewport } from "../model/use-viewport"
@@ -29,7 +37,19 @@ interface MapCanvasProps {
   onPick?: ((id: string) => void) | undefined
 }
 
-export function MapCanvas({
+// The render-error net (nomenclatura-arnes §4.5): a malformed node (e.g. a clase outside the
+// enum) must fail VISIBLY and take down ONLY the canvas — never the whole shell tree. The
+// boundary wraps the inner component so anything thrown while rendering the map (selectors
+// included) lands in the honest fallback panel.
+export function MapCanvas(props: MapCanvasProps) {
+  return (
+    <ErrorBoundary label={props.graph.arnes?.id}>
+      <MapCanvasInner {...props} />
+    </ErrorBoundary>
+  )
+}
+
+function MapCanvasInner({
   graph,
   selectedId,
   onSelect,
@@ -139,7 +159,9 @@ export function MapCanvas({
 
             <Region kind="soporte" title="Base · conocimiento, reglas y soporte del arnés">
               {SUPPORT_BANDS.map((bd) => {
-                const ns = graph.nodos.filter((n) => n.banda === bd.id)
+                // selectSoporte (not a raw banda filter): the `base` band also receives the
+                // banda-desconocida nodes — visible, never silently dropped (§4.5).
+                const ns = selectSoporte(graph, bd.id)
                 if (ns.length === 0) return null
                 return bd.id === "base" ? (
                   <BaseBand

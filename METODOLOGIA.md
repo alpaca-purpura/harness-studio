@@ -35,6 +35,11 @@
   **contratos de caja** (§3); el prompt para arrancar esa conformación está en UX.md
   (iteración 10) y se ejecuta en kit-dev.
 
+  > **Nota de supersesión (2026-07-07, sync HS-10):** este «primer trabajo» quedó SUPERADO por
+  > **dogfood-first** (HS-07): el primer arnés real conformado fue **`dev-full-cycle`** (HS-08,
+  > `dogfood/`), sobre nuestro propio proceso y ANTES del Mapa. `luana-platform` queda como
+  > **candidato futuro** de conformación, no mandato.
+
 ## 1. El modelo — fábrica de cajas de proceso (resumen; detalle en VISION §Anatomía A1–A7)
 
 Un arnés es una **fábrica**: el trabajo entra, cruza cajas y sale transformado.
@@ -160,7 +165,7 @@ contract:
   estado: "<estado_entra> -> <estado_sale>"    # la transición que posee (spine de estados)
   necesita:
     - art: "<artefacto o precondición>"
-      de: "usuario | base:<id> | caja:<skill> | libreria:<skill> | maquinaria:<agente>"
+      de: "usuario | base:<id> | caja:<skill> | libreria:<skill> | maquinaria:<agente> | terceros:<skill> | marcas-dormidas:<skill>"
       requerido: true
   entrega:
     - art: "<artefacto>"
@@ -192,6 +197,14 @@ contract:
   mismo `art` = hallazgo de conformidad.
 - **`arquetipo` obligatorio:** clasifica la forma del trabajo — arregla que el contrato dejaba de
   lado el trabajo abierto/no-arnesable (antes solo cabía como `gate: none`). Ver §8.1.
+- **`necesita.de` acepta 7 orígenes** *(sync 2026-07-07, HS-10: la prosa corría con 5; el schema ya
+  aceptaba 7 — las bandas legítimas del mapa)*. A los 5 de it.10 (usuario · base · caja · libreria ·
+  maquinaria) se suman:
+  - **`terceros:<skill>`** — el input lo provee una skill/integración de terceros (banda Terceros
+    del mapa, it.8; p.ej. Clerk): dependencia externa declarada, no maquinaria propia.
+  - **`marcas-dormidas:<skill>`** — el input referencia una variante de marca dormida (banda Marcas
+    dormidas; origen cementado en el Gate 1 del Mapa, HS-09): la dependencia se declara honesta sin
+    fabricar actividad de un componente inactivo.
 
 ## 4. Reglas de honestidad y medición (acordadas iteraciones 6–8)
 
@@ -245,6 +258,11 @@ Cómo el producto muestra datos, para que jamás mienta:
 Loop en curso: el prompt de kit-dev (UX.md it.10) formaliza los contratos en los SKILL.md y
 emite `docs/process/contracts.index.yaml` + `contracts-gaps.md`, que ArnesIA extrae para
 reemplazar los contratos inferidos por los reales.
+
+> **Nota de supersesión (2026-07-07, sync HS-10):** ese loop de kit-dev/luana quedó SUPERADO por
+> **dogfood-first** (HS-07): los contratos reales nacieron en el arnés `dev-full-cycle` (HS-08),
+> validados de verdad por `arnesia conformance` (ruta `--arnes`, 13/13 verde). Luana queda como
+> candidato futuro de conformación; el prompt it.10 se conserva como historia.
 
 ## 7. El estándar as code es un árbol vivo (no un doc congelado)
 
@@ -364,6 +382,31 @@ memoria por auto-memory nativa (≤200 líneas). Check `no-phantom-frontmatter` 
 Agentforce (https://architect.salesforce.com/docs/architect/fundamentals/guide/agentic-patterns.html)
 · 12-Factor Agents (https://github.com/humanlayer/12-factor-agents) · DAOP v0.2 (insumo local, filtrado).
 
+## 9. Los 3 cuerpos — posesión e inyección del know-how (FIRMADO 2026-07-07, HS-10)
+
+> Definición canónica — hasta esta firma solo vivía en research. Detalle y evidencia:
+> [`research/2026-07-05-arquitectura-inyeccion-knowhow.md`](./research/2026-07-05-arquitectura-inyeccion-knowhow.md)
+> (VIGENTE por la firma HS-10) · nomenclatura de reconocimiento archivo→grafo:
+> [`arch/contracts/nomenclatura-arnes.md`](./arch/contracts/nomenclatura-arnes.md) (v1 FIRMADA).
+
+El know-how de la fábrica vive en TRES cuerpos, cada uno con su posesión y su vía de inyección:
+
+- **① Doctrina** — `knowledge/` + `arch/` (el estándar as code, §7). Se compila y viaja
+  **`go:embed` dentro del binario** `arnesia`: el conformance es portable a cualquier máquina,
+  sin repo fuente ni contexto LLM.
+- **② Maquinaria / kit** — las skills + overlay que **ENCARNAN** la doctrina (el saber-hacer de
+  fábrica). Se **materializa a `~/.arnesia/`** y se **inyecta al `claude` spawneado por flags**
+  (plugin CC propio, session-scoped, progressive disclosure); jamás se instala en el proyecto
+  del arnés.
+- **③ Arnés-producto** — el vendible: su repo / su `.claude/`. Se **edita vía cwd** (la sesión
+  CC trabaja dentro de él, HS-06 S2) y se **publica al marketplace git** (release train KIT-06).
+
+**Regla dura: ② jamás se escribe en el árbol de ③.** La maquinaria de fábrica no se filtra al
+producto — lo que ③ contiene es solo suyo, más lo que el provisioning ESTAMPA deliberadamente
+(p.ej. el facet `origen` del grafo). Nota de resolución: el schema L0
+(`graph.l0.schema.json`, campo `origen`) cita «los 3 cuerpos» — esta sección es su definición
+canónica.
+
 ## Estado
 
 Documento vivo. **HS-03 FIRMADA** (it.13, 2026-07-05; §4 al día: retirado el andamiaje REAL vs
@@ -380,3 +423,7 @@ Agentic BPM, Sierra ADLC, Salesforce Agentforce) → bajada as-code: §3 contrat
 proceso (framed autonomy) · nodo `harness-profile` (nº12) · nota de linaje en VISION · 2 boundaries nuevos.
 Reencuadre: **operacionalizamos Agentic BPM, no clonamos un framework**; la doctrina es PROPIA, basada en
 proceso e independiente de rubro.
+**Sync 2026-07-07 (HS-10):** §3 `necesita.de` al día con el schema (5→7 orígenes: +`terceros:` ·
++`marcas-dormidas:`) · notas de supersesión en §0 y §6 (dogfood-first: el primer arnés real fue
+`dev-full-cycle`, HS-08; luana = candidato futuro, no mandato) · nueva **§9 «Los 3 cuerpos»**
+(posesión e inyección del know-how — definición canónica FIRMADA HS-10, antes solo en research).

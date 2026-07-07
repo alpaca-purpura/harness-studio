@@ -33,10 +33,11 @@ convención en este árbol DEBE romper CI** (si no, es una nota, va al research 
 Leyenda: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 estable · 🔍 en-revisión.
 **Total: 8 convention nodes · 26 checks · pasada fundacional 2026-07-05 (HS-05).**
 
-> **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** hoy no hay código (fase 5). Los configs están
-> **declarados, no corriendo** (`status: proposed`): son el ruleset que se activa cuando el módulo
-> `arnesia` y la SPA `web/` aterricen. Los paths (`web/src/**`, module path Go) son **provisionales**
-> hasta el `go mod init` / scaffold de Vite.
+> **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** el código es real (daemon Go
+> `internal/`+`cmd/`, SPA `web/`, shell Rust `web/src-tauri/` — HS-06/HS-08) y los configs
+> **corren local Y en CI desde HS-10** (`.github/workflows/ci.yml` verde 3/3: go+ts+rust;
+> `lefthook` instalado como gate local). Los paths (`web/src/**`, module path Go) dejaron de ser
+> provisionales.
 
 ## Decisiones clave (detalle y fuentes en el research doc, frente D)
 

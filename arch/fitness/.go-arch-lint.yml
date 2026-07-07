@@ -61,10 +61,16 @@ components:
     in: internal/adapters/conformance/**
   permission:
     in: internal/adapters/permission/**
+  provision:
+    in: internal/adapters/provision/**
+  loader:
+    in: internal/adapters/loader/**
 
-  # --- datos embebidos (fixtures dogfood, go:embed) ---
+  # --- datos embebidos (go:embed) ---
   dogfood:
     in: dogfood/**
+  doctrina:
+    in: .               # la raíz del módulo: su único .go es el embed de knowledge/+arch/ (cuerpo ①, HS-10/HS-11)
 
   # --- composition root ---
   cmd:
@@ -102,6 +108,11 @@ deps:
     canUse: [jsonschema, yaml]   # valida schemas L0 + parsea frontmatter del ruleset
   permission:
     mayDependOn: [domain, ports]
+  provision:
+    mayDependOn: [ports]         # materializa embeds a ~/.arnesia; el FS embebido se lo inyecta cmd
+  loader:
+    mayDependOn: [domain, ports]
+    canUse: [yaml]               # parsea el frontmatter fusionado de los SKILL.md (nomenclatura v1)
 
   # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
@@ -109,4 +120,4 @@ deps:
 
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, store, conformance, permission, dogfood]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, index, watch, publish, store, conformance, permission, provision, loader, dogfood, doctrina]

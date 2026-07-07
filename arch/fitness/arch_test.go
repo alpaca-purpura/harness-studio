@@ -674,7 +674,7 @@ func (p *fakePub) snapshot() []map[string]any {
 
 func newTestService(t *testing.T, agent ports.AgentPort, pub usecase.EventPublisher, cwd string) *usecase.SessionService {
 	t.Helper()
-	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40)
+	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40, nil)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}

@@ -49,7 +49,7 @@ Research SOLO de cambios desde la marca de agua. Fuentes en orden:
 4. **Expertos reputados** (blogs, GitHub, HN/Reddit) — solo para prácticas y señales de seguridad.
 
 Un frente por familia de elementos (se puede fan-out con subagentes, pero **proporcional al
-delta**, no 11-deep siempre). **Pregunta obligatoria extra:** «¿apareció una primitiva/superficie
+delta**, no 12-deep siempre). **Pregunta obligatoria extra:** «¿apareció una primitiva/superficie
 de dirección NUEVA sin nodo?» (ej. un tipo de componente que no existía). Si sí → propuesta de
 **nodo nuevo**.
 

@@ -67,7 +67,7 @@ YYYY-MM-DD · vX.Y · qué cambió · qué ficha lo disparó
 3. **L1 + L2.** Escribir el principio con fuente y el mapeo al código. Si L2 diverge de L1 →
    marcar `⚠ divergencia` + justificar, nunca silenciosa (regla heredada de knowledge).
 4. **Check + enforcer.** Traducir la regla a una check en `fitness/` y ponerla en `enforced_by:`.
-   Si el código aún no existe (pre-fase 5), `status: proposed` y la check queda declarada.
+   Si la superficie que la enforça aún no existe, `status: proposed` y la check queda declarada.
 5. **Diagrama, si cambió la topología.** Actualizar `model/` (el texto; el render es on-demand).
 6. **Bump + changelog + propagar.** Subir `version`/`updated`, registrar el anillo; si toca specs
    (fase 4) o la UX, apuntarlo.
@@ -88,10 +88,12 @@ YYYY-MM-DD · vX.Y · qué cambió · qué ficha lo disparó
 
 ## Hacia dónde va (el árbol ES enforcement)
 
-Hoy `arch/` es markdown + schemas + config as code. En fase 5, cuando el módulo `arnesia`
-aterrice: `fitness/.go-arch-lint.yml` corre en CI y **rompe el build** si el core importa el
-shell o el dominio importa `net/http`; `contracts/schema/*.json` valida cada `contract:` de caja
-al indexar y en el linter; `arnesia conformance` unifica estos 29 checks de arquitectura con los
-122 de `knowledge/` en un solo reporte severidad+señal. La misma disciplina que aplicamos a los
-arneses que fabricamos, aplicada a la fábrica misma (dogfood). Por eso cada check mal puesto hoy
-es un falso positivo en CI mañana.
+El código ya aterrizó (HS-06/HS-08: daemon Go `internal/`+`cmd/`, SPA `web/`, shell Tauri
+`web/src-tauri/`), y el enforcement dejó de ser futuro: `fitness/.go-arch-lint.yml` **corre en CI
+desde HS-10** (`go-arch-lint check --project-path . --arch-file arch/fitness/.go-arch-lint.yml`)
+y rompe el build si el core importa el shell o el dominio importa `net/http`;
+`contracts/schema/*.json` valida cada `contract:` de caja (`TestBoxContractValidatesAgainstSchema`,
+enforced en HS-08); y el motor **`arnesia conformance`** (construido en HS-08) unifica estos 97
+checks de arquitectura con los 138 de `knowledge/` — **235 checks a datos** — en un solo reporte
+severidad+señal. La misma disciplina que aplicamos a los arneses que fabricamos, aplicada a la
+fábrica misma (dogfood). Por eso cada check mal puesto es un falso positivo en CI.

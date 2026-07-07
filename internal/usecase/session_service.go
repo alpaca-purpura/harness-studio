@@ -75,6 +75,7 @@ type SessionService struct {
 	store    ports.SessionStore
 	pub      EventPublisher
 	resolver ports.WorkdirResolver
+	injector ports.InjectionProvisioner // nil = spawns sin doctrina (degradación honesta).
 	baseCtx  context.Context
 	maxTurns int
 }
@@ -82,14 +83,16 @@ type SessionService struct {
 // NewSessionService loads the persisted registry and returns a ready service. baseCtx
 // bounds every conductor's lifetime (cancel it to stop all sessions on shutdown); resolver
 // maps each session's arnés to the working directory its conductor runs in (per-session
-// confinement, never a shared cwd); maxTurns caps every turn's agent loop.
-func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int) (*SessionService, error) {
+// confinement, never a shared cwd); maxTurns caps every turn's agent loop; injector
+// materializa la doctrina/kit e inyecta los flags a cada spawn (nil = sin inyección).
+func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int, injector ports.InjectionProvisioner) (*SessionService, error) {
 	s := &SessionService{
 		rt:       map[string]*sessionRuntime{},
 		agent:    agent,
 		store:    store,
 		pub:      pub,
 		resolver: resolver,
+		injector: injector,
 		baseCtx:  baseCtx,
 		maxTurns: maxTurns,
 	}
@@ -265,11 +268,23 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 		return fmt.Errorf("resolve arnés %q workdir: %w", r.meta.Arnes, err)
 	}
 	resume := r.meta.ClaudeSessionID
+	// Inyección de doctrina (HS-11 puente 2): cuerpos ①+② entran por flags desde
+	// ~/.arnesia. Un fallo de provisión DEGRADA honesto (spawn sin doctrina + warn),
+	// jamás bloquea la sesión (principio 6: guía sin bloqueo).
+	var inj ports.Injection
+	if s.injector != nil {
+		var ierr error
+		if inj, ierr = s.injector.Provision(s.baseCtx); ierr != nil {
+			slog.Warn("session: provisión de doctrina falló — spawn sin inyección", "err", ierr)
+			inj = ports.Injection{}
+		}
+	}
 	live, err := s.agent.Spawn(s.baseCtx, ports.SpawnOpts{
-		Resume:   resume,
-		Model:    r.meta.Model,
-		Cwd:      cwd,
-		MaxTurns: s.maxTurns,
+		Resume:    resume,
+		Model:     r.meta.Model,
+		Cwd:       cwd,
+		MaxTurns:  s.maxTurns,
+		Injection: inj,
 	})
 	if err != nil {
 		return err

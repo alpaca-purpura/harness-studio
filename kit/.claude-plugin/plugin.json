@@ -1,0 +1,6 @@
+{
+  "name": "arnesia-kit",
+  "description": "Maquinaria de ArnesIA (cuerpo ②): las skills que encarnan la doctrina de la fábrica de cajas para que Claude Code cree y mejore arneses conforme al estándar. Se inyecta session-scoped por --plugin-dir; jamás se instala ni se escribe en el repo del arnés (③).",
+  "version": "0.1.0",
+  "author": { "name": "alpacapurpura" }
+}

@@ -41,7 +41,7 @@ check llega con HS-08, ver runner unificado arriba).
 
 | Nodo | Regla | Estado | Versión | Checks | Enforcer |
 |------|-------|--------|---------|--------|----------|
-| [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
+| [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.1 | 4 | go-arch-lint · arch_test.go |
 | [`boundaries/dominio-independiente-de-transporte.md`](./boundaries/dominio-independiente-de-transporte.md) | El dominio no depende de HTTP/SSE/SQLite | 🌱 vivo | 1.0 | 4 | go-arch-lint · depguard |
 | [`boundaries/adaptadores-de-agente-intercambiables.md`](./boundaries/adaptadores-de-agente-intercambiables.md) | Claude Code = un adaptador tras `AgentPort` | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
 | [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | JSONL = verdad; SQLite = índice reconstruible | 🌱 vivo | 1.0 | 4 | arch_test.go · schema |
@@ -49,12 +49,12 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
 | [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.0 | 6 | arch_test.go |
 | [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
-| [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌳 enforced | 1.1 | 4 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema |
+| [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌳 enforced | 1.2 | 4 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
 | [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌳 enforced | 1.1 | 4 | dependency-cruiser (verde sobre el Mapa) |
 | [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
 | [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌳 enforced | 1.1 | 4 | stylelint · tokens-sync |
-| [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌳 enforced | 1.1 | 5 | vitest.config.ts + Storybook 10 (40 tests verdes) |
+| [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌳 enforced | 1.1 | 5 | vitest.config.ts + Storybook 10 (story=test; conteo crece con cada story — ≥45 verdes HS-11) |
 | [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 
@@ -78,12 +78,13 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
 > `contrato-de-caja-es-fitness-function` a enforced (`TestBoxContractValidatesAgainstSchema`). **HS-09
 > (Fase D del Mapa) sumó 3 boundaries FE `enforced`** — `fe-taxonomia-componentes` (canvas⊥chrome,
 > `pnpm depcruise` verde: 76 módulos/0 violaciones), `fe-tokens-contrato` (stylelint strict-value verde +
-> tokens 6→10 regenerados) y `fe-visual-fitness` (`pnpm test` = 40 story-tests verdes en Playwright
+> tokens 6→10 regenerados) y `fe-visual-fitness` (`pnpm test` = story-tests verdes en Playwright — el conteo crece con cada story; ≥45 al corte HS-11
 > Chromium; migrado `vitest.workspace.ts`→`vitest.config.ts`) — **sin sumar checks** (solo cambio de
 > `status`). → **8 boundaries enforced en total** (2 HS-06 + 3 HS-08 + 3 HS-09). El resto sigue
 > `proposed`; `fe-topologia-fsd` y `fe-transporte-independiente` quedan proposed (el 2º hasta que exista
-> `app/realtime/` SSE en Hito 3). El `go-arch-lint check` corre cuando su binario/config se instale.
-> Estado del enforcer por nodo en su frontmatter.
+> `app/realtime/` SSE en Hito 3). El `go-arch-lint check` **corre en CI desde HS-10**
+> (`go-arch-lint check --project-path . --arch-file arch/fitness/.go-arch-lint.yml`, deepScan off —
+> el linter de imports es el enforcement). Estado del enforcer por nodo en su frontmatter.
 
 ## Subdirectorios
 
@@ -91,7 +92,9 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
   contexto (`system-context.mmd`, Mermaid) + container (`container.d2`, D2 = binario Go).
 - [`contracts/`](./contracts/) — **schema-first, single source of truth**. `schema/` = las 2
   schemas del dominio (L0 `meta.clase` + `contract:` de caja); `api/openapi.yaml` = superficie
-  HTTP/SSE. `gen/` = tipos generados Go+TS (quicktype/oapi-codegen; se llena al haber build).
+  HTTP/SSE. `gen/` = tipos generados Go+TS (quicktype/oapi-codegen; **aún vacío**: el codegen no
+  corrió — `domain.Contract` y los tipos TS son a mano; checks `tipos-generados`/`dtos-generados`
+  en warn, deuda registrada).
 - [`fitness/`](./fitness/) — **las checks ejecutables** (fallan CI): `.go-arch-lint.yml` (grafo
   de imports Go), `arch_test.go` (lo que el linter no expresa). Los enforcers FE viven junto a la SPA
   (`web/.dependency-cruiser.js`, `web/steiger.config.ts`, `web/.stylelintrc.json`) y los de estilo en

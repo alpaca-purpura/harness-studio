@@ -57,6 +57,10 @@ type SpawnOpts struct {
 	// (no cap). Every unattended conductor run fixes it — a hijacked/looping turn must
 	// not run unbounded (permisos-gui `max-turns-siempre`, headless-sdk `headless-max-turns`).
 	MaxTurns int
+	// Injection carries the doctrine bodies ①+② as spawn flags (--plugin-dir /
+	// --append-system-prompt-file / --add-dir; HS-11 puente 2). Zero value = spawn sin
+	// doctrina (degradación honesta, jamás bloquea la sesión).
+	Injection Injection
 }
 
 // AgentSession is a live `claude` conductor: streaming user turns in, normalized
