@@ -74,6 +74,11 @@ jobs:
     defaults: { run: { working-directory: web/src-tauri } }
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: sidecar (tauri-build valida externalBin; el binario real está gitignoreado)
+        working-directory: .
+        run: go build -o web/src-tauri/binaries/arnesia-daemon-x86_64-unknown-linux-gnu ./cmd/arnesia
       - name: deps de sistema (webkit2gtk 4.1 — Tauri 2 en Linux)
         run: |
           sudo apt-get update
