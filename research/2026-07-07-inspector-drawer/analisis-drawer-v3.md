@@ -66,7 +66,71 @@
 - «Evaluar A/B» y «Promover a estable» como acciones vivas — tren de release fuera del alcance de
   este paquete; solo staged.
 
+## Profundización: tabs Contenido y Corridas (pedido del operador, mismo día)
+
+> Revisado en UI (DevTools, screenshots `v3-tab-{contenido,corridas}.png` + vista global
+> `v3-corridas-view.png`) Y en el código fuente del mockup (data model `RUNS` línea 1008,
+> `renderRunDet` línea 1891).
+
+### Qué es la tab CONTENIDO (v3)
+
+La FUENTE del componente, visible en el drawer: viewer de código con números de línea
+(frontmatter YAML + markdown), chip «versiona con el arnés», y dos acciones: **Editar
+fuente** (CodeMirror 6 embebido; guardar = diff antes de confirmar + nota de cambio →
+nace beta → tren; versiones inmutables, deploy = mover canal jamás editar historia) y
+**Editar conversando (dock)**.
+
+### Qué es la tab CORRIDAS (v3) — el modelo completo
+
+**Corrida = una sesión REAL de Claude Code tal como ocurrió** (el JSONL de `~/.claude`;
+su propio subtítulo: «Nada es flujo ideal: es lo que el usuario vivió»). Data model por
+corrida: `sid` (session id) · fecha · componente disparador · fase · modelo · turnos ·
+tokens in/out/caché · costo · ctx máx % · duración · exitosa/fallida · excepciones de
+proceso · `pasos[]` tipados (user/hook/skill/llm/tool/agent-con-hijos-sidechain/cmd/
+compact/err/asst), cada paso con tokens, tiempo, **contexto acumulado** y anotación de
+qué añadió a la ventana.
+
+- **Tab del drawer** = «CORRIDAS DONDE ACTUÓ»: lista filtrada al nodo (dot estado ·
+  fecha · duración · resultado) + «Ver todas las corridas del arnés».
+- **Vista global Corridas** = lista del arnés con filtros Todas/Fallidas.
+- **Detalle de corrida** (vista propia, NO drawer): stats bar (badge «CORRIDA REAL ·
+  JSONL») + 3 vistas — **Conversación** · **Árbol** (pasos con barra de contexto
+  acumulado + link «ver componente en el mapa →») · **Waterfall** (timeline por tipo) +
+  **«▶ Reproducir en el mapa»** (replay de la corrida sobre el mapa).
+
+### Propuesta de integración a NUESTRO drawer (por etapas honestas)
+
+**Estructura: tabs `Resumen | Contenido | Corridas`** en el drawer (header identidad
+fijo encima, como v3). Resumen = todo lo de v4.
+
+**Contenido — etapa 1 EN ESTE PAQUETE (read-only):**
+- Dato: `fuente_path` ya viaja en L0 para todas las clases; el daemon tiene el dir del
+  arnés registrado (S2, confinado). Falta solo un endpoint pequeño
+  `GET /api/harnesses/{id}/nodes/{nodeId}/fuente` (lectura confinada al dir del arnés,
+  auth Host+Origin+token ya existente).
+- Drawer: viewer mono read-only con números de línea + chip «versiona con el arnés».
+  Universal por clase (rule→CLAUDE.md · mcp/settings→JSON · **no-reconocido→ver el
+  artefacto que el loader no entendió** = reconciliación D-c accionable).
+- Acciones staged: «Editar fuente» y «Editar conversando» disabled rotuladas Fase 3/4
+  (backend Fase E vivo; CodeMirror 6/merge ya firmado en el stack HS-04 para el dock).
+- En el MOCKUP: fuente reconstruida del dato real del grafo, rotulada «reconstruido —
+  el showcase no vive en disco»; jamás contenido inventado en silencio.
+
+**Corridas — etapa 1 EN ESTE PAQUETE (diseño + dato disponible):**
+- El modelo v3 ES nuestro event sourcing firmado (HS-04: stream-json vivo + JSONL
+  enumerar/replay) — la tab es la cara visible de la deuda «telemetría/indexer JSONL».
+- Drawer: lista «Corridas donde actuó» con estado honesto «necesita indexer JSONL» +
+  lo que YA existe: corridas de caja del endpoint `POST …/boxes/{boxId}/run` (D2) y la
+  sesión CC viva de la sesión-frente (claude_session_id persistido) cuando aplique.
+- El DETALLE de corrida (Conversación/Árbol/Waterfall + replay en el mapa) = superficie
+  propia fuera del drawer → capa Proceso / vista Corridas (Hito 3, UX S8). La tab solo
+  LISTA y enlaza.
+
+**Qué NO entra ahora:** editor vivo (Fase 3/4) · detalle/replay de corridas · costo/ctx
+por corrida (indexer). Todo staged rotulado, nada finge funcionar.
+
 ## Estado
 
 Análisis entregado al operador — las que apruebe se vuelven decisiones #3+ en `decisiones.md`
-y entran al mockup como vN.
+y entran al mockup como vN. Bloque §A aprobado y materializado (decisión #3, v4).
+Propuesta de tabs Contenido/Corridas esperando firma (→ decisión #4).
