@@ -18,6 +18,8 @@
   v5 · 2026-07-07 · decisión #4 (FIRMADA): tabs Resumen | Contenido | Corridas. Contenido = fuente read-only
        (reconstruida del dato real, rotulada; lo no reconstruible muestra su estado) + acciones staged.
        Corridas = «donde actuó» con estado honesto «necesita indexer JSONL» + nota de qué lista primero.
+  v5.1 · 2026-07-07 · fix: en expandido, la tab Contenido pintaba el Resumen encima — la regla grid del
+       expandido le ganaba en especificidad al [hidden] (→ :not([hidden])). Cazado en review ojo-UI.
 -->
 <title>Mockup — drawer del Mapa (inspector)</title>
 <style>
@@ -151,7 +153,7 @@
   .dw-body { padding:0; gap:0; }
   .tabpane { display:flex; flex-direction:column; gap:16px; padding:16px; }
   .tabpane[hidden] { display:none; }
-  .drawer.expanded .tabpane-resumen { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  .drawer.expanded .tabpane-resumen:not([hidden]) { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
     gap:20px 36px; align-content:start; max-width:1280px; padding:20px 24px; }
   .chip-versiona { align-self:flex-start; font-size:9px; font-weight:700; letter-spacing:.04em; padding:1px 7px;
     border-radius:999px; border:1px solid var(--primary); color:var(--primary); background:var(--accent-soft); }
