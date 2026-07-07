@@ -48,9 +48,9 @@
   amplio las secciones fluyen en columnas (`minmax(280px,1fr)`). INTERACTIVO en el
   mockup — verificado ojo-UI (toggle+Esc+aria-pressed, consola limpia). v1 = clon
   fiel, 15 casuísticas 01–15, stubs «sintético» (08 · 09 · 15).
-- **Próximo paso:** el operador prueba ⤢ en el artifact → firma la decisión #1 (o
-  la corrige) y sigue dictando cambios; cada uno a `decisiones.md` EN EL MISMO
-  TURNO + vN redeployada a la MISMA URL.
+- **Decisión #1 FIRMADA** (operador, 2026-07-07): botón «ampliar» tal como está en v2.
+- **Próximo paso:** el operador dicta el siguiente cambio → `decisiones.md` en el
+  mismo turno + vN a la MISMA URL.
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
