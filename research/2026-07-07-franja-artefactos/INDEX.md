@@ -13,20 +13,21 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
 
 ## Retomar aquí
 
-- **Último hecho (2026-07-08):** operador FIRMÓ D1 + D3–D8 («firmemos todo»). Mockup del
-  gate D2 construido y verificado: [`mockup-artefactos.html`](./mockup-artefactos.html) —
-  copia fiel de `mockups/arnesia-mapa-mvp.html` + 3 vistas conmutables (Actual · A
-  chips-en-spine · B franja-abajo) + toggle todos/auto + selección de caja. Datos: dogfood
-  REAL (contratos de los SKILL.md) + showcase Luana (fan-out spec.md→2 cajas, apilado 2
-  chips/gutter, dead-end «notas de build», entrega final). Click-through ✅: consola
-  limpia, 9 chips Luana, invoca 11→8 (3 hand-offs sustituidos por escribe+lee), reposo en
-  auto = mapa idéntico al actual, vista Actual intacta. Screenshots en `shots/`. Artifact:
-  https://claude.ai/code/artifact/5e506b6a-7ed3-4e87-9005-61c71b84cd6c
-- **Próximo paso:** 🧑‍⚖️ gate D2 — el operador recorre el mockup y decide la geometría
-  (A · spine recomendada vs B · franja vs híbrido). Tras la firma: `spec.md`+`design.md`
-  (RF trazados a mockup:línea) y recién ahí código (§10). En paralelo ya está habilitada
-  la fase 1 del plan (checks de composición, D8 firmada — no depende de la geometría).
-- **Firmas:** D1 · D3–D8 ✅ (2026-07-08) · D2 geometría 🚧 abierta sobre el mockup.
+- **Último hecho (2026-07-08):** **D1–D8 FIRMADAS** (D2 resuelta sobre el mockup v1:
+  geometría **A · chips en spine** — «se ve y entiende mucho mejor»). El operador planteó
+  4 escenarios (largo alcance · mejora del mismo artefacto · 8+ inputs · sin plantilla
+  tipo factura) → catálogo completo en [`casuistica.md`](./casuistica.md) (C1–C24 + 4
+  reglas transversales) + **decisiones D9 (refina) · D10 (admisión/opacos) · D11
+  (densidad: panel de entrada ↖ + tope +N)** en decisiones.md, y **mockup v2** que las
+  demuestra: ejemplo nuevo «Cobranza» (factura externa sin plantilla, opacos, refina
+  ↻v2, gutter con +1 más) + Luana con fan-in de 4 inputs (3 opcionales de largo alcance
+  → panel de entrada al seleccionar «promover»). Click-through v2 ✅ (asserts 0 errores,
+  consola limpia, vista Actual 0 residuos); screenshots 05–07 en `shots/`. Artifact
+  (misma URL): https://claude.ai/code/artifact/5e506b6a-7ed3-4e87-9005-61c71b84cd6c
+- **Próximo paso:** 🧑‍⚖️ firma de D9–D11 sobre el mockup v2. Con eso el paquete queda
+  listo para `spec.md`+`design.md` (RF trazados a mockup:línea) → código (§10). La fase 1
+  del plan (checks de composición, D8) sigue habilitada e independiente.
+- **Firmas:** D1–D8 ✅ (2026-07-08) · D9–D11 🚧 propuestas (mockup v2 las demuestra).
   Código intacto: nada se toca hasta specs firmados (METODOLOGIA §10).
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de
   viabilidad.md): cifra stale en CLAUDE.md («24 pass/211 deferred» → real 27/208) ·
