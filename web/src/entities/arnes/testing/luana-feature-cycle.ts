@@ -69,7 +69,18 @@ export const luanaFeatureCycle = {
       banda: "fase",
       fase: "descubrimiento",
       estado: "idea -> necesidad",
-      contract: { caja: true },
+      contract: {
+        caja: true,
+        necesita: [{ art: "idea del usuario", de: "usuario", requerido: true }],
+        entrega: [
+          {
+            art: "necesidad.md",
+            path: "necesidad.md",
+            plantilla: "references/plantilla-necesidad.md",
+            escritor_unico: true,
+          },
+        ],
+      },
     },
 
     // ── Fase: spec ──
@@ -89,10 +100,17 @@ export const luanaFeatureCycle = {
         fase: "spec",
         estado: "necesidad -> spec",
         necesita: [
-          { art: "necesidad destilada", de: "caja:need-distiller", requerido: true },
+          { art: "necesidad.md", de: "caja:need-distiller", requerido: true },
           { art: "estándar de producto", de: "base:std-producto", requerido: true },
         ],
-        entrega: [{ art: "spec.md", escritor_unico: true }],
+        entrega: [
+          {
+            art: "spec.md",
+            path: "spec.md",
+            plantilla: "references/plantilla-spec.md",
+            escritor_unico: true,
+          },
+        ],
         ruta: [{ a: "ux-designer", si: "spec verde" }],
         gate: { tipo: "manual", detalle: "revisión de producto del spec" },
       },
@@ -107,7 +125,11 @@ export const luanaFeatureCycle = {
       banda: "fase",
       fase: "diseño",
       estado: "spec -> diseño",
-      contract: { caja: true },
+      contract: {
+        caja: true,
+        necesita: [{ art: "spec.md", de: "caja:spec-writer", requerido: true }],
+        entrega: [{ art: "diseño.md", path: "diseño.md", escritor_unico: true }],
+      },
     },
     {
       id: "design-critic",
@@ -133,8 +155,15 @@ export const luanaFeatureCycle = {
         caja: true,
         fase: "build",
         estado: "diseño -> construido",
-        necesita: [{ art: "diseño aprobado", de: "caja:ux-designer", requerido: true }],
-        entrega: [{ art: "código + tests", escritor_unico: true }],
+        // fan-out de spec.md (C7) + entrega dead-end «notas de build» (C16, mockup v2).
+        necesita: [
+          { art: "spec.md", de: "caja:spec-writer", requerido: true },
+          { art: "diseño.md", de: "caja:ux-designer", requerido: true },
+        ],
+        entrega: [
+          { art: "código + tests", escritor_unico: true },
+          { art: "notas de build", path: "docs/notas-de-build.md", escritor_unico: true },
+        ],
         ruta: [{ a: "reviewer" }],
         gate: { tipo: "auto", detalle: "la suite de tests pasa en verde" },
       },
@@ -155,7 +184,11 @@ export const luanaFeatureCycle = {
       banda: "fase",
       fase: "review",
       estado: "construido -> revisado",
-      contract: { caja: true },
+      contract: {
+        caja: true,
+        necesita: [{ art: "código + tests", de: "caja:builder", requerido: true }],
+        entrega: [{ art: "veredicto de review", escritor_unico: true }],
+      },
     },
     {
       id: "security-reviewer",
@@ -173,7 +206,18 @@ export const luanaFeatureCycle = {
       banda: "fase",
       fase: "release",
       estado: "revisado -> liberado",
-      contract: { caja: true },
+      contract: {
+        caja: true,
+        // fan-in con largo alcance (C2/C8, mockup v2): las release notes necesitan
+        // contexto de fases previas — refs ↖ en el panel de entrada al seleccionarla.
+        necesita: [
+          { art: "veredicto de review", de: "caja:reviewer", requerido: true },
+          { art: "spec.md", de: "caja:spec-writer", requerido: false },
+          { art: "diseño.md", de: "caja:ux-designer", requerido: false },
+          { art: "necesidad.md", de: "caja:need-distiller", requerido: false },
+        ],
+        entrega: [{ art: "release@version", escritor_unico: true }],
+      },
     },
     { id: "promote", clase: "command", nombre: "/promote", banda: "fase", fase: "release" },
 
@@ -185,7 +229,11 @@ export const luanaFeatureCycle = {
       banda: "fase",
       fase: "operación",
       estado: "liberado -> operando",
-      contract: { caja: true },
+      contract: {
+        caja: true,
+        necesita: [{ art: "release@version", de: "caja:releaser", requerido: true }],
+        entrega: [{ art: "reporte de operación", path: "ops/reporte.md", escritor_unico: true }],
+      },
     },
     {
       id: "incident-triage",

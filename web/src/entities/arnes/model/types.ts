@@ -96,6 +96,13 @@ export interface Input {
 export interface Output {
   art: string
   escritor_unico?: boolean
+  // Identidad del art (franja-artefactos D3/D4/D9, RF-110 — espejo de domain.Output):
+  // path = artefacto-archivo (ruta relativa al arnés; ausente = etiqueta) · plantilla =
+  // reference-esqueleto de la skill escritora · refina = esta entrega es una REVISIÓN
+  // del art nombrado (cadena lineal; la versión se DERIVA, jamás se declara).
+  path?: string
+  plantilla?: string
+  refina?: string
 }
 
 export interface Route {

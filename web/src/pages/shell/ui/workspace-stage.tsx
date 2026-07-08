@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import type { ConformanceResult, Graph } from "@/entities/arnes"
+import type { ArtefactosMode, ConformanceResult, Graph } from "@/entities/arnes"
 import {
   api,
   ComingSoon,
@@ -42,6 +42,9 @@ export function WorkspaceStage() {
   // Only Estructura is enabled in the MVP; the switcher lives in MapBar (chrome), staged layers
   // render disabled with the "Necesita telemetría" tooltip (RF-60 / spec §8).
   const [capa, setCapa] = useState<Capa>("estructura")
+  // Franja Artefactos (RF-143): default auto — reposo idéntico al mapa actual, chips al
+  // seleccionar. Mismo patrón de estado que `capa` (sin persistencia dura, como el resto).
+  const [artefactos, setArtefactos] = useState<ArtefactosMode>("auto")
 
   // The picker previews any arnés; it defaults to (and resets with) the session's own arnés.
   useEffect(() => {
@@ -202,6 +205,8 @@ export function WorkspaceStage() {
               harnesses={pickerItems}
               activeId={viewedId}
               onPick={setViewedId}
+              artefactos={artefactos}
+              onArtefactos={setArtefactos}
             />
             <div className="relative min-h-0 flex-1">
               {loadErr ? (
@@ -218,7 +223,12 @@ export function WorkspaceStage() {
                 />
               ) : (
                 <>
-                  <MapCanvas graph={graph} selectedId={selectedId} onSelect={setSelectedId} />
+                  <MapCanvas
+                    graph={graph}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                    artefactos={artefactos}
+                  />
                   {/* El drawer pinta algo o NO existe (decisión del operador 2026-07-07,
                       supersede el estado vacío RF-84): sin selección no se monta; ✕ la
                       limpia y el drawer desaparece entero. */}

@@ -5,6 +5,19 @@
 // `devFullCycle` is the recorded dogfood fixture, exported for stories/mockup during Fase B.
 // TEMPORAL: once api.getGraph lands (Hito 1) the live graph replaces it; the fixture stays for tests.
 
+export {
+  type ArtEdge,
+  type ArtefactosMode,
+  artEdges,
+  CAP_GUTTER,
+  type ChipArtefacto,
+  type ConsumidorChip,
+  type GutterPlan,
+  planGutter,
+  type RefEntrada,
+  selectArtefactos,
+  selectRefsEntrada,
+} from "./model/artefactos"
 export { DEF_CAMPO, DEF_VALOR, PROP_NOTE, SEC_TIP, tipDe } from "./model/doctrina"
 export { KIND, type KindVisual } from "./model/kind"
 export { handleFor, isCaja, isPropuesto, transLabel } from "./model/node-view"
@@ -37,6 +50,8 @@ export type {
   Transicion,
   Veredicto,
 } from "./model/types"
+export { cobranzaProveedores } from "./testing/cobranza-proveedores"
 export { devFullCycle } from "./testing/dev-full-cycle"
 export { luanaFeatureCycle } from "./testing/luana-feature-cycle"
 export { ArnesNode } from "./ui/arnes-node"
+export { ArtefactoChip } from "./ui/artefacto-chip"

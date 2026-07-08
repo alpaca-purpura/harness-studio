@@ -1,20 +1,26 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   ArnesNode,
+  type ArtefactosMode,
+  artEdges,
   type Graph,
+  planGutter,
+  selectArtefactos,
   selectEdges,
   selectGuardia,
   selectLanes,
+  selectRefsEntrada,
   selectSoporte,
 } from "@/entities/arnes"
 import { cn } from "@/shared/lib/cn"
 import { ErrorBoundary } from "@/shared/ui/error-boundary"
 import { SUPPORT_BANDS } from "../model/bands"
-import { useEdgePaths } from "../model/use-edge-paths"
+import { type DrawableEdge, useEdgePaths } from "../model/use-edge-paths"
 import { useViewport } from "../model/use-viewport"
 import { Band } from "./band"
 import { BaseBand } from "./base-band"
 import { EdgeLayer } from "./edge-layer"
+import { HandoffGutter } from "./handoff-gutter"
 import { HelpPanel } from "./help-panel"
 import { Lane } from "./lane"
 import { Region } from "./region"
@@ -35,6 +41,9 @@ interface MapCanvasProps {
   harnesses?: readonly { id: string; label: string }[] | undefined
   activeId?: string | undefined
   onPick?: ((id: string) => void) | undefined
+  // Franja Artefactos (D2/D11, RF-143): off = mapa actual idéntico (cero DOM extra) ·
+  // auto = chips solo al seleccionar · todos = siempre. Default off; el toggle vive en MapBar.
+  artefactos?: ArtefactosMode | undefined
 }
 
 // The render-error net (nomenclatura-arnes §4.5): a malformed node (e.g. a clase outside the
@@ -56,27 +65,66 @@ function MapCanvasInner({
   harnesses,
   activeId,
   onPick,
+  artefactos = "off",
 }: MapCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [focus, setFocus] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
+  // Gutters expandidos por «+N más» (D11c) — índice del gutter; se pliega al cambiar arnés.
+  const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set())
 
   const guardia = selectGuardia(graph)
-  const lanes = selectLanes(graph)
+  // Memoizado: lanes alimenta la cadena gutterChips→planes→drawableEdges→useEdgePaths;
+  // una identidad nueva por render dispararía el efecto de medición en bucle.
+  const lanes = useMemo(() => selectLanes(graph), [graph])
   const { z, transform, grabbing, fitView, zoomIn, zoomOut } = useViewport(viewportRef, contentRef)
-  const paths = useEdgePaths(contentRef, selectEdges(graph), { z, focusId: focus })
 
-  // Related set for hover dimming (RF-33): the focused node + its direct neighbors stay lit.
+  // Franja Artefactos (RF-140/142): chips derivados + plan por gutter (tope D11c) +
+  // edges escribe/lee de los chips VISIBLES, suprimiendo el invoca del hand-off cubierto.
+  const chips = useMemo(
+    () => (artefactos === "off" ? [] : selectArtefactos(graph)),
+    [graph, artefactos],
+  )
+  // Gutter i vive ANTES del carril i (nacidos tras el carril i-1 + externos que entran a i);
+  // el gutter lanes.length es el de cierre (tras el último carril).
+  const gutterChips = useMemo(
+    () =>
+      Array.from({ length: lanes.length + 1 }, (_, i) => {
+        const prev = i > 0 ? chips.filter((c) => c.after === lanes[i - 1]?.fase) : []
+        const ext = i < lanes.length ? chips.filter((c) => c.before === lanes[i]?.fase) : []
+        return [...prev, ...ext]
+      }),
+    [chips, lanes],
+  )
+  const planes = useMemo(
+    () =>
+      gutterChips.map((cs, i) =>
+        planGutter(cs, { mode: artefactos, selectedId, expanded: expanded.has(i) }),
+      ),
+    [gutterChips, artefactos, selectedId, expanded],
+  )
+  const drawableEdges = useMemo<DrawableEdge[]>(() => {
+    const visibles = new Set(planes.flatMap((p) => p.visibles.map((c) => c.id)))
+    const { edges: artes, suprimidos } = artEdges(chips, visibles)
+    const base = selectEdges(graph).filter(
+      (e) => !(e.tipo === "invoca" && suprimidos.has(`${e.de}>${e.a}`)),
+    )
+    return [...base, ...artes]
+  }, [graph, chips, planes])
+  const paths = useEdgePaths(contentRef, drawableEdges, { z, focusId: focus })
+
+  // Related set for hover dimming (RF-33): the focused node + its direct neighbors stay
+  // lit — including the artefacto chips (the derived edges participate, mockup:715-721).
   const related = useMemo<ReadonlySet<string> | undefined>(() => {
     if (!focus) return undefined
     const s = new Set<string>([focus])
-    for (const e of graph.edges ?? []) {
+    for (const e of drawableEdges) {
       if (e.de === focus) s.add(e.a)
       if (e.a === focus) s.add(e.de)
     }
     return s
-  }, [focus, graph.edges])
+  }, [focus, drawableEdges])
   const dimmed = (id: string) => related !== undefined && !related.has(id)
 
   // Overview-first: fit the whole arnés on mount and whenever the arnés changes (RF-50). arnesId
@@ -86,13 +134,14 @@ function MapCanvasInner({
   useLayoutEffect(() => {
     fitView()
     setFocus(null)
+    setExpanded(new Set())
   }, [fitView, arnesId])
 
-  // Focus reveal (RF-32): entering/focusing a node focuses it; leaving to a non-node clears it.
-  // Both mouse (hover) and keyboard (focus) drive it — the same progressive enhancement.
+  // Focus reveal (RF-32): entering/focusing a node OR an artefacto chip focuses it;
+  // leaving to a non-node clears it. Mouse (hover) and keyboard (focus) drive it alike.
   const enter = useCallback(
     (target: EventTarget | null) => {
-      const n = (target as HTMLElement | null)?.closest?.<HTMLElement>(".node")
+      const n = (target as HTMLElement | null)?.closest?.<HTMLElement>(".node,.artchip")
       const id = n?.dataset["nodeId"]
       if (id && id !== focus) setFocus(id)
     },
@@ -100,13 +149,21 @@ function MapCanvasInner({
   )
   const leave = useCallback(
     (target: EventTarget | null, related: EventTarget | null) => {
-      if (!(target as HTMLElement | null)?.closest?.(".node")) return
-      const to = (related as HTMLElement | null)?.closest?.<HTMLElement>(".node")
+      if (!(target as HTMLElement | null)?.closest?.(".node,.artchip")) return
+      const to = (related as HTMLElement | null)?.closest?.<HTMLElement>(".node,.artchip")
       if (to && to.dataset["nodeId"] === focus) return
       setFocus(null)
     },
     [focus],
   )
+  const toggleExpand = useCallback((i: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }, [])
 
   return (
     <div className="arnesia-map">
@@ -144,16 +201,50 @@ function MapCanvasInner({
 
             <Region kind="proceso" title="Proceso · carriles por fase">
               <div className="lanes">
-                {lanes.map((l) => (
-                  <Lane
-                    key={l.fase}
-                    fase={l.fase}
-                    nodes={l.nodos}
-                    related={related}
-                    selectedId={selectedId}
+                {lanes.map((l, i) => {
+                  // Panel de entrada (D11b): refs ↖ SOLO de la caja seleccionada de este
+                  // carril, en su gutter de entrada.
+                  const refs =
+                    artefactos !== "off" && selectedId && l.nodos.some((n) => n.id === selectedId)
+                      ? selectRefsEntrada(
+                          graph,
+                          selectedId,
+                          i > 0 ? (lanes[i - 1]?.fase ?? null) : null,
+                        )
+                      : []
+                  const plan = planes[i]
+                  return (
+                    <Fragment key={l.fase}>
+                      {artefactos !== "off" && plan && (
+                        <HandoffGutter
+                          plan={plan}
+                          refs={refs}
+                          expanded={expanded.has(i)}
+                          onToggleExpand={() => toggleExpand(i)}
+                          onSelect={onSelect}
+                          dimmed={dimmed}
+                        />
+                      )}
+                      <Lane
+                        fase={l.fase}
+                        nodes={l.nodos}
+                        related={related}
+                        selectedId={selectedId}
+                        onSelect={onSelect}
+                      />
+                    </Fragment>
+                  )
+                })}
+                {artefactos !== "off" && lanes.length > 0 && planes[lanes.length] && (
+                  <HandoffGutter
+                    plan={planes[lanes.length] as NonNullable<(typeof planes)[number]>}
+                    refs={[]}
+                    expanded={expanded.has(lanes.length)}
+                    onToggleExpand={() => toggleExpand(lanes.length)}
                     onSelect={onSelect}
+                    dimmed={dimmed}
                   />
-                ))}
+                )}
               </div>
             </Region>
 

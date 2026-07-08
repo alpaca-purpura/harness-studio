@@ -1,6 +1,11 @@
 import { type RefObject, useCallback, useLayoutEffect, useState } from "react"
 import type { Edge, TipoEdge } from "@/entities/arnes"
 
+// DrawableEdge — un edge del grafo o de la proyección de artefactos (RF-142): `art`
+// se pinta SIEMPRE que sus dos anclas existan (el chip oculto no tiene caja en el DOM →
+// se cae solo por el guard de width 0); `opt` = consumidor opcional, más tenue (D11d).
+export type DrawableEdge = Edge & { art?: boolean; opt?: boolean }
+
 // EdgePath is one measured, fully-styled connector: a cubic bezier from the right edge of the
 // source node to the left edge of the target, in CONTENT space (screen deltas ÷ z, since the
 // SVG lives inside the scaled stage). It carries its own stroke/opacity/width/dash/marker so
@@ -37,7 +42,7 @@ interface Opts {
 // Recomputes on content resize and whenever z or the focus change.
 export function useEdgePaths(
   contentRef: RefObject<HTMLElement | null>,
-  edges: Edge[],
+  edges: DrawableEdge[],
   { z, focusId }: Opts,
 ): EdgePath[] {
   const [paths, setPaths] = useState<EdgePath[]>([])
@@ -50,8 +55,9 @@ export function useEdgePaths(
     for (const e of edges) {
       const spine = e.tipo === "invoca"
       const touches = !!focusId && (e.de === focusId || e.a === focusId)
-      // Backbone always visible; lee/escribe only for the node under the cursor (no spaghetti).
-      if (!spine && !touches) continue
+      // Backbone always visible; art edges always drawn with their chip (mockup:692);
+      // other lee/escribe only for the node under the cursor (no spaghetti).
+      if (!spine && !e.art && !touches) continue
       const from = content.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(e.de)}"]`)
       const to = content.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(e.a)}"]`)
       if (!from || !to) continue
@@ -66,12 +72,13 @@ export function useEdgePaths(
       const s = STROKE[e.tipo]
       let opacity = s.opacity
       let width = 1.6
+      if (e.opt) opacity *= 0.55 // consumidor opcional (D11d): más tenue.
       if (focusId) {
         if (touches) {
           opacity = 0.95
           width = 2.2
-        } else if (spine) {
-          opacity = 0.2
+        } else if (spine || e.art) {
+          opacity = Math.min(opacity, 0.2)
         }
       }
       next.push({
@@ -80,7 +87,7 @@ export function useEdgePaths(
         stroke: s.color,
         opacity,
         width,
-        dash: s.dash,
+        dash: e.opt ? "2 6" : s.dash,
         marker: e.tipo !== "lee",
       })
     }

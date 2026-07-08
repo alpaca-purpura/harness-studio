@@ -68,7 +68,14 @@ export const devFullCycle = {
           { art: "idea del usuario (conversación grill)", de: "usuario", requerido: true },
           { art: "estándar de spec", de: "base:std-spec", requerido: true },
         ],
-        entrega: [{ art: "spec.md", escritor_unico: true }],
+        entrega: [
+          {
+            art: "spec.md",
+            path: "spec.md",
+            plantilla: "references/plantilla-spec.md",
+            escritor_unico: true,
+          },
+        ],
         ruta: [
           { a: "builder", si: "gate del spec verde" },
           { a: "humano", si: "la idea no converge en 3 vueltas" },

@@ -63,9 +63,21 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
   references/scripts (solo lee SKILL.md por skill) pero `hooks/hooks.json` queda
   INVISIBLE al grafo — el TODO del loader («reconocedores se añaden con el primer
   arnés real que los use») SE DISPARÓ: el dogfood ahora usa hooks.
-- **Próximo paso:** Fase 5 — Mapa (RF-140..145): port del mockup v2
-  (`selectArtefactos` + chips + gutters + toggle + panel ↖ + stories) y PARIDAD.md
-  para el gate final. Luego 6 (reconocedor de hooks + nomenclatura + ficha DevStudio).
+- **FASE 5 COMPLETA (RF-140..145) — PARIDAD.md LISTO PARA EL GATE:** port del mockup
+  v2 al Mapa real — `selectArtefactos`/`planGutter`/`selectRefsEntrada`/`artEdges`
+  puros en `entities/arnes/model/artefactos.ts` · `ArtefactoChip` (8 estados por
+  marca) · `HandoffGutter` intercalado (tope D11c + «+N más» + refs ↖ D11b) · edges
+  `escribe`/`lee` derivados con supresión del `invoca` cubierto (motor intacto salvo
+  `art`/`opt`) · toggle MapBar `off·auto·todos` (default auto = reposo idéntico) ·
+  fixtures: Luana enriquecido + **Cobranza nuevo** · TS `Output` espejo de RF-110.
+  Suite: vitest **86/86** (18 stories nuevas con asserts del click-through v2) ·
+  depcruise/stylelint/steiger/biome/tsc ✓ · **consola 0 errores** · 6 screenshots en
+  `shots/fase5/`. **[`PARIDAD.md`](./PARIDAD.md)** con tabla mockup↔componente↔story↔RF
+  + 7 desviaciones registradas → 🧑‍⚖️ **gate final humano lado a lado PENDIENTE**.
+- **Próximo paso:** Fase 6 (RF-150..151): reconciliación del loader (hallazgo F4:
+  hooks/hooks.json INVISIBLE al grafo — el TODO del reconocedor se disparó; evaluar
+  reconocedor de hooks + nomenclatura v1.2 si aplica) + ficha gemela DevStudio por
+  RF-110. Tras eso: gate final humano de PARIDAD.
 - **Firmas:** D1–D11 ✅ · spec.md+design.md ✅ (2026-07-08). Gate final pendiente =
   PARIDAD.md lado a lado tras Fase 5.
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de
