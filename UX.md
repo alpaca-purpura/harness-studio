@@ -777,5 +777,9 @@ iteración 6** (contrato de capas + rediseño Proceso).
 12. Organigrama (shell-A): ¿posición 100% libre vs auto-layout + ajuste fino? ¿persistir
     posiciones como metadato? · marketplace por-arnés ¿override o hereda de la empresa? ·
     reporta-a ¿cross-empresa o solo intra? · «＋ crear arnés para un puesto» desde el organigrama.
+13. **Artefactos (D1–D11 firmadas 2026-07-08, LISTO PARA IMPLEMENTAR):** chips de hand-off en el
+    spine + identidad del art + plantillas con llenado determinista + checks de composición —
+    paquete completo con spec/design/mockup/prompt en
+    `research/2026-07-07-franja-artefactos/` (arrancar con su PROMPT.md en sesión nueva).
 
 <!-- Al cerrar cada iteración: registrar sección "Iteración N" + actualizar inventario. -->

@@ -3,10 +3,11 @@
 Registro en el mismo turno (disciplina §10). Fundamento de cada una en
 [`viabilidad.md`](./viabilidad.md).
 
-**Estado (2026-07-08): D1–D8 FIRMADAS 🧑‍⚖️** («firmemos todo» + gate D2 resuelto sobre el
-mockup: geometría **A · chips en spine**). **D9–D11 PROPUESTAS** (casuística del operador:
-largo alcance · mejora · cantidad · sin plantilla — catálogo completo en
-[`casuistica.md`](./casuistica.md), demo en el mockup v2) — pendientes de firma.
+**Estado (2026-07-08): D1–D11 FIRMADAS 🧑‍⚖️** — D1/D3–D8 («firmemos todo») · D2 sobre el
+mockup v1 (geometría **A · chips en spine**) · D9–D11 con el OK a la casuística y la
+orden de pasar a backlog implementable («agrégalo al backlog… para programarlo»).
+Catálogo en [`casuistica.md`](./casuistica.md); demo en el mockup v2. **Próxima firma
+pendiente: spec.md + design.md** (gate de la sesión de implementación).
 
 ## D1 — Artefacto = proyección del contrato, jamás primera clase del L0 — ✅ FIRMADA
 El artefacto NO es 11ª `clase` (enum crece solo con primitivas CC-native), NO es nodo
@@ -56,7 +57,7 @@ determinísticamente al cierre. Medir tokens antes/después (p11).
 `art-identidad-coherente` — gemelos de VerificarEscritorUnico, cableados a `--arnes`.
 Es deuda ya prometida (METODOLOGIA §3/§6, UX it.10) — ejecutable sin ninguna otra firma.
 
-## D9 — Mejora de artefacto: `entrega[].refina` (cadena de revisiones) — 🚧 PROPUESTA
+## D9 — Mejora de artefacto: `entrega[].refina` (cadena de revisiones) — ✅ FIRMADA
 Cuando el output ES el mismo artefacto de entrada mejorado (draft.md → draft.md editado,
 factura.pdf → factura.pdf validada): la entrega declara `refina: "<art>"`. Reglas:
 (a) el refinador DEBE tener ese mismo `art` en su `necesita` (check `refina-coherente`);
@@ -68,7 +69,7 @@ aguas abajo referencian la revisión por `de: caja:<refinador>`. Distinto del RE
 revisión nueva; vive en `ruta[]` y en el tablero Flujo). Visual: el chip se repite en el
 gutter del refinador con badge `↻ v2`. Aditivo a box.contract.schema.json (patrón P3).
 
-## D10 — Artefactos sin plantilla propia (factura) y opacos — 🚧 PROPUESTA
+## D10 — Artefactos sin plantilla propia (factura) y opacos — ✅ FIRMADA
 La plantilla SOLO aplica a entregas que el arnés PRODUCE (D4). Un input que llega del
 mundo (factura, orden de compra, aprobación) = `necesita.de: usuario|terceros` — jamás
 lleva plantilla; su control es ADMISIÓN: precondición de existencia del conductor (D7,
@@ -79,7 +80,7 @@ no; el gate valida forma por script; document-as-cache NO aplica al binario — 
 del trabajo vive en el document-as-cache de la caja (digest sidecar determinista = deuda
 declarada, no se promete). Etiquetas sin path («código + tests») siguen D3.
 
-## D11 — Densidad y largo alcance en el Mapa (vista A firmada) — 🚧 PROPUESTA
+## D11 — Densidad y largo alcance en el Mapa (vista A firmada) — ✅ FIRMADA
 (a) El chip vive UNA sola vez: en el gutter del hand-off donde NACE (tras su productor);
 consumidores lejanos = edge `lee` largo, jamás chip duplicado. (b) Al SELECCIONAR una
 caja, su gutter de entrada muestra el **panel de entrada**: referencias compactas ↖ de

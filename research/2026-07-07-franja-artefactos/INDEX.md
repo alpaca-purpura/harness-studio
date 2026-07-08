@@ -13,22 +13,21 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
 
 ## Retomar aquí
 
-- **Último hecho (2026-07-08):** **D1–D8 FIRMADAS** (D2 resuelta sobre el mockup v1:
-  geometría **A · chips en spine** — «se ve y entiende mucho mejor»). El operador planteó
-  4 escenarios (largo alcance · mejora del mismo artefacto · 8+ inputs · sin plantilla
-  tipo factura) → catálogo completo en [`casuistica.md`](./casuistica.md) (C1–C24 + 4
-  reglas transversales) + **decisiones D9 (refina) · D10 (admisión/opacos) · D11
-  (densidad: panel de entrada ↖ + tope +N)** en decisiones.md, y **mockup v2** que las
-  demuestra: ejemplo nuevo «Cobranza» (factura externa sin plantilla, opacos, refina
-  ↻v2, gutter con +1 más) + Luana con fan-in de 4 inputs (3 opcionales de largo alcance
-  → panel de entrada al seleccionar «promover»). Click-through v2 ✅ (asserts 0 errores,
-  consola limpia, vista Actual 0 residuos); screenshots 05–07 en `shots/`. Artifact
-  (misma URL): https://claude.ai/code/artifact/5e506b6a-7ed3-4e87-9005-61c71b84cd6c
-- **Próximo paso:** 🧑‍⚖️ firma de D9–D11 sobre el mockup v2. Con eso el paquete queda
-  listo para `spec.md`+`design.md` (RF trazados a mockup:línea) → código (§10). La fase 1
-  del plan (checks de composición, D8) sigue habilitada e independiente.
-- **Firmas:** D1–D8 ✅ (2026-07-08) · D9–D11 🚧 propuestas (mockup v2 las demuestra).
-  Código intacto: nada se toca hasta specs firmados (METODOLOGIA §10).
+- **Último hecho (2026-07-08):** **D1–D11 FIRMADAS** — el paquete pasó a **BACKLOG
+  IMPLEMENTABLE**: [`spec.md`](./spec.md) (RF-100..151, 6 fases, trazado a
+  mockup:línea/casuística/decisiones) + [`design.md`](./design.md) (diseño técnico por
+  fase: archivos, funciones-gemelo, orden, gates, riesgos) escritos y en estado
+  `pendiente-de-firma`. Mockup v2 = referencia visual firmada (geometría A · chips en
+  spine; Cobranza demuestra refina ↻v2/opacos/+N; Luana el fan-in con panel ↖; asserts
+  del click-through: 0 errores, consola limpia, vista Actual 0 residuos). Artifact:
+  https://claude.ai/code/artifact/5e506b6a-7ed3-4e87-9005-61c71b84cd6c · Backlog UX.md
+  item 13.
+- **Próximo paso:** sesión de implementación NUEVA arranca pegando
+  [`PROMPT.md`](./PROMPT.md). Primer gate de esa sesión: 🧑‍⚖️ firma de spec.md+design.md;
+  luego fases 1→6 en orden, cada una con suite verde + commit + este «Retomar aquí»
+  actualizado; cierre = PARIDAD.md + gate final lado a lado.
+- **Firmas:** D1–D11 ✅ (2026-07-08) · spec.md+design.md 🚧 pendientes (gate de la sesión
+  de implementación). Código intacto hasta esa firma (METODOLOGIA §10).
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de
   viabilidad.md): cifra stale en CLAUDE.md («24 pass/211 deferred» → real 27/208) ·
   error de `artifacts.Status` descartado en silencio (`box_conductor.go:90`) · colisión
