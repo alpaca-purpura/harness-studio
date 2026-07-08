@@ -29,8 +29,12 @@ usuario, cero sudo; el .deb queda para instalación inicial de terceros) · orig
       (publicar SIEMPRE a esta URL):** https://claude.ai/code/artifact/458c147a-b78b-461c-a54b-db2d741ac30b
 - [x] spec.md (RF-100..107) + design.md — 🧑‍⚖️ **PAQUETE FIRMADO** (operador
       «Ok, firmo», 2026-07-07) → implementación AUTORIZADA
-- [ ] implementación + stories + tests
-- [ ] PARIDAD → gate final
+- [x] implementación + stories + tests (FASE 2, commits `92c45a1`→`ed223a4`; gates
+      TODOS verdes — lista en validacion.md)
+- [x] PARIDAD **✅ 8/8 filas verificadas en vivo** (FASE 3: el daemon instalado se
+      actualizó A SÍ MISMO `ed223a4`→`0a42644`; evidencia en validacion.md; 6
+      desviaciones registradas en PARIDAD §Desviaciones)
+- [ ] 🧑‍⚖️ gate final humano: revisar screenshots + las 6 desviaciones de PARIDAD
 
 ## Diseño técnico SELLADO (FASE 1, 2026-07-07 — contraste RF↔existente hecho; código autorizado)
 
@@ -92,14 +96,21 @@ S1 gratis) · `os.Executable()` post-rename da `(deleted)` en Linux (decisión #
   [`PROMPT-implementacion.md`](./PROMPT-implementacion.md) (contexto → diseño técnico
   sellado → implementación Go-primero → validación REAL: el daemon actualizándose a sí
   mismo desde ~/.local/bin). PARIDAD.md esqueleto (8 filas).
-- **FASE 0+1 hechas (2026-07-07, conversación de implementación):** paquete + código
-  existente leídos; diseño técnico contrastado RF↔existente y SELLADO arriba (tabla de
-  piezas + mini-plan de 5 commits); decisiones #6–#9 de FASE 1 registradas en
-  decisiones.md (bundle.sh --daemon-only+bin/arnesia · huella +sucio · exePath capturado
-  al construir · lock retenido tras actualizado / polling 1.5s solo /api/version).
-- **Próximo paso:** FASE 2 — implementar Go primero (commits 1–3), luego FE (commit 4),
-  gates verdes; después FASE 3 validación real. Al cerrar: PARIDAD ✅, «Retomar aquí»
-  actualizado.
+- **PAQUETE EJECUTADO COMPLETO (2026-07-07/08, conversación de implementación):**
+  FASES 0–3 del PROMPT cumplidas. Diseño técnico sellado arriba; decisiones #6–#9 en
+  decisiones.md. Implementación en 5 commits (`92c45a1` bundle.sh · `bdf424f` puerto+
+  adapter · `b1e1c7b` usecase+endpoints+OpenAPI 0.3.0 · `ed223a4` FE+stories ·
+  `0a42644` commit trivial del guion). **Validación REAL: el daemon instalado en
+  `~/.local/bin` se actualizó A SÍ MISMO** (`ed223a4`→`0a42644`, re-exec mismo PID,
+  polling confirmó huella nueva) + contracasos build-roto/ya-al-día/409/no-escribible/
+  sin-repo/gates-403 — TODO en [`validacion.md`](./validacion.md). PARIDAD ✅ 8/8 con
+  6 desviaciones registradas (Playwright fallback · consola del reinicio · pill root ·
+  línea muted · ruta completa · checklist no animada). Migración única DOCUMENTADA
+  (validacion.md §Migración). Gates de código todos verdes.
+- **Próximo paso:** 🧑‍⚖️ gate final humano — abrir ⚙ Ajustes en la app viva
+  (`~/.local/bin/arnesia serve --repo <repo>`), revisar lado a lado con el mockup y
+  firmar (o cuestionar) las 6 desviaciones de PARIDAD. Con esa firma el paquete CIERRA.
+- **Firmas pendientes:** el gate final humano de paridad (única).
 - **Firmas pendientes:** ninguna hasta la paridad (gate final tras implementar).
 - **Contexto caliente (candidatos a decisión en la iteración):** ① la ruta del repo
   NO viaja en el request — el daemon la conoce por flag/env/registro explícito
