@@ -96,3 +96,37 @@ solo de facto.
 no de esta máquina. Opciones para el operador: (a) el bundle genera el `.desktop` con
 Exec absoluto (Tauri `desktopTemplate`), (b) renombrar uno de los dos binarios,
 (c) self-update instala como `arnesia-daemon` alineado con el sidecar del .deb.
+
+## Hallazgo #2 post-validación (2026-07-07 noche) — el shell embebe SPA propia congelada; self-update NO le llega a la UI del escritorio
+
+**Síntoma reportado por el operador:** «no veo las mejoras del drawer supuestamente
+implementadas» — abría el shell de escritorio y la UI seguía sin el inspector-drawer
+(RF-80..96, commits `6e61b30..1c7443f`, 17:58–19:15).
+
+**Causa raíz (verificada binario contra binario):** hay DOS copias de la SPA y el shell
+usa la suya:
+- Shell Tauri (`/usr/bin/arnesia`, .deb del **13:37**): `frontendDist: "../dist"` sin
+  `url` en la ventana → el WebView carga la SPA **embebida en el .deb al momento del
+  bundle** — `index-BEoG7Efy.js`, **cero** ocurrencias de `arnesia-inspector` (el drawer
+  aún no existía; tampoco la tarjeta Ajustes/self-update).
+- Daemon (`~/.local/bin/arnesia`, huella `0a42644`): sirve la SPA NUEVA
+  (`index-IpYXxoWE.js` — drawer ✓, tarjeta self-update ✓) en `http://127.0.0.1:4200/`.
+- El shell solo consume la **API** del daemon (`client.ts` BASE `127.0.0.1:4200`):
+  datos vivos, código de UI congelado.
+
+**Consecuencia de diseño:** el botón «Actualizar desde el repo» actualiza daemon + SPA
+del daemon, pero la UI del escritorio JAMÁS recibe mejoras sin re-empaquetar e instalar
+el .deb (sudo). Peor: el shell congelado ni siquiera muestra la tarjeta de actualización.
+
+**Remediación inmediata (aplicada):** abrir `http://127.0.0.1:4200/` en el browser —
+ahí vive la SPA actual con el drawer.
+
+**Deuda de producto (candidata a desviación #8 para el gate final) — opciones:**
+(a) la ventana del shell navega a `http://127.0.0.1:4200` (WebviewUrl externa; la SPA
+    embebida del .deb queda solo como fallback/urls de error) → toda mejora llega con el
+    self-update del daemon; revisar gate S1 Host+Origin para el origin del WebView;
+(b) self-update también reempaqueta el shell (pesado: rustc + sudo dpkg — contradice
+    «cero sudo»);
+(c) aceptar el doble-cuerpo y mostrar skew de versión shell↔daemon en Ajustes.
+La (a) alinea con HS-04 («el WebView consume la misma API») y con el valor de esta
+feature; decisión del operador en el gate.
