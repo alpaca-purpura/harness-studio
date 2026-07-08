@@ -6,7 +6,7 @@
 > commits, hooks, CI). Ambos son checks corribles con `enforced_by:`; distinta intención. Espeja el
 > patrón de [`../boundaries/`](../INDEX.md) (nodo L1 principio+fuente ↔ L2 realización + checklist).
 > Norte: [`../../VISION.md`](../../VISION.md) · evidencia L1:
-> [`../../research/2026-07-05-fe-arch-atomic-storybook-convenciones.md`](../../research/2026-07-05-fe-arch-atomic-storybook-convenciones.md)
+> [`../../historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md`](../../historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md)
 > (frente D) · el «por qué» firmado: ficha **HS-05** del [`../../LEDGER.md`](../../LEDGER.md).
 
 ## La disciplina (idéntica a boundaries)
@@ -15,7 +15,7 @@ Cada nodo = **L1** (la convención como estándar de industria, con fuente y fec
 realiza en ESTE repo Go+TS+Rust) + un **checklist evaluable** cuyo `enforced_by:` apunta al **archivo de
 config REAL** (que vive donde la herramienta lo espera: raíz o `web/`), no a una copia. El nodo NO
 duplica la config; la referencia — igual que `boundaries/` referencia `go-arch-lint`. Regla dura: **toda
-convención en este árbol DEBE romper CI** (si no, es una nota, va al research doc o la ficha).
+convención en este árbol DEBE romper CI** (si no, es una nota, va al doc de historias o la ficha).
 
 ## El árbol — convention nodes
 
@@ -39,7 +39,7 @@ Leyenda: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) 
 > `lefthook` instalado como gate local). Los paths (`web/src/**`, module path Go) dejaron de ser
 > provisionales.
 
-## Decisiones clave (detalle y fuentes en el research doc, frente D)
+## Decisiones clave (detalle y fuentes en el doc de historias, frente D)
 
 | Capa | Pick | Descartado |
 |---|---|---|

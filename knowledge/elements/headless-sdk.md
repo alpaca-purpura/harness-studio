@@ -131,7 +131,7 @@ gobierna al producto ArnesIA mismo (dogfood) más que a los arneses que fabrica.
   `% contexto` = métrica derivada nuestra (no existe en stream-json/OTel). L2.5 reescrita, L2.6
   nueva. **1 alta neta**: `ctx-derivado` nuevo; `bare-ci` fue **corrección** de un check preexistente
   (v1.0), no alta → **11 checks** (headless v1.0=10 → v1.1=11). Disparado por la
-  investigación de arquitectura `research/2026-07-05-arquitectura-fase3.md`.
+  investigación de arquitectura `historias/2026-07-05-arquitectura-fase3.md`.
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales (headless, agent-sdk/overview +
   migration, sessions, monitoring, best-practices). L2 amarra headless/SDK = motor de la fábrica
   conversacional de ArnesIA (patrón conductor I-76), stream-json + sensor JSONL-como-verdad-índice-

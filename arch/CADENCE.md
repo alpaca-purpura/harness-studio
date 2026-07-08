@@ -62,7 +62,7 @@ YYYY-MM-DD · vX.Y · qué cambió · qué ficha lo disparó
 1. **Decisión estructural.** Nace en una conversación/ficha `HS-NN` (o la muta). Ejemplo: «el
    dock habla AG-UI», «el conductor es subproceso, no SDK-sidecar».
 2. **¿Toca un boundary?** Si crea o cambia una regla estructural → nodo aquí (nuevo o bump). Si es
-   una decisión sin regla enforçable (p.ej. «usamos Zustand») → basta la ficha + el research doc;
+   una decisión sin regla enforçable (p.ej. «usamos Zustand») → basta la ficha + el doc de historias;
    no todo va a `arch/`, solo lo que se puede **romper en CI**.
 3. **L1 + L2.** Escribir el principio con fuente y el mapeo al código. Si L2 diverge de L1 →
    marcar `⚠ divergencia` + justificar, nunca silenciosa (regla heredada de knowledge).
@@ -76,7 +76,7 @@ YYYY-MM-DD · vX.Y · qué cambió · qué ficha lo disparó
 
 - **El LEDGER es el «por qué» canónico.** `arch/` no forkea el diario; lo proyecta (`ledger:`).
 - **Toda regla que llega a `boundaries/` DEBE tener un `enforced_by:`** — si no se puede romper en
-  CI, no es un boundary, es una nota (va al research doc o la ficha).
+  CI, no es un boundary, es una nota (va al doc de historias o la ficha).
 - **Superar, no borrar** (aditivo, principio 4): un boundary superado va a `status: superseded`
   con puntero al que lo reemplaza; no se elimina.
 - **L2 deriva de L1.** Divergencia marcada y justificada.

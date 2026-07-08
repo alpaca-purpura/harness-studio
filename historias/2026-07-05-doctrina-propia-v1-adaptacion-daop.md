@@ -11,7 +11,7 @@
 > **DAOP v0.2** (`~/Descargas/doctrina-kits-v0.2.md`, derivada de BMAD v6 + Agent SDK) contra
 > nuestras capas: [`VISION.md`](../VISION.md) · [`METODOLOGIA.md`](../METODOLOGIA.md) ·
 > [`knowledge/`](../knowledge/INDEX.md) · [`arch/`](../arch/INDEX.md) ·
-> [`research/…inyeccion-knowhow.md`](./2026-07-05-arquitectura-inyeccion-knowhow.md).
+> [`historias/…inyeccion-knowhow.md`](./2026-07-05-arquitectura-inyeccion-knowhow.md).
 > **Norte:** adaptar lo bueno de DAOP a NUESTRA visión sin importar los mecanismos BMAD que
 > Claude Code no soporta. VISION firmada = intacta.
 
@@ -117,7 +117,7 @@ Dictamen por mecanismo (fuente: knowledge/ verificado contra docs CC v2.1.x):
 | filesystem blackboard (§12) | **SÍ (patrón sancionado)** | multi-agent post + `isolation:worktree` + `<veredicto>→<path>` + `SubagentStop` | **ADOPTAR** |
 | `AgentDefinition` + `effort` (§6/§12) | **SÍ** | `.claude/agents/*.md` frontmatter (`tools/model/effort/maxTurns`) | **ADOPTAR** (como archivo, no objeto SDK) |
 | orquestador Agent SDK (§6/§13) | **NO para Go** (no hay Go SDK) | **conductor Go subprocess + stream-json** (HS-04) | **RECHAZAR mecanismo / adoptar rol** |
-| «usa API key / crédito dedicado» (§14) | **N/A** | suscripción-propia SIN `--bare` (research inyección §3) | **RECHAZAR default** (lane opcional para T3 pesado) |
+| «usa API key / crédito dedicado» (§14) | **N/A** | suscripción-propia SIN `--bare` (historias/…inyeccion-knowhow.md §3) | **RECHAZAR default** (lane opcional para T3 pesado) |
 
 **Check nuevo mission-crítico → `no-phantom-frontmatter`:** ninguna skill/subagente lleva claves
 que CC no reconoce (`persistent_facts`, `activation_steps_prepend`, `customize`). Es la defensa
@@ -204,8 +204,8 @@ Reencuadre de los ítems DAOP bajo esta decisión:
   organigrama = del sistema externo**; ArnesIA solo garantiza que las cajas sean referenciables y que
   la META permita el enganche. No construimos el backbone cross-arnés; lo habilitamos.
 - **Override 3 capas (§15) — ADAPTAR (CC-native/JSON, NO TOML).** Mismo arnés en N empresas sin fork:
-  `user > org > base`, merge estructural resuelto en el `KitProvisioner` al hidratar (research
-  inyección §8.1). Palanca de productización «1 arnés, N empresas» — 100% nuestra (es config de
+  `user > org > base`, merge estructural resuelto en el `KitProvisioner` al hidratar (historias/…inyeccion-knowhow.md
+  §8.1). Palanca de productización «1 arnés, N empresas» — 100% nuestra (es config de
   producto). Regla 15.2: identidad/secuencia NO customizable → «la app OPERA las primitivas, no las
   duplica».
 - **Permisos = f(rol) del arnés (§16.1) — ADAPTAR (boundary nuevo).** El permission-set se parametriza
@@ -222,8 +222,8 @@ Reencuadre de los ítems DAOP bajo esta decisión:
 3. **Telemetría de nacimiento** (p9): constitucional, no opt-in. DAOP emite evidencia por-promoción.
 4. **Honestidad de dato** (METODOLOGIA §4): procedencia, gris≠verde, «—», heat=percentil. DAOP no
    tiene NADA sobre cómo el producto muestra datos sin mentir.
-5. **Inyección 3-cuerpos + `--plugin-dir` sin `--bare` + cero-config del usuario** (research
-   inyección). DAOP no tiene mecanismo de distribución ni ve el problema auth-suscripción.
+5. **Inyección 3-cuerpos + `--plugin-dir` sin `--bare` + cero-config del usuario**
+   (historias/…inyeccion-knowhow.md). DAOP no tiene mecanismo de distribución ni ve el problema auth-suscripción.
 6. **Event-sourcing (JSONL nunca se parsea como API) + seguridad del daemon (superficie-local-
    confinada) + conductor Go local-first.** DAOP tiene cero modelo de sistema.
 7. **knowledge/ árbol VIVO con cadencia semanal** anclado a Anthropic/expertos + 122 checks como
@@ -396,4 +396,4 @@ tiene: **el Mapa espacial**, el **loop cerrado de mejora**, **local-first sin lo
   knowledge/CC-native · arch/conductor/runtime · estrategia/MOF/orgs. Convergencia fuerte en las 3
   tesis (§0). Detalle de cada frente disponible en el hilo de la sesión.
 - Nuestras capas: `VISION.md` · `METODOLOGIA.md` · `knowledge/` (11 nodos, 122 checks) · `arch/`
-  (14 boundaries, 89 checks) · `research/2026-07-05-arquitectura-inyeccion-knowhow.md`.
+  (14 boundaries, 89 checks) · `historias/2026-07-05-arquitectura-inyeccion-knowhow.md`.

@@ -3,7 +3,7 @@
 // DERIVA de necesita[]/entrega[] de los contratos (D1: el artefacto JAMÁS es nodo del L0,
 // banda ni clase 11ª). Puro: sin React, sin transporte — el widget solo pinta lo que esto
 // devuelve (canvas ⊥ chrome). Espejo FE de la derivación firmada en el mockup v2
-// (research/2026-07-07-franja-artefactos/mockup-artefactos.html:420-466).
+// (historias/2026-07-07-franja-artefactos/mockup-artefactos.html:420-466).
 
 import type { Edge, Graph, Input } from "./types"
 

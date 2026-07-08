@@ -55,7 +55,7 @@ fan-in con panel ↖ (`PanelDeEntrada`) · vista Actual/off 0 residuos (`Artefac
 
 ## Cómo reproducir el lado a lado
 
-1. `open research/2026-07-07-franja-artefactos/mockup-artefactos.html` (ejemplos Cobranza/
+1. `open historias/2026-07-07-franja-artefactos/mockup-artefactos.html` (ejemplos Cobranza/
    Luana, vista Artefactos, click en «ejecutar el pago» / «promover a prod»).
 2. `cd web && pnpm exec storybook dev -p 6006` → stories `MapCanvas › Artefactos*`,
    `HandoffGutter › *`, `ArtefactoChip › *`.

@@ -36,7 +36,7 @@ GUI aprueba writes vía diff). Este boundary añade el eje **rol-céntrico**, co
 puro + META de enganche» (VISION §Linaje): la autoridad del rol viene de la **META** del arnés
 (rol·proceso·reporta-a·empresa, ya en `graph.l0`), NO de una consultoría MOF nuestra.
 
-- **Parametrización por hidratación:** el `KitProvisioner` (research inyección §8.1) resuelve el
+- **Parametrización por hidratación:** el `KitProvisioner` (historias/…inyeccion-knowhow.md §8.1) resuelve el
   permission-set según el rol que hidrata y lo pasa como `--permission-mode`/`--settings` al spawn.
   Extiende el `--permission-mode <según modo>` de fase→rol. ⇐ L1 (permisos = f(rol)).
 - **Impuesto en hook, no en prompt:** el límite duro vive en `PreToolUse`/`control_request` (exit 2 /

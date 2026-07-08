@@ -4,11 +4,11 @@ Copia y pega esto en una conversación nueva de Claude Code (cwd = raíz del rep
 
 ---
 
-Retoma el paquete de trabajo `research/2026-07-07-franja-artefactos/` y continúa como si
+Retoma el paquete de trabajo `historias/2026-07-07-franja-artefactos/` y continúa como si
 fueras la misma conversación (disciplina METODOLOGIA §10).
 
 Orden de lectura obligatorio antes de tocar NADA:
-1. `research/2026-07-07-franja-artefactos/INDEX.md` («Retomar aquí»)
+1. `historias/2026-07-07-franja-artefactos/INDEX.md` («Retomar aquí»)
 2. `decisiones.md` — D1–D11 FIRMADAS; son ley, no se relitigan
 3. `spec.md` (RF-100..151) y `design.md` (diseño técnico por fase) — estado
    `pendiente-de-firma`

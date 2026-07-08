@@ -11,7 +11,7 @@
 ## ⚑ Bitácora de avance · estado · aprendizajes (act. 2026-07-06)
 
 ### Avance por fase
-- **Fase A ✓ COMPLETA** (commit `a8721e9`). Entregable `research/2026-07-06-shell-map.md` — shell exacto
+- **Fase A ✓ COMPLETA** (commit `a8721e9`). Entregable `historias/2026-07-06-shell-map.md` — shell exacto
   `archivo:línea` (3 subagentes verificados). Seam del Mapa = `workspace-stage.tsx:40-46`, branch
   `s.view==="Mapa"` → `<MapCanvas arnesId={s.arnes}/>`.
 - **Fase B ✓ COMPLETA — 🛑 Gate 1 (mockup) FIRMADO por el operador (2026-07-06, commit `0736d2c`).**
@@ -36,10 +36,10 @@
     10 clases · edges 3 tipos.
   - Mockup **v2** (commit `4b438db`) tras feedback del operador (7 cambios, abajo). Data-driven, toggle
     Luana↔dogfood. Artifact `08d31cde-3f91-4808-a14f-fe8d31ae7572`.
-- **Deuda · diseño de arquitectura ✓** (commit `3a8a278`) — `research/2026-07-06-deuda-backend-arch.md`
+- **Deuda · diseño de arquitectura ✓** (commit `3a8a278`) — `historias/2026-07-06-deuda-backend-arch.md`
   (track independiente; análisis read-only, sin código).
 - **Fase C ✓ COMPLETA — 🛑 Gate 2 (spec) FIRMADO por el operador (2026-07-06).** Paquete en
-  `research/2026-07-06-mapa-mvp/`: `spec.md` (QUÉ — RF numerados + Gherkin, cada uno trazado a
+  `historias/2026-07-06-mapa-mvp/`: `spec.md` (QUÉ — RF numerados + Gherkin, cada uno trazado a
   `mockup:línea`+shot) · `design.md` (UI al pixel — tokens/medidas) · `architecture.md` (CÓMO —
   hexagonal+FSD-lite, loader backend, secuencia de PRs, plan de cementado de las 6 decisiones) ·
   `PARIDAD.md` (round-trip visual + deferred honesto). Fiel al mockup firmado; corrige un dato stale
@@ -174,7 +174,7 @@ Cubrir:
 - **Modelo de sesión:** N sesiones N:1 con arnés, subproceso CC por sesión, ruteo por `session_id`, dedup
   por `run_id`.
 
-**Entregable:** `research/2026-07-06-shell-map.md` — el cableado exacto + el **seam de montaje del Mapa**
+**Entregable:** `historias/2026-07-06-shell-map.md` — el cableado exacto + el **seam de montaje del Mapa**
 (cómo `workspace-stage` monta una vista nueva pasando `arnesId` como prop → respeta canvas⊥chrome) + cómo
 una `widget`/`entity` nueva entra sin romper la topología FSD.
 
@@ -219,7 +219,7 @@ Storybook NO la reinventa. Y sobre el resultado manda **la aprobación del opera
 ## Fase C · Spec del MVP del Mapa CON TODO EL DETALLE
 
 Con el mapa del shell (A) + Storybook + mockup actualizado (B) como insumos, escribe el spec firmable del
-Mapa MVP (Hito 1 + Hito 2). Entregable: `research/2026-07-06-spec-mapa-mvp.md` (o donde corresponda como
+Mapa MVP (Hito 1 + Hito 2). Entregable: `historias/2026-07-06-spec-mapa-mvp.md` (o donde corresponda como
 as-code). Debe cubrir, sin huecos:
 
 - **Backend — loader del dogfood:** `internal/adapters/index/store.go` — leer
@@ -311,7 +311,7 @@ Independiente del Mapa; puede correr en paralelo (subagentes / worktrees). Cada 
 
 ## Gates / definición de hecho
 
-- **G-shell:** `research/2026-07-06-shell-map.md` exacto (verificado por muestreo contra los archivos).
+- **G-shell:** `historias/2026-07-06-shell-map.md` exacto (verificado por muestreo contra los archivos).
 - **G-ssot:** stories del Mapa verdes (story=test); **mockup regenerado DESDE Storybook** preservando la
   intención de diseño previa (v3/galaxia + UX firmada), hex calzando con `base.tokens.json`; publicado al
   mismo artifact + click-through; **y APROBADO explícitamente por el operador** (referencia firmada del Mapa).

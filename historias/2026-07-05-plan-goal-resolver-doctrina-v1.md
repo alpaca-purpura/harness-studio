@@ -3,7 +3,7 @@
 > **Cómo se usa:** este archivo ES el argumento del comando `/goal`. Pégalo (o referéncialo) tras
 > `/goal`. El objetivo es un LOOP: `/goal` itera ola por ola, cada una cierra con un gate verde, y el
 > goal **no termina** hasta que la auditoría final pasa. Fuente de verdad de los hallazgos =
-> [`research/2026-07-05-auditoria-doctrina-v1-aplicabilidad.md`](./2026-07-05-auditoria-doctrina-v1-aplicabilidad.md)
+> [`historias/2026-07-05-auditoria-doctrina-v1-aplicabilidad.md`](./2026-07-05-auditoria-doctrina-v1-aplicabilidad.md)
 > (referéncialo con `BNN`/`MNN`/`mNN`).
 
 ---

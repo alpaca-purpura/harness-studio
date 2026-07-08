@@ -158,7 +158,7 @@ verde, subagente = «ventana propia, no ocupa la principal»). 20 asserts nuevos
 
 ## La propuesta que v3 materializa
 
-Base: [`research/2026-07-04-salud-trazas-edicion.md`](./research/2026-07-04-salud-trazas-edicion.md)
+Base: [`historias/2026-07-04-salud-trazas-edicion.md`](./historias/2026-07-04-salud-trazas-edicion.md)
 (3 frentes web + JSONL local verificado).
 
 1. **Salud de la producción (portafolio v2).** Tarjeta IDÉNTICA por arnés (uniformidad
@@ -780,6 +780,6 @@ iteración 6** (contrato de capas + rediseño Proceso).
 13. **Artefactos (D1–D11 firmadas 2026-07-08, LISTO PARA IMPLEMENTAR):** chips de hand-off en el
     spine + identidad del art + plantillas con llenado determinista + checks de composición —
     paquete completo con spec/design/mockup/prompt en
-    `research/2026-07-07-franja-artefactos/` (arrancar con su PROMPT.md en sesión nueva).
+    `historias/2026-07-07-franja-artefactos/` (arrancar con su PROMPT.md en sesión nueva).
 
 <!-- Al cerrar cada iteración: registrar sección "Iteración N" + actualizar inventario. -->

@@ -4,7 +4,7 @@
 > Origen: el operador quiere iterar QUÉ se ve al seleccionar cada elemento del mapa
 > SIN tocar el código — mockup HTML clonado del drawer real, decisiones firmadas,
 > specs, y recién entonces implementación. Mismo ritmo probado del Mapa
-> (`research/2026-07-06-mapa-mvp/`): decisión → as-code → build → verificar humano.
+> (`historias/2026-07-06-mapa-mvp/`): decisión → as-code → build → verificar humano.
 
 ## Flujo y gates
 

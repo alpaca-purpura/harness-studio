@@ -2,7 +2,7 @@
 
 > **Fecha:** 2026-07-05 · **Alcance:** todo lo bajado as-code de la doctrina v1 (VISION §Linaje,
 > METODOLOGIA §3/§8, nodo `harness-profile`, 2 boundaries HS-07, contrato/schemas, y su fuente
-> `research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`). **Método:** 5 subagentes read-only en
+> `historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`). **Método:** 5 subagentes read-only en
 > paralelo (coherencia documental · árbol knowledge · arch/boundaries+schema · aplicabilidad ·
 > fidelidad DAOP+fundamento de fuentes) + cross-check manual del schema, el dominio Go y los fitness
 > tests. **Lente rectora:** ¿se puede APLICAR la doctrina (forjar el arnés `dev-full-cycle` real)
@@ -38,7 +38,7 @@ dogfood. Todo ANTES de forjar el dev-full-cycle.
 > como un "vocabulario cerrado central" del producto a enumerar. **Error de agnosticismo:** ArnesIA CREA
 > arneses para procesos arbitrarios; NO tiene un spine universal. El as-code ya es agnóstico-correcto
 > (`domain.Fase`/`Estado` son `string` sin enum, deliberado). B2 recalibrado abajo a **media** = falta el
-> meta-modelo per-arnés, no una constante. Ver `research/2026-07-05-plan-goal-resolver-doctrina-v1.md`
+> meta-modelo per-arnés, no una constante. Ver `historias/2026-07-05-plan-goal-resolver-doctrina-v1.md`
 > Principio Rector 8 + Ola 0.1/0.5.
 
 | Severidad | # hallazgos | Naturaleza |
@@ -180,7 +180,7 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
 - **Discrepancia:** los "A#" son los **Principios de DAOP**, no del manifiesto APM. DAOP mismo define A7
   como "el document-as-cache de BMAD" y A2 lo ancla a 12-Factor. La bajada les estampa "de APM" →
   atribuye al paper académico conceptos que la fuente atribuye a BMAD/12-Factor. El barrido APM del
-  research (§11) **nunca** lista document-as-cache como tenet APM.
+  doc de historias (§11) **nunca** lista document-as-cache como tenet APM.
 - **Impacto al APLICAR:** cita fantasma — quien vaya a la bibliografía a fundamentar "document-as-cache"
   con el manifiesto APM no lo hallará ahí. Erosiona la confianza en TODAS las citas académicas y
   compromete el relato "no clon de BMAD" (el concepto ES de BMAD, re-etiquetado).
@@ -286,8 +286,8 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
 
 ### M8 · Explainability y las "4+1 capacidades": nombradas, no operacionalizadas, con aritmética incoherente
 - Conteo roto propagado a doc firmado: `harness-profile.md:51` "APM debe proveer **4** capacidades"
-  (incluye explainability); `research §11.2:333` y `VISION.md:110-111` las llaman "**4+1**" listando
-  esas mismas 4; `research §11.3` presenta explainability como el "+1 nuevo". Si explainability es una
+  (incluye explainability); doc de historias §11.2:333 y `VISION.md:110-111` las llaman "**4+1**" listando
+  esas mismas 4; doc de historias §11.3 presenta explainability como el "+1 nuevo". Si explainability es una
   de las 4 nativas, no es "+1"; y la quinta nunca se define.
 - Sin bajada a mecanismo: `explainability-rationale` (`harness-profile.md:133`, warn) no tiene **campo en
   el contrato** para el rationale, ni mecanismo (¿telemetry-emit? ¿artefacto document-as-cache?), ni
@@ -296,9 +296,9 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
   —justo la faceta que se promueve a "5ª faceta evaluable"— queda sin dónde vivir.
 
 ### M9 · El manifiesto APM (arXiv 2603.18916) es autoridad load-bearing e inverificable
-- `research §11.1` + `harness-profile.md:7-10` + `METODOLOGIA.md:331` + `VISION.md:98`. El research SÍ
+- doc de historias §11.1 + `harness-profile.md:7-10` + `METODOLOGIA.md:331` + `VISION.md:98`. El doc de historias SÍ
   aporta quotes (bien), pero (a) inverificables y calzan sospechosamente sobre posiciones que ArnesIA/DAOP
-  ya tenían; (b) el research admite que la función es retórica ("el linaje que nos saca de 'clon de
+  ya tenían; (b) el doc de historias admite que la función es retórica ("el linaje que nos saca de 'clon de
   BMAD'"); (c) el "predecesor arXiv 2201.12855" sería de **enero 2022**, dudoso para "Agentic BPM". El
   DOI/journal (Information Systems, Elsevier) y los autores (Dumas, Montali, Rinderle-Ma, Weber) son
   reales — persuasivo pero no verifica el artículo ni las quotes.
@@ -307,7 +307,7 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
   producto.**
 
 ### M10 · El "framing mechanism" tiene distinto número de componentes según el doc
-- `VISION.md:98` y `research §11.1:322` = **4 componentes** (normativo + operacional + conocimiento +
+- `VISION.md:98` y doc de historias §11.1:322 = **4 componentes** (normativo + operacional + conocimiento +
   tools); `harness-profile.md:50` (L1, nodo autoritativo del estándar APM) = **2 capas** (normativa +
   operacional). Los "+2" parecen construidos para mapear sobre la banda Base y los MCP de ArnesIA, no
   citados del manifiesto.
@@ -323,8 +323,8 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
 - **Cerrar:** hook `SessionStart`/`PreCompact` o convención de conductor que fuerce el reread; y
   procedimiento operable del gate de fidelidad.
 
-### M12 · Checks huérfanos prometidos en el research que nunca aterrizaron
-- `research/…daop.md:242-249` prometió ~12 checks; **no llegaron** (grep = 0): `single-writer-per-artifact`
+### M12 · Checks huérfanos prometidos en el doc de historias que nunca aterrizaron
+- `historias/…daop.md:242-249` prometió ~12 checks; **no llegaron** (grep = 0): `single-writer-per-artifact`
   (¡el de `escritor_unico`!), `no-arnesar-clasificado`, `mece-routing-coverage`, `snapshot-inmutable-versionado`,
   `anotacion-humana-a-regresion`, `persona-hard-constraint-hook`. Caso grave: `escritor_unico` es campo
   **obligatorio** del contrato (`METODOLOGIA.md:145,190`) pero (a) ningún check lo enforça y (b) el schema
@@ -367,7 +367,7 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
   "cómo ejecuta" pero arquetipo es el eje de FORMA (§8.1); `cognitive-load-declared` (`:132`) deriva de
   "L1.4 · **L2**" (L2 sin número, rompe el patrón de trazabilidad). `nota "77 previos"` (`arch/INDEX.md:76`)
   stale (debería ser 85). "122 checks" stale en 4 sitios de arch. Conteo fundacional 121 (METODOLOGIA)
-  vs 122 (LEDGER HS-03). El research resumen reporta conteos pre-bajada (122/89/11 nodos/14 boundaries).
+  vs 122 (LEDGER HS-03). El resumen del doc de historias reporta conteos pre-bajada (122/89/11 nodos/14 boundaries).
 
 ---
 
@@ -384,7 +384,7 @@ Smoking gun: el subagente leyó el fuente `~/Descargas/doctrina-kits-v0.2.md`.
 - **Firewall bien fundado técnicamente:** las claves prohibidas existen literalmente en el fuente DAOP;
   "CC ignora frontmatter desconocido" es trivialmente cierto por schema. `no-phantom-frontmatter` y
   `context-injection-native` aterrizaron (pese a m4).
-- **Fidelidad de bajada material:** todo lo que el research firmó (contrato fusionado, nodo 12, 2
+- **Fidelidad de bajada material:** todo lo que el doc de historias firmó (contrato fusionado, nodo 12, 2
   boundaries, 3 decisiones) aterrizó. **No hay doctrina huérfana material ni doctrina fabricada** sin
   respaldo. El defecto no es fidelidad de bajada — es **fundamento de fuentes** (B7/M9) y
   **contradicciones importadas** (B8), más la capa **ejecutable ausente** (B1–B6).

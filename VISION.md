@@ -90,7 +90,7 @@ proceso** y sale transformado. Reglas de cómo se arma todo arnés nuestro:
 
 > Nota aditiva firmada por el operador (2026-07-05). **No altera los 11 principios ni A1–A7:** los
 > ancla a una disciplina y precisa una frontera. Detalle, evidencia y bibliografía:
-> [`research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
+> [`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
 
 **Qué operacionalizamos — no clonamos un framework.** ArnesIA **operacionaliza Agentic Business
 Process Management (APM)**: una disciplina de PROCESO, independiente de dominio, con ~30 años de

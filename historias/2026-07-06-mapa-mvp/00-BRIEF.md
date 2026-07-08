@@ -19,7 +19,7 @@ ver el mockup**:
 | **`architecture.md`** | El **CÓMO** — técnico senior | ¿Cómo se implementa bien? Arquitectura as-code + plan hexagonal/FSD. |
 
 `spec.md` es el **hub**: referencia explícitamente a `design.md` (detalle UI) y a `architecture.md`
-(plan técnico). Los tres viven en `research/2026-07-06-mapa-mvp/`.
+(plan técnico). Los tres viven en `historias/2026-07-06-mapa-mvp/`.
 
 **Al final, fase de REVISIÓN adversarial obligatoria** (§5).
 
@@ -49,7 +49,7 @@ ver el mockup**:
   llenado en onboarding) · (4) knowledge as-code path-scoped = norma + índice semántico opcional · (5)
   discovery = dato del arnés (no doctrina) · (6) paquete de trabajo = artefacto/spine (cada caja posee 1
   transición; detalle al click).
-- Plan madre: `research/2026-07-06-plan-goal-hito1-mapa-y-deuda.md` (Fases A–F).
+- Plan madre: `historias/2026-07-06-plan-goal-hito1-mapa-y-deuda.md` (Fases A–F).
 
 ---
 

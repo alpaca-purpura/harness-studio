@@ -5,12 +5,12 @@
 
 ---
 
-Implementa el paquete FIRMADO `research/2026-07-07-boton-actualizar/` (botón
+Implementa el paquete FIRMADO `historias/2026-07-07-boton-actualizar/` (botón
 «Actualizar» — self-update sin sudo) con rigurosidad y en fases. El código no se toca
 hasta cerrar la Fase 1.
 
 **FASE 0 — Contexto (leer, en este orden):**
-1. `research/2026-07-07-boton-actualizar/INDEX.md` (flujo, estado, «Retomar aquí»)
+1. `historias/2026-07-07-boton-actualizar/INDEX.md` (flujo, estado, «Retomar aquí»)
 2. `decisiones.md` (5 firmadas + #4 cementada = LEY) · `spec.md` (RF-100..107 + Gherkin
    + trazabilidad) · `design.md` (UI al pixel + hexagonal) · `PARIDAD.md` (8 filas) ·
    `mockup-actualizar.html` v2 = la verdad visual (ábrelo; artifact en INDEX)

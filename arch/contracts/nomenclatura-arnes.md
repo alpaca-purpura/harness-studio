@@ -109,7 +109,7 @@ esta tabla fija QUÉ escanea el loader y qué nodo emite:
 | D-c | Elemento no reconocido | **nodo `no-reconocido` visible con warn** (honestidad > limpieza) |
 
 Firmada junto con la **estrategia de empaquetado (c)** del diseño 3-cuerpos
-(`research/2026-07-05-arquitectura-inyeccion-knowhow.md`): `go:embed` del ruleset (conformance
+(`historias/2026-07-05-arquitectura-inyeccion-knowhow.md`): `go:embed` del ruleset (conformance
 portable, cero contexto LLM) + doctrina como plugin CC propio inyectado por flags al spawn
 (progressive disclosure). La implementación de ambos = los puentes (ficha siguiente).
 

@@ -35,7 +35,7 @@ El **conductor Go** dueña el control-flow; el `contract:` de caja (METODOLOGIA 
 
 - **El conductor ejecuta `ruta`/`si`:** el hand-off caja→caja lo decide código Go leyendo el
   `contract.ruta` (condición `si`), **no** el conductor conversacional ni el LLM. ⇐ L1 (secuencia
-  determinista). *(Detalle abierto HS-07: runner determinista vs conductor — ver research doctrina §10.6.)*
+  determinista). *(Detalle abierto HS-07: runner determinista vs conductor — ver doc de historias, doctrina §10.6.)*
 - **El loop es del conductor, no del skill:** ningún skill «llama» a un loop; el T3 corre como
   for-loop en Go (`claude -p --max-turns`) que lee `result.subtype` + `status`. ⇐ boundary
   `adaptadores-de-agente-intercambiables` + `conductor-no-parsea-jsonl`.

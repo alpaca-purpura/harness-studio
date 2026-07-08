@@ -286,7 +286,7 @@ reemplazar los contratos inferidos por los reales.
 
 ## 8. Doctrina de proceso — framed autonomy (doctrina v1, 2026-07-05)
 
-> Bajada as-code de [`research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md),
+> Bajada as-code de [`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md),
 > ratificada por el operador. **Operacionalizamos Agentic BPM** (VISION §Linaje): un arnés da
 > *framed autonomy* a Claude Code por rol×proceso. Detalle por elemento del perfil de harness =
 > nodo nuevo [`knowledge/elements/harness-profile.md`](./knowledge/elements/harness-profile.md).
@@ -384,8 +384,8 @@ Agentforce (https://architect.salesforce.com/docs/architect/fundamentals/guide/a
 
 ## 9. Los 3 cuerpos — posesión e inyección del know-how (FIRMADO 2026-07-07, HS-10)
 
-> Definición canónica — hasta esta firma solo vivía en research. Detalle y evidencia:
-> [`research/2026-07-05-arquitectura-inyeccion-knowhow.md`](./research/2026-07-05-arquitectura-inyeccion-knowhow.md)
+> Definición canónica — hasta esta firma solo vivía como investigación. Detalle y evidencia:
+> [`historias/2026-07-05-arquitectura-inyeccion-knowhow.md`](./historias/2026-07-05-arquitectura-inyeccion-knowhow.md)
 > (VIGENTE por la firma HS-10) · nomenclatura de reconocimiento archivo→grafo:
 > [`arch/contracts/nomenclatura-arnes.md`](./arch/contracts/nomenclatura-arnes.md) (v1 FIRMADA).
 
@@ -412,9 +412,12 @@ canónica.
 > Origen: orden del operador (sesión inspector-drawer, HS-09/Hito 2): TODA funcionalidad
 > nueva se desarrolla por este flujo, y NADA vive solo en la conversación — una sesión
 > nueva retoma como si fuera la misma. Paquete de referencia (plantilla viva):
-> [`research/2026-07-07-inspector-drawer/`](./research/2026-07-07-inspector-drawer/INDEX.md).
+> [`historias/2026-07-07-inspector-drawer/`](./historias/2026-07-07-inspector-drawer/INDEX.md).
+> **Carpeta renombrada `research/` → `historias/` (HS-15, 2026-07-08):** nombre más intuitivo
+> para un humano que supervisa (calca `vitalia/docs/product/stories/`); el flujo y los
+> archivos del paquete no cambian, solo el nombre del contenedor.
 
-**Unidad = paquete de trabajo**: carpeta `research/AAAA-MM-DD-<slug>/` por funcionalidad.
+**Unidad = paquete de trabajo**: carpeta `historias/AAAA-MM-DD-<slug>/` por funcionalidad.
 El código NO se toca hasta que el paquete lo autorice (specs firmados).
 
 ### Los archivos del paquete — qué contiene cada uno y CUÁNDO se llena
@@ -471,7 +474,7 @@ proceso e independiente de rubro.
 **Sync 2026-07-07 (HS-10):** §3 `necesita.de` al día con el schema (5→7 orígenes: +`terceros:` ·
 +`marcas-dormidas:`) · notas de supersesión en §0 y §6 (dogfood-first: el primer arnés real fue
 `dev-full-cycle`, HS-08; luana = candidato futuro, no mandato) · nueva **§9 «Los 3 cuerpos»**
-(posesión e inyección del know-how — definición canónica FIRMADA HS-10, antes solo en research).
+(posesión e inyección del know-how — definición canónica FIRMADA HS-10, antes solo en investigación).
 **§10 «Disciplina de desarrollo por paquete de trabajo» (2026-07-07, orden del operador):** toda
-funcionalidad nueva itera por mockup en `research/<fecha>-<slug>/` con decisiones/spec/design/PARIDAD
+funcionalidad nueva itera por mockup en `historias/<fecha>-<slug>/` con decisiones/spec/design/PARIDAD
 y reglas de continuidad entre sesiones — la conversación jamás es el único registro.

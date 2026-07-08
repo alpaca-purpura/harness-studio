@@ -5,11 +5,11 @@
 
 ---
 
-Implementa el paquete FIRMADO `research/2026-07-07-inspector-drawer/` (drawer/inspector
+Implementa el paquete FIRMADO `historias/2026-07-07-inspector-drawer/` (drawer/inspector
 del Mapa) con rigurosidad y en fases. El código no se toca hasta cerrar la Fase 1.
 
 **FASE 0 — Contexto (leer, en este orden):**
-1. `research/2026-07-07-inspector-drawer/INDEX.md` (flujo, estado, «Retomar aquí»)
+1. `historias/2026-07-07-inspector-drawer/INDEX.md` (flujo, estado, «Retomar aquí»)
 2. `decisiones.md` (6 decisiones firmadas — son LEY) · `spec.md` (RF-80..96 + Gherkin +
    trazabilidad) · `design.md` (UI al pixel) · `PARIDAD.md` (16 filas a llenar) ·
    `spike-medicion-contrato.md` (contexto del debate #6) · `analisis-drawer-v3.md`

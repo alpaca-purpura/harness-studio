@@ -179,7 +179,7 @@ Aditivo; respeta los boundaries vigentes.
   del kit — voto: ambas, prompt para lo always-on + skills para lo invocable. (b) aislamiento fino build
   vs eval (¿`--disallowedTools` para no correr hooks de ③ en corridas de eval? — el split
   estático-Go/runtime-CC lo resuelve casi todo). (c) sandbox / `auto` mode para corridas desatendidas
-  (**cwd NO es frontera de seguridad** — Read amplio, Bash llega a todo; hallazgo del research). (d)
+  (**cwd NO es frontera de seguridad** — Read amplio, Bash llega a todo; hallazgo de esta investigación). (d)
   cómo DevHub/apps-de-rol cargan ③ publicado sin `/plugin install` del trabajador (probable: mismo
   `--plugin-dir`).
 

@@ -10,7 +10,7 @@
 Un documento de estilo en prosa («usa nombres descriptivos», «maneja los errores») no rompe nada: el
 código deriva y la doc miente. La regla de la casa: **la convención vive como config ejecutable.** El
 naming es una regla de `revive`/`useNamingConvention`, no un párrafo; el formato es `gofumpt`/`biome`,
-no una guía. Si una convención no se puede romper en CI, no entra a este árbol — va al research doc o la
+no una guía. Si una convención no se puede romper en CI, no entra a este árbol — va al doc de historias o la
 ficha.
 
 ## Anatomía de un convention node (idéntica a boundaries)
@@ -37,7 +37,7 @@ severity: critical | high | medium
 1. **Cambio de convención** (nueva regla, o `golangci-lint`/`biome`/`lefthook` sube mayor) → nace en una
    conversación/ficha `HS-NN`.
 2. **¿Rompe CI?** Si la regla se puede enforçar → nodo aquí (nuevo o bump) + edición del config real. Si
-   es preferencia sin enforcer → no entra (research doc/ficha).
+   es preferencia sin enforcer → no entra (doc de historias o ficha).
 3. **L1 + L2.** Convención con fuente + cómo se realiza. Divergencia L2 vs L1 → `⚠ divergencia`
    justificada, nunca silenciosa.
 4. **Config real + `enforced_by:`.** El nodo referencia el archivo (`/.golangci.yml`, `web/biome.json`…);

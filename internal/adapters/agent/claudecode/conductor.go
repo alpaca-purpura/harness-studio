@@ -76,7 +76,7 @@ func SpawnArgs(opts ports.SpawnOpts) []string {
 	if opts.MaxTurns > 0 {
 		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
 	}
-	// Inyección de doctrina (HS-11 puente 2, research firmado HS-10): los cuerpos ①+②
+	// Inyección de doctrina (HS-11 puente 2, investigación firmada HS-10): los cuerpos ①+②
 	// entran por FLAGS, session-scoped, desde dirs de la app — jamás se escribe nada en
 	// el árbol del arnés (② ↛ ③). Sin --bare: la suscripción del usuario queda intacta.
 	for _, d := range opts.Injection.PluginDirs {
@@ -109,7 +109,7 @@ var escrituraDirecta = map[string]bool{
 //     outside the model's reasoning).
 //   - `--permission-prompt-tool stdio` — routes every non-pre-approved tool to the
 //     control channel (`control_request:can_use_tool`), which the adapter forwards to
-//     the daemon (research fase3 §frente B command line).
+//     the daemon (design record historias/2026-07-05-arquitectura-fase3.md §frente B command line).
 //
 // GAP honesto: `Ask` has no dedicated CC flag — it is realized by NOT pre-approving +
 // prompt-tool stdio (deny-by-default posture: unlisted/ask tools hit the control
@@ -289,9 +289,9 @@ type ctrlResponseBody struct {
 // semi-documentado (oficial solo para el Agent SDK; anthropics/claude-code#24594 sigue
 // abierto). Este envelope — {"type":"control_response","response":{subtype:"success",
 // request_id, response:{behavior:"allow",updatedInput}|{behavior:"deny",message}}} — es
-// el que implementan los SDKs oficiales y el que el research del repo cementó
-// (research/2026-07-05-arquitectura-fase3.md §frente B ·
-// research/2026-07-06-deuda-backend-arch.md item 2: «{behavior, updatedInput?,
+// el que implementan los SDKs oficiales y el que la investigación del repo cementó
+// (historias/2026-07-05-arquitectura-fase3.md §frente B ·
+// historias/2026-07-06-deuda-backend-arch.md item 2: «{behavior, updatedInput?,
 // message?} — verificar el exacto al implementar contra el binario»). Best-effort
 // verificado contra los SDKs; el cableado se prueba con fakes (arch/fitness).
 func controlResponseLine(requestID string, d ports.ControlDecision) ([]byte, error) {

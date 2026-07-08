@@ -61,11 +61,11 @@
 
 - Multisesión firmada it.14: `mockups/arnesia-shell-A-sessions.html` + UX.md.
 - Inyección de doctrina (3 cuerpos): METODOLOGIA §9 ·
-  `research/2026-07-05-arquitectura-inyeccion-knowhow.md`.
+  `historias/2026-07-05-arquitectura-inyeccion-knowhow.md`.
 - Component-selection chat (assistant-ui + AG-UI + CodeMirror merge): HS-04 +
-  gate-0 D3 de `research/2026-07-06-plan-hito2-doctrina-edicion-showcase/`.
+  gate-0 D3 de `historias/2026-07-06-plan-hito2-doctrina-edicion-showcase/`.
 - Nomenclatura clase→ubicación v1.1: `arch/contracts/nomenclatura-arnes.md`.
 - Drawer «Editar conversando» (staged, Fase 3/4):
-  `research/2026-07-07-inspector-drawer/spec.md`.
+  `historias/2026-07-07-inspector-drawer/spec.md`.
 - Pipeline actual del chat: `internal/adapters/agent/claudecode/conductor.go` ·
   `internal/usecase/session_service.go` · `web/src/widgets/chat-dock/`.

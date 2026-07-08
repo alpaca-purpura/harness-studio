@@ -10,7 +10,7 @@
 > **operacionalizamos Agentic BPM** — un arnés da *framed autonomy* a Claude Code por rol×proceso.
 > Cada L1 se ancla a primitivas CC nativas (firewall §8.6 de METODOLOGIA); las fuentes académicas/
 > industria (manifiesto Agentic BPM, Sierra ADLC, Salesforce) son insumos, no el padre. Detalle:
-> [`../research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](../research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
+> [`../historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](../historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
 
 ## Cómo se relaciona con el resto del repo
 
@@ -19,7 +19,7 @@
   de este árbol: «qué debe tener cada componente» (§2–3) se apoya en los nodos de aquí.
 - [`../UX.md`](../UX.md) — la UX que consume los checks (los puntos de mejora que el mapa pinta
   salen de los `Checklist evaluable` de cada nodo).
-- [`../research/2026-07-04-salud-trazas-edicion.md`](../research/2026-07-04-salud-trazas-edicion.md)
+- [`../historias/2026-07-04-salud-trazas-edicion.md`](../historias/2026-07-04-salud-trazas-edicion.md)
   — investigación one-shot de salud/trazas/edición. Este árbol es la **evolución viva** de esa
   idea de «investigar antes de inventar», aplicada a la anatomía de los componentes.
 

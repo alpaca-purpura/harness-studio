@@ -3,7 +3,7 @@ package ports
 import "context"
 
 // Injection is the flag-package that carries the doctrine bodies ①+② into ONE spawn
-// (research de inyección, FIRMADO HS-10; METODOLOGIA §9): the kit as a session-scoped
+// (investigación de inyección, FIRMADO HS-10; METODOLOGIA §9): the kit as a session-scoped
 // local plugin, the doctrine overlay as an appended system prompt, and the knowhow
 // checklists as a read-only reference dir. Everything lives OUTSIDE the arnés tree —
 // the conductor loads it by flags, never by writing into ③.

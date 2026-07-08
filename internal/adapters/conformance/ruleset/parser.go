@@ -23,7 +23,7 @@ import (
 
 // Loader parses the knowledge/ + arch/ trees of an fs.FS (el disco del repo en dev; el
 // embed del binario en una instalación de cliente — misma lógica, cero divergencia:
-// boundary doctrina-una-fuente-dos-targets del research de inyección, firmado HS-10).
+// boundary doctrina-una-fuente-dos-targets de la investigación de inyección, firmado HS-10).
 type Loader struct {
 	fsys fs.FS
 	dirs []string

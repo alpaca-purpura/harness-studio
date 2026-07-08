@@ -2,7 +2,7 @@
 // doctrine+kit (cuerpos ①+②) to the app-owned dir (~/.arnesia) and hands back the
 // Injection every conductor spawn carries. Idempotente por huella de contenido: el
 // primer Provision de cada versión del binario re-escribe; los siguientes no tocan
-// disco. El usuario jamás configura nada (constraint de UX del research de inyección,
+// disco. El usuario jamás configura nada (constraint de UX de la investigación de inyección,
 // FIRMADO HS-10) y nada de esto se escribe en el árbol de un arnés (② ↛ ③).
 package provision
 
