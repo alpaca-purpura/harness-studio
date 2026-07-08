@@ -27,8 +27,8 @@ usuario, cero sudo; el .deb queda para instalación inicial de terceros) · orig
 - [x] rumbo firmado (alcance · mecanismo · origen)
 - [x] mockup **v2 FIRMADO** (operador «firmo el mockup», 2026-07-07) — **artifact
       (publicar SIEMPRE a esta URL):** https://claude.ai/code/artifact/458c147a-b78b-461c-a54b-db2d741ac30b
-- [ ] spec.md (RF-100..107 + Gherkin + trazabilidad) + design.md ESCRITOS → 🧑‍⚖️
-      **firma del paquete pendiente**
+- [x] spec.md (RF-100..107) + design.md — 🧑‍⚖️ **PAQUETE FIRMADO** (operador
+      «Ok, firmo», 2026-07-07) → implementación AUTORIZADA
 - [ ] implementación + stories + tests
 - [ ] PARIDAD → gate final
 
@@ -55,9 +55,13 @@ usuario, cero sudo; el .deb queda para instalación inicial de terceros) · orig
   checklist «en vivo» del mockup era demo — la app pinta la checklist con los
   veredictos REALES de la respuesta (jamás pasos animados inventados); dicho en spec
   RF-104 y design §A11y.
-- **Próximo paso:** 🧑‍⚖️ firma del paquete (spec+design) → implementación por RF con
-  gates verdes (patrón del paquete inspector-drawer).
-- **Firmas pendientes:** mockup · spec/design.
+- **PAQUETE FIRMADO (2026-07-07).** Prompt riguroso de arranque persistido en
+  [`PROMPT-implementacion.md`](./PROMPT-implementacion.md) (contexto → diseño técnico
+  sellado → implementación Go-primero → validación REAL: el daemon actualizándose a sí
+  mismo desde ~/.local/bin). PARIDAD.md esqueleto (8 filas).
+- **Próximo paso:** nueva conversación ejecuta ese prompt. Al cerrar: PARIDAD ✅,
+  gates verdes, «Retomar aquí» actualizado.
+- **Firmas pendientes:** ninguna hasta la paridad (gate final tras implementar).
 - **Contexto caliente (candidatos a decisión en la iteración):** ① la ruta del repo
   NO viaja en el request — el daemon la conoce por flag/env/registro explícito
   (superficie-local-confinada); ② el self-update requiere toolchain local (go+pnpm) —

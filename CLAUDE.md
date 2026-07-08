@@ -164,8 +164,12 @@ paquete EN EL MISMO TURNO (la conversación jamás es el único registro) · el 
 mantiene «Retomar aquí» (último hecho · próximo paso · firmas pendientes) al cierre de cada turno ·
 cada iteración firmada se commitea a main · **sesión nueva arranca leyendo el INDEX.md del paquete
 activo y sigue como si fuera la misma conversación.** **Paquete activo:**
+[`research/2026-07-07-boton-actualizar/`](./research/2026-07-07-boton-actualizar/INDEX.md)
+(self-update sin sudo; FIRMADO — próximo paso = ejecutar su `PROMPT-implementacion.md` en
+conversación nueva). Cerrado el mismo día:
 [`research/2026-07-07-inspector-drawer/`](./research/2026-07-07-inspector-drawer/INDEX.md)
-(drawer del Mapa; próximo paso = crear `mockup-drawer.html` clon del inspector actual).
+(drawer del Mapa RF-80..96 IMPLEMENTADO + PARIDAD ✅; queda su gate final humano: firmar
+las 5 desviaciones registradas en PARIDAD).
 
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se
