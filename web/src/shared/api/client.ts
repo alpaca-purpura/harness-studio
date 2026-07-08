@@ -4,8 +4,10 @@
 //
 // HS-06: the daemon confines its API (boundary superficie-local-confinada). When the Tauri
 // shell minted a capability token, every request carries it (Authorization: Bearer). The
-// token is fetched once on boot via `invoke('auth_token')` and set with setToken; in the dev
-// browser (no Tauri) it stays undefined and the daemon falls back to Host+Origin only.
+// shell injects the token as `window.__ARNESIA_TOKEN__` via initialization_script (it runs
+// on every document, including the daemon-served SPA — candidata #8: the window navigates
+// to :4200); in a plain browser the global is absent and the daemon falls back to
+// Host+Origin only.
 
 import type { NewSession, Session } from "./types"
 
@@ -125,15 +127,13 @@ export const api = {
   listArneses: () => req<{ arnes: string; path: string }[]>("/api/arneses"),
 }
 
-// fetchAuthToken asks the Tauri shell for the capability token. Returns undefined in the
-// dev browser (no Tauri runtime) so the app still works under the daemon's Host+Origin gate.
+// fetchAuthToken reads the capability token the Tauri shell injected as a global via
+// initialization_script. Returns undefined in a plain browser (no shell → no global) so
+// the app still works under the daemon's Host+Origin gate. Kept async: callers await it
+// and the token source may become async again (e.g. a refresh handshake).
 export async function fetchAuthToken(): Promise<string | undefined> {
-  if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) return undefined
-  try {
-    const { invoke } = await import("@tauri-apps/api/core")
-    const t = await invoke<string>("auth_token")
-    return t || undefined
-  } catch {
-    return undefined
-  }
+  if (typeof window === "undefined") return undefined
+  // biome-ignore lint/style/useNamingConvention: global inyectado por el shell (initialization_script) — el dunder marca que NO es código de la SPA
+  const t = (window as { __ARNESIA_TOKEN__?: unknown }).__ARNESIA_TOKEN__
+  return typeof t === "string" && t !== "" ? t : undefined
 }

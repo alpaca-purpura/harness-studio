@@ -1,35 +1,32 @@
-//! Shell de escritorio ArnesIA (Tauri 2 — HS-04 · endurecido HS-06).
+//! Shell de escritorio ArnesIA (Tauri 2 — HS-04 · endurecido HS-06 · UI-del-daemon HS-11 #8).
 //!
 //! El shell es CLIENTE del daemon Go `arnesia` (API HTTP/SSE en http://localhost:4200):
 //! aporta ventana + single-instance + lanza el daemon como sidecar. NO importa el core
-//! (boundary `core-no-importa-shell`): el WebView consume la misma API que el modo headless.
+//! (boundary `core-no-importa-shell`).
+//!
+//! **La UI vive en el daemon (candidata #8 firmada):** el WebView nace en la página
+//! embebida `conectando.html`, que sondea `/api/version` y salta a
+//! `http://127.0.0.1:4200/` — la SPA que se ve SIEMPRE es la servida por el binario Go
+//! (un solo cuerpo desplegable UI+API; el self-update refresca ambas). La SPA embebida
+//! del bundle deja de mostrarse: queda solo como transporte de `conectando.html`.
 //!
 //! **HS-06 — el shell es la raíz de confianza del token de API** (boundary
-//! `superficie-local-confinada`): mint un token por lanzamiento, se lo pasa al daemon por env
-//! `ARNESIA_AUTH_TOKEN` al spawnearlo, y el WebView lo pide por `invoke('auth_token')`. Así
-//! ninguna web ajena en el navegador puede conducir el agente. El token viaja shell→daemon por
-//! env y shell→WebView por comando; el core sigue sin importar al shell.
+//! `superficie-local-confinada`): mint un token por lanzamiento, se lo pasa al daemon por
+//! env `ARNESIA_AUTH_TOKEN` al spawnearlo, y al WebView por `initialization_script`
+//! (`window.__ARNESIA_TOKEN__` — corre en cada documento, incluido el origin del daemon;
+//! reemplaza al comando `invoke('auth_token')`, que exigiría abrir IPC a un origin
+//! remoto). Así ninguna web ajena en el navegador puede conducir el agente.
 
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use tauri::{WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
 /// Puerto donde escucha el daemon Go.
 const DAEMON_ADDR: &str = "127.0.0.1:4200";
-
-/// Token de capacidad que el WebView usa contra la API del daemon. Se guarda en el estado de
-/// Tauri; `auth_token` lo devuelve. Vacío cuando el shell se ATTACHEA a un daemon preexistente
-/// (dev) cuyo token no conoce → el WebView opera solo bajo Host+Origin.
-struct AuthToken(String);
-
-/// auth_token entrega al WebView el token minteado por el shell (o "" en dev/attach).
-#[tauri::command]
-fn auth_token(state: tauri::State<'_, AuthToken>) -> String {
-    state.0.clone()
-}
 
 /// Punto de arranque compartido entre desktop (`main.rs`) y mobile (`mobile_entry_point`).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -39,12 +36,12 @@ pub fn run() {
     // Solo spawneamos (y por ende inyectamos token) si el daemon NO está ya arriba. En attach
     // (dev) no conocemos su token → el WebView va sin token (Host+Origin lo protegen igual).
     let spawn = !daemon_running();
-    let webview_token = if spawn { token.clone() } else { String::new() };
 
     // Handle al hijo sidecar para poder matarlo al salir (evita daemon huérfano con un token
     // que un próximo shell no podría replicar).
     let child_slot: Arc<Mutex<Option<CommandChild>>> = Arc::new(Mutex::new(None));
     let child_for_setup = child_slot.clone();
+    let token_for_setup = token.clone();
 
     tauri::Builder::default()
         // single-instance DEBE ir de primero (recomendación oficial del plugin). Mitigación Mint:
@@ -54,20 +51,38 @@ pub fn run() {
             // `arnesia://` recibido en `_argv` (ojo bug single-instance+deep-link tauri#12726).
         }))
         .plugin(tauri_plugin_shell::init())
-        .manage(AuthToken(webview_token))
-        .invoke_handler(tauri::generate_handler![auth_token])
         .setup(move |app| {
+            // Ventana programática (no en tauri.conf.json): el initialization_script se fija
+            // al construir y el token se mintea en runtime. El script corre en CADA documento
+            // del WebView — conectando.html y la SPA del daemon lo ven; un browser normal no.
+            let mut win = WebviewWindowBuilder::new(
+                app,
+                "main",
+                WebviewUrl::App("conectando.html".into()),
+            )
+            .title("ArnesIA")
+            .inner_size(1440.0, 900.0);
+            if spawn {
+                win = win.initialization_script(format!(
+                    "window.__ARNESIA_TOKEN__ = \"{token_for_setup}\";"
+                ));
+            }
+            win.build()?;
+
             // Sidecar: si el daemon NO responde en :4200, spawnear el externalBin
-            // `binaries/arnesia-<target-triple>` con `serve` + el token por env. El WebView
-            // (dev :5173 / prod frontendDist) habla con esa misma API.
+            // `binaries/arnesia-<target-triple>` con `serve` + el token por env.
             if !spawn {
-                eprintln!("[arnesia] daemon ya activo en {DAEMON_ADDR}; no spawneo (dev: WebView sin token)");
+                eprintln!("[arnesia] daemon ya activo en {DAEMON_ADDR}; no spawneo (attach: WebView sin token)");
                 return Ok(());
             }
             match app.shell().sidecar("arnesia-daemon") {
                 // El token viaja por env, no por args → no cambia el allowlist de la capability
                 // (`shell:allow-execute` fija args a ["serve"]).
-                Ok(cmd) => match cmd.args(["serve"]).env("ARNESIA_AUTH_TOKEN", &token).spawn() {
+                Ok(cmd) => match cmd
+                    .args(["serve"])
+                    .env("ARNESIA_AUTH_TOKEN", &token_for_setup)
+                    .spawn()
+                {
                     Ok((mut rx, child)) => {
                         *child_for_setup.lock().expect("child slot") = Some(child);
                         // Drena stdout/stderr del daemon para que su pipe no se llene, y

@@ -167,3 +167,36 @@ arrancó»). Razones:
 
 Complemento futuro (no ahora): Tauri updater oficial para los cambios raros del
 shell binario. Ortogonal a (a).
+
+### Candidata #8 — FIRMADA (a) POR EL OPERADOR Y EJECUTADA (2026-07-07 noche)
+
+Operador: «procede con la opción (a) de una vez». Implementado y verificado E2E:
+
+- **`web/public/conectando.html`** (nueva): página de arranque embebida — sondea
+  `GET /api/version` cada 300ms y `location.replace` a `http://127.0.0.1:4200/`;
+  a los 15s muestra fallo honesto (apunta a `~/.arnesia/logs/shell.log`) pero sigue
+  sondeando. Valores de tokens DTCG resueltos de `web/tokens/base.tokens.json`.
+- **`lib.rs`**: ventana programática (sale de `tauri.conf.json`) que nace en
+  `conectando.html`; el token viaja al WebView por `initialization_script`
+  (`window.__ARNESIA_TOKEN__`, corre en cada documento incluido el origin del daemon)
+  SOLO en modo spawn; **muere el comando IPC `auth_token`** (habría exigido abrir IPC
+  a origin remoto). Attach queda igual (sin token, Host+Origin).
+- **`client.ts`**: `fetchAuthToken` lee el global; fuera `@tauri-apps/api` y
+  `@tauri-apps/plugin-shell` de package.json (la SPA ya no toca Tauri — corre idéntica
+  en browser y shell).
+- **`cmd/arnesia/main.go`**: `Cache-Control: no-cache` en `index.html` (raíz y
+  fallback SPA) — tras un self-update la próxima carga recoge los assets nuevos.
+- Versión shell 0.1.0 → **0.2.0** (tauri.conf + Cargo.toml).
+
+**Gates:** web `verify` ✓ (tsc·biome·depcruise·steiger·stylelint) · stories **71/71** ✓
+· `go build/vet/test` ✓ · `golangci-lint` 0 · `cargo fmt/clippy` 0 · build release ✓.
+
+**E2E real (attach):** binario release (`--features tauri/custom-protocol`; sin la
+feature, cargo usa `devUrl` — hallazgo del guion: el CLI de tauri la agrega solo) →
+ventana `arnesia.Arnesia` → conectando → **SPA del daemon renderizada EN EL SHELL:
+inspector-drawer visible (estado vacío RF-84) + Ajustes en el rail + Mapa dogfood**;
+screenshot `shell-e2e5.png` (scratchpad sesión). La ruta spawn+token queda para el
+E2E del .deb instalado (al boot :4200 libre → sidecar con token).
+
+**Pendiente del operador:** `sudo dpkg -i` del .deb 0.2.0 (el shell instalado en
+`/usr/bin` es root; único paso con sudo, como toda instalación de paquete del sistema).

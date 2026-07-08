@@ -267,12 +267,16 @@ func embeddedUI() http.Handler {
 	files := http.FileServerFS(ui)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, "/")
-		if p != "" {
+		if p != "" && p != "index.html" {
 			if _, err := iofs.Stat(ui, p); err == nil {
 				files.ServeHTTP(w, r)
 				return
 			}
 		}
+		// index.html (raíz, explícito o fallback SPA) va sin caché: tras un self-update
+		// el WebView del shell y el browser deben recoger los assets nuevos (hasheados
+		// por Vite) en la próxima carga, no cuando el heurístico de caché quiera.
+		w.Header().Set("Cache-Control", "no-cache")
 		r2 := r.Clone(r.Context())
 		r2.URL.Path = "/"
 		files.ServeHTTP(w, r2)

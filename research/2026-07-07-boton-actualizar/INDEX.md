@@ -71,13 +71,13 @@ S1 gratis) · `os.Executable()` post-rename da `(deleted)` en Linux (decisión #
 
 ## Retomar aquí
 
-- **Hallazgo #2 post-validación (2026-07-07 noche):** el shell Tauri embebe SU PROPIA
-  SPA congelada al build del .deb (13:37) — el drawer (17:58+) y la propia tarjeta de
-  self-update NO existen en la UI del escritorio; el self-update solo refresca daemon +
-  SPA servida en `:4200`. Remediación inmediata: browser a `http://127.0.0.1:4200`.
-  Fix de producto por decidir (candidata a **desviación #8**): ventana del shell navega
-  al daemon (a, recomendada) · reempaquetar shell (b) · aceptar skew visible (c).
-  Detalle en `validacion.md` §Hallazgo #2.
+- **Candidata #8 FIRMADA (a) + EJECUTADA (2026-07-07 noche):** el shell ahora CARGA LA
+  UI DESDE EL DAEMON — `conectando.html` embebida → salta a `:4200`; token por
+  `initialization_script` (muere el IPC `auth_token`); `no-cache` en `index.html`;
+  shell 0.2.0. E2E verificado (drawer visible EN el shell). Todos los gates verdes.
+  Falta SOLO: `sudo dpkg -i` del .deb 0.2.0 por el operador + E2E ruta spawn+token al
+  primer boot. Contexto del hallazgo original y evidencia en `validacion.md`
+  §Hallazgo #2 y §Candidata #8.
 - **Hallazgo post-validación (2026-07-07 noche):** la migración a `~/.local/bin/arnesia`
   ROMPIÓ el ícono del escritorio — el `.desktop` del .deb dice `Exec=arnesia` sin ruta y
   PATH resuelve el daemon Go (usage y sale) en vez del shell Tauri `/usr/bin/arnesia`.

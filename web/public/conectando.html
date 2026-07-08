@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>ArnesIA — conectando</title>
+<!--
+  Página de arranque del shell Tauri (candidata #8 firmada: la UI vive en el daemon).
+  El WebView nace aquí (embebida, siempre disponible) y salta a http://127.0.0.1:4200/
+  en cuanto el daemon responde — la SPA que se ve SIEMPRE es la del binario Go, la
+  misma que valida el E2E y la que refresca el self-update. Autocontenida a propósito:
+  cero imports, cero IPC. Colores/tipografía = valores resueltos de web/tokens/
+  base.tokens.json (norma pegarse-al-Storybook); estáticos aquí porque esta página
+  no pasa por el pipeline Style Dictionary.
+-->
+<style>
+	:root {
+		--background: #f2f4f7;      /* color.semantic.background */
+		--foreground: #212832;      /* color.semantic.foreground */
+		--muted-foreground: #5d6a79;/* color.semantic.muted-foreground */
+		--border: #d5dbe3;          /* color.semantic.border */
+		--card: #ffffff;            /* color.semantic.card */
+		--primary: #a8742c;         /* color.semantic.primary (sand-600) */
+		--destructive: #c94545;     /* color.semantic.destructive (red-600) */
+	}
+	* { box-sizing: border-box; margin: 0; }
+	html, body { height: 100%; }
+	body {
+		font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* font.sans */
+		background: var(--background);
+		color: var(--foreground);
+		display: grid;
+		place-items: center;
+	}
+	.tarjeta {
+		background: var(--card);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		padding: 28px 32px;
+		max-width: 440px;
+		text-align: center;
+	}
+	h1 { font-size: 16px; font-weight: 600; margin-bottom: 8px; } /* text.lg */
+	p  { font-size: 12.5px; color: var(--muted-foreground); line-height: 1.5; } /* text.sm */
+	code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; } /* font.mono · text.xs */
+	.punto {
+		width: 8px; height: 8px; border-radius: 50%;
+		background: var(--primary);
+		display: inline-block;
+		margin-bottom: 14px;
+		animation: latido 1.2s ease-in-out infinite;
+	}
+	@keyframes latido { 50% { opacity: .25; } }
+	#fallo { display: none; }
+	body[data-estado="fallo"] #fallo { display: block; }
+	body[data-estado="fallo"] #conectando { display: none; }
+	body[data-estado="fallo"] .punto { background: var(--destructive); animation: none; }
+	button {
+		margin-top: 14px;
+		font: inherit; font-size: 12.5px;
+		padding: 6px 14px;
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		background: var(--card);
+		color: var(--foreground);
+		cursor: pointer;
+	}
+</style>
+</head>
+<body>
+<div class="tarjeta">
+	<span class="punto"></span>
+	<div id="conectando">
+		<h1>ArnesIA</h1>
+		<p>Conectando con el daemon…</p>
+	</div>
+	<div id="fallo">
+		<h1>El daemon no responde</h1>
+		<p>No hubo respuesta en <code>127.0.0.1:4200</code> tras 15 segundos.
+		Revisa <code>~/.arnesia/logs/shell.log</code> para ver qué pasó.</p>
+		<button onclick="location.reload()">Reintentar</button>
+	</div>
+</div>
+<script>
+	// Sondea GET /api/version (endpoint de salud sin token; el gate S1 del daemon
+	// permite el Origin del WebView) y salta a la UI servida por el daemon. Tras 15s
+	// muestra el fallo pero SIGUE sondeando: si el daemon tarda, se autorrecupera.
+	const DAEMON = "http://127.0.0.1:4200";
+	const ARRANQUE = Date.now();
+	async function sondear() {
+		try {
+			const r = await fetch(DAEMON + "/api/version", { cache: "no-store" });
+			if (r.ok) { location.replace(DAEMON + "/"); return; }
+		} catch { /* daemon aún no arriba */ }
+		if (Date.now() - ARRANQUE > 15000) document.body.dataset.estado = "fallo";
+		setTimeout(sondear, 300);
+	}
+	sondear();
+</script>
+</body>
+</html>
