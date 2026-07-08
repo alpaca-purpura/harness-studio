@@ -36,8 +36,9 @@
 - [x] decisiones.md (6 entradas, todas cerradas)
 - [x] spec.md (RF-80..96 + Gherkin + trazabilidad) + design.md (UI al pixel) — 🧑‍⚖️
       **PAQUETE FIRMADO** (operador «firmo», 2026-07-07) → implementación AUTORIZADA
-- [ ] implementación + stories
-- [ ] PARIDAD.md verificada → gate final (esqueleto listo, 16 filas)
+- [x] implementación + stories (commits 1..6 + fix; 62/62 story-tests; 9/9 gates)
+- [x] PARIDAD.md verificada fila por fila (FASE 3, Chrome DevTools + daemon real) →
+      🧑‍⚖️ **gate final humano pendiente** (5 desviaciones registradas a firmar)
 
 ## Retomar aquí
 
@@ -108,9 +109,21 @@
   mockup · interpretación ✕↔vacío · sticky siempre · showcase sin disco = 404 honesto).
   Incidente: cuelgue de máquina corrompió .git (objeto vacío); reparado desde reflog
   sin pérdida (commit fantasma descartado, contenido re-commiteado).
-- **Próximo paso:** FASE 3 — daemon :4200 + vite :5173 + Chrome DevTools: recorrer cada
-  RF contra showcase y dogfood (registrar dev-full-cycle para ver la fuente real), lado
-  a lado con mockup v6, screenshots, consola limpia → PARIDAD fila por fila ✅ → commit 7.
+- **FASE 3 COMPLETA (2026-07-07): PARIDAD toda ✅.** Recorrido REAL con Chrome DevTools
+  (daemon :4200 con dogfood REGISTRADO en disco + showcase embebido; vite :5173):
+  cada RF verificado funcional Y visualmente (medidas del expandido al pixel · Gherkin
+  de chips E2E con selección en el mapa · fuente REAL 54 líneas del SKILL.md de builder
+  · no-reconocido RAW con loader real · gate:none del releaser · tooltips por hover ·
+  dark theme · lado a lado con mockup v6 tarjeta 16). **Consola limpia.** La validación
+  cazó 2 bugs reales (fetch abortado por el cleanup del effect · 404 de red ensuciando
+  consola) → fix `6cff1a0`. Los 9 gates verdes al cierre.
+- **Estado final:** implementación TERMINADA y VERIFICADA; commits en main
+  (`b93f1bd`·`6e61b30`·`ea18172`·`7bec2ef`·`54ce6a1`·`f9d2976`·`6cff1a0` + docs).
+- **Firmas pendientes (gate final humano 🧑‍⚖️):** las 5 desviaciones registradas en
+  PARIDAD §Desviaciones (2 ajustes AA que axe forzó sobre el mockup · interpretación
+  ✕→drawer vacío · sticky siempre · showcase sin disco = estado honesto local). El
+  operador revisa el click-through + screenshots y firma o pide ajustes de redacción
+  (la #2 de decisiones ya preveía «redacciones ajustables en paridad»).
 - **Firmas pendientes:** mockup (ni siquiera v1 aún) · Tier B (campo `meta` per-class
   en L0 — se firmará en `decisiones.md` si las iteraciones piden dato que hoy no viaja).
 - **Contexto caliente:** el operador quiere pedir cambios iterativos sobre el mockup SIN
