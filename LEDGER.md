@@ -572,7 +572,57 @@ instalador.
 > `claude-fable-5`**, `claude_session_id` persistido, sesión `idle` resumible. El constraint de UX
 > («el usuario solo necesita Claude Code instalado y logueado») quedó DEMOSTRADO end-to-end.
 
-<!-- Próximas: HS-12, … -->
+### HS-12 · Interop DevStudio ⟷ ArnesIA — el eslabón de consumo del ecosistema, ratificado — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-07):* entrega el prompt de interop del agente de DevStudio (repo
+`~/Proyectos/dev-studio`, ficha DH-18/PB-25): "Interop DevStudio ⟷ ArnesIA — ratificar el eslabón del
+ecosistema y 4 pedidos aditivos… responder y, si se firma algo, fichar en el LEDGER de acá."
+
+*Contexto:* DevStudio (la "app de rol" del diagrama de VISION) entregó su registry de arneses y ADOPTÓ el
+estándar ArnesIA sin pedir cambios de formato — verificado EN VIVO consumiendo el dogfood real
+`dev-full-cycle` (forma-plugin de nomenclatura v1 tal cual · marketplace git formato prenter-marketplace ·
+inyección por `--plugin-dir` + `--append-system-prompt` replicando METODOLOGIA §9 · lock as-code
+`.devstudio/arneses.yaml` como único artefacto committeado al repo del cliente). Primer consumidor externo
+real del estándar. Dato de campo aportado: la CLI rechaza `--append-system-prompt` y
+`--append-system-prompt-file` juntos («use only one»).
+
+*Desarrollo — 4 firmas (operador, 2026-07-07) + 1 reparación:*
+**P1 publish RATIFICADO** — fase 5 emitirá el formato prenter-marketplace vigente; contrato estable:
+`marketplace.json` (layout CC oficial) · `plugins/<id>/<versión>/` forma-plugin (nomenclatura, solo
+aditivo) · `catalogo.json` `{canales, versiones[].{version,estado,fuente,fecha}}`; fase 5 solo SUMA
+(metadata evals-gate, granularidad por-arnés). **P2 `spine.categorias` ACEPTADO** — mapa hermano opcional
+estado→categoría, enum FIJO de 5 idéntico a I-77 RN-28 (propuesto·en-progreso·completado·descartado·
+pausado, patrón Azure); terminalidad DERIVADA (∈{completado,descartado}); no viola agnosticismo: los
+estados siguen dato per-arnés, la categoría es capa semántica del producto (estatus de `clase`).
+**P3 `nombre`/`descripcion` — REPARACIÓN**: DevStudio cazó inconsistencia nuestra (nomenclatura §2 lo
+nombraba, el schema lo rechazaba por `additionalProperties:false`); reparado + cadena de fallback
+BENDECIDA: `arnes.l0.nombre` → `plugin.json name` → `id`. **P4 lock BENDECIDO** — `.devstudio/arneses.yaml`
+= detector 3° de nomenclatura (v1.1): puntero de descubrimiento read-only → N arneses en forma-plugin vía
+caché/marketplace; entrada no resoluble = check rojo visible; pedido recíproco: DevStudio declara estables
+`id·versión·canal·registry`. **P5 postura I-77 FICHADA** — spine(+categorias) = subconjunto navegable
+canónico; gates/dueños se DERIVAN de contratos por caja (`estado`/`gate`/`ruta` del frontmatter fusionado);
+el arnés **NO shipeará descriptor I-77 aparte** (segunda fuente de verdad); un I-77 materializado será
+PROYECCIÓN/export generada del arnés.
+
+*Cementado (mismo turno, todo verde):* `graph.l0.schema.json` (+`nombre`/`descripcion`/`spine.categorias`)
+· nomenclatura-arnes.md **v1.1** · `domain.Categoria` (Valid/Terminal) + `Spine.Categorias` + 2 checks
+warn `categoria-estado-existe`/`terminal-categoria-coherente` (diferido honesto sin mapa) + test · dogfood
+manifiesto+fixture en sync · FE `types.ts`. Round-trip `arnesia index` → `conformance --arnes` =
+**15/15 PASS** (13 + 2 nuevos) · suite Go ✓ · tsc/biome ✓. La semilla `~/Proyectos/marketplace-arneses`
+NO se mutó (0.1.0 inmutable; los campos viajan en la próxima versión publicada). Paquete:
+`research/2026-07-07-interop-devstudio/` (decisiones + respuesta entregable a DevStudio).
+
+*Deuda registrada (no bloquea):* el loader aún no implementa el detector 3° (leer lock → resolver
+caché/marketplace) — entra cuando exista un proyecto DevStudio real que auditar · ficha recíproca de
+DevStudio declarando estables los campos del lock.
+
+*Conecta:* HS-10 (nomenclatura v1 que DevStudio adoptó) · HS-11 (dogfood real + inyección §9 que DevStudio
+replicó) · I-77 (contrato de ecosistema, monorepo `tooling/strategy`) · DH-18/PB-25 (la ficha gemela en
+dev-studio) · KIT-06 (release train del publish).
+
+*Siguiente:* entregar `respuesta-devstudio.md` al agente de DevStudio · publish real fase 5.
+
+<!-- Próximas: HS-13, … -->
 
 ## Log
 

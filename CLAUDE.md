@@ -113,7 +113,15 @@ working tree del operador) · cablear loader→índice del daemon · bundle inst
 · **Fase E COMPLETA** (adapters/artifact · SpawnOpts.Permisos→flags · control_request Dock ·
 `POST …/boxes/{boxId}/run` · permission REAL grants TTL · 2 arch-tests flipados) · **instalador REAL**
 (SPA go:embed servida por el daemon · scripts/bundle.sh · bundles .deb 7.6M/.AppImage 80M/.rpm con el
-binario del paquete probado E2E) · WIP Hito 2 del operador en main. **Deuda restante (no bloquea):**
+binario del paquete probado E2E) · WIP Hito 2 del operador en main. **HS-12 (2026-07-07): interop
+DevStudio ratificada** (primer consumidor externo del estándar; ficha gemela DH-18/PB-25): publish
+fase-5 = formato prenter-marketplace CONTRATO ESTABLE (marketplace.json · catalogo.json ·
+plugins/<id>/<versión>/) · `spine.categorias` mapa opcional enum-5 fijo (= I-77 RN-28; terminalidad
+derivada; 2 checks warn) · `nombre`/`descripcion` reparados en schema + fallback canónico
+nombre→plugin.json→id · lock `.devstudio/arneses.yaml` bendecido = detector 3° multi-arnés
+(nomenclatura **v1.1**) · postura fichada: I-77 se PROYECTA del arnés (spine + contratos de caja),
+jamás descriptor aparte; round-trip dogfood **15/15 PASS**
+(`research/2026-07-07-interop-devstudio/`). **Deuda restante (no bloquea):**
 spike wire-format `control_response` vs claude real · run async+202 · gate conformance post-run · codegen
 `gen/` · capas Tokens/Desempeño/Proceso esperan telemetría · los 211 checks `deferred` del ruleset → CI ·
 3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel). Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es

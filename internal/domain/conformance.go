@@ -1,6 +1,9 @@
 package domain
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 // This file models the conformance layer of the doctrine (HS-08, the pillar P0): the
 // common check contract shared by knowledge/ and arch/, the report a run produces, and
@@ -309,6 +312,63 @@ func VerificarSpine(g Graph) []CheckResult {
 			}
 		}
 		out = append(out, veredictoDeLista(c, bad, "cada transición tiene un solo dueño"))
+	}
+
+	// categoria-estado-existe (HS-12, interop DevStudio): el mapa OPCIONAL
+	// spine.categorias clasifica estados per-arnés con las 5 categorías fijas (I-77
+	// RN-28). Claves ∈ estados y valores ∈ enum; ausente → diferido honesto.
+	{
+		c := spineCheck("categoria-estado-existe", SevWarn,
+			"cada clave de spine.categorias ∈ estados y cada valor es una de las 5 categorías fijas")
+		switch {
+		case spine == nil || len(spine.Categorias) == 0:
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara categorías de spine — mapa opcional (HS-12)",
+			})
+		default:
+			var bad []string
+			for _, e := range spine.Estados {
+				if cat, ok := spine.Categorias[e]; ok && !cat.Valid() {
+					bad = append(bad, "'"+e+"': categoría '"+string(cat)+"' fuera del enum fijo")
+				}
+			}
+			var huerfanas []string
+			for e := range spine.Categorias {
+				if !spine.TieneEstado(e) {
+					huerfanas = append(huerfanas, "'"+e+"' ∉ estados")
+				}
+			}
+			sort.Strings(huerfanas)
+			bad = append(bad, huerfanas...)
+			out = append(out, veredictoDeLista(c, bad, "categorías consistentes con el spine"))
+		}
+	}
+
+	// terminal-categoria-coherente (HS-12): la terminalidad se DERIVA de la categoría
+	// (I-77) — todo terminal declarado debe mapear a completado|descartado.
+	{
+		c := spineCheck("terminal-categoria-coherente", SevWarn,
+			"todo estado terminal mapea a categoría completado|descartado (terminalidad derivada, I-77)")
+		switch {
+		case spine == nil || len(spine.Categorias) == 0:
+			out = append(out, CheckResult{
+				Check: c, Veredicto: VeredictoDiferido,
+				Detalle: "el arnés no declara categorías de spine — mapa opcional (HS-12)",
+			})
+		default:
+			var bad []string
+			for _, t := range spine.Terminales {
+				cat, ok := spine.Categorias[t]
+				switch {
+				case !ok:
+					bad = append(bad, "terminal '"+t+"' sin categoría")
+				case !cat.Terminal():
+					bad = append(bad, "terminal '"+t+"' con categoría '"+string(cat)+"' (no terminal)")
+				}
+			}
+			out = append(out, veredictoDeLista(c, bad, "terminales coherentes con su categoría"))
+		}
 	}
 
 	// spine-cobertura (todo estado alcanzable desde inicial; sin estados huérfanos/inalcanzables)

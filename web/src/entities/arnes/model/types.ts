@@ -52,17 +52,25 @@ export interface Transicion {
   a: string
 }
 
+// Categoria — the FIXED semantic category a spine state may map to (HS-12, interop
+// DevStudio; mirrors ecosystem contract I-77 RN-28). Product enum; the classified state
+// ids remain per-arnés data.
+export type Categoria = "propuesto" | "en-progreso" | "completado" | "descartado" | "pausado"
+
 // Spine — the FORM of an arnés's work-state machine; concrete values are per-arnés data.
 export interface Spine {
   inicial: string
   terminales?: string[]
   estados: string[]
+  categorias?: Record<string, Categoria>
   transiciones?: Transicion[]
 }
 
 // Arnes — the harness manifiesto (META de enganche + this arnés's declared fases/spine).
 export interface Arnes {
   id?: string
+  nombre?: string
+  descripcion?: string
   rol?: string
   proceso?: string
   empresa?: string

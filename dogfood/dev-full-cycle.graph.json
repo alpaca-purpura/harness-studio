@@ -1,6 +1,8 @@
 {
   "arnes": {
     "id": "dev-full-cycle",
+    "nombre": "Desarrollo full-cycle",
+    "descripcion": "Arnés dogfood de ArnesIA: desarrollo de software end-to-end (idea → released).",
     "rol": "Ingeniería · Desarrollo full-cycle",
     "proceso": "desarrollo de software end-to-end (idea → released)",
     "empresa": "alpacapurpura",
@@ -12,6 +14,13 @@
       "inicial": "idea",
       "terminales": ["released"],
       "estados": ["idea", "spec", "build", "review", "released"],
+      "categorias": {
+        "idea": "propuesto",
+        "spec": "en-progreso",
+        "build": "en-progreso",
+        "review": "en-progreso",
+        "released": "completado"
+      },
       "transiciones": [
         { "de": "idea", "a": "spec" },
         { "de": "spec", "a": "build" },

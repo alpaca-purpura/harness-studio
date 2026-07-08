@@ -1,6 +1,7 @@
 # Nomenclatura de reconocimiento — directorio de arnés ⟷ grafo L0
 
-> **Estado: FIRMADA v1 (operador, 2026-07-07 — HS-10; D-a/D-b/D-c resueltas abajo).** Este
+> **Estado: FIRMADA v1.1 (operador, 2026-07-07 — HS-12 interop DevStudio; aditiva sobre
+> v1 = HS-10; D-a/D-b/D-c resueltas abajo).** Este
 > contrato define cómo ArnesIA RECONOCE un arnés leyendo sus archivos y lo convierte en un
 > `graph.l0` — el algoritmo que el loader real (Hito 3, reemplaza los fixtures `go:embed`)
 > implementará y que hasta la auditoría 2026-07-07 no estaba escrito en ningún documento
@@ -19,9 +20,18 @@ Un arnés se reconoce en DOS formas físicas (ambas ciudadanas de primera):
 |---|---|---|
 | **Plugin CC** | repo con `.claude-plugin/plugin.json` (layout oficial de plugin) | el arnés como se distribuye por marketplace git — la forma canónica de «Cargar» para modificar |
 | **Arnés instalado** | proyecto con `.claude/` poblado (skills/agents/commands/settings) | el arnés desplegado en un proyecto de cliente — auditoría/observación in situ |
+| **Roster de app de rol (lock)** | proyecto con `.devstudio/arneses.yaml` (roster: arnés@versión@canal + registry de origen) | proyecto de cliente gestionado por DevStudio: **N arneses complementarios**, cada uno en forma-plugin resuelta vía caché local (`~/.dev-studio/arneses/`) o rehidratación del marketplace — v1.1, HS-12 |
 
 El detector: si hay `.claude-plugin/plugin.json` → plugin; si hay `.claude/` → instalado;
 si hay ambos, plugin manda. Ninguno → no es arnés (error honesto, jamás grafo vacío).
+
+**Multi-arnés (v1.1, HS-12):** el lock `.devstudio/arneses.yaml` NO es un arnés — es un
+**puntero de descubrimiento read-only** que enumera N arneses. ArnesIA lo lee y carga cada
+entrada como **forma-plugin** (la unidad reconocible no cambia); entrada no resoluble en
+caché/marketplace → check rojo visible por-arnés (reconciliación honesta §4.5, jamás se
+omite en silencio). El lock lo escribe y posee DevStudio (sus campos estables:
+`id`·`versión`·`canal`·`registry` — pedido recíproco fichado en HS-12); coexiste con un
+`.claude/` propio del proyecto sin pisarlo (superficies independientes).
 
 ## 2. El manifiesto: `arnes.l0.json`
 
@@ -33,6 +43,17 @@ archivos — `id`, `nombre`, `fases[]`, `spine` (estados + transiciones), `meta`
 - Lo escribe ArnesIA al crear el arnés; lo mantiene ArnesIA al modificar. Un arnés sin
   manifiesto se carga en modo **degradado honesto**: nodos sin carriles de fase ni spine,
   con check `manifiesto-ausente` rojo — visible, nunca inventado.
+- **`nombre`/`descripcion` (v1.1, HS-12):** `nombre` es el campo CANÓNICO para pintar el
+  arnés en una vista (Roles, picker, Organigrama). Cadena de fallback bendecida:
+  `arnes.l0.nombre` → `plugin.json` `name` → `id` (ídem `descripcion` → `plugin.json`
+  `description`). Opcionales — el schema los admite desde HS-12 (reparación: §2 los
+  nombraba pero `graph.l0.schema.json` los rechazaba por `additionalProperties:false`).
+- **`spine.categorias` (v1.1, HS-12):** mapa opcional estado→categoría semántica FIJA
+  (enum de 5 idéntico al contrato de ecosistema I-77 RN-28: propuesto · en-progreso ·
+  completado · descartado · pausado). Los estados siguen siendo dato per-arnés; la
+  categoría es la capa semántica del producto. Checks warn: `categoria-estado-existe` ·
+  `terminal-categoria-coherente` (terminalidad derivada: categoría ∈
+  {completado, descartado}).
 - El `.graph.json` completo (como los dogfood) queda como **formato de export/intercambio**;
   la fuente de verdad en un arnés real es `arnes.l0.json` + los archivos.
 
@@ -94,6 +115,10 @@ portable, cero contexto LLM) + doctrina como plugin CC propio inyectado por flag
 
 ## Changelog
 
+- 2026-07-07 · v1.1 — **FIRMADA** (HS-12, interop DevStudio): detector 3° «roster de app de
+  rol» (`.devstudio/arneses.yaml` = puntero de descubrimiento multi-arnés, read-only) ·
+  `nombre`/`descripcion` reparados en el schema + cadena de fallback canónica ·
+  `spine.categorias` opcional (enum fijo 5 = I-77 RN-28) con 2 checks warn. Todo aditivo.
 - 2026-07-07 · v1 — **FIRMADA** (HS-10): D-a/D-b/D-c resueltas según recomendación; se firma en el
   mismo acto la estrategia de empaquetado (c) embed+plugin.
 - 2026-07-07 · v0 — draft inicial (HS-10), sale de la auditoría 4-frentes: el hueco «nomenclatura

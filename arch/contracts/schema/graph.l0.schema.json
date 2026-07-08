@@ -14,6 +14,8 @@
       "required": ["id", "rol", "proceso", "empresa", "reporta_a"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
+        "nombre": { "type": "string", "description": "Nombre humano del arnés — el campo CANÓNICO para pintarlo en una vista (HS-12; ya nombrado por nomenclatura-arnes.md §2). Cadena de fallback bendecida: arnes.l0.nombre → plugin.json name → id.", "minLength": 1 },
+        "descripcion": { "type": "string", "description": "Descripción humana corta (HS-12). Fallback: plugin.json description." },
         "rol": { "type": "string", "description": "META — el rol al que sirve el arnés (canónico; reemplaza `puesto`).", "minLength": 1 },
         "proceso": { "type": "string", "description": "META — el proceso de compañía que el arnés operacionaliza.", "minLength": 1 },
         "empresa": { "type": "string", "minLength": 1 },
@@ -34,6 +36,11 @@
             "inicial": { "type": "string", "description": "El estado de entrada único.", "minLength": 1 },
             "terminales": { "type": "array", "description": "Estados terminales/aceptantes.", "items": { "type": "string", "minLength": 1 } },
             "estados": { "type": "array", "description": "Todos los estados legales del trabajo.", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "categorias": {
+              "type": "object",
+              "description": "OPCIONAL (HS-12, interop DevStudio) — mapa estado→categoría semántica FIJA (enum idéntico a I-77 RN-28, patrón Azure state categories): una consola deriva comportamiento genérico de la categoría sin hardcodear nombres de estados. El enum es del PRODUCTO (capa semántica agnóstica); los estados clasificados siguen siendo dato per-arnés. Terminalidad derivada: categoría ∈ {completado, descartado}. Checks warn: categoria-estado-existe · terminal-categoria-coherente.",
+              "additionalProperties": { "type": "string", "enum": ["propuesto", "en-progreso", "completado", "descartado", "pausado"] }
+            },
             "transiciones": {
               "type": "array",
               "description": "Las aristas legales entre estados.",

@@ -52,6 +52,55 @@ func TestVerificarSpineAutoConsistente(t *testing.T) {
 	}
 }
 
+func TestVerificarSpineCategorias(t *testing.T) {
+	spineVeredicto := func(g Graph, id string) (Veredicto, string) {
+		for _, r := range VerificarSpine(g) {
+			if r.Check.ID == id {
+				return r.Veredicto, r.Detalle
+			}
+		}
+		t.Fatalf("check %q ausente", id)
+		return "", ""
+	}
+
+	// Sin categorías → ambos checks difieren honesto (mapa opcional, HS-12).
+	sinCat := Graph{Arnes: &Arnes{Spine: &Spine{
+		Inicial: "a", Estados: []string{"a", "b"},
+	}}}
+	for _, id := range []string{"categoria-estado-existe", "terminal-categoria-coherente"} {
+		if v, _ := spineVeredicto(sinCat, id); v != VeredictoDiferido {
+			t.Errorf("%s sin categorías: want diferido, got %s", id, v)
+		}
+	}
+
+	// Clave fuera de estados + valor fuera del enum → fail.
+	mal := Graph{Arnes: &Arnes{Spine: &Spine{
+		Inicial: "a", Estados: []string{"a", "b"},
+		Categorias: map[string]Categoria{"a": "inventada", "fantasma": CategoriaPausado},
+	}}}
+	if v, d := spineVeredicto(mal, "categoria-estado-existe"); v != VeredictoFail {
+		t.Errorf("categorías rotas: want fail, got %s (%s)", v, d)
+	}
+
+	// Terminal con categoría no terminal (o sin categoría) → fail; coherente → pass.
+	tMal := Graph{Arnes: &Arnes{Spine: &Spine{
+		Inicial: "a", Terminales: []string{"b"}, Estados: []string{"a", "b"},
+		Categorias: map[string]Categoria{"a": CategoriaPropuesto, "b": CategoriaEnProgreso},
+	}}}
+	if v, d := spineVeredicto(tMal, "terminal-categoria-coherente"); v != VeredictoFail {
+		t.Errorf("terminal en-progreso: want fail, got %s (%s)", v, d)
+	}
+	ok := Graph{Arnes: &Arnes{Spine: &Spine{
+		Inicial: "a", Terminales: []string{"b"}, Estados: []string{"a", "b"},
+		Categorias: map[string]Categoria{"a": CategoriaPropuesto, "b": CategoriaCompletado},
+	}}}
+	for _, id := range []string{"categoria-estado-existe", "terminal-categoria-coherente"} {
+		if v, d := spineVeredicto(ok, id); v != VeredictoPass {
+			t.Errorf("%s coherente: want pass, got %s (%s)", id, v, d)
+		}
+	}
+}
+
 func TestAvanzarCaja(t *testing.T) {
 	cases := []struct {
 		name   string
