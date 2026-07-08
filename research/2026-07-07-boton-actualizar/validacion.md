@@ -130,3 +130,40 @@ ahí vive la SPA actual con el drawer.
 (c) aceptar el doble-cuerpo y mostrar skew de versión shell↔daemon en Ajustes.
 La (a) alinea con HS-04 («el WebView consume la misma API») y con el valor de esta
 feature; decisión del operador en el gate.
+
+### Recomendación técnica para el gate de la candidata #8 (argumentada, 2026-07-07)
+
+**Recomendación: (a)** — la ventana del shell navega a `http://127.0.0.1:4200`; la SPA
+embebida del .deb queda reducida a página de fallback («conectando…» / «el daemon no
+arrancó»). Razones:
+
+1. **Elimina la CLASE de fallo, no la instancia.** Dos copias de la SPA = skew
+   UI↔API garantizado por construcción y una matriz de compatibilidad permanente.
+   Con (a) hay UN cuerpo desplegable para todo lo que cambia semanalmente (UI+API):
+   el binario Go, con update atómico rename+re-exec YA probado. El shell solo cambia
+   cuando cambia el shell (ventana · sidecar · mitigaciones webkit) — churn bajísimo.
+2. **Se shippea lo que se valida.** Hoy la validación E2E (Playwright contra `:4200`)
+   ejercita una SPA que el usuario de escritorio NO ve. (a) cierra ese hueco de
+   integridad de testing.
+3. **Es el modelo de la topología que ya firmamos.** Syncthing —inspiración declarada
+   en HS-02— sirve su UI desde el daemon; Tailscale/code-server igual. El patrón
+   Electron de «actualizar el app entero» (b) existe para apps SIN daemon que sirva
+   UI; nosotros ya lo tenemos — duplicarle el trabajo es desperdicio.
+4. **(b) rompe compromisos firmados:** sudo (contradice «cero sudo» de esta feature),
+   rustc en la máquina del usuario (bundle.sh --daemon-only lo evita a propósito),
+   minutos de link de Rust por update. Resuelve instancias por fuerza bruta.
+5. **(c) institucionaliza el defecto:** el banner de skew es una disculpa permanente
+   + carga de soporte. Parche vestido de feature.
+
+**Costos reales de (a) (verificados contra el código, acotados):**
+- **Token bootstrap:** único IPC de la SPA = `invoke('auth_token')` (`client.ts:133`).
+  Con URL remota: capability `remote` para ese dominio, o MEJOR eliminar el IPC —
+  `initialization_script` del shell inyecta el token como global; browser-dev queda
+  igual (global ausente → tokenless). El shell SIGUE siendo raíz de confianza
+  (boundary `superficie-local-confinada` HS-06 se revisa, no se rompe).
+- **Secuencia de arranque:** el shell YA sondea `:4200` antes de spawnear
+  (`lib.rs:60`); navegar tras health-check; fallback embebido si el daemon muere.
+- **Cache:** el daemon sirve `index.html` con no-cache (assets Vite ya van hasheados).
+
+Complemento futuro (no ahora): Tauri updater oficial para los cambios raros del
+shell binario. Ortogonal a (a).
