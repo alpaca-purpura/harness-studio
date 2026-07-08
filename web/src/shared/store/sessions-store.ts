@@ -316,7 +316,9 @@ export const useSessions = create<SessionsState>((set, get) => ({
             try {
               const report = await api.getConformance<GateReport>(arnes)
               const results = report.results ?? []
-              const notPass = results.filter((r) => r.veredicto === "fail" || r.veredicto === "error")
+              const notPass = results.filter(
+                (r) => r.veredicto === "fail" || r.veredicto === "error",
+              )
               // Semántica del dominio (ConformanceReport.OK): solo un fallo de severidad
               // ERROR bloquea; un warn es hallazgo visible, jamás un rojo fingido.
               const blockers = notPass.filter((r) => r.check.severidad === "error")
