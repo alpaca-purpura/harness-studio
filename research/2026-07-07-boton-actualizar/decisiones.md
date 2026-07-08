@@ -1,0 +1,11 @@
+# Decisiones del botón «Actualizar» — log por iteración
+
+> Una entrada por decisión conversada. Estado: PROPUESTA → FIRMADA.
+> Regla: ninguna decisión entra al spec sin firma; ninguna llega al código sin spec.
+
+| # | Fecha | Decisión | Porqué | Estado |
+|---|-------|----------|--------|--------|
+| 1 | 2026-07-07 | **Alcance = self-update de la app instalada (binario daemon+UI embebida).** El botón reemplaza el binario por la versión nueva y reinicia — lo que hoy el operador hace con `sudo dpkg -i`. (La recarga del arnés ya existe vía `PUT /api/arneses/{id}`; no es este paquete.) | El dolor real es el sudo del ciclo de instalación, no el índice. | **FIRMADA** (operador, 2026-07-07) |
+| 2 | 2026-07-07 | **Mecanismo = binario en `~/.local/bin` (espacio de usuario).** El daemon corre como el usuario y puede reemplazarse a sí mismo sin privilegios (write-tmp → rename → re-exec). El .deb queda SOLO para instalación inicial de terceros. Con .deb no existe botón sin sudo: dpkg escribe en /usr (root) — polkit/pkexec solo disfraza el prompt. Estado real hoy: `/usr/bin/arnesia` dueño root (por eso el sudo); migración inicial a ~/.local/bin una sola vez. | Cero privilegios en el ciclo diario; local-first coherente (todo lo del operador vive en su espacio). | **FIRMADA** (operador, 2026-07-07) |
+| 3 | 2026-07-07 | **Origen de la versión nueva = build local del repo** (`scripts/bundle.sh` / binario compilado del árbol). Release remoto (GitHub) queda para el release train (KIT-06) — si aparece en la UI antes, va staged rotulado, jamás fingiendo. | Es el ciclo real de dogfood del operador; no hay release train activo que descargar. | **FIRMADA** (operador, 2026-07-07) |
+| 4 | 2026-07-07 | **PROPUESTA de seguridad (a cementar en spec):** el endpoint `POST /api/self-update` (a) vive BAJO el confinamiento S1 (Host+Origin+token, superficie-local-confinada); (b) JAMÁS acepta rutas en el request — la ruta del repo la conoce el daemon por configuración explícita (flag/env/registro); (c) el binario recién compilado se verifica (existe, ejecutable, del árbol esperado) antes del rename; (d) todo fallo es visible en la UI (build/instalación/reinicio), nunca silencioso. | Un endpoint que reemplaza el binario y se re-ejecuta ES ejecución de código: misma disciplina que el resto de la superficie local. | PROPUESTA |

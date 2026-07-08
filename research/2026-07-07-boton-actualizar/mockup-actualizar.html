@@ -1,0 +1,215 @@
+<!--
+  mockup-actualizar.html — vista Ajustes · sección «Versión y actualización» (paquete boton-actualizar)
+  Tokens: copia VERBATIM de web/src/app/styles/theme.css (generado de web/tokens/base.tokens.json)
+  Datos REALES: binario instalado hoy = /usr/bin/arnesia (dueño root, vía .deb — ESE es el sudo) ·
+  huella del repo al corte = 1c7443f (2026-07-07) · el binario aún NO embebe versión (pendiente -ldflags).
+  Nada inventado en silencio: lo que hoy no existe va rotulado.
+
+  CHANGELOG DE ITERACIONES (una línea por versión; METODOLOGIA §10)
+  v1 · 2026-07-07 · primera propuesta: tarjeta «Versión y actualización» dentro de Ajustes, 5 casuísticas
+       (01 idle · 02 actualizando con pasos · 03 éxito+reinicio · 04 error de build honesto · 05 sin repo
+       configurado). INTERACTIVO: el botón de la 01 recorre 02→03; «forzar fallo» recorre 02→04.
+-->
+<title>Mockup — Ajustes · botón Actualizar (self-update sin sudo)</title>
+<style>
+  /* ══ tokens reales (theme.css, verbatim) ══ */
+  :root {
+    --background:#f2f4f7; --foreground:#212832; --card:#ffffff; --card-foreground:#212832;
+    --muted:#e9edf2; --muted-foreground:#5d6a79; --border:#d5dbe3;
+    --primary:#a8742c; --accent-soft:rgba(168,116,44,.14);
+    --ok:#2e8f5e; --warn:#c96a2e; --crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13); --warn-soft:rgba(201,106,46,.13); --crit-soft:rgba(201,69,69,.12);
+    --radius-sm:6px; --radius-md:8px;
+    --text-xs:11px; --text-sm:12.5px; --text-base:14px; --text-lg:16px;
+    --font-sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,Liberation Mono,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background:#14171c; --foreground:#e8ecf1; --card:#1b2027; --card-foreground:#e8ecf1;
+      --muted:#242b34; --muted-foreground:#94a1af; --border:#2d3743;
+      --primary:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+      --ok:#57b380; --warn:#e0904f; --crit:#e25b5b;
+      --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+    }
+  }
+  :root[data-theme="dark"] {
+    --background:#14171c; --foreground:#e8ecf1; --card:#1b2027; --card-foreground:#e8ecf1;
+    --muted:#242b34; --muted-foreground:#94a1af; --border:#2d3743;
+    --primary:#d9a35b; --accent-soft:rgba(217,163,91,.14);
+    --ok:#57b380; --warn:#e0904f; --crit:#e25b5b;
+    --ok-soft:rgba(87,179,128,.14); --warn-soft:rgba(224,144,79,.14); --crit-soft:rgba(226,91,91,.13);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--background); color:var(--foreground); font-family:var(--font-sans); }
+  .wrap { max-width:1400px; margin:0 auto; padding:28px 24px 64px; }
+  .head h1 { font-size:var(--text-lg); margin:0 0 4px; font-weight:650; }
+  .head p { font-size:var(--text-sm); color:var(--muted-foreground); margin:0; max-width:80ch; }
+  .head .src { font-family:var(--font-mono); font-size:var(--text-xs); }
+  .gallery { display:grid; grid-template-columns:repeat(auto-fill, 460px); gap:26px 22px; margin-top:26px; }
+  .case { display:flex; flex-direction:column; gap:7px; }
+  .case-label { font-family:var(--font-mono); font-size:var(--text-xs); color:var(--muted-foreground); display:flex; gap:6px; }
+  .case-label .num { font-weight:700; color:var(--foreground); }
+
+  /* ══ la TARJETA de Ajustes (vista Ajustes = panel de tarjetas; esta es una) ══ */
+  .card { width:460px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-md);
+    padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .card h3 { margin:0; font-size:var(--text-xs); font-weight:600; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--muted-foreground); }
+  .kv { display:flex; gap:8px; font-size:var(--text-xs); }
+  .kv .k { flex-shrink:0; width:110px; color:var(--muted-foreground); }
+  .kv .v { font-family:var(--font-mono); color:var(--foreground); overflow-wrap:anywhere; }
+  .kv .v .mut { color:var(--muted-foreground); font-family:var(--font-sans); }
+  .pill { display:inline-block; font-size:9px; font-weight:700; letter-spacing:.04em; padding:1px 7px;
+    border-radius:999px; border:1px solid var(--warn); color:var(--foreground); background:var(--warn-soft); }
+  .pill.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .btn { padding:9px 12px; border-radius:var(--radius-md); border:1px solid var(--primary);
+    background:var(--accent-soft); color:var(--foreground); font:inherit; font-size:var(--text-sm);
+    font-weight:600; cursor:pointer; }
+  .btn:disabled { opacity:.68; cursor:not-allowed; }
+  .btn.ghost { border-color:var(--border); background:none; color:var(--muted-foreground); font-weight:400; }
+  .note { margin:0; font-size:10px; color:var(--muted-foreground); line-height:1.5; }
+  .warnbox { margin:0; border-radius:var(--radius-md); background:var(--warn-soft); padding:7px 9px;
+    font-size:var(--text-xs); color:var(--foreground); line-height:1.5; }
+  .critbox { margin:0; border-radius:var(--radius-md); background:var(--crit-soft); padding:7px 9px;
+    font-size:var(--text-xs); color:var(--foreground); line-height:1.5; font-family:var(--font-mono); }
+  .okbox { margin:0; border-radius:var(--radius-md); background:var(--ok-soft); padding:7px 9px;
+    font-size:var(--text-xs); color:var(--foreground); line-height:1.5; }
+
+  /* pasos del self-update (02): checklist honesta, un paso a la vez */
+  .steps { display:flex; flex-direction:column; gap:6px; margin:0; padding:0; list-style:none; }
+  .steps li { display:flex; gap:8px; align-items:baseline; font-size:var(--text-xs); color:var(--muted-foreground); }
+  .steps li .dot { width:8px; height:8px; flex:none; border-radius:999px; background:var(--border); position:relative; top:0; }
+  .steps li.doing { color:var(--foreground); }
+  .steps li.doing .dot { background:var(--primary); }
+  .steps li.done { color:var(--foreground); }
+  .steps li.done .dot { background:var(--ok); }
+  .steps li.fail { color:var(--foreground); }
+  .steps li.fail .dot { background:var(--crit); }
+  .steps li .mono { font-family:var(--font-mono); }
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Mockup — Ajustes · «Versión y actualización» (self-update sin sudo) · v1</h1>
+    <p>Rumbo firmado: self-update del binario · <span class="src">~/.local/bin</span> (espacio de usuario,
+       cero sudo) · origen = build local del repo. La tarjeta vive en la vista <b>Ajustes</b> (rail ⚙,
+       hoy «próximamente»). Casuística 01 es interactiva: pruébala.</p>
+    <p class="src">datos reales: instalado hoy /usr/bin/arnesia (root, .deb) · repo 1c7443f · binario sin versión embebida (pendiente -ldflags)</p>
+  </div>
+
+  <div class="gallery" id="g"></div>
+</div>
+
+<script>
+const REPO = "/home/chalreme/Proyectos/harness-studio";
+const HUELLA = "1c7443f · 2026-07-07";
+
+// Paso a paso REAL del self-update (spec candidato): cada uno puede fallar y se DICE.
+const PASOS = [
+  ["verificar", "repo configurado + toolchain (go · pnpm) presentes"],
+  ["build", "scripts/bundle.sh — SPA + go build (huella embebida)"],
+  ["verificar binario", "existe · ejecutable · huella esperada"],
+  ["instalar", "write-tmp → rename sobre ~/.local/bin/arnesia (atómico, sin sudo)"],
+  ["reiniciar", "el daemon se re-ejecuta; la UI reconecta por /healthz"],
+];
+
+function kv(k, v) { return `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
+
+function steps(hasta, fallo) {
+  return `<ul class="steps">` + PASOS.map(([t, d], i) => {
+    const cls = fallo !== undefined && i === fallo ? "fail" : i < hasta ? "done" : i === hasta ? "doing" : "";
+    return `<li class="${cls}"><span class="dot"></span><span><b>${t}</b> <span class="mono">— ${d}</span></span></li>`;
+  }).join("") + `</ul>`;
+}
+
+// 01 · estado OBJETIVO idle: instalado en ~/.local/bin, listo para actualizar.
+function cardIdle(interactivo) {
+  return `<div class="card" data-card="idle">
+    <h3>Versión y actualización</h3>
+    ${kv("daemon", `arnesia · <span class="mut">huella</span> ${HUELLA}`)}
+    ${kv("instalado en", `~/.local/bin/arnesia <span class="pill ok">espacio de usuario · sin sudo</span>`)}
+    ${kv("origen", `${REPO} <span class="mut">(build local — configurado por flag, jamás del request)</span>`)}
+    <button type="button" class="btn" data-act="update">Actualizar desde el repo</button>
+    ${interactivo ? `<button type="button" class="btn ghost" data-act="fail">simular fallo de build (04)</button>` : ""}
+    <p class="note">El self-update compila el árbol local (requiere go + pnpm — feature de operador) y
+      reemplaza el binario en espacio de usuario: cero sudo. Releases remotos llegan con el tren (KIT-06).</p>
+  </div>`;
+}
+
+// 02 · actualizando: checklist honesta, botón bloqueado.
+function cardBusy(hasta) {
+  return `<div class="card">
+    <h3>Versión y actualización</h3>
+    ${kv("daemon", `arnesia · <span class="mut">huella</span> ${HUELLA}`)}
+    ${steps(hasta)}
+    <button type="button" class="btn" disabled>Actualizando…</button>
+    <p class="note">Cada paso puede fallar y se muestra — jamás un spinner mudo.</p>
+  </div>`;
+}
+
+// 03 · éxito: binario nuevo + reinicio + reconexión.
+function cardOk() {
+  return `<div class="card">
+    <h3>Versión y actualización</h3>
+    ${steps(5)}
+    <p class="okbox">Actualizado a <span class="src">a1b2c3d</span> — daemon reiniciado, UI reconectada.
+      <span class="src">(huella nueva embebida por -ldflags en el build)</span></p>
+    <button type="button" class="btn" data-act="update">Actualizar desde el repo</button>
+  </div>`;
+}
+
+// 04 · error honesto: el build falló — stderr visible, binario viejo intacto.
+function cardFail() {
+  return `<div class="card">
+    <h3>Versión y actualización</h3>
+    ${steps(1, 1)}
+    <p class="critbox">build falló (exit 1) — ./web: pnpm build: error TS2345 …stderr completo…</p>
+    <p class="note">El binario instalado NO se tocó (el rename solo ocurre tras verificar el build).
+      Corrige el repo y reintenta.</p>
+    <button type="button" class="btn" data-act="update">Reintentar</button>
+  </div>`;
+}
+
+// 05 · estado ACTUAL real + sin repo configurado: la migración inicial se dice, no se esconde.
+function cardHoy() {
+  return `<div class="card">
+    <h3>Versión y actualización</h3>
+    ${kv("daemon", `arnesia · <span class="mut">versión no embebida aún</span>`)}
+    ${kv("instalado en", `/usr/bin/arnesia <span class="pill">root · vía .deb — actualizar pide sudo</span>`)}
+    ${kv("origen", `<span class="mut">repo no configurado (arranca sin --repo)</span>`)}
+    <button type="button" class="btn" disabled title="Migra a ~/.local/bin para actualizar sin sudo">Actualizar desde el repo</button>
+    <p class="warnbox">Este binario vive en <b>/usr/bin</b> (dueño root): la app NO puede reemplazarlo sin
+      privilegios. Migración (una sola vez): <span class="src">install -m755 &lt;repo&gt;/bin/arnesia ~/.local/bin/</span>
+      — ~/.local/bin precede en PATH; desde ahí el botón funciona sin sudo.</p>
+  </div>`;
+}
+
+const CASES = [
+  ["01", "idle (objetivo: instalado en ~/.local/bin) — INTERACTIVO", cardIdle(true)],
+  ["02", "actualizando — checklist de pasos honesta", cardBusy(1)],
+  ["03", "éxito — binario nuevo + reinicio + reconexión", cardOk()],
+  ["04", "error de build — stderr visible, binario viejo intacto", cardFail()],
+  ["05", "estado ACTUAL real (/usr/bin, root) + sin repo — migración explicada", cardHoy()],
+];
+
+document.getElementById("g").innerHTML = CASES.map(([n, t, html]) =>
+  `<div class="case" data-case="${n}"><div class="case-label"><span class="num">${n}</span><span>${t}</span></div>${html}</div>`).join("");
+
+// Interactividad de la 01: recorre 02 → 03 (o 02 → 04 con «simular fallo»).
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const holder = b.closest(".case");
+  if (holder?.getAttribute("data-case") !== "01") return;
+  const fallo = b.getAttribute("data-act") === "fail";
+  const slot = holder.querySelector(".card");
+  for (let i = 0; i <= (fallo ? 1 : 4); i++) {
+    slot.outerHTML = cardBusy(i);
+    await new Promise(r => setTimeout(r, 550));
+  }
+  holder.querySelector(".card").outerHTML = fallo ? cardFail() : cardOk();
+  // tras éxito/fallo, el botón de la 01 vuelve a recorrer el flujo.
+});
+</script>
