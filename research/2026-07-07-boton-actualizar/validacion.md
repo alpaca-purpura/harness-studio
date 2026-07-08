@@ -47,9 +47,13 @@ inicial de terceros; el ciclo diario ya no lo toca. Desde la migración: cero su
 
 `tsc` ✓ · `biome ci src` ✓ · `depcruise` ✓ (84 módulos, 0 violaciones) · `steiger` ✓ ·
 `stylelint` ✓ · story-tests **71/71** ✓ (8 stories nuevas de update-card) ·
-`go build/vet` ✓ · `go test -race ./...` ✓ (adapter 14 tests · usecase 6 · transport 4) ·
+`go build/vet` ✓ · `go test -race ./...` ✓ (adapter 15 tests · usecase 6 · transport 4) ·
 `golangci-lint` **0 issues** · `golangci-lint fmt --diff` limpio · `go-arch-lint` OK
 (componente `selfupdate` añadido).
+
+**CI de GitHub: 3/3 verde** (run 28915038317, commit `c821665`). El primer push cayó en
+el job go — `TestVerificar/repo_completo` asumía `pnpm` en el PATH del runner; corregido
+con stub de toolchain hermético (`c821665`), y ganó un caso nuevo «toolchain incompleta».
 
 ## Driver
 
