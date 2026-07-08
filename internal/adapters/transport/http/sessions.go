@@ -156,6 +156,26 @@ func sessionTurn(svc *usecase.SessionService) http.HandlerFunc {
 	}
 }
 
+// sessionInterrupt (RF-116) stops a session's in-flight turn in-band: pending asks are
+// denied and the conductor receives control_request subtype=interrupt. 202 = accepted;
+// the result frame arrives over the SSE Dock stream like any turn end.
+func sessionInterrupt(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := svc.Interrupt(r.PathValue("id")); err != nil {
+			switch {
+			case errors.Is(err, usecase.ErrNadaQueInterrumpir):
+				writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+			case errors.Is(err, usecase.ErrEnvioControl):
+				writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			default:
+				writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			}
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
 // permissionBody is the POST /api/sessions/{id}/permission payload: the human answer
 // to a control_request card of the Dock (D3). role names the authority the decision
 // runs under; ttl_segundos optionally NARROWS the role's grant TTL (never widens it).

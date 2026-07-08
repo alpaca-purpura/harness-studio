@@ -60,9 +60,17 @@ type dockFrame struct {
 // pendingPermission is a forwarded control_request waiting for the human (or the role
 // authority) to resolve it.
 type pendingPermission struct {
-	Tool  string
-	Input []byte
+	Tool      string
+	Input     []byte
+	ToolUseID string
 }
+
+// RoleSource resolves the ROLE an arnés hydrates (its graph.l0 META) — the authority
+// permission-sets derive from (boundary permisos-derivan-del-rol). Empty = unknown
+// arnés/rol: the spawn degrades honestly (no permission flags) and a permission
+// resolution without a role fails loudly. It is a func, not a port: the composition
+// root closes it over the MapService (the index already owns the graph).
+type RoleSource func(ctx context.Context, arnesID string) string
 
 // sessionRuntime pairs a persisted session with its live conductor (nil until the first
 // turn spawns/resumes it) and the per-turn streaming state.
@@ -98,6 +106,7 @@ type SessionService struct {
 	resolver ports.WorkdirResolver
 	injector ports.InjectionProvisioner // nil = spawns sin doctrina (degradación honesta).
 	perms    ports.PermissionPort       // resuelve el set del rol al responder un control_request.
+	roleFor  RoleSource                 // rol del arnés (server-side, jamás del FE) — RF-112/RF-114.
 	baseCtx  context.Context
 	maxTurns int
 }
@@ -108,8 +117,11 @@ type SessionService struct {
 // confinement, never a shared cwd); maxTurns caps every turn's agent loop; injector
 // materializa la doctrina/kit e inyecta los flags a cada spawn (nil = sin inyección).
 // perms resuelve el permission-set del rol al responder un control_request (nil = el
-// endpoint de permisos responde honesto que no hay autoridad cableada).
-func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int, injector ports.InjectionProvisioner, perms ports.PermissionPort) (*SessionService, error) {
+// endpoint de permisos responde honesto que no hay autoridad cableada). roleFor resuelve
+// el rol del arnés de cada sesión — con él el spawn del Dock materializa los flags de
+// permisos (RF-112) y una resolución sin rol explícito usa la autoridad del arnés
+// (RF-114); nil = spawns sin flags (comportamiento previo).
+func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int, injector ports.InjectionProvisioner, perms ports.PermissionPort, roleFor RoleSource) (*SessionService, error) {
 	s := &SessionService{
 		rt:       map[string]*sessionRuntime{},
 		agent:    agent,
@@ -118,6 +130,7 @@ func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store por
 		resolver: resolver,
 		injector: injector,
 		perms:    perms,
+		roleFor:  roleFor,
 		baseCtx:  baseCtx,
 		maxTurns: maxTurns,
 	}
@@ -248,7 +261,9 @@ func (s *SessionService) Turn(id, text string) error {
 		return errNotFound(id)
 	}
 	// One turn at a time: a second turn while streaming would interleave stdin + assembling.
-	if r.meta.Status == domain.StatusStreaming {
+	// `await` also counts — the turn is still in flight, parked on a permission ask; a new
+	// user message would interleave with the conductor blocked on the control channel.
+	if r.meta.Status == domain.StatusStreaming || r.meta.Status == domain.StatusAwait {
 		s.mu.Unlock()
 		return ErrBusy
 	}
@@ -304,12 +319,27 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 			inj = ports.Injection{}
 		}
 	}
+	// Permisos del ROL del arnés (RF-112, permisos-derivan-del-rol): el spawn del Dock
+	// materializa --permission-mode/--allowedTools/--permission-prompt-tool stdio para que
+	// cada escritura llegue como control_request→tarjeta. Sin rol resoluble se degrada
+	// honesto (sin flags = comportamiento previo del Dock), jamás bloquea la sesión.
+	var permisos domain.PermissionSet
+	if s.perms != nil && s.roleFor != nil {
+		if rol := s.roleFor(s.baseCtx, r.meta.Arnes); rol != "" {
+			if ps, perr := s.perms.ResolveForRole(s.baseCtx, rol); perr != nil {
+				slog.Warn("session: rol no resoluble — spawn sin flags de permisos", "arnes", r.meta.Arnes, "rol", rol, "err", perr)
+			} else {
+				permisos = ps
+			}
+		}
+	}
 	live, err := s.agent.Spawn(s.baseCtx, ports.SpawnOpts{
 		Resume:    resume,
 		Model:     r.meta.Model,
 		Cwd:       cwd,
 		MaxTurns:  s.maxTurns,
 		Injection: inj,
+		Permisos:  permisos,
 	})
 	if err != nil {
 		return err
@@ -471,14 +501,14 @@ func (s *SessionService) onControlRequest(id string, live ports.AgentSession, ev
 		if r.pendingPerm == nil {
 			r.pendingPerm = map[string]pendingPermission{}
 		}
-		r.pendingPerm[ev.RequestID] = pendingPermission{Tool: ev.Tool, Input: ev.Input}
+		r.pendingPerm[ev.RequestID] = pendingPermission{Tool: ev.Tool, Input: ev.Input, ToolUseID: ev.ToolUseID}
 		r.meta.Status = domain.StatusAwait
 		s.persistLocked()
 	}
 	s.mu.Unlock()
 
 	if autoAllow {
-		if err := live.RespondControl(s.baseCtx, ev.RequestID, ports.ControlDecision{Allow: true, UpdatedInput: ev.Input}); err != nil {
+		if err := live.RespondControl(s.baseCtx, ev.RequestID, ports.ControlDecision{Allow: true, UpdatedInput: ev.Input, ToolUseID: ev.ToolUseID}); err != nil {
 			slog.Error("session: responder control_request con grant vigente", "session", id, "err", err)
 			return
 		}
@@ -538,9 +568,16 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 	}
 	p, ok := r.pendingPerm[requestID]
 	live := r.live
+	arnes := r.meta.Arnes
 	s.mu.Unlock()
 	if !ok {
 		return PermissionResolution{}, fmt.Errorf("%w (request %q)", ErrPermisoNoPendiente, requestID)
+	}
+
+	// RF-114: sin rol explícito, la autoridad ES la del arnés de la sesión (META de
+	// enganche) — el FE no elige autoridad, la hereda (decisión #6).
+	if rol == "" && s.roleFor != nil {
+		rol = s.roleFor(s.baseCtx, arnes)
 	}
 
 	ps, err := s.perms.ResolveForRole(s.baseCtx, rol)
@@ -589,9 +626,9 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 	if live == nil {
 		return res, fmt.Errorf("%w: la sesión ya no tiene conductor vivo", ErrEnvioControl)
 	}
-	d := ports.ControlDecision{Allow: res.Efectiva == domain.DecisionAllow, Message: res.Motivo}
+	d := ports.ControlDecision{Allow: res.Efectiva == domain.DecisionAllow, Message: res.Motivo, ToolUseID: p.ToolUseID}
 	if d.Allow {
-		d.UpdatedInput = p.Input // echo del input original (control protocol).
+		d.UpdatedInput = p.Input // echo del input original (control protocol: requerido en allow).
 	}
 	if err := live.RespondControl(s.baseCtx, requestID, d); err != nil {
 		return res, fmt.Errorf("%w: %w", ErrEnvioControl, err)
@@ -604,6 +641,52 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 		Status: string(domain.StatusStreaming),
 	})
 	return res, nil
+}
+
+// ErrNadaQueInterrumpir — Interrupt on a session with no live in-flight turn (HTTP 409).
+var ErrNadaQueInterrumpir = errors.New("no hay turno en vuelo que interrumpir")
+
+// Interrupt stops a session's in-flight turn (RF-116): pending permission asks are
+// denied first (motivo «interrumpido por el operador» — the conductor must not stay
+// blocked on an ask nobody will answer), then the in-band interrupt rides the control
+// channel. The conductor emits its result frame and the session settles idle by the
+// normal consume path; the subprocess stays alive for the next turn.
+func (s *SessionService) Interrupt(id string) error {
+	s.mu.Lock()
+	r := s.rt[id]
+	if r == nil {
+		s.mu.Unlock()
+		return errNotFound(id)
+	}
+	live := r.live
+	status := r.meta.Status
+	if live == nil || (status != domain.StatusStreaming && status != domain.StatusAwait) {
+		s.mu.Unlock()
+		return ErrNadaQueInterrumpir
+	}
+	pend := r.pendingPerm
+	r.pendingPerm = nil
+	if status == domain.StatusAwait {
+		r.meta.Status = domain.StatusStreaming // el turno sigue vivo hasta su result.
+		s.persistLocked()
+	}
+	runID := r.curRun
+	s.mu.Unlock()
+
+	for reqID, p := range pend {
+		if err := live.RespondControl(s.baseCtx, reqID, ports.ControlDecision{Message: "interrumpido por el operador", ToolUseID: p.ToolUseID}); err != nil {
+			slog.Warn("session: denegar ask pendiente al interrumpir", "session", id, "request", reqID, "err", err)
+		}
+		s.publish(dockFrame{
+			SessionID: id, RunID: runID, Kind: "permission_result",
+			RequestID: reqID, Tool: p.Tool, Decision: string(domain.DecisionDeny),
+			Text: "interrumpido por el operador", Status: string(domain.StatusStreaming),
+		})
+	}
+	if err := live.Interrupt(s.baseCtx); err != nil {
+		return fmt.Errorf("%w: %w", ErrEnvioControl, err)
+	}
+	return nil
 }
 
 // publish marshals a Dock frame and fans it out on the SSE stream.

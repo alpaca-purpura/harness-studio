@@ -53,16 +53,60 @@ export interface HarnessSummary {
 }
 
 // DockFrame is one SSE `dock` event payload. Every frame carries session_id so one
-// connection multiplexes N conversations (fase 4 c.1).
+// connection multiplexes N conversations (fase 4 c.1). kind=permission es la tarjeta
+// ask→UI de un control_request (RF-113: request_id + tool + input crudo para pintar el
+// diff; la sesión pasa a `await`); permission_result la cierra con la decisión efectiva.
 export interface DockFrame {
   session_id: string
   run_id?: string
-  kind: "status" | "init" | "delta" | "message" | "result" | "error"
+  kind:
+    | "status"
+    | "init"
+    | "delta"
+    | "message"
+    | "result"
+    | "error"
+    | "permission"
+    | "permission_result"
   text?: string
   status?: SessionStatus
   ctx_pct?: number
   model?: string
   claude_session_id?: string
+  request_id?: string
+  tool?: string
+  input?: unknown
+  decision?: "allow" | "deny"
+}
+
+// PermissionAsk is one pending control_request card of a session (RF-113).
+export interface PermissionAsk {
+  request_id: string
+  tool: string
+  input?: unknown
+}
+
+// ScopeNode is the removable composer scope chip (RF-111, decisión #1): a Map-selected
+// node resolved to its real file by the loader's nomenclatura (fuente_path). Los campos
+// admiten undefined explícito (se construyen por spread desde el nodo del grafo —
+// exactOptionalPropertyTypes).
+export interface ScopeNode {
+  nodeId: string
+  clase?: string | undefined
+  fuentePath?: string | undefined
+}
+
+// GateCheckResult / GateReport mirror the daemon's ConformanceReport (RF-117 — solo lo
+// que la tarjeta del gate pinta: veredicto por check).
+export interface GateCheckResult {
+  veredicto: string
+  detalle?: string
+  check: { id: string; severidad?: string }
+}
+
+export interface GateReport {
+  target?: string
+  results?: GateCheckResult[]
 }
 
 // VIEWS is the per-session view strip (mockup it.14). label + glyph.

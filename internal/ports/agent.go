@@ -52,9 +52,13 @@ type AgentEvent struct {
 	// RequestID / Tool / Input carry a forwarded control_request (Kind=
 	// EventControlRequest): the id to answer with RespondControl, the tool Claude Code
 	// wants to run, and the raw JSON input of the call (the GUI paints the diff from it).
+	// ToolUseID is the tool_use id of the ask; the wire expects it echoed in the answer
+	// (verified against the official SDK + reference implementations, paquete
+	// 2026-07-08-chat-cc-funcional investigación §Frente ①).
 	RequestID string
 	Tool      string
 	Input     []byte
+	ToolUseID string
 	Raw       []byte
 }
 
@@ -85,11 +89,13 @@ type SpawnOpts struct {
 }
 
 // ControlDecision is the daemon's answer to a forwarded control_request. On allow the
-// original tool input is echoed back (UpdatedInput, raw JSON); on deny Message says why.
+// original tool input is echoed back (UpdatedInput, raw JSON — the wire REQUIRES it);
+// on deny Message says why (also required). ToolUseID echoes the ask's tool_use id.
 type ControlDecision struct {
 	Allow        bool
 	UpdatedInput []byte
 	Message      string
+	ToolUseID    string
 }
 
 // AgentSession is a live `claude` conductor: streaming user turns in, normalized
@@ -104,6 +110,10 @@ type AgentSession interface {
 	// agent's control channel (stdin for the claudecode adapter). The daemon — role
 	// permission-set + human approval — is the only caller; the adapter never decides.
 	RespondControl(ctx context.Context, requestID string, d ControlDecision) error
+	// Interrupt stops the in-flight turn in-band (control_request subtype=interrupt,
+	// RF-116): the subprocess stays alive and emits its result; the conversation
+	// continues. Killing the process is only the adapter's fallback, never the API.
+	Interrupt(ctx context.Context) error
 	// Close terminates the subprocess (closing stdin, then waiting).
 	Close() error
 }

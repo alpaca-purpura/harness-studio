@@ -7,12 +7,15 @@ export {
   connectDock,
   type DockConnection,
   type DockFrame,
+  type GateReport,
   GLOBAL_VIEWS,
   type HarnessSummary,
   type NewSession,
+  type PermissionAsk,
   type Rol,
   SALUD_LABEL,
   type Salud,
+  type ScopeNode,
   type Session,
   type SessionStatus,
   STATUS_LABEL,
@@ -25,6 +28,8 @@ export { bindHashState, type Theme, useAppStore } from "./store/app-store"
 export {
   selectActive,
   selectAttention,
+  selectPendingPerms,
+  selectScope,
   useSessions,
 } from "./store/sessions-store"
 export { Button, type ButtonProps, buttonVariants } from "./ui/button"

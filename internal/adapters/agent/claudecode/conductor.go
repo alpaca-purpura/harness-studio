@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -167,7 +168,37 @@ func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.Agen
 	}
 	go s.logStderr(stderr)
 	go s.pump(stdout)
+	// Handshake `initialize` (VERIFICADO contra claude 2.1.204, paquete chat-cc-funcional):
+	// sin él, el binario NO emite `can_use_tool` — auto-deniega en silencio y el
+	// human-in-the-loop jamás dispara. El SDK oficial lo manda siempre; nosotros también.
+	// La respuesta (control_response del CLI) se ignora hoy — honesto: subscriptionType/
+	// comandos quedan sin consumir hasta que alguien los necesite.
+	if err := s.sendInitialize(); err != nil {
+		_ = s.Close()
+		return nil, err
+	}
 	return s, nil
+}
+
+// sendInitialize writes the app→CLI initialize control_request that arms the control
+// channel (can_use_tool asks only flow after it).
+func (s *ccSession) sendInitialize() error {
+	n := s.ctrlSeq.Add(1)
+	line, err := json.Marshal(ctrlRequestEnvelope{
+		Type:      "control_request",
+		RequestID: fmt.Sprintf("req_%d_arnesia", n),
+		Request:   map[string]any{"subtype": "initialize"},
+	})
+	if err != nil {
+		return fmt.Errorf("claudecode: marshal initialize: %w", err)
+	}
+	line = append(line, '\n')
+	s.sendMu.Lock()
+	defer s.sendMu.Unlock()
+	if _, werr := s.stdin.Write(line); werr != nil {
+		return fmt.Errorf("claudecode: write initialize: %w", werr)
+	}
+	return nil
 }
 
 // ccSession is a live conductor subprocess implementing ports.AgentSession.
@@ -176,7 +207,8 @@ type ccSession struct {
 	stdin  io.WriteCloser
 	events chan ports.AgentEvent
 
-	sendMu    sync.Mutex // serializes writes to stdin.
+	sendMu    sync.Mutex   // serializes writes to stdin.
+	ctrlSeq   atomic.Int64 // request_id counter for daemon→CLI control_requests.
 	closeOnce sync.Once
 	closeErr  error
 }
@@ -223,15 +255,20 @@ func (s *ccSession) Send(_ context.Context, turn string) error {
 // Events returns the normalized event stream (closed when the subprocess exits).
 func (s *ccSession) Events() <-chan ports.AgentEvent { return s.events }
 
-// ctrlAllow / ctrlDeny are the inner permission results of a control_response.
+// ctrlAllow / ctrlDeny are the inner permission results of a control_response. The wire
+// (verified: SDK oficial + claude-code-chat + vibe-kanban, investigación 2026-07-08
+// §Frente ①) REQUIRES updatedInput on allow and message on deny; toolUseID echoes the
+// ask's tool_use id.
 type ctrlAllow struct {
 	Behavior     string          `json:"behavior"`
 	UpdatedInput json.RawMessage `json:"updatedInput"`
+	ToolUseID    string          `json:"toolUseID,omitempty"`
 }
 
 type ctrlDeny struct {
-	Behavior string `json:"behavior"`
-	Message  string `json:"message,omitempty"`
+	Behavior  string `json:"behavior"`
+	Message   string `json:"message"`
+	ToolUseID string `json:"toolUseID,omitempty"`
 }
 
 // ctrlResponseEnvelope is the stdin frame answering a control_request.
@@ -264,9 +301,13 @@ func controlResponseLine(requestID string, d ports.ControlDecision) ([]byte, err
 		if len(upd) == 0 {
 			upd = json.RawMessage("{}")
 		}
-		inner = ctrlAllow{Behavior: "allow", UpdatedInput: upd}
+		inner = ctrlAllow{Behavior: "allow", UpdatedInput: upd, ToolUseID: d.ToolUseID}
 	} else {
-		inner = ctrlDeny{Behavior: "deny", Message: d.Message}
+		msg := d.Message
+		if msg == "" {
+			msg = "denegado por el operador" // message es requerido en el wire del deny.
+		}
+		inner = ctrlDeny{Behavior: "deny", Message: msg, ToolUseID: d.ToolUseID}
 	}
 	line, err := json.Marshal(ctrlResponseEnvelope{
 		Type:     "control_response",
@@ -290,6 +331,38 @@ func (s *ccSession) RespondControl(_ context.Context, requestID string, d ports.
 	defer s.sendMu.Unlock()
 	if _, err := s.stdin.Write(line); err != nil {
 		return fmt.Errorf("claudecode: write control_response: %w", err)
+	}
+	return nil
+}
+
+// ctrlRequestEnvelope is a control_request the DAEMON sends to the CLI (app→CLI
+// direction: interrupt, set_permission_mode…). Mirror of the CLI→app envelope.
+type ctrlRequestEnvelope struct {
+	Type      string         `json:"type"`
+	RequestID string         `json:"request_id"`
+	Request   map[string]any `json:"request"`
+}
+
+// Interrupt stops the in-flight turn in-band: control_request subtype=interrupt over
+// stdin (requires --input-format stream-json, which every spawn sets). The subprocess
+// answers with its result frame and stays alive for the next turn (RF-116). Wire
+// verified against the official SDK + reference implementations (investigación
+// 2026-07-08 §Frente ①).
+func (s *ccSession) Interrupt(_ context.Context) error {
+	n := s.ctrlSeq.Add(1)
+	line, err := json.Marshal(ctrlRequestEnvelope{
+		Type:      "control_request",
+		RequestID: fmt.Sprintf("req_%d_arnesia", n),
+		Request:   map[string]any{"subtype": "interrupt"},
+	})
+	if err != nil {
+		return fmt.Errorf("claudecode: marshal interrupt: %w", err)
+	}
+	line = append(line, '\n')
+	s.sendMu.Lock()
+	defer s.sendMu.Unlock()
+	if _, err := s.stdin.Write(line); err != nil {
+		return fmt.Errorf("claudecode: write interrupt: %w", err)
 	}
 	return nil
 }
@@ -321,9 +394,10 @@ type rawFrame struct {
 
 // ctrlRequest is the inner payload of a control_request frame (can_use_tool).
 type ctrlRequest struct {
-	Subtype  string          `json:"subtype"`
-	ToolName string          `json:"tool_name"`
-	Input    json.RawMessage `json:"input"`
+	Subtype   string          `json:"subtype"`
+	ToolName  string          `json:"tool_name"`
+	Input     json.RawMessage `json:"input"`
+	ToolUseID string          `json:"tool_use_id"`
 }
 
 type assistantMsg struct {
@@ -438,6 +512,7 @@ func translate(line []byte) (ports.AgentEvent, bool) {
 				RequestID: f.RequestID,
 				Tool:      f.Request.ToolName,
 				Input:     f.Request.Input,
+				ToolUseID: f.Request.ToolUseID,
 				Raw:       line,
 			}, true
 		}

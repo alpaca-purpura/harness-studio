@@ -293,11 +293,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [request_id, decision, role]
+              required: [request_id, decision]
               properties:
                 request_id: { type: string, description: el id del control_request pendiente (llegó en la tarjeta `permission` del Dock). }
                 decision: { type: string, enum: [allow, deny] }
-                role: { type: string, description: el rol bajo cuya autoridad se decide (deny-by-default — sin rol no hay resolución). }
+                role: { type: string, description: "opcional (RF-114, decisión #6): omitido ⇒ el daemon usa el rol del ARNÉS de la sesión (graph.l0 META) — el FE no elige autoridad. Deny-by-default: sin rol resoluble no hay resolución." }
                 ttl_segundos: { type: integer, description: "opcional: ACOTA el TTL del grant por debajo del que el rol autoriza (jamás lo amplía)." }
       responses:
         "200":
@@ -308,6 +308,24 @@ paths:
         "400": { description: Decisión inválida, rol vacío/irresoluble, o request_id ausente. }
         "404": { description: No hay control_request pendiente con ese id en esa sesión. }
         "500": { description: La respuesta no llegó al conductor (proceso muerto / stdin roto). }
+  /sessions/{id}/interrupt:
+    post:
+      operationId: interruptSession
+      summary: >-
+        Stop real (RF-116, paquete chat-cc-funcional): interrumpe el turno en vuelo IN-BAND —
+        los asks de permiso pendientes se deniegan con motivo «interrumpido por el operador» y el
+        conductor recibe control_request subtype=interrupt por stdin (wire verificado contra el SDK
+        oficial + implementaciones de referencia, investigación 2026-07-08 §Frente ①). El subproceso
+        sigue vivo: emite su frame `result` y la sesión asienta idle por el flujo normal. Matar el
+        proceso es solo fallback del adapter, jamás esta API.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "202":
+          description: "Interrupt enviado; el cierre del turno llega por /events (event: dock)."
+        "404": { description: Sesión inexistente. }
+        "409": { description: No hay turno en vuelo que interrumpir (sesión idle o sin conductor vivo). }
+        "500": { description: El interrupt no llegó al conductor (stdin roto). }
 
   /events:
     get:

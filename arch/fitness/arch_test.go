@@ -490,6 +490,7 @@ func (s *scriptedSession) Send(_ context.Context, prompt string) error {
 	return nil
 }
 func (s *scriptedSession) Events() <-chan ports.AgentEvent { return s.events }
+func (s *scriptedSession) Interrupt(context.Context) error { return nil }
 func (s *scriptedSession) Close() error                    { return nil }
 func (s *scriptedSession) RespondControl(context.Context, string, ports.ControlDecision) error {
 	return nil
@@ -945,6 +946,7 @@ func (f *fakeSession) Send(_ context.Context, turn string) error {
 	return nil
 }
 func (f *fakeSession) Events() <-chan ports.AgentEvent { return f.events }
+func (f *fakeSession) Interrupt(context.Context) error { return nil }
 func (f *fakeSession) Close() error                    { return nil }
 
 func (f *fakeSession) RespondControl(_ context.Context, requestID string, d ports.ControlDecision) error {
@@ -1012,7 +1014,7 @@ func newTestService(t *testing.T, agent ports.AgentPort, pub usecase.EventPublis
 	t.Helper()
 	// The REAL role provisioner backs the permission seam: the fitness runs against the
 	// same authority the daemon wires (permisos-derivan-del-rol).
-	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40, nil, permission.NewKitProvisioner())
+	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40, nil, permission.NewKitProvisioner(), nil)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}

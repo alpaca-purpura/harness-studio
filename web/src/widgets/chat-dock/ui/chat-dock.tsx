@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import type { Session, Turn } from "@/shared"
-import { selectActive, useSessions } from "@/shared"
+import { selectActive, selectPendingPerms, selectScope, useSessions } from "@/shared"
 import { cn } from "@/shared/lib/cn"
 import { Pip } from "@/shared/ui/indicators"
+import { PermissionCard } from "./permission-card"
 
 // ChatDock is the invoked, collapsible conversation (mockup it.14): the live Claude
 // Code session of the active work-front. Sending a turn streams the reply here.
@@ -31,8 +32,43 @@ export function ChatDock() {
       </div>
 
       <SessionLine session={active} />
+      <ScopeRow session={active} />
       <Messages session={active} streaming={streaming} />
       <Composer />
+    </div>
+  )
+}
+
+// ScopeRow (RF-110/RF-111, mockup #scope): chip fijo del arnés de la sesión + chip
+// removible del nodo seleccionado en el Mapa (resuelto a su archivo real).
+function ScopeRow({ session: s }: { session: Session }) {
+  const scope = useSessions(selectScope)
+  const setScope = useSessions((st) => st.setScope)
+  return (
+    <div className="flex flex-none flex-wrap items-center gap-1.5 border-b border-border px-3 py-1.5 text-[10px]">
+      <span className="text-muted-foreground">Alcance:</span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-px">
+        arnés <b className="font-mono">{s.arnes}</b>
+      </span>
+      {scope ? (
+        <span className="inline-flex min-w-0 items-center gap-1 rounded-full border border-border bg-secondary px-2 py-px">
+          <span className="size-1.5 flex-none rounded-[2px] bg-skill" aria-hidden />
+          {scope.clase ?? "nodo"} <b className="font-mono">{scope.nodeId}</b>
+          {scope.fuentePath && (
+            <span className="truncate font-mono text-muted-foreground">{scope.fuentePath}</span>
+          )}
+          <button
+            type="button"
+            title="quitar del alcance"
+            onClick={() => setScope(null)}
+            className="flex-none text-muted-foreground hover:text-destructive"
+          >
+            ✕
+          </button>
+        </span>
+      ) : (
+        <span className="text-muted-foreground">selecciona un nodo en el Mapa para acotar</span>
+      )}
     </div>
   )
 }
@@ -56,13 +92,15 @@ function SessionLine({ session: s }: { session: Session }) {
 
 function Messages({ session: s, streaming }: { session: Session; streaming: string | undefined }) {
   const endRef = useRef<HTMLDivElement>(null)
+  const pending = useSessions(selectPendingPerms)
+  const resolvePermission = useSessions((st) => st.resolvePermission)
   const conv = s.conv ?? []
   const showLive = s.status === "streaming"
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: these deps are intentional scroll triggers; the body only reads the ref.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" })
-  }, [conv.length, streaming, showLive])
+  }, [conv.length, streaming, showLive, pending.length])
 
   return (
     <div className="flex flex-1 flex-col gap-2 overflow-auto p-3">
@@ -89,6 +127,13 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
           )}
         </div>
       )}
+      {pending.map((ask) => (
+        <PermissionCard
+          key={ask.request_id}
+          ask={ask}
+          onResolve={(decision, once) => void resolvePermission(ask.request_id, decision, once)}
+        />
+      ))}
       <div ref={endRef} />
     </div>
   )
@@ -118,9 +163,12 @@ function Bubble({ turn: t }: { turn: Turn }) {
 
 function Composer() {
   const sendTurn = useSessions((s) => s.sendTurn)
+  const interrupt = useSessions((s) => s.interrupt)
   const active = useSessions(selectActive)
   const [value, setValue] = useState("")
-  const busy = active?.status === "streaming"
+  // El turno está en vuelo mientras streaming O await (parked en un permiso): el server
+  // responde 409 a un segundo turno en ambos — el composer lo refleja (RF-116).
+  const busy = active?.status === "streaming" || active?.status === "await"
 
   const submit = () => {
     const text = value.trim()
@@ -134,7 +182,13 @@ function Composer() {
       <textarea
         value={value}
         rows={1}
-        placeholder={busy ? "generando…" : `Pídele un cambio a ${active?.arnes ?? "…"}`}
+        placeholder={
+          active?.status === "await"
+            ? "esperando tu decisión de permiso…"
+            : busy
+              ? "generando… (■ para interrumpir)"
+              : `Pídele un cambio a ${active?.arnes ?? "…"}`
+        }
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
@@ -144,15 +198,26 @@ function Composer() {
         }}
         className="max-h-32 min-h-[36px] flex-1 resize-none rounded-lg border border-border bg-secondary px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
       />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={busy || !value.trim()}
-        title="Enviar (Claude Code headless detrás)"
-        className="grid size-9 flex-none place-items-center rounded-lg bg-primary text-sm text-primary-foreground disabled:opacity-40"
-      >
-        ↑
-      </button>
+      {busy ? (
+        <button
+          type="button"
+          onClick={() => void interrupt()}
+          title="Interrumpir el turno (in-band, la sesión sigue viva)"
+          className="grid size-9 flex-none place-items-center rounded-lg bg-destructive text-sm text-destructive-foreground"
+        >
+          ■
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!value.trim()}
+          title="Enviar (Claude Code headless detrás)"
+          className="grid size-9 flex-none place-items-center rounded-lg bg-primary text-sm text-primary-foreground disabled:opacity-40"
+        >
+          ↑
+        </button>
+      )}
     </div>
   )
 }

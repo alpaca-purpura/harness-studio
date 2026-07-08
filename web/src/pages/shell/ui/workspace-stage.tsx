@@ -47,8 +47,12 @@ export function WorkspaceStage() {
   const [artefactos, setArtefactos] = useState<ArtefactosMode>("auto")
 
   // The picker previews any arnés; it defaults to (and resets with) the session's own arnés.
+  // La selección TAMBIÉN se limpia: si la vista nueva no recarga grafo (p.ej. Diag), el
+  // selectedBox viejo seguiría vivo y re-dispararía el chip de alcance sobre la sesión
+  // nueva (leak RF-118 cazado por el E2E de casuística).
   useEffect(() => {
     setViewedId(arnesId)
+    setSelectedId(undefined)
   }, [arnesId])
 
   // Load the graph of the viewed arnés when the Map view is active (RF-70). shared/api is the
@@ -137,6 +141,19 @@ export function WorkspaceStage() {
     () => (selectedId ? graph?.nodos.find((n) => n.id === selectedId) : undefined),
     [graph, selectedId],
   )
+
+  // RF-111 (decisión #1): la selección del Mapa se OFRECE como chip de alcance del chat —
+  // solo cuando el arnés visto ES el de la sesión activa (el alcance pertenece a UNA
+  // sesión, RF-118). El chip es removible desde el Dock; deseleccionar no lo borra.
+  const setScope = useSessions((st) => st.setScope)
+  useEffect(() => {
+    if (!selectedBox || viewedId !== arnesId) return
+    setScope({
+      nodeId: selectedBox.id,
+      clase: selectedBox.clase,
+      fuentePath: selectedBox.fuente_path,
+    })
+  }, [selectedBox, viewedId, arnesId, setScope])
 
   // Lectura de la fuente real del nodo (RF-93) — el transporte vive en la página; el
   // inspector recibe el callback (fe-transporte-independiente). Un arnés sin directorio

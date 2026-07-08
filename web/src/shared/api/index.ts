@@ -3,12 +3,15 @@ export { ApiError, api, fetchAuthToken } from "./client"
 export { connectDock, type DockConnection } from "./sse"
 export {
   type DockFrame,
+  type GateReport,
   GLOBAL_VIEWS,
   type HarnessSummary,
   type NewSession,
+  type PermissionAsk,
   type Rol,
   SALUD_LABEL,
   type Salud,
+  type ScopeNode,
   type Session,
   type SessionStatus,
   STATUS_LABEL,

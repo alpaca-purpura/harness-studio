@@ -42,6 +42,16 @@ func NewKitProvisioner() *KitProvisioner {
 				Ask:   []string{"Bash", "WebFetch"},
 				TTL:   15 * time.Minute,
 			},
+			// El rol REAL del dogfood (dev-full-cycle/arnes.l0.json META): misma autoridad
+			// que backend-dev + los tools de plan/tareas (no tocan disco) pre-aprobados
+			// para que el Dock no interrumpa por un TodoWrite. Sigue siendo spike: la
+			// autoridad real vendrá del sistema L1 externo.
+			"Ingeniería · Desarrollo full-cycle": {
+				Rol:   "Ingeniería · Desarrollo full-cycle",
+				Allow: []string{"Read", "Grep", "Glob", "Edit", "Write", "TodoWrite", "Task", "TaskCreate", "TaskUpdate", "TaskGet", "TaskList"},
+				Ask:   []string{"Bash", "WebFetch", "WebSearch"},
+				TTL:   15 * time.Minute,
+			},
 			// A reviewer: read-mostly, no mutation, short-lived approvals.
 			"reviewer": {
 				Rol:   "reviewer",

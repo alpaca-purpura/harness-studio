@@ -178,7 +178,17 @@ func runServe(args []string) error {
 	// control_request y el conductor T3 lo materializa en flags CC-native al spawn.
 	perms := permission.NewKitProvisioner()
 
-	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns, injector, perms)
+	// El rol de una sesión ES el del arnés que hidrata (graph.l0 META, decisión #6 del
+	// paquete chat-cc-funcional): el índice lo conoce; el FE jamás elige autoridad.
+	roleFor := func(rctx context.Context, arnesID string) string {
+		g, gerr := mapSvc.Graph(rctx, arnesID)
+		if gerr != nil || g.Arnes == nil {
+			return ""
+		}
+		return g.Arnes.Rol
+	}
+
+	sessionSvc, err := usecase.NewSessionService(ctx, agent, sessionStore, brokerPublisher{broker}, arnesReg, *maxTurns, injector, perms, roleFor)
 	if err != nil {
 		return fmt.Errorf("session service: %w", err)
 	}

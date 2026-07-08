@@ -72,6 +72,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	mux.HandleFunc("DELETE /api/sessions/{id}", deleteSession(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/turn", sessionTurn(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/permission", resolvePermission(sessions))
+	mux.HandleFunc("POST /api/sessions/{id}/interrupt", sessionInterrupt(sessions))
 
 	return withAuth(auth, mux)
 }

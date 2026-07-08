@@ -106,6 +106,28 @@ export const api = {
       body: JSON.stringify({ text }),
     }),
 
+  // resolvePermission (RF-113/RF-114) — la decisión humana sobre una tarjeta `permission`.
+  // Sin `role`: el daemon usa la autoridad del ARNÉS de la sesión (decisión #6).
+  // ttl_segundos ACOTA el TTL del grant del rol (1 = «permitir una vez»).
+  resolvePermission: <T = unknown>(
+    id: string,
+    requestId: string,
+    decision: "allow" | "deny",
+    ttlSegundos?: number,
+  ) =>
+    req<T>(`/api/sessions/${id}/permission`, {
+      method: "POST",
+      body: JSON.stringify({
+        request_id: requestId,
+        decision,
+        ...(ttlSegundos ? { ttl_segundos: ttlSegundos } : {}),
+      }),
+    }),
+
+  // interrupt (RF-116) — Stop real: corta el turno en vuelo in-band; el cierre llega
+  // como frame `result` por SSE.
+  interrupt: (id: string) => req<void>(`/api/sessions/${id}/interrupt`, { method: "POST" }),
+
   // getVersion (RF-107) — identidad honesta del binario del daemon; también es el
   // polling del reinicio del self-update (RF-105): responde ⇔ el daemon está vivo.
   getVersion: <T = unknown>() => req<T>("/api/version"),
