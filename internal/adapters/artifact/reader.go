@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 // Reader is the concrete frontmatter reader. Stateless: the confinement dir comes per
@@ -49,6 +50,68 @@ func (Reader) Status(_ context.Context, dir, ref string) (string, bool, error) {
 		return "", true, fmt.Errorf("artifact: %s: %w", ref, err)
 	}
 	return status, true, nil
+}
+
+// resumenCap bounds what Resumen ever returns (D7: el digest es ≤200 tokens por diseño;
+// este tope en bytes es el cinturón — jamás viaja un documento entero al prompt).
+const resumenCap = 2048
+
+// Resumen implements ports.ArtifactReader.Resumen: the sidecar digest
+// `<ref>.digest.md` wins (generated deterministically at close by the validator);
+// fallback = the artifact's own frontmatter block; no artifact → "". The document
+// body NEVER travels (economía de contexto, p11).
+func (Reader) Resumen(_ context.Context, dir, ref string) (string, error) {
+	digestPath, err := confinedPath(dir, ref+".digest.md")
+	if err != nil {
+		return "", err
+	}
+	if b, rerr := os.ReadFile(digestPath); rerr == nil { //nolint:gosec // G304: confinedPath verificado.
+		return capBytes(string(b)), nil
+	} else if !errors.Is(rerr, os.ErrNotExist) {
+		return "", fmt.Errorf("artifact: leer digest de %s: %w", ref, rerr)
+	}
+
+	path, err := confinedPath(dir, ref)
+	if err != nil {
+		return "", err
+	}
+	b, err := os.ReadFile(path) //nolint:gosec // G304: confinedPath verificado.
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", fmt.Errorf("artifact: leer %s: %w", ref, err)
+	}
+	return capBytes(frontmatterBlock(string(b))), nil
+}
+
+// frontmatterBlock returns the raw frontmatter block of a document ("" when absent or
+// unclosed — Resumen is best-effort context, Status owns the strictness).
+func frontmatterBlock(doc string) string {
+	doc = strings.TrimPrefix(doc, "\ufeff") // BOM defensivo.
+	if !strings.HasPrefix(doc, "---\n") && !strings.HasPrefix(doc, "---\r\n") {
+		return ""
+	}
+	rest := doc[strings.IndexByte(doc, '\n')+1:]
+	end := frontmatterEnd(rest)
+	if end < 0 {
+		return ""
+	}
+	return strings.TrimRight(rest[:end], "\n")
+}
+
+// capBytes truncates s to resumenCap bytes at a rune boundary (marking the cut) —
+// the cap is the belt.
+func capBytes(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= resumenCap {
+		return s
+	}
+	cut := resumenCap
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut] + "\n… [resumen truncado]"
 }
 
 // confinedPath joins ref under dir and verifies the result cannot escape it.

@@ -16,4 +16,10 @@ type ArtifactReader interface {
 	// artifactRef resolves UNDER dir and must not escape it (boundary permisos-gui
 	// `sesion-aislada-por-cwd` extended to reads: the conductor only looks inside its tree).
 	Status(ctx context.Context, dir, artifactRef string) (status string, exists bool, err error)
+	// Resumen returns the deterministic context block of an input artifact (D7,
+	// franja-artefactos): the sidecar digest `<ref>.digest.md` when it exists, else the
+	// artifact's frontmatter block — NEVER the document body (economía de contexto p11:
+	// tarea() cita rutas + resumen, jamás inyecta el doc entero). Missing artifact → "".
+	// Same confinement contract as Status.
+	Resumen(ctx context.Context, dir, artifactRef string) (string, error)
 }

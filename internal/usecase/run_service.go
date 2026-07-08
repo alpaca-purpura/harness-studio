@@ -124,7 +124,11 @@ func (s *RunService) RunBox(ctx context.Context, harnessID, boxID string) (RunRe
 	runID := s.nextRunID(harnessID, boxID)
 	s.publish(runFrame{RunID: runID, Harness: harnessID, Box: boxID, Kind: "started", Rol: ps.Rol})
 
-	out, err := s.conductor.RunWith(ctx, box, ports.SpawnOpts{
+	// Insumos resueltos contra el grafo (D7): el conductor statea los requeridos antes
+	// de spawnear y cita rutas+digest en tarea() — jamás el documento entero.
+	insumos := domain.InsumosDe(g, box)
+
+	out, err := s.conductor.RunWith(ctx, box, insumos, ports.SpawnOpts{
 		Cwd:       cwd,
 		Permisos:  ps,
 		Injection: inj,
@@ -132,6 +136,10 @@ func (s *RunService) RunBox(ctx context.Context, harnessID, boxID string) (RunRe
 	})
 	if err != nil {
 		s.publish(runFrame{RunID: runID, Harness: harnessID, Box: boxID, Kind: "error", Rol: ps.Rol, Detalle: err.Error()})
+		var pre *PrecondicionError
+		if errors.As(err, &pre) {
+			return RunResult{}, fmt.Errorf("caja %q: %w", boxID, pre)
+		}
 		return RunResult{}, fmt.Errorf("correr caja %q: %w", boxID, err)
 	}
 

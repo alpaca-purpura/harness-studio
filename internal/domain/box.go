@@ -11,6 +11,8 @@
 // constant: those are `string` with no enum/Valid(). See internal/domain/graph.go.
 package domain
 
+import "strings"
+
 // Clase is the L0 class of a component (meta.clase, I-75): which CC-native primitive
 // this node IS. It is ONE of three orthogonal axes and must not be conflated with the
 // others: Clase (which primitive) ⊥ Banda (map region) ⊥ PerfilHarness (how it runs).
@@ -285,6 +287,52 @@ type Output struct {
 type Route struct {
 	A  string `json:"a"`
 	Si string `json:"si,omitempty"`
+}
+
+// Insumo is a box input RESOLVED against its graph (D7, franja-artefactos): the
+// declared necesita plus the producer's file identity when it declares one. Path is
+// the producer's `entrega.path` for that art ("" when the art is a label or the
+// origin is external) — what the conductor stats pre-spawn and cites in tarea().
+type Insumo struct {
+	Art       string
+	De        string // the raw necesita.de origin (caja:X, usuario, terceros:*, base:*…).
+	Productor string // caja id when De is caja:X; "" otherwise.
+	Path      string // producer's entrega.path for the art; "" = not stat-able.
+	Requerido bool
+}
+
+// InsumosDe resolves a box's necesita against the graph: for each input from a caja,
+// it looks up the producer's entrega (or refina) of that art and carries its `path`.
+// Pure derivation — reads only declared contracts, never the filesystem.
+func InsumosDe(g Graph, box Box) []Insumo {
+	if box.Contract == nil {
+		return nil
+	}
+	byID := map[string]Box{}
+	for _, n := range g.Nodes {
+		byID[n.ID] = n
+	}
+	var out []Insumo
+	for _, in := range box.Contract.Necesita {
+		ins := Insumo{
+			Art:       in.Art,
+			De:        in.De,
+			Requerido: in.Requerido == nil || *in.Requerido, // schema default: true.
+		}
+		if prod, found := strings.CutPrefix(in.De, "caja:"); found && prod != "" {
+			ins.Productor = prod
+			if p, ok := byID[prod]; ok && p.Contract != nil {
+				for _, o := range p.Contract.Entrega {
+					if (o.Art == in.Art || o.Refina == in.Art) && o.Path != "" {
+						ins.Path = o.Path
+						break
+					}
+				}
+			}
+		}
+		out = append(out, ins)
+	}
+	return out
 }
 
 // GateTipo is how the box's output is evaluated. GateNone is honest: the skill has no

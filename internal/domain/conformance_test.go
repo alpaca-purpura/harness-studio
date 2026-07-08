@@ -354,3 +354,38 @@ func TestVerificarArtEsPath(t *testing.T) {
 		t.Errorf("abierto exento: want pass, got %s (%s)", r.Veredicto, r.Detalle)
 	}
 }
+
+func TestInsumosDe(t *testing.T) {
+	g := Graph{Nodes: []Box{
+		cajaCon("spec-writer", "", nil, []Output{{Art: "spec.md", Path: "spec.md"}}, nil),
+		cajaCon("valida", "", []Input{{Art: "factura.pdf", De: "terceros:prov"}},
+			[]Output{{Art: "factura.pdf", Path: "in/factura.pdf", Refina: "factura.pdf"}}, nil),
+		cajaCon("builder", "", []Input{
+			{Art: "spec.md", De: "caja:spec-writer"},
+			{Art: "factura.pdf", De: "caja:valida"},
+			{Art: "idea", De: "usuario"},
+			{Art: "diseño.md", De: "caja:designer", Requerido: ptrBool(false)},
+		}, nil, nil),
+	}}
+	box, _ := g.NodeByID("builder")
+	ins := InsumosDe(g, box)
+	if len(ins) != 4 {
+		t.Fatalf("insumos = %d, want 4", len(ins))
+	}
+	// Path resuelto del productor (entrega directa).
+	if ins[0].Path != "spec.md" || ins[0].Productor != "spec-writer" || !ins[0].Requerido {
+		t.Errorf("insumo spec.md mal resuelto: %+v", ins[0])
+	}
+	// Path resuelto vía refina (la revisión ES el art, D9).
+	if ins[1].Path != "in/factura.pdf" {
+		t.Errorf("insumo refinado sin path del refinador: %+v", ins[1])
+	}
+	// Externo: sin productor ni path.
+	if ins[2].Productor != "" || ins[2].Path != "" {
+		t.Errorf("insumo externo no debe resolver productor/path: %+v", ins[2])
+	}
+	// Productor inexistente + requerido:false.
+	if ins[3].Path != "" || ins[3].Requerido {
+		t.Errorf("insumo opcional de productor ausente: %+v", ins[3])
+	}
+}

@@ -473,12 +473,14 @@ type scriptedSession struct {
 	idx     int
 	mu      sync.Mutex
 	sends   int
+	prompts []string
 }
 
-func (s *scriptedSession) Send(_ context.Context, _ string) error {
+func (s *scriptedSession) Send(_ context.Context, prompt string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.sends++
+	s.prompts = append(s.prompts, prompt)
 	ev := ports.AgentEvent{Kind: ports.EventResult, Subtype: "success"}
 	if s.idx < len(s.results) {
 		ev = s.results[s.idx]
@@ -493,9 +495,13 @@ func (s *scriptedSession) RespondControl(context.Context, string, ports.ControlD
 	return nil
 }
 
-type scriptedAgent struct{ sess *scriptedSession }
+type scriptedAgent struct {
+	sess   *scriptedSession
+	spawns int
+}
 
 func (a *scriptedAgent) Spawn(_ context.Context, _ ports.SpawnOpts) (ports.AgentSession, error) {
+	a.spawns++
 	return a.sess, nil
 }
 
@@ -514,6 +520,10 @@ func (a *scriptedArtifacts) Status(_ context.Context, _, _ string) (string, bool
 	}
 	a.reads++
 	return st, true, nil
+}
+
+func (a *scriptedArtifacts) Resumen(context.Context, string, string) (string, error) {
+	return "", nil
 }
 
 func boxWithRuta(ruta []domain.Route, handoff *domain.Handoff) domain.Box {
@@ -625,6 +635,10 @@ func (a *trackingArtifacts) Status(_ context.Context, _, ref string) (string, bo
 	return "done", true, nil
 }
 
+func (a *trackingArtifacts) Resumen(context.Context, string, string) (string, error) {
+	return "", nil
+}
+
 // TestConductorArtifactIdentity enforces RF-111 (franja-artefactos D3): the conductor
 // reads the entrega's declared `path` when present (artefacto-archivo wins over the art
 // label) and an artifact-status read error is NEVER discarded silently — it surfaces in
@@ -657,6 +671,91 @@ func TestConductorArtifactIdentity(t *testing.T) {
 		}
 		if !strings.Contains(out.Advertencias[0], "frontmatter roto") {
 			t.Errorf("advertencia %q no conserva la causa", out.Advertencias[0])
+		}
+	})
+}
+
+// fsArtifacts scripts a per-path filesystem view: existence + digest per artifact ref.
+type fsArtifacts struct {
+	existe  map[string]bool
+	resumen map[string]string
+}
+
+func (a *fsArtifacts) Status(_ context.Context, _, ref string) (string, bool, error) {
+	return "working", a.existe[ref], nil
+}
+
+func (a *fsArtifacts) Resumen(_ context.Context, _, ref string) (string, error) {
+	return a.resumen[ref], nil
+}
+
+// TestConductorEncadenaPorFilesystem enforces D7 (franja-artefactos, RF-120/121): the
+// hand-off travels by filesystem — the conductor stats the REQUIRED inputs before any
+// spawn (missing → the run never starts, zero tokens) and tarea() cites rutas + digest,
+// never the document body.
+func TestConductorEncadenaPorFilesystem(t *testing.T) {
+	boxConInsumos := func() domain.Box {
+		b := boxWithRuta(nil, &domain.Handoff{Cuando: "x", A: "humano"})
+		b.Contract.Necesita = []domain.Input{{Art: "spec.md", De: "caja:spec-writer"}}
+		return b
+	}
+	insumos := []domain.Insumo{{
+		Art: "spec.md", De: "caja:spec-writer", Productor: "spec-writer",
+		Path: "spec.md", Requerido: true,
+	}}
+
+	t.Run("precondición incumplida: no spawnea, cero tokens", func(t *testing.T) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, 3)}
+		agent := &scriptedAgent{sess: sess}
+		arts := &fsArtifacts{existe: map[string]bool{}} // spec.md NO existe.
+		c := usecase.NewBoxConductor(agent, arts, 3, 40)
+		_, err := c.RunWith(context.Background(), boxConInsumos(), insumos, ports.SpawnOpts{Cwd: "/arnes"})
+		var pre *usecase.PrecondicionError
+		if !errors.As(err, &pre) {
+			t.Fatalf("want PrecondicionError, got %v", err)
+		}
+		if len(pre.Faltantes) != 1 || !strings.Contains(pre.Faltantes[0], "spec.md") {
+			t.Errorf("faltantes = %v, want lista con spec.md", pre.Faltantes)
+		}
+		if agent.spawns != 0 {
+			t.Errorf("spawns = %d, want 0 (el run NO arranca — cero tokens)", agent.spawns)
+		}
+	})
+
+	t.Run("requerido:false jamás bloquea", func(t *testing.T) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, 3)}
+		agent := &scriptedAgent{sess: sess}
+		arts := &fsArtifacts{existe: map[string]bool{}}
+		c := usecase.NewBoxConductor(agent, arts, 1, 40)
+		opcional := []domain.Insumo{{Art: "diseño.md", De: "caja:designer", Path: "diseño.md", Requerido: false}}
+		if _, err := c.RunWith(context.Background(), boxConInsumos(), opcional, ports.SpawnOpts{Cwd: "/arnes"}); err != nil {
+			t.Fatalf("insumo opcional ausente bloqueó el run: %v", err)
+		}
+		if agent.spawns != 1 {
+			t.Errorf("spawns = %d, want 1", agent.spawns)
+		}
+	})
+
+	t.Run("tarea() cita rutas + digest, jamás el documento (RF-121)", func(t *testing.T) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, 3)}
+		agent := &scriptedAgent{sess: sess}
+		arts := &fsArtifacts{
+			existe:  map[string]bool{"spec.md": true},
+			resumen: map[string]string{"spec.md": "status: done\ncapabilities: CAP-01"},
+		}
+		c := usecase.NewBoxConductor(agent, arts, 1, 40)
+		if _, err := c.RunWith(context.Background(), boxConInsumos(), insumos, ports.SpawnOpts{Cwd: "/arnes"}); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if len(sess.prompts) == 0 {
+			t.Fatal("sin prompt spawneado")
+		}
+		p := sess.prompts[0]
+		if !strings.Contains(p, "ruta: spec.md") {
+			t.Errorf("el prompt no cita la ruta del insumo:\n%s", p)
+		}
+		if !strings.Contains(p, "CAP-01") {
+			t.Errorf("el prompt no incluye el resumen determinista:\n%s", p)
 		}
 	})
 }

@@ -37,8 +37,19 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
   20 pass + 1 warn-fail — `art-es-path` caza los 3 art-etiqueta reales
   (builder/reviewer/releaser); severidad warn NO bloquea el gate; NO se silencia con
   paths inventados (regla del design).
-- **Próximo paso:** Fase 3 — precondiciones pre-Spawn + `tarea()` con rutas+digest
-  (RF-120..121). Luego 4 (plantillas dogfood, medición p11) → 5 (Mapa+PARIDAD) → 6.
+- **FASE 3 COMPLETA (RF-120..121):** `domain.InsumosDe(g, box)` resuelve cada
+  `necesita` contra el grafo (path del productor vía entrega/refina) · el conductor
+  statea los REQUERIDOS con path antes de spawnear — faltante = `PrecondicionError`
+  (run NO arranca, cero tokens; spawn count 0 verificado) → HTTP **409** con lista
+  `faltantes` accionable · `requerido:false` jamás bloquea · `tarea()` inyecta bloque
+  de insumos: ruta + `Resumen` (digest sidecar `<art>.digest.md` gana; fallback =
+  SOLO frontmatter, cap 2KB rune-safe; el cuerpo del doc JAMÁS viaja — test lo
+  garantiza) · puerto `ArtifactReader.Resumen` con confinamiento idéntico a Status.
+  Tests: `TestConductorEncadenaPorFilesystem` (3 subtests) + `TestInsumosDe` +
+  `TestResumen`. Suite verde, golangci 0.
+- **Próximo paso:** Fase 4 — plantillas dogfood (RF-130..133): `references/
+  plantilla-spec.md` + `scripts/validate_spec` + hooks PostToolUse/Stop + medición
+  p11 real en `medicion-p11.md`. Luego 5 (Mapa+PARIDAD) → 6.
 - **Firmas:** D1–D11 ✅ · spec.md+design.md ✅ (2026-07-08). Gate final pendiente =
   PARIDAD.md lado a lado tras Fase 5.
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de

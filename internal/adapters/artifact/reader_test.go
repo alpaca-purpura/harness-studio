@@ -125,3 +125,43 @@ func TestPathQueIntentaEscapar(t *testing.T) {
 		t.Errorf("subdir legítimo: got (%q, %v, %v), want (done, true, nil)", status, exists, err)
 	}
 }
+
+func TestResumen(t *testing.T) {
+	dir := t.TempDir()
+	r := NewReader()
+	ctx := context.Background()
+
+	// Artefacto ausente → "" sin error (no hay nada que citar).
+	if s, err := r.Resumen(ctx, dir, "spec.md"); err != nil || s != "" {
+		t.Errorf("ausente: want vacío sin error, got %q err=%v", s, err)
+	}
+
+	// Con artefacto: cita SOLO el frontmatter, jamás el cuerpo.
+	doc := "---\nstatus: done\nwhy: probar\n---\n\n# Cuerpo\n\nSECRETO-DEL-CUERPO\n"
+	if err := os.WriteFile(filepath.Join(dir, "spec.md"), []byte(doc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := r.Resumen(ctx, dir, "spec.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(s, "status: done") {
+		t.Errorf("resumen sin frontmatter: %q", s)
+	}
+	if strings.Contains(s, "SECRETO-DEL-CUERPO") {
+		t.Errorf("el cuerpo del documento viajó al resumen (rompe p11): %q", s)
+	}
+
+	// El digest sidecar gana sobre el frontmatter.
+	if err := os.WriteFile(filepath.Join(dir, "spec.md.digest.md"), []byte("digest determinista ≤200 tok"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := r.Resumen(ctx, dir, "spec.md"); !strings.Contains(s, "digest determinista") {
+		t.Errorf("digest sidecar no ganó: %q", s)
+	}
+
+	// Confinamiento: escapar del árbol es error, igual que Status.
+	if _, err := r.Resumen(ctx, dir, "../fuera.md"); err == nil {
+		t.Error("ref que escapa del arnés debe fallar")
+	}
+}
