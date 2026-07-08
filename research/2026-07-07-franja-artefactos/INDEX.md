@@ -47,9 +47,25 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
   garantiza) · puerto `ArtifactReader.Resumen` con confinamiento idéntico a Status.
   Tests: `TestConductorEncadenaPorFilesystem` (3 subtests) + `TestInsumosDe` +
   `TestResumen`. Suite verde, golangci 0.
-- **Próximo paso:** Fase 4 — plantillas dogfood (RF-130..133): `references/
-  plantilla-spec.md` + `scripts/validate_spec` + hooks PostToolUse/Stop + medición
-  p11 real en `medicion-p11.md`. Luego 5 (Mapa+PARIDAD) → 6.
+- **FASE 4 COMPLETA (RF-130..133):** dogfood gana el trío completo —
+  `skills/spec-writer/references/plantilla-spec.md` (esqueleto con placeholders
+  doble-llave) + `scripts/validate_spec` (UN validador: errores verbosos · estampa
+  `status: done` SOLO al pasar · genera `<art>.digest.md` determinista) +
+  `hooks/hooks.json`+`spec-guard.sh` (PostToolUse bloquea vía JSON decision:block ·
+  Stop respeta stop_hook_active; probados A-E manual y E2E) · `entrega[0].plantilla`
+  declarado + fixture sync · **RF-131 verificado en headless REAL** (stream-c.jsonl:
+  copia con placeholders → block con 7 violaciones → corrección → done+digest) ·
+  **medición p11 REAL en [`medicion-p11.md`](./medicion-p11.md)**: el escritor paga
+  +32 % USD por validación determinista; el hand-off ahorra **−90 % de contexto por
+  insumo** (digest 75 tok vs spec 750 tok); digest ≤200 tok ✓ D7 · RF-133 hecho
+  (forjar-caja del kit materializa plantilla+validador, paso 5 nuevo + refina en
+  paso 7). **Hallazgo para F6 (RF-150):** el loader NO emite warns por
+  references/scripts (solo lee SKILL.md por skill) pero `hooks/hooks.json` queda
+  INVISIBLE al grafo — el TODO del loader («reconocedores se añaden con el primer
+  arnés real que los use») SE DISPARÓ: el dogfood ahora usa hooks.
+- **Próximo paso:** Fase 5 — Mapa (RF-140..145): port del mockup v2
+  (`selectArtefactos` + chips + gutters + toggle + panel ↖ + stories) y PARIDAD.md
+  para el gate final. Luego 6 (reconocedor de hooks + nomenclatura + ficha DevStudio).
 - **Firmas:** D1–D11 ✅ · spec.md+design.md ✅ (2026-07-08). Gate final pendiente =
   PARIDAD.md lado a lado tras Fase 5.
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de

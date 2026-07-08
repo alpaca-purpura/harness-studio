@@ -25,11 +25,25 @@ Creas UNA caja de proceso en el arnés del cwd, conforme al contrato fusionado
    · non_goals · clase/arquetipo/perfil_harness · caja/fase/estado · necesita/entrega/
    ruta · gate honesto · handoff). Cuerpo = instrucciones operativas de la caja (cómo
    trabaja, no qué promete — lo que promete ya está en el frontmatter).
-5. **Gate honesto**: si no existe eval ejecutable hoy, `gate.tipo: none` con `detalle`
-   de qué evidencia lo sustituye. Gherkin solo si de verdad corre (`tipo: auto`).
-6. **Cablea los edges**: `necesita.de` con origen explícito (`base:`/`caja:`/…) y
-   `ruta.a` hacia la caja siguiente o `humano`. Un artefacto = UN escritor.
-7. **Verifica**: corre `arnesia conformance --arnes <graph>` si hay grafo exportado, o
+5. **Identidad + plantilla del artefacto (cajas `pipeline`/`excepcion` — franja-artefactos
+   D3/D4/D5)**: la entrega primaria declara `path:` (artefacto-archivo; sin path es
+   etiqueta y el check `art-es-path` lo marcará warn). Si la caja PRODUCE un documento
+   propio, materializa el trío: `skills/<id>/references/plantilla-<art>.md` (esqueleto con
+   frontmatter `status:`/`inputs:` + placeholders de doble-llave) + `skills/<id>/scripts/
+   validate_<art>` (valida estructura con errores verbosos; estampa `status: done` SOLO al
+   pasar y genera `<art>.digest.md` determinista ≤200 tokens) + `entrega[].plantilla:` con
+   la ruta de la reference. Los inputs que llegan del mundo (`de: usuario|terceros:*`)
+   JAMÁS llevan plantilla — se ADMITEN por script en la skill consumidora (D10). `abierto`
+   está exento (§8.1). Modelo de referencia: `spec-writer` del arnés dev-full-cycle.
+6. **Gate honesto**: si no existe eval ejecutable hoy, `gate.tipo: none` con `detalle`
+   de qué evidencia lo sustituye. Gherkin solo si de verdad corre (`tipo: auto`) — y si
+   hay validador de plantilla, el Gherkin lo cita (es el mismo script que la Guardia
+   engancha en PostToolUse/Stop, D6).
+7. **Cablea los edges**: `necesita.de` con origen explícito (`base:`/`caja:`/…) y
+   `ruta.a` hacia la caja siguiente o `humano`. Un artefacto = UN escritor — la única
+   multi-escritura legal es la cadena `refina` (revisión lineal, D9); rework al mismo
+   escritor va por `ruta[]`, no por refina.
+8. **Verifica**: corre `arnesia conformance --arnes <graph>` si hay grafo exportado, o
    revisa contra `knowhow/skills.md` (checklist L2) y declara qué checks quedan grises.
 
 ## Prohibido

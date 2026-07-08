@@ -34,6 +34,7 @@ contract:
   entrega:
     - art: spec.md
       path: spec.md
+      plantilla: references/plantilla-spec.md
       escritor_unico: true
   ruta:
     - a: builder
@@ -58,6 +59,19 @@ contract:
 Primera caja del arnés dogfood. Toma la idea del usuario (conversación grill) + el estándar
 de spec de la banda Base, y emite `spec.md` as-code. Document-as-cache: el estado del trabajo
 vive en `spec.md` (frontmatter `status:`), no en la conversación (perfil T2, arquetipo excepción).
+
+## Procedimiento (plantilla + llenado casi determinista, D4/D5)
+
+1. Copia `references/plantilla-spec.md` → `spec.md` (la estructura es del script, no tuya).
+2. Llena TODOS los placeholders de doble-llave con el juicio del grill: why en una línea,
+   cada `CAP-NN` con success verificable, `non_goals` explícitos, `inputs:` con las rutas
+   reales consumidas. Borra el comentario instructivo del final.
+3. Corre `scripts/validate_spec spec.md` — errores verbosos, uno por línea; corrige y repite.
+   El validador estampa `status: done` SOLO al pasar (jamás lo escribas a mano) y genera
+   `spec.md.digest.md` (el resumen determinista que viaja al siguiente eslabón, D7).
+
+La Guardia del arnés engancha el MISMO validador en PostToolUse (cada Write/Edit sobre
+spec.md) y en Stop (gate final) — `hooks/hooks.json`.
 
 El conductor no infiere del texto: lee el `result` + el `status` del artefacto. Si la idea no
 converge en 3 vueltas de grill, hace `handoff` a humano (frontera P6/Guardia).

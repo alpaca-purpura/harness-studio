@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# validate_spec — el validador ÚNICO de spec.md (franja-artefactos D5/D6, RF-130).
+#
+# Valida la ESTRUCTURA del esqueleto references/plantilla-spec.md (frontmatter con
+# status/inputs/creado/actualizado · TOC · why · CAP-NN con success · non_goals · sin
+# {{placeholders}} residuales). Errores VERBOSOS y accionables, uno por línea.
+#
+# SOLO al pasar: estampa `status: done` (D5: lo estampa el validador, no el LLM) y
+# genera el digest determinista `<spec>.digest.md` (D7: ≤200 tokens — al siguiente
+# eslabón viajan rutas + digest, jamás el documento entero).
+#
+# Es el MISMO script en los 3 puntos de enganche (D6): PostToolUse · Stop · el Gherkin
+# del gate lo cita. Uso: validate_spec [ruta/al/spec.md]   (default: ./spec.md)
+set -euo pipefail
+
+spec="${1:-spec.md}"
+errores=()
+
+if [[ ! -f "$spec" ]]; then
+  echo "✗ $spec no existe — copia references/plantilla-spec.md como punto de partida" >&2
+  exit 1
+fi
+
+contenido="$(cat "$spec")"
+
+# ── frontmatter: abre, cierra y trae las 4 claves del document-as-cache ─────────
+if [[ "$contenido" != ---$'\n'* ]]; then
+  errores+=("frontmatter ausente: el spec abre con '---' (document-as-cache, std-spec)")
+else
+  fm="$(awk 'NR==1{next} /^---$/{exit} {print}' "$spec")"
+  if ! awk 'NR==1{next} /^---$/{found=1; exit} END{exit !found}' "$spec"; then
+    errores+=("frontmatter sin cerrar: falta el segundo '---'")
+    fm=""
+  fi
+  for clave in status inputs creado actualizado; do
+    if ! grep -qE "^${clave}:" <<<"$fm"; then
+      errores+=("frontmatter sin '${clave}:' — la plantilla lo trae; no lo borres")
+    fi
+  done
+fi
+
+# ── secciones del esqueleto ──────────────────────────────────────────────────────
+grep -qE '^## Contenido' <<<"$contenido" || \
+  errores+=("falta la sección '## Contenido' (TOC del esqueleto)")
+
+if ! grep -qE '^## why' <<<"$contenido"; then
+  errores+=("falta la sección '## why'")
+else
+  why="$(awk '/^## why/{f=1; next} /^## /{f=0} f && NF {print; exit}' "$spec")"
+  [[ -n "$why" ]] || errores+=("'## why' está vacía — una línea con la intención inmutable")
+fi
+
+caps="$(grep -cE '^\| *CAP-[0-9]{2} *\|' <<<"$contenido" || true)"
+if [[ "$caps" -eq 0 ]]; then
+  errores+=("sin capacidades: se exige ≥1 fila '| CAP-NN | qué | success |'")
+else
+  while IFS= read -r fila; do
+    id="$(awk -F'|' '{gsub(/ /,"",$2); print $2}' <<<"$fila")"
+    succ="$(awk -F'|' '{gsub(/^ +| +$/,"",$4); print $4}' <<<"$fila")"
+    [[ -n "$succ" ]] || errores+=("$id sin success — cada capability lleva señal verificable (std-spec)")
+  done < <(grep -E '^\| *CAP-[0-9]{2} *\|' <<<"$contenido")
+fi
+
+if ! grep -qE '^## non_goals' <<<"$contenido"; then
+  errores+=("falta la sección '## non_goals'")
+else
+  ng="$(awk '/^## non_goals/{f=1; next} /^## /{f=0} f && /^- /{n++} END{print n+0}' "$spec")"
+  [[ "$ng" -gt 0 ]] || errores+=("'## non_goals' sin items — declara qué NO hace esta unidad")
+fi
+
+# ── placeholders residuales de la plantilla ──────────────────────────────────────
+while IFS= read -r ph; do
+  errores+=("placeholder sin llenar: ${ph}")
+done < <(grep -oE '\{\{[^}]*\}\}' <<<"$contenido" | sort -u)
+
+# ── veredicto ────────────────────────────────────────────────────────────────────
+if (( ${#errores[@]} > 0 )); then
+  printf '✗ %s\n' "${errores[@]}" >&2
+  echo "spec.md NO valida: ${#errores[@]} violación(es) — corrige y vuelve a correr" >&2
+  exit 1
+fi
+
+# Pasa: estampa status: done (solo la clave del frontmatter, D5) …
+hoy="$(date +%F)"
+tmp="$(mktemp)"
+awk -v hoy="$hoy" '
+  NR==1 {print; next}
+  !cerrado && /^---$/ {cerrado=1; print; next}
+  !cerrado && /^status:/      {print "status: done"; next}
+  !cerrado && /^actualizado:/ {print "actualizado: " hoy; next}
+  {print}
+' "$spec" >"$tmp" && mv "$tmp" "$spec"
+
+# … y genera el digest determinista (D7): frontmatter + why + ids de CAP + non_goals.
+digest="${spec}.digest.md"
+{
+  echo "---"
+  echo "resumen-de: $(basename "$spec")"
+  echo "generado-por: validate_spec (determinista)"
+  echo "status: done"
+  echo "---"
+  echo "why: $(awk '/^## why/{f=1; next} /^## /{f=0} f && NF {print; exit}' "$spec")"
+  echo "capacidades: $(grep -oE 'CAP-[0-9]{2}' "$spec" | sort -u | tr '\n' ' ')"
+  echo "non_goals: $(awk '/^## non_goals/{f=1; next} /^## /{f=0} f && /^- /{n++} END{print n+0}' "$spec")"
+} >"$digest"
+
+echo "✓ $spec valida — status: done estampado · digest en $(basename "$digest")"
