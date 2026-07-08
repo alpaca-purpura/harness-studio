@@ -43,8 +43,9 @@ export const Dogfood: Story = {
     await expect(c.getByText("idea → spec")).toBeInTheDocument()
     // Base rule renders (inside the collapsed Reglas subband — present, just hidden).
     await expect(c.getByText("estándar de spec")).toBeInTheDocument()
-    // Guardia is empty for this arnés.
-    await expect(c.getByText("— sin hooks —")).toBeInTheDocument()
+    // Guardia real del dogfood (franja-artefactos F4/F6): el spec-guard en sus 2 puntos.
+    await expect(c.getByText("PostToolUse · Write|Edit")).toBeInTheDocument()
+    await expect(c.getByText("Stop")).toBeInTheDocument()
   },
 }
 

@@ -74,10 +74,21 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
   depcruise/stylelint/steiger/biome/tsc ✓ · **consola 0 errores** · 6 screenshots en
   `shots/fase5/`. **[`PARIDAD.md`](./PARIDAD.md)** con tabla mockup↔componente↔story↔RF
   + 7 desviaciones registradas → 🧑‍⚖️ **gate final humano lado a lado PENDIENTE**.
-- **Próximo paso:** Fase 6 (RF-150..151): reconciliación del loader (hallazgo F4:
-  hooks/hooks.json INVISIBLE al grafo — el TODO del reconocedor se disparó; evaluar
-  reconocedor de hooks + nomenclatura v1.2 si aplica) + ficha gemela DevStudio por
-  RF-110. Tras eso: gate final humano de PARIDAD.
+- **FASE 6 COMPLETA (RF-150..151) — PAQUETE EJECUTADO ENTERO (ficha HS-13):**
+  RF-150 cerrado con evidencia: `skills/<id>/references/` y `scripts/` NO ensucian (el
+  loader solo lee SKILL.md por skill; `arnesia index` sin warns nuevos) → nomenclatura
+  v1.2 NO necesaria. El hallazgo de F4 (hooks invisibles) se resolvió implementando el
+  **reconocedor de hooks** ya prometido por el TODO del loader (fila `hook` de
+  nomenclatura §3, sin cambio de contrato): una entrada = un nodo Guardia · roto =
+  no-reconocido VISIBLE · edges de matchers = deuda declarada (no derivables sin
+  fabricar). Dogfood ahora = **7 nodos** (fixtures Go/TS + story sync). RF-151: ficha
+  gemela [`ficha-devstudio-artefactos.md`](./ficha-devstudio-artefactos.md) (entregable
+  al agente de DevStudio) + **LEDGER HS-13** con Log. Suite Go+FE verde, golangci 0,
+  round-trip 21 checks (20 pass + warn honesto art-es-path).
+- **Próximo paso (ÚNICO pendiente):** 🧑‍⚖️ **gate final humano lado a lado** — abrir
+  `mockup-artefactos.html` vs stories/app real, revisar [`PARIDAD.md`](./PARIDAD.md)
+  (tabla + 7 desviaciones) con `shots/fase5/` · entregar `ficha-devstudio-artefactos.md`
+  al agente de DevStudio.
 - **Firmas:** D1–D11 ✅ · spec.md+design.md ✅ (2026-07-08). Gate final pendiente =
   PARIDAD.md lado a lado tras Fase 5.
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de

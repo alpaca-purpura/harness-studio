@@ -175,8 +175,11 @@ mantiene «Retomar aquí» (último hecho · próximo paso · firmas pendientes)
 cada iteración firmada se commitea a main · **sesión nueva arranca leyendo el INDEX.md del paquete
 activo y sigue como si fuera la misma conversación.** **Paquete activo:**
 [`research/2026-07-07-franja-artefactos/`](./research/2026-07-07-franja-artefactos/INDEX.md)
-(D1–D11 + spec/design FIRMADOS 2026-07-08; **implementación por fases EN CURSO** — ver
-«Retomar aquí» del INDEX). Pendiente de gate final humano (PARIDAD firmable):
+(**EJECUTADO 2026-07-08, ficha HS-13** — las 6 fases landeadas: checks de composición vivos ·
+identidad `path/plantilla/refina` · precondiciones+digest (p11: hand-off **−90 %** contexto) ·
+plantillas dogfood con Guardia verificada headless · franja en el Mapa 86/86 + PARIDAD.md ·
+reconocedor de hooks (dogfood = 7 nodos); **falta SOLO el gate final humano lado a lado**
+sobre PARIDAD + sus 7 desviaciones). Pendiente de gate final humano (PARIDAD firmable):
 [`research/2026-07-07-boton-actualizar/`](./research/2026-07-07-boton-actualizar/INDEX.md)
 (self-update sin sudo EJECUTADO E2E; PARIDAD ✅ 8/8; faltan las 6 desviaciones). Cerrado:
 [`research/2026-07-07-inspector-drawer/`](./research/2026-07-07-inspector-drawer/INDEX.md)

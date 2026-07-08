@@ -32,6 +32,23 @@ export const devFullCycle = {
     },
   },
   nodos: [
+    // ── Guardia (hooks reales del dogfood, franja-artefactos F4: spec-guard) ──
+    {
+      id: "hook-posttooluse",
+      clase: "hook",
+      nombre: "PostToolUse · Write|Edit",
+      banda: "guardia",
+      fuente_path: "dogfood/dev-full-cycle/hooks/hooks.json",
+      procedencia: "declarado",
+    },
+    {
+      id: "hook-stop",
+      clase: "hook",
+      nombre: "Stop",
+      banda: "guardia",
+      fuente_path: "dogfood/dev-full-cycle/hooks/hooks.json",
+      procedencia: "declarado",
+    },
     {
       id: "spec-writer",
       clase: "skill",

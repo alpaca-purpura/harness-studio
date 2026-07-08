@@ -277,3 +277,68 @@ func validarContraSchema(t *testing.T, root string, g domain.Graph) {
 		t.Errorf("el grafo derivado no valida contra graph.l0.schema.json: %v", err)
 	}
 }
+
+// TestReconocerHooks cubre la fila `hook` de nomenclatura §3 (franja-artefactos F6):
+// una entrada = un nodo de banda Guardia; hooks.json roto = no-reconocido VISIBLE (§4.5).
+func TestReconocerHooks(t *testing.T) {
+	arma := func(t *testing.T, hooksJSON string) string {
+		t.Helper()
+		dir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dir, ".claude-plugin"), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, ".claude-plugin", "plugin.json"), []byte(`{"name":"x"}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if hooksJSON != "" {
+			if err := os.MkdirAll(filepath.Join(dir, "hooks"), 0o750); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "hooks", "hooks.json"), []byte(hooksJSON), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return dir
+	}
+
+	t.Run("una entrada = un nodo de Guardia", func(t *testing.T) {
+		g, err := loader.LoadArnes(arma(t,
+			`{"hooks":{"PostToolUse":[{"matcher":"Write|Edit","hooks":[]}],"Stop":[{"hooks":[]}]}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 2 {
+			t.Fatalf("nodos = %d, want 2 (uno por entrada)", len(g.Nodes))
+		}
+		post, ok := g.NodeByID("hook-posttooluse")
+		if !ok || post.Banda != domain.BandaGuardia || post.Clase != domain.ClaseHook {
+			t.Errorf("hook-posttooluse mal emitido: %+v", post)
+		}
+		if post.Nombre != "PostToolUse · Write|Edit" {
+			t.Errorf("nombre = %q, want evento · matcher", post.Nombre)
+		}
+		if _, ok := g.NodeByID("hook-stop"); !ok {
+			t.Error("hook-stop ausente")
+		}
+	})
+
+	t.Run("hooks.json roto → no-reconocido visible, jamás descarte", func(t *testing.T) {
+		g, err := loader.LoadArnes(arma(t, `{esto no es json`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 1 || g.Nodes[0].Clase != domain.ClaseNoReconocido {
+			t.Errorf("want 1 nodo no-reconocido, got %+v", g.Nodes)
+		}
+	})
+
+	t.Run("sin hooks/ → cero nodos, cero drama", func(t *testing.T) {
+		g, err := loader.LoadArnes(arma(t, ""))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 0 {
+			t.Errorf("nodos = %d, want 0", len(g.Nodes))
+		}
+	})
+}

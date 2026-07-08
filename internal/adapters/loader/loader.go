@@ -12,12 +12,16 @@
 //   - Reconciliación §4.5 (D-c firmada): lo que ningún reconocedor entiende se emite como
 //     nodo VISIBLE con domain.ClaseNoReconocido — nunca descarte silencioso, nunca crash.
 //
-// Reconocedores v1 (§3): skills (skills/<id>/SKILL.md) y rules (CLAUDE.md de la raíz).
+// Reconocedores v1 (§3): skills (skills/<id>/SKILL.md) · rules (CLAUDE.md de la raíz) ·
+// hooks (hooks/hooks.json, una entrada = un nodo de banda Guardia — entró en
+// franja-artefactos F6/RF-150: el dogfood ganó su Guardia real en F4 y el TODO se disparó).
 // TODO honesto — reconocedores pendientes de §3, se añaden con el primer arnés real que los
-// use (el dogfood dev-full-cycle aún no los tiene; jamás un stub que fabrique nodos):
-// hook (hooks/hooks.json → banda Guardia) · mcp (.mcp.json) · command (commands/<id>.md) ·
-// subagent (agents/<id>.md) · settings · output-style (output-styles/<id>.md) · statusline ·
-// plugin (el contenedor mismo como nodo raíz).
+// use (jamás un stub que fabrique nodos): mcp (.mcp.json) · command (commands/<id>.md) ·
+// subagent (agents/<id>.md) · settings (incluye hooks de forma-instalada
+// .claude/settings.json#hooks) · output-style (output-styles/<id>.md) · statusline ·
+// plugin (el contenedor mismo como nodo raíz). Los edges de Guardia (§4.3 «hooks matchers
+// → edges») quedan como deuda declarada: el matcher nombra HERRAMIENTAS (Write|Edit), no
+// cajas — no hay derivación determinista matcher→caja que no fabrique relaciones.
 package loader
 
 import (
@@ -26,6 +30,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -64,6 +70,13 @@ func LoadArnes(dir string) (domain.Graph, error) {
 		return domain.Graph{}, err
 	}
 	g.Nodes = append(g.Nodes, skills...)
+
+	// La celda de `hook` en forma-plugin es hooks/hooks.json (§3): la Guardia del arnés.
+	hooks, err := reconocerHooks(elementos)
+	if err != nil {
+		return domain.Graph{}, err
+	}
+	g.Nodes = append(g.Nodes, hooks...)
 
 	// La celda de `rule` es el CLAUDE.md de la raíz del arnés en AMBAS formas (§3).
 	if regla, ok, rerr := reconocerRegla(dir); rerr != nil {
@@ -216,6 +229,66 @@ func contratoDe(fm map[string]any) (*domain.Contract, error) {
 		return nil, fmt.Errorf("contract no mapea al contrato fusionado: %w", err)
 	}
 	return &c, nil
+}
+
+// hooksJSON es la forma del archivo hooks/hooks.json de un plugin CC (subset que el
+// reconocedor necesita): evento → entradas, cada entrada con su matcher opcional.
+type hooksJSON struct {
+	Hooks map[string][]struct {
+		Matcher string `json:"matcher"`
+	} `json:"hooks"`
+}
+
+// reconocerHooks escanea hooks/hooks.json (§3, fila hook — forma plugin): UNA entrada =
+// UN nodo de banda Guardia, con el evento y su matcher como nombre display. Sin archivo →
+// cero nodos (un arnés sin Guardia es legal). Archivo presente pero no parseable → nodo
+// no-reconocido VISIBLE (§4.5) — jamás descarte silencioso.
+func reconocerHooks(elementos string) ([]domain.Box, error) {
+	ruta := filepath.Join(elementos, "hooks", "hooks.json")
+	b, err := os.ReadFile(ruta) //nolint:gosec // G304: path bajo el dir del arnés que el caller eligió cargar.
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("leer %s: %w", ruta, err)
+	}
+	fuente := rutaEstampada(elementos, "hooks", "hooks.json")
+	var h hooksJSON
+	if err := json.Unmarshal(b, &h); err != nil || len(h.Hooks) == 0 {
+		// §4.5 (D-c firmada): un hooks.json roto NO es error del load — es un nodo
+		// no-reconocido VISIBLE; el warn queda a la vista, el arnés sigue cargando.
+		return []domain.Box{nodoNoReconocido("hooks", fuente)}, nil //nolint:nilerr // reconciliación honesta: roto = visible, jamás abortar el grafo.
+	}
+
+	// Orden determinista: eventos alfabéticos (el JSON map no tiene orden).
+	eventos := make([]string, 0, len(h.Hooks))
+	for ev := range h.Hooks {
+		eventos = append(eventos, ev)
+	}
+	sort.Strings(eventos)
+
+	var nodos []domain.Box
+	for _, ev := range eventos {
+		for i, entrada := range h.Hooks[ev] {
+			id := "hook-" + strings.ToLower(ev)
+			if i > 0 {
+				id += "-" + strconv.Itoa(i+1)
+			}
+			nombre := ev
+			if entrada.Matcher != "" {
+				nombre += " · " + entrada.Matcher
+			}
+			nodos = append(nodos, domain.Box{
+				ID:          id,
+				Clase:       domain.ClaseHook,
+				Nombre:      nombre,
+				Banda:       domain.BandaGuardia,
+				FuentePath:  fuente,
+				Procedencia: domain.ProcDeclarado,
+			})
+		}
+	}
+	return nodos, nil
 }
 
 // nodoNoReconocido emite el marcador de reconciliación honesta (§4.5, D-c firmada): visible,

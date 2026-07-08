@@ -622,7 +622,60 @@ dev-studio) · KIT-06 (release train del publish).
 
 *Siguiente:* entregar `respuesta-devstudio.md` al agente de DevStudio · publish real fase 5.
 
-<!-- Próximas: HS-13, … -->
+### HS-13 · Franja Artefactos — el hand-off hecho dato: identidad, verificación, plantillas y proyección en el Mapa — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-08):* «dale Go» — firma de spec.md+design.md del paquete
+`research/2026-07-07-franja-artefactos/` (D1–D11 firmadas previamente; mockup v2 = referencia
+visual firmada) y orden de implementar las 6 fases con suite verde + commit por fase.
+
+*Contexto:* la idea del operador (2026-07-07): los documentos intermedios (spec.md, factura.pdf…)
+son el hand-off ENTRE cajas — invisibles y sin diente hasta hoy. Evaluación previa = workflow de
+13 subagentes; D1 fija la ley: el artefacto es PROYECCIÓN de `necesita[]/entrega[]`, jamás nodo
+del L0, banda ni clase 11ª.
+
+*Desarrollo — 6 fases, 6 commits (`232eb32`·`7459da5`·`bb91ab9`·`fc89de4`·`c349a35`·este):*
+**F1 checks de composición VIVOS** (ruta `--arnes`): `sin-huerfanos`(warn) · `dead-end`(warn,
+terminalidad DERIVADA del spine) · `ruta-a-existe` · `art-identidad-coherente` ·
+`refina-coherente` (cadena lineal, sin ciclos/ramas); `escritor-unico` ajustado — `refina` es la
+única puerta legal a la multi-escritura (D9). Boundary contrato-de-caja v1.3 (4→7 filas) →
+**arch 100 checks · ruleset 238** (cifra stale 24/211 reparada con medición real: 27 pass).
+**F2 identidad del art**: schema aditivo `entrega[].path/plantilla/refina` (P3) + espejo
+Go/TS + conductor prefiere `path` y el error de `artifacts.Status` viaja VISIBLE
+(`RunResult.advertencias` — muere el descarte silencioso de `box_conductor.go:90`). **HALLAZGO
+HONESTO**: `art-es-path` caza los 3 art-etiqueta reales del dogfood (warn visible, no se
+silencia). **F3 encadenado por filesystem** (D7): `domain.InsumosDe` + precondición pre-Spawn
+(faltante → `PrecondicionError` → HTTP 409, cero tokens) + `tarea()` inyecta rutas+`Resumen`
+(digest sidecar gana; fallback solo-frontmatter, cap 2KB — el doc entero JAMÁS viaja).
+**F4 plantillas dogfood**: `references/plantilla-spec.md` + `scripts/validate_spec` (UN
+validador: errores verbosos · estampa `status: done` SOLO al pasar · genera digest ≤200 tok) +
+Guardia `hooks/hooks.json`+`spec-guard.sh` (PostToolUse bloquea vía JSON `decision:block`; Stop
+respeta `stop_hook_active`) — **verificado headless REAL**: block con 7 violaciones → corrección
+→ done+digest. **Medición p11 REAL** (`medicion-p11.md`): el escritor paga +32% USD por
+validación determinista; **el hand-off ahorra −90% de contexto por insumo** (digest 75 tok vs
+spec 750); backflow kit `forjar-caja` (RF-133/I-59). **F5 Mapa** (port mockup v2, D2 geometría
+A): `selectArtefactos`/`planGutter`/`selectRefsEntrada`/`artEdges` puros en entities ·
+`ArtefactoChip` (8 marcas) · `HandoffGutter` (tope D11c + «+N más» + refs ↖ D11b) · edges
+escribe/lee derivados con supresión del invoca cubierto · toggle MapBar `off·auto·todos`
+(default auto = reposo idéntico) · fixture Cobranza NUEVO (refina/opacos/+N) — suite **86/86**,
+consola 0 errores, `PARIDAD.md` con 7 desviaciones → **gate final humano lado a lado
+PENDIENTE**. **F6 reconciliación**: RF-150 cerrado con evidencia (references/scripts NO ensucian
+— el loader solo lee SKILL.md por skill) + **reconocedor de hooks implementado** (el TODO del
+loader se disparó: el dogfood ganó Guardia real en F4; una entrada = un nodo Guardia; roto =
+no-reconocido visible; edges de matchers = deuda declarada, no derivables sin fabricar) →
+dogfood = **7 nodos** · ficha gemela DevStudio (`ficha-devstudio-artefactos.md`, RF-151).
+
+*Deuda registrada (no bloquea):* digest sidecar para binarios opacos (D10) · edges de Guardia
+matcher→caja · conductor multi-entrega (`entrega[0]` only, C22) · persistencia hash-state del
+toggle · gate final humano de PARIDAD (fases 5 y paquetes previos boton-actualizar/inspector-drawer).
+
+*Conecta:* HS-08 (motor conformance que estos checks extienden) · HS-09 (Mapa donde la franja
+vive) · HS-11 (dogfood real + conductor) · HS-12 (compromiso solo-aditivos que ampara el schema;
+ficha gemela DH-18/PB-25) · I-59 (backflow al kit).
+
+*Siguiente:* 🧑‍⚖️ gate final lado a lado (PARIDAD.md + `shots/fase5/`) · entregar
+`ficha-devstudio-artefactos.md` al agente de DevStudio.
+
+<!-- Próximas: HS-14, … -->
 
 ## Log
 
@@ -643,3 +696,4 @@ dev-studio) · KIT-06 (release train del publish).
 | 2026-07-07 | **4 firmas del operador ("Firmo las 4") — la ruta de los puentes queda decidida.** ① **Empaquetado (c) embed+plugin** (3 cuerpos VIGENTE: `go:embed` ruleset → conformance portable sin contexto LLM · kit/doctrina materializados en `~/.arnesia/` e inyectados por flags al spawn · ② jamás se escribe en ③) · ② **D-a** manifiesto `arnes.l0.json` en la raíz · ③ **D-b** arnés instalado = ciudadano de primera · ④ **D-c** `no-reconocido` visible con warn. `arch/contracts/nomenclatura-arnes.md` **v1 FIRMADA**; research de inyección estampado VIGENTE. Scope conformance: `fabrica` (CI del repo) vs `arnes` (portable). *Siguiente:* ola de sync mecánico + **HS-11 = los 3 puentes** (loader por nomenclatura · inyección al conductor · conformance embebido + endpoint). | HS-10 |
 | 2026-07-07 | **HS-11 EJECUTADO — la app CONTIENE la doctrina: ola de sync + los 3 puentes, todo E2E.** Sync (3 agentes, 235 intacto): CADENCE×2 des-staleados · rules v1.2 retroactivo · harness-profile v1.1 (2 checks→schema-validation) · METODOLOGIA 7 orígenes + **§9 «3 cuerpos»** · VISION debate 3 cerrado · UX 12/10 · CLAUDE.md al día. **① Loader real** (`internal/adapters/loader`, nomenclatura v1; edges derivados R1-lee/R2-invoca, `ruta` NO cablea; `no-reconocido` visible; `arnesia index <dir>`) + **dogfood = arnés REAL** (`dogfood/dev-full-cycle/` plugin-form) → **round-trip dir→grafo→conformance 13/13 PASS**. **② Inyección** (kit `arnesia-kit` embebido → `~/.arnesia` por huella → `--plugin-dir`/`--append-system-prompt-file`/`--add-dir`; ②↛③). **③ Conformance portable** (paquete raíz `doctrina` go:embed · parser/schemas a fs.FS · scope fabrica\|arnes · `RunGraph` + **endpoint `GET /api/harnesses/{id}/conformance`**) → verificado fuera del repo: 235 embebidos · --arnes 12/13 honesto. Extra: ErrorBoundary+banda-fallback FE (47/47) · claude multi-PATH GUI · proposals.ts honesto · clase-marcador en schema. Deuda registrada: loader→índice daemon (WIP Hito 2) · BoxConductor/control_request (Fase E operador) · SPA embed · instalador · 3 boundaries research→arch/. | HS-11 |
 | 2026-07-07 | **HS-11 cierre total («termina lo que queda»): loader→índice VIVO + Fase E COMPLETA + instalador REAL.** WIP Hito 2 del operador a main («pon todo en main»). `IndexPort.Upsert` + carga al registrar y al boot — «Cargar carpeta» E2E verde. Fase E según plan firmado: `adapters/artifact` · `SpawnOpts.Permisos`→flags CC-native · `control_request` reenviado/respondido (Dock, D3) · `POST …/boxes/{boxId}/run` (D2) · permission REAL con grants TTL (deny>ask>allow) · 2 arch-tests flipados de skip a reales · 4 changelogs «realizado en vivo». Instalador: SPA go:embed servida por el daemon (token solo API) · `scripts/bundle.sh` · `.goreleaser.yaml` · **bundles producidos con el daemon del día**: `.deb` 7.6M (binario del paquete probado E2E: UI + conformance embebidas) · `.AppImage` 80M (fix bundle.icon) · `.rpm`. Todo verde: race+lint+arch-lint+fmt. Deuda honesta: spike control_response vs claude real · run async · gate post-run · telemetría · codegen · 3 boundaries research. | HS-11 |
+| 2026-07-08 | **Franja Artefactos EJECUTADA (6 fases, spec+design firmados «dale Go»): el hand-off hecho dato.** F1 checks de composición VIVOS en `--arnes` (sin-huerfanos·dead-end·ruta-a-existe·art-identidad·refina-coherente; escritor-unico ajustado a `refina`) → arch 100·ruleset 238 (cifra stale reparada: 27 pass/211 deferred medidos). F2 identidad del art: `entrega[].path/plantilla/refina` aditivos + espejos + conductor lee `path` y el error de `Status` viaja VISIBLE; hallazgo honesto: `art-es-path` caza los 3 art-etiqueta del dogfood (warn, no se silencia). F3 encadenado por filesystem: precondición pre-Spawn (faltante = 409, cero tokens) + `tarea()` con rutas+digest (el doc entero jamás viaja). F4 plantillas dogfood (plantilla-spec + validate_spec estampa done + genera digest + Guardia PostToolUse/Stop, verificado headless REAL block→corrige→pasa) + **medición p11 real: hand-off −90% contexto/insumo** (digest 75 tok vs spec 750; escritor +32% por validación determinista) + backflow forjar-caja. F5 Mapa: franja portada del mockup v2 (chips derivados D1 · gutters D2 · tope+refs D11 · toggle off·auto·todos · fixture Cobranza) — 86/86 stories, consola limpia, PARIDAD.md 7 desviaciones → **gate final humano pendiente**. F6: RF-150 cerrado con evidencia + **reconocedor de hooks** (dogfood = 7 nodos; roto = no-reconocido visible) + ficha gemela DevStudio. | HS-13 |

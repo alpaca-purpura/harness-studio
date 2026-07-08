@@ -21,8 +21,10 @@ func TestSeedServesDogfood(t *testing.T) {
 	if g.Arnes == nil || g.Arnes.ID != "dev-full-cycle" {
 		t.Fatalf("Arnes.ID = %v, want dev-full-cycle", g.Arnes)
 	}
-	if got := len(g.Nodes); got != 5 {
-		t.Errorf("len(Nodes) = %d, want 5", got)
+	// 7 = 4 cajas + 1 regla + 2 hooks de la Guardia (franja-artefactos F4/F6: el dogfood
+	// ganó hooks reales y el reconocedor de nomenclatura §3 los emite).
+	if got := len(g.Nodes); got != 7 {
+		t.Errorf("len(Nodes) = %d, want 7", got)
 	}
 	if got := len(g.Edges); got != 4 {
 		t.Errorf("len(Edges) = %d, want 4", got)
