@@ -24,7 +24,7 @@ type errorBody struct {
 // arnés→path registry (per-session workdir confinement); events is the SSE broker
 // mounted at /events. auth confines the whole surface (Host+Origin+token, boundary
 // superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 
 	// UI embebida (HS-11): el daemon sirve la SPA en "/" cuando el build la trae
@@ -43,6 +43,11 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	mux.HandleFunc("GET /healthz", healthz)
 	mux.Handle("GET /events", events)
 	mux.Handle("GET /api/events", events) // OpenAPI server base is /api.
+
+	// Self-update sin sudo (paquete boton-actualizar, RF-104..107). BAJO withAuth como
+	// todo /api/* (RF-106); el POST no acepta parámetros — cero rutas del request.
+	mux.HandleFunc("GET /api/version", getVersion(updates))
+	mux.HandleFunc("POST /api/self-update", postSelfUpdate(updates))
 
 	// Portfolio / Map / Inspector / Runs (S1–S3, S8).
 	mux.HandleFunc("GET /api/harnesses", listHarnesses(maps))

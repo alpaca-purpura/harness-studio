@@ -31,7 +31,8 @@ func getNodeFuente(fuentes *usecase.FuenteService) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("X-Arnesia-Fuente-Path", path)
-		//nolint:gosec // G705: Content-Type es text/plain (fijado arriba) — el browser no interpreta markup; el cuerpo ES el archivo fuente pedido, read-only.
+		// (El nolint:gosec G705 que vivía aquí quedó huérfano: con selfupdate.go en el
+		// paquete, gosec ya no reporta este Write — Content-Type text/plain sigue fijado.)
 		if _, err := w.Write(contenido); err != nil {
 			slog.Error("http: write fuente", "err", err)
 		}

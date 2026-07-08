@@ -30,6 +30,7 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/provision"
 	"github.com/alpacapurpura/arnesia/internal/adapters/publish"
+	"github.com/alpacapurpura/arnesia/internal/adapters/selfupdate"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	httpapi "github.com/alpacapurpura/arnesia/internal/adapters/transport/http"
 	"github.com/alpacapurpura/arnesia/internal/adapters/transport/sse"
@@ -97,6 +98,8 @@ func runServe(args []string) error {
 	repairCap := fs.Int("repair-cap", 3, "iteraciones máximas de reparación de una caja T3 (BoxConductor)")
 	authToken := fs.String("auth-token", os.Getenv("ARNESIA_AUTH_TOKEN"),
 		"capability token required on the API (default $ARNESIA_AUTH_TOKEN; empty = Host+Origin only, dev)")
+	repo := fs.String("repo", os.Getenv("ARNESIA_REPO"),
+		"ruta del repo para el self-update (default $ARNESIA_REPO; vacío = botón Actualizar deshabilitado)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -195,13 +198,21 @@ func runServe(args []string) error {
 				return ap.Path
 			}
 		}
-		if r, err := findRepoRoot(); err == nil {
+		if r, rerr := findRepoRoot(); rerr == nil {
 			return r
 		}
 		return ""
 	}
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
+	// Self-update sin sudo (paquete boton-actualizar): el repo llega por flag/env —
+	// JAMÁS del request (RF-106); sin repo la tarjeta lo dice y el botón queda disabled.
+	updater, err := selfupdate.New(*repo)
+	if err != nil {
+		return fmt.Errorf("self-update: %w", err)
+	}
+	updSvc := usecase.NewSelfUpdateService(updater)
+
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {

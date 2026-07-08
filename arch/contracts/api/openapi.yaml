@@ -3,7 +3,9 @@ info:
   title: ArnesIA daemon API
   # 0.2.0-hs09: + GET /harnesses/{id}/nodes/{nodeId}/fuente (tab Contenido del
   # inspector, paquete inspector-drawer RF-93 — lectura confinada S2).
-  version: 0.2.0-hs09
+  # 0.3.0-hs11: + GET /version · POST /self-update (paquete boton-actualizar,
+  # RF-104..107 — self-update sin sudo del binario instalado).
+  version: 0.3.0-hs11
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -120,6 +122,42 @@ paths:
         "404": { description: Arnés no indexado, o el nodo no existe en su grafo. }
         "422": { description: El nodo no es una caja con contrato (solo una caja de proceso corre T3), o el arnés no declara rol (META de enganche incompleta — el permission-set deriva del rol). }
         "500": { description: Fallo del spawn/conductor — el error REAL, nunca un 501 genérico. }
+
+  /version:
+    get:
+      operationId: getVersion
+      summary: >-
+        Identidad honesta del binario corriendo (RF-107): huella VCS del buildinfo de Go
+        (vcs.revision[:7], sufijo «+sucio» si vcs.modified; sin VCS → «dev»), ruta REAL del
+        ejecutable, si el proceso puede reemplazarlo (escritura en su directorio — RF-102) y el
+        repo configurado al daemon (--repo / ARNESIA_REPO; vacío = RF-103). Fuente de la tarjeta
+        «Versión y actualización» y del polling del reinicio (RF-105). La UI jamás inventa nada.
+      responses:
+        "200":
+          description: Identidad del binario.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VersionInfo" }
+  /self-update:
+    post:
+      operationId: selfUpdate
+      summary: >-
+        Self-update sin sudo (RF-104, paquete boton-actualizar): compila el árbol local
+        (scripts/bundle.sh --daemon-only, cwd = repo CONFIGURADO), inspecciona el binario
+        producido SIN ejecutarlo (buildinfo), instala write-tmp→rename atómico EN el directorio
+        del ejecutable y agenda el re-exec POST-respuesta (RF-105). SÍNCRONO: la respuesta ES el
+        reporte con el veredicto REAL de cada paso; un paso fallido corta el flujo (posteriores
+        «no-corrido») y el binario instalado queda INTACTO. Seguridad (RF-106, decisión #4): bajo
+        withAuth; el request NO lleva parámetros — ni rutas ni flags, el cuerpo se IGNORA; un
+        self-update a la vez; huella igual = «ya-al-dia», éxito sin reinstalar.
+      responses:
+        "200":
+          description: Reporte terminal (actualizado · ya-al-dia · fallo) con los 5 pasos.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SelfUpdateReport" }
+        "409": { description: Ya hay un self-update en curso (o el daemon está por reiniciar — el lock se retiene tras «actualizado»). }
+        "503": { description: "No puede NI empezar: binario no escribible (RF-102) o repo no configurado (RF-103) — el cuerpo dice cuál." }
 
   /arneses:
     get:
@@ -398,3 +436,29 @@ components:
       properties:
         arnes: { type: string }
         path: { type: string }
+    VersionInfo:
+      type: object
+      required: [huella, fecha, instalado_en, escribible, repo, sucio]
+      properties:
+        huella: { type: string, description: "vcs.revision[:7] (+«+sucio» si vcs.modified); «dev» sin VCS info." }
+        fecha: { type: string, description: "fecha del commit (vcs.time, solo día); vacía sin VCS." }
+        instalado_en: { type: string, description: "ruta REAL del ejecutable (os.Executable, capturada al boot)." }
+        escribible: { type: boolean, description: "el proceso puede escribir el DIRECTORIO del ejecutable (el rename lo exige)." }
+        repo: { type: string, description: "repo configurado al daemon (--repo/ARNESIA_REPO); vacío = sin repo (RF-103)." }
+        sucio: { type: boolean, description: "vcs.modified del build corriente (decisión #7, aditivo)." }
+    SelfUpdateReport:
+      type: object
+      required: [resultado, pasos]
+      properties:
+        resultado: { type: string, enum: [actualizado, ya-al-dia, fallo] }
+        huella_nueva: { type: string, description: "huella del binario recién compilado (presente en actualizado y ya-al-dia)." }
+        pasos:
+          type: array
+          description: "SIEMPRE los 5 pasos (verificar · build · verificar binario · instalar · reiniciar) con su veredicto REAL — la UI pinta la checklist de aquí, jamás inventa (RF-104)."
+          items:
+            type: object
+            required: [paso, estado]
+            properties:
+              paso: { type: string, enum: [verificar, build, verificar binario, instalar, reiniciar] }
+              estado: { type: string, enum: [ok, fallo, no-corrido, agendado], description: "«agendado» = solo el paso reiniciar tras «actualizado»: la respuesta sale ANTES del re-exec (RF-105)." }
+              detalle: { type: string, description: "detalle humano; en un fallo lleva la cola del stderr." }

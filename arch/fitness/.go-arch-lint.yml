@@ -67,6 +67,8 @@ components:
     in: internal/adapters/provision/**
   loader:
     in: internal/adapters/loader/**
+  selfupdate:
+    in: internal/adapters/selfupdate/**
 
   # --- datos embebidos (go:embed) ---
   dogfood:
@@ -117,6 +119,8 @@ deps:
   loader:
     mayDependOn: [domain, ports]
     canUse: [yaml]               # parsea el frontmatter fusionado de los SKILL.md (nomenclatura v1)
+  selfupdate:
+    mayDependOn: [domain, ports] # build/instalar/re-exec del binario (paquete boton-actualizar)
 
   # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
@@ -124,4 +128,4 @@ deps:
 
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, dogfood, doctrina]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, dogfood, doctrina]
