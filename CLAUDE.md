@@ -126,7 +126,9 @@ jamás descriptor aparte; round-trip dogfood **15/15 PASS**
 (`research/2026-07-07-interop-devstudio/`). **Deuda restante (no bloquea):**
 spike wire-format `control_response` vs claude real · run async+202 · gate conformance post-run · codegen
 `gen/` · capas Tokens/Desempeño/Proceso esperan telemetría · los 211 checks `deferred` del ruleset → CI ·
-3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel). Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
+3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel) ·
+**3 fixes shell/instalador (HS-14)**: colisión de nombre shell⇄daemon (`Exec=arnesia` sin ruta) ·
+trampa 401 attach (sondear `/healthz`, no `/api/version`) · single-instance sin reenfoque. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
 un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
 N:1 con arnés, con su conversación CC viva; estado CC vivo `streaming/await/idle`; persisten) · vistas =
 tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K) como dock derecho colapsable. Portafolio con

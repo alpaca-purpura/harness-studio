@@ -675,7 +675,55 @@ ficha gemela DH-18/PB-25) · I-59 (backflow al kit).
 *Siguiente:* 🧑‍⚖️ gate final lado a lado (PARIDAD.md + `shots/fase5/`) · entregar
 `ficha-devstudio-artefactos.md` al agente de DevStudio.
 
-<!-- Próximas: HS-14, … -->
+### HS-14 · Diagnóstico «la app instalada no re-levanta» — daemon zombi + colisión de nombre `arnesia`; 3 fixes fichados — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-08):* «por qué cuando cierro la aplicación instalada y vuelvo a
+abrirla, ya no levanta?» → diagnóstico → «matalo y ficha los 3 fixes».
+
+*Contexto:* desde el 7-jul un daemon HUÉRFANO (`~/.local/bin/arnesia serve --repo …`,
+arrancado a mano en una terminal; padre = systemd; se auto-actualizó in-place — `syscall.Exec`
+conserva PID, por eso reportaba huella `a72c15c` con start-date de ayer) ocupaba
+`127.0.0.1:4200`. Consecuencia: el shell instalado SIEMPRE entraba en modo attach
+(`shell.log`: «daemon ya activo… no spawneo», WebView sin token) y jamás levantaba su propio
+sidecar.
+
+*Desarrollo — diagnóstico verificado en vivo (no especulado):*
+la ruta del icono FUNCIONA hoy — verificado E2E: launcher → ventana abre (attach al zombi
+sin-token) → cierre por WM → proceso muere limpio → relanza bien. Los lanzamientos fallidos
+del operador NUNCA llegaron a `/usr/bin/arnesia` (cero marcas `=== lanzamiento ===` en
+`~/.arnesia/logs/shell.log` el 8-jul): la ruta que falla es **`arnesia` pelado** (terminal o
+`Exec=arnesia` del `.desktop` del .deb) — PATH resuelve `~/.local/bin/arnesia` (daemon Go, NO
+el shell) y muere al instante con `listen tcp 127.0.0.1:4200: bind: address already in use`,
+sin ventana ni mensaje visible. El workaround vigente es un override user-level
+(`~/.local/share/applications/ArnesIA.desktop` → `~/.local/bin/arnesia-shell-launcher`) que
+NO cubre la terminal. **Remedio aplicado:** zombi PID 959256 muerto, `:4200` libre — el
+próximo lanzamiento del shell spawnea SU sidecar con token (mundo limpio).
+
+*Los 3 fixes fichados (pendientes de implementar):*
+1. **Colisión de nombre shell⇄daemon** — el .deb instala el shell Tauri como
+   `/usr/bin/arnesia` y el self-update instala el daemon como `~/.local/bin/arnesia`; el
+   `.desktop` del paquete dice `Exec=arnesia` sin ruta → en PATH típico gana el daemon.
+   Fix en `scripts/bundle.sh`: `Exec` con ruta absoluta o renombrar el binario del shell
+   (p. ej. `arnesia-app`); al aterrizar, retirar el launcher-workaround user-level.
+2. **Trampa 401 en attach** — `conectando.html` sondea `/api/version` SIN token y su
+   comentario dice «endpoint de salud sin token», pero `auth.go` protege TODO `/api*`
+   (solo `/healthz` exento). Un daemon huérfano CON token (crash del shell, logout) →
+   401 eterno → «El daemon no responde» sin recuperación posible. Fix: sondear `/healthz`
+   (o eximir `/api/version` del token gate) — alinear comentario y middleware.
+3. **Single-instance callback vacío** — el TODO de `lib.rs` (plugin single-instance) no
+   reenfoca: si un shell sobrevive sin ventana, cada reapertura se traga en silencio.
+   Fix: implementar reenfoque de la ventana `main` en el callback (y a futuro el
+   deep-link `arnesia://`, ojo bug tauri#12726).
+
+*Conecta:* HS-06 (los 3 gates de auth que hacen letal al huérfano-con-token) · HS-11
+(instalador .deb/bundle.sh + self-update donde vive la colisión) · HS-04 (shell Tauri v1,
+mitigaciones Mint).
+
+*Siguiente:* implementar los 3 fixes (1 = bundle.sh/.desktop · 2 = conectando.html ·
+3 = lib.rs) — chicos, sin paquete de research propio; validar contra binario instalado
+(norma HS-11).
+
+<!-- Próximas: HS-15, … -->
 
 ## Log
 
@@ -697,3 +745,4 @@ ficha gemela DH-18/PB-25) · I-59 (backflow al kit).
 | 2026-07-07 | **HS-11 EJECUTADO — la app CONTIENE la doctrina: ola de sync + los 3 puentes, todo E2E.** Sync (3 agentes, 235 intacto): CADENCE×2 des-staleados · rules v1.2 retroactivo · harness-profile v1.1 (2 checks→schema-validation) · METODOLOGIA 7 orígenes + **§9 «3 cuerpos»** · VISION debate 3 cerrado · UX 12/10 · CLAUDE.md al día. **① Loader real** (`internal/adapters/loader`, nomenclatura v1; edges derivados R1-lee/R2-invoca, `ruta` NO cablea; `no-reconocido` visible; `arnesia index <dir>`) + **dogfood = arnés REAL** (`dogfood/dev-full-cycle/` plugin-form) → **round-trip dir→grafo→conformance 13/13 PASS**. **② Inyección** (kit `arnesia-kit` embebido → `~/.arnesia` por huella → `--plugin-dir`/`--append-system-prompt-file`/`--add-dir`; ②↛③). **③ Conformance portable** (paquete raíz `doctrina` go:embed · parser/schemas a fs.FS · scope fabrica\|arnes · `RunGraph` + **endpoint `GET /api/harnesses/{id}/conformance`**) → verificado fuera del repo: 235 embebidos · --arnes 12/13 honesto. Extra: ErrorBoundary+banda-fallback FE (47/47) · claude multi-PATH GUI · proposals.ts honesto · clase-marcador en schema. Deuda registrada: loader→índice daemon (WIP Hito 2) · BoxConductor/control_request (Fase E operador) · SPA embed · instalador · 3 boundaries research→arch/. | HS-11 |
 | 2026-07-07 | **HS-11 cierre total («termina lo que queda»): loader→índice VIVO + Fase E COMPLETA + instalador REAL.** WIP Hito 2 del operador a main («pon todo en main»). `IndexPort.Upsert` + carga al registrar y al boot — «Cargar carpeta» E2E verde. Fase E según plan firmado: `adapters/artifact` · `SpawnOpts.Permisos`→flags CC-native · `control_request` reenviado/respondido (Dock, D3) · `POST …/boxes/{boxId}/run` (D2) · permission REAL con grants TTL (deny>ask>allow) · 2 arch-tests flipados de skip a reales · 4 changelogs «realizado en vivo». Instalador: SPA go:embed servida por el daemon (token solo API) · `scripts/bundle.sh` · `.goreleaser.yaml` · **bundles producidos con el daemon del día**: `.deb` 7.6M (binario del paquete probado E2E: UI + conformance embebidas) · `.AppImage` 80M (fix bundle.icon) · `.rpm`. Todo verde: race+lint+arch-lint+fmt. Deuda honesta: spike control_response vs claude real · run async · gate post-run · telemetría · codegen · 3 boundaries research. | HS-11 |
 | 2026-07-08 | **Franja Artefactos EJECUTADA (6 fases, spec+design firmados «dale Go»): el hand-off hecho dato.** F1 checks de composición VIVOS en `--arnes` (sin-huerfanos·dead-end·ruta-a-existe·art-identidad·refina-coherente; escritor-unico ajustado a `refina`) → arch 100·ruleset 238 (cifra stale reparada: 27 pass/211 deferred medidos). F2 identidad del art: `entrega[].path/plantilla/refina` aditivos + espejos + conductor lee `path` y el error de `Status` viaja VISIBLE; hallazgo honesto: `art-es-path` caza los 3 art-etiqueta del dogfood (warn, no se silencia). F3 encadenado por filesystem: precondición pre-Spawn (faltante = 409, cero tokens) + `tarea()` con rutas+digest (el doc entero jamás viaja). F4 plantillas dogfood (plantilla-spec + validate_spec estampa done + genera digest + Guardia PostToolUse/Stop, verificado headless REAL block→corrige→pasa) + **medición p11 real: hand-off −90% contexto/insumo** (digest 75 tok vs spec 750; escritor +32% por validación determinista) + backflow forjar-caja. F5 Mapa: franja portada del mockup v2 (chips derivados D1 · gutters D2 · tope+refs D11 · toggle off·auto·todos · fixture Cobranza) — 86/86 stories, consola limpia, PARIDAD.md 7 desviaciones → **gate final humano pendiente**. F6: RF-150 cerrado con evidencia + **reconocedor de hooks** (dogfood = 7 nodos; roto = no-reconocido visible) + ficha gemela DevStudio. | HS-13 |
+| 2026-07-08 | **Diagnóstico «la app instalada no re-levanta» (verificado en vivo) + 3 fixes fichados.** Causa: daemon HUÉRFANO del 7-jul (`~/.local/bin/arnesia serve --repo …` a mano, padre systemd, self-update in-place conserva PID) ocupaba `:4200` → shell siempre attach sin token; los lanzamientos fallidos jamás llegaron a `/usr/bin/arnesia` — `arnesia` pelado resuelve el DAEMON por PATH y muere `bind: address already in use` sin ventana. Ruta del icono verificada E2E sana (launcher→ventana→cierre limpio→relanza). Remedio: zombi muerto, `:4200` libre. Fixes fichados: ① colisión de nombre shell⇄daemon (`Exec=arnesia` sin ruta en el .desktop del .deb → bundle.sh con ruta absoluta o renombre) · ② trampa 401 en attach (`conectando.html` sondea `/api/version` sin token pero `auth.go` solo exime `/healthz` → huérfano-con-token = 401 eterno; sondear `/healthz`) · ③ single-instance callback vacío (`lib.rs` TODO: reapertura tragada sin reenfocar). | HS-14 |
