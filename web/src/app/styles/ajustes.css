@@ -1,0 +1,163 @@
+/* Vista Ajustes · tarjeta «Versión y actualización» — port VERBATIM del CSS del mockup
+   v2 firmado (research/2026-07-07-boton-actualizar/mockup-actualizar.html:59-121), el
+   contrato al pixel del paquete boton-actualizar (design.md §Marcas y tokens). Mismo
+   patrón que inspector.css: scoped bajo .arnesia-ajustes, todo color es un token
+   var(--…) (fe-tokens-contrato); los literales no-color (px/%) son las medidas citadas. */
+
+/* ── la tarjeta (mockup:60-63): 460px, bg-card, border, radius-md, p-16, gap-14 ── */
+.arnesia-ajustes .uc-card {
+  width: 460px;
+  max-width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.arnesia-ajustes .uc-card h3 {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+/* ── kv (mockup:64-67): k 110px muted xs · v mono foreground ── */
+.arnesia-ajustes .uc-kv {
+  display: flex;
+  gap: 8px;
+  font-size: var(--text-xs);
+}
+.arnesia-ajustes .uc-k {
+  flex-shrink: 0;
+  width: 110px;
+  color: var(--muted-foreground);
+}
+.arnesia-ajustes .uc-v {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.arnesia-ajustes .uc-mut {
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+}
+.arnesia-ajustes .uc-mono {
+  font-family: var(--font-mono);
+}
+
+/* ── pill (mockup:68-70): 9px 700; warn default · ok verde; texto SIEMPRE foreground
+      (AA — lección del drawer, design §Marcas) ── */
+.arnesia-ajustes .uc-pill {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--warn);
+  color: var(--foreground);
+  background: var(--warn-soft);
+}
+.arnesia-ajustes .uc-pill.ok {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+/* ── botón (mockup:71-74): borde primary, fondo accent-soft, texto foreground 600;
+      disabled opacity .68 + title del porqué ── */
+.arnesia-ajustes .uc-btn {
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--primary);
+  background: var(--accent-soft);
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.arnesia-ajustes .uc-btn:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+/* ── cajas de desenlace (mockup:76-82): ok/warn/crit-soft, texto foreground ── */
+.arnesia-ajustes .uc-note {
+  margin: 0;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+.arnesia-ajustes .uc-warnbox {
+  margin: 0;
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  padding: 7px 9px;
+  font-size: var(--text-xs);
+  color: var(--foreground);
+  line-height: 1.5;
+}
+.arnesia-ajustes .uc-critbox {
+  margin: 0;
+  border-radius: var(--radius-md);
+  background: var(--crit-soft);
+  padding: 7px 9px;
+  font-size: var(--text-xs);
+  color: var(--foreground);
+  line-height: 1.5;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.arnesia-ajustes .uc-okbox {
+  margin: 0;
+  border-radius: var(--radius-md);
+  background: var(--ok-soft);
+  padding: 7px 9px;
+  font-size: var(--text-xs);
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+/* ── checklist de pasos (mockup:112-121): dot 8px — pendiente border · en curso
+      primary · ok ok · fallo crit; SOLO con veredictos reales (RF-104) ── */
+.arnesia-ajustes .uc-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arnesia-ajustes .uc-steps li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.arnesia-ajustes .uc-steps li .uc-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--border);
+}
+.arnesia-ajustes .uc-steps li.doing,
+.arnesia-ajustes .uc-steps li.done,
+.arnesia-ajustes .uc-steps li.fail {
+  color: var(--foreground);
+}
+.arnesia-ajustes .uc-steps li.doing .uc-dot {
+  background: var(--primary);
+}
+.arnesia-ajustes .uc-steps li.done .uc-dot {
+  background: var(--ok);
+}
+.arnesia-ajustes .uc-steps li.fail .uc-dot {
+  background: var(--crit);
+}

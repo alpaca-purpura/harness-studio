@@ -104,6 +104,15 @@ export const api = {
       body: JSON.stringify({ text }),
     }),
 
+  // getVersion (RF-107) — identidad honesta del binario del daemon; también es el
+  // polling del reinicio del self-update (RF-105): responde ⇔ el daemon está vivo.
+  getVersion: <T = unknown>() => req<T>("/api/version"),
+
+  // selfUpdate (RF-104) — POST largo (compila el repo local): fetch no impone timeout
+  // FE y aquí NO se agrega ninguno; la respuesta ES el reporte de pasos. Cero
+  // parámetros en el request (RF-106): repo y destino los conoce SOLO el daemon.
+  selfUpdate: <T = unknown>() => req<T>("/api/self-update", { method: "POST" }),
+
   // registerArnes sets the working directory an arnés's sessions run claude in (S2).
   registerArnes: (id: string, path: string) =>
     req<{ arnes: string; path: string }>(`/api/arneses/${id}`, {

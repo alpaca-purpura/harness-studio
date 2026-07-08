@@ -2,6 +2,7 @@
 // segmentos públicos (`@/shared/ui/button`, `@/shared/api`), nunca de rutas internas.
 
 export {
+  ApiError,
   api,
   connectDock,
   type DockConnection,
