@@ -219,15 +219,19 @@ export function WorkspaceStage() {
               ) : (
                 <>
                   <MapCanvas graph={graph} selectedId={selectedId} onSelect={setSelectedId} />
-                  {/* Siempre montado (RF-84): sin selección = affordance, no ausencia. */}
-                  <Inspector
-                    box={selectedBox}
-                    onClose={() => setSelectedId(undefined)}
-                    graph={graph}
-                    onSelect={setSelectedId}
-                    conformance={conformance}
-                    loadFuente={loadFuente}
-                  />
+                  {/* El drawer pinta algo o NO existe (decisión del operador 2026-07-07,
+                      supersede el estado vacío RF-84): sin selección no se monta; ✕ la
+                      limpia y el drawer desaparece entero. */}
+                  {selectedBox && (
+                    <Inspector
+                      box={selectedBox}
+                      onClose={() => setSelectedId(undefined)}
+                      graph={graph}
+                      onSelect={setSelectedId}
+                      conformance={conformance}
+                      loadFuente={loadFuente}
+                    />
+                  )}
                 </>
               )}
             </div>

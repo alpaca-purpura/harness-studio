@@ -115,8 +115,9 @@ const TABS: readonly { id: Tab; label: string }[] = [
 ]
 
 export interface InspectorProps {
-  // Sin box = estado vacío (RF-84): la línea de affordance, no un panel en blanco ni ausencia.
-  box?: Box | undefined
+  // El nodo a pintar. SIEMPRE presente: el drawer pinta algo o no se monta (decisión del
+  // operador 2026-07-07, supersede el estado vacío RF-84 — la página guarda la selección).
+  box: Box
   onClose: () => void
   // El grafo cargado: alimenta Viene de (edges inversos) y la navegabilidad de los chips.
   graph?: Graph | undefined
@@ -141,12 +142,14 @@ export function Inspector({
   const [tab, setTab] = useState<Tab>("resumen")
 
   // Changing node resets to Resumen (each drawer opens on its summary, as the mockup's
-  // per-card default); losing the selection also drops the expanded overlay.
-  const boxId = box?.id
-  useEffect(() => {
+  // per-card default); `expanded` sí sobrevive al cambio de nodo. Deselecting unmounts
+  // the drawer entirely — the page guards it — so state resets by construction.
+  // Patrón React docs «adjusting state when props change»: sin efecto, sin render extra.
+  const [prevId, setPrevId] = useState(box.id)
+  if (prevId !== box.id) {
+    setPrevId(box.id)
     setTab("resumen")
-    if (!boxId) setExpanded(false)
-  }, [boxId])
+  }
 
   // Esc COLLAPSES (never closes) — only listening while expanded (decisión #5e).
   useEffect(() => {
@@ -157,23 +160,6 @@ export function Inspector({
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
   }, [expanded])
-
-  if (!box) {
-    return (
-      <aside aria-label="Inspector · sin selección" className="arnesia-inspector empty">
-        <div className="dw-body">
-          <div className="tabpane">
-            <Section title="Inspector">
-              <p>
-                Clic en un nodo del mapa: identidad, clasificación doctrinal, contrato, fuente,
-                corridas y hallazgos.
-              </p>
-            </Section>
-          </div>
-        </div>
-      </aside>
-    )
-  }
 
   const k = KIND[box.clase]
 

@@ -288,15 +288,6 @@ export const TooltipsDoctrinales: Story = {
   },
 }
 
-// RF-84 — estado vacío: línea de affordance, no un panel en blanco ni ausencia.
-export const Vacio: Story = {
-  args: { box: undefined, onClose: fn() },
-  play: async ({ canvasElement }) => {
-    const c = within(canvasElement)
-    await expect(c.getByText(/Clic en un nodo del mapa/)).toBeInTheDocument()
-  },
-}
-
 // A contract-less rule → per-class framing (inspector-por-clase.md Tier A): doctrinal role,
 // Activación (unknown here — not in the proposal sets) and Fuente, never a generic "lacks".
 export const Regla: Story = {

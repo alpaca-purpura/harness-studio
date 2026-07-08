@@ -408,13 +408,3 @@
   font-size: 10px;
   color: var(--muted-foreground);
 }
-
-/* ── estado vacío (RF-84): affordance, no un panel en blanco ── */
-.arnesia-inspector.empty .dw-body {
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-.arnesia-inspector.empty .dw-body p {
-  font-size: var(--text-sm);
-}

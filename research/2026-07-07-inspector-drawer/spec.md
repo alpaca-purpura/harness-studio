@@ -149,3 +149,12 @@ Feature: Corridas
 
 Gate del paquete = PARIDAD.md fila por fila + click-through app vs mockup lado a lado
 (consola limpia, screenshots). La firma de ESTE spec habilita la implementación.
+
+---
+
+## Enmienda 2026-07-07 (decisión #7 — supersede RF-84)
+
+**RF-84 (estado vacío) queda SUPERSEDIDO:** el inspector ya no tiene estado vacío. Sin
+selección NO se monta (la página lo guarda); `✕` limpia la selección y el drawer
+desaparece entero, en drawer normal y en expandido. La línea de affordance «Clic en un
+nodo del mapa…» muere. Ver `decisiones.md` #7.
