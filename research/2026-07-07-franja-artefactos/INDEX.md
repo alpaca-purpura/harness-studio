@@ -13,21 +13,25 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
 
 ## Retomar aquí
 
-- **Último hecho (2026-07-08):** **D1–D11 FIRMADAS** — el paquete pasó a **BACKLOG
-  IMPLEMENTABLE**: [`spec.md`](./spec.md) (RF-100..151, 6 fases, trazado a
-  mockup:línea/casuística/decisiones) + [`design.md`](./design.md) (diseño técnico por
-  fase: archivos, funciones-gemelo, orden, gates, riesgos) escritos y en estado
-  `pendiente-de-firma`. Mockup v2 = referencia visual firmada (geometría A · chips en
-  spine; Cobranza demuestra refina ↻v2/opacos/+N; Luana el fan-in con panel ↖; asserts
-  del click-through: 0 errores, consola limpia, vista Actual 0 residuos). Artifact:
-  https://claude.ai/code/artifact/5e506b6a-7ed3-4e87-9005-61c71b84cd6c · Backlog UX.md
-  item 13.
-- **Próximo paso:** sesión de implementación NUEVA arranca pegando
-  [`PROMPT.md`](./PROMPT.md). Primer gate de esa sesión: 🧑‍⚖️ firma de spec.md+design.md;
-  luego fases 1→6 en orden, cada una con suite verde + commit + este «Retomar aquí»
-  actualizado; cierre = PARIDAD.md + gate final lado a lado.
-- **Firmas:** D1–D11 ✅ (2026-07-08) · spec.md+design.md 🚧 pendientes (gate de la sesión
-  de implementación). Código intacto hasta esa firma (METODOLOGIA §10).
+- **Último hecho (2026-07-08):** **spec.md + design.md FIRMADOS** («dale Go», tras
+  verificación código↔spec sin contradicciones bloqueantes — 3 matices menores
+  registrados en decisiones.md) · **FASE 1 COMPLETA (RF-100..104):** los 5 checks de
+  composición VIVOS en `internal/domain/conformance.go`
+  (`VerificarSinHuerfanos`/`DeadEnds`/`RutaExiste`/`ArtIdentidad`/`RefinaCoherente`),
+  `VerificarEscritorUnico` ajustado a `refina` (única puerta legal a multi-escritura,
+  cadena lineal), `domain.Output.Refina` añadido (schema llega en Fase 2), cableados en
+  `RunGraph` (4b). Tests sintéticos cazan huérfano/dead-end/ruta colgante/mismatch
+  C21/refina-sin-necesita/ciclo/rama. **Round-trip dogfood 20/20 PASS** (antes 15/15) ·
+  `--todo` 238 checks = 27 pass + 211 deferred (filas nuevas difieren honesto) · go test
+  11 paquetes ok · golangci 0 issues. As-code: boundary
+  `contrato-de-caja-es-fitness-function` v1.3 (4→7 filas) · arch/INDEX 97→100 ·
+  CLAUDE.md sincronizado (cifra stale 24/211→27/211-de-238 medida hoy).
+- **Próximo paso:** Fase 2 — identidad del art (RF-110..112): schema aditivo
+  `entrega[].path/plantilla/refina` + espejo Go completo + parser + conductor
+  (`artifactRef` con path; error de `Status` visible) + check `art-es-path` + dogfood
+  `path: spec.md`. Luego 3/4 (conductor+plantillas, medición p11) → 5 (Mapa+PARIDAD) → 6.
+- **Firmas:** D1–D11 ✅ · spec.md+design.md ✅ (2026-07-08). Gate final pendiente =
+  PARIDAD.md lado a lado tras Fase 5.
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de
   viabilidad.md): cifra stale en CLAUDE.md («24 pass/211 deferred» → real 27/208) ·
   error de `artifacts.Status` descartado en silencio (`box_conductor.go:90`) · colisión

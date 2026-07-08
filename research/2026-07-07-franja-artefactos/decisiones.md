@@ -6,8 +6,14 @@ Registro en el mismo turno (disciplina §10). Fundamento de cada una en
 **Estado (2026-07-08): D1–D11 FIRMADAS 🧑‍⚖️** — D1/D3–D8 («firmemos todo») · D2 sobre el
 mockup v1 (geometría **A · chips en spine**) · D9–D11 con el OK a la casuística y la
 orden de pasar a backlog implementable («agrégalo al backlog… para programarlo»).
-Catálogo en [`casuistica.md`](./casuistica.md); demo en el mockup v2. **Próxima firma
-pendiente: spec.md + design.md** (gate de la sesión de implementación).
+Catálogo en [`casuistica.md`](./casuistica.md); demo en el mockup v2. **spec.md +
+design.md FIRMADOS 🧑‍⚖️ 2026-07-08** («dale Go», tras verificación código↔spec sin
+contradicciones bloqueantes).
+
+**Precisión post-firma (2026-07-08, matiz #1 del gate):** el schema exige `terceros:<id>`
+(prefijo con sufijo obligatorio); solo `usuario` es literal bare. Donde D10/RF-100 dicen
+«usuario|terceros», la implementación trata como externo = `usuario` ∪ prefijo
+`terceros:`. Sin cambio de contrato.
 
 ## D1 — Artefacto = proyección del contrato, jamás primera clase del L0 — ✅ FIRMADA
 El artefacto NO es 11ª `clase` (enum crece solo con primitivas CC-native), NO es nodo

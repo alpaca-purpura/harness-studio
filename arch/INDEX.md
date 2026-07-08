@@ -49,7 +49,7 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
 | [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.0 | 6 | arch_test.go |
 | [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
-| [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema | 🌳 enforced | 1.2 | 4 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema |
+| [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema + composición del cableado (huérfanos·dead-ends·rutas·refina) | 🌳 enforced | 1.3 | 7 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema · domain.Verificar{SinHuerfanos,DeadEnds,RutaExiste,RefinaCoherente} (ruta `--arnes`) |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
 | [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌳 enforced | 1.1 | 4 | dependency-cruiser (verde sobre el Mapa) |
 | [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
@@ -59,12 +59,15 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 71 checks** — fundacional HS-04
-(backend, 7 boundaries · 29 checks) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 74 checks** — fundacional HS-04
+(backend, 7 boundaries · 29 checks; **+3 en franja-artefactos Fase 1** (2026-07-08): `dead-end` ·
+`ruta-a-existe` · `refina-coherente` en `contrato-de-caja-es-fitness-function` v1.3, y `sin-huerfanos`
+pasó de promesa a enforcer vivo `domain.VerificarSinHuerfanos` — los 5 verificadores de composición
+corren en la ruta `--arnes`) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
 · 10 checks + 2 checks nuevos a permisos-gui = 12 checks)** + **HS-07/HS-08 doctrina v1 (2 boundaries ·
 8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol` — nacieron draft en HS-07,
 **enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)**. **+ [`conventions/`](./conventions/INDEX.md): 8
-convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 97 checks.**
+convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 100 checks.**
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
 > no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**

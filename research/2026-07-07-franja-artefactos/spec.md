@@ -1,5 +1,5 @@
 ---
-status: pendiente-de-firma
+status: firmado (🧑‍⚖️ 2026-07-08, «dale Go»)
 paquete: franja-artefactos
 decisiones: D1-D11 firmadas (decisiones.md)
 mockup: mockup-artefactos.html (v2, click-through verde 2026-07-08)

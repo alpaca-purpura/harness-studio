@@ -1,5 +1,5 @@
 ---
-status: pendiente-de-firma
+status: firmado (🧑‍⚖️ 2026-07-08, «dale Go»)
 spec: spec.md (RF-100..151)
 ---
 

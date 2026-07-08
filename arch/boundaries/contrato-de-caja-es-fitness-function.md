@@ -1,7 +1,7 @@
 ---
 regla: contrato-de-caja-es-fitness-function
-version: 1.2
-updated: 2026-07-07
+version: 1.3
+updated: 2026-07-08
 status: enforced
 ledger: HS-08
 sources:
@@ -57,8 +57,11 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
 |----|-------------|-----------|------------------|----------|
 | contract-valida-schema | cada `contract:` de caja valida contra `box.contract.schema.json` | error | «caja con contrato inválido/incompleto» | arch_test.go:TestBoxContractValidatesAgainstSchema |
 | tipos-generados | los tipos Go/TS del contrato salen de `quicktype`, no a mano | warn | «tipo de contrato a mano — riesgo de drift» | schema/codegen |
-| sin-huerfanos | ningún `necesita` referencia un artefacto que ninguna caja `entrega` upstream | warn | capa Proceso «input huérfano (sin productor)» | arch_test.go |
+| sin-huerfanos | ningún `necesita` referencia un artefacto que ninguna caja `entrega` upstream | warn | capa Proceso «input huérfano (sin productor)» | domain.VerificarSinHuerfanos (ruta `--arnes`) |
 | gate-honesto | `gate.tipo: none` cuando no hay eval real (jamás fabricar un eval) | error | capa Proceso «SIN GATE» (principio 10 hecho dato) | arch_test.go |
+| dead-end | toda `entrega` tiene consumidor, salvo caja terminal (terminalidad DERIVADA del spine, HS-12) | warn | chip «sin consumidor» en el gutter (franja-artefactos D2) | domain.VerificarDeadEnds (ruta `--arnes`) |
+| ruta-a-existe | cada `ruta[].a` apunta a caja existente o al literal `humano` | error | «ruta colgante» en la caja | domain.VerificarRutaExiste (ruta `--arnes`) |
+| refina-coherente | toda cadena `refina` es lineal: el refinador necesita el art que refina, sin ciclos ni ramas (D9) | error | chip `↻ vN` incoherente en el gutter del refinador | domain.VerificarRefinaCoherente (ruta `--arnes`) |
 
 ## Changelog
 
@@ -69,3 +72,10 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
 - 2026-07-07 · v1.2 · Sync HS-10: la referencia «linter de 122 checks» apuntaba a un conteo y a un
   runner futuros — el motor real es `arnesia conformance` (construido en HS-08; `knowledge/` = 138
   checks, `knowledge/`+`arch/` = 235 checks a datos). Sin cambios de checks ni de status.
+- 2026-07-08 · v1.3 · Franja-artefactos Fase 1 (D8/D9, RF-100..104): `sin-huerfanos` pasa de
+  promesa a enforcer vivo (`domain.VerificarSinHuerfanos`); +3 filas nuevas `dead-end` ·
+  `ruta-a-existe` · `refina-coherente` (4→7 checks; árbol 97→100, ruleset 235→238). Los 5
+  enforcers (incluye `art-identidad-coherente`, built-in del motor como los checks de spine)
+  corren en la ruta `--arnes`; en `--todo` las filas difieren honesto (mecanismo no ejecutable
+  desde el ruleset). `escritor-unico` ajustado: `refina` es la única puerta legal a la
+  multi-escritura (cadena lineal, jamás paralela — D9b).

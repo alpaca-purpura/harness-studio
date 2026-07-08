@@ -439,20 +439,26 @@ func VerificarSpine(g Graph) []CheckResult {
 
 // VerificarEscritorUnico enforces the mutation contract (METODOLOGIA §3, checks huérfanos
 // M12): an artifact has ONE authorized writer. Two cajas whose `entrega` declares the same
-// `art` with escritor_unico (the default) are a conformance finding. Reads only the
+// `art` with escritor_unico (the default) are a conformance finding. The ONLY legal gate
+// to multi-writing is `refina` (D9): an output declaring itself a revision leaves this
+// count — its legality (linear chain, no cycles) is VerificarRefinaCoherente's job. Two
+// entregas of the same art WITHOUT refina remain a finding, as always. Reads only the
 // declared contracts — no product state.
 func VerificarEscritorUnico(g Graph) CheckResult {
 	c := Check{
 		ID: "escritor-unico", Elemento: "conformance", Mecanismo: MecStaticScan,
 		EnforcedBy: "domain.VerificarEscritorUnico", Severidad: SevError,
-		Que: "un solo escritor autorizado por artefacto (dos cajas escribiendo el mismo art = hallazgo)",
+		Que: "un solo escritor autorizado por artefacto (dos cajas escribiendo el mismo art SIN refina = hallazgo)",
 	}
-	writers := map[string][]string{} // art → caja ids that claim single-writer.
+	writers := map[string][]string{} // art → caja ids that claim single-writer (non-revision).
 	for _, n := range g.Nodes {
 		if n.Contract == nil {
 			continue
 		}
 		for _, o := range n.Contract.Entrega {
+			if o.Refina != "" {
+				continue // revisión declarada: la valida refina-coherente, no este check.
+			}
 			// escritor_unico defaults true (schema default): nil counts as claiming it.
 			if o.EscritorUnico == nil || *o.EscritorUnico {
 				writers[o.Art] = append(writers[o.Art], n.ID)
@@ -466,6 +472,292 @@ func VerificarEscritorUnico(g Graph) CheckResult {
 		}
 	}
 	return veredictoDeLista(c, bad, "cada artefacto tiene un solo escritor")
+}
+
+// ── composición del cableado (franja-artefactos D8/D9, RF-100..104) ─────────────
+// The hand-off between cajas IS the contract (A2). These checks make the promised
+// composition rules executable on the `--arnes` path: every declared input has its
+// producer, every output has a consumer (or its caja is terminal), every route lands
+// on a real box, and refina chains are linear. All read ONLY declared contracts.
+
+// composicionCheck builds a built-in composition Check (elemento="conformance").
+func composicionCheck(id string, enforcedBy string, sev Severidad, que string) Check {
+	return Check{
+		ID:         id,
+		Elemento:   "conformance",
+		Mecanismo:  MecStaticScan,
+		EnforcedBy: enforcedBy,
+		Severidad:  sev,
+		Que:        que,
+	}
+}
+
+// entregaIndex maps cajaID → set of arts the caja produces. An output with `refina`
+// counts as producing the refined art (the revision IS the art, D9c) besides its own.
+func entregaIndex(g Graph) map[string]map[string]bool {
+	idx := map[string]map[string]bool{}
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, o := range n.Contract.Entrega {
+			if idx[n.ID] == nil {
+				idx[n.ID] = map[string]bool{}
+			}
+			if o.Art != "" {
+				idx[n.ID][o.Art] = true
+			}
+			if o.Refina != "" {
+				idx[n.ID][o.Refina] = true
+			}
+		}
+	}
+	return idx
+}
+
+// deCaja extracts the caja id of a `necesita.de` reference ("caja:X" → "X", ok). Any
+// other origin (usuario, terceros:*, base:*, libreria:*, maquinaria:*, marcas-dormidas:*)
+// is a component or an external input — never an orphan candidate (D10, C3-C6).
+func deCaja(de string) (string, bool) {
+	id, found := strings.CutPrefix(de, "caja:")
+	if !found || id == "" {
+		return "", false
+	}
+	return id, true
+}
+
+// VerificarSinHuerfanos (RF-100, warn): every `necesita.de: caja:X` must name a producer
+// that actually delivers (or refines) that art. External origins (usuario/terceros:*) and
+// Base components are NOT orphans — they are admitted, not produced (D10).
+func VerificarSinHuerfanos(g Graph) CheckResult {
+	c := composicionCheck("sin-huerfanos", "domain.VerificarSinHuerfanos", SevWarn,
+		"ningún `necesita` referencia un artefacto que ninguna caja `entrega` upstream")
+	idx := entregaIndex(g)
+	var bad []string
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, in := range n.Contract.Necesita {
+			prod, isCaja := deCaja(in.De)
+			if !isCaja {
+				continue
+			}
+			if !idx[prod][in.Art] {
+				bad = append(bad, n.ID+": necesita '"+in.Art+"' de caja:"+prod+" que no la entrega")
+			}
+		}
+	}
+	return veredictoDeLista(c, bad, "todo input declarado tiene productor")
+}
+
+// VerificarDeadEnds (RF-101, warn): an output no caja consumes is a dead-end — UNLESS its
+// caja is terminal (its transition lands on a terminal state of the declared spine):
+// terminality is DERIVED, never declared (HS-12/C15). Without spine/terminales the check
+// defers honestly (nothing to derive against).
+func VerificarDeadEnds(g Graph) CheckResult {
+	c := composicionCheck("dead-end", "domain.VerificarDeadEnds", SevWarn,
+		"toda entrega tiene consumidor, salvo que su caja sea terminal (terminalidad derivada del spine)")
+	if g.Arnes == nil || g.Arnes.Spine == nil || len(g.Arnes.Spine.Terminales) == 0 {
+		return CheckResult{
+			Check: c, Veredicto: VeredictoDiferido,
+			Detalle: "el arnés no declara spine/terminales — terminalidad no derivable",
+		}
+	}
+	terminal := map[string]bool{}
+	for _, t := range g.Arnes.Spine.Terminales {
+		terminal[t] = true
+	}
+	// consumo: (productor, art) consumido por algún necesita.
+	consumido := map[string]bool{}
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, in := range n.Contract.Necesita {
+			if prod, isCaja := deCaja(in.De); isCaja {
+				consumido[prod+"\x00"+in.Art] = true
+			}
+		}
+	}
+	var bad []string
+	for _, n := range g.Nodes {
+		if !n.IsCaja() {
+			continue
+		}
+		est := string(n.Estado)
+		if est == "" {
+			est = n.Contract.Estado
+		}
+		_, a, ok := ParseTransicion(est)
+		if !ok {
+			continue // estado mal formado: lo reporta estado-en-spine-declarado, no este check.
+		}
+		if terminal[a] {
+			continue // salida del proceso (C15): sin consumidor ≠ dead-end.
+		}
+		for _, o := range n.Contract.Entrega {
+			ok := consumido[n.ID+"\x00"+o.Art] ||
+				(o.Refina != "" && consumido[n.ID+"\x00"+o.Refina])
+			if !ok {
+				bad = append(bad, n.ID+": entrega '"+o.Art+"' sin consumidor (caja no terminal)")
+			}
+		}
+	}
+	return veredictoDeLista(c, bad, "toda entrega de caja no terminal tiene consumidor")
+}
+
+// VerificarRutaExiste (RF-102, error): every `ruta[].a` must land on an existing caja or
+// the literal `humano` (the P6 escalation target).
+func VerificarRutaExiste(g Graph) CheckResult {
+	c := composicionCheck("ruta-a-existe", "domain.VerificarRutaExiste", SevError,
+		"cada `ruta[].a` apunta a una caja existente o al literal `humano`")
+	cajas := map[string]bool{}
+	for _, n := range g.Nodes {
+		if n.IsCaja() {
+			cajas[n.ID] = true
+		}
+	}
+	var bad []string
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, r := range n.Contract.Ruta {
+			if r.A != "humano" && !cajas[r.A] {
+				bad = append(bad, n.ID+": ruta a '"+r.A+"' que no existe")
+			}
+		}
+	}
+	return veredictoDeLista(c, bad, "toda ruta aterriza en caja existente o humano")
+}
+
+// VerificarArtIdentidad (RF-103, error): `necesita {art:A, de:caja:X}` where X EXISTS
+// demands that X delivers (or refines) exactly A — a name mismatch (entrega «spec.md» vs
+// necesita «espec.md», C21) is never fused silently. A reference to a non-existent caja
+// is the orphan case (sin-huerfanos), not an identity mismatch.
+func VerificarArtIdentidad(g Graph) CheckResult {
+	c := composicionCheck("art-identidad-coherente", "domain.VerificarArtIdentidad", SevError,
+		"si el productor referido existe, entrega (o refina) exactamente el art que se le pide")
+	idx := entregaIndex(g)
+	nodos := map[string]bool{}
+	for _, n := range g.Nodes {
+		nodos[n.ID] = true
+	}
+	var bad []string
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, in := range n.Contract.Necesita {
+			prod, isCaja := deCaja(in.De)
+			if !isCaja || !nodos[prod] {
+				continue
+			}
+			if !idx[prod][in.Art] {
+				bad = append(bad, n.ID+": necesita '"+in.Art+"' de caja:"+prod+" pero no está entre sus entregas")
+			}
+		}
+	}
+	return veredictoDeLista(c, bad, "identidad de artefactos coherente entre necesita y entrega")
+}
+
+// VerificarRefinaCoherente (RF-104, error): `refina` is the only legal gate to
+// multi-writing (D9) and it must be a linear chain of revisions: (a) the refinador MUST
+// need the very art it refines; (b) if that need comes from a caja, that caja must be a
+// writer of the art; (c) no cycles; (d) no branching — one refinador per source writer.
+// A chain may root on an external input (factura from terceros, C11) — that is legal.
+func VerificarRefinaCoherente(g Graph) CheckResult {
+	c := composicionCheck("refina-coherente", "domain.VerificarRefinaCoherente", SevError,
+		"toda cadena de refina es lineal: el refinador necesita el art que refina, sin ciclos ni ramas")
+	idx := entregaIndex(g)
+	var bad []string
+
+	// fuente(R, art) = de dónde toma R el art que refina (su necesita para ese art).
+	fuente := func(n Box, art string) (string, bool) {
+		for _, in := range n.Contract.Necesita {
+			if in.Art == art {
+				return in.De, true
+			}
+		}
+		return "", false
+	}
+
+	// ramas: (art, productor-fuente) → refinadores que beben de él.
+	ramas := map[string][]string{}
+
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, o := range n.Contract.Entrega {
+			if o.Refina == "" {
+				continue
+			}
+			de, tiene := fuente(n, o.Refina)
+			if !tiene {
+				bad = append(bad, n.ID+": refina '"+o.Refina+"' sin necesitarla (D9a)")
+				continue
+			}
+			if prod, isCaja := deCaja(de); isCaja {
+				if !idx[prod][o.Refina] {
+					bad = append(bad, n.ID+": refina '"+o.Refina+"' desde caja:"+prod+" que no la escribe")
+				}
+				ramas[o.Refina+"\x00"+prod] = append(ramas[o.Refina+"\x00"+prod], n.ID)
+			}
+			// externo (usuario/terceros): raíz legal de la cadena (C11) — nada que cotejar.
+		}
+	}
+
+	for key, refs := range ramas {
+		if len(refs) > 1 {
+			art, _, _ := strings.Cut(key, "\x00")
+			sort.Strings(refs)
+			bad = append(bad, "cadena de '"+art+"' no lineal: "+strings.Join(refs, ", ")+" refinan desde el mismo escritor")
+		}
+	}
+
+	// ciclos: caminar la cadena de cada refinador siguiendo sus fuentes caja→caja.
+	byID := map[string]Box{}
+	for _, n := range g.Nodes {
+		byID[n.ID] = n
+	}
+	for _, n := range g.Nodes {
+		if n.Contract == nil {
+			continue
+		}
+		for _, o := range n.Contract.Entrega {
+			if o.Refina == "" {
+				continue
+			}
+			visited := map[string]bool{n.ID: true}
+			cur := n
+			art := o.Refina
+			for {
+				de, tiene := fuente(cur, art)
+				if !tiene {
+					break
+				}
+				prod, isCaja := deCaja(de)
+				if !isCaja {
+					break // raíz externa: cadena termina legal.
+				}
+				if visited[prod] {
+					bad = append(bad, "ciclo en la cadena de refina de '"+art+"' (via "+prod+")")
+					break
+				}
+				visited[prod] = true
+				nxt, ok := byID[prod]
+				if !ok || nxt.Contract == nil {
+					break
+				}
+				cur = nxt
+			}
+		}
+	}
+
+	sort.Strings(bad)
+	return veredictoDeLista(c, bad, "cadenas de refina lineales y coherentes")
 }
 
 // veredictoDeLista turns a list of violations into a CheckResult: empty = pass.

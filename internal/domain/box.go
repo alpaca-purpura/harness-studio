@@ -264,10 +264,14 @@ type Input struct {
 
 // Output is an as-code artifact the box produces (contract.entrega). An output nobody
 // consumes is a dead-end (a finding). EscritorUnico declares the mutation contract: one
-// authorized writer per artifact (two boxes writing the same art = a finding).
+// authorized writer per artifact (two boxes writing the same art = a finding). Refina
+// (D9, franja-artefactos) declares this output as a REVISION of an existing art: the
+// only legal gate to multi-writing, always a linear chain — the version (v2, v3…) is
+// derived from the chain, never declared.
 type Output struct {
 	Art           string `json:"art"`
 	EscritorUnico *bool  `json:"escritor_unico,omitempty"`
+	Refina        string `json:"refina,omitempty"`
 }
 
 // Route is a conditional hand-off target (contract.ruta): the real DAG of happy

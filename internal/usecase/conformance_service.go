@@ -165,6 +165,16 @@ func (s *ConformanceService) RunGraph(_ context.Context, raw []byte, baseDir str
 	// 4) Mutation contract: un solo escritor autorizado por artefacto.
 	rep.Results = append(rep.Results, domain.VerificarEscritorUnico(g))
 
+	// 4b) Composición del cableado (franja-artefactos D8/D9): el hand-off ES el contrato
+	//     (A2) — huérfanos, dead-ends, rutas colgantes y cadenas de refina, ahora vivos.
+	rep.Results = append(rep.Results,
+		domain.VerificarSinHuerfanos(g),
+		domain.VerificarDeadEnds(g),
+		domain.VerificarRutaExiste(g),
+		domain.VerificarArtIdentidad(g),
+		domain.VerificarRefinaCoherente(g),
+	)
+
 	// 5) Firewall CC-native: sin claves fantasma en los fuentes de los nodos.
 	rep.Results = append(rep.Results, s.firewallScan(g))
 
