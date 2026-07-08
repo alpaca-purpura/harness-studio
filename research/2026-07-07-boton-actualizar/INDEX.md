@@ -33,17 +33,19 @@ usuario, cero sudo; el .deb queda para instalación inicial de terceros) · orig
 
 ## Retomar aquí
 
-- **Último hecho (2026-07-07):** paquete abierto tras cerrar inspector-drawer; rumbo
-  firmado por el operador (3 respuestas); mockup v1 creado con 5 casuísticas (idle ·
-  actualizando · éxito+reinicio · error de build honesto · sin repo configurado) sobre
-  datos reales: binario HOY en `/usr/bin/arnesia` (root, .deb) — el diseño migra a
-  `~/.local/bin` (una migración inicial, después cero sudo); huella del repo `1c7443f`;
-  el binario NO embebe versión aún (pendiente `-ldflags` — se decide en spec).
-- **Próximo paso:** operador revisa el mockup (artifact ↑ o el .html del repo) y pide
-  cambios o firma; recién entonces spec/design. **Pendiente honesto:** el click-through
-  ojo-UI con DevTools no se pudo correr este turno (el browser MCP quedó tomado por
-  otra ventana del perfil) — la interactividad de la tarjeta 01 (02→03 / 02→04) queda
-  por verificar; el operador la ve al abrir el artifact de todos modos.
+- **Último hecho (2026-07-07, v2):** el operador preguntó «¿dónde estará el botón?» →
+  **decisión #5 PROPUESTA**: vista global **Ajustes** (⚙ al pie del rail; hoy ComingSoon
+  `global-view.tsx:14`) — la tarjeta la estrena; futuras tarjetas (marketplaces · daemon)
+  punteadas. Mockup **v2** publicado (misma URL) con el caso 00 UBICACIÓN: frame del
+  shell (rail + pie ⌂/⟳/⚙ con Ajustes activo → vista con la tarjeta). Click-through
+  ojo-UI hecho con Playwright headless (el browser MCP seguía tomado): 6 casos renderizan,
+  interactividad 00/01 recorre pasos→éxito, consola limpia; screenshot en scratchpad.
+- **Base v1:** 5 casuísticas de estados sobre datos reales: binario HOY en
+  `/usr/bin/arnesia` (root, .deb) — el diseño migra a `~/.local/bin` (una migración
+  inicial, después cero sudo); huella `1c7443f`; el binario NO embebe versión aún
+  (pendiente `-ldflags`, se decide en spec).
+- **Próximo paso:** operador revisa v2 (artifact ↑) — si la ubicación en Ajustes y los
+  estados le cierran, firma el mockup → spec.md + design.md.
 - **Firmas pendientes:** mockup · spec/design.
 - **Contexto caliente (candidatos a decisión en la iteración):** ① la ruta del repo
   NO viaja en el request — el daemon la conoce por flag/env/registro explícito

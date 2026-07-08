@@ -9,6 +9,10 @@
   v1 · 2026-07-07 · primera propuesta: tarjeta «Versión y actualización» dentro de Ajustes, 5 casuísticas
        (01 idle · 02 actualizando con pasos · 03 éxito+reinicio · 04 error de build honesto · 05 sin repo
        configurado). INTERACTIVO: el botón de la 01 recorre 02→03; «forzar fallo» recorre 02→04.
+  v2 · 2026-07-07 · pregunta del operador «¿dónde estará el botón?» → caso 00 UBICACIÓN: frame del shell
+       real (rail de sesiones + pie ⌂/⟳/⚙) con la vista global AJUSTES abierta — la tarjeta la ESTRENA
+       (hoy esa vista es ComingSoon «Ajustes · Marketplaces», global-view.tsx:14); las demás tarjetas de
+       Ajustes (marketplaces · daemon) van punteadas como futuras, jamás fingiendo existir. Decisión #5.
 -->
 <title>Mockup — Ajustes · botón Actualizar (self-update sin sudo)</title>
 <style>
@@ -77,6 +81,33 @@
   .okbox { margin:0; border-radius:var(--radius-md); background:var(--ok-soft); padding:7px 9px;
     font-size:var(--text-xs); color:var(--foreground); line-height:1.5; }
 
+  /* ══ v2 · caso 00 — UBICACIÓN: frame del shell (rail + vista Ajustes) ══ */
+  .case.wide { grid-column: 1 / -1; }
+  .shellframe { display:flex; width:100%; max-width:1180px; height:560px; border:1px solid var(--border);
+    border-radius:var(--radius-md); overflow:hidden; background:var(--background); }
+  .rail { width:210px; flex:none; display:flex; flex-direction:column; background:var(--card);
+    border-right:1px solid var(--border); }
+  .rail .brand { display:flex; align-items:center; gap:8px; padding:12px; font-weight:650; font-size:var(--text-sm); }
+  .rail .brand .logo { width:22px; height:22px; border-radius:6px; background:var(--primary);
+    color:var(--card); display:grid; place-items:center; font-size:12px; font-weight:700; }
+  .rail .sess { flex:1; padding:8px; display:flex; flex-direction:column; gap:6px; }
+  .rail .sess .lbl { font-size:9px; letter-spacing:.06em; color:var(--muted-foreground); padding:0 4px 2px; }
+  .rail .scard { border:1px solid var(--border); border-radius:var(--radius-md); padding:8px 10px;
+    font-size:var(--text-xs); color:var(--muted-foreground); }
+  .rail .scard b { display:block; color:var(--foreground); font-weight:600; }
+  .rail .foot { border-top:1px solid var(--border); padding:8px; display:flex; gap:2px; }
+  .rail .gbtn { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0;
+    border:none; background:none; border-radius:var(--radius-md); font-size:8.5px; color:var(--muted-foreground); cursor:pointer; }
+  .rail .gbtn .g { font-size:14px; }
+  .rail .gbtn.active { background:var(--accent-soft); color:var(--foreground); outline:1px solid var(--primary); }
+  .view { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .view .vhead { padding:12px 18px; border-bottom:1px solid var(--border); background:var(--card);
+    font-size:var(--text-sm); color:var(--muted-foreground); }
+  .view .vhead b { color:var(--foreground); }
+  .view .vbody { flex:1; overflow:auto; padding:18px; display:flex; flex-wrap:wrap; gap:16px; align-content:flex-start; }
+  .card.future { border-style:dashed; opacity:.65; justify-content:center; min-height:120px; align-items:center; }
+  .card.future p { margin:0; font-size:var(--text-xs); color:var(--muted-foreground); text-align:center; max-width:32ch; }
+
   /* pasos del self-update (02): checklist honesta, un paso a la vez */
   .steps { display:flex; flex-direction:column; gap:6px; margin:0; padding:0; list-style:none; }
   .steps li { display:flex; gap:8px; align-items:baseline; font-size:var(--text-xs); color:var(--muted-foreground); }
@@ -92,7 +123,7 @@
 
 <div class="wrap">
   <div class="head">
-    <h1>Mockup — Ajustes · «Versión y actualización» (self-update sin sudo) · v1</h1>
+    <h1>Mockup — Ajustes · «Versión y actualización» (self-update sin sudo) · v2</h1>
     <p>Rumbo firmado: self-update del binario · <span class="src">~/.local/bin</span> (espacio de usuario,
        cero sudo) · origen = build local del repo. La tarjeta vive en la vista <b>Ajustes</b> (rail ⚙,
        hoy «próximamente»). Casuística 01 es interactiva: pruébala.</p>
@@ -186,7 +217,37 @@ function cardHoy() {
   </div>`;
 }
 
+// v2 · 00 — DÓNDE VIVE EL BOTÓN: rail (pie ⌂/⟳/⚙, Ajustes ACTIVO) → vista global
+// Ajustes; nuestra tarjeta la estrena. Las futuras (marketplaces · daemon, de la nota
+// real del ComingSoon actual) van punteadas — existen como plan, no como UI.
+function frameUbicacion() {
+  return `<div class="shellframe">
+    <aside class="rail">
+      <div class="brand"><span class="logo">A</span> ArnesIA</div>
+      <div class="sess">
+        <div class="lbl">SESIONES</div>
+        <div class="scard"><b>ciclo full-cycle · spec→released</b>dev-full-cycle · ⬡ Mapa</div>
+        <div class="scard"><b>corrida r3 · 3 hallazgos</b>backend-nordia · ⬡ Mapa</div>
+      </div>
+      <div class="foot">
+        <button type="button" class="gbtn"><span class="g">⌂</span>Portafolio</button>
+        <button type="button" class="gbtn"><span class="g">⟳</span>Estándar</button>
+        <button type="button" class="gbtn active" aria-current="page"><span class="g">⚙</span>Ajustes</button>
+      </div>
+    </aside>
+    <div class="view">
+      <div class="vhead">alpacapurpura / <b>Ajustes</b></div>
+      <div class="vbody">
+        ${cardIdle(false)}
+        <div class="card future"><p>Marketplaces por empresa/arnés<br>(futura — hoy la vista entera es «próximamente»)</p></div>
+        <div class="card future"><p>Daemon · puerto / rutas / registro de arneses<br>(futura)</p></div>
+      </div>
+    </div>
+  </div>`;
+}
+
 const CASES = [
+  ["00", "UBICACIÓN — rail pie ⚙ Ajustes → la vista nace con esta tarjeta (v2, decisión #5)", frameUbicacion(), true],
   ["01", "idle (objetivo: instalado en ~/.local/bin) — INTERACTIVO", cardIdle(true)],
   ["02", "actualizando — checklist de pasos honesta", cardBusy(1)],
   ["03", "éxito — binario nuevo + reinicio + reconexión", cardOk()],
@@ -194,15 +255,15 @@ const CASES = [
   ["05", "estado ACTUAL real (/usr/bin, root) + sin repo — migración explicada", cardHoy()],
 ];
 
-document.getElementById("g").innerHTML = CASES.map(([n, t, html]) =>
-  `<div class="case" data-case="${n}"><div class="case-label"><span class="num">${n}</span><span>${t}</span></div>${html}</div>`).join("");
+document.getElementById("g").innerHTML = CASES.map(([n, t, html, wide]) =>
+  `<div class="case${wide ? " wide" : ""}" data-case="${n}"><div class="case-label"><span class="num">${n}</span><span>${t}</span></div>${html}</div>`).join("");
 
 // Interactividad de la 01: recorre 02 → 03 (o 02 → 04 con «simular fallo»).
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]");
   if (!b) return;
   const holder = b.closest(".case");
-  if (holder?.getAttribute("data-case") !== "01") return;
+  if (!["00", "01"].includes(holder?.getAttribute("data-case"))) return; // 00 (frame) y 01 animan
   const fallo = b.getAttribute("data-act") === "fail";
   const slot = holder.querySelector(".card");
   for (let i = 0; i <= (fallo ? 1 : 4); i++) {
