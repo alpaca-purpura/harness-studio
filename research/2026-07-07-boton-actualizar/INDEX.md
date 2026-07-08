@@ -25,9 +25,10 @@ usuario, cero sudo; el .deb queda para instalación inicial de terceros) · orig
 ## Estado
 
 - [x] rumbo firmado (alcance · mecanismo · origen)
-- [ ] mockup-actualizar.html v1 → iterar → 🧑‍⚖️ firma — **artifact (publicar SIEMPRE
-      a esta URL):** https://claude.ai/code/artifact/458c147a-b78b-461c-a54b-db2d741ac30b
-- [ ] spec.md + design.md → 🧑‍⚖️ firma del paquete
+- [x] mockup **v2 FIRMADO** (operador «firmo el mockup», 2026-07-07) — **artifact
+      (publicar SIEMPRE a esta URL):** https://claude.ai/code/artifact/458c147a-b78b-461c-a54b-db2d741ac30b
+- [ ] spec.md (RF-100..107 + Gherkin + trazabilidad) + design.md ESCRITOS → 🧑‍⚖️
+      **firma del paquete pendiente**
 - [ ] implementación + stories + tests
 - [ ] PARIDAD → gate final
 
@@ -44,8 +45,18 @@ usuario, cero sudo; el .deb queda para instalación inicial de terceros) · orig
   `/usr/bin/arnesia` (root, .deb) — el diseño migra a `~/.local/bin` (una migración
   inicial, después cero sudo); huella `1c7443f`; el binario NO embebe versión aún
   (pendiente `-ldflags`, se decide en spec).
-- **Próximo paso:** operador revisa v2 (artifact ↑) — si la ubicación en Ajustes y los
-  estados le cierran, firma el mockup → spec.md + design.md.
+- **Mockup v2 FIRMADO (2026-07-07)** → specs escritos el mismo turno: `spec.md`
+  (RF-100..107: vista Ajustes nace · tarjeta identidad honesta vía GET /api/version ·
+  estados no-actualizables · POST /api/self-update con 5 pasos y corte al primer fallo ·
+  reinicio re-exec + polling · seguridad cementada: withAuth, cero params, 409) +
+  `design.md` (tokens de tarjeta/checklist/pills · máquina de estados · FSD
+  features/self-update UI-pura + página transporte · hexagonal ports.SelfUpdater +
+  adapter selfupdate + usecase · flag --repo). **Nota clave de honestidad:** la
+  checklist «en vivo» del mockup era demo — la app pinta la checklist con los
+  veredictos REALES de la respuesta (jamás pasos animados inventados); dicho en spec
+  RF-104 y design §A11y.
+- **Próximo paso:** 🧑‍⚖️ firma del paquete (spec+design) → implementación por RF con
+  gates verdes (patrón del paquete inspector-drawer).
 - **Firmas pendientes:** mockup · spec/design.
 - **Contexto caliente (candidatos a decisión en la iteración):** ① la ruta del repo
   NO viaja en el request — el daemon la conoce por flag/env/registro explícito
