@@ -110,6 +110,10 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ path }),
     }),
+
+  // listArneses — the registered arnés→path entries (S2). The page uses it to know,
+  // WITHOUT a doomed 404 round-trip, whether a fuente read can even be confined.
+  listArneses: () => req<{ arnes: string; path: string }[]>("/api/arneses"),
 }
 
 // fetchAuthToken asks the Tauri shell for the capability token. Returns undefined in the

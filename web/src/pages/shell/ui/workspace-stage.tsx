@@ -31,6 +31,10 @@ export function WorkspaceStage() {
   // Reporte de conformance del arnés visto (RF-91). undefined = no disponible — el
   // inspector lo DICE; jamás se finge un «sin hallazgos» sin dato.
   const [conformance, setConformance] = useState<ConformanceResult[]>()
+  // ¿El arnés visto tiene directorio registrado (S2)? Los fixtures embebidos no viven
+  // en disco: sin registro, loadFuente rechaza LOCAL con el mismo mensaje honesto del
+  // daemon — mismo estado, sin un 404 de red que ensucie la consola en el camino normal.
+  const [registrado, setRegistrado] = useState(false)
   const [harnesses, setHarnesses] = useState<HarnessSummary[]>([])
   // Whether the portfolio has been fetched at least once — gates the graph load so a session
   // pointing at a non-indexed arnés never fires a 404 before we know the portfolio.
@@ -82,6 +86,16 @@ export function WorkspaceStage() {
       .catch(() => {
         if (alive) setConformance(undefined)
       })
+    // Registro arnés→dir (S2): decide si la lectura de fuente puede confinarse.
+    setRegistrado(false)
+    api
+      .listArneses()
+      .then((entries) => {
+        if (alive) setRegistrado(entries.some((e) => e.arnes === viewedId))
+      })
+      .catch(() => {
+        if (alive) setRegistrado(false)
+      })
     return () => {
       alive = false
     }
@@ -122,13 +136,20 @@ export function WorkspaceStage() {
   )
 
   // Lectura de la fuente real del nodo (RF-93) — el transporte vive en la página; el
-  // inspector recibe el callback (fe-transporte-independiente).
+  // inspector recibe el callback (fe-transporte-independiente). Un arnés sin directorio
+  // registrado rechaza LOCAL con el mensaje del daemon (sin 404 de red en consola).
   const loadFuente = useCallback(
-    (nodeId: string) =>
-      viewedId
-        ? api.getNodeFuente(viewedId, nodeId)
-        : Promise.reject(new Error("sin arnés activo")),
-    [viewedId],
+    (nodeId: string) => {
+      if (!viewedId) return Promise.reject(new Error("sin arnés activo"))
+      if (!registrado)
+        return Promise.reject(
+          new Error(
+            "el arnés no tiene directorio registrado — carga la carpeta (PUT /api/arneses/{id}) para leer su fuente",
+          ),
+        )
+      return api.getNodeFuente(viewedId, nodeId)
+    },
+    [viewedId, registrado],
   )
 
   if (!s) {

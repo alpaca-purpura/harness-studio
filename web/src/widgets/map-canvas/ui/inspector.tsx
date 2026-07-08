@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   alwFor,
   type Box,
@@ -587,11 +587,16 @@ function Contenido({
   loadFuente?: ((nodeId: string) => Promise<string>) | undefined
 }) {
   const [fuente, setFuente] = useState<FuenteState>()
+  // pedido: para qué (nodo, loadFuente) ya se disparó la lectura — un ref (no estado)
+  // para que el «cargando» no re-dispare el effect (su cleanup mataría el fetch en
+  // vuelo). Un loadFuente NUEVO invalida (p.ej. la página supo del registro del arnés).
+  const pedido = useRef<{ id: string; fn: (nodeId: string) => Promise<string> }>(undefined)
 
   // Carga perezosa: solo al activar la tab, una vez por nodo.
   useEffect(() => {
     if (!active || !loadFuente || !box.fuente_path) return
-    if (fuente?.id === box.id) return
+    if (pedido.current?.id === box.id && pedido.current.fn === loadFuente) return
+    pedido.current = { id: box.id, fn: loadFuente }
     let alive = true
     setFuente({ id: box.id, estado: "cargando" })
     loadFuente(box.id).then(
@@ -610,7 +615,7 @@ function Contenido({
     return () => {
       alive = false
     }
-  }, [active, loadFuente, box.id, box.fuente_path, fuente?.id])
+  }, [active, loadFuente, box.id, box.fuente_path])
 
   return (
     <>
