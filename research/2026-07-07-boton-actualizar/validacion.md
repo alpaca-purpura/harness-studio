@@ -62,3 +62,37 @@ browser MCP quedó tomado por el WM, igual que en el click-through del mockup v2
 Script: `valida.mjs` (scratchpad de la sesión) — escenarios idle · update · ya-al-dia ·
 build-roto · no-escribible · sin-repo · mockup; screenshots `shots/*.png` revisados
 lado a lado contra `mockup-caso-01..05.png`.
+
+## Hallazgo post-validación (2026-07-07 noche) — colisión de nombre rompe el ícono del escritorio
+
+**Síntoma reportado por el operador:** click en el ícono ArnesIA → no abre ventana, sin
+error visible. El daemon SÍ estaba vivo (`:4200` respondía 200 en 6ms).
+
+**Causa raíz (verificada):** el `.desktop` del .deb dice `Exec=arnesia` SIN ruta absoluta.
+La migración de esta feature instaló el daemon Go como `~/.local/bin/arnesia`, y el PATH
+de la sesión (`systemctl --user show-environment`) pone `~/.local/bin` ANTES de
+`/usr/bin` → el ícono ejecuta el **daemon Go sin argumentos** (imprime usage y sale, con
+`Terminal=false` nadie lo ve) en vez del **shell Tauri** `/usr/bin/arnesia`. La línea 15
+de este archivo («queda como instalación inicial; el ciclo diario ya no lo toca») no vio
+que el binario del shell en el .deb TAMBIÉN se llama `arnesia`.
+
+**Remediación local aplicada (fuera del repo, reversible):**
+- `~/.local/share/applications/ArnesIA.desktop` — override user-level (precede al de
+  `/usr/share/applications`), `desktop-file-validate` OK.
+- `~/.local/bin/arnesia-shell-launcher` — Exec absoluto a `/usr/bin/arnesia` + **log de
+  cada lanzamiento** en `~/.arnesia/logs/shell.log` (timestamp, DISPLAY, sesión; stdout+
+  stderr del shell; rotación simple a 1MB) → responde el pedido del operador de un
+  «monitoreador» para diagnosticar arranques fallidos.
+- Verificado E2E: launcher → ventana `arnesia.Arnesia ArnesIA` abierta, proceso
+  `/usr/bin/arnesia` vivo, lanzamiento registrado en el log.
+
+**Observación adicional:** al reusar el daemon externo el shell loguea
+`[arnesia] daemon ya activo en 127.0.0.1:4200; no spawneo (dev: WebView sin token)` —
+funcionó, pero la ruta «shell sin token contra daemon pre-existente» quedó ejercitada
+solo de facto.
+
+**Deuda de producto (candidata a desviación #7 para el gate final):** la colisión
+`arnesia` (shell Tauri del bundle) ↔ `arnesia` (daemon del self-update) es del diseño,
+no de esta máquina. Opciones para el operador: (a) el bundle genera el `.desktop` con
+Exec absoluto (Tauri `desktopTemplate`), (b) renombrar uno de los dos binarios,
+(c) self-update instala como `arnesia-daemon` alineado con el sidecar del .deb.

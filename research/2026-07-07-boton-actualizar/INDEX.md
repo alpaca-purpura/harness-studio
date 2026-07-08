@@ -71,6 +71,13 @@ S1 gratis) · `os.Executable()` post-rename da `(deleted)` en Linux (decisión #
 
 ## Retomar aquí
 
+- **Hallazgo post-validación (2026-07-07 noche):** la migración a `~/.local/bin/arnesia`
+  ROMPIÓ el ícono del escritorio — el `.desktop` del .deb dice `Exec=arnesia` sin ruta y
+  PATH resuelve el daemon Go (usage y sale) en vez del shell Tauri `/usr/bin/arnesia`.
+  Remediado local (override `~/.local/share/applications/ArnesIA.desktop` →
+  `~/.local/bin/arnesia-shell-launcher` con log por lanzamiento en
+  `~/.arnesia/logs/shell.log`); la colisión de nombre es deuda de producto → **candidata
+  a desviación #7 del gate final**. Detalle en `validacion.md` §Hallazgo post-validación.
 - **Último hecho (2026-07-07, v2):** el operador preguntó «¿dónde estará el botón?» →
   **decisión #5 PROPUESTA**: vista global **Ajustes** (⚙ al pie del rail; hoy ComingSoon
   `global-view.tsx:14`) — la tarjeta la estrena; futuras tarjetas (marketplaces · daemon)
