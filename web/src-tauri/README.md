@@ -16,7 +16,8 @@ lanzamiento del daemon como *sidecar*. El mismo daemon corre headless (dev/CI/se
 
 ```
 web/src-tauri/
-├─ Cargo.toml            crate `arnesia` (lib `arnesia_lib` + bin `arnesia`); deps Tauri 2
+├─ Cargo.toml            crate `arnesia` (lib `arnesia_lib` + bin `arnesia-app`, HS-14: nombre
+│                        distinto del daemon Go `arnesia` — evita colisión de PATH); deps Tauri 2
 ├─ tauri.conf.json       config canónica Tauri 2 (schema v2)
 ├─ build.rs              tauri_build::build()
 ├─ src/
@@ -50,7 +51,8 @@ Mint 22 = Ubuntu 24.04 base. Riesgos que "muerden primero" y sus mitigaciones ya
   **antes** de construir el WebView (solo en Linux). Si aún falla, probar además
   `WEBKIT_DISABLE_COMPOSITING_MODE=1`.
 - **Doble ventana / segunda instancia:** plugin **single-instance** registrado de primero en
-  `run()`. (Combinar con el lock propio del daemon `:4200` bind-or-bail / flock.)
+  `run()`; el callback reenfoca la ventana `main` existente (HS-14 fix ③), no abre una segunda.
+  (Combinar con el lock propio del daemon `:4200` bind-or-bail / flock.)
 
 Deps de sistema en Mint/Ubuntu 24.04 (verificar al instalar):
 `libwebkit2gtk-4.1-dev`, `build-essential`, `libssl-dev`, `libayatana-appindicator3-dev`,

@@ -675,7 +675,7 @@ ficha gemela DH-18/PB-25) · I-59 (backflow al kit).
 *Siguiente:* 🧑‍⚖️ gate final lado a lado (PARIDAD.md + `shots/fase5/`) · entregar
 `ficha-devstudio-artefactos.md` al agente de DevStudio.
 
-### HS-14 · Diagnóstico «la app instalada no re-levanta» — daemon zombi + colisión de nombre `arnesia`; 3 fixes fichados — `decidida` · `vig:vigente`
+### HS-14 · Diagnóstico «la app instalada no re-levanta» — daemon zombi + colisión de nombre `arnesia`; 3 fixes EJECUTADOS y verificados — `decidida` · `vig:vigente`
 
 *Cruda (operador, 2026-07-08):* «por qué cuando cierro la aplicación instalada y vuelvo a
 abrirla, ya no levanta?» → diagnóstico → «matalo y ficha los 3 fixes».
@@ -699,7 +699,7 @@ sin ventana ni mensaje visible. El workaround vigente es un override user-level
 NO cubre la terminal. **Remedio aplicado:** zombi PID 959256 muerto, `:4200` libre — el
 próximo lanzamiento del shell spawnea SU sidecar con token (mundo limpio).
 
-*Los 3 fixes fichados (pendientes de implementar):*
+*Los 3 fixes fichados:*
 1. **Colisión de nombre shell⇄daemon** — el .deb instala el shell Tauri como
    `/usr/bin/arnesia` y el self-update instala el daemon como `~/.local/bin/arnesia`; el
    `.desktop` del paquete dice `Exec=arnesia` sin ruta → en PATH típico gana el daemon.
@@ -715,13 +715,42 @@ próximo lanzamiento del shell spawnea SU sidecar con token (mundo limpio).
    Fix: implementar reenfoque de la ventana `main` en el callback (y a futuro el
    deep-link `arnesia://`, ojo bug tauri#12726).
 
+*Ejecutado y verificado (2026-07-08, mismo día):* los 3 fixes, en el archivo correcto (no
+literalmente `bundle.sh` como decía el fichaje original — la raíz real es `Cargo.toml`):
+① **`Cargo.toml` `[[bin]] name = "arnesia-app"`** (no `bundle.sh`: Tauri toma el nombre del
+binario directo de cargo — así lo documenta `tauri_utils::Config::main_binary_name`, sin
+tocar `tauri.conf.json`). El daemon Go se queda `arnesia` (VISION.md fija ese nombre; se
+renombra el shell, no al revés). ② **`conectando.html`** sondea `/healthz` en vez de
+`/api/version` (el único endpoint exento de los 3 gates de `auth.go`; alineado con lo que
+`superficie-local-confinada.md` ya declaraba). ③ **`lib.rs`** implementa el callback:
+`get_webview_window("main")` + `unminimize`/`show`/`set_focus`. Retirado el workaround
+(`~/.local/share/applications/ArnesIA.desktop` + `arnesia-shell-launcher`) — y de hecho
+**el workaround ya estaba roto por el fix ①** antes de retirarlo (`exec: /usr/bin/arnesia:
+not found`, confirmado en el log), prueba en vivo de que dejó de hacer falta.
+**Verificación real, no simulada:** `cargo check`/`clippy -D warnings` limpios · `go test
+./... -race` + `golangci-lint` 0 issues (sin tocar Go) · `pnpm run verify` (tsc·biome·
+depcruise·steiger·stylelint) verde · bundle completo (`scripts/bundle.sh`) regenerado ·
+`.deb` **instalado de verdad** (`sudo dpkg -i`, el operador corrió el comando) →
+`/usr/bin/arnesia-app` sin colisión con `~/.local/bin/arnesia` (probado con `which` bajo el
+PATH exacto que rompía antes) · `gtk-launch ArnesIA` real levanta ventana+sidecar+`:4200` ·
+foco movido a otra ventana + relanzado por ícono → reenfoca la ventana existente, CERO
+duplicados, un solo proceso. `arnesia conformance --arnes` sobre el dogfood real (vía
+`arnesia index`, no el manifiesto crudo): **20/21 pass, 1 warn-fail** — exactamente el
+diente honesto ya documentado en CLAUDE.md (`art-es-path`), sin drift nuevo.
+**Auditoría arch-as-code post-fix:** un drift preexistente encontrado y reparado (no
+introducido por estos fixes) — `superficie-local-confinada.md` v1.0 describía
+`invoke('auth_token')`, pero el código usa `initialization_script` desde HS-11 #8 sin
+sincronizar el nodo → v1.1. Check nuevo `single-instance-reenfoca` en
+`core-no-importa-shell.md` (v1.1→v1.2, 4→5 checks, mismo patrón «revisión manual» que
+`shell-emite-token`/`mint-env-en-launcher`) — `arch/` 100→**101 checks**, ruleset total
+238→**239** (confirmado corriendo `arnesia conformance --todo`, no solo prosa).
+
 *Conecta:* HS-06 (los 3 gates de auth que hacen letal al huérfano-con-token) · HS-11
 (instalador .deb/bundle.sh + self-update donde vive la colisión) · HS-04 (shell Tauri v1,
 mitigaciones Mint).
 
-*Siguiente:* implementar los 3 fixes (1 = bundle.sh/.desktop · 2 = conectando.html ·
-3 = lib.rs) — chicos, sin paquete de research propio; validar contra binario instalado
-(norma HS-11).
+*Siguiente:* nada bloqueante. Deuda menor no fichada: el TODO de deep-link `arnesia://` en
+el mismo callback single-instance sigue pendiente (fase futura, ojo bug tauri#12726).
 
 <!-- Próximas: HS-15, … -->
 
@@ -746,3 +775,4 @@ mitigaciones Mint).
 | 2026-07-07 | **HS-11 cierre total («termina lo que queda»): loader→índice VIVO + Fase E COMPLETA + instalador REAL.** WIP Hito 2 del operador a main («pon todo en main»). `IndexPort.Upsert` + carga al registrar y al boot — «Cargar carpeta» E2E verde. Fase E según plan firmado: `adapters/artifact` · `SpawnOpts.Permisos`→flags CC-native · `control_request` reenviado/respondido (Dock, D3) · `POST …/boxes/{boxId}/run` (D2) · permission REAL con grants TTL (deny>ask>allow) · 2 arch-tests flipados de skip a reales · 4 changelogs «realizado en vivo». Instalador: SPA go:embed servida por el daemon (token solo API) · `scripts/bundle.sh` · `.goreleaser.yaml` · **bundles producidos con el daemon del día**: `.deb` 7.6M (binario del paquete probado E2E: UI + conformance embebidas) · `.AppImage` 80M (fix bundle.icon) · `.rpm`. Todo verde: race+lint+arch-lint+fmt. Deuda honesta: spike control_response vs claude real · run async · gate post-run · telemetría · codegen · 3 boundaries research. | HS-11 |
 | 2026-07-08 | **Franja Artefactos EJECUTADA (6 fases, spec+design firmados «dale Go»): el hand-off hecho dato.** F1 checks de composición VIVOS en `--arnes` (sin-huerfanos·dead-end·ruta-a-existe·art-identidad·refina-coherente; escritor-unico ajustado a `refina`) → arch 100·ruleset 238 (cifra stale reparada: 27 pass/211 deferred medidos). F2 identidad del art: `entrega[].path/plantilla/refina` aditivos + espejos + conductor lee `path` y el error de `Status` viaja VISIBLE; hallazgo honesto: `art-es-path` caza los 3 art-etiqueta del dogfood (warn, no se silencia). F3 encadenado por filesystem: precondición pre-Spawn (faltante = 409, cero tokens) + `tarea()` con rutas+digest (el doc entero jamás viaja). F4 plantillas dogfood (plantilla-spec + validate_spec estampa done + genera digest + Guardia PostToolUse/Stop, verificado headless REAL block→corrige→pasa) + **medición p11 real: hand-off −90% contexto/insumo** (digest 75 tok vs spec 750; escritor +32% por validación determinista) + backflow forjar-caja. F5 Mapa: franja portada del mockup v2 (chips derivados D1 · gutters D2 · tope+refs D11 · toggle off·auto·todos · fixture Cobranza) — 86/86 stories, consola limpia, PARIDAD.md 7 desviaciones → **gate final humano pendiente**. F6: RF-150 cerrado con evidencia + **reconocedor de hooks** (dogfood = 7 nodos; roto = no-reconocido visible) + ficha gemela DevStudio. | HS-13 |
 | 2026-07-08 | **Diagnóstico «la app instalada no re-levanta» (verificado en vivo) + 3 fixes fichados.** Causa: daemon HUÉRFANO del 7-jul (`~/.local/bin/arnesia serve --repo …` a mano, padre systemd, self-update in-place conserva PID) ocupaba `:4200` → shell siempre attach sin token; los lanzamientos fallidos jamás llegaron a `/usr/bin/arnesia` — `arnesia` pelado resuelve el DAEMON por PATH y muere `bind: address already in use` sin ventana. Ruta del icono verificada E2E sana (launcher→ventana→cierre limpio→relanza). Remedio: zombi muerto, `:4200` libre. Fixes fichados: ① colisión de nombre shell⇄daemon (`Exec=arnesia` sin ruta en el .desktop del .deb → bundle.sh con ruta absoluta o renombre) · ② trampa 401 en attach (`conectando.html` sondea `/api/version` sin token pero `auth.go` solo exime `/healthz` → huérfano-con-token = 401 eterno; sondear `/healthz`) · ③ single-instance callback vacío (`lib.rs` TODO: reapertura tragada sin reenfocar). | HS-14 |
+| 2026-07-08 | **HS-14 cierre: los 3 fixes EJECUTADOS y verificados contra el binario instalado.** ① `Cargo.toml` `[[bin]] name = "arnesia-app"` (no `bundle.sh`: Tauri toma el nombre directo de cargo) — el daemon Go se queda `arnesia` (VISION.md). ② `conectando.html` sondea `/healthz`. ③ `lib.rs` reenfoca (`get_webview_window`+`unminimize`+`show`+`set_focus`). Verificación real: clippy+race+golangci-lint+`pnpm verify` limpios · `.deb` real instalado (`sudo dpkg -i`) · `gtk-launch` real levanta ventana+sidecar · workaround viejo confirmado YA ROTO por el fix ① (`exec: /usr/bin/arnesia: not found`) antes de retirarlo · reenfoque probado moviendo foco + relanzando por ícono, cero duplicados. Auditoría arch-as-code: dogfood `--arnes` vía `index` real 20/21 pass (mismo diente honesto ya documentado, sin drift nuevo); reparado un drift PREEXISTENTE (`superficie-local-confinada.md` describía `invoke('auth_token')`, código usa `initialization_script` desde HS-11 #8) → v1.1; check nuevo `single-instance-reenfoca` en `core-no-importa-shell.md` v1.2 → arch/ 100→**101 checks**, ruleset 238→**239**. | HS-14 |

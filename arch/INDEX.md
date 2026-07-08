@@ -41,13 +41,13 @@ check llega con HS-08, ver runner unificado arriba).
 
 | Nodo | Regla | Estado | Versión | Checks | Enforcer |
 |------|-------|--------|---------|--------|----------|
-| [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.1 | 4 | go-arch-lint · arch_test.go |
+| [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.2 | 5 | go-arch-lint · arch_test.go · lib.rs (revisión) |
 | [`boundaries/dominio-independiente-de-transporte.md`](./boundaries/dominio-independiente-de-transporte.md) | El dominio no depende de HTTP/SSE/SQLite | 🌱 vivo | 1.0 | 4 | go-arch-lint · depguard |
 | [`boundaries/adaptadores-de-agente-intercambiables.md`](./boundaries/adaptadores-de-agente-intercambiables.md) | Claude Code = un adaptador tras `AgentPort` | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
 | [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | JSONL = verdad; SQLite = índice reconstruible | 🌱 vivo | 1.0 | 4 | arch_test.go · schema |
 | [`boundaries/conductor-no-parsea-jsonl.md`](./boundaries/conductor-no-parsea-jsonl.md) | El conductor consume stream-json/OTel, no parsea JSONL | 🌱 vivo | 1.0 | 4 | depguard · arch_test.go |
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
-| [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.0 | 6 | arch_test.go |
+| [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.2 | 7 | arch_test.go · auth_test.go |
 | [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema + composición del cableado (huérfanos·dead-ends·rutas·refina) | 🌳 enforced | 1.3 | 7 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema · domain.Verificar{SinHuerfanos,DeadEnds,RutaExiste,RefinaCoherente} (ruta `--arnes`) |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
@@ -59,15 +59,18 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 74 checks** — fundacional HS-04
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 76 checks** — fundacional HS-04
 (backend, 7 boundaries · 29 checks; **+3 en franja-artefactos Fase 1** (2026-07-08): `dead-end` ·
 `ruta-a-existe` · `refina-coherente` en `contrato-de-caja-es-fitness-function` v1.3, y `sin-huerfanos`
 pasó de promesa a enforcer vivo `domain.VerificarSinHuerfanos` — los 5 verificadores de composición
-corren en la ruta `--arnes`) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
-· 10 checks + 2 checks nuevos a permisos-gui = 12 checks)** + **HS-07/HS-08 doctrina v1 (2 boundaries ·
+corren en la ruta `--arnes`; **+1 en HS-14** (2026-07-08): `single-instance-reenfoca` en
+`core-no-importa-shell` v1.2 → 33 checks) + HS-05 (frontend, 5 boundaries · 22 checks) + **HS-06 (2 boundaries
+· 10 checks + 2 checks nuevos a permisos-gui + 1 en HS-14** (2026-07-08, `healthz-refleja-cors` en
+`superficie-local-confinada` v1.2 — REGRESIÓN real detectada en producción por el operador el
+mismo día del fix ②, no mejora cosmética; ver su changelog) **= 13 checks)** + **HS-07/HS-08 doctrina v1 (2 boundaries ·
 8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol` — nacieron draft en HS-07,
 **enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)**. **+ [`conventions/`](./conventions/INDEX.md): 8
-convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 100 checks.**
+convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 102 checks.**
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
 > no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**

@@ -19,7 +19,12 @@ name = "arnesia_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "arnesia"
+# HS-14 fix ①: "arnesia" a secas colisiona con el daemon Go (~/.local/bin/arnesia del
+# self-update); PATH lo resuelve primero y el shell nunca levanta (terminal Y el
+# `Exec=arnesia` del .desktop del .deb). VISION.md fija el nombre del binario Go
+# `arnesia`; el shell se renombra (no al revés). Tauri toma este nombre de cargo
+# directo — no hace falta `mainBinaryName` en tauri.conf.json.
+name = "arnesia-app"
 path = "src/main.rs"
 
 [build-dependencies]

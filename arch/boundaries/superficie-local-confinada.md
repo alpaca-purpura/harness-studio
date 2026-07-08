@@ -1,7 +1,7 @@
 ---
 regla: superficie-local-confinada
-version: 1.0
-updated: 2026-07-05
+version: 1.2
+updated: 2026-07-08
 status: enforced
 ledger: HS-06
 sources:
@@ -44,7 +44,12 @@ barrera:
 ## L2 · Realización (este árbol Go+React)
 
 El middleware `withAuth` (`internal/adapters/transport/http/auth.go`) envuelve TODO el mux en tres
-gates en orden; `/healthz` es exento (liveness pura, sin datos ni efectos):
+gates en orden; `/healthz` es exento de Host+token (liveness pura, sin datos ni efectos) — **pero
+SIGUE reflejando CORS** cuando el `Origin` está en el allowlist (v1.2, HS-14): el WebView vive en
+su propio origin (`tauri://localhost`), distinto de `127.0.0.1:<port>`, así que un `fetch()` sin
+`Access-Control-Allow-Origin` en la respuesta es indistinguible de un daemon caído para el cliente,
+aunque el daemon haya respondido 200 en el cable — regresión real, encontrada en producción por el
+operador el mismo día del fix ②.
 
 1. **Host gate (siempre).** `Host` ∈ {`127.0.0.1:<port>`, `localhost:<port>`, `[::1]:<port>`}
    derivados del `--addr`. ⇐ L1 rebinding.
@@ -60,10 +65,15 @@ gates en orden; `/healthz` es exento (liveness pura, sin datos ni efectos):
 **El shell es la raíz de confianza (coherente con [`core-no-importa-shell`](./core-no-importa-shell.md)).**
 El shell Tauri (`web/src-tauri/src/lib.rs`) mint un token de 256 bits por lanzamiento, se lo pasa al
 daemon **solo al spawnearlo** (env `ARNESIA_AUTH_TOKEN`, no por args → no toca el allowlist de la
-capability) y lo expone al WebView por `invoke('auth_token')`. El crédito fluye shell→daemon (env) y
-shell→WebView (comando); **el core sigue sin importar al shell**. En attach a un daemon preexistente
-(dev) el shell no conoce el token → WebView tokenless bajo Host+Origin. El sidecar se mata al salir el
-shell (evita un daemon huérfano con un token irreplicable).
+capability) y lo expone al WebView por `initialization_script` (`window.__ARNESIA_TOKEN__`, corre en
+cada documento del WebView — **candidata #8 firmada HS-11**, reemplaza el `invoke('auth_token')` de
+v1.0: ese comando exigiría abrir IPC a un origin remoto, ya que la SPA que se ve vive en el daemon,
+no en un origin `tauri://`). El crédito fluye shell→daemon (env) y shell→WebView (script de init);
+**el core sigue sin importar al shell**. En attach a un daemon preexistente (dev, o huérfano-con-
+token) el shell no conoce el token → WebView tokenless bajo Host+Origin (la página de arranque
+`conectando.html` sondea `/healthz` — el único endpoint exento de los 3 gates — para no quedar en
+401 eterno esperando el resto de la API; **HS-14 fix ②**). El sidecar se mata al salir el shell
+(evita un daemon huérfano con un token irreplicable).
 
 ## Checklist evaluable
 
@@ -74,7 +84,8 @@ shell (evita un daemon huérfano con un token irreplicable).
 | cero-wildcard-cors | ningún handler emite `Access-Control-Allow-Origin: *` | error | banda Guardia «ACAO wildcard en API que ejecuta agente» | arch_test.go:TestNoWildcardCORS |
 | token-cuando-configurado | con token configurado, toda request lo exige (header o query), compare constante | error | «API sin token pese a estar configurado» | arch_test.go:TestLocalSurfaceConfined |
 | sse-token-o-origin | el stream SSE acepta token por `?token=` (EventSource) y valida Origin | warn | «SSE sin confinamiento (headers imposibles)» | arch_test.go:TestLocalSurfaceConfined |
-| shell-emite-token | el shell mint el token e inyecta por env al spawnear + `invoke('auth_token')`; nunca por args | info | «token en args (visible en ps) o ausente en prod» | web/src-tauri/src/lib.rs (revisión) |
+| shell-emite-token | el shell mint el token e inyecta por env al spawnear + `initialization_script`; nunca por args | info | «token en args (visible en ps) o ausente en prod» | web/src-tauri/src/lib.rs (revisión) |
+| healthz-refleja-cors | `/healthz` refleja `Access-Control-Allow-Origin` para un Origin allowlisted pese a saltar Host+token | error | «WebView ve /healthz como daemon caído por CORS aunque responda 200» | arch_test.go:TestHealthzCORSReflected |
 
 ## Changelog
 
@@ -83,3 +94,21 @@ shell (evita un daemon huérfano con un token irreplicable).
   (Host+Origin+token). L2 = middleware `withAuth` en 3 gates, shell = raíz de confianza que mint e
   inyecta el token (coherente con core⊥shell), degradación dev bajo Host+Origin. **Nace `enforced`**
   (código + tests shippean juntos, a diferencia de los nodos fundacionales `proposed`). 6 checks.
+- 2026-07-08 · v1.1 · HS-14: reparado drift de doc — `shell-emite-token` describía el `invoke('auth_token')`
+  de v1.0, pero el código pasó a `initialization_script` desde HS-11 #8 (candidata «la UI vive en el
+  daemon») sin sincronizar este nodo. Sin cambio de checks (siguen 6); solo texto L2 + checklist
+  alineados con el código real. Documentado también el fix ② del diagnóstico HS-14: `conectando.html`
+  sondeaba `/api/version` (SÍ exige token) en vez de `/healthz` (el único exento) — un daemon
+  huérfano-con-token dejaba el probe en 401 eterno pese a que el gate `/healthz` siempre lo hubiera
+  dejado pasar; corregido al endpoint que este boundary ya declaraba exento.
+- 2026-07-08 · v1.2 · HS-14, REGRESIÓN REAL detectada por el operador el mismo día (instaló el fix
+  ② y siguió viendo «el daemon no responde»): el early-return de `/healthz` saltaba TODO el
+  middleware, incluida la reflexión CORS — un `fetch()` cross-origin del WebView (`tauri://localhost`
+  ≠ `127.0.0.1:4200`) veía la respuesta 200 sin `Access-Control-Allow-Origin` como error de red, no
+  como éxito. `curl` (sin enforcement CORS) no lo detectaba — por eso pasó la verificación previa.
+  Fix: `/healthz` sigue exento de Host+token, pero refleja CORS si el `Origin` está en el allowlist.
+  Check nuevo `healthz-refleja-cors`: test de regresión REAL (httptest) en
+  `internal/adapters/transport/http/auth_test.go:TestHealthzReflectsCORSForAllowlistedOrigin` (corre
+  siempre en `go test ./...`) + proxy source-scan en `arch_test.go:TestHealthzCORSReflected`
+  (scoped a la rama `/healthz`, no todo el archivo) para que el motor `arnesia conformance` lo
+  corra igual que sus hermanos de este nodo → 7 checks.

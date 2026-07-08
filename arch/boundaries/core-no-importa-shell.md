@@ -1,7 +1,7 @@
 ---
 regla: core-no-importa-shell
-version: 1.1
-updated: 2026-07-07
+version: 1.2
+updated: 2026-07-08
 status: proposed
 ledger: HS-04
 sources:
@@ -73,6 +73,7 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 | shell-solo-composition | solo el shell/launcher levanta o attachea el daemon; el core no auto-lanza ventana | warn | «lógica de ventana en el core» | arch_test.go:TestCoreHasNoShellImport |
 | daemon-servable-headless | existe un entrypoint `serve` que corre sin shell (test de humo) | error | «el daemon no arranca sin shell» | arch_test.go |
 | mint-env-en-launcher | el launcher setea `WEBKIT_DISABLE_DMABUF_RENDERER` (Tauri, Linux) | warn | banda Guardia «WebView Mint sin mitigación DMABUF» | arch_test.go |
+| single-instance-reenfoca | la 2a instancia no abre una ventana duplicada; reenfoca la existente (`unminimize`+`show`+`set_focus`) | warn | «reapertura tragada en silencio (sin ventana visible)» | web/src-tauri/src/lib.rs (revisión) |
 
 ## Changelog
 
@@ -84,3 +85,9 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
   HS-10 (`--project-path . --arch-file arch/fitness/.go-arch-lint.yml`, deepScan off — el linter
   de imports es el enforcement; v3 allow-list, sin `cannotDependOn`). Sin cambios de checks ni de
   status.
+- 2026-07-08 · v1.2 · HS-14 fix ③: el callback del plugin single-instance estaba vacío (`TODO`) —
+  una 2a instancia se tragaba en silencio sin reenfocar la ventana existente. Implementado
+  `get_webview_window("main")` + `unminimize`/`show`/`set_focus`; verificado en vivo (binario
+  instalado, `gtk-launch` real, foco movido a otra ventana y devuelto tras relanzar, sin ventana
+  duplicada). Check nuevo `single-instance-reenfoca` (revisión manual, mismo patrón que
+  `mint-env-en-launcher`) → **5 checks**.

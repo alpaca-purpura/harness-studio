@@ -44,7 +44,7 @@ stream-json (live) + OTel (hooks/skills) + JSONL (enumerar/replay, jamás parsea
 taxonomía **AG-UI** sobre SSE (emisor Go propio) + **assistant-ui** + **CodeMirror 6/merge**;
 component-selection (format-authoring = trampa). **SSE** multiplexado 1 conexión. **Estado FE** =
 Zustand + hash-state. **Arquitectura as code** = árbol [`arch/`](./arch/INDEX.md) (16 boundaries +
-`conventions/` = **100 checks** · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; el runner
+`conventions/` = **101 checks** · schemas L0+contrato · go-arch-lint) espejando `knowledge/`; el runner
 `arnesia conformance` (construido en HS-08) corre ambos. Corrección propagada: `--bare` rompe auth de suscripción
 (knowledge headless v1.1). **HS-06** endureció el shell v1 (2 boundaries `enforced`: superficie-local-
 confinada + sesion-viva-consistente; fitness tests corriendo).
@@ -126,9 +126,13 @@ jamás descriptor aparte; round-trip dogfood **15/15 PASS**
 (`research/2026-07-07-interop-devstudio/`). **Deuda restante (no bloquea):**
 spike wire-format `control_response` vs claude real · run async+202 · gate conformance post-run · codegen
 `gen/` · capas Tokens/Desempeño/Proceso esperan telemetría · los 211 checks `deferred` del ruleset → CI ·
-3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel) ·
-**3 fixes shell/instalador (HS-14)**: colisión de nombre shell⇄daemon (`Exec=arnesia` sin ruta) ·
-trampa 401 attach (sondear `/healthz`, no `/api/version`) · single-instance sin reenfoque. Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
+3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel).
+**HS-14 (2026-07-08) CERRADA**: los 3 fixes shell/instalador EJECUTADOS y verificados contra el
+binario instalado — colisión de nombre shell⇄daemon (bin del shell renombrado `arnesia-app` en
+`Cargo.toml`, el daemon Go se queda `arnesia`) · trampa 401 en attach (`conectando.html` sondea
+`/healthz`, no `/api/version`) · single-instance reenfoca (`lib.rs`, ya no se traga la reapertura
+en silencio). arch/ 100→**101 checks** (nuevo `single-instance-reenfoca` + drift reparado en
+`superficie-local-confinada`). Shell UX = **Command Rail (A)** + **multisesión (it.14)**: el borde izquierdo es
 un **rail de sesiones** (tabs paralelas tipo WARP, colapsable a gutter; sesión = **frente de trabajo**
 N:1 con arnés, con su conversación CC viva; estado CC vivo `streaming/await/idle`; persisten) · vistas =
 tira slim por sesión · visual a pantalla casi completa · chat invocado (⌘K) como dock derecho colapsable. Portafolio con
@@ -149,7 +153,7 @@ actualiza CADA SEMANA vía [`knowledge/CADENCE.md`](./knowledge/CADENCE.md), NO 
 **16 boundary nodes** [11 backend + 5 FE; HS-04 nació con 7 backend + 5 FE, HS-06 sumó superficie-local-
 confinada + sesion-viva-consistente, HS-07 sumó orquestacion-determinista-entre-cajas + permisos-derivan-del-rol]
 L1↔L2 + [`conventions/`](./arch/conventions/INDEX.md) [8 nodes:
-go/ts-style·types·naming·commits·hooks·editor·ci] = **100 checks** `enforced_by:` · `model/` C4 ·
+go/ts-style·types·naming·commits·hooks·editor·ci] = **101 checks** `enforced_by:` · `model/` C4 ·
 `contracts/` schemas L0+contrato · `fitness/` go-arch-lint [Go] + enforcers FE en `web/`
 [dependency-cruiser·steiger·stylelint·biome] + configs de estilo en raíz; se revisa al cambiar, mecanismo
 en `arch/CADENCE.md` y `arch/conventions/CADENCE.md`) ·

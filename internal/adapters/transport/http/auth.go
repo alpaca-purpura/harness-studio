@@ -74,6 +74,16 @@ func withAuth(cfg AuthConfig, next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/healthz" {
+			// Sin Host/token gate (liveness pura), pero SIGUE necesitando el reflejo CORS: el
+			// WebView vive en su propio origin (tauri://localhost / http://tauri.localhost),
+			// distinto de 127.0.0.1:4200. Sin este header, un fetch() cross-origin del shell
+			// ve /healthz como error de red pese a que el daemon respondió 200 — regresión
+			// real encontrada en vivo (HS-14): el early-return original saltaba esto entero.
+			if origin := r.Header.Get("Origin"); origin != "" && origins[origin] {
+				h := w.Header()
+				h.Set("Access-Control-Allow-Origin", origin)
+				h.Add("Vary", "Origin")
+			}
 			next.ServeHTTP(w, r)
 			return
 		}

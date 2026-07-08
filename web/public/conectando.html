@@ -76,19 +76,22 @@
 	<div id="fallo">
 		<h1>El daemon no responde</h1>
 		<p>No hubo respuesta en <code>127.0.0.1:4200</code> tras 15 segundos.
-		Revisa <code>~/.arnesia/logs/shell.log</code> para ver qué pasó.</p>
+		Cerrá la aplicación y volvé a abrirla; si persiste, puede haber otro proceso
+		ocupando el puerto.</p>
 		<button onclick="location.reload()">Reintentar</button>
 	</div>
 </div>
 <script>
-	// Sondea GET /api/version (endpoint de salud sin token; el gate S1 del daemon
-	// permite el Origin del WebView) y salta a la UI servida por el daemon. Tras 15s
-	// muestra el fallo pero SIGUE sondeando: si el daemon tarda, se autorrecupera.
+	// Sondea GET /healthz (HS-14 fix ②: es el ÚNICO endpoint exento de los 3 gates de
+	// auth.go — Host/Origin/token; /api/version SÍ exige token si hay uno configurado, y
+	// un daemon huérfano-con-token dejaba esto en 401 eterno pese al comentario viejo) y
+	// salta a la UI servida por el daemon. Tras 15s muestra el fallo pero SIGUE
+	// sondeando: si el daemon tarda, se autorrecupera.
 	const DAEMON = "http://127.0.0.1:4200";
 	const ARRANQUE = Date.now();
 	async function sondear() {
 		try {
-			const r = await fetch(DAEMON + "/api/version", { cache: "no-store" });
+			const r = await fetch(DAEMON + "/healthz", { cache: "no-store" });
 			if (r.ok) { location.replace(DAEMON + "/"); return; }
 		} catch { /* daemon aún no arriba */ }
 		if (Date.now() - ARRANQUE > 15000) document.body.dataset.estado = "fallo";

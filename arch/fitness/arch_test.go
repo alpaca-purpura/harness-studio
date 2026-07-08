@@ -890,6 +890,31 @@ func TestLocalSurfaceConfined(t *testing.T) {
 	}
 }
 
+// TestHealthzCORSReflected is HS-14's regression test: /healthz used to bypass CORS entirely
+// (early-return before the Origin gate ran), so a WebView fetch() from its own origin
+// (tauri://localhost, distinct from 127.0.0.1:4200) saw a healthy 200 as a network error —
+// indistinguishable from "the daemon is down". Scoped to the /healthz branch specifically (not
+// a whole-file scan) so this can't pass just because /api/version sets the header elsewhere.
+func TestHealthzCORSReflected(t *testing.T) {
+	auth := readSourceFile(t, "internal/adapters/transport/http/auth.go")
+	if auth == "" {
+		return
+	}
+	i := strings.Index(auth, `r.URL.Path == "/healthz"`)
+	if i < 0 {
+		t.Fatal("healthz branch not found in auth.go")
+	}
+	j := strings.Index(auth[i:], "next.ServeHTTP(w, r)")
+	if j < 0 {
+		t.Fatal("healthz branch never falls through to next.ServeHTTP")
+	}
+	branch := auth[i : i+j]
+	if !strings.Contains(branch, "Access-Control-Allow-Origin") {
+		t.Errorf("the /healthz branch skips CORS reflection — a cross-origin WebView fetch() " +
+			"sees a healthy daemon as a network error (HS-14 regression)")
+	}
+}
+
 // --- sesion-viva-consistente.md (source scans) ---
 
 func TestNoSilentEventDrop(t *testing.T) {

@@ -5,7 +5,8 @@
 //! (boundary `core-no-importa-shell`).
 //!
 //! **La UI vive en el daemon (candidata #8 firmada):** el WebView nace en la página
-//! embebida `conectando.html`, que sondea `/api/version` y salta a
+//! embebida `conectando.html`, que sondea `/healthz` (HS-14 fix ②: el único endpoint
+//! exento de los 3 gates de auth.go) y salta a
 //! `http://127.0.0.1:4200/` — la SPA que se ve SIEMPRE es la servida por el binario Go
 //! (un solo cuerpo desplegable UI+API; el self-update refresca ambas). La SPA embebida
 //! del bundle deja de mostrarse: queda solo como transporte de `conectando.html`.
@@ -21,7 +22,7 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tauri::{WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
@@ -45,10 +46,17 @@ pub fn run() {
 
     tauri::Builder::default()
         // single-instance DEBE ir de primero (recomendación oficial del plugin). Mitigación Mint:
-        // una sola ventana; al reabrir, la 2a instancia reenfoca la existente en vez de duplicar.
-        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
-            // TODO(fase futura): reenfocar la ventana "main" y, si aplica, rutear el deep-link
-            // `arnesia://` recibido en `_argv` (ojo bug single-instance+deep-link tauri#12726).
+        // una sola ventana; al reabrir, la 2a instancia reenfoca la existente en vez de duplicar
+        // (HS-14 fix ③ — el callback estaba vacío: una 2a instancia se tragaba en silencio sin
+        // reenfocar nada).
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.unminimize();
+                let _ = win.show();
+                let _ = win.set_focus();
+            }
+            // TODO(fase futura): rutear el deep-link `arnesia://` recibido en `_argv`
+            // (ojo bug single-instance+deep-link tauri#12726).
         }))
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
