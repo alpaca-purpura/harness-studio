@@ -60,7 +60,7 @@
           { "art": "estándar de spec", "de": "base:std-spec", "requerido": true }
         ],
         "entrega": [
-          { "art": "spec.md", "escritor_unico": true }
+          { "art": "spec.md", "path": "spec.md", "escritor_unico": true }
         ],
         "ruta": [
           { "a": "builder", "si": "gate del spec verde" },

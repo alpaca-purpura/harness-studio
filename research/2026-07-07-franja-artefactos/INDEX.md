@@ -26,10 +26,19 @@ en [`viabilidad.md`](./viabilidad.md) · decisiones propuestas en
   11 paquetes ok · golangci 0 issues. As-code: boundary
   `contrato-de-caja-es-fitness-function` v1.3 (4→7 filas) · arch/INDEX 97→100 ·
   CLAUDE.md sincronizado (cifra stale 24/211→27/211-de-238 medida hoy).
-- **Próximo paso:** Fase 2 — identidad del art (RF-110..112): schema aditivo
-  `entrega[].path/plantilla/refina` + espejo Go completo + parser + conductor
-  (`artifactRef` con path; error de `Status` visible) + check `art-es-path` + dogfood
-  `path: spec.md`. Luego 3/4 (conductor+plantillas, medición p11) → 5 (Mapa+PARIDAD) → 6.
+- **FASE 2 COMPLETA (RF-110..112):** schema aditivo `entrega[].path/plantilla/refina`
+  (+`$comment` D3/D9; contratos viejos validan sin cambios) · espejo `domain.Output`
+  completo · loader parsea vía json-tags sin cambio (verificado: `path` round-tripea) ·
+  conductor: `artifactRef` prefiere `entrega[0].path` y el error de `artifacts.Status`
+  viaja VISIBLE en `BoxOutcome.Advertencias` → `RunResult.advertencias` + slog.Warn
+  (jamás descartado; `TestConductorArtifactIdentity`) · check `art-es-path` (warn) vivo ·
+  dogfood `spec-writer` declara `path: spec.md` · fixture `dev-full-cycle.graph.json`
+  sincronizado (sin agrandar drift). **HALLAZGO HONESTO:** `--arnes` ahora 21 checks =
+  20 pass + 1 warn-fail — `art-es-path` caza los 3 art-etiqueta reales
+  (builder/reviewer/releaser); severidad warn NO bloquea el gate; NO se silencia con
+  paths inventados (regla del design).
+- **Próximo paso:** Fase 3 — precondiciones pre-Spawn + `tarea()` con rutas+digest
+  (RF-120..121). Luego 4 (plantillas dogfood, medición p11) → 5 (Mapa+PARIDAD) → 6.
 - **Firmas:** D1–D11 ✅ · spec.md+design.md ✅ (2026-07-08). Gate final pendiente =
   PARIDAD.md lado a lado tras Fase 5.
 - **Hallazgos de auditoría colaterales** (independientes de la firma, ver §8 de

@@ -82,8 +82,9 @@ specs (dogfood-first) — doctrina BAJADA A EJECUTABLE: contrato de caja fusiona
 (`box.contract.schema.json`+`domain.Contract`, 3 ejes) · `Clase` canónica de 10 primitivas · manifiesto del
 arnés en `graph.l0` (fases·spine·META) · motor `arnesia conformance` construido (hexagonal; 238 checks a
 datos — honesto: **27 pass real + 211 `deferred`** en `--todo`, medido 2026-07-08; la potencia determinista
-vive en la ruta `--arnes` = **20/20 verde** en el dogfood, con los 5 checks de composición de
-franja-artefactos Fase 1 vivos)** · **fase 5 (Implementación, HS-09) EN CURSO — Hito 1 del Mapa
+vive en la ruta `--arnes` = **21 checks en el dogfood: 20 pass + 1 warn-fail HONESTO**
+(`art-es-path` caza los 3 art-etiqueta reales — el warn es el diente, no se silencia con paths
+inventados; los 6 checks de composición/identidad de franja-artefactos F1+F2 vivos)** · **fase 5 (Implementación, HS-09) EN CURSO — Hito 1 del Mapa
 LANDEADO y VERIFICADO EN VIVO** (commits `31a7532`/`c013dc3`/`9cd8e77`/`92b0bcf`): el Mapa (**sustrato
 HTML+SVG**, `<MapCanvas>` en `widgets/map-canvas`) renderiza el dogfood real `dev-full-cycle` servido por el
 loader dogfood→índice (Guardia · carriles por fase · Base; nodos por `clase`; `ComingSoon` ya swapeado;

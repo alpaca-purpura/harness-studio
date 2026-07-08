@@ -173,6 +173,7 @@ func (s *ConformanceService) RunGraph(_ context.Context, raw []byte, baseDir str
 		domain.VerificarRutaExiste(g),
 		domain.VerificarArtIdentidad(g),
 		domain.VerificarRefinaCoherente(g),
+		domain.VerificarArtEsPath(g),
 	)
 
 	// 5) Firewall CC-native: sin claves fantasma en los fuentes de los nodos.

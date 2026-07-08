@@ -9,7 +9,7 @@
 // fase 5) remain honest t.Skip TODOs.
 //
 // This is the arch-side twin of the knowledge/ checklists: `arnesia conformance` parses
-// knowledge/ (138 checks) + arch/ (97 checks) = 235 checks as data and runs go-arch-lint +
+// knowledge/ (138 checks) + arch/ (100 checks) = 238 checks as data and runs go-arch-lint +
 // these tests + schema validation + the methodology checks in one severity+signal report.
 // See arch/CADENCE.md.
 package fitness
@@ -607,6 +607,56 @@ func TestConductorOwnsBoxRouting(t *testing.T) {
 		}
 		if sess.sends != 1 {
 			t.Errorf("sends = %d, want 1 (stopped immediately on blocked)", sess.sends)
+		}
+	})
+}
+
+// trackingArtifacts records the ref the conductor reads and can fail the read.
+type trackingArtifacts struct {
+	lastRef string
+	err     error
+}
+
+func (a *trackingArtifacts) Status(_ context.Context, _, ref string) (string, bool, error) {
+	a.lastRef = ref
+	if a.err != nil {
+		return "", false, a.err
+	}
+	return "done", true, nil
+}
+
+// TestConductorArtifactIdentity enforces RF-111 (franja-artefactos D3): the conductor
+// reads the entrega's declared `path` when present (artefacto-archivo wins over the art
+// label) and an artifact-status read error is NEVER discarded silently — it surfaces in
+// the outcome's Advertencias without breaking the loop.
+func TestConductorArtifactIdentity(t *testing.T) {
+	t.Run("entrega.path wins over the art label", func(t *testing.T) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, 3)}
+		arts := &trackingArtifacts{}
+		c := usecase.NewBoxConductor(&scriptedAgent{sess: sess}, arts, 3, 40)
+		box := boxWithRuta(nil, nil)
+		box.Contract.Entrega = []domain.Output{{Art: "spec.md", Path: "docs/spec.md"}}
+		if _, err := c.Run(context.Background(), box); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if arts.lastRef != "docs/spec.md" {
+			t.Errorf("conductor leyó %q, want docs/spec.md (entrega.path manda sobre art)", arts.lastRef)
+		}
+	})
+
+	t.Run("status read error is visible, never silent", func(t *testing.T) {
+		sess := &scriptedSession{events: make(chan ports.AgentEvent, 3)}
+		arts := &trackingArtifacts{err: errors.New("frontmatter roto")}
+		c := usecase.NewBoxConductor(&scriptedAgent{sess: sess}, arts, 1, 40)
+		out, err := c.Run(context.Background(), boxWithRuta(nil, &domain.Handoff{Cuando: "x", A: "humano"}))
+		if err != nil {
+			t.Fatalf("run: %v (el error de status NO debe romper el loop)", err)
+		}
+		if len(out.Advertencias) == 0 {
+			t.Fatal("error de artifacts.Status descartado en silencio — debe viajar en Advertencias (RF-111)")
+		}
+		if !strings.Contains(out.Advertencias[0], "frontmatter roto") {
+			t.Errorf("advertencia %q no conserva la causa", out.Advertencias[0])
 		}
 	})
 }

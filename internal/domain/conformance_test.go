@@ -328,3 +328,29 @@ func TestEscritorUnicoConRefina(t *testing.T) {
 		t.Errorf("cadena refina: want pass, got %s (%s)", r.Veredicto, r.Detalle)
 	}
 }
+
+func TestVerificarArtEsPath(t *testing.T) {
+	pipeline := func(id string, entrega []Output) Box {
+		return Box{ID: id, Contract: &Contract{Caja: true, Arquetipo: ArqPipeline, Entrega: entrega}}
+	}
+
+	// Etiqueta sin path en caja pipeline → warn-fail (el warn es el diente, RF-112).
+	g := Graph{Nodes: []Box{pipeline("rel", []Output{{Art: "release@version"}})}}
+	if r := VerificarArtEsPath(g); r.Veredicto != VeredictoFail {
+		t.Errorf("etiqueta en pipeline: want fail, got %s (%s)", r.Veredicto, r.Detalle)
+	}
+
+	// Con path → pass.
+	g2 := Graph{Nodes: []Box{pipeline("spec", []Output{{Art: "spec.md", Path: "spec.md"}})}}
+	if r := VerificarArtEsPath(g2); r.Veredicto != VeredictoPass {
+		t.Errorf("path declarado: want pass, got %s (%s)", r.Veredicto, r.Detalle)
+	}
+
+	// abierto exento (§8.1, D5).
+	g3 := Graph{Nodes: []Box{{ID: "chat", Contract: &Contract{
+		Caja: true, Arquetipo: ArqAbierto, Entrega: []Output{{Art: "resumen"}},
+	}}}}
+	if r := VerificarArtEsPath(g3); r.Veredicto != VeredictoPass {
+		t.Errorf("abierto exento: want pass, got %s (%s)", r.Veredicto, r.Detalle)
+	}
+}

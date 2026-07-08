@@ -86,6 +86,7 @@
     "entrega": {
       "type": "array",
       "description": "CABLEADO — outputs: artefactos as code que produce. La salida de una caja es la entrada de la siguiente. Un output que nadie consume = dead-end (hallazgo).",
+      "$comment": "Aditivo franja-artefactos D3/D9 (2026-07-08, patrón P3/HS-12): path/plantilla/refina son OPCIONALES — los contratos previos validan sin cambios. Espejo Go: domain.Output.",
       "items": {
         "type": "object",
         "required": ["art"],
@@ -96,6 +97,21 @@
             "type": "boolean",
             "default": true,
             "description": "Un solo escritor autorizado por artefacto (mutation contract). Dos cajas escribiendo el mismo art = hallazgo de conformidad."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "D3 — identidad archivo del artefacto: ruta relativa al cwd del arnés. Presente = artefacto-archivo (el conductor lo statea y lee su document-as-cache); ausente = artefacto-etiqueta («código + tests»). Check warn `art-es-path` para cajas pipeline/excepcion."
+          },
+          "plantilla": {
+            "type": "string",
+            "minLength": 1,
+            "description": "D4 — ruta (relativa a la skill escritora) de la reference con el esqueleto de la plantilla (references/plantilla-<art>.md). Solo entregas que el arnés PRODUCE (D10): los inputs externos se ADMITEN, jamás se plantillan."
+          },
+          "refina": {
+            "type": "string",
+            "minLength": 1,
+            "description": "D9 — esta entrega es una REVISIÓN del art nombrado: única puerta legal a la multi-escritura, siempre cadena lineal (check `refina-coherente`); la versión (v2, v3…) se DERIVA de la cadena, jamás se declara."
           }
         }
       }

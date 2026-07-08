@@ -271,7 +271,13 @@ type Input struct {
 type Output struct {
 	Art           string `json:"art"`
 	EscritorUnico *bool  `json:"escritor_unico,omitempty"`
-	Refina        string `json:"refina,omitempty"`
+	// Path (D3) — identidad archivo: ruta relativa al cwd del arnés. Presente =
+	// artefacto-archivo (stat-eable, document-as-cache); ausente = artefacto-etiqueta.
+	Path string `json:"path,omitempty"`
+	// Plantilla (D4) — ruta relativa a la skill escritora de la reference-esqueleto
+	// (references/plantilla-<art>.md). Solo entregas propias; lo externo se admite (D10).
+	Plantilla string `json:"plantilla,omitempty"`
+	Refina    string `json:"refina,omitempty"`
 }
 
 // Route is a conditional hand-off target (contract.ruta): the real DAG of happy

@@ -33,6 +33,7 @@ contract:
       requerido: true
   entrega:
     - art: spec.md
+      path: spec.md
       escritor_unico: true
   ruta:
     - a: builder

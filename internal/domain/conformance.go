@@ -662,6 +662,33 @@ func VerificarArtIdentidad(g Graph) CheckResult {
 	return veredictoDeLista(c, bad, "identidad de artefactos coherente entre necesita y entrega")
 }
 
+// VerificarArtEsPath (RF-112, warn): a pipeline/excepcion caja promises an exact,
+// verifiable output (document-as-cache) — its primary entrega should declare `path`
+// (artefacto-archivo, D3). A label-only entrega («código + tests») is honest but the
+// conductor cannot stat it: the warn is the tooth, never silenced with invented paths.
+// `abierto` is exempt (§8.1: restricts scope, not steps).
+func VerificarArtEsPath(g Graph) CheckResult {
+	c := composicionCheck("art-es-path", "domain.VerificarArtEsPath", SevWarn,
+		"cajas pipeline/excepcion declaran `path` en su entrega primaria (artefacto-archivo, D3)")
+	var bad []string
+	for _, n := range g.Nodes {
+		if !n.IsCaja() {
+			continue
+		}
+		arq := n.Contract.Arquetipo
+		if arq != ArqPipeline && arq != ArqExcepcion {
+			continue
+		}
+		if len(n.Contract.Entrega) == 0 {
+			continue // sin entrega no hay identidad que exigir (otro problema, otro check).
+		}
+		if n.Contract.Entrega[0].Path == "" {
+			bad = append(bad, n.ID+": entrega '"+n.Contract.Entrega[0].Art+"' sin path (etiqueta)")
+		}
+	}
+	return veredictoDeLista(c, bad, "toda caja pipeline/excepcion declara path en su entrega primaria")
+}
+
 // VerificarRefinaCoherente (RF-104, error): `refina` is the only legal gate to
 // multi-writing (D9) and it must be a linear chain of revisions: (a) the refinador MUST
 // need the very art it refines; (b) if that need comes from a caja, that caja must be a

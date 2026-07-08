@@ -51,6 +51,9 @@ type RunResult struct {
 	Iteraciones int               `json:"iteraciones"`
 	Siguiente   string            `json:"siguiente,omitempty"`
 	Handoff     bool              `json:"handoff"`
+	// Advertencias — lecturas no fatales del run (RF-111): p.ej. un error al leer el
+	// status del artefacto. Visibles, jamás descartadas en silencio.
+	Advertencias []string `json:"advertencias,omitempty"`
 }
 
 // RunService is the daemon entry to the T3 conductor (D2: POST /harnesses/{id}/boxes/
@@ -132,6 +135,9 @@ func (s *RunService) RunBox(ctx context.Context, harnessID, boxID string) (RunRe
 		return RunResult{}, fmt.Errorf("correr caja %q: %w", boxID, err)
 	}
 
+	for _, adv := range out.Advertencias {
+		slog.Warn("run: advertencia del conductor", "run_id", runID, "box", boxID, "detalle", adv)
+	}
 	s.publish(runFrame{
 		RunID: runID, Harness: harnessID, Box: boxID, Kind: "finished", Rol: ps.Rol,
 		Estado: string(out.Estado), Siguiente: out.Siguiente, Handoff: out.Handoff, Iteraciones: out.Iteraciones,
@@ -139,6 +145,7 @@ func (s *RunService) RunBox(ctx context.Context, harnessID, boxID string) (RunRe
 	return RunResult{
 		RunID: runID, Box: out.Box, Rol: ps.Rol, Estado: out.Estado,
 		Iteraciones: out.Iteraciones, Siguiente: out.Siguiente, Handoff: out.Handoff,
+		Advertencias: out.Advertencias,
 	}, nil
 }
 

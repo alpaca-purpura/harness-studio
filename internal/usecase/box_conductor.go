@@ -40,6 +40,9 @@ type BoxOutcome struct {
 	Siguiente   string // next box id / handoff target, from contract.ruta — decided by code.
 	Handoff     bool   // true when Estado=blocked → escalation.
 	Senal       domain.SenalIteracion
+	// Advertencias — non-fatal reads that used to be silent (RF-111): an artifact
+	// status error does not break the loop (empty status stays valid) but is VISIBLE.
+	Advertencias []string
 }
 
 // defaultMaxTurns is the last-resort turn cap: a T3 run NEVER spawns uncapped
@@ -71,6 +74,7 @@ func (c *BoxConductor) RunWith(ctx context.Context, box domain.Box, opts ports.S
 
 	estado := domain.CajaDraft
 	var senal domain.SenalIteracion
+	var advertencias []string
 	artifact := artifactRef(box)
 
 	iters := 0
@@ -87,7 +91,13 @@ func (c *BoxConductor) RunWith(ctx context.Context, box domain.Box, opts ports.S
 		// Read ONLY machine signals: the result subtype + the artifact's document-as-cache
 		// status. The chat text (res.Text) is deliberately ignored for control flow. The
 		// read is confined under the run's cwd (the arnés tree the spawn ran in).
-		status, _, _ := c.artifacts.Status(ctx, opts.Cwd, artifact)
+		status, _, statusErr := c.artifacts.Status(ctx, opts.Cwd, artifact)
+		if statusErr != nil {
+			// RF-111: no rompe el loop (status vacío sigue siendo válido) pero jamás
+			// se descarta en silencio — viaja al resultado del run.
+			advertencias = append(advertencias,
+				fmt.Sprintf("iteración %d: leer status de %q: %v", iters, artifact, statusErr))
+		}
 		senal = domain.SenalIteracion{Subtipo: mapSubtipo(res), EstadoArtefacto: status}
 		estado = domain.AvanzarCaja(estado, senal)
 	}
@@ -97,12 +107,13 @@ func (c *BoxConductor) RunWith(ctx context.Context, box domain.Box, opts ports.S
 	}
 
 	return BoxOutcome{
-		Box:         box.ID,
-		Estado:      estado,
-		Iteraciones: iters,
-		Siguiente:   domain.RutaSiguiente(box.Contract, estado, senal),
-		Handoff:     estado == domain.CajaBlocked,
-		Senal:       senal,
+		Box:          box.ID,
+		Estado:       estado,
+		Iteraciones:  iters,
+		Siguiente:    domain.RutaSiguiente(box.Contract, estado, senal),
+		Handoff:      estado == domain.CajaBlocked,
+		Senal:        senal,
+		Advertencias: advertencias,
 	}, nil
 }
 
@@ -116,8 +127,12 @@ func (c *BoxConductor) tarea(box domain.Box, iter int) string {
 }
 
 // artifactRef returns the box's primary output artifact (document-as-cache target).
+// An explicit `path` (D3, artefacto-archivo) wins; the `art` label is the fallback.
 func artifactRef(box domain.Box) string {
 	if box.Contract != nil && len(box.Contract.Entrega) > 0 {
+		if p := box.Contract.Entrega[0].Path; p != "" {
+			return p
+		}
 		return box.Contract.Entrega[0].Art
 	}
 	return box.ID
