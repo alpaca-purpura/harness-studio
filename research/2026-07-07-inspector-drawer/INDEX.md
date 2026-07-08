@@ -141,3 +141,13 @@
 - Contrato de datos: `web/src/entities/arnes/model/types.ts` (espejo L0) ·
   `arch/contracts/schema/graph.l0.schema.json`.
 - Dato de prueba: `../2026-07-06-plan-hito2-doctrina-edicion-showcase/showcase.graph.json`.
+
+## Decisión #7 EJECUTADA (2026-07-07 noche)
+
+Pedido de cambio del operador post-PARIDAD: **✕ hace desaparecer el drawer; muere el
+estado vacío** (supersede RF-84; ver `decisiones.md` #7 y enmienda en `spec.md`).
+Commit `067e70c` · gates verify 0 · stories 70/70 (muere `Vacio`) · **validación REAL
+contra el daemon `:4200` post-self-update (`067e70c`)**: Playwright 10/10 asserts —
+sin selección no hay drawer ni texto de affordance · click pinta el nodo · ✕ lo saca
+del DOM (drawer normal Y expandido) · reabre limpio en Resumen · consola 0. Screenshots
+`dw-01..03` revisados lado a lado (scratchpad de la sesión).
