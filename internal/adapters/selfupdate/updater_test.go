@@ -124,6 +124,13 @@ func TestVerificar(t *testing.T) {
 		}
 	})
 	t.Run("repo completo", func(t *testing.T) {
+		// Toolchain hermética: el runner de CI del job go NO trae pnpm — un stub
+		// ejecutable en un dir prepended a PATH hace al test independiente del host.
+		stubs := t.TempDir()
+		for _, tool := range []string{"go", "pnpm", "bash"} {
+			escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
+		}
+		t.Setenv("PATH", stubs+string(os.PathListSeparator)+os.Getenv("PATH"))
 		u := &Updater{repo: repoFake(t, "")}
 		detalle, err := u.Verificar(ctx)
 		if err != nil {
@@ -131,6 +138,14 @@ func TestVerificar(t *testing.T) {
 		}
 		if !strings.Contains(detalle, "módulo esperado") {
 			t.Fatalf("detalle sin sustancia: %q", detalle)
+		}
+	})
+	t.Run("toolchain incompleta", func(t *testing.T) {
+		// PATH SIN pnpm/go/bash → Verificar corta honesto (feature de operador-dev).
+		t.Setenv("PATH", t.TempDir())
+		u := &Updater{repo: repoFake(t, "")}
+		if _, err := u.Verificar(ctx); err == nil {
+			t.Fatal("sin toolchain en PATH debe fallar honesto")
 		}
 	})
 }
