@@ -113,7 +113,7 @@ dame el stack completo que usaríamos, así como los patrones de arquitectura y 
 
 *Desarrollo:* apertura de la fase 3 del gran plan (HS-03 UX firmado en it.13). **Investigación de
 5 frentes en paralelo (subagentes), verificada julio-2026**, condensada en
-[`research/2026-07-05-arquitectura-fase3.md`](./research/2026-07-05-arquitectura-fase3.md): (A)
+[`historias/2026-07-05-arquitectura-fase3.md`](./historias/2026-07-05-arquitectura-fase3.md): (A)
 shell/empaque multiplataforma · (B) conexión al Claude Code local · (C) contrato del dock (UI
 agéntica de streaming, respondiendo el state-of-the-art que trajo el operador) · (D) local-first
 (watch/índice/transporte/React Flow) · (E) arquitectura as code. **Stack** (confirma/refina
@@ -173,7 +173,7 @@ la idea es que sea un app de escritorio" · "Investiga 5-frentes".
 *Desarrollo:* el operador detectó un **hueco en fase 3**: HS-04 aterrizó la arquitectura del **backend**
 (7 boundaries hexagonales) pero NO el frontend as-code (solo picks de stack). HS-05 cierra el hueco antes
 de specs. **Investigación de 5 frentes en paralelo (subagentes), verificada julio-2026**, condensada en
-[`research/2026-07-05-fe-arch-atomic-storybook-convenciones.md`](./research/2026-07-05-fe-arch-atomic-storybook-convenciones.md):
+[`historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md`](./historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md):
 (A) arquitectura de módulos · (B) atomic design/taxonomía · (C) Storybook como fitness visual · (D)
 convenciones as code · (E) design tokens + styling. **Veredictos:** **FSD-lite** (topología; `pages`=
 composition-roots por hash-state — app de escritorio sin router) con **dependency-cruiser** como CI-gate
@@ -303,7 +303,7 @@ doctrina**".
 *Desarrollo:* tres pasos. (1) Se cementó METODOLOGIA §2 (estructura obligatoria de subagente·hook·
 rule/conocimiento, derivada de `knowledge/`). (2) **Cruce de DAOP v0.2** (investigación del operador,
 derivada de BMAD v6 + Agent SDK) contra las 5 capas vía estudio 5-subagentes → propuesta
-`research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`. Regla de Rosetta: **DAOP-«Arnés» ≈ nuestra
+`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`. Regla de Rosetta: **DAOP-«Arnés» ≈ nuestra
 CAJA · DAOP-«manifiesto de rol» ≈ nuestro ARNÉS** (VISION intacta). Firewall CC-native: los BMAD-ismos
 (`persistent_facts`, `customize.toml`, sanctum) que CC ignora en silencio se RECHAZAN/traducen. **3
 decisiones firmadas:** producto-puro + META de enganche (L1/organigrama = sistema externo futuro) ·
@@ -330,7 +330,7 @@ boundaries · 97 checks**. Bibliografía embebida en cada doc («Para profundiza
 *Conecta:* HS-02 (VISION — los 11 principios que esto ancla, no altera) · HS-04/05 (arch as code que
 esto extiende; el `contract:` schema) · HS-06 (multisesión/conductor sobre el que corre el loop T3;
 `permisos-gui` que `permisos-derivan-del-rol` extiende de fase→rol) · `knowledge/` (los 12 nodos) ·
-`research/…inyeccion-knowhow` (el `KitProvisioner` que parametriza permisos por rol) · fuentes externas
+`historias/…inyeccion-knowhow` (el `KitProvisioner` que parametriza permisos por rol) · fuentes externas
 (manifiesto Agentic BPM · Sierra ADLC · Salesforce Agentforce · DAOP v0.2 filtrado).
 
 *Siguiente:* **HS-08 = fase 4, specs** (heredada de HS-06, que reservaba «HS-07 specs»; la doctrina v1
@@ -347,7 +347,7 @@ contrato fusionado, no hay spine de estados, los `enforced_by:` cuelgan de una h
 antes del Mapa, forja el arnés `dev-full-cycle` real y hazlo verificable de verdad" (dogfood-first — la
 §Linaje de VISION exige el arnés real ANTES del Mapa).
 
-*Desarrollo:* la auditoría (`research/2026-07-05-auditoria-doctrina-v1-aplicabilidad.md`) confirmó el hueco:
+*Desarrollo:* la auditoría (`historias/2026-07-05-auditoria-doctrina-v1-aplicabilidad.md`) confirmó el hueco:
 doctrina declarada, no ejecutable. HS-08 la aterriza. (1) **Contrato de caja fusionado con diente** — bajado
 a `box.contract.schema.json` + `domain.Contract` (3 ejes: intención + cableado + aceptación), con
 `TestBoxContractValidatesAgainstSchema` activo (el schema ya no rechaza el contrato de METODOLOGIA §3). (2)
@@ -379,7 +379,7 @@ arch 16 boundaries · 97 checks**. Sincronización mecánica de docs de prosa (V
 
 *Conecta:* HS-07 (la doctrina v1 que esto hace ejecutable — contrato fusionado, nodo `harness-profile`, 2
 boundaries) · HS-04/05 (`arch/` as code que el motor parsea) · HS-06 (conductor multisesión sobre el que
-corre el routing de cajas T3) · la auditoría en `research/…auditoria-doctrina-v1-aplicabilidad.md`.
+corre el routing de cajas T3) · la auditoría en `historias/…auditoria-doctrina-v1-aplicabilidad.md`.
 
 *Siguiente:* MVP del Mapa (ahora con el arnés dogfood real como base) · superficie HTTP `control_request` con
 `role`/`ttl` (el modelo de permisos ya existe; falta el endpoint) · gate de fidelidad §8.4 ejecutable (hoy
@@ -477,7 +477,7 @@ reconocedores) · derivación archivo→grafo · reconciliación honesta (`no-re
 
 *FIRMADO (operador, 2026-07-07 — "Firmo las 4"):* **① estrategia de empaquetado (c)** — `go:embed` del
 ruleset (conformance portable SIN contexto LLM) + doctrina como **plugin CC propio** inyectado por flags al
-spawn con progressive disclosure (diseño 3-cuerpos de `research/2026-07-05-arquitectura-inyeccion-knowhow.md`,
+spawn con progressive disclosure (diseño 3-cuerpos de `historias/2026-07-05-arquitectura-inyeccion-knowhow.md`,
 que pasa de propuesta a VIGENTE; regla dura: ② jamás se escribe en el árbol de ③) · **② D-a** manifiesto
 `arnes.l0.json` en la raíz del arnés · **③ D-b** arnés instalado (`.claude/` sin plugin.json) = ciudadano de
 primera · **④ D-c** elemento no reconocido = nodo `no-reconocido` VISIBLE con warn. `nomenclatura-arnes.md`
@@ -610,7 +610,7 @@ warn `categoria-estado-existe`/`terminal-categoria-coherente` (diferido honesto 
 manifiesto+fixture en sync · FE `types.ts`. Round-trip `arnesia index` → `conformance --arnes` =
 **15/15 PASS** (13 + 2 nuevos) · suite Go ✓ · tsc/biome ✓. La semilla `~/Proyectos/marketplace-arneses`
 NO se mutó (0.1.0 inmutable; los campos viajan en la próxima versión publicada). Paquete:
-`research/2026-07-07-interop-devstudio/` (decisiones + respuesta entregable a DevStudio).
+`historias/2026-07-07-interop-devstudio/` (decisiones + respuesta entregable a DevStudio).
 
 *Deuda registrada (no bloquea):* el loader aún no implementa el detector 3° (leer lock → resolver
 caché/marketplace) — entra cuando exista un proyecto DevStudio real que auditar · ficha recíproca de
@@ -625,7 +625,7 @@ dev-studio) · KIT-06 (release train del publish).
 ### HS-13 · Franja Artefactos — el hand-off hecho dato: identidad, verificación, plantillas y proyección en el Mapa — `decidida` · `vig:vigente`
 
 *Cruda (operador, 2026-07-08):* «dale Go» — firma de spec.md+design.md del paquete
-`research/2026-07-07-franja-artefactos/` (D1–D11 firmadas previamente; mockup v2 = referencia
+`historias/2026-07-07-franja-artefactos/` (D1–D11 firmadas previamente; mockup v2 = referencia
 visual firmada) y orden de implementar las 6 fases con suite verde + commit por fase.
 
 *Contexto:* la idea del operador (2026-07-07): los documentos intermedios (spec.md, factura.pdf…)
@@ -767,7 +767,7 @@ el mismo callback single-instance sigue pendiente (fase futura, ojo bug tauri#12
 | 2026-07-05 | **Doctrina propia v1**: cruce de DAOP v0.2 (BMAD+Agent SDK, 5 subagentes) + barrido de 7 fuentes externas (4 subagentes). Reencuadre clave: **operacionalizamos Agentic BPM** (manifiesto *Information Systems* 2026) — doctrina PROPIA basada en proceso e independiente de rubro, **no clon de BMAD**. Regla de Rosetta (DAOP-Arnés→CAJA), firewall CC-native (`no-phantom-frontmatter`), vocabulario framed-autonomy. 3 decisiones firmadas: producto-puro+META · dogfood-first · P6-por-scope. **As-code:** VISION §Linaje · METODOLOGIA §3 contrato fusionado + §8 doctrina de proceso · **nodo 12 `harness-profile`** → knowledge 12 nodos·138 checks · 2 boundaries → arch 16·97. Specs → HS-08. | HS-07 |
 | 2026-07-05 | **Fase 4 specs (dogfood-first): doctrina BAJADA A EJECUTABLE.** Contrato de caja fusionado con diente (`box.contract.schema.json` + `domain.Contract`, 3 ejes, `TestBoxContractValidatesAgainstSchema` verde) · `Clase` canónica de 10 primitivas · manifiesto del arnés en `graph.l0` (`fases`·`spine` declarado·META rol·proceso·reporta_a·empresa). **Motor `arnesia conformance` construido** (hexagonal: RulesetPort parsea knowledge/+arch/ = 235 checks a datos; ConformancePort + adapters arch-test/schema-validation/go-arch-lint/static-scan/nl-judge; consistencia de spine parametrizada por el spine declarado). Fixture dogfood `dev-full-cycle.graph.json` verde; gates G1 (schema) + G2 (spine); stubs conductor/permisos aterrizan los `enforced_by:`. Conteos intactos (knowledge 12·138 · arch 16·97). Deps: google/jsonschema-go, yaml.v3. | HS-08 |
 | 2026-07-06 | **Fase 5 (Implementación) arrancada: MVP del Mapa, dogfood-first.** Auditoría de 5 subagentes VERIFICADA con build/test real: backend compila+tests PASS `-race`; **shell Tauri v1 confirmado compilado+corriendo** (corrige nota HS-06); React Flow 12 instalado + endpoint del grafo vivo, pero **Mapa 0% código** y sirve un demo (no el dogfood). Honestidad del motor: `--todo` = 235 checks pero **211 `deferred`** (24 pass real); el enforcement determinista vive en la ruta `--arnes` (13/13 verde). **HS-08 commiteado** (estaba verde sin commit) + 3 drifts muertos (cero-código, linter-fase-5, shell-no-compiló). **Plan Mapa:** Hito 1 read-only navegable (loader Go dogfood→índice + `entities/arnes` + `widgets/map-canvas` carriles custom) · Hito 2 inspector+picker · Hito 3 realtime/edición diferido. Deuda paralela registrada (cablear conductor/permisos, `control_request`, go-arch-lint, deferred→CI). | HS-09 |
-| 2026-07-06 | **Gate 1 (mockup) + Gate 2 (spec) del Mapa FIRMADOS; auditoría destapa inversión de orden → retro-ajuste.** Gate 1 (mockup `arnesia-mapa-mvp.html`, commit `0736d2c`) firmado con 6 decisiones doctrinales (Base canónica · activación por-nodo · facet `origen` · knowledge as-code+semántico-opcional · discovery=data · paquete/spine). **Paquete Fase C** redactado (`research/2026-07-06-mapa-mvp/`: `spec`=QUÉ/RF+Gherkin trazado a `mockup:línea`+shot · `design`=UI al pixel · `architecture`=CÓMO hexagonal+FSD + secuencia de PRs + cementado · `PARIDAD`=round-trip) y **Gate 2 FIRMADO**. Corrige dato stale: seed = 3 nodos/1 edge keyed «demo» (no 2) → `dev-full-cycle` da **404** hoy. **Auditoría 5-subagentes (build/test real) revela INVERSIÓN DE ORDEN:** se programó adelantándose a los gates — Fase F (Hito 1: loader dogfood + `<MapCanvas>` montado + inspector/picker de Hito 2) YA en working-tree y **verde** (go/tsc/biome/depcruise/steiger/stylelint), SIN cerrar Fase D (arch as-code) ni Fase E (deuda), Fase C sin firmar. Código **doctrinalmente limpio** (backend agnóstico, canvas⊥chrome, tokens, PROPUESTAs aisladas+etiquetadas) PERO doctrina as-code NO refleja las 6 decisiones + `fe-visual-fitness` flipado a `enforced` apuntando a enforcer **BORRADO** (`vitest.workspace.ts`) = **pass fabricado**. **Operador ordena RETRO-AJUSTAR:** Gate 2 ✓ → **Fase D real** (cementar 6 decisiones + arreglar `enforced` falso + cuerpos boundaries + re-sync conteos + C4/contratos + graduar `origen`/`alw` a L0) → **recién ahí** commitear código como Fase F. Deuda E **diferida honesta**. | HS-09 |
+| 2026-07-06 | **Gate 1 (mockup) + Gate 2 (spec) del Mapa FIRMADOS; auditoría destapa inversión de orden → retro-ajuste.** Gate 1 (mockup `arnesia-mapa-mvp.html`, commit `0736d2c`) firmado con 6 decisiones doctrinales (Base canónica · activación por-nodo · facet `origen` · knowledge as-code+semántico-opcional · discovery=data · paquete/spine). **Paquete Fase C** redactado (`historias/2026-07-06-mapa-mvp/`: `spec`=QUÉ/RF+Gherkin trazado a `mockup:línea`+shot · `design`=UI al pixel · `architecture`=CÓMO hexagonal+FSD + secuencia de PRs + cementado · `PARIDAD`=round-trip) y **Gate 2 FIRMADO**. Corrige dato stale: seed = 3 nodos/1 edge keyed «demo» (no 2) → `dev-full-cycle` da **404** hoy. **Auditoría 5-subagentes (build/test real) revela INVERSIÓN DE ORDEN:** se programó adelantándose a los gates — Fase F (Hito 1: loader dogfood + `<MapCanvas>` montado + inspector/picker de Hito 2) YA en working-tree y **verde** (go/tsc/biome/depcruise/steiger/stylelint), SIN cerrar Fase D (arch as-code) ni Fase E (deuda), Fase C sin firmar. Código **doctrinalmente limpio** (backend agnóstico, canvas⊥chrome, tokens, PROPUESTAs aisladas+etiquetadas) PERO doctrina as-code NO refleja las 6 decisiones + `fe-visual-fitness` flipado a `enforced` apuntando a enforcer **BORRADO** (`vitest.workspace.ts`) = **pass fabricado**. **Operador ordena RETRO-AJUSTAR:** Gate 2 ✓ → **Fase D real** (cementar 6 decisiones + arreglar `enforced` falso + cuerpos boundaries + re-sync conteos + C4/contratos + graduar `origen`/`alw` a L0) → **recién ahí** commitear código como Fase F. Deuda E **diferida honesta**. | HS-09 |
 | 2026-07-06 | **Retro-ajuste EJECUTADO: Fase D (arq as-code) + Fase F (código) en orden — Hito 1 del Mapa VIVO.** **Fase D** (commit `9cd8e77`): 🚩 corregido el pass FABRICADO (`fe-visual-fitness` enforced apuntaba a `vitest.workspace.ts` BORRADO → migrado a `vitest.config.ts`; verificado **40 story-tests verdes**); 3 boundaries FE proposed→**enforced** con enforcers verificados corriendo (`fe-taxonomia-componentes`/canvas⊥chrome = depcruise 76 mód/0 viol · `fe-tokens-contrato`/stylelint + kind 6→10 regenerado · `fe-visual-fitness`) → **8 enforced** (2 HS-06 + 3 HS-08 + 3 HS-09; sin sumar checks, 97 intacto). Las 6 decisiones del Gate 1 cementadas as-code: **#3 `origen`** = campo nuevo en `graph.l0.schema.json` (`$defs.nodo`, `estandar\|del-puesto`, ESTAMPADO al provisionar la instancia ③ — no maquinaria filtrándose, 3 cuerpos); **#2 `alw`** = DERIVADO de `fuente_path` en `rules.md` (sin campo nuevo); #1/#4/#5/#6 ya doctrina. C4 (`container.d2`) + propagación de la reversión firmada **HTML+SVG** del Mapa a VISION.md/CLAUDE.md (supera «React Flow para el Mapa» → RF = Organigrama) + tabla del gran plan al día (fase 4 ✓, fase 5 en curso). **Fase F** (commits `31a7532` backend + `c013dc3` frontend): loader del dogfood real (`dev-full-cycle`, 5 nodos/4 edges) al índice + `getNode`/`listHarnesses` cableados + `<MapCanvas>` HTML+SVG montado (swap del `ComingSoon`) + seed de la 1ª sesión al Mapa real. **Todo verde**: go build/vet/test `-race` · tsc strictest · biome · depcruise · steiger · stylelint · 40 story-tests (Playwright Chromium). Capas Tokens/Desempeño/Proceso staged (telemetría JSONL → Hito 3); `origen`/`alw` se dibujan PROPUESTA hasta que provisioning/telemetría los pueble. **Gate `G-hito1` VERIFICADO EN VIVO** (daemon `arnesia serve` :4200 + vite :5173 → browser Chromium): `GET /api/harnesses/dev-full-cycle/graph` sirve el dogfood real (5 nodos/4 edges, 200) y la vista Mapa lo RENDERIZA — Guardia «— sin hooks —» · 4 carriles spec/build/review/release con 1 caja c/u (handle `/spec-writer`… + transición del spine ◇ idea→spec…review→released) + edges invoca (backbone rojo) · Base con la regla `std-spec` (0 siempre/1 condicional) · capas Tokens/Desempeño/Proceso disabled «necesita telemetría» · **consola 0 errores/warnings**; screenshot revisado. Nota: el daemon NO sirve la SPA embebida aún (skeleton TODO); en dev la carga vite, en prod la cargará Tauri. **Deuda Fase E (conductor/permisos/`control_request`/go-arch-lint/`deferred`→CI) sigue diferida honesta.** | HS-09 |
 | 2026-07-07 | **Auditoría integral doctrina⇄app (4 frentes, verificada en vivo) + enforcement REPARADO DE RAÍZ.** Doctrina sana y aritmética honesta (138+97=235 ✓ · 8 enforced ✓ · dogfoods validan 0 viol.) pero **la app NO la contiene** (3 puentes bloqueantes: loader real · inyección a CC · conformance portable+endpoint) y **CI de main llevaba ≥5 pushes ROJO** sin bloquear nada (npm vs pnpm → enforcers FE jamás corrieron en CI · 66 hallazgos golangci · go-arch-lint roto por construcción · `openapi:gen` fantasma · lefthook sin instalar). **Reparado el mismo día:** ci.yml → pnpm + job rust activado (clippy verde) + guard honesto openapi · `.go-arch-lint.yml` a sintaxis v3 real (`cannotDependOn` no existía; deepScan off justificado) — **al arrancar cazó violación real**: `usecase` importaba `conformance/mechanism` → puerto `ports.SchemaValidator` + inyección desde cmd · golangci **66→0** (causa raíz, 8 nolint:gosec razonados) · lefthook vivo. **Hueco doctrinal mayor destapado:** la nomenclatura de reconocimiento archivo→grafo no estaba escrita → `arch/contracts/nomenclatura-arnes.md` **draft v0 PENDIENTE DE FIRMA** (plugin CC \| instalado · `arnes.l0.json` · 10 reconocedores · `no-reconocido` visible). Pendiente firma: D-a/D-b/D-c + empaquetado doctrina (rec.: embed ruleset + plugin propio, 3 cuerpos). | HS-10 |
 | 2026-07-07 | **4 firmas del operador ("Firmo las 4") — la ruta de los puentes queda decidida.** ① **Empaquetado (c) embed+plugin** (3 cuerpos VIGENTE: `go:embed` ruleset → conformance portable sin contexto LLM · kit/doctrina materializados en `~/.arnesia/` e inyectados por flags al spawn · ② jamás se escribe en ③) · ② **D-a** manifiesto `arnes.l0.json` en la raíz · ③ **D-b** arnés instalado = ciudadano de primera · ④ **D-c** `no-reconocido` visible con warn. `arch/contracts/nomenclatura-arnes.md` **v1 FIRMADA**; research de inyección estampado VIGENTE. Scope conformance: `fabrica` (CI del repo) vs `arnes` (portable). *Siguiente:* ola de sync mecánico + **HS-11 = los 3 puentes** (loader por nomenclatura · inyección al conductor · conformance embebido + endpoint). | HS-10 |

@@ -1,7 +1,7 @@
 # `web/src-tauri/` — Shell de escritorio ArnesIA (Tauri 2)
 
 Esqueleto **mínimo y coherente** con las decisiones firmadas de HS-04
-(`research/2026-07-05-arquitectura-fase3.md`, `arch/boundaries/core-no-importa-shell.md`).
+(`historias/2026-07-05-arquitectura-fase3.md`, `arch/boundaries/core-no-importa-shell.md`).
 
 **Qué es este shell:** una ventana nativa (WebView) que carga la SPA de Vite y consume la
 API HTTP/SSE del daemon Go `arnesia` en `http://localhost:4200`. El shell **no importa el

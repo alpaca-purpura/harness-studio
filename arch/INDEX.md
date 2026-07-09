@@ -7,7 +7,7 @@
 > [`fitness/`](./fitness/); el «cómo se ve» en [`model/`](./model/); el «contrato de datos» en
 > [`contracts/`](./contracts/). Espeja el patrón de [`../knowledge/`](../knowledge/INDEX.md).
 > Norte: [`../VISION.md`](../VISION.md) · evidencia L1:
-> [`../research/2026-07-05-arquitectura-fase3.md`](../research/2026-07-05-arquitectura-fase3.md).
+> [`../historias/2026-07-05-arquitectura-fase3.md`](../historias/2026-07-05-arquitectura-fase3.md).
 
 ## Cómo se relaciona con el resto del repo
 

@@ -62,7 +62,7 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 - **Divergencia declarada frente al research:** el research recomendó browser-first por el riesgo
   WebKitGTK en Mint; el operador eligió Tauri-desde-v1 (app de escritorio nativa). Se acepta el
   riesgo y se vuelve load-bearing la mitigación de Mint (ver
-  [`../../research/2026-07-05-arquitectura-fase3.md`](../../research/2026-07-05-arquitectura-fase3.md)
+  [`../../historias/2026-07-05-arquitectura-fase3.md`](../../historias/2026-07-05-arquitectura-fase3.md)
   frente A). El boundary NO cambia: sea cual sea el shell, no lo importa el core.
 
 ## Checklist evaluable
