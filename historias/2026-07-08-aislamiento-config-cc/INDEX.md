@@ -65,7 +65,10 @@ as-code) está en `decisiones.md` como PROPUESTA, pendiente de firma antes de to
       walk ascendente de CLAUDE.md sigue activo — en este dev-env el dogfood anidado
       bajo el repo hereda el CLAUDE.md raíz del producto; en producción normal un arnés
       no vive anidado así. `conformance --arnes` sin regresión (20 pass/1 warn-fail)
-- [ ] Fase 3 — experimento `--safe-mode` (decidir adopción según resultado, no a priori)
+- [x] Fase 3 — experimento `--safe-mode` — **DESCARTADO** (`experimento-safe-mode.md`):
+      overlay ① (`--append-system-prompt-file`+`--add-dir`) sobrevive, pero el plugin ②
+      (skills `arnesia-kit:*`) desaparece del todo → cumple el criterio de descarte de
+      D4. RF-164 NO se implementa, D2+D3 quedan como la solución completa
 - [ ] Fase 4 — cementado as-code (extensión de `superficie-local-confinada` + fitness test)
 - [ ] Fase 5 — gate de calidad (round-trip dogfood + `conformance --arnes` sin regresión +
       medición de contexto antes/después)

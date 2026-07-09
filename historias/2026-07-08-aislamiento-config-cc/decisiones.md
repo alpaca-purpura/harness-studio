@@ -81,7 +81,12 @@ sobre el dogfood real. Si el kit responde igual que sin `--safe-mode` → se ado
 capa extra. Si no → se descarta, D2+D3 quedan como la solución completa (ya cierran los
 dos ejes de mayor costo/riesgo real: MCP + settings personales).
 
-**Estado:** `PROPUESTA` (condicional, resultado abierto — no bloquea D2/D3).
+**Estado:** `FIRMADA-DESCARTADA` (2026-07-08, RF-163 ejecutado —
+`experimento-safe-mode.md`). Resultado: `--append-system-prompt-file`/`--add-dir` (①)
+SOBREVIVEN a `--safe-mode` (citas textuales exactas verificadas), pero `--plugin-dir`
+(②, skills `arnesia-kit:auditar-arnes`/`forjar-caja`) NO — desaparecen del todo. Cumple
+el criterio de descarte tal cual estaba escrito arriba. RF-164 no se implementa; D2+D3
+quedan como la solución completa.
 
 ## D5 · Cementar como extensión de `superficie-local-confinada`, no boundary nueva
 
