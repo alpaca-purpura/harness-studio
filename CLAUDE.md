@@ -4,7 +4,8 @@ Producto standalone (graduado del monorepo `prenter-harness`, 2026-07-04; ex "Ha
 Studio" — renombre del repo pendiente, debate abierto). Norte = [`VISION.md`](./VISION.md)
 (**v3 FIRMADA**, ficha HS-02, 2026-07-04; + sección aditiva «Anatomía del arnés — fábrica
 de cajas de proceso», reglas A1–A7, HS-03 it.9) · registro = [`LEDGER.md`](./LEDGER.md) (fichas
-`HS-NN`; la historia OBS-01..OBS-20 vive en la incubadora
+`HS-NN`, cada una con campos `Siguiente`/`Deuda` — **backlog y pendientes viven ahí, NO en
+este archivo**; la historia OBS-01..OBS-20 vive en la incubadora
 `prenter-harness/products/harness-studio/`, congelada).
 
 **Qué es:** la fábrica de los arneses que alpacapurpura crea y vende por **rol × proceso**
@@ -35,7 +36,7 @@ ejecutan; marketplace git elegible por proyecto.
   (wrap del mismo daemon, no rewrite). Wails v3 en watchlist.
 
 **Decisiones de arquitectura (HS-04, fase 3 — 2026-07-05):** investigación 5-frentes verificada
-(`research/2026-07-05-arquitectura-fase3.md`). **Shell v1 = Tauri 2 DESDE v1** (fork firmado; el
+(`historias/2026-07-05-arquitectura-fase3.md`). **Shell v1 = Tauri 2 DESDE v1** (fork firmado; el
 milestone «futuro» se adelantó — daemon como sidecar `externalBin`, el WebView consume la misma
 API; mitigaciones Mint load-bearing: webkit 4.1, `WEBKIT_DISABLE_DMABUF_RENDERER=1`,
 single-instance). **Conexión a CC** = Go spawnea el `claude` local, habla **stream-json** por
@@ -50,7 +51,7 @@ Zustand + hash-state. **Arquitectura as code** = árbol [`arch/`](./arch/INDEX.m
 confinada + sesion-viva-consistente; fitness tests corriendo).
 
 **Decisiones de arquitectura FE (HS-05, fase 3 — 2026-07-05):** investigación 5-frentes verificada
-(`research/2026-07-05-fe-arch-atomic-storybook-convenciones.md`) — cierra el hueco FE de HS-04. **Topología =
+(`historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md`) — cierra el hueco FE de HS-04. **Topología =
 FSD-lite** (`web/src/{app,pages,widgets,features,entities,shared}`; `pages`=composition-roots por hash-state
 —app de escritorio SIN router—; enforcer = **dependency-cruiser** gate + steiger, NO eslint-plugin-boundaries).
 **Componentes** = 6 capas de UI direccionales (**canvas⊥chrome** = regla estrella), NO atomic de 5 tiers como
@@ -61,7 +62,7 @@ carpetas; primitivos = **shadcn sobre Base UI** (copy-in lintable). **Tokens** =
 **Biome v2.4** (>ESLint) + `tsc` strictest + **lefthook** (binario Go). Config files declarados (raíz + `web/`).
 
 **Doctrina propia v1 (HS-07, fase 4 — 2026-07-05):** replanteo cruzando DAOP v0.2 (BMAD+Agent SDK, 5
-subagentes) + barrido de 7 fuentes externas (4 subagentes) — `research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`.
+subagentes) + barrido de 7 fuentes externas (4 subagentes) — `historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`.
 **Reencuadre clave: ArnesIA OPERACIONALIZA Agentic BPM** (manifiesto *Information Systems* 2026 /
 arXiv 2603.18916) — doctrina PROPIA basada en proceso e independiente de rubro, **NO clon de BMAD**.
 Regla de Rosetta: DAOP-«Arnés»→nuestra **CAJA** · DAOP-«manifiesto de rol»→nuestro **ARNÉS** (VISION
@@ -96,7 +97,7 @@ usecase→mechanism → puerto `SchemaValidator` · golangci 66→0 · lefthook 
 **nomenclatura de reconocimiento FIRMADA v1** (`arch/contracts/nomenclatura-arnes.md`: unidad reconocible =
 plugin CC | **arnés instalado primera clase** · manifiesto `arnes.l0.json` en la raíz · 10 reconocedores
 clase→ubicación · `no-reconocido` VISIBLE con warn) + **empaquetado (c) FIRMADO** (3 cuerpos VIGENTE,
-`research/2026-07-05-arquitectura-inyeccion-knowhow.md`: `go:embed` del ruleset + kit/doctrina
+`historias/2026-07-05-arquitectura-inyeccion-knowhow.md`: `go:embed` del ruleset + kit/doctrina
 materializados a `~/.arnesia/` e inyectados por flags al spawn; **② jamás se escribe en ③**; ver
 METODOLOGIA §9). **HS-11 (2026-07-07) LANDEADO — la app CONTIENE la doctrina, los 3 puentes E2E:**
 ① loader real por nomenclatura (`internal/adapters/loader` + `arnesia index <dir>`; **dogfood = arnés
@@ -108,9 +109,7 @@ inyectada al spawn (`kit/` arnesia-kit embebido `all:` → `~/.arnesia` por huel
 `ConformancePort.RunGraph` + **endpoint `GET /api/harnesses/{id}/conformance`**; verificado fuera del
 repo: 235 embebidos, `--arnes` 12/13 honesto). Extra: ErrorBoundary + banda-fallback FE (suite 47/47) ·
 `claude` multi-PATH para GUI · ola de sync completa (METODOLOGIA §9 «3 cuerpos» · 7 orígenes · CADENCE×2
-· UX 12/10 · debate 3 VISION cerrado). **Próximo:** Hito 2 del Mapa (plan showcase kitchen-sink +
-doctrina-visible, gates 0/1 firmados, `research/2026-07-06-plan-hito2-doctrina-edicion-showcase/`,
-working tree del operador) · cablear loader→índice del daemon · bundle instalador.
+· UX 12/10 · debate 3 VISION cerrado).
 **Cierre HS-11 (mismo día):** loader→índice VIVO («Cargar carpeta» = PUT /api/arneses/{id} reconoce+indexa)
 · **Fase E COMPLETA** (adapters/artifact · SpawnOpts.Permisos→flags · control_request Dock ·
 `POST …/boxes/{boxId}/run` · permission REAL grants TTL · 2 arch-tests flipados) · **instalador REAL**
@@ -123,10 +122,7 @@ derivada; 2 checks warn) · `nombre`/`descripcion` reparados en schema + fallbac
 nombre→plugin.json→id · lock `.devstudio/arneses.yaml` bendecido = detector 3° multi-arnés
 (nomenclatura **v1.1**) · postura fichada: I-77 se PROYECTA del arnés (spine + contratos de caja),
 jamás descriptor aparte; round-trip dogfood **15/15 PASS**
-(`research/2026-07-07-interop-devstudio/`). **Deuda restante (no bloquea):**
-spike wire-format `control_response` vs claude real · run async+202 · gate conformance post-run · codegen
-`gen/` · capas Tokens/Desempeño/Proceso esperan telemetría · los 211 checks `deferred` del ruleset → CI ·
-3 boundaries del research de inyección a arch/ formal · restos multisesión (worktree · presupuesto · OTel).
+(`historias/2026-07-07-interop-devstudio/`).
 **HS-14 (2026-07-08) CERRADA**: los 3 fixes shell/instalador EJECUTADOS y verificados contra el
 binario instalado — colisión de nombre shell⇄daemon (bin del shell renombrado `arnesia-app` en
 `Cargo.toml`, el daemon Go se queda `arnesia`) · trampa 401 en attach (`conectando.html` sondea
@@ -163,7 +159,7 @@ sesiones tipo WARP colapsable a gutter · sesión = frente N:1 con arnés · cha
 persisten) + `mockups/arnesia-session-lab.html` (lab de 4 paradigmas de navegación multisesión) +
 `mockups/arnesia-mockup-v3.html` (detalle de superficies; navegable, URL en memoria auto) ·
 estándares mapeados =
-`research/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
+`historias/2026-07-04-salud-trazas-edicion.md`. Disciplina de iteración: mockups viven en
 el repo · publicar siempre al MISMO artifact (parámetro `url`) · nada se entrega sin
 click-through con asserts + screenshots revisados + consola limpia. El daemon Go, el shell Tauri v1
 (compilado + corriendo, multisesión + CC real) y el motor `arnesia conformance` ya viven en el repo
@@ -171,7 +167,7 @@ click-through con asserts + screenshots revisados + consola limpia. El daemon Go
 
 **Disciplina de desarrollo por paquete de trabajo (FIRMADA 2026-07-07 — obligatoria para TODA
 funcionalidad nueva; detalle canónico = METODOLOGIA §10):** cada feature vive en
-`research/AAAA-MM-DD-<slug>/` y el código NO se toca hasta specs firmados. Flujo:
+`historias/AAAA-MM-DD-<slug>/` y el código NO se toca hasta specs firmados. Flujo:
 `mockup-*.html` (tokens DTCG reales + datos reales del showcase/dogfood) → iterar con el operador
 → 🧑‍⚖️ firma → `spec.md`+`design.md` (RF trazados a `mockup:línea`) → 🧑‍⚖️ firma → implementar
 (story=test por marca) → `PARIDAD.md` (mockup↔componente↔story↔RF) → 🧑‍⚖️ gate final lado a lado.
@@ -179,18 +175,11 @@ funcionalidad nueva; detalle canónico = METODOLOGIA §10):** cada feature vive 
 paquete EN EL MISMO TURNO (la conversación jamás es el único registro) · el `INDEX.md` del paquete
 mantiene «Retomar aquí» (último hecho · próximo paso · firmas pendientes) al cierre de cada turno ·
 cada iteración firmada se commitea a main · **sesión nueva arranca leyendo el INDEX.md del paquete
-activo y sigue como si fuera la misma conversación.** **Paquete activo:**
-[`research/2026-07-07-franja-artefactos/`](./research/2026-07-07-franja-artefactos/INDEX.md)
-(**EJECUTADO 2026-07-08, ficha HS-13** — las 6 fases landeadas: checks de composición vivos ·
-identidad `path/plantilla/refina` · precondiciones+digest (p11: hand-off **−90 %** contexto) ·
-plantillas dogfood con Guardia verificada headless · franja en el Mapa 86/86 + PARIDAD.md ·
-reconocedor de hooks (dogfood = 7 nodos); **falta SOLO el gate final humano lado a lado**
-sobre PARIDAD + sus 7 desviaciones). Pendiente de gate final humano (PARIDAD firmable):
-[`research/2026-07-07-boton-actualizar/`](./research/2026-07-07-boton-actualizar/INDEX.md)
-(self-update sin sudo EJECUTADO E2E; PARIDAD ✅ 8/8; faltan las 6 desviaciones). Cerrado:
-[`research/2026-07-07-inspector-drawer/`](./research/2026-07-07-inspector-drawer/INDEX.md)
-(drawer del Mapa RF-80..96 IMPLEMENTADO + PARIDAD ✅; queda su gate final humano: firmar
-las 5 desviaciones registradas en PARIDAD).
+activo y sigue como si fuera la misma conversación** — **ese INDEX.md es el puntero a leer para
+estado/backlog/pendientes de cada paquete, NO este archivo. Paquete activo:**
+[`historias/2026-07-07-franja-artefactos/`](./historias/2026-07-07-franja-artefactos/INDEX.md) ·
+otros paquetes recientes: [`boton-actualizar`](./historias/2026-07-07-boton-actualizar/INDEX.md),
+[`inspector-drawer`](./historias/2026-07-07-inspector-drawer/INDEX.md).
 
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se
