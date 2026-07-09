@@ -69,7 +69,15 @@ as-code) está en `decisiones.md` como PROPUESTA, pendiente de firma antes de to
       overlay ① (`--append-system-prompt-file`+`--add-dir`) sobrevive, pero el plugin ②
       (skills `arnesia-kit:*`) desaparece del todo → cumple el criterio de descarte de
       D4. RF-164 NO se implementa, D2+D3 quedan como la solución completa
-- [ ] Fase 4 — cementado as-code (extensión de `superficie-local-confinada` + fitness test)
+- [x] Fase 4 — cementado as-code: `arch/boundaries/superficie-local-confinada.md` v1.2→
+      v1.3 (2 checks nuevos `mcp-config-siempre`/`setting-sources-siempre`, 7→9,
+      `enforced_by:` real — `arch/fitness/hs17_config_source_test.go`, archivo NUEVO
+      para no colisionar con el `arch_test.go` en edición concurrente de otra sesión;
+      Go test discovery es por paquete, no por archivo, así que `arnesia conformance`
+      lo reconoce igual) · `knowledge/elements/mcp.md` v1.0→v1.1 (nota, sin checks
+      nuevos) · `CLAUDE.md` línea nueva en Decisiones técnicas vigentes. Verificado:
+      `conformance superficie-local-confinada` → 9/9 pass (1 defer preexistente) ·
+      `go test ./...` completo verde
 - [ ] Fase 5 — gate de calidad (round-trip dogfood + `conformance --arnes` sin regresión +
       medición de contexto antes/después)
 - [ ] Fase 6 — cierre: ficha de cierre HS-17 en LEDGER.md

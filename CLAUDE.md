@@ -40,7 +40,12 @@ ejecutan; marketplace git elegible por proyecto.
 milestone «futuro» se adelantó — daemon como sidecar `externalBin`, el WebView consume la misma
 API; mitigaciones Mint load-bearing: webkit 4.1, `WEBKIT_DISABLE_DMABUF_RENDERER=1`,
 single-instance). **Conexión a CC** = Go spawnea el `claude` local, habla **stream-json** por
-stdin/stdout (subproceso-conductor; SDK-sidecar y Managed Agents descartados). **Event sourcing**:
+stdin/stdout (subproceso-conductor; SDK-sidecar y Managed Agents descartados). **Aislamiento de
+superficie de config (HS-17, 2026-07-08):** todo `SpawnArgs` agrega incondicional `--mcp-config
+<agregado>`+`--strict-mcp-config` (Injection poblada) y `--setting-sources project,local` —
+ningún arnés hereda MCP de cuenta ni `enabledPlugins`/hooks personales del OPERADOR; `--bare`
+sigue descartado (rompe auth) y `--safe-mode` se descartó (mata el plugin propio pese a
+`--plugin-dir` explícito). **Event sourcing**:
 stream-json (live) + OTel (hooks/skills) + JSONL (enumerar/replay, jamás parsear). **Dock** =
 taxonomía **AG-UI** sobre SSE (emisor Go propio) + **assistant-ui** + **CodeMirror 6/merge**;
 component-selection (format-authoring = trampa). **SSE** multiplexado 1 conexión. **Estado FE** =
@@ -81,8 +86,8 @@ confiable)** · **HS-07 doctrina propia v1 as-code (operacionalizamos Agentic BP
 nodo `harness-profile` → knowledge 12 nodos·138 checks · arch 16 boundaries·100 checks)** · **HS-08 fase 4
 specs (dogfood-first) — doctrina BAJADA A EJECUTABLE: contrato de caja fusionado con diente
 (`box.contract.schema.json`+`domain.Contract`, 3 ejes) · `Clase` canónica de 10 primitivas · manifiesto del
-arnés en `graph.l0` (fases·spine·META) · motor `arnesia conformance` construido (hexagonal; 238 checks a
-datos — honesto: **27 pass real + 211 `deferred`** en `--todo`, medido 2026-07-08; la potencia determinista
+arnés en `graph.l0` (fases·spine·META) · motor `arnesia conformance` construido (hexagonal; 240 checks a
+datos — honesto: **28 pass real + 212 `deferred`** en `--todo`, medido 2026-07-08; la potencia determinista
 vive en la ruta `--arnes` = **21 checks en el dogfood: 20 pass + 1 warn-fail HONESTO**
 (`art-es-path` caza los 3 art-etiqueta reales — el warn es el diente, no se silencia con paths
 inventados; los 6 checks de composición/identidad de franja-artefactos F1+F2 vivos)** · **fase 5 (Implementación, HS-09) EN CURSO — Hito 1 del Mapa
@@ -179,7 +184,9 @@ activo y sigue como si fuera la misma conversación** — **ese INDEX.md es el p
 estado/backlog/pendientes de cada paquete, NO este archivo. Paquete activo:**
 [`historias/2026-07-07-franja-artefactos/`](./historias/2026-07-07-franja-artefactos/INDEX.md) ·
 otros paquetes recientes: [`boton-actualizar`](./historias/2026-07-07-boton-actualizar/INDEX.md),
-[`inspector-drawer`](./historias/2026-07-07-inspector-drawer/INDEX.md).
+[`inspector-drawer`](./historias/2026-07-07-inspector-drawer/INDEX.md),
+[`aislamiento-config-cc`](./historias/2026-07-08-aislamiento-config-cc/INDEX.md) (HS-17,
+firmado — RF-160..165 ejecutados, RF-166/167 en curso).
 
 **Arnés de construcción:** kit dev — plugin `harness@prenter-marketplace` canal ESTABLE
 (`alpacapurpura/prenter-marketplace`). Evoluciona con el producto — mejoras al arnés se

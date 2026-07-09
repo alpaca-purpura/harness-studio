@@ -1,6 +1,6 @@
 ---
 regla: superficie-local-confinada
-version: 1.2
+version: 1.3
 updated: 2026-07-08
 status: enforced
 ledger: HS-06
@@ -14,9 +14,17 @@ sources:
   - url: https://pkg.go.dev/crypto/subtle
     autoridad: oficial
     revisado: 2026-07-05
+  - url: https://code.claude.com/docs/en/mcp
+    autoridad: oficial
+    revisado: 2026-07-08
+  - url: https://code.claude.com/docs/en/settings
+    autoridad: oficial
+    revisado: 2026-07-08
 enforced_by:
   - fitness/arch_test.go:TestNoWildcardCORS
   - fitness/arch_test.go:TestLocalSurfaceConfined
+  - fitness/arch_test.go:TestConfigSourceMCPAislado
+  - fitness/arch_test.go:TestConfigSourceSettingSourcesExcludeUser
 severity: critical
 ---
 
@@ -75,6 +83,27 @@ token) el shell no conoce el token → WebView tokenless bajo Host+Origin (la p�
 401 eterno esperando el resto de la API; **HS-14 fix ②**). El sidecar se mata al salir el shell
 (evita un daemon huérfano con un token irreplicable).
 
+**Eje config-source del spawn (v1.3, HS-17).** El confinamiento de arriba es sobre *quién
+le habla al daemon*; este eje es sobre *qué carga a contexto la sesión que el daemon
+spawnea* — mismo concern (superficie que ve una sesión ajena al operador), eje distinto
+(config, no red). Diagnóstico HS-17: cada arnés spawneado heredaba `~/.claude/
+settings.json` del OPERADOR (`enabledPlugins` personales — golang-*, stitch, caveman)
+más el MCP de SU cuenta (conectores claude.ai), encima de su propio kit ①② — el mismo
+costo de contexto sin enforcer que `knowledge/elements/mcp.md` L1.6 ya documentaba como
+advisory (`mcp-toolsearch-off`/`mcp-unused`). `SpawnArgs`
+(`internal/adapters/agent/claudecode/conductor.go`) ahora lo enforcea a nivel producto:
+`--mcp-config <archivo agregado>`+`--strict-mcp-config` (siempre que `Injection` esté
+poblada) cortan el MCP a SOLO lo que el `Provisioner` materializa en
+`~/.arnesia/mcp.json`, y `--setting-sources project,local` (incondicional, sin campo en
+`SpawnOpts` — nadie puede reintroducir `user`) corta `enabledPlugins`/hooks personales.
+Ambos ortogonales a auth (`--bare` sigue descartado, D1 de HS-17). Verificado en vivo
+contra el dogfood real (`historias/2026-07-08-aislamiento-config-cc/`): MCP de cuenta
+6→0, skills ajenas ~50→0, kit propio y CLAUDE.md del arnés intactos.
+`--safe-mode` se investigó como capa extra (RF-163) y se DESCARTÓ: mata las skills del
+plugin propio (②) pese a `--plugin-dir` explícito, aunque el overlay de doctrina
+(`--append-system-prompt-file`/`--add-dir`, ①) sí sobrevive — ver
+`historias/2026-07-08-aislamiento-config-cc/decisiones.md` D4.
+
 ## Checklist evaluable
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
@@ -86,6 +115,8 @@ token) el shell no conoce el token → WebView tokenless bajo Host+Origin (la p�
 | sse-token-o-origin | el stream SSE acepta token por `?token=` (EventSource) y valida Origin | warn | «SSE sin confinamiento (headers imposibles)» | arch_test.go:TestLocalSurfaceConfined |
 | shell-emite-token | el shell mint el token e inyecta por env al spawnear + `initialization_script`; nunca por args | info | «token en args (visible en ps) o ausente en prod» | web/src-tauri/src/lib.rs (revisión) |
 | healthz-refleja-cors | `/healthz` refleja `Access-Control-Allow-Origin` para un Origin allowlisted pese a saltar Host+token | error | «WebView ve /healthz como daemon caído por CORS aunque responda 200» | arch_test.go:TestHealthzCORSReflected |
+| mcp-config-siempre | todo spawn con `Injection` poblada agrega `--mcp-config`+`--strict-mcp-config` | error | «MCP de cuenta del operador colado en el arnés» | arch_test.go:TestConfigSourceMCPAislado |
+| setting-sources-siempre | todo spawn agrega `--setting-sources project,local`, nunca `user` | error | «enabledPlugins/hooks personales del operador colados en el arnés» | arch_test.go:TestConfigSourceSettingSourcesExcludeUser |
 
 ## Changelog
 
@@ -112,3 +143,13 @@ token) el shell no conoce el token → WebView tokenless bajo Host+Origin (la p�
   siempre en `go test ./...`) + proxy source-scan en `arch_test.go:TestHealthzCORSReflected`
   (scoped a la rama `/healthz`, no todo el archivo) para que el motor `arnesia conformance` lo
   corra igual que sus hermanos de este nodo → 7 checks.
+- 2026-07-08 · v1.3 · HS-17: suma el eje config-source del spawn (distinto de red/auth, mismo
+  concern de superficie-que-ve-una-sesión-ajena). Diagnóstico: cada arnés spawneado heredaba
+  `~/.claude/settings.json` del operador (`enabledPlugins` personales) + MCP de su cuenta,
+  encima de su propio kit ①②. Fix: `--mcp-config`+`--strict-mcp-config` (RF-161, siempre que
+  `Injection` esté poblada) + `--setting-sources project,local` incondicional (RF-162, sin
+  campo configurable — nadie reintroduce `user`), ambos en
+  `internal/adapters/agent/claudecode/conductor.go:SpawnArgs`. `--bare` sigue descartado (D1);
+  `--safe-mode` se investigó (RF-163) y se DESCARTÓ (mata el plugin propio ② pese a
+  `--plugin-dir` explícito). Verificado en vivo contra el dogfood real, sin regresión de
+  `conformance --arnes`. → 9 checks.

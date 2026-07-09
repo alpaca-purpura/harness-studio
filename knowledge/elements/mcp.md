@@ -1,7 +1,7 @@
 ---
 elemento: mcp
-version: 1.0
-updated: 2026-07-04
+version: 1.1
+updated: 2026-07-08
 status: vivo
 fuentes:
   - url: https://code.claude.com/docs/en/mcp
@@ -104,6 +104,15 @@ Proceso). Su métrica dominante es **costo de contexto vs uso**.
 
 ## Changelog
 
+- 2026-07-08 · v1.1 · HS-17: el spawn de arnés (`internal/adapters/agent/claudecode/
+  conductor.go:SpawnArgs`) ahora ENFORCEA `mcp-toolsearch-off`/`mcp-unused` a nivel
+  producto, no solo advisory — `--mcp-config`+`--strict-mcp-config` en todo spawn con
+  `Injection` poblada cortan el MCP a SOLO lo que el kit propio declara, cerrando el
+  costo de contexto de MCP de cuenta ajenos (el disparador real: 62.2k tok en Canva/
+  Gmail/Drive/Calendar en una sesión interactiva). El enforcement vive en
+  [`arch/boundaries/superficie-local-confinada.md`](../../arch/boundaries/superficie-local-confinada.md)
+  v1.3 (checklist `mcp-config-siempre`), no acá — este nodo sigue advisory/L1, sin
+  checks nuevos (siguen 11).
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales (mcp, tool-search-tool, managed-mcp,
   security) + modelcontextprotocol.io + OWASP/Checkmarx. L2 amarra MCP = tercero, métrica = costo
   vs uso, deferred-loading por defecto, frío = desconectar (conecta hallazgo real mcp-tessl).
