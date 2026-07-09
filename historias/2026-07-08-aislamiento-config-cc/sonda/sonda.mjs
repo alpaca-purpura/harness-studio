@@ -28,6 +28,7 @@ let stderr = ''
 let resultText = ''
 let sawInit = false
 let ctrlSeq = 0
+let resultFrame = null
 
 child.on('error', (e) => {
   console.error(`[${label}] spawn error: ${e.message}`)
@@ -102,6 +103,7 @@ child.stdout.on('data', (d) => {
       }
     }
     if (f.type === 'result') {
+      resultFrame = f
       child.stdin.end()
     }
   }
@@ -116,12 +118,25 @@ const timeout = setTimeout(() => {
 
 child.on('close', (code) => {
   clearTimeout(timeout)
+  const u = resultFrame?.usage
+  const usageLines = u
+    ? [
+        `input_tokens: ${u.input_tokens}`,
+        `cache_creation_input_tokens: ${u.cache_creation_input_tokens}`,
+        `cache_read_input_tokens: ${u.cache_read_input_tokens}`,
+        `total (input+cache_creation+cache_read): ${u.input_tokens + u.cache_creation_input_tokens + u.cache_read_input_tokens}`,
+      ]
+    : ['(sin frame result — no hay usage)']
   const report = [
     `# Sonda: ${label}`,
     '',
     `argv: claude ${claudeArgs.join(' ')}`,
     `cwd: ${cwd}`,
     `exit code: ${code}`,
+    '',
+    '## Uso de contexto (result.usage)',
+    '',
+    ...usageLines,
     '',
     '## Respuesta del modelo',
     '',

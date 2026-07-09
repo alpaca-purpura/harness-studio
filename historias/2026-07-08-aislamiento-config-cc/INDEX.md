@@ -78,8 +78,11 @@ as-code) está en `decisiones.md` como PROPUESTA, pendiente de firma antes de to
       nuevos) · `CLAUDE.md` línea nueva en Decisiones técnicas vigentes. Verificado:
       `conformance superficie-local-confinada` → 9/9 pass (1 defer preexistente) ·
       `go test ./...` completo verde
-- [ ] Fase 5 — gate de calidad (round-trip dogfood + `conformance --arnes` sin regresión +
-      medición de contexto antes/después)
+- [x] Fase 5 — gate de calidad (`gate-calidad.md`): `go test ./... -race` + `golangci-lint`
+      + `pnpm run verify` verdes · `conformance --arnes` sin regresión (20/1) ·
+      `conformance superficie-local-confinada` 9/9 · round-trip kit+doctrina+knowhow+
+      CLAUDE.md+permisos intactos · medición de contexto cuantificada: `input_tokens`
+      −75.4 % (12 959→3 193), total −38.4 % (56 114→34 585)
 - [ ] Fase 6 — cierre: ficha de cierre HS-17 en LEDGER.md
 
 ## Retomar aquí
