@@ -34,6 +34,7 @@ func TestProvisionMaterializesAndIsIdempotent(t *testing.T) {
 		inj.SystemPromptFile, // doctrine.md suelto (--append-system-prompt-file).
 		filepath.Join(base, "knowhow", "skills.md"),
 		filepath.Join(base, "knowhow", "harness-profile.md"),
+		inj.MCPConfigFile, // mcp.json (HS-17 D2): --mcp-config apunta acá, nunca a ~/.claude.
 	}
 	for _, f := range wantFiles {
 		if _, err := os.Stat(f); err != nil {
@@ -45,6 +46,16 @@ func TestProvisionMaterializesAndIsIdempotent(t *testing.T) {
 	}
 	if len(inj.AddDirs) != 1 || inj.AddDirs[0] != filepath.Join(base, "knowhow") {
 		t.Errorf("AddDirs = %v", inj.AddDirs)
+	}
+	if inj.MCPConfigFile != filepath.Join(base, "mcp.json") {
+		t.Errorf("MCPConfigFile = %q", inj.MCPConfigFile)
+	}
+	mcpContent, rerr := os.ReadFile(inj.MCPConfigFile)
+	if rerr != nil {
+		t.Fatalf("mcp.json: %v", rerr)
+	}
+	if got := string(mcpContent); got != `{"mcpServers":{}}` {
+		t.Errorf("mcp.json = %q, want {\"mcpServers\":{}} (el kit hoy no declara uno propio)", got)
 	}
 
 	// Idempotencia: mismo binario → misma huella → el stamp no cambia y un archivo

@@ -114,6 +114,24 @@ func TestPermissionArgsMaterialization(t *testing.T) {
 	}
 }
 
+// TestSpawnArgsMCPAislado enforces HS-17 D2 (arch/boundaries/superficie-local-confinada.md):
+// every spawn with a populated Injection locks MCP to ONLY the aggregated config file —
+// never the operator's `~/.claude` servers or claude.ai account connectors.
+func TestSpawnArgsMCPAislado(t *testing.T) {
+	args := SpawnArgs(ports.SpawnOpts{Injection: ports.Injection{MCPConfigFile: "/tmp/mcp.json"}})
+	joined := " " + strings.Join(args, " ") + " "
+	if !strings.Contains(joined, " --mcp-config /tmp/mcp.json --strict-mcp-config ") {
+		t.Errorf("argv = %q, want --mcp-config <archivo> --strict-mcp-config contiguos", joined)
+	}
+
+	// Injection vacía (degradación honesta, provisioning falló): cero flags de MCP —
+	// nunca emitir --mcp-config con ruta vacía.
+	args = SpawnArgs(ports.SpawnOpts{})
+	if flagValue(args, "--mcp-config") != "" || strings.Contains(strings.Join(args, " "), "--strict-mcp-config") {
+		t.Errorf("argv = %v, want cero flags de MCP sin Injection.MCPConfigFile", args)
+	}
+}
+
 // flagValue returns the argument following flag, or "".
 func flagValue(args []string, flag string) string {
 	for i, a := range args {

@@ -50,7 +50,12 @@ as-code) está en `decisiones.md` como PROPUESTA, pendiente de firma antes de to
       `baseline.md`: confirma la fuga — MCP de cuenta (chrome-devtools/Canva/Gmail/
       Calendar/claude_design, "todavía conectando") + ~50 skills `golang-*` +
       plugins `caveman`/stitch-design ajenos, todos visibles en el spawn del dogfood
-- [ ] Fase 1 — aislamiento MCP (`--mcp-config`+`--strict-mcp-config` siempre)
+- [x] Fase 1 — aislamiento MCP (`--mcp-config`+`--strict-mcp-config` siempre) —
+      `Injection.MCPConfigFile` + `Provisioner` materializa `~/.arnesia/mcp.json` +
+      `SpawnArgs` agrega los flags; `TestSpawnArgsMCPAislado` +
+      `TestProvisionMaterializesAndIsIdempotent` (extendido) verdes; sonda real
+      `post-mcp.md`: 6→0 MCP de cuenta, skills propias intactas;
+      `conformance --arnes` dogfood sin regresión (20 pass/1 warn-fail, igual que antes)
 - [ ] Fase 2 — `--setting-sources project,local` (excluir `user`)
 - [ ] Fase 3 — experimento `--safe-mode` (decidir adopción según resultado, no a priori)
 - [ ] Fase 4 — cementado as-code (extensión de `superficie-local-confinada` + fitness test)

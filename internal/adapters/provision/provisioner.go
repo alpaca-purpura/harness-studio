@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -73,6 +74,7 @@ func (p *Provisioner) Provision(_ context.Context) (ports.Injection, error) {
 		PluginDirs:       []string{filepath.Join(p.baseDir, "kit")},
 		SystemPromptFile: filepath.Join(p.baseDir, "doctrine.md"),
 		AddDirs:          []string{filepath.Join(p.baseDir, "knowhow")},
+		MCPConfigFile:    filepath.Join(p.baseDir, "mcp.json"),
 	}
 	p.done = &inj
 	return inj, nil
@@ -95,6 +97,24 @@ func (p *Provisioner) materialize() error {
 	}
 	if err := copyTree(p.doctrinaFS, "knowledge/elements", filepath.Join(p.baseDir, "knowhow")); err != nil {
 		return fmt.Errorf("provision: knowhow: %w", err)
+	}
+	return p.materializeMCPConfig()
+}
+
+// materializeMCPConfig writes mcp.json under baseDir — the sole file `--mcp-config`
+// points at, made strict by `--strict-mcp-config` (HS-17 D2). If the kit itself
+// declares `kit/.mcp.json` (a future arnés-owned MCP server), that content is the
+// base; otherwise it defaults to no servers at all. Either way the operator's
+// account-level MCP (`~/.claude`, claude.ai connectors) never rides the spawn.
+func (p *Provisioner) materializeMCPConfig() error {
+	content, err := fs.ReadFile(p.kitFS, "kit/.mcp.json")
+	if errors.Is(err, fs.ErrNotExist) {
+		content = []byte(`{"mcpServers":{}}`)
+	} else if err != nil {
+		return fmt.Errorf("provision: kit/.mcp.json: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(p.baseDir, "mcp.json"), content, 0o600); err != nil {
+		return fmt.Errorf("provision: mcp.json: %w", err)
 	}
 	return nil
 }

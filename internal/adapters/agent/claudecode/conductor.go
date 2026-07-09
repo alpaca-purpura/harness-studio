@@ -88,6 +88,13 @@ func SpawnArgs(opts ports.SpawnOpts) []string {
 	for _, d := range opts.Injection.AddDirs {
 		args = append(args, "--add-dir", d)
 	}
+	// Aislamiento de superficie de config (HS-17 D2): todo spawn con Injection poblada
+	// corta el MCP a SOLO lo que el kit propio declara — nunca el ~/.claude del
+	// operador ni sus conectores de cuenta (claude.ai). Ortogonal a auth: MCP no toca
+	// OAuth/keychain.
+	if f := opts.Injection.MCPConfigFile; f != "" {
+		args = append(args, "--mcp-config", f, "--strict-mcp-config")
+	}
 	return append(args, permissionArgs(opts.Permisos)...)
 }
 
