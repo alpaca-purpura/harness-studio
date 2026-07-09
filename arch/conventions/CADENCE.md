@@ -61,5 +61,5 @@ Ya aterrizó: `arnesia` y `web/` existen (HS-06/HS-08) y desde HS-10 el CI corre
 `biome ci` + `tsc --noEmit` + depcruise/steiger/stylelint/story-tests · job rust = `cargo clippy` +
 `cargo fmt --check`) y **rompe el merge**; `lefthook` da el feedback local; el motor `arnesia
 conformance` (construido HS-08) suma estos 26 checks a los de `boundaries/`, `fitness/` y
-`knowledge/` (235 checks a datos). La misma disciplina que exigimos a los arneses que fabricamos,
+`knowledge/` (247 checks a datos, `--todo`). La misma disciplina que exigimos a los arneses que fabricamos,
 aplicada a la fábrica (dogfood).

@@ -1,7 +1,7 @@
 ---
 regla: indice-desechable-jsonl-es-verdad
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-09
 status: proposed
 ledger: HS-04
 sources:
@@ -19,7 +19,7 @@ enforced_by:
 severity: high
 ---
 
-# JSONL es la fuente de verdad; SQLite es un índice reconstruible
+# JSONL es la fuente de verdad; el índice es reconstruible
 
 ## L1 · Principio (estándar de industria)
 
@@ -35,13 +35,14 @@ es interno y cambia entre versiones; SQLite WAL para el índice)*
 VISION lo firma: «los JSONL de `~/.claude` son la fuente de verdad; índice SQLite desechable;
 daemon caído = cero pérdida».
 
-- **El índice (`modernc.org/sqlite`, WAL) nunca es la fuente de verdad.** Todo lo que vive en
-  SQLite se puede regenerar desde JSONL + el event store del stream (ver
+- **El índice nunca es la fuente de verdad.** Hoy es un **map in-memory + store JSON atómico**
+  (reconstruible); `modernc.org/sqlite` (WAL) es el **target de escala de fase 5**, aún no cableado.
+  Todo lo que vive en el índice se puede regenerar desde JSONL + el event store del stream (ver
   [`conductor-no-parsea-jsonl.md`](./conductor-no-parsea-jsonl.md)). ⇐ L1: proyección.
 - **No se migra el índice: se reconstruye.** Una `schema_version` en una meta table; en mismatch →
   borrar el archivo y re-indexar. Migraciones incrementales = prohibidas para el índice (son deuda
   que la reconstrucción hace innecesaria). ⇐ L1: desechable.
-- **Concurrencia:** 2 handles `*sql.DB` — writer con `SetMaxOpenConns(1)` (serializa escrituras) +
+- **Concurrencia (diseño del target de escala, fase 5 con SQLite):** 2 handles `*sql.DB` — writer con `SetMaxOpenConns(1)` (serializa escrituras) +
   reader pooled; `journal_mode=WAL`, `synchronous=NORMAL`, `busy_timeout=5000`, `BEGIN IMMEDIATE`
   en txns de escritura. ⇐ L1: WAL.
 - **Rebuild rápido:** cursores por archivo (`{path,inode,size,offset}`) persistidos → reanuda
@@ -63,3 +64,8 @@ daemon caído = cero pérdida».
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = local-first + índice desechable (CQRS-lite).
   L2: SQLite modernc como proyección reconstruible; no-migrar-reconstruir; 2 handles WAL; DuckDB
   descartado por CGO. 4 checks.
+- 2026-07-09 · v1.1 · **Sync HS-18 (reorg-docs).** El índice ACTUAL es un **map in-memory + store
+  JSON atómico** (reconstruible desde JSONL), no SQLite: `modernc.org/sqlite`+WAL pasa a ser el
+  **target de escala de fase 5** (aún no cableado). Se reencuadra el título y el bullet líder; los
+  detalles WAL/2-handles quedan como diseño de fase 5 (aditivo, no se borran). Principio (JSONL =
+  verdad, índice desechable) intacto; sin cambios de checks ni de status (`proposed`).

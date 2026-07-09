@@ -93,7 +93,7 @@ El código ya aterrizó (HS-06/HS-08: daemon Go `internal/`+`cmd/`, SPA `web/`, 
 desde HS-10** (`go-arch-lint check --project-path . --arch-file arch/fitness/.go-arch-lint.yml`)
 y rompe el build si el core importa el shell o el dominio importa `net/http`;
 `contracts/schema/*.json` valida cada `contract:` de caja (`TestBoxContractValidatesAgainstSchema`,
-enforced en HS-08); y el motor **`arnesia conformance`** (construido en HS-08) unifica estos 97
-checks de arquitectura con los 138 de `knowledge/` — **235 checks a datos** — en un solo reporte
+enforced en HS-08); y el motor **`arnesia conformance`** (construido en HS-08) unifica los
+checks de arquitectura con los 138 de `knowledge/` — **247 checks a datos** (`--todo`, 2026-07-09) — en un solo reporte
 severidad+señal. La misma disciplina que aplicamos a los arneses que fabricamos, aplicada a la
 fábrica misma (dogfood). Por eso cada check mal puesto es un falso positivo en CI.

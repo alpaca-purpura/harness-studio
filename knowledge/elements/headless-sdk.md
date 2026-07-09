@@ -80,14 +80,15 @@ de marca: partners dicen «Powered by Claude», **no** «Claude Code». *(oficia
 ## L2 · Nuestra adaptación (paradigma alpacapurpura)
 
 El headless/SDK es **el motor de la fábrica conversacional**: ArnesIA dirige Claude Code headless
-por detrás con el **patrón conductor** (I-76/OBS-16/OBS-18, ya en VISION y CLAUDE.md). No es un
+por detrás con el **patrón conductor** (I-76/OBS-16/OBS-18, ya en VISION). No es un
 componente DENTRO de un arnés cliente — es cómo ArnesIA OPERA la creación/edición. Su estándar
 gobierna al producto ArnesIA mismo (dogfood) más que a los arneses que fabrica.
 
 1. **stream-json + schema, jamás scrapear texto ni el JSONL:** el conductor de ArnesIA consume
    `--output-format stream-json` / SDK, y el **sensor** lee el JSONL como fuente de verdad pero
-   sabiendo que su formato es interno (índice desechable — coherente con VISION «SQLite desechable,
-   JSONL fuente de verdad», y con la trampa ya vivida en it.7 de parsear JSONL). ⇐ L1.5/L1.6.
+   sabiendo que su formato es interno (índice desechable — JSONL = fuente de verdad, índice =
+   desechable [hoy map in-memory + store JSON atómico; SQLite modernc/WAL = fase 5 futura, ver
+   STACK.md], y con la trampa ya vivida en it.7 de parsear JSONL). ⇐ L1.5/L1.6.
 2. **Sesión pineada por ID:** cada dock↔sesión CC (S4) resume por `session_id` explícito, nunca
    `--continue` (el dock corre múltiples conversaciones). ⇐ L1.6. Ya modelado en S4/S8.
 3. **`--max-turns` + permisos acotados en todo build headless:** el build de un arnés (J3) corre
@@ -125,6 +126,11 @@ gobierna al producto ArnesIA mismo (dogfood) más que a los arneses que fabrica.
 
 ## Changelog
 
+- 2026-07-09 · v1.1 (sin bump) · **Alineación reorg 4-ejes (ledger HS-18):** corregidas 2
+  referencias stale — «SQLite desechable» como índice presente → el índice hoy es map in-memory +
+  store JSON atómico, SQLite modernc/WAL = fase 5 futura (autoridad = `STACK.md`); y «patrón
+  conductor ya en CLAUDE.md» → CLAUDE.md es ahora router puro, la doctrina vive en VISION (queda
+  «ya en VISION»). Sin cambio de L1/L2/checks.
 - 2026-07-05 · v1.1 · **Corrección load-bearing (HS-04, fase 3, frente B):** `--bare` **también
   salta OAuth/keychain** → rompe el auth de suscripción; el conductor interactivo NO lo usa (se
   aísla con `--settings`/`--mcp-config`/`settingSources:[]`), reservado a CI con API key. Añadido:

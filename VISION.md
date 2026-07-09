@@ -187,8 +187,9 @@ será ficha futura — no es esta visión.)
   Proceso. Crear y editar son acciones sobre el mapa, no vistas aparte. (Esencia validada
   en mockup 2026-07-04; diseño fino en fase UX.)
 - **Sensor local-first.** Los JSONL de `~/.claude` son la fuente de verdad (Claude Code ya
-  es el colector); el sensor indexa — daemon caído = cero pérdida. Índice SQLite desechable;
-  hooks + traces OTel beta complementan; export a Langfuse como espejo.
+  es el colector); el sensor indexa — daemon caído = cero pérdida. Índice desechable (hoy =
+  **map in-memory + JSON atómico** en `~/.arnesia`; el índice SQLite es **fase 5 futura**, ver
+  `STACK.md`); hooks + traces OTel beta complementan; export a Langfuse como espejo.
 - **Fábrica conversacional.** El arnés se crea conversando (grill → spec → build headless →
   beta), con Claude Code como cerebro vía patrón conductor.
 - **Tren de release.** beta → eval gate → promote → publish al marketplace git del proyecto;
@@ -206,7 +207,10 @@ será ficha futura — no es esta visión.)
   «React Flow 12 para el Mapa» — RF impone su modelo de nodos/edges/viewport y pelea con la geografía
   fija swim-lane; **React Flow 12 se reserva al Organigrama** (lienzo libre 2D). Ver HS-09 en el LEDGER.)*
 - **Storage: SQLite puro-Go** (modernc, WAL, rollups) — cross-compile sin CGO. DuckDB solo
-  si años de telemetría lo exigen.
+  si años de telemetría lo exigen. *(Corrección firmada HS-18, 2026-07-09: el índice HOY es
+  **map in-memory + persistencia JSON atómica** en `~/.arnesia`; **el SQLite es fase 5 futura,
+  NO implementado hoy** — supera la lectura previa de «SQLite» como índice vigente. Stack
+  vigente = `STACK.md`; ver `ledger/HS-18.md`.)*
 - **Empaque:** GoReleaser → brew/scoop/deb para el daemon. **Shell v1 = Tauri 2 desde el
   nacimiento** (fork firmado HS-04, 2026-07-05): app de escritorio nativa con el daemon Go como
   sidecar `externalBin`; el WebView consume la misma API HTTP/SSE. El boundary `core⊥shell` no
@@ -228,10 +232,10 @@ será ficha futura — no es esta visión.)
 |---|------|--------|
 | 1 | Visión del producto | **esta ficha (HS-02)** ✓ |
 | 2 | UX del producto (mapa a fondo, inspector, flujos) | ✓ firmada (HS-03, it.13) |
-| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend; HS-06 endurecimiento multisesión + HS-07 doctrina v1) — stack cerrado + `arch/` = 97 checks |
+| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend; HS-06 endurecimiento multisesión + HS-07 doctrina v1) — stack cerrado + `arch/` enforced (cifras vivas → `ESTADO.md`) |
 | 4 | Definición de specs | ✓ (HS-08, dogfood-first — doctrina bajada a ejecutable) |
-| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | **en curso (HS-09 — MVP del Mapa)** |
-| 6 | Instalación y dogfood | pendiente |
+| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | **en curso** (estado vivo → `ESTADO.md`) |
+| 6 | Instalación y dogfood | **en curso** — instalador REAL (bundles `.deb`/`.AppImage`/`.rpm`, HS-11; `.deb` verificado instalado HS-14); dogfood `dev-full-cycle` vivo. Estado → `ESTADO.md` |
 
 **Port del monorepo (regla):** nada se porta sin pasar por la fase del gran plan que le
 corresponde. Sobrevive en principio: patrón conductor (I-76/OBS-16/OBS-18), flujo creador

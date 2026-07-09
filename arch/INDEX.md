@@ -19,10 +19,16 @@
   checks · 12 nodos, incl. `harness-profile`). `arch/` es el gemelo: estándar as code de **la app
   ArnesIA misma** (dogfood). Un solo
   runner (`arnesia conformance`) corre ambos árboles — **construido en HS-08**: el `RulesetPort` parsea
-  `knowledge/` + `arch/` = 235 checks a datos y el `ConformancePort` los corre con adapters por mecanismo
+  `knowledge/` + `arch/` = 247 checks a datos (`--todo`, medido 2026-07-09) y el `ConformancePort` los corre con adapters por mecanismo
   (arch-test/schema-validation/go-arch-lint/static-scan/nl-judge). El **contrato de check común** (mecanismo
   por check) ya existe; los `enforced_by:` de `arch/` y los checks de `knowledge/` corren por el mismo motor.
-- [`../LEDGER.md`](../LEDGER.md) — el diario firmado. Cada boundary cita su ficha en `ledger:`.
+- [`../LEDGER.md`](../LEDGER.md) — **índice del diario firmado** → `ledger/HS-NN.md` (una ficha por
+  archivo). Cada boundary cita su ficha en `ledger:`. El **backlog y el estado NO viven aquí**:
+  pendientes en [`../BACKLOG.md`](../BACKLOG.md), cifras (generadas) en [`../ESTADO.md`](../ESTADO.md);
+  [`../CLAUDE.md`](../CLAUDE.md) = **router de punteros**, no repositorio de estado/historia/stack.
+- [`../CAPABILITIES.md`](../CAPABILITIES.md) — **SSoT de lo funcional** (qué HACE la app, por
+  capability). El boundary [`codigo-traza-a-capability`](./boundaries/codigo-traza-a-capability.md)
+  lo enforça: todo archivo fuente traza a ≥1 capability, cero huérfanos.
 
 ## Las dos capas (en cada boundary node)
 
@@ -42,9 +48,9 @@ check llega con HS-08, ver runner unificado arriba).
 | Nodo | Regla | Estado | Versión | Checks | Enforcer |
 |------|-------|--------|---------|--------|----------|
 | [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.2 | 5 | go-arch-lint · arch_test.go · lib.rs (revisión) |
-| [`boundaries/dominio-independiente-de-transporte.md`](./boundaries/dominio-independiente-de-transporte.md) | El dominio no depende de HTTP/SSE/SQLite | 🌱 vivo | 1.0 | 4 | go-arch-lint · depguard |
+| [`boundaries/dominio-independiente-de-transporte.md`](./boundaries/dominio-independiente-de-transporte.md) | El dominio no depende de HTTP/SSE/store | 🌱 vivo | 1.1 | 4 | go-arch-lint · depguard |
 | [`boundaries/adaptadores-de-agente-intercambiables.md`](./boundaries/adaptadores-de-agente-intercambiables.md) | Claude Code = un adaptador tras `AgentPort` | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
-| [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | JSONL = verdad; SQLite = índice reconstruible | 🌱 vivo | 1.0 | 4 | arch_test.go · schema |
+| [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | JSONL = verdad; el índice (in-memory+JSON) es reconstruible | 🌱 vivo | 1.1 | 4 | arch_test.go · schema |
 | [`boundaries/conductor-no-parsea-jsonl.md`](./boundaries/conductor-no-parsea-jsonl.md) | El conductor consume stream-json/OTel, no parsea JSONL | 🌱 vivo | 1.0 | 4 | depguard · arch_test.go |
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
 | [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.2 | 7 | arch_test.go · auth_test.go |
@@ -52,14 +58,15 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema + composición del cableado (huérfanos·dead-ends·rutas·refina) | 🌳 enforced | 1.3 | 7 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema · domain.Verificar{SinHuerfanos,DeadEnds,RutaExiste,RefinaCoherente} (ruta `--arnes`) |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
 | [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌳 enforced | 1.1 | 4 | dependency-cruiser (verde sobre el Mapa) |
-| [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.0 | 4 | dependency-cruiser |
+| [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.1 | 4 | dependency-cruiser |
 | [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌳 enforced | 1.1 | 4 | stylelint · tokens-sync |
 | [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌳 enforced | 1.1 | 5 | vitest.config.ts + Storybook 10 (story=test; conteo crece con cada story — ≥45 verdes HS-11) |
 | [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
+| [`boundaries/codigo-traza-a-capability.md`](./boundaries/codigo-traza-a-capability.md) | Todo código fuente traza a un capability (`CAPABILITIES.md` = SSoT funcional) | 🌳 enforced | 1.1 | 5 | arch_test.go:TestCapabilityPointersResolve · TestCapabilityCoverage |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 16 · 76 checks** — fundacional HS-04
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 17 · 81 checks** — fundacional HS-04
 (backend, 7 boundaries · 29 checks; **+3 en franja-artefactos Fase 1** (2026-07-08): `dead-end` ·
 `ruta-a-existe` · `refina-coherente` en `contrato-de-caja-es-fitness-function` v1.3, y `sin-huerfanos`
 pasó de promesa a enforcer vivo `domain.VerificarSinHuerfanos` — los 5 verificadores de composición
@@ -69,8 +76,12 @@ corren en la ruta `--arnes`; **+1 en HS-14** (2026-07-08): `single-instance-reen
 `superficie-local-confinada` v1.2 — REGRESIÓN real detectada en producción por el operador el
 mismo día del fix ②, no mejora cosmética; ver su changelog) **= 13 checks)** + **HS-07/HS-08 doctrina v1 (2 boundaries ·
 8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol` — nacieron draft en HS-07,
-**enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)**. **+ [`conventions/`](./conventions/INDEX.md): 8
-convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 102 checks.**
+**enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)** + **HS-18
+(2026-07-09, doctrina de trazado): 1 boundary · 5 checks — `codigo-traza-a-capability` **enforced**
+(`TestCapabilityPointersResolve` + `TestCapabilityCoverage`; R1/R2 pasan sobre `CAPABILITIES.md`)**. **+
+[`conventions/`](./conventions/INDEX.md): 8 convention nodes · 26 checks** (HS-05). **Gran total `arch/`:
+107 checks** (81 boundary + 26 convention; nota: el ruleset `--todo` cuenta **247 checks a datos**
+arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, ver `ESTADO.md`).
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
 > no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**
@@ -86,7 +97,8 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 102 checks.**
 > `pnpm depcruise` verde: 76 módulos/0 violaciones), `fe-tokens-contrato` (stylelint strict-value verde +
 > tokens 6→10 regenerados) y `fe-visual-fitness` (`pnpm test` = story-tests verdes en Playwright — el conteo crece con cada story; ≥45 al corte HS-11
 > Chromium; migrado `vitest.workspace.ts`→`vitest.config.ts`) — **sin sumar checks** (solo cambio de
-> `status`). → **8 boundaries enforced en total** (2 HS-06 + 3 HS-08 + 3 HS-09). El resto sigue
+> `status`). → **9 boundaries enforced en total** (2 HS-06 + 3 HS-08 + 3 HS-09 + 1 HS-18
+> [`codigo-traza-a-capability`: `TestCapabilityPointersResolve` + `TestCapabilityCoverage`]). El resto sigue
 > `proposed`; `fe-topologia-fsd` y `fe-transporte-independiente` quedan proposed (el 2º hasta que exista
 > `app/realtime/` SSE en Hito 3). El `go-arch-lint check` **corre en CI desde HS-10**
 > (`go-arch-lint check --project-path . --arch-file arch/fitness/.go-arch-lint.yml`, deepScan off —
@@ -119,7 +131,7 @@ convention nodes · 26 checks** (HS-05). **Gran total `arch/`: 102 checks.**
 | Shell v1 | **Tauri 2** (daemon = sidecar `externalBin`); ruta a «app vendible» aditiva |
 | Backend | binario Go único `arnesia` (serve/open/index/publish) |
 | Conexión CC | subproceso `claude` + **stream-json** por stdin/stdout (patrón conductor) |
-| Índice | **modernc.org/sqlite** (puro-Go, WAL, desechable) · JSONL = verdad |
+| Índice | **map in-memory + store JSON atómico** (reconstruible, desechable) · JSONL = verdad · SQLite modernc (WAL) = **fase 5** (escala, aún no) |
 | Transporte | **SSE** multiplexado (`event: map\|dock\|run`) |
 | Frontend | Vite+React SPA `go:embed` · Mapa = **HTML+SVG** bandas/carriles (React Flow 12 → Organigrama, HS-09) · **Zustand** + hash-state |
 | Dock | **AG-UI** (taxonomía, emisor Go propio) · **assistant-ui** · **CodeMirror 6** + merge |

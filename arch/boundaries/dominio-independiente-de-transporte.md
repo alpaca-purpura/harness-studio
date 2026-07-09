@@ -1,7 +1,7 @@
 ---
 regla: dominio-independiente-de-transporte
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-09
 status: proposed
 ledger: HS-04
 sources:
@@ -26,7 +26,7 @@ severity: critical
 
 **Ports & adapters + dependency inversion.** El modelo de dominio y los casos de uso se expresan
 en términos del negocio, no de HTTP, SSE, SQL o JSON. El transporte (servidor HTTP/SSE) y la
-persistencia (SQLite) son adaptadores que **implementan puertos** que el dominio define; el
+persistencia (el store del índice) son adaptadores que **implementan puertos** que el dominio define; el
 dominio no los importa. Esto permite testear el dominio sin red ni disco, y cambiar de transporte
 o de store sin tocar reglas de negocio. *(experto: Cockburn; oficial: Go — «accept interfaces,
 return structs»)*
@@ -36,7 +36,7 @@ return structs»)*
 - **`internal/domain/**` (el grafo agnóstico de componentes, el spine de estados, los contratos)
   NO importa `net/http`, `database/sql`, `modernc.org/sqlite`, ni el paquete SSE.** ⇐ L1: DI.
 - El dominio define **puertos** (`GraphStore`, `RunStore`, `EventBus`); los adaptadores viven en
-  `internal/adapters/` (`index/` = SQLite, `transport/http/`, `transport/sse/`). Los adaptadores
+  `internal/adapters/` (`index/` = store [map in-memory + JSON atómico hoy; SQLite modernc en fase 5], `transport/http/`, `transport/sse/`). Los adaptadores
   importan el dominio; el dominio no los importa.
 - **El transporte no contiene reglas de negocio.** Un handler HTTP traduce request↔caso-de-uso y
   nada más; si un handler decide algo del dominio (p.ej. cuándo un arnés está «sano»), es un
@@ -59,3 +59,7 @@ return structs»)*
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = ports&adapters + DI. L2: dominio ⊥ HTTP/SSE/
   SQLite vía puertos; adaptadores en `internal/adapters/`; DTOs generados desde `contracts/`. 4
   checks.
+- 2026-07-09 · v1.1 · **Sync HS-18.** El `index/` store ACTUAL es map in-memory + JSON atómico
+  (SQLite modernc = fase 5); se relabela «SQLite» → «el store» donde se citaba como persistencia
+  vigente. El principio (dominio ⊥ transporte/store) y la ban-list de imports (`database/sql`,
+  `modernc.org/sqlite`, guardrail anti-coupling futuro) quedan intactos. Sin cambios de checks/status.

@@ -76,7 +76,7 @@ Atomic vive DENTRO de `shared/ui` como vocabulario; la estructura real = **6 cap
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
 | canvas-not-chrome | el canvas (`map-canvas`, `shared/canvas`) no importa chrome (`session-rail`, `chat-dock`, `topbar`, `view-strip`, `pages/shell`) | error | «nodo del Mapa importa el Rail/Dock (mezcla runtimes canvas/shell)» | dependency-cruiser#canvas-not-chrome |
-| chrome-not-canvas-internals | el chrome no hace deep-import a internos del canvas (solo props/store) | error | «chrome alcanza los internos de React Flow» | dependency-cruiser#chrome-not-canvas-internals |
+| chrome-not-canvas-internals | el chrome no hace deep-import a internos del canvas (solo props/store) | error | «chrome alcanza los internos del canvas (Mapa HTML+SVG)» | dependency-cruiser#chrome-not-canvas-internals |
 | ui-not-domain | `shared/ui/**` no importa `entities/features/*/model` ni el store | error | «primitivo/molécula acoplado al dominio» | dependency-cruiser#ui-not-domain |
 | primitives-solo-semanticos | `shared/ui/**` no usa colores/valores crudos, solo `var(--…)` | warn | banda Base «primitivo con valor mágico (no tokenizado)» | stylelint (ver fe-tokens-contrato) |
 

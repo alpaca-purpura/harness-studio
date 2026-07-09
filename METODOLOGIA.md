@@ -448,12 +448,22 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
 2. **«Retomar aquí» siempre al día.** Si el operador dice «seguimos en otra conversación»,
    el INDEX.md ya lo contiene todo; la actualización es continua, no un ritual de cierre.
 3. **Cada iteración firmada se commitea a main** (trunk-based) — git es la memoria durable.
-4. **Sesión nueva arranca así:** CLAUDE.md apunta al paquete activo → leer su INDEX.md
-   («Retomar aquí») → `decisiones.md` → continuar exactamente donde quedó.
+4. **Sesión nueva arranca así:** `CLAUDE.md` (router puro) → [`ESTADO.md`](./ESTADO.md) nombra
+   el paquete activo → leer su INDEX.md («Retomar aquí») → `decisiones.md` → continuar
+   exactamente donde quedó. *(Reorg 4-ejes HS-18: el backlog GLOBAL y los gates pendientes
+   viven en [`BACKLOG.md`](./BACKLOG.md), el «ahora» en `ESTADO.md`; el INDEX del paquete sigue
+   siendo el puntero de continuidad DEL PAQUETE, no del proyecto.)*
 5. **Mockups fieles o no sirven:** tokens DTCG reales (norma «pegarse al Storybook»),
    datos REALES (showcase/dogfood, jamás inventados), publicar siempre al MISMO artifact.
 6. **Nada llega al código sin spec firmado; nada se firma sin verse** (click-through con
    asserts + screenshots + consola limpia — disciplina UX.md, aquí obligatoria por fase).
+7. **Ningún cambio de código sin capability** (FIRMADO 2026-07-09, HS-18). Todo commit que toca
+   fuente (`cmd/` · `internal/` · `web/src`) construye o modifica un capability en
+   [`CAPABILITIES.md`](./CAPABILITIES.md) — el **SSoT funcional**: qué HACE el sistema, con
+   puntero al código autoritativo (`file#Símbolo`) y a su check. La historia de usuario es el
+   *delta*; el capability es el *saldo*. Doctrina **enforced**:
+   [`arch/boundaries/codigo-traza-a-capability.md`](./arch/boundaries/codigo-traza-a-capability.md)
+   (Living Documentation + Business Capability Map; validador R1/R2 + job lefthook `capabilities`).
 
 ## Estado
 
@@ -478,3 +488,11 @@ proceso e independiente de rubro.
 **§10 «Disciplina de desarrollo por paquete de trabajo» (2026-07-07, orden del operador):** toda
 funcionalidad nueva itera por mockup en `historias/<fecha>-<slug>/` con decisiones/spec/design/PARIDAD
 y reglas de continuidad entre sesiones — la conversación jamás es el único registro.
+**Sync 2026-07-09 (HS-18, paquete `reorg-docs`):** alineación con el **árbol de docs de 4 ejes** —
+[`BACKLOG.md`](./BACKLOG.md) (lo-que-viene) · [`ESTADO.md`](./ESTADO.md) (ahora + cifras GENERADAS por
+`arnesia conformance`, no tecleadas) · [`CAPABILITIES.md`](./CAPABILITIES.md) (SSoT funcional) ·
+[`LEDGER.md`](./LEDGER.md) índice → `ledger/HS-NN.md` (fichas atómicas); `CLAUDE.md` = **router puro**,
+ya no repositorio de estado/backlog/stack (ése vive en `STACK.md`). **§10** reconciliado (el paquete
+activo lo nombra `ESTADO.md`, el backlog global vive en `BACKLOG.md`; el INDEX del paquete sigue siendo
+continuidad DEL paquete) + **nueva regla dura 7** «ningún cambio de código sin capability»
+(`arch/boundaries/codigo-traza-a-capability.md`, **enforced**).

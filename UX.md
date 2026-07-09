@@ -676,6 +676,12 @@ heat percentil · edición directa siempre pare beta→tren · Contrato por caja
 
 ## Inventario de funcionalidades — corte iteración 6 (mockup v3.3, 2026-07-04)
 
+> **⚠ Snapshot histórico de UX (nota 2026-07-09, HS-18).** El **SSoT funcional VIVO** de qué
+> sabe hacer el sistema es ahora [`CAPABILITIES.md`](./CAPABILITIES.md) (82 capabilities
+> derivados del código, con puntero a la implementación de cada uno). Este «Inventario de
+> funcionalidades» es un **snapshot de diseño UX** del mockup en la iteración 6 — se conserva
+> como historia, ya NO es la fuente de verdad funcional actual.
+
 > Fuente de verdad para retomar en cualquier sesión. Mockup vigente:
 > `mockups/arnesia-mockup-v3.html` (v2 preservado como historia). Artifact único:
 > https://claude.ai/code/artifact/6a63cdf3-e6ee-442e-b17c-c659995baec1

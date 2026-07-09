@@ -1,7 +1,7 @@
 ---
 regla: go-style
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-09
 status: proposed
 ledger: HS-05
 sources:
@@ -26,8 +26,8 @@ severity: high
 **golangci-lint v2** es el agregador estándar (2026). Cambios estructurales vigentes: `version: "2"`
 obligatorio; `staticcheck` **absorbe `gosimple`+`stylecheck`** (no listarlos); formatters
 (`gofumpt`/`goimports`) en sección `formatters:` aparte (`golangci-lint fmt`), no en `linters`; default
-`standard` = 5 linters → ampliar. Un daemon con FS/exec/red/SQLite necesita cobertura de correctitud +
-seguridad + logging. *(oficial: golangci-lint v2)*
+`standard` = 5 linters → ampliar. Un daemon con FS/exec/red (y store SQL en fase 5) necesita cobertura de
+correctitud + seguridad + logging. *(oficial: golangci-lint v2)*
 
 **Curar el set, no habilitar todo.** El consenso (golden-config) rechaza linters dogmáticos/ruidosos que
 generan fricción sin valor. *(experto: maratori golden-config)*
@@ -36,7 +36,7 @@ generan fricción sin valor. *(experto: maratori golden-config)*
 
 Config = **`/.golangci.yml`** (`version: "2"`). Sobre `default: standard`, `enable:`:
 - **correctitud/errores:** `errcheck errorlint nilerr nilnesserr bodyclose noctx rowserrcheck
-  sqlclosecheck contextcheck fatcontext makezero` (relevantes por HTTP + SQLite modernc + context).
+  sqlclosecheck contextcheck fatcontext makezero` (relevantes por HTTP + context; los de SQL cubren el store de fase 5 con SQLite modernc).
 - **seguridad:** `gosec` (daemon con FS/exec/red) · `depguard` (bans de import duros — complementa el
   grafo de [`../fitness/.go-arch-lint.yml`](../fitness/.go-arch-lint.yml): dominio no importa
   `net/http`/`database/sql`). ⇐ L1: cobertura daemon.
@@ -67,3 +67,6 @@ de golangci-lint (no invocar aparte). ⇐ L1: curar el set.
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-05). L1 = golangci-lint v2 + golden-config curado. L2 = set de
   ~30 linters de alto valor para un daemon (correctitud/seguridad/logging/modernización) + gofumpt/
   goimports en formatters; lista de evitados; depguard complementa el grafo hexagonal. 4 checks.
+- 2026-07-09 · v1.1 · **Sync HS-18.** El store SQL (SQLite modernc) es target de fase 5, no actual
+  (índice = map in-memory + JSON hoy); se qualifica la justificación de los linters SQL como fase 5.
+  Los linters siguen habilitados (cubren la fase 5). Sin cambios de checks ni de status.

@@ -10,18 +10,26 @@ mejora. ArnesIA es el medio de producción; el vendible es el arnés.
 
 ## Documentos norte
 
+Los docs se organizan en un **árbol de 4 ejes** (BACKLOG · ESTADO · CAPABILITIES · LEDGER); el
+router de todo es [`CLAUDE.md`](./CLAUDE.md) — «necesito X → leo Y».
+
+- **Qué SABE HACER el sistema hoy** (SSoT funcional, con punteros al código) — [`CAPABILITIES.md`](./CAPABILITIES.md)
+- **Estado · fase · cifras vivas** (generadas, no tecleadas) — [`ESTADO.md`](./ESTADO.md)
+- **Lo que viene / abierto** — [`BACKLOG.md`](./BACKLOG.md)
+- **Historia de decisiones** — [`LEDGER.md`](./LEDGER.md) (índice → `ledger/HS-NN.md`; OBS-01..OBS-20 en la incubadora `prenter-harness`)
 - **Visión** — [`VISION.md`](./VISION.md) (v3 firmada: constitución de 11 principios + anatomía A1–A7)
 - **Reglas de negocio / metodología** — [`METODOLOGIA.md`](./METODOLOGIA.md) (doc vivo: fábrica de cajas, contrato de caja, honestidad)
 - **UX del producto** — [`UX.md`](./UX.md) (fase 2 firmada it.13 · Command Rail + Organigrama)
-- **Arquitectura as code** — [`arch/INDEX.md`](./arch/INDEX.md) (12 boundaries + convenciones = 77 checks)
-- **Estándar as code por elemento** — [`knowledge/INDEX.md`](./knowledge/INDEX.md) (11 nodos · 122 checks, se actualiza cada semana)
-- **Registro de decisiones** — [`LEDGER.md`](./LEDGER.md) (fichas `HS-NN`; historia OBS-01..OBS-20 en la incubadora `prenter-harness`)
+- **Stack / tecnologías** — [`STACK.md`](./STACK.md)
+- **Arquitectura as code** — [`arch/INDEX.md`](./arch/INDEX.md) (boundaries + convenciones `enforced_by:`; cifras vivas en [`ESTADO.md`](./ESTADO.md))
+- **Estándar as code por elemento** — [`knowledge/INDEX.md`](./knowledge/INDEX.md) (nodos skill/hook/rule/…, se actualiza cada semana)
 
 ## Estado
 
-Fase 1 (Visión) ✓ · fase 2 (UX, HS-03) ✓ firmada · fase 3 (arquitectura as code, HS-04 backend +
-HS-05 frontend) ✓ · **siguiente: fase 4 specs (HS-06)**. Cero código de producto aún — el port del
-monorepo está gobernado por el gran plan (nada se porta sin pasar su fase).
+**Fase 5 (Implementación) en curso** (fases 1–4 ✓: Visión · UX · Arquitectura · Specs). El
+estado vivo, la fase y las **cifras generadas** (`arnesia conformance`) viven en
+[`ESTADO.md`](./ESTADO.md); el port del monorepo sigue gobernado por el gran plan (nada se porta
+sin pasar su fase).
 
 ## Arnés de construcción
 

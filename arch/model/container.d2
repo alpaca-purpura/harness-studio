@@ -31,7 +31,7 @@ daemon: "arnesia (daemon Go único)" {
 
   adapters: "Adaptadores" {
     agentcc: "agent/claudecode\nsubproceso stream-json + OTel · --max-turns · emit bloqueante"
-    index: "index/sqlite (modernc, WAL)\níndice DESECHABLE"
+    index: "index (map in-memory + JSON atómico)\níndice DESECHABLE · SQLite modernc/WAL = fase 5"
     watch: "watch (fsnotify + reader por offset)"
     publish: "publish (marketplace git)"
     store: "store (sessions.json + arneses.json)\nHS-06: WorkdirResolver arnés→ruta (cwd por sesión)"

@@ -1,7 +1,7 @@
 ---
 regla: fe-transporte-independiente
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-09
 status: proposed
 ledger: HS-05
 sources:
@@ -42,9 +42,10 @@ la decisión de transporte HS-04: 1 conexión multiplexada `event: map|dock|run`
   generated/`, del contrato `arch/contracts/api/openapi.yaml`) + la **conexión SSE única (singleton)**.
   No importa `entities/features/widgets/pages`. ⇐ L1: hexagonal.
 - **El estado vive por capa** (store-per-slice): dominio en `entities/*/model/*.store.ts` · interacción
-  en `features/*/model/*.store.ts` · **estado de vista de React Flow** (nodes/edges/viewport/selección)
-  en `widgets/map-canvas/model/` — separado del dominio; los RF-nodes se hidratan desde selectores de las
-  entity-stores, **no se duplica la verdad**. ⇐ L1: store-per-slice.
+  en `features/*/model/*.store.ts` · **estado de vista del canvas del Mapa (HTML+SVG)**
+  (nodes/edges/viewport/selección) en `widgets/map-canvas/model/` — separado del dominio; los nodos del
+  Mapa se hidratan desde selectores de las entity-stores, **no se duplica la verdad** (React Flow queda
+  reservado al Organigrama, HS-09). ⇐ L1: store-per-slice.
 - **El reducer SSE→store vive en `app/realtime/`:** bootstrapea la conexión una sola vez, traduce los
   eventos tipados `map|dock|run` a acciones sobre los stores de dominio. El dominio nunca sabe que hay
   SSE; consume datos normalizados (espejo del boundary backend dominio⊥transporte). ⇐ L1: SSE singleton.
@@ -66,3 +67,6 @@ la decisión de transporte HS-04: 1 conexión multiplexada `event: map|dock|run`
 - 2026-07-05 · v1.0 · Nodo fundacional FE (HS-05). L1 = hexagonal en el FE + store-per-slice + SSE
   singleton. L2 = `shared/api` transporte puro, reducer SSE→store en `app/realtime`, estado por capa,
   tipos generados del OpenAPI. Espejo FE del boundary backend dominio⊥transporte. 4 checks.
+- 2026-07-09 · v1.1 · **Sync HS-18.** El canvas del Mapa es **HTML+SVG** (no React Flow, que queda
+  para el Organigrama, HS-09); se relabela «estado de vista de React Flow» → «estado de vista del
+  canvas del Mapa». Sin cambios de checks ni de status.
