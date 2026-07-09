@@ -11,6 +11,8 @@ import type { Graph } from "../model/types"
 export const devFullCycle = {
   arnes: {
     id: "dev-full-cycle",
+    nombre: "Desarrollo full-cycle",
+    descripcion: "Arnés dogfood de ArnesIA: desarrollo de software end-to-end (idea → released).",
     rol: "Ingeniería · Desarrollo full-cycle",
     proceso: "desarrollo de software end-to-end (idea → released)",
     empresa: "alpacapurpura",
@@ -22,6 +24,13 @@ export const devFullCycle = {
       inicial: "idea",
       terminales: ["released"],
       estados: ["idea", "spec", "build", "review", "released"],
+      categorias: {
+        idea: "propuesto",
+        spec: "en-progreso",
+        build: "en-progreso",
+        review: "en-progreso",
+        released: "completado",
+      },
       transiciones: [
         { de: "idea", a: "spec" },
         { de: "spec", a: "build" },
@@ -56,8 +65,7 @@ export const devFullCycle = {
       banda: "fase",
       fase: "spec",
       estado: "idea -> spec",
-      canal: "beta",
-      fuente_path: "dogfood/skills/spec-writer.SKILL.md",
+      fuente_path: "dogfood/dev-full-cycle/skills/spec-writer/SKILL.md",
       procedencia: "declarado",
       contract: {
         why: "convertir una idea conversada en un spec ejecutable que blinde la deriva",
@@ -119,7 +127,7 @@ export const devFullCycle = {
       banda: "fase",
       fase: "build",
       estado: "spec -> build",
-      canal: "beta",
+      fuente_path: "dogfood/dev-full-cycle/skills/builder/SKILL.md",
       procedencia: "declarado",
       contract: {
         why: "materializar el spec en código que pasa sus propias pruebas",
@@ -160,7 +168,7 @@ export const devFullCycle = {
       banda: "fase",
       fase: "review",
       estado: "build -> review",
-      canal: "beta",
+      fuente_path: "dogfood/dev-full-cycle/skills/reviewer/SKILL.md",
       procedencia: "declarado",
       contract: {
         why: "asegurar que el build cumple el spec y el estándar antes de release",
@@ -186,7 +194,7 @@ export const devFullCycle = {
       banda: "fase",
       fase: "release",
       estado: "review -> released",
-      canal: "beta",
+      fuente_path: "dogfood/dev-full-cycle/skills/releaser/SKILL.md",
       procedencia: "declarado",
       contract: {
         why: "publicar el arnés como snapshot inmutable versionado",
@@ -209,6 +217,8 @@ export const devFullCycle = {
       clase: "rule",
       nombre: "estándar de spec",
       banda: "base",
+      fuente_path: "dogfood/dev-full-cycle/CLAUDE.md",
+      procedencia: "declarado",
     },
   ],
   edges: [

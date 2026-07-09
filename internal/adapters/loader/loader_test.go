@@ -113,6 +113,12 @@ func TestLoaderDevFullCycle(t *testing.T) {
 		if g.FuentePath != w.FuentePath {
 			t.Errorf("%s: fuente_path got %q, quiero %q", w.ID, g.FuentePath, w.FuentePath)
 		}
+		if g.Canal != w.Canal {
+			t.Errorf("%s: canal got %q, quiero %q", w.ID, g.Canal, w.Canal)
+		}
+		if g.Procedencia != w.Procedencia {
+			t.Errorf("%s: procedencia got %q, quiero %q", w.ID, g.Procedencia, w.Procedencia)
+		}
 		if a, b := jsonDe(t, g.Contract), jsonDe(t, w.Contract); !bytes.Equal(a, b) {
 			t.Errorf("%s: contract derivado ≠ fixture:\n  got:    %s\n  quiero: %s", w.ID, a, b)
 		}
@@ -334,6 +340,164 @@ func TestReconocerHooks(t *testing.T) {
 
 	t.Run("sin hooks/ → cero nodos, cero drama", func(t *testing.T) {
 		g, err := loader.LoadArnes(arma(t, ""))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 0 {
+			t.Errorf("nodos = %d, want 0", len(g.Nodes))
+		}
+	})
+}
+
+// armaPlugin crea el marcador mínimo de forma-plugin (§1) en un dir temporal nuevo.
+func armaPlugin(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	escribir(t, filepath.Join(dir, ".claude-plugin", "plugin.json"), `{"name":"x"}`)
+	return dir
+}
+
+// TestReconocerCommandYOutputStyle cubre las filas `command`/`output-style` de nomenclatura
+// §3 (auditoría colateral HS-16): archivos sueltos <id>.md, frontmatter OPCIONAL (a
+// diferencia de skill, su ausencia NO vuelve el nodo no-reconocido) y un archivo/dir suelto
+// que no matchea sí lo vuelve no-reconocido visible (§4.5).
+func TestReconocerCommandYOutputStyle(t *testing.T) {
+	dir := armaPlugin(t)
+	escribir(t, filepath.Join(dir, "commands", "spec.md"), "# /spec\n\nescribe el spec.\n")
+	escribir(t, filepath.Join(dir, "commands", "review.md"), "---\nnombre: revisar código\n---\n\n# /review\n")
+	escribir(t, filepath.Join(dir, "commands", "rogue.txt"), "no es un comando")
+	escribir(t, filepath.Join(dir, "output-styles", "conciso.md"), "# conciso\n\nrespuestas cortas.\n")
+
+	g, err := loader.LoadArnes(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	spec, ok := g.NodeByID("spec")
+	if !ok || spec.Clase != domain.ClaseCommand || spec.Nombre != "spec" || spec.Banda != "" {
+		t.Errorf("spec (sin frontmatter) mal emitido: %+v (ok=%v)", spec, ok)
+	}
+	review, ok := g.NodeByID("review")
+	if !ok || review.Clase != domain.ClaseCommand || review.Nombre != "revisar código" {
+		t.Errorf("review (con frontmatter) mal emitido: %+v (ok=%v)", review, ok)
+	}
+	if _, rogueOk := g.NodeByID("rogue.txt"); !rogueOk {
+		t.Error("rogue.txt (no-.md bajo commands/) ausente — debía ser no-reconocido visible")
+	}
+	for _, n := range g.Nodes {
+		if n.ID == "rogue.txt" && n.Clase != domain.ClaseNoReconocido {
+			t.Errorf("rogue.txt clase = %q, want no-reconocido", n.Clase)
+		}
+	}
+	conciso, ok := g.NodeByID("conciso")
+	if !ok || conciso.Clase != domain.ClaseOutputStyle {
+		t.Errorf("conciso (output-style) mal emitido: %+v (ok=%v)", conciso, ok)
+	}
+}
+
+// TestReconocerMCP cubre la fila `mcp` de nomenclatura §3: un server declarado = un nodo,
+// vive en la RAÍZ del arnés (nunca bajo `.claude/`, ni en forma instalada); no parseable/vacío
+// → no-reconocido visible (§4.5).
+func TestReconocerMCP(t *testing.T) {
+	t.Run("un server = un nodo", func(t *testing.T) {
+		dir := armaPlugin(t)
+		escribir(t, filepath.Join(dir, ".mcp.json"), `{"mcpServers":{"linear":{"command":"npx","args":["linear-mcp"]}}}`)
+		g, err := loader.LoadArnes(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, ok := g.NodeByID("mcp-linear")
+		if !ok || n.Clase != domain.ClaseMCP || n.Nombre != "linear" {
+			t.Errorf("mcp-linear mal emitido: %+v (ok=%v)", n, ok)
+		}
+	})
+
+	t.Run(".mcp.json roto → no-reconocido visible", func(t *testing.T) {
+		dir := armaPlugin(t)
+		escribir(t, filepath.Join(dir, ".mcp.json"), `{esto no es json`)
+		g, err := loader.LoadArnes(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 1 || g.Nodes[0].Clase != domain.ClaseNoReconocido {
+			t.Errorf("want 1 nodo no-reconocido, got %+v", g.Nodes)
+		}
+	})
+
+	t.Run("sin .mcp.json → cero nodos", func(t *testing.T) {
+		g, err := loader.LoadArnes(armaPlugin(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 0 {
+			t.Errorf("nodos = %d, want 0", len(g.Nodes))
+		}
+	})
+}
+
+// TestReconocerSettings cubre las filas `settings`/`statusline`/`hook` forma-instalada de
+// nomenclatura §3: las tres celdas viven en el MISMO settings.json.
+func TestReconocerSettings(t *testing.T) {
+	t.Run("solo settings.json → un nodo settings", func(t *testing.T) {
+		dir := armaPlugin(t)
+		escribir(t, filepath.Join(dir, "settings.json"), `{"env":{"FOO":"bar"}}`)
+		g, err := loader.LoadArnes(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 1 {
+			t.Fatalf("nodos = %d, want 1 (solo settings)", len(g.Nodes))
+		}
+		n, ok := g.NodeByID("settings")
+		if !ok || n.Clase != domain.ClaseSettings {
+			t.Errorf("settings mal emitido: %+v (ok=%v)", n, ok)
+		}
+	})
+
+	t.Run("statusLine presente suma el nodo statusline", func(t *testing.T) {
+		dir := armaPlugin(t)
+		escribir(t, filepath.Join(dir, "settings.json"), `{"statusLine":{"type":"command","command":"echo hola"}}`)
+		g, err := loader.LoadArnes(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := g.NodeByID("settings"); !ok {
+			t.Error("settings ausente")
+		}
+		n, ok := g.NodeByID("statusline")
+		if !ok || n.Clase != domain.ClaseStatusline {
+			t.Errorf("statusline mal emitido: %+v (ok=%v)", n, ok)
+		}
+	})
+
+	t.Run("hooks dentro de settings.json = forma instalada de la Guardia", func(t *testing.T) {
+		dir := armaPlugin(t)
+		escribir(t, filepath.Join(dir, "settings.json"),
+			`{"hooks":{"Stop":[{"hooks":[]}]}}`)
+		g, err := loader.LoadArnes(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, ok := g.NodeByID("hook-stop")
+		if !ok || n.Banda != domain.BandaGuardia || n.Clase != domain.ClaseHook {
+			t.Errorf("hook-stop (forma instalada) mal emitido: %+v (ok=%v)", n, ok)
+		}
+	})
+
+	t.Run("settings.json roto → no-reconocido visible", func(t *testing.T) {
+		dir := armaPlugin(t)
+		escribir(t, filepath.Join(dir, "settings.json"), `{esto no es json`)
+		g, err := loader.LoadArnes(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(g.Nodes) != 1 || g.Nodes[0].Clase != domain.ClaseNoReconocido {
+			t.Errorf("want 1 nodo no-reconocido, got %+v", g.Nodes)
+		}
+	})
+
+	t.Run("sin settings.json → cero nodos", func(t *testing.T) {
+		g, err := loader.LoadArnes(armaPlugin(t))
 		if err != nil {
 			t.Fatal(err)
 		}

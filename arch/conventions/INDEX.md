@@ -26,7 +26,7 @@ convención en este árbol DEBE romper CI** (si no, es una nota, va al doc de hi
 | [`ts-types.md`](./ts-types.md) | TS estricto (`@tsconfig/strictest`), tipos honestos | 🌱 vivo | `web/tsconfig.json` | `tsc --noEmit` |
 | [`naming.md`](./naming.md) | Naming = check, no doc (revive + useNamingConvention) | 🌱 vivo | `/.golangci.yml` · `web/biome.json` | lint |
 | [`commits.md`](./commits.md) | Conventional + scope `HS-NN` | 🌱 vivo | `/lefthook.yml` (commit-msg) | `commit-msg` hook |
-| [`hooks.md`](./hooks.md) | Gate local pre-commit (lefthook, binario Go) | 🌱 vivo | `/lefthook.yml` | hook exit≠0 |
+| [`git-hooks.md`](./git-hooks.md) | Gate local pre-commit (lefthook, binario Go) | 🌱 vivo | `/lefthook.yml` | hook exit≠0 |
 | [`editor.md`](./editor.md) | Indentación/EOL única (EditorConfig) | 🌱 vivo | `/.editorconfig` | (vía format checks) |
 | [`ci.md`](./ci.md) | Todo check rompe el merge (GitHub Actions) | 🌱 vivo | `/.github/workflows/ci.yml` | required status checks |
 

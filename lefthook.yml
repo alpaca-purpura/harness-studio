@@ -1,4 +1,4 @@
-# lefthook — gate local pre-commit (enforced_by de arch/conventions/hooks.md + commits.md).
+# lefthook — gate local pre-commit (enforced_by de arch/conventions/git-hooks.md + commits.md).
 # Binario Go, políglota, paralelo, Node-free. Instalar: `go install github.com/evilmartians/lefthook@latest`.
 #
 # NOTA (honestidad): declarado; se activa cuando el código aterrice (fase 5). lefthook = feedback
@@ -25,6 +25,12 @@ pre-commit:
       root: "web/src-tauri/"
       glob: "*.rs"
       run: cargo fmt
+    capabilities:
+      # R1 integridad + R2 cobertura de CAPABILITIES.md (arch/boundaries/codigo-traza-a-capability.md).
+      # Corre al tocar código fuente: si agregás un archivo sin reclamarlo en el SSoT funcional, R2
+      # falla acá (feedback local; el gate DURO es CI vía `arnesia conformance`). ~4ms.
+      glob: "*.{go,ts,tsx,rs}"
+      run: go test ./arch/fitness/ -run 'TestCapability(PointersResolve|Coverage)'
 
 commit-msg:
   commands:

@@ -75,6 +75,14 @@ esta tabla fija QUÉ escanea el loader y qué nodo emite:
 | `statusline` | entrada en settings | entrada en settings | soporte |
 | `plugin` | el contenedor mismo (`.claude-plugin/plugin.json`) | entrada de plugin en config | nodo raíz del arnés |
 
+**Estado de implementación real (`internal/adapters/loader/`, medido 2026-07-08, HS-16):**
+`skill`/`rule`/`hook` (ambas formas) desde HS-11/franja-artefactos F6 · `command`/
+`output-style`/`mcp`/`settings`/`statusline` sumados en la auditoría colateral HS-16
+(reconocedores mecánicos, cero decisión de diseño nueva — `soporte.go`). Pendientes:
+`subagent` (falta decidir cómo se vincula a la caja que lo invoca) · `plugin` como nodo
+raíz (posible colisión con el manifiesto `arnes.l0.json`, D-a) — ninguno de los dos es
+mecánico, quedan deferred hasta esa decisión.
+
 ## 4. Reglas de derivación (archivo → grafo)
 
 1. **Nodos**: scan según la tabla §3. El loader ESTAMPA `fuente_path` (deja de ser manual)
@@ -115,6 +123,14 @@ portable, cero contexto LLM) + doctrina como plugin CC propio inyectado por flag
 
 ## Changelog
 
+- 2026-07-08 · v1.2 — Auditoría colateral (HS-16): 5 reconocedores mecánicos implementados
+  en el loader real — `command`/`output-style` (archivos sueltos `<id>.md`, frontmatter
+  opcional a diferencia de skill) · `mcp` (`.mcp.json`, en la RAÍZ del arnés en ambas
+  formas — no bajo `.claude/`) · `settings`/`statusline`/`hook` forma-instalada (las tres
+  celdas viven en el mismo `settings.json`). Sin cambios de contrato — el §3 ya los
+  especificaba; solo se bajó a código lo que faltaba (§8.7 de
+  `historias/2026-07-07-franja-artefactos/viabilidad.md`). `subagent`/`plugin` siguen
+  pendientes (necesitan decisión de diseño, no son mecánicos).
 - 2026-07-07 · v1.1 — **FIRMADA** (HS-12, interop DevStudio): detector 3° «roster de app de
   rol» (`.devstudio/arneses.yaml` = puntero de descubrimiento multi-arnés, read-only) ·
   `nombre`/`descripcion` reparados en el schema + cadena de fallback canónica ·

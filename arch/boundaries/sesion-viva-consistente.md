@@ -1,7 +1,7 @@
 ---
 regla: sesion-viva-consistente
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-08
 status: enforced
 ledger: HS-06
 sources:
@@ -18,6 +18,7 @@ enforced_by:
   - fitness/arch_test.go:TestOneTurnAtATime
   - fitness/arch_test.go:TestFramesCarryRunID
   - fitness/arch_test.go:TestNoSilentEventDrop
+  - fitness/arch_test.go:TestResumeAutoSana
 severity: high
 ---
 
@@ -69,7 +70,7 @@ Todo vive en `internal/usecase/session_service.go` + los adaptadores conductor/S
 | un-turno-a-la-vez | `Turn` rechaza (ErrBusy→409) un turno mientras la sesión está streaming | error | «turnos concurrentes intercalan stdin/ensamblado» | arch_test.go:TestOneTurnAtATime |
 | sin-perdida-silenciosa | ni el conductor ni el broker dropean frames en silencio (bloquean o reconectan+replayan) | error | «frame perdido → dock colgado en streaming» | arch_test.go:TestNoSilentEventDrop |
 | frames-idempotentes-run-id | todo frame del dock lleva `run_id`; el consumidor aplica el terminal una sola vez | error | «replay SSE duplica turnos (sin run_id/dedup)» | arch_test.go:TestFramesCarryRunID |
-| resume-auto-sana | un `--resume` fallido antes de init reinicia fresh una vez y reenvía el turno | warn | «sesión CC stale = frente muerto permanente» | arch_test.go (comportamiento; TODO afinar señal de fallo) |
+| resume-auto-sana | un `--resume` fallido antes de init reinicia fresh una vez y reenvía el turno | warn | «sesión CC stale = frente muerto permanente» | arch_test.go:TestResumeAutoSana |
 
 ## Changelog
 
@@ -78,3 +79,7 @@ Todo vive en `internal/usecase/session_service.go` + los adaptadores conductor/S
   stream confiable (productor único · sin-pérdida · idempotente · auto-sana). L2 = guard ErrBusy→409,
   emit bloqueante + broker shed-on-lag, `run_id` en todo frame + dedup FE, `tryHealResume`. Referencia
   (no duplica) `max-turns-siempre` de permisos-gui. **Nace `enforced`** (código + tests juntos). 4 checks.
+- 2026-07-08 · v1.1 · Auditoría colateral (HS-16): `resume-auto-sana` tenía enforcer genérico
+  `arch_test.go` (comportamiento ya implementado, solo faltaba el test nombrado).
+  `TestResumeAutoSana` fuerza un `--resume` que muere antes de `init` con fakes y confirma el
+  heal (respawn fresh sin el id stale + reenvío del turno pendiente). Sin checks nuevos.

@@ -13,15 +13,19 @@
 //     nodo VISIBLE con domain.ClaseNoReconocido — nunca descarte silencioso, nunca crash.
 //
 // Reconocedores v1 (§3): skills (skills/<id>/SKILL.md) · rules (CLAUDE.md de la raíz) ·
-// hooks (hooks/hooks.json, una entrada = un nodo de banda Guardia — entró en
-// franja-artefactos F6/RF-150: el dogfood ganó su Guardia real en F4 y el TODO se disparó).
-// TODO honesto — reconocedores pendientes de §3, se añaden con el primer arnés real que los
-// use (jamás un stub que fabrique nodos): mcp (.mcp.json) · command (commands/<id>.md) ·
-// subagent (agents/<id>.md) · settings (incluye hooks de forma-instalada
-// .claude/settings.json#hooks) · output-style (output-styles/<id>.md) · statusline ·
-// plugin (el contenedor mismo como nodo raíz). Los edges de Guardia (§4.3 «hooks matchers
-// → edges») quedan como deuda declarada: el matcher nombra HERRAMIENTAS (Write|Edit), no
-// cajas — no hay derivación determinista matcher→caja que no fabrique relaciones.
+// hooks (hooks/hooks.json forma-plugin + settings.json#hooks forma-instalada, una entrada =
+// un nodo de banda Guardia) · command (commands/<id>.md) · output-style
+// (output-styles/<id>.md) · mcp (.mcp.json, un server = un nodo) · settings (la presencia de
+// settings.json) · statusline (la clave `statusLine` dentro de settings.json) — auditoría
+// colateral HS-16, soporte.go. TODO honesto — reconocedores pendientes de §3, se añaden
+// cuando la relación caja↔elemento tenga una decisión de diseño (no un stub que la
+// invente): subagent (agents/<id>.md — falta decidir cómo se vincula a la caja que lo
+// invoca) · plugin (el contenedor mismo como nodo raíz — posible colisión con el manifiesto
+// arnes.l0.json, D-a). Los edges de Guardia (§4.3 «hooks matchers → edges») quedan como
+// deuda declarada: el matcher nombra HERRAMIENTAS (Write|Edit), no cajas — no hay derivación
+// determinista matcher→caja que no fabrique relaciones. Tampoco derivan edge los orígenes
+// `libreria:`/`maquinaria:`/`terceros:`/`marcas-dormidas:` (deuda declarada, edges.go) — el
+// `EdgeTipo` semántico de cada uno es una decisión de diseño, no mecánica.
 package loader
 
 import (
@@ -84,6 +88,36 @@ func LoadArnes(dir string) (domain.Graph, error) {
 	} else if ok {
 		g.Nodes = append(g.Nodes, regla)
 	}
+
+	// `command`/`output-style`: archivos sueltos <id>.md bajo su subcarpeta (§3) — mismo
+	// layout en ambas formas físicas (elementos ya resuelve cuál base usar).
+	comandos, err := reconocerArchivosSoporte(elementos, "commands", domain.ClaseCommand)
+	if err != nil {
+		return domain.Graph{}, err
+	}
+	g.Nodes = append(g.Nodes, comandos...)
+
+	outputStyles, err := reconocerArchivosSoporte(elementos, "output-styles", domain.ClaseOutputStyle)
+	if err != nil {
+		return domain.Graph{}, err
+	}
+	g.Nodes = append(g.Nodes, outputStyles...)
+
+	// `mcp`: `.mcp.json` vive en la RAÍZ del arnés en ambas formas (§3) — no bajo `.claude/`
+	// como el resto de la forma instalada, así que se resuelve contra dir, no elementos.
+	servidoresMCP, err := reconocerMCP(dir)
+	if err != nil {
+		return domain.Graph{}, err
+	}
+	g.Nodes = append(g.Nodes, servidoresMCP...)
+
+	// `settings`/`statusline`/`hook` forma-instalada: las tres celdas viven en el MISMO
+	// settings.json (§3) — un solo reconocedor, un solo archivo leído.
+	settings, err := reconocerSettings(elementos)
+	if err != nil {
+		return domain.Graph{}, err
+	}
+	g.Nodes = append(g.Nodes, settings...)
 
 	g.Edges = derivarEdges(g.Nodes)
 	return g, nil
@@ -259,7 +293,14 @@ func reconocerHooks(elementos string) ([]domain.Box, error) {
 		// no-reconocido VISIBLE; el warn queda a la vista, el arnés sigue cargando.
 		return []domain.Box{nodoNoReconocido("hooks", fuente)}, nil //nolint:nilerr // reconciliación honesta: roto = visible, jamás abortar el grafo.
 	}
+	return nodosDeHooks(h, fuente), nil
+}
 
+// nodosDeHooks convierte una hooksJSON ya parseada en nodos de banda Guardia — compartido
+// entre la forma-plugin (hooks/hooks.json) y la forma-instalada (settings.json#hooks,
+// reconocerSettings en soporte.go): misma forma de datos, misma derivación, una sola fuente
+// que puede diferir (el fuente_path que cada caller estampa).
+func nodosDeHooks(h hooksJSON, fuente string) []domain.Box {
 	// Orden determinista: eventos alfabéticos (el JSON map no tiene orden).
 	eventos := make([]string, 0, len(h.Hooks))
 	for ev := range h.Hooks {
@@ -288,7 +329,7 @@ func reconocerHooks(elementos string) ([]domain.Box, error) {
 			})
 		}
 	}
-	return nodos, nil
+	return nodos
 }
 
 // nodoNoReconocido emite el marcador de reconciliación honesta (§4.5, D-c firmada): visible,

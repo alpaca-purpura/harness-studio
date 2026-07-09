@@ -28,11 +28,11 @@
         "released"
       ],
       "categorias": {
-        "idea": "propuesto",
-        "spec": "en-progreso",
         "build": "en-progreso",
+        "idea": "propuesto",
+        "released": "completado",
         "review": "en-progreso",
-        "released": "completado"
+        "spec": "en-progreso"
       },
       "transiciones": [
         {
@@ -60,98 +60,12 @@
   },
   "nodos": [
     {
-      "id": "spec-writer",
-      "clase": "skill",
-      "nombre": "escribir el spec",
-      "banda": "fase",
-      "fase": "spec",
-      "estado": "idea -> spec",
-      "canal": "beta",
-      "fuente_path": "dogfood/dev-full-cycle/skills/spec-writer/SKILL.md",
-      "procedencia": "declarado",
-      "contract": {
-        "why": "convertir una idea conversada en un spec ejecutable que blinde la deriva",
-        "capabilities": [
-          {
-            "id": "CAP-01",
-            "what": "destilar la idea en capacidades con criterio de éxito",
-            "success": "cada capability tiene un success verificable"
-          },
-          {
-            "id": "CAP-02",
-            "what": "emitir spec.md as-code",
-            "success": "spec.md valida contra el schema de spec"
-          }
-        ],
-        "constraints": [
-          "no inventa requisitos que el usuario no confirmó"
-        ],
-        "non_goals": [
-          "no escribe código",
-          "no diseña la arquitectura"
-        ],
-        "clase": "skill",
-        "arquetipo": "excepcion",
-        "perfil_harness": "T2",
-        "caja": true,
-        "fase": "spec",
-        "estado": "idea -> spec",
-        "necesita": [
-          {
-            "art": "idea del usuario (conversación grill)",
-            "de": "usuario",
-            "requerido": true
-          },
-          {
-            "art": "estándar de spec",
-            "de": "base:std-spec",
-            "requerido": true
-          }
-        ],
-        "entrega": [
-          {
-            "art": "spec.md",
-            "path": "spec.md",
-            "plantilla": "references/plantilla-spec.md",
-            "escritor_unico": true
-          }
-        ],
-        "ruta": [
-          {
-            "a": "builder",
-            "si": "gate del spec verde"
-          },
-          {
-            "a": "humano",
-            "si": "la idea no converge en 3 vueltas"
-          }
-        ],
-        "gate": {
-          "tipo": "manual",
-          "detalle": "revisión humana del spec contra la intención declarada",
-          "aceptacion": [
-            {
-              "given": "un spec.md emitido",
-              "when": "el humano lo revisa",
-              "then": "cada capability tiene criterio de éxito y no hay non_goal violado"
-            }
-          ],
-          "evidencia": "registro de aprobación del spec (telemetría de nacimiento)"
-        },
-        "handoff": {
-          "cuando": "la idea no converge tras 3 vueltas de grill",
-          "a": "humano"
-        }
-      }
-    },
-    {
       "id": "builder",
       "clase": "skill",
       "nombre": "construir contra el spec",
       "banda": "fase",
       "fase": "build",
-      "estado": "spec -> build",
-      "canal": "beta",
+      "estado": "spec -\u003e build",
       "fuente_path": "dogfood/dev-full-cycle/skills/builder/SKILL.md",
       "procedencia": "declarado",
       "contract": {
@@ -168,7 +82,7 @@
         "perfil_harness": "T3",
         "caja": true,
         "fase": "build",
-        "estado": "spec -> build",
+        "estado": "spec -\u003e build",
         "necesita": [
           {
             "art": "spec.md",
@@ -205,13 +119,48 @@
       }
     },
     {
+      "id": "releaser",
+      "clase": "skill",
+      "nombre": "promover a released",
+      "banda": "fase",
+      "fase": "release",
+      "estado": "review -\u003e released",
+      "fuente_path": "dogfood/dev-full-cycle/skills/releaser/SKILL.md",
+      "procedencia": "declarado",
+      "contract": {
+        "why": "publicar el arnés como snapshot inmutable versionado",
+        "clase": "skill",
+        "arquetipo": "pipeline",
+        "perfil_harness": "T1",
+        "caja": true,
+        "fase": "release",
+        "estado": "review -\u003e released",
+        "necesita": [
+          {
+            "art": "veredicto de review",
+            "de": "caja:reviewer",
+            "requerido": true
+          }
+        ],
+        "entrega": [
+          {
+            "art": "release@version",
+            "escritor_unico": true
+          }
+        ],
+        "gate": {
+          "tipo": "none",
+          "detalle": "gate de fidelidad (§8.4) aún no operacionalizado — diferido honesto"
+        }
+      }
+    },
+    {
       "id": "reviewer",
       "clase": "skill",
       "nombre": "revisar el build",
       "banda": "fase",
       "fase": "review",
-      "estado": "build -> review",
-      "canal": "beta",
+      "estado": "build -\u003e review",
       "fuente_path": "dogfood/dev-full-cycle/skills/reviewer/SKILL.md",
       "procedencia": "declarado",
       "contract": {
@@ -221,7 +170,7 @@
         "perfil_harness": "T2",
         "caja": true,
         "fase": "review",
-        "estado": "build -> review",
+        "estado": "build -\u003e review",
         "necesita": [
           {
             "art": "código + tests",
@@ -252,48 +201,88 @@
       }
     },
     {
-      "id": "releaser",
+      "id": "spec-writer",
       "clase": "skill",
-      "nombre": "promover a released",
+      "nombre": "escribir el spec",
       "banda": "fase",
-      "fase": "release",
-      "estado": "review -> released",
-      "canal": "beta",
-      "fuente_path": "dogfood/dev-full-cycle/skills/releaser/SKILL.md",
+      "fase": "spec",
+      "estado": "idea -\u003e spec",
+      "fuente_path": "dogfood/dev-full-cycle/skills/spec-writer/SKILL.md",
       "procedencia": "declarado",
       "contract": {
-        "why": "publicar el arnés como snapshot inmutable versionado",
+        "why": "convertir una idea conversada en un spec ejecutable que blinde la deriva",
+        "capabilities": [
+          {
+            "id": "CAP-01",
+            "what": "destilar la idea en capacidades con criterio de éxito",
+            "success": "cada capability tiene un success verificable"
+          },
+          {
+            "id": "CAP-02",
+            "what": "emitir spec.md as-code",
+            "success": "spec.md valida contra el schema de spec"
+          }
+        ],
+        "constraints": [
+          "no inventa requisitos que el usuario no confirmó"
+        ],
+        "non_goals": [
+          "no escribe código",
+          "no diseña la arquitectura"
+        ],
         "clase": "skill",
-        "arquetipo": "pipeline",
-        "perfil_harness": "T1",
+        "arquetipo": "excepcion",
+        "perfil_harness": "T2",
         "caja": true,
-        "fase": "release",
-        "estado": "review -> released",
+        "fase": "spec",
+        "estado": "idea -\u003e spec",
         "necesita": [
           {
-            "art": "veredicto de review",
-            "de": "caja:reviewer",
+            "art": "idea del usuario (conversación grill)",
+            "de": "usuario",
+            "requerido": true
+          },
+          {
+            "art": "estándar de spec",
+            "de": "base:std-spec",
             "requerido": true
           }
         ],
         "entrega": [
           {
-            "art": "release@version",
-            "escritor_unico": true
+            "art": "spec.md",
+            "escritor_unico": true,
+            "path": "spec.md",
+            "plantilla": "references/plantilla-spec.md"
+          }
+        ],
+        "ruta": [
+          {
+            "a": "builder",
+            "si": "gate del spec verde"
+          },
+          {
+            "a": "humano",
+            "si": "la idea no converge en 3 vueltas"
           }
         ],
         "gate": {
-          "tipo": "none",
-          "detalle": "gate de fidelidad (§8.4) aún no operacionalizado — diferido honesto"
+          "tipo": "manual",
+          "detalle": "revisión humana del spec contra la intención declarada",
+          "aceptacion": [
+            {
+              "given": "un spec.md emitido",
+              "when": "el humano lo revisa",
+              "then": "cada capability tiene criterio de éxito y no hay non_goal violado"
+            }
+          ],
+          "evidencia": "registro de aprobación del spec (telemetría de nacimiento)"
+        },
+        "handoff": {
+          "cuando": "la idea no converge tras 3 vueltas de grill",
+          "a": "humano"
         }
       }
-    },
-    {
-      "id": "std-spec",
-      "clase": "rule",
-      "nombre": "estándar de spec",
-      "banda": "base",
-      "fuente_path": "dogfood/dev-full-cycle/CLAUDE.md"
     },
     {
       "id": "hook-posttooluse",
@@ -310,17 +299,25 @@
       "banda": "guardia",
       "fuente_path": "dogfood/dev-full-cycle/hooks/hooks.json",
       "procedencia": "declarado"
+    },
+    {
+      "id": "std-spec",
+      "clase": "rule",
+      "nombre": "estándar de spec",
+      "banda": "base",
+      "fuente_path": "dogfood/dev-full-cycle/CLAUDE.md",
+      "procedencia": "declarado"
     }
   ],
   "edges": [
     {
       "de": "spec-writer",
-      "a": "std-spec",
-      "tipo": "lee"
+      "a": "builder",
+      "tipo": "invoca"
     },
     {
-      "de": "spec-writer",
-      "a": "builder",
+      "de": "reviewer",
+      "a": "releaser",
       "tipo": "invoca"
     },
     {
@@ -329,9 +326,9 @@
       "tipo": "invoca"
     },
     {
-      "de": "reviewer",
-      "a": "releaser",
-      "tipo": "invoca"
+      "de": "spec-writer",
+      "a": "std-spec",
+      "tipo": "lee"
     }
   ]
 }

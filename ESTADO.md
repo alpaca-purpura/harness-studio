@@ -19,7 +19,7 @@
 
 <!--stats: `scripts/estado.sh` regenera la línea del ruleset; no editar a mano -->
 - **ruleset `--todo`:** `247 checks · pass 40 · fail 0 · error 0 · deferred 207` (medido 2026-07-09, `go run ./cmd/arnesia conformance --todo`)
-- **dogfood `--arnes`:** 20 pass · 1 warn-fail honesto (`art-es-path`) — medido HS-17, regenerar
+- **dogfood `--arnes`:** `21 checks · 20 pass · 1 fail` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-09
 - **arch/:** 17 boundaries (nuevo `codigo-traza-a-capability` **enforced**: R1/R2 pasan)
 - **knowledge/:** 12 nodos · 138 checks
 - **capabilities (SSoT):** 82 — ~24 vivo · ~46 sin-check · 6 STUB · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)

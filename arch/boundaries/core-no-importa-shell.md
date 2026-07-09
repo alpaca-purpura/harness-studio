@@ -1,6 +1,6 @@
 ---
 regla: core-no-importa-shell
-version: 1.2
+version: 1.3
 updated: 2026-07-08
 status: proposed
 ledger: HS-04
@@ -20,6 +20,8 @@ enforced_by:
   - fitness/.go-arch-lint.yml#usecase
   - fitness/.go-arch-lint.yml#ports
   - fitness/arch_test.go:TestCoreHasNoShellImport
+  - fitness/arch_test.go:TestDaemonServableHeadless
+  - fitness/arch_test.go:TestMintEnvInLauncher
 severity: critical
 ---
 
@@ -71,8 +73,8 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 |----|-------------|-----------|------------------|----------|
 | core-no-shell-import | ningún paquete del core (`internal/{domain,usecase,ports}`) importa un paquete `shell` ni `tauri`/`wails` | error | «core importa el shell (acopla el daemon a su envoltorio)» | arch_test.go:TestCoreHasNoShellImport · go-arch-lint#{domain,usecase,ports} |
 | shell-solo-composition | solo el shell/launcher levanta o attachea el daemon; el core no auto-lanza ventana | warn | «lógica de ventana en el core» | arch_test.go:TestCoreHasNoShellImport |
-| daemon-servable-headless | existe un entrypoint `serve` que corre sin shell (test de humo) | error | «el daemon no arranca sin shell» | arch_test.go |
-| mint-env-en-launcher | el launcher setea `WEBKIT_DISABLE_DMABUF_RENDERER` (Tauri, Linux) | warn | banda Guardia «WebView Mint sin mitigación DMABUF» | arch_test.go |
+| daemon-servable-headless | existe un entrypoint `serve` que corre sin shell (test de humo) | error | «el daemon no arranca sin shell» | arch_test.go:TestDaemonServableHeadless |
+| mint-env-en-launcher | el launcher setea `WEBKIT_DISABLE_DMABUF_RENDERER` (Tauri, Linux) | warn | banda Guardia «WebView Mint sin mitigación DMABUF» | arch_test.go:TestMintEnvInLauncher |
 | single-instance-reenfoca | la 2a instancia no abre una ventana duplicada; reenfoca la existente (`unminimize`+`show`+`set_focus`) | warn | «reapertura tragada en silencio (sin ventana visible)» | web/src-tauri/src/lib.rs (revisión) |
 
 ## Changelog
@@ -91,3 +93,10 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
   instalado, `gtk-launch` real, foco movido a otra ventana y devuelto tras relanzar, sin ventana
   duplicada). Check nuevo `single-instance-reenfoca` (revisión manual, mismo patrón que
   `mint-env-en-launcher`) → **5 checks**.
+- 2026-07-08 · v1.3 · Auditoría colateral (HS-16): `daemon-servable-headless` y
+  `mint-env-en-launcher` tenían enforcer bare `arch_test.go` (sin nombre de función) — el
+  parser del ruleset solo reconoce `arch_test.go:TestX`, así que quedaban `deferred` pese a
+  ser triviales de probar. `TestDaemonServableHeadless` (build+run real de `arnesia serve` como
+  subproceso, HOME apuntado a un dir descartable, `GET /healthz` responde) y
+  `TestMintEnvInLauncher` (grep sobre `web/src-tauri/src/main.rs`) los conectan a `--todo` sin
+  lógica nueva — la feature ya existía en ambos casos.

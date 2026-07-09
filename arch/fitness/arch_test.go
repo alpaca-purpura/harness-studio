@@ -18,17 +18,24 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"net"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
+	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
+	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -114,6 +121,80 @@ func TestCoreHasNoShellImport(t *testing.T) {
 	}
 }
 
+// TestDaemonServableHeadless enforces daemon-servable-headless (HS-16, auditoría colateral
+// franja-artefactos §8.2): a real smoke test — builds and runs `arnesia serve` as a subprocess
+// (not an import scan) and confirms it answers HTTP with NO shell/display involved. The build
+// uses the real toolchain env (module cache etc); only the SERVE process gets a throwaway HOME,
+// so its provisioning (~/.arnesia, session/arnés registries) never touches the operator's real
+// one and the test never re-downloads modules under a fake HOME.
+func TestDaemonServableHeadless(t *testing.T) {
+	root := repoRoot()
+	if root == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	bin := filepath.Join(t.TempDir(), "arnesia-headless-test")
+	//nolint:gosec // G204: fixed args (go build -o <tmp> ./cmd/arnesia); bin is this test's own t.TempDir(), never external input.
+	build := exec.CommandContext(ctx, "go", "build", "-o", bin, "./cmd/arnesia")
+	build.Dir = root
+	if out, berr := build.CombinedOutput(); berr != nil {
+		t.Fatalf("build arnesia: %v\n%s", berr, out)
+	}
+
+	var lc net.ListenConfig
+	ln, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("reserve a free port: %v", err)
+	}
+	addr := ln.Addr().String()
+	_ = ln.Close() // released for the subprocess; a small TOCTOU race is accepted here.
+
+	//nolint:gosec // G204: bin is the binary this test just built to its own t.TempDir(), never external input.
+	cmd := exec.CommandContext(ctx, bin, "serve", "--addr", addr)
+	cmd.Env = []string{"HOME=" + t.TempDir(), "PATH=" + os.Getenv("PATH")} // headless: no shell, no display, no DISPLAY var at all.
+	if serr := cmd.Start(); serr != nil {
+		t.Fatalf("start serve: %v", serr)
+	}
+	defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
+
+	url := "http://" + addr + "/healthz"
+	deadline := time.Now().Add(20 * time.Second)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		req, rerr := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if rerr != nil {
+			t.Fatalf("build healthz request: %v", rerr)
+		}
+		resp, gerr := http.DefaultClient.Do(req)
+		if gerr == nil {
+			_ = resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return // headless boot confirmed — a shell is never required to serve.
+			}
+			lastErr = fmt.Errorf("status %d", resp.StatusCode)
+		} else {
+			lastErr = gerr
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	t.Fatalf("serve never answered /healthz headless: %v", lastErr)
+}
+
+// TestMintEnvInLauncher enforces mint-env-en-launcher: the Tauri launcher must set
+// WEBKIT_DISABLE_DMABUF_RENDERER before the WebView boots — the Mint mitigation is
+// load-bearing for the Tauri-desde-v1 fork (HS-04's declared divergence from browser-first).
+func TestMintEnvInLauncher(t *testing.T) {
+	main := readSourceFile(t, "web/src-tauri/src/main.rs")
+	if main == "" {
+		return
+	}
+	if !strings.Contains(main, "WEBKIT_DISABLE_DMABUF_RENDERER") {
+		t.Error("web/src-tauri/src/main.rs no setea WEBKIT_DISABLE_DMABUF_RENDERER — mitigación Mint ausente")
+	}
+}
+
 // --- dominio-independiente-de-transporte.md ---
 
 func TestDomainIndependentOfTransport(t *testing.T) {
@@ -139,6 +220,37 @@ func TestAgentPortHasNoConcreteLeak(t *testing.T) {
 		"internal/adapters/transport",
 	} {
 		assertNoImport(t, pkg, []string{"adapters/agent/claudecode"}, "adaptadores-de-agente-intercambiables")
+	}
+}
+
+// minimalAgent is a second, from-scratch ports.AgentPort — proof the seam is real: nothing in
+// usecase needs claudecode-specific behavior to drive a turn.
+type minimalAgent struct{}
+
+func (minimalAgent) Spawn(context.Context, ports.SpawnOpts) (ports.AgentSession, error) {
+	events := make(chan ports.AgentEvent, 1)
+	events <- ports.AgentEvent{Kind: ports.EventResult, Subtype: "success"}
+	return &minimalSession{events: events}, nil
+}
+
+type minimalSession struct{ events chan ports.AgentEvent }
+
+func (s *minimalSession) Send(context.Context, string) error { return nil }
+func (s *minimalSession) Events() <-chan ports.AgentEvent    { return s.events }
+func (s *minimalSession) Interrupt(context.Context) error    { return nil }
+func (s *minimalSession) Close() error                       { return nil }
+func (s *minimalSession) RespondControl(context.Context, string, ports.ControlDecision) error {
+	return nil
+}
+
+// TestSegundoAdaptadorPosible enforces segundo-adaptador-posible: a second, unrelated
+// ports.AgentPort implementation (not claudecode) drives a real usecase turn with zero
+// changes to usecase code — the interface seam is real, not aspirational.
+func TestSegundoAdaptadorPosible(t *testing.T) {
+	svc := newTestService(t, minimalAgent{}, &fakePub{}, t.TempDir())
+	id := svc.List()[0].ID
+	if err := svc.Turn(id, "hola desde un segundo adaptador"); err != nil {
+		t.Fatalf("un segundo ports.AgentPort (no claudecode) debe drivear un turno sin cambios en usecase: %v", err)
 	}
 }
 
@@ -455,6 +567,52 @@ func TestBoxContractValidatesAgainstSchema(t *testing.T) {
 	}
 }
 
+// TestDogfoodComposicionFabricaConforma wires sin-huerfanos/dead-end/ruta-a-existe/
+// refina-coherente into `--todo` (HS-16, auditoría colateral franja-artefactos §8.2): these
+// enforcers already exist and pass for real under `--arnes` (domain.VerificarX, franja-artefactos
+// F1) but the ruleset parser only recognizes the `arch_test.go:TestX` pattern in a check's
+// `enforcer` column — the plain-prose form fell to nl-judge/deferred even though nothing was
+// missing. No new validation logic: this reuses the same ConformanceService against the
+// fábrica's own dogfood (the same pattern as usecase.TestDogfoodArnesConforms) so the fábrica
+// proves it satisfies its own composition rules, not just third-party arneses.
+func TestDogfoodComposicionFabricaConforma(t *testing.T) {
+	root := repoRoot()
+	if root == "" {
+		return
+	}
+	adapters := []ports.MechanismAdapter{
+		mechanism.NewArchTest(root), mechanism.NewGoArchLint(root),
+		mechanism.NLJudge{},
+		mechanism.StaticScan{},
+		mechanism.SchemaAdapter{},
+	}
+	schemas := mechanism.NewSchemaSet(filepath.Join(root, "arch", "contracts", "schema"))
+	svc := usecase.NewConformanceService(root, ruleset.New(root), schemas, adapters)
+	rep, err := svc.Run(context.Background(), ports.Target{
+		Kind: ports.TargetArnes, GraphPath: filepath.Join(root, "dogfood", "dev-full-cycle.graph.json"),
+	})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	want := []string{"sin-huerfanos", "dead-end", "ruta-a-existe", "refina-coherente"}
+	found := map[string]bool{}
+	for _, r := range rep.Results {
+		if !slices.Contains(want, r.Check.ID) {
+			continue
+		}
+		found[r.Check.ID] = true
+		if r.Veredicto != domain.VeredictoPass {
+			t.Errorf("%s: %s — %s (el dogfood de la fábrica debe cumplir su propia composición)",
+				r.Check.ID, r.Veredicto, r.Detalle)
+		}
+	}
+	for _, id := range want {
+		if !found[id] {
+			t.Errorf("check %q ausente del reporte --arnes", id)
+		}
+	}
+}
+
 // ============================================================================
 // HS-07/HS-08 · doctrina v1 boundaries (enforced). The conductor loop and the
 // permission spike landed: the enforcer named in each boundary's `enforced_by:`
@@ -554,7 +712,8 @@ func TestConductorOwnsBoxRouting(t *testing.T) {
 	t.Run("happy path routes by contract.ruta, not the LLM", func(t *testing.T) {
 		c, _, _ := newConductor(
 			[]ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success"}, {Kind: ports.EventResult, Subtype: "success"}},
-			[]string{"working", "done"}, 5)
+			[]string{"working", "done"}, 5,
+		)
 		out, err := c.Run(context.Background(), boxWithRuta([]domain.Route{{A: "reviewer"}}, nil))
 		if err != nil {
 			t.Fatalf("run: %v", err)
@@ -592,7 +751,8 @@ func TestConductorOwnsBoxRouting(t *testing.T) {
 		// must ignore the text and NOT finish — this is the anti-scrape guarantee.
 		c, _, arts := newConductor(
 			[]ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success", Text: "¡LISTO! done done done ✅"}},
-			[]string{"working"}, 1)
+			[]string{"working"}, 1,
+		)
 		out, err := c.Run(context.Background(), boxWithRuta(nil, &domain.Handoff{Cuando: "x", A: "humano"}))
 		if err != nil {
 			t.Fatalf("run: %v", err)
@@ -608,7 +768,8 @@ func TestConductorOwnsBoxRouting(t *testing.T) {
 	t.Run("explicit blocked artifact stops immediately", func(t *testing.T) {
 		c, sess, _ := newConductor(
 			[]ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success"}},
-			[]string{"blocked"}, 5)
+			[]string{"blocked"}, 5,
+		)
 		out, err := c.Run(context.Background(), boxWithRuta(nil, &domain.Handoff{Cuando: "x", A: "caja:fix"}))
 		if err != nil {
 			t.Fatalf("run: %v", err)
@@ -989,6 +1150,14 @@ func (f *fakeSession) respondedSnapshot() []respondedControl {
 	return out
 }
 
+func (f *fakeSession) sentSnapshot() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]string, len(f.sent))
+	copy(out, f.sent)
+	return out
+}
+
 type fakeAgent struct {
 	mu       sync.Mutex
 	spawns   []ports.SpawnOpts
@@ -1002,6 +1171,24 @@ func (a *fakeAgent) Spawn(_ context.Context, opts ports.SpawnOpts) (ports.AgentS
 	s := &fakeSession{events: make(chan ports.AgentEvent, 16)}
 	a.sessions = append(a.sessions, s)
 	return s, nil
+}
+
+// spawnsSnapshot is the lock-safe read of a.spawns — needed whenever a heal (an async
+// respawn from the consume goroutine) can race a polling read from the test goroutine.
+func (a *fakeAgent) spawnsSnapshot() []ports.SpawnOpts {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	out := make([]ports.SpawnOpts, len(a.spawns))
+	copy(out, a.spawns)
+	return out
+}
+
+func (a *fakeAgent) sessionsSnapshot() []*fakeSession {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	out := make([]*fakeSession, len(a.sessions))
+	copy(out, a.sessions)
+	return out
 }
 
 type fakeResolver struct{ path string }
@@ -1117,6 +1304,55 @@ func TestFramesCarryRunID(t *testing.T) {
 		if rid, ok := f["run_id"].(string); !ok || rid == "" {
 			t.Errorf("dock frame kind=%v has no run_id — an SSE replay cannot be deduped", f["kind"])
 		}
+	}
+}
+
+// TestResumeAutoSana enforces resume-auto-sana: a `--resume` whose process dies before ever
+// emitting `init` (stale ClaudeSessionID — e.g. CC pruned it) must self-heal ONCE — restart
+// fresh (dropping the stale id) and resend the in-flight turn — never wedge the session or
+// surface a raw error for a condition the daemon can recover from by itself.
+func TestResumeAutoSana(t *testing.T) {
+	agent := &fakeAgent{}
+	pub := &fakePub{}
+	svc := newTestService(t, agent, pub, t.TempDir())
+	id := svc.List()[0].ID
+
+	// Turn 1: fresh spawn (no resume yet), inits with a session id, then finishes normally —
+	// that id is what the NEXT turn will try (and fail) to resume.
+	if err := svc.Turn(id, "primero"); err != nil {
+		t.Fatalf("turn 1: %v", err)
+	}
+	sess1 := agent.sessions[0]
+	sess1.events <- ports.AgentEvent{Kind: ports.EventInit, ClaudeSessionID: "cc-stale"}
+	sess1.events <- ports.AgentEvent{Kind: ports.EventResult, Subtype: "success"}
+	close(sess1.events) // process life ends (Turn 2 must see r.live==nil to spawn again).
+	waitFor(t, 2*time.Second, func() bool { return svc.List()[0].Status == domain.StatusIdle })
+
+	// Turn 2: spawnLocked sees the stale id and asks --resume. The process dies before ever
+	// emitting init (channel closes with nothing sent) — a failed resume, not a real error.
+	if err := svc.Turn(id, "segundo — el resume se pierde"); err != nil {
+		t.Fatalf("turn 2: %v", err)
+	}
+	if len(agent.spawns) != 2 || agent.spawns[1].Resume != "cc-stale" {
+		t.Fatalf("el 2do spawn debía pedir --resume cc-stale, got %+v", agent.spawns)
+	}
+	sess2 := agent.sessions[1]
+	close(sess2.events)
+
+	// The heal must respawn FRESH (stale id dropped) and resend the pending turn — no manual
+	// retry, no wedged session, no raw error frame for a condition the daemon self-heals.
+	// The heal itself runs asynchronously (from the consume goroutine, after the close above),
+	// so every read past this point must go through the lock-safe snapshots — a plain field
+	// read here would race the heal's write.
+	waitFor(t, 2*time.Second, func() bool { return len(agent.spawnsSnapshot()) == 3 })
+	spawns := agent.spawnsSnapshot()
+	if spawns[2].Resume != "" {
+		t.Errorf("el heal debía respawnear SIN --resume (id stale descartado), got %q", spawns[2].Resume)
+	}
+	sess3 := agent.sessionsSnapshot()[2]
+	waitFor(t, 2*time.Second, func() bool { return len(sess3.sentSnapshot()) > 0 })
+	if got := sess3.sentSnapshot(); got[0] != "segundo — el resume se pierde" {
+		t.Errorf("el heal no reenvió el turno pendiente, got %v", got)
 	}
 }
 

@@ -1,7 +1,7 @@
 ---
 regla: adaptadores-de-agente-intercambiables
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-08
 status: proposed
 ledger: HS-04
 sources:
@@ -14,6 +14,7 @@ sources:
 enforced_by:
   - fitness/.go-arch-lint.yml#agent-adapters
   - fitness/arch_test.go:TestAgentPortHasNoConcreteLeak
+  - fitness/arch_test.go:TestSegundoAdaptadorPosible
 severity: high
 ---
 
@@ -52,10 +53,14 @@ el SDK y el CLI hablan el mismo protocolo; experto: hexagonal)*
 | agent-port-existe | el dominio define `AgentPort`; los casos de uso dependen de él | error | «conductor cableado directo, sin puerto» | go-arch-lint#agent-adapters |
 | adapter-solo-en-root | solo `cmd/**` importa `adapters/agent/claudecode`; el resto usa `AgentPort` | error | «adaptador concreto importado fuera de la raíz» | go-arch-lint#agent-adapters |
 | no-leak-concreto | ningún flag/término stream-json de `claude` aparece fuera del adaptador | warn | «detalle de Claude Code filtrado al dominio» | arch_test.go:TestAgentPortHasNoConcreteLeak |
-| segundo-adaptador-posible | agregar un adaptador nuevo no requiere tocar `domain/**` (test de humo con fake) | info | «grafo no-agnóstico: el motor está soldado» | arch_test.go |
+| segundo-adaptador-posible | agregar un adaptador nuevo no requiere tocar `domain/**` (test de humo con fake) | info | «grafo no-agnóstico: el motor está soldado» | arch_test.go:TestSegundoAdaptadorPosible |
 
 ## Changelog
 
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-04). L1 = grafo agnóstico + adaptador (VISION) sobre
   ports&adapters. L2: `AgentPort` en el dominio, `claudecode` como impl subproceso-conductor
   (SDK-sidecar y Managed Agents descartados), concreto solo en la composition-root. 4 checks.
+- 2026-07-08 · v1.1 · Auditoría colateral (HS-16): `segundo-adaptador-posible` tenía enforcer
+  bare `arch_test.go` — conectado a `--todo` con `TestSegundoAdaptadorPosible` (un
+  `ports.AgentPort` de juguete, `minimalAgent`, drivea un turno real de `SessionService` sin
+  tocar `usecase`/`domain`). Sin checks nuevos.

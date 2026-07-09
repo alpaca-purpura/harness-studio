@@ -1,6 +1,6 @@
 ---
 regla: contrato-de-caja-es-fitness-function
-version: 1.3
+version: 1.4
 updated: 2026-07-08
 status: enforced
 ledger: HS-08
@@ -13,6 +13,7 @@ sources:
     revisado: 2026-07-05
 enforced_by:
   - fitness/arch_test.go:TestBoxContractValidatesAgainstSchema
+  - fitness/arch_test.go:TestDogfoodComposicionFabricaConforma
   - contracts/schema/box.contract.schema.json
 severity: high
 ---
@@ -48,7 +49,7 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
   upstream; dead-ends = output que nadie consume). ⇐ L1: validar instancias.
 - **Puente con `knowledge/`:** este check es la versión-arquitectura del estándar de `knowledge/`
   (138 checks). El motor **`arnesia conformance`** (construido en HS-08) parsea `knowledge/` +
-  `arch/` = **235 checks a datos** y corre schema-validación (aquí) + go-arch-lint + los checks de
+  `arch/` = **247 checks a datos** (`--todo`, 2026-07-09) y corre schema-validación (aquí) + go-arch-lint + los checks de
   metodología, mismo reporte severidad+señal.
 
 ## Checklist evaluable
@@ -57,11 +58,11 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
 |----|-------------|-----------|------------------|----------|
 | contract-valida-schema | cada `contract:` de caja valida contra `box.contract.schema.json` | error | «caja con contrato inválido/incompleto» | arch_test.go:TestBoxContractValidatesAgainstSchema |
 | tipos-generados | los tipos Go/TS del contrato salen de `quicktype`, no a mano | warn | «tipo de contrato a mano — riesgo de drift» | schema/codegen |
-| sin-huerfanos | ningún `necesita` referencia un artefacto que ninguna caja `entrega` upstream | warn | capa Proceso «input huérfano (sin productor)» | domain.VerificarSinHuerfanos (ruta `--arnes`) |
+| sin-huerfanos | ningún `necesita` referencia un artefacto que ninguna caja `entrega` upstream | warn | capa Proceso «input huérfano (sin productor)» | domain.VerificarSinHuerfanos (ruta `--arnes`); `--todo`: arch_test.go:TestDogfoodComposicionFabricaConforma |
 | gate-honesto | `gate.tipo: none` cuando no hay eval real (jamás fabricar un eval) | error | capa Proceso «SIN GATE» (principio 10 hecho dato) | arch_test.go |
-| dead-end | toda `entrega` tiene consumidor, salvo caja terminal (terminalidad DERIVADA del spine, HS-12) | warn | chip «sin consumidor» en el gutter (franja-artefactos D2) | domain.VerificarDeadEnds (ruta `--arnes`) |
-| ruta-a-existe | cada `ruta[].a` apunta a caja existente o al literal `humano` | error | «ruta colgante» en la caja | domain.VerificarRutaExiste (ruta `--arnes`) |
-| refina-coherente | toda cadena `refina` es lineal: el refinador necesita el art que refina, sin ciclos ni ramas (D9) | error | chip `↻ vN` incoherente en el gutter del refinador | domain.VerificarRefinaCoherente (ruta `--arnes`) |
+| dead-end | toda `entrega` tiene consumidor, salvo caja terminal (terminalidad DERIVADA del spine, HS-12) | warn | chip «sin consumidor» en el gutter (franja-artefactos D2) | domain.VerificarDeadEnds (ruta `--arnes`); `--todo`: arch_test.go:TestDogfoodComposicionFabricaConforma |
+| ruta-a-existe | cada `ruta[].a` apunta a caja existente o al literal `humano` | error | «ruta colgante» en la caja | domain.VerificarRutaExiste (ruta `--arnes`); `--todo`: arch_test.go:TestDogfoodComposicionFabricaConforma |
+| refina-coherente | toda cadena `refina` es lineal: el refinador necesita el art que refina, sin ciclos ni ramas (D9) | error | chip `↻ vN` incoherente en el gutter del refinador | domain.VerificarRefinaCoherente (ruta `--arnes`); `--todo`: arch_test.go:TestDogfoodComposicionFabricaConforma |
 
 ## Changelog
 
@@ -79,3 +80,12 @@ El dominio de ArnesIA ya es schema-shaped: el contrato L0 `meta.clase` (I-75) y 
   corren en la ruta `--arnes`; en `--todo` las filas difieren honesto (mecanismo no ejecutable
   desde el ruleset). `escritor-unico` ajustado: `refina` es la única puerta legal a la
   multi-escritura (cadena lineal, jamás paralela — D9b).
+- 2026-07-08 · v1.4 · Auditoría colateral (HS-16): `sin-huerfanos`/`dead-end`/`ruta-a-existe`/
+  `refina-coherente` estaban mal-clasificadas en `--todo` (el parser del ruleset solo reconoce
+  el patrón `arch_test.go:TestX` en la columna `enforcer`; el texto `domain.VerificarX (ruta
+  --arnes)` caía a `nl-judge`, aunque el enforcer real YA corre y pasa vía `--arnes`). Fix:
+  `TestDogfoodComposicionFabricaConforma` (`arch/fitness/arch_test.go`) reusa el mismo
+  `ConformanceService` contra el dogfood real de la fábrica y exige `pass` en los 4 — ahora
+  visibles como `arch-test` real en `--todo`, sin escribir lógica nueva (la validación ya
+  existía). `gate-honesto` queda tal cual (no existe `domain.VerificarGateHonesto` — necesita
+  una decisión de diseño previa, deuda declarada, no tocado en esta pasada).

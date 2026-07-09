@@ -1,5 +1,5 @@
 ---
-regla: hooks
+regla: git-hooks
 version: 1.0
 updated: 2026-07-05
 status: proposed
