@@ -132,6 +132,22 @@ func TestSpawnArgsMCPAislado(t *testing.T) {
 	}
 }
 
+// TestSpawnArgsSettingSourcesExcludeUser enforces HS-17 D3 (arch/boundaries/
+// superficie-local-confinada.md): EVERY spawn fixes --setting-sources to
+// "project,local" — "user" (the operator's own ~/.claude/settings.json, with THEIR
+// enabledPlugins/hooks) never rides, and there is no SpawnOpts field to reintroduce it.
+func TestSpawnArgsSettingSourcesExcludeUser(t *testing.T) {
+	for _, opts := range []ports.SpawnOpts{
+		{},
+		{Injection: ports.Injection{MCPConfigFile: "/tmp/mcp.json"}},
+		{Permisos: domain.PermissionSet{Rol: "backend-dev", Allow: []string{"Read"}}},
+	} {
+		if got := flagValue(SpawnArgs(opts), "--setting-sources"); got != "project,local" {
+			t.Errorf("--setting-sources = %q, want project,local (opts=%+v)", got, opts)
+		}
+	}
+}
+
 // flagValue returns the argument following flag, or "".
 func flagValue(args []string, flag string) string {
 	for i, a := range args {

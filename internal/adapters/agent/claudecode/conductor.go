@@ -63,6 +63,11 @@ func SpawnArgs(opts ports.SpawnOpts) []string {
 		"--output-format", "stream-json",
 		"--include-partial-messages",
 		"--verbose",
+		// Aislamiento de superficie de config (HS-17 D3): fijo, jamás configurable por el
+		// caller — nadie debe poder reintroducir "user" (~/.claude/settings.json del
+		// OPERADOR, con SUS enabledPlugins/hooks personales). El CLAUDE.md propio del cwd
+		// del arnés sobrevive de todos modos (discovery propio, independiente de este flag).
+		"--setting-sources", "project,local",
 	}
 	if opts.Resume != "" {
 		args = append(args, "--resume", opts.Resume)

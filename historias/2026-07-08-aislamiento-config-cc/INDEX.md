@@ -56,7 +56,15 @@ as-code) está en `decisiones.md` como PROPUESTA, pendiente de firma antes de to
       `TestProvisionMaterializesAndIsIdempotent` (extendido) verdes; sonda real
       `post-mcp.md`: 6→0 MCP de cuenta, skills propias intactas;
       `conformance --arnes` dogfood sin regresión (20 pass/1 warn-fail, igual que antes)
-- [ ] Fase 2 — `--setting-sources project,local` (excluir `user`)
+- [x] Fase 2 — `--setting-sources project,local` (excluir `user`) — `SpawnArgs` lo fija
+      incondicional (sin campo `Injection`, nadie puede reintroducir `user`);
+      `TestSpawnArgsSettingSourcesExcludeUser` verde; sonda real `post-settings.md`:
+      ~50 skills `golang-*` + plugins `caveman`/stitch AJENOS desaparecen, kit propio
+      (`arnesia-kit:*`) intacto, CLAUDE.md del arnés sobrevive (cita textual exacta,
+      confirma E5). Hallazgo residual DOCUMENTADO (esperado por D3, no bloqueante): el
+      walk ascendente de CLAUDE.md sigue activo — en este dev-env el dogfood anidado
+      bajo el repo hereda el CLAUDE.md raíz del producto; en producción normal un arnés
+      no vive anidado así. `conformance --arnes` sin regresión (20 pass/1 warn-fail)
 - [ ] Fase 3 — experimento `--safe-mode` (decidir adopción según resultado, no a priori)
 - [ ] Fase 4 — cementado as-code (extensión de `superficie-local-confinada` + fitness test)
 - [ ] Fase 5 — gate de calidad (round-trip dogfood + `conformance --arnes` sin regresión +
