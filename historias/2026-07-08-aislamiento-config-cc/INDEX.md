@@ -83,24 +83,17 @@ as-code) está en `decisiones.md` como PROPUESTA, pendiente de firma antes de to
       `conformance superficie-local-confinada` 9/9 · round-trip kit+doctrina+knowhow+
       CLAUDE.md+permisos intactos · medición de contexto cuantificada: `input_tokens`
       −75.4 % (12 959→3 193), total −38.4 % (56 114→34 585)
-- [ ] Fase 6 — cierre: ficha de cierre HS-17 en LEDGER.md
+- [x] Fase 6 — cierre: ficha de cierre HS-17 en LEDGER.md + `PARIDAD.md` del paquete
 
 ## Retomar aquí
 
-- **Último hecho (2026-07-08):** investigación de 3 subagentes (`--safe-mode` vs
-  `--bare` · `--setting-sources` + CLAUDE.md discovery · `--strict-mcp-config` + MCP en
-  plugins) verificada contra `code.claude.com/docs` (revisado 2026-07-08) → plan de 6
-  fases presentado al operador → operador pide fichar TODO antes de tocar código, para
-  poder continuar en otra conversación. Este paquete es esa anotación.
-- **Próximo paso concreto:** el operador revisa `decisiones.md` y `spec.md` de este
-  paquete y firma (o pide cambios). Con la firma, arranca Fase 0 (sonda baseline contra
-  el dogfood real, sin tocar código todavía) y luego Fase 1 (MCP — el cambio de menor
-  riesgo, cero fricción con auth, listo para codear primero).
-- **Firmas pendientes:** `decisiones.md` completo · `spec.md` completo (una sola firma
-  de paquete, como en `boton-actualizar`/`inspector-drawer`).
-- **Contexto caliente para quien retome:** el hallazgo más frágil del plan es que
-  `--setting-sources` NO tiene confirmación oficial explícita de si corta
-  `enabledPlugins` a nivel `user` (inferencia fuerte, no cita literal) — la Fase 0/2
-  DEBEN verificarlo con una sonda real antes de cementar nada as-code. Igual con si
-  `--safe-mode` mata `--plugin-dir` explícito o no — sin cita dura, solo experimento
-  real lo resuelve (Fase 3). No asumir ninguno de los dos sin la sonda.
+- **CERRADO (2026-07-08).** Las 6 fases (RF-160..167) ejecutadas y verificadas en vivo
+  el mismo día. Ficha de cierre en `LEDGER.md` HS-17 · matriz completa en `PARIDAD.md`.
+- **Resultado:** `--mcp-config`+`--strict-mcp-config` (RF-161) + `--setting-sources
+  project,local` (RF-162) SIEMPRE en `SpawnArgs`. `--safe-mode` investigado (RF-163) y
+  DESCARTADO (mata el plugin propio ② pese a `--plugin-dir` explícito). Cementado en
+  `arch/boundaries/superficie-local-confinada.md` v1.3.
+- **Nada bloqueante pendiente.** Deuda menor no fichada: el residual de CLAUDE.md
+  ascendente (documentado en RF-162/D3) no tiene mitigación de producto — solo aplica si
+  un arnés real vive anidado bajo un árbol con CLAUDE.md ajeno, escenario atípico fuera
+  de este dev-env.

@@ -752,7 +752,151 @@ mitigaciones Mint).
 *Siguiente:* nada bloqueante. Deuda menor no fichada: el TODO de deep-link `arnesia://` en
 el mismo callback single-instance sigue pendiente (fase futura, ojo bug tauri#12726).
 
-<!-- Próximas: HS-15, … -->
+### HS-17 · Diagnóstico + CIERRE: superficie de configuración heredada al spawnear CC — aislamiento MCP + settings-sources EJECUTADO y verificado en vivo — `decidida` · `vig:vigente`
+
+*Cruda (operador, 2026-07-08):* disparador — un reporte de `/context` en una sesión de
+desarrollo mostró **62.2k tok en MCP tools deferred** (Canva/Gmail/Google Calendar/Google
+Drive/claude_design), ajenos a ArnesIA. Tras diferenciar esa capa (cuenta del operador, no
+arnés) de la que sí es responsabilidad del producto, el mandato: «abre ficha nueva, que
+incluya el proceso de instalación de arnesia y cómo esta "levanta" claude code, en qué
+carpeta y cómo en esta carpeta, en cada sesión, se levantan los skills, rules, etc.
+Deberían estar limpios y solo los de arnesia».
+
+*Desarrollo (investigación de código, sin fix aplicado — ficha diagnóstica como HS-14
+original):*
+
+**A. Instalación.** `scripts/bundle.sh`: SPA (vite) + `go build` embebiendo SPA+doctrina+kit
+→ `bin/arnesia` (el daemon) → copiado como sidecar Tauri → empaquetado en `.deb`/`.AppImage`/
+`.rpm`. El shell Tauri se instala como `arnesia-app` (`Cargo.toml` `[[bin]]`, fix HS-14 ①), el
+daemon Go se queda `arnesia`. El daemon lleva la SPA + el ruleset (`arch/`+`knowledge/`) +
+el kit (`kit/`) **embebidos por `go:embed`** — nada de esto se lee del disco del operador al
+arrancar (HS-10/HS-11, paquete «3 cuerpos»).
+
+**B. Cómo el daemon levanta CC.** Composición en `cmd/arnesia/main.go:runServe` →
+`agent := claudecode.New(resolveClaudeBin(*claudeBin))` (default `"claude"`, resuelto por
+PATH). Dos rutas de spawn: sesiones del Dock (`SessionService.spawnLocked`,
+`internal/usecase/session_service.go:305-352`) y el conductor T3 de una caja
+(`BoxConductor`/`RunService`, `internal/usecase/run_service.go:131`). Ambas arman un
+`ports.SpawnOpts` y lo pasan a `Conductor.Spawn` → `conductor.go:SpawnArgs`
+(`internal/adapters/agent/claudecode/conductor.go:59-91`), que hoy solo agrega: `-p`
+stream-json · `--resume`/`--model`/`--max-turns` · **inyección ①②** (`--plugin-dir` del kit
+propio, `--append-system-prompt-file` del overlay de doctrina, `--add-dir` del knowhow —
+`ports.Injection`, `internal/ports/kit.go`) · flags de permiso derivados del rol
+(`--permission-mode`/`--allowedTools`/`--disallowedTools`). Nunca pasa `--bare` (rompe auth
+de suscripción, corrección ya propagada a knowledge) ni ningún flag de scoping adicional.
+
+**C. En qué carpeta.** `spawnLocked` resuelve el cwd vía `s.resolver.Resolve(r.meta.Arnes)`
+→ `store.ArnesRegistry` (arnés→ruta explícita, default root `~/.arnesia/arneses`), cableado
+en `cmd/arnesia/main.go`. Esto SÍ está confinado y enforced (boundary
+`superficie-local-confinada`, S1-S6, HS-06): cada sesión corre en el árbol de SU arnés, jamás
+un cwd compartido. Esta parte no es el hallazgo.
+
+**D. El hallazgo — qué config-surface entra a cada sesión, además del cwd.**
+`ports.Injection` (`internal/ports/kit.go:10-17`) solo tiene `PluginDirs`/
+`SystemPromptFile`/`AddDirs` — el spawn nunca toca `--setting-sources`, `--safe-mode`,
+`--mcp-config` ni `--strict-mcp-config`. Sin esos flags, `claude` resuelve su config por el
+comportamiento DEFAULT: **settings-sources = user+project+local** (carga
+`~/.claude/settings.json` del operador — sus plugins/marketplaces personales
+`enabledPlugins`, exactamente la clase de skills vistas en el disparador: `golang-*`,
+`stitch-*`, `dataviz`, etc.), **CLAUDE.md auto-discovery** ascendente desde el cwd, y
+**cualquier MCP conectado a nivel cuenta** (mismo eje que Canva/Gmail/Drive del disparador,
+solo que ahora dentro de un arnés spawneado por el producto, no en una sesión interactiva del
+operador). Resultado: un arnés que ArnesIA spawnea HOY carga su propio kit **encima** de toda
+la superficie personal de quien corre el daemon — no «solo los de arnesia». El boundary
+`permisos-derivan-del-rol` (arch/boundaries/permisos-derivan-del-rol.md) cubre un eje distinto
+(qué puede *invocar* el rol vía `--allowedTools`/`--disallowedTools`), no qué *schemas/
+config cargan al contexto*; `knowledge/elements/mcp.md` ya documenta el costo (L1.6, checks
+`mcp-toolsearch-off`/`mcp-unused`) pero sin enforcer al spawn. Gap confirmado, no solo
+sospechado: `SpawnArgs` no tiene ninguna rama que lo cierre.
+
+**E. Candidatos de cierre (sin probar — quedan para specs).** `claude --help` expone dos vías
+no usadas hoy: **`--setting-sources <user,project,local>`** (excluir `user` cortaría
+`~/.claude/settings.json` del operador sin tocar el resto) y **`--safe-mode`** (apaga TODAS
+las personalizaciones — CLAUDE.md, skills, plugins, hooks, MCP, comandos/agentes custom,
+output-styles, temas, keybindings — pero, a diferencia de `--bare`, el help NO advierte
+ruptura de auth de suscripción; mantiene auth/modelo/tools-builtin/permisos intactos). Abierto
+verificar si `--plugin-dir`/`--append-system-prompt-file`/`--add-dir` explícitos sobreviven
+encima de `--safe-mode` (el patrón que `--bare` sí documenta: «Explicitly provide context
+via… --plugin-dir»). El fix de MCP puntual (`--mcp-config <arnés>.mcp.json --strict-mcp-config`,
+un `.mcp.json` propio por arnés, mismo patrón session-scoped que ①②) queda subsumido en esta
+ficha como parte D, no ficha aparte.
+
+*Conecta:* HS-06 (`superficie-local-confinada`, cwd ya confinado — la parte sana) ·
+HS-10/HS-11 (inyección ①②③, `--bare` descartado por auth) · `permisos-derivan-del-rol` (eje
+de invocación, distinto del eje de carga-a-contexto) · `knowledge/elements/mcp.md` (checklist
+ya escrito, sin enforcer) · HS-14 (mismo patrón: diagnóstico fichado primero, fix ejecutado
+después en ficha de cierre).
+
+*Investigación previa a codear:* 3-frentes (2026-07-08, `code.claude.com/docs`) + plan de 6
+fases fichados en paquete de trabajo
+[`historias/2026-07-08-aislamiento-config-cc/`](./historias/2026-07-08-aislamiento-config-cc/INDEX.md)
+(disciplina METODOLOGIA §10, adaptada a backend puro sin mockup) — firmado por el operador
+vía prompt de arranque de la implementación (`decisiones.md` D1-D6, `spec.md` RF-160..167).
+
+*Ejecutado y verificado (2026-07-08, mismo día):* las 6 fases del plan, RF-160..167,
+`commits 973cfdc·55cc8db·21a33f5·648a863·9e0e52c`.
+
+**RF-160 (sonda baseline, sin código):** confirma el diagnóstico en vivo — spawn del
+código pre-cambio contra el dogfood real filtra 6 MCP de cuenta (chrome-devtools/Canva/
+Gmail/Calendar/Google Drive/claude_design) + ~50 skills `golang-*` + plugins
+`caveman`/stitch ajenos.
+
+**RF-161 (`--mcp-config`+`--strict-mcp-config` SIEMPRE):** `ports.Injection` suma
+`MCPConfigFile`; el `Provisioner` materializa `~/.arnesia/mcp.json` (respeta un
+`kit/.mcp.json` propio si el kit algún día lo declara); `SpawnArgs`
+(`internal/adapters/agent/claudecode/conductor.go`) agrega los flags siempre que
+`Injection` esté poblada. Sonda real post-cambio: 6→0 MCP de cuenta, kit propio intacto.
+
+**RF-162 (`--setting-sources project,local` incondicional):** fijo en `SpawnArgs`, sin
+campo configurable — nadie puede reintroducir `user`. Sonda real: ~50 skills ajenas → 0,
+kit propio (`arnesia-kit:*`) intacto, CLAUDE.md del arnés sobrevive (cita textual exacta,
+confirma que el discovery de CLAUDE.md es mecanismo aparte de `--setting-sources`).
+**Hallazgo residual documentado, no bloqueante:** el walk ascendente de CLAUDE.md sigue
+activo — en este dev-env el dogfood anidado bajo el repo hereda su CLAUDE.md raíz; en
+producción normal un arnés no vive anidado así. Solo `--bare` lo apagaría del todo
+(descartado, D1).
+
+**RF-163 (experimento `--safe-mode`, resultado abierto por diseño) → DESCARTADO:**
+evidencia real decisiva — el overlay de doctrina (`--append-system-prompt-file`+
+`--add-dir`, ①) SOBREVIVE a `--safe-mode` (citas textuales exactas verificadas), pero el
+plugin propio (`--plugin-dir`, ②: skills `arnesia-kit:auditar-arnes`/`forjar-caja`) NO —
+desaparece del todo pese a ser explícito. Cumple el criterio de descarte que D4 tenía
+escrito de antemano. **RF-164 no se implementa** — D2+D3 (RF-161/162) quedan como la
+solución completa, ya cerrando los dos ejes de mayor costo/riesgo real sin este costo.
+
+**RF-165 (cementado as-code):** `arch/boundaries/superficie-local-confinada.md` v1.2→v1.3
+(2 checks nuevos `mcp-config-siempre`/`setting-sources-siempre`, 7→9, `enforced_by:` real
+vía `arch/fitness/hs17_config_source_test.go` — archivo nuevo para no colisionar con
+`arch_test.go` en edición concurrente de otra sesión; Go test discovery es por paquete, no
+por archivo, `arnesia conformance` lo reconoce igual) · `knowledge/elements/mcp.md`
+v1.0→v1.1 (nota, sin checks nuevos — el enforcement vive en `arch/`) · `CLAUDE.md` línea
+nueva en Decisiones técnicas vigentes.
+
+**RF-166 (gate de calidad):** `go test ./... -race` + `golangci-lint` (repo completo) +
+`pnpm run verify` verdes · `conformance --arnes` dogfood sin regresión (20 pass/1
+warn-fail, idéntico a siempre) · `conformance superficie-local-confinada` 9/9 (1 defer
+preexistente) · round-trip funcional: kit propio + doctrina + knowhow + CLAUDE.md del
+arnés + permisos por rol intactos (`SpawnArgs` es el ÚNICO punto de armado de argv para
+Dock chat Y `BoxConductor` T3 — no hay ruta paralela que pudiera divergir). **Medición de
+contexto cuantificada** (mismo cwd/turno-sonda/flags de inyección, único delta D2+D3):
+`input_tokens` 12 959→3 193 (**−75.4 %**), total 56 114→34 585 (**−38.4 %**) — coincide en
+dirección y orden de magnitud con el disparador original (62.2k tok de MCP ajenos).
+
+**Nota de higiene de repo (transparencia, no bloqueante):** esta ejecución corrió con otra
+sesión trabajando en paralelo sobre el mismo working tree (deuda colateral HS-16,
+`arch/fitness/arch_test.go` + varios `arch/boundaries/*.md` + `CLAUDE.md` con cambios sin
+commitear). Cada commit de este paquete se armó con `git add <archivos específicos>`,
+nunca `-A`/`.`, para no arrastrar ese trabajo ajeno — con una excepción de bajo riesgo
+aceptada: un rename puro (`arch/conventions/hooks.md→git-hooks.md`, 0 cambio de contenido)
+ya estaba STAGEADO antes de este trabajo y viajó en el primer commit (973cfdc) porque
+`git commit` sube todo el índice. Sin pérdida de trabajo ajeno, sin contenido mío
+mezclado con el suyo en ningún archivo de código.
+
+*Siguiente:* nada bloqueante. Deuda menor no fichada: el residual de CLAUDE.md ascendente
+(RF-162) no tiene mitigación de producto — solo aplica si un arnés real llega a vivir
+anidado bajo un árbol con CLAUDE.md ajeno, escenario atípico fuera de este dev-env.
+
+<!-- Próximas: HS-18, … -->
 
 ## Log
 
@@ -776,3 +920,5 @@ el mismo callback single-instance sigue pendiente (fase futura, ojo bug tauri#12
 | 2026-07-08 | **Franja Artefactos EJECUTADA (6 fases, spec+design firmados «dale Go»): el hand-off hecho dato.** F1 checks de composición VIVOS en `--arnes` (sin-huerfanos·dead-end·ruta-a-existe·art-identidad·refina-coherente; escritor-unico ajustado a `refina`) → arch 100·ruleset 238 (cifra stale reparada: 27 pass/211 deferred medidos). F2 identidad del art: `entrega[].path/plantilla/refina` aditivos + espejos + conductor lee `path` y el error de `Status` viaja VISIBLE; hallazgo honesto: `art-es-path` caza los 3 art-etiqueta del dogfood (warn, no se silencia). F3 encadenado por filesystem: precondición pre-Spawn (faltante = 409, cero tokens) + `tarea()` con rutas+digest (el doc entero jamás viaja). F4 plantillas dogfood (plantilla-spec + validate_spec estampa done + genera digest + Guardia PostToolUse/Stop, verificado headless REAL block→corrige→pasa) + **medición p11 real: hand-off −90% contexto/insumo** (digest 75 tok vs spec 750; escritor +32% por validación determinista) + backflow forjar-caja. F5 Mapa: franja portada del mockup v2 (chips derivados D1 · gutters D2 · tope+refs D11 · toggle off·auto·todos · fixture Cobranza) — 86/86 stories, consola limpia, PARIDAD.md 7 desviaciones → **gate final humano pendiente**. F6: RF-150 cerrado con evidencia + **reconocedor de hooks** (dogfood = 7 nodos; roto = no-reconocido visible) + ficha gemela DevStudio. | HS-13 |
 | 2026-07-08 | **Diagnóstico «la app instalada no re-levanta» (verificado en vivo) + 3 fixes fichados.** Causa: daemon HUÉRFANO del 7-jul (`~/.local/bin/arnesia serve --repo …` a mano, padre systemd, self-update in-place conserva PID) ocupaba `:4200` → shell siempre attach sin token; los lanzamientos fallidos jamás llegaron a `/usr/bin/arnesia` — `arnesia` pelado resuelve el DAEMON por PATH y muere `bind: address already in use` sin ventana. Ruta del icono verificada E2E sana (launcher→ventana→cierre limpio→relanza). Remedio: zombi muerto, `:4200` libre. Fixes fichados: ① colisión de nombre shell⇄daemon (`Exec=arnesia` sin ruta en el .desktop del .deb → bundle.sh con ruta absoluta o renombre) · ② trampa 401 en attach (`conectando.html` sondea `/api/version` sin token pero `auth.go` solo exime `/healthz` → huérfano-con-token = 401 eterno; sondear `/healthz`) · ③ single-instance callback vacío (`lib.rs` TODO: reapertura tragada sin reenfocar). | HS-14 |
 | 2026-07-08 | **HS-14 cierre: los 3 fixes EJECUTADOS y verificados contra el binario instalado.** ① `Cargo.toml` `[[bin]] name = "arnesia-app"` (no `bundle.sh`: Tauri toma el nombre directo de cargo) — el daemon Go se queda `arnesia` (VISION.md). ② `conectando.html` sondea `/healthz`. ③ `lib.rs` reenfoca (`get_webview_window`+`unminimize`+`show`+`set_focus`). Verificación real: clippy+race+golangci-lint+`pnpm verify` limpios · `.deb` real instalado (`sudo dpkg -i`) · `gtk-launch` real levanta ventana+sidecar · workaround viejo confirmado YA ROTO por el fix ① (`exec: /usr/bin/arnesia: not found`) antes de retirarlo · reenfoque probado moviendo foco + relanzando por ícono, cero duplicados. Auditoría arch-as-code: dogfood `--arnes` vía `index` real 20/21 pass (mismo diente honesto ya documentado, sin drift nuevo); reparado un drift PREEXISTENTE (`superficie-local-confinada.md` describía `invoke('auth_token')`, código usa `initialization_script` desde HS-11 #8) → v1.1; check nuevo `single-instance-reenfoca` en `core-no-importa-shell.md` v1.2 → arch/ 100→**101 checks**, ruleset 238→**239**. | HS-14 |
+| 2026-07-08 | **Diagnóstico: superficie de config heredada al spawnear CC — cwd confinado (sano) pero `SpawnArgs` nunca toca `--setting-sources`/`--safe-mode`/`--mcp-config`, así que cada arnés spawneado hereda `~/.claude/settings.json`, CLAUDE.md auto-discovery y MCP del OPERADOR, encima de su propio kit ①②.** Disparador: `/context` mostró 62.2k tok en MCP ajenos (Canva/Gmail/Drive) en sesión interactiva — capa distinta (cuenta, no arnés), pero destapó el eje real: `permisos-derivan-del-rol` gobierna invocación, no qué carga a contexto; `mcp.md` ya documenta el costo sin enforcer al spawn. Candidatos sin probar: `--safe-mode` (a diferencia de `--bare`, no rompe auth de suscripción según el help) + overrides explícitos, o `--setting-sources project,local` + `.mcp.json`/`--strict-mcp-config` propio por arnés. Ficha diagnóstica, sin fix ejecutado — mismo patrón que HS-14. | HS-17 |
+| 2026-07-08 | **HS-17 cierre: aislamiento de superficie de config EJECUTADO y verificado en vivo, RF-160..167.** `SpawnArgs` agrega SIEMPRE `--mcp-config`+`--strict-mcp-config` (`Injection.MCPConfigFile`, materializado por el `Provisioner` en `~/.arnesia/mcp.json`) y `--setting-sources project,local` incondicional (sin campo configurable). Sonda real contra el dogfood: 6 MCP de cuenta → 0, ~50 skills ajenas (`golang-*`/`caveman`/stitch) → 0, kit propio+doctrina+knowhow+CLAUDE.md del arnés intactos. `--safe-mode` investigado (RF-163) y DESCARTADO con evidencia real: mata el plugin propio (②) pese a `--plugin-dir` explícito, aunque el overlay ① sobrevive — D2+D3 quedan como solución completa, RF-164 no se implementa. Cementado en `superficie-local-confinada.md` v1.3 (7→9 checks, `arch/fitness/hs17_config_source_test.go`) + `mcp.md` v1.1 (nota). Gate: `go test -race`+`golangci-lint`+`pnpm verify` verdes, `conformance --arnes` sin regresión (20/1), medición de contexto cuantificada (`input_tokens` −75.4%, total −38.4%). Nota de higiene: ejecutado en paralelo a otra sesión trabajando el mismo working tree (deuda HS-16 sin commitear) — commits por archivo específico, nunca `-A`, cero mezcla de código ajeno. | HS-17 |
