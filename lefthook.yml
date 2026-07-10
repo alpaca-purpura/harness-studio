@@ -31,6 +31,18 @@ pre-commit:
       # falla acá (feedback local; el gate DURO es CI vía `arnesia conformance`). ~4ms.
       glob: "*.{go,ts,tsx,rs}"
       run: go test ./docs/architecture/fitness/ -run 'TestCapability(PointersResolve|Coverage)'
+    estado-cifras:
+      # AUTO-CURA las cifras vivas del checkpoint EN EL COMMIT (resuelve Δ1 de HS-21: «que se
+      # regeneren solas»). Decide con `--check` (date-insensitive): si driftaron, REGENERA y
+      # `git add` del checkpoint → el commit sale con cifras frescas. Corre al tocar archivos que
+      # afectan las cifras. ~20-50s (3× go run) — el precio de «solas»; saltable con --no-verify;
+      # el gate DURO sigue siendo CI (`estado.sh --check`).
+      # NOTA (verificado E2E en HS-21): `stage_fixed` NO sirve acá (solo re-stagea archivos ya
+      # staged que matchean el glob; checkpoint.md casi nunca lo está) → `git add` explícito. Y el
+      # pre-push tampoco (lefthook lo saltea con «no matching push files»). El único mecanismo que
+      # dispara+stagea confiable es pre-commit + `git add`. (Sin race: es el único que toca el index.)
+      glob: "*.{go,ts,tsx,rs,yaml,md}"
+      run: bash scripts/estado.sh --check >/dev/null 2>&1 || { bash scripts/estado.sh && git add docs/product/checkpoint.md; }
 
 commit-msg:
   commands:

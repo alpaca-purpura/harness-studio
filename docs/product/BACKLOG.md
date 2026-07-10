@@ -32,7 +32,11 @@
 - [x] ✅ **`scripts/estado.sh` genera TODO el bloque de cifras** (ruleset · `--arnes` · arch boundaries · knowledge nodos·checks · distribución capabilities) — mata la deuda «tecleadas»; cazó la línea stale «24 vivo/46 sin-check/6 STUB» → real `38 vivo · 40 vivo·nc · 1 parcial · 3 stub` — HECHO 2026-07-09 (HS-20)
 - [x] ✅ **dead-code decidido (HS-20): NADA es dead real** — `Banda`/`Canal`/`Procedencia` vivos (loader/index) · `Origen` vivo en schema+FE (el tipo Go es espejo del dominio) · `UnidadDeTrabajo` = vocabulario del Spine (motor pendiente) · `toggleTheme` único «sin caller» → todos **seed-futuro**, cero borrado (no se destruye vocabulario de schema firmado)
 - [capabilities] **derivación LIVE del estado** (`vivo ⟺ check verde` corriendo cada test, no solo consistencia) → cablear a CI · `deuda`
-- [capabilities] cablear `scripts/estado.sh` a un hook/CI para que las cifras se regeneren solas (hoy es manual) · `deuda`
+- [x] ✅ **estado.sh → CI drift-gate + auto-cura (HS-21, eje N2·Paquete A — FIRMADO 2026-07-10):**
+  `estado.sh --check` en el job `go` rompe el merge si las cifras del checkpoint quedan stale
+  (neutraliza la fecha; `ci-estado-drift`), Y el hook `pre-commit estado-cifras` las **regenera solas**
+  en el commit (`--check`→regen→`git add`; `lefthook-precommit-estado`). Cifras stale ya NO se cuelan.
+  Cierre en `ledger/HS-21.md`; PARIDAD 10 filas firmada
 - [capabilities] validar los ~40 `vivo·nc` (sin-check): construir el test que falta por-cap; parte de FE sin tests (solo stories) — es un paquete propio · `deuda`
 - [capabilities] `toggleTheme` seed-futuro: cablear el toggle a la vista Ajustes (RF-100) o cortar · `deuda`
 - [capabilities] índice SQLite real (CAP-21) + watcher fsnotify (CAP-23) + seed→JSONL corpus (CAP-22) — sale la fase-5 del stack · `bloqueo`

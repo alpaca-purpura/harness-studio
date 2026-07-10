@@ -32,6 +32,11 @@ jobs:
         run: go test ./... -race
       - name: build
         run: go build ./...
+      - name: estado-drift (cifras vivas de checkpoint.md ⟷ estado real; RF-178/HS-21)
+        # honestidad automática: si el bloque <!--stats--> de docs/product/checkpoint.md quedó stale
+        # respecto al estado real (conformance/árbol), rompe el merge. Ignora la fecha de medición
+        # (procedencia, no cifra). Es GENERATE-ONLY en modo --check: no escribe el árbol.
+        run: bash scripts/estado.sh --check
 
   ts:
     runs-on: ubuntu-latest

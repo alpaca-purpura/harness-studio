@@ -1,7 +1,7 @@
 ---
 regla: git-hooks
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-10
 status: proposed
 ledger: HS-05
 sources:
@@ -35,6 +35,8 @@ Config = **`/lefthook.yml`**. `pre-commit` paralelo por glob: `*.go` → `golang
 {staged_files}` · `*.rs` → `cargo fmt`. `commit-msg` → validación de [`commits.md`](./commits.md). ⇐ L1:
 políglota, staged-only.
 
+`pre-commit` **`estado-cifras`**: auto-cura las cifras vivas del checkpoint (HS-21, resuelve Δ1 «regenerarse solas»). Al tocar archivos que afectan las cifras (`*.{go,ts,tsx,rs,yaml,md}`), decide con `estado.sh --check` (date-insensitive); si driftaron, REGENERA y `git add docs/product/checkpoint.md` → el commit sale con cifras frescas. ~20-50s (3× go run) — el precio de «solas», saltable con `--no-verify`; el gate DURO sigue siendo CI. (Nota E2E: `pre-push` no sirve —lefthook lo saltea— y `stage_fixed` tampoco —solo re-stagea lo ya-staged—; el único mecanismo confiable es `pre-commit` + `git add`.) ⇐ L1: hook = feedback, CI = enforcement.
+
 - Instalable Node-free (binario o `go install github.com/evilmartians/lefthook@latest`) para mantener el
   árbol Go puro. ⇐ L1: cero Node.
 
@@ -45,8 +47,12 @@ políglota, staged-only.
 | lefthook-precommit | `lefthook.yml` corre lint/format Go+TS+Rust sobre `{staged_files}` en pre-commit | warn | «pre-commit no cablea el lint por lenguaje» | /lefthook.yml |
 | node-free-hooks | el gate local no exige Node para un dev Go (lefthook binario) | warn | «hooks atados a Node (husky)» | revisión |
 | ci-es-la-garantia | existe el required check de CI (el hook local es saltable) | error | banda Guardia «sin gate duro en CI (hook saltable)» | ci.yml (ver ci.md) |
+| lefthook-precommit-estado | `pre-commit` regenera+auto-stagea las cifras del checkpoint si driftaron (self-heal; backstop = CI `estado.sh --check`) | warn | «cifras stale se commitean sin auto-cura local» | /lefthook.yml |
 
 ## Changelog
+
+- 2026-07-10 · v1.1 · +`pre-commit estado-cifras` (HS-21): auto-cura las cifras del checkpoint en el
+  commit (regenera+`git add`; resuelve Δ1 «regenerarse solas»). 4 checks.
 
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-05). L1 = lefthook binario Go políglota > husky; hook =
   feedback, CI = enforcement. L2 = `/lefthook.yml` pre-commit por glob (Go/TS/Rust) staged-only, Node-

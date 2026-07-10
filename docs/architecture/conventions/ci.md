@@ -1,7 +1,7 @@
 ---
 regla: ci
-version: 1.0
-updated: 2026-07-05
+version: 1.1
+updated: 2026-07-09
 status: proposed
 ledger: HS-05
 sources:
@@ -28,7 +28,8 @@ debe tener su job. *(oficial: golangci-lint-action; GitHub required checks)*
 
 Config = **`/.github/workflows/ci.yml`**, jobs paralelos, cada uno un required check en `main`:
 - **Go:** `golangci/golangci-lint-action` (v7 para v2) → `golangci-lint run` + `golangci-lint fmt --diff`
-  · `go test ./... -race` · `go build` · `go-arch-lint check` (grafo de [`../fitness/`](../fitness/)).
+  · `go test ./... -race` · `go build` · `go-arch-lint check` (grafo de [`../fitness/`](../fitness/))
+  · `estado.sh --check` (drift-gate de cifras: el bloque `<!--stats-->` de `checkpoint.md` ⟷ estado real; HS-21).
 - **TS:** `biome ci .` · `tsc --noEmit` · `dependency-cruiser` (boundaries FE) · `stylelint` (tokens) ·
   `vitest --project=storybook` (fitness visual) · `steiger` (FSD-estructural).
 - **Rust (shell):** `cargo clippy --all-targets -- -D warnings` · `cargo fmt --check`.
@@ -48,10 +49,14 @@ aterrice. ⇐ L1: el gate duro es CI.
 | ci-ts | job TS (biome + tsc + dependency-cruiser + stylelint + vitest-storybook) verde | error | banda Guardia «CI TS roja» | ci.yml |
 | ci-rust | job Rust (clippy -D warnings + fmt --check) verde | warn | «CI shell roja» | ci.yml |
 | ci-contratos | tipos generados y tokens en sync (gen-check + tokens-sync) | error | «drift contrato↔código» | ci.yml |
+| ci-estado-drift | cifras vivas de `checkpoint.md` (`<!--stats-->`) en sync con el estado real (conformance/árbol); ignora la fecha de medición | error | «cifras tecleadas/stale (honestidad rota)» | ci.yml (`estado.sh --check`) |
 | required-checks | los jobs son required status checks en `main` (bloquean merge/rompen árbol) | error | «check no bloqueante (gate blando)» | ci.yml + branch protection |
 
 ## Changelog
 
+- 2026-07-09 · v1.1 · +`ci-estado-drift` (HS-21): `estado.sh --check` en el job Go rompe el merge si el
+  bloque `<!--stats-->` de `checkpoint.md` quedó stale vs el estado real (honestidad automática, eje N2).
+  Ignora la fecha de medición (procedencia, no cifra). 6 checks.
 - 2026-07-05 · v1.0 · Nodo fundacional (HS-05). L1 = el gate duro es CI (required checks), no el hook. L2
   = `/.github/workflows/ci.yml` con jobs Go/TS/Rust/contratos paralelos; enumera todos los enforcers de
   boundaries+conventions; el job que vuelve «enforced» los proposed. 5 checks.
