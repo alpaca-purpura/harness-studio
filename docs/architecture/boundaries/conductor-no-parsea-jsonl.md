@@ -45,7 +45,7 @@ Event sourcing en 3 fuentes con roles fijos (la trampa de parsear JSONL ya se vi
   parsear su schema como contrato**. Es puntero, no API. ⇐ L1.
 - **`% contexto` es métrica derivada nuestra** (no existe en stream-json ni OTel):
   `(input+cacheRead+cacheCreation)/ventana`. Se computa en el adaptador, se etiqueta como derivada.
-- **Corrección al nodo [`docs/architecture/knowledge/headless-sdk`](../../docs/architecture/knowledge/elements/headless-sdk.md)
+- **Corrección al nodo [`docs/architecture/knowledge/headless-sdk`](../knowledge/elements/headless-sdk.md)
   (frente B):** `--bare` **rompe el auth de suscripción** (salta OAuth/keychain) → no default-earlo
   para el login Pro/Max del operador; y `-p` hará `--bare` default futuro → **pinear flags
   explícitos**.

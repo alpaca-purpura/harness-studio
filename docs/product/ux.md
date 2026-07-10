@@ -158,7 +158,7 @@ verde, subagente = «ventana propia, no ocupa la principal»). 20 asserts nuevos
 
 ## La propuesta que v3 materializa
 
-Base: [`historias/2026-07-04-salud-trazas-edicion.md`](./historias/2026-07-04-salud-trazas-edicion.md)
+Base: [`historias/2026-07-04-salud-trazas-edicion.md`](research/2026-07-04-salud-trazas-edicion.md)
 (3 frentes web + JSONL local verificado).
 
 1. **Salud de la producción (portafolio v2).** Tarjeta IDÉNTICA por arnés (uniformidad
@@ -415,9 +415,9 @@ lee una vez**. Cruce en dos capas: L1 estándar experto ↔ L2 nuestra forma (ob
 de L1; «nuestra forma no puede no ser la recomendada»).
 
 **Construido (nuevo directorio `docs/architecture/knowledge/`, no toca el mockup todavía):**
-- **[`docs/architecture/knowledge/INDEX.md`](./docs/architecture/knowledge/INDEX.md)** — raíz del árbol (11 nodos, estados, versiones,
+- **[`docs/architecture/knowledge/INDEX.md`](../architecture/knowledge/INDEX.md)** — raíz del árbol (11 nodos, estados, versiones,
   reparto de checks, cross-checks transversales).
-- **[`docs/architecture/knowledge/CADENCE.md`](./docs/architecture/knowledge/CADENCE.md)** — el mecanismo vivo: anatomía de un nodo
+- **[`docs/architecture/knowledge/CADENCE.md`](../architecture/knowledge/CADENCE.md)** — el mecanismo vivo: anatomía de un nodo
   (frontmatter `version/updated/status/fuentes` + L1 + L2 + checklist + changelog), el ritual
   semanal (barrido → triage → append L1 → revisión L2 → evolución de checks → bump → propagar),
   reglas del árbol (aditivo sin pérdida, fuente+fecha obligatorias, L2 deriva de L1).
@@ -677,7 +677,7 @@ heat percentil · edición directa siempre pare beta→tren · Contrato por caja
 ## Inventario de funcionalidades — corte iteración 6 (mockup v3.3, 2026-07-04)
 
 > **⚠ Snapshot histórico de UX (nota 2026-07-09, HS-18).** El **SSoT funcional VIVO** de qué
-> sabe hacer el sistema es ahora [`CAPABILITIES.md`](./CAPABILITIES.md) (82 capabilities
+> sabe hacer el sistema es ahora [`CAPABILITIES.md`](capabilities/INDEX.md) (82 capabilities
 > derivados del código, con puntero a la implementación de cada uno). Este «Inventario de
 > funcionalidades» es un **snapshot de diseño UX** del mockup en la iteración 6 — se conserva
 > como historia, ya NO es la fuente de verdad funcional actual.

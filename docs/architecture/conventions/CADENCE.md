@@ -3,7 +3,7 @@
 > **Las convenciones no se revisan por calendario; se revisan al cambiar** — cuando una regla nace,
 > muta, o una herramienta sube de versión mayor. Hereda el mecanismo de [`../CADENCE.md`](../CADENCE.md)
 > (el árbol de arquitectura); este doc solo anota lo específico de `conventions/`. El «por qué» firmado
-> vive en el [`../../LEDGER.md`](../../LEDGER.md) (ficha HS-05); nunca se duplica aquí.
+> vive en el [`../../LEDGER.md`](../../product/LEDGER.md) (ficha HS-05); nunca se duplica aquí.
 
 ## Por qué existe (y por qué NO es un STYLEGUIDE.md que se pudre)
 

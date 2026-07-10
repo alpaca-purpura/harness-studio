@@ -110,7 +110,7 @@ Proceso). Su métrica dominante es **costo de contexto vs uso**.
   `Injection` poblada cortan el MCP a SOLO lo que el kit propio declara, cerrando el
   costo de contexto de MCP de cuenta ajenos (el disparador real: 62.2k tok en Canva/
   Gmail/Drive/Calendar en una sesión interactiva). El enforcement vive en
-  [`docs/architecture/boundaries/superficie-local-confinada.md`](../../docs/architecture/boundaries/superficie-local-confinada.md)
+  [`docs/architecture/boundaries/superficie-local-confinada.md`](../../boundaries/superficie-local-confinada.md)
   v1.3 (checklist `mcp-config-siempre`), no acá — este nodo sigue advisory/L1, sin
   checks nuevos (siguen 11).
 - 2026-07-04 · v1.0 · Nodo fundacional. L1 de docs oficiales (mcp, tool-search-tool, managed-mcp,

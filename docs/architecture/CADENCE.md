@@ -1,10 +1,10 @@
 # CADENCE — cómo vive el árbol de arquitectura
 
 > **La arquitectura as code no se revisa por calendario; se revisa al cambiar.** A diferencia de
-> [`../docs/architecture/knowledge/CADENCE.md`](../docs/architecture/knowledge/CADENCE.md) (barrido semanal del ecosistema externo),
+> [`../docs/architecture/knowledge/CADENCE.md`](knowledge/CADENCE.md) (barrido semanal del ecosistema externo),
 > `arch/` refleja **nuestras** decisiones estructurales: se toca cuando una decisión de
 > arquitectura nace, muta o se supera. Norte: [`../product/vision.md`](../product/vision.md) y el
-> [`../LEDGER.md`](../LEDGER.md) (el «por qué» firmado). Este doc define el mecanismo: cómo entra
+> [`../LEDGER.md`](../product/LEDGER.md) (el «por qué» firmado). Este doc define el mecanismo: cómo entra
 > un boundary, cómo se versiona, cómo se mantiene la disciplina L1↔L2, y cómo se vuelve el
 > ruleset que `arnesia conformance` corre contra el propio código de la app.
 
@@ -15,7 +15,7 @@ semanas: el código deriva, nadie re-dibuja, y a los tres sprints la doc miente.
 casa (operador, HS-04): **la arquitectura vive como código versionado, parte ejecutable, parte
 renderizada, con la mínima prosa a mano posible.** Tres separaciones estrictas:
 
-- **El «por qué»** → una ficha `HS-NN` del [`../LEDGER.md`](../LEDGER.md). Nunca se duplica aquí.
+- **El «por qué»** → una ficha `HS-NN` del [`../LEDGER.md`](../product/LEDGER.md). Nunca se duplica aquí.
 - **La «prueba»** → una check en [`fitness/`](./fitness/) que **falla CI** si el código viola la
   regla. La arquitectura que no se puede romper en CI es un deseo, no una restricción.
 - **El «dibujo»** → [`model/`](./model/), renderizado on-demand desde texto (D2/Mermaid), que

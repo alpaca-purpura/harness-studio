@@ -6,8 +6,8 @@
 > commits, hooks, CI). Ambos son checks corribles con `enforced_by:`; distinta intención. Espeja el
 > patrón de [`../boundaries/`](../INDEX.md) (nodo L1 principio+fuente ↔ L2 realización + checklist).
 > Norte: [`../../product/vision.md`](../../product/vision.md) · evidencia L1:
-> [`../../historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md`](../../historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md)
-> (frente D) · el «por qué» firmado: ficha **HS-05** del [`../../LEDGER.md`](../../LEDGER.md).
+> [`../../historias/2026-07-05-fe-arch-atomic-storybook-convenciones.md`](../../product/research/2026-07-05-fe-arch-atomic-storybook-convenciones.md)
+> (frente D) · el «por qué» firmado: ficha **HS-05** del [`../../LEDGER.md`](../../product/LEDGER.md).
 
 ## La disciplina (idéntica a boundaries)
 

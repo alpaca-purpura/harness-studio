@@ -1,7 +1,7 @@
 # docs/ — SSoT de ArnesIA (método del kit `harness@prenter-marketplace`)
 
 > Toda la documentación que **no** es skill ni `CLAUDE.md` vive aquí, organizada como manda el
-> plugin. Homologación firmada 2026-07-09 (paquete `historias/2026-07-09-homologacion-metodologia/`,
+> plugin. Homologación firmada 2026-07-09 (paquete `product/stories/2026-07-09-homologacion-metodologia/`,
 > D7 adopción plena). El mismo árbol se replica a cockpit y dev-studio.
 
 ## Tres zonas

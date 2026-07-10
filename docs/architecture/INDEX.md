@@ -3,11 +3,11 @@
 > **La arquitectura vive aquí, no en un doc que se pudre.** Cada regla arquitectónica
 > estructural (boundary) = un nodo con **L1** (principio con fuente) ↔ **L2** (realización en
 > este árbol Go) + una **tabla de checks ejecutables**. La parte «por qué» vive en el
-> [`../LEDGER.md`](../LEDGER.md) (fichas firmadas, sin duplicar); la parte «prueba» vive en
+> [`../LEDGER.md`](../product/LEDGER.md) (fichas firmadas, sin duplicar); la parte «prueba» vive en
 > [`fitness/`](./fitness/); el «cómo se ve» en [`model/`](./model/); el «contrato de datos» en
-> [`contracts/`](./contracts/). Espeja el patrón de [`../docs/architecture/knowledge/`](../docs/architecture/knowledge/INDEX.md).
+> [`contracts/`](./contracts/). Espeja el patrón de [`../docs/architecture/knowledge/`](knowledge/INDEX.md).
 > Norte: [`../product/vision.md`](../product/vision.md) · evidencia L1:
-> [`../historias/2026-07-05-arquitectura-fase3.md`](../historias/2026-07-05-arquitectura-fase3.md).
+> [`../historias/2026-07-05-arquitectura-fase3.md`](../product/research/2026-07-05-arquitectura-fase3.md).
 
 ## Cómo se relaciona con el resto del repo
 
@@ -15,18 +15,18 @@
   técnicas fundacionales** (HS-02). El **norte**; esta capa las aterriza y las enforça.
 - [`../process/metodologia.md`](../process/metodologia.md) — reglas de negocio. El `contract:` de caja (§3) es
   **el mismo schema** que valida [`contracts/schema/box.contract.schema.json`](./contracts/schema/box.contract.schema.json).
-- [`../docs/architecture/knowledge/`](../docs/architecture/knowledge/INDEX.md) — estándar as code por **elemento de arnés** (138
+- [`../docs/architecture/knowledge/`](knowledge/INDEX.md) — estándar as code por **elemento de arnés** (138
   checks · 12 nodos, incl. `harness-profile`). `arch/` es el gemelo: estándar as code de **la app
   ArnesIA misma** (dogfood). Un solo
   runner (`arnesia conformance`) corre ambos árboles — **construido en HS-08**: el `RulesetPort` parsea
   `docs/architecture/knowledge/` + `arch/` = 247 checks a datos (`--todo`, medido 2026-07-09) y el `ConformancePort` los corre con adapters por mecanismo
   (arch-test/schema-validation/go-arch-lint/static-scan/nl-judge). El **contrato de check común** (mecanismo
   por check) ya existe; los `enforced_by:` de `arch/` y los checks de `docs/architecture/knowledge/` corren por el mismo motor.
-- [`../LEDGER.md`](../LEDGER.md) — **índice del diario firmado** → `ledger/HS-NN.md` (una ficha por
+- [`../LEDGER.md`](../product/LEDGER.md) — **índice del diario firmado** → `ledger/HS-NN.md` (una ficha por
   archivo). Cada boundary cita su ficha en `ledger:`. El **backlog y el estado NO viven aquí**:
-  pendientes en [`../BACKLOG.md`](../BACKLOG.md), cifras (generadas) en [`../ESTADO.md`](../ESTADO.md);
-  [`../CLAUDE.md`](../CLAUDE.md) = **router de punteros**, no repositorio de estado/historia/stack.
-- [`../CAPABILITIES.md`](../CAPABILITIES.md) — **SSoT de lo funcional** (qué HACE la app, por
+  pendientes en [`../BACKLOG.md`](../product/BACKLOG.md), cifras (generadas) en [`../checkpoint.md`](../product/checkpoint.md);
+  [`../CLAUDE.md`](../../CLAUDE.md) = **router de punteros**, no repositorio de estado/historia/stack.
+- [`../CAPABILITIES.md`](../product/capabilities/INDEX.md) — **SSoT de lo funcional** (qué HACE la app, por
   capability). El boundary [`codigo-traza-a-capability`](./boundaries/codigo-traza-a-capability.md)
   lo enforça: todo archivo fuente traza a ≥1 capability, cero huérfanos.
 
@@ -78,10 +78,10 @@ mismo día del fix ②, no mejora cosmética; ver su changelog) **= 13 checks)**
 8 checks: `orquestacion-determinista-entre-cajas` + `permisos-derivan-del-rol` — nacieron draft en HS-07,
 **enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)** + **HS-18
 (2026-07-09, doctrina de trazado): 1 boundary · 5 checks — `codigo-traza-a-capability` **enforced**
-(`TestCapabilityPointersResolve` + `TestCapabilityCoverage`; R1/R2 pasan sobre `CAPABILITIES.md`)**. **+
+(`TestCapabilityPointersResolve` + `TestCapabilityCoverage`; R1/R2 pasan sobre el árbol `docs/product/capabilities/`)**. **+
 [`conventions/`](./conventions/INDEX.md): 8 convention nodes · 26 checks** (HS-05). **Gran total `arch/`:
 107 checks** (81 boundary + 26 convention; nota: el ruleset `--todo` cuenta **247 checks a datos**
-arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, ver `ESTADO.md`).
+arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, ver `checkpoint.md`).
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
 > no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**

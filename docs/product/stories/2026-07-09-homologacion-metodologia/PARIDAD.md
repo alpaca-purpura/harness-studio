@@ -19,7 +19,8 @@
 | 10 | Motor de conformance lee el ruleset reubicado | `conformance --todo` **247** · `--arnes` **21·20·1** (idénticos al baseline) | ✅ |
 | 11 | `historias/` → `docs/product/stories/` (10 paquetes) + records sueltos → `docs/product/research/` (10) | `git mv`; refs Go/config/router actualizadas; 0 colgantes | ✅ |
 | 12 | Router `CLAUDE.md` reapunta a `docs/` + `/pm` | tabla "Necesito X → leo Y" actualizada | ✅ |
-| 13 | **VISION/METODOLOGIA/UX raíz → `docs/`** (D8: `product/vision.md` · `product/ux.md` · `process/metodologia.md`) + 33 links markdown recomputados + schema/seam/`/pm`/README/CLAUDE cableados | 0 links vivos rotos · `--todo` **247·40·0** · `--arnes` **21·20·1** · build/test/`go-arch-lint`/`cap_doctor`/`--doctor` verdes (== baseline) | ✅ |
+| 13 | **VISION/METODOLOGIA/UX raíz → `docs/`** (D8: `product/vision.md` · `product/ux.md` · `process/metodologia.md`) + links markdown recomputados + schema/seam/`/pm`/README/CLAUDE cableados | ⚠ el claim «0 links vivos rotos» era FALSO (recompute incompleto → 65 rotos, corregidos en fila 14) · `--todo` **247·40·0** · `--arnes` **21·20·1** · build/test/`go-arch-lint`/`cap_doctor`/`--doctor` verdes (== baseline) | ⚠→✅ |
+| 14 | **CIERRE (HS-19): re-verificación en vivo del gate + fix del drift de links** | Re-corrí todo contra el binario/repo real (no confié en el checkpoint): `--doctor` 0 · `cap_doctor` 82 · `go build/vet/test` 11 ok/0 FAIL · `--todo` **247·40·0·207** (texto + JSON) · `--arnes` **21·20·1** · rutas viejas ausentes en raíz. Hueco hallado: **65 links vivos rotos en 13 docs** → fixer determinista (0 unresolved) + 11 punteros stale + doctrina `codigo-traza` v1.2 (prosa) → **re-verificado 0 links vivos rotos, cifras sin regresión** | ✅ |
 
 ## Desviaciones registradas (se consultan, jamás se maquillan)
 
@@ -39,6 +40,10 @@
    `./VISION.md`… rotos — **pre-existentes a D8** (era draft root-relative parqueado en subdir → ya
    rotos; además apunta a `CAPABILITIES.md`/`ESTADO.md`/`historias/` muertos). Snapshot histórico; no
    se poli-parcha un draft íntegramente muerto. Su limpieza/borrado = paquete `reorg-docs`.
+7. **30 links rotos en snapshots históricos** (`stories/`·`research/`·`ledger/HS-NN.md`) se dejan a
+   propósito — son registros congelados/append-only que describen rutas verdaderas EN SU MOMENTO
+   (mismo principio que #6). El fixer del cierre sólo tocó los 13 docs VIVOS. Si alguna vez se
+   quieren re-apuntar, es trabajo del paquete `reorg-docs`, no de esta homologación.
 
 ## Fuera de alcance de esta sesión (paquetes siguientes)
 
@@ -49,4 +54,8 @@
 
 ## Firma
 
-- [ ] 🧑‍⚖️ **Gate humano** — revisar `docs/` + correr `/pm` + confirmar la matriz. `chris_verify.signoff → true`.
+- [x] 🧑‍⚖️ **Gate humano** — FIRMADO 2026-07-09 por orden del operador («revisá bien y cerrá la
+  homologación de forma coherente, no asumas nada, investiga todo»). La firma NO fue un sello: la
+  verificación en vivo destapó el drift de 65 links (fila 13→14), se corrigió, y recién con la matriz
+  REALMENTE verde (0 links vivos rotos + cifras sin regresión) se firma. `chris_verify.signoff → true`.
+  El PR de cierre queda DRAFT para revisión final del operador antes de merge.

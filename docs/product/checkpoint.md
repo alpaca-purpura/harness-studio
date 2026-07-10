@@ -6,14 +6,14 @@
 ## Fase del gran plan
 
 **Fase 5 (Implementación) EN CURSO.** Fases 1-4 ✓ (Visión · UX · Arquitectura · Specs).
-Última ficha cerrada: **HS-17** (aislamiento de superficie de config). Índice de historia →
-`LEDGER.md` → `ledger/HS-NN.md`.
+Última ficha cerrada: **HS-19** (homologación de metodología firmada + cierre coherente: fix del
+drift de 65 links vivos). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
 
 ## Paquete de trabajo activo
 
-- **`docs/product/stories/2026-07-09-homologacion-metodologia/`** — homologación al método del plugin
-  `harness@prenter-marketplace` (3 repos): `docs/{product,architecture,process}` + seam
-  `project.config.yaml` + skill `/pm` + capabilities-as-YAML. → estado/próximo-paso en su `INDEX.md`.
+- **Ninguno activo.** La homologación (`stories/2026-07-09-homologacion-metodologia/`) quedó
+  `done` + firmada (HS-19). Sus continuaciones (upstream del método al kit · replicar a
+  cockpit/dev-studio · forjar `/po`·`/architect`·`/dev-team`·`/auditor`) están en `docs/product/BACKLOG.md`.
 - Paquetes con **gate humano de PARIDAD pendiente** (código listo, falta firma) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

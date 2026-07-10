@@ -10,14 +10,14 @@
 > statusline/headless).** **Doctrina v1 bajada as-code 2026-07-05 (§3 contrato fusionado + §8 doctrina
 > de proceso / framed autonomy): operacionalizamos Agentic BPM, no clonamos BMAD — ver VISION §Linaje.**
 >
-> **Base de evidencia = [`docs/architecture/knowledge/`](./docs/architecture/knowledge/INDEX.md) (árbol de conocimiento VIVO).**
+> **Base de evidencia = [`docs/architecture/knowledge/`](../architecture/knowledge/INDEX.md) (árbol de conocimiento VIVO).**
 > El «qué debe tener cada componente» (§2–3) **deriva** del estándar as code por elemento
 > (skills, hooks, rules, subagents, commands, mcp, plugins, settings, output-styles, statusline,
 > headless). Cada nodo del árbol lleva dos capas — **L1 estándar oficial+expertos** y **L2 nuestra
 > adaptación** (obligada a derivar de L1) — y emite una **rúbrica de checks evaluables** (121 al
 > corte fundacional 2026-07-04; **138 al corte HS-07** con el nodo `harness-profile`) que es el
 > ruleset de conformidad de §6. El árbol se actualiza
-> **cada semana** (mecanismo en [`docs/architecture/knowledge/CADENCE.md`](./docs/architecture/knowledge/CADENCE.md)); cuando cambia,
+> **cada semana** (mecanismo en [`docs/architecture/knowledge/CADENCE.md`](../architecture/knowledge/CADENCE.md)); cuando cambia,
 > esta metodología se re-alinea. Regla dura: nuestra forma de trabajo no puede divergir del
 > estándar de los expertos sin marcarlo y justificarlo.
 
@@ -59,7 +59,7 @@ Un arnés es una **fábrica**: el trabajo entra, cruza cajas y sale transformado
 
 ## 2. Qué debe tener cada componente — estructura obligatoria (núcleo de fábrica FIRME)
 
-> **Fuente de verdad = el árbol [`docs/architecture/knowledge/elements/`](./docs/architecture/knowledge/INDEX.md).** Un nodo por
+> **Fuente de verdad = el árbol [`docs/architecture/knowledge/elements/`](../architecture/knowledge/INDEX.md).** Un nodo por
 > elemento con L1 (estándar oficial+expertos, con fuente y fecha), L2 (nuestra adaptación) y su
 > checklist evaluable. Lo de abajo es el **resumen de negocio**; el detalle vivo y las fuentes
 > viven en el árbol. Cuando el árbol crezca (cadencia semanal), este resumen se re-alinea.
@@ -69,14 +69,14 @@ fábrica — skill-caja · skill-apoyo · subagente · hook · rule/conocimiento
 contrato** (§3). Distribución/infra (commands · mcp · plugins · settings · output-styles ·
 statusline · headless) siguen derivando del árbol, sin bajar aún a regla de negocio.
 Estándar completo por elemento en el árbol: skills-caja/
-apoyo ([`skills`](./docs/architecture/knowledge/elements/skills.md)) · Guardia ([`hooks`](./docs/architecture/knowledge/elements/hooks.md),
-[`settings-permissions`](./docs/architecture/knowledge/elements/settings-permissions.md)) · Base
-([`rules`](./docs/architecture/knowledge/elements/rules.md)) · maquinaria ([`subagents`](./docs/architecture/knowledge/elements/subagents.md)) ·
-[`commands`](./docs/architecture/knowledge/elements/commands.md) · terceros ([`mcp`](./docs/architecture/knowledge/elements/mcp.md)) ·
-distribución ([`plugins`](./docs/architecture/knowledge/elements/plugins.md)) ·
-[`output-styles`](./docs/architecture/knowledge/elements/output-styles.md) ·
-[`statusline`](./docs/architecture/knowledge/elements/statusline.md) · motor conductor ([`headless-sdk`](./docs/architecture/knowledge/elements/headless-sdk.md)) ·
-**perfil de harness** ([`harness-profile`](./docs/architecture/knowledge/elements/harness-profile.md), nodo 12 — cómo la
+apoyo ([`skills`](../architecture/knowledge/elements/skills.md)) · Guardia ([`hooks`](../architecture/knowledge/elements/hooks.md),
+[`settings-permissions`](../architecture/knowledge/elements/settings-permissions.md)) · Base
+([`rules`](../architecture/knowledge/elements/rules.md)) · maquinaria ([`subagents`](../architecture/knowledge/elements/subagents.md)) ·
+[`commands`](../architecture/knowledge/elements/commands.md) · terceros ([`mcp`](../architecture/knowledge/elements/mcp.md)) ·
+distribución ([`plugins`](../architecture/knowledge/elements/plugins.md)) ·
+[`output-styles`](../architecture/knowledge/elements/output-styles.md) ·
+[`statusline`](../architecture/knowledge/elements/statusline.md) · motor conductor ([`headless-sdk`](../architecture/knowledge/elements/headless-sdk.md)) ·
+**perfil de harness** ([`harness-profile`](../architecture/knowledge/elements/harness-profile.md), nodo 12 — cómo la
 caja ejecuta el loop / subagentes / routing; doctrina v1 §8.2).
 
 > **Firewall CC-native (doctrina v1 §8.6):** todo frontmatter usa solo claves que Claude Code
@@ -93,7 +93,7 @@ caja ejecuta el loop / subagentes / routing; doctrina v1 §8.2).
 - Frontmatter con `contract.caja: false` + `rol:` (`libreria-experta | utilidad | tercero |
   meta-harness`). No es una caja: no declara transición de estado ni gate.
 
-**Subagente = MAQUINARIA de una caja** (no es caja; ⇐ [`subagents`](./docs/architecture/knowledge/elements/subagents.md) L2):
+**Subagente = MAQUINARIA de una caja** (no es caja; ⇐ [`subagents`](../architecture/knowledge/elements/subagents.md) L2):
 - Frontmatter: `name` (lowercase-hyphen, único por scope) · `description` **con condición de
   disparo concreta** (no rol vago — la auto-delegación rutea por aquí) · `tools` **allowlist
   explícita** (jamás omitido = acceso total incl. MCP) · `model` deliberado por rol (no `inherit`
@@ -108,7 +108,7 @@ caja ejecuta el loop / subagentes / routing; doctrina v1 §8.2).
   de Guardia.
 
 **Hook = GUARDIA** (banda transversal, actúa sobre TODAS las cajas — no vive dentro de una;
-⇐ [`hooks`](./docs/architecture/knowledge/elements/hooks.md) L2):
+⇐ [`hooks`](../architecture/knowledge/elements/hooks.md) L2):
 - Estructura: declara **evento** + matcher (exacto / lista `|` / regex; **nunca `*` para
   auto-`allow`**) + **type** (`command` en prod; `agent` experimental = evitar). Vive en config
   **versionada** de fuente confiable (lección CVE-2025-59536).
@@ -121,7 +121,7 @@ caja ejecuta el loop / subagentes / routing; doctrina v1 §8.2).
   principio 9) — no es opt-in.
 
 **Rule / conocimiento = BASE** (banda always-on, infraestructura compartida — no una caja;
-⇐ [`rules`](./docs/architecture/knowledge/elements/rules.md) L2):
+⇐ [`rules`](../architecture/knowledge/elements/rules.md) L2):
 - Dos ámbitos, no confundir: **always-on** (`CLAUDE.md` / rules sin scope, se paga CADA turno)
   vs **conocimiento scoped** (`.claude/rules/` con `paths:` — carga solo al tocar archivos que
   matchean; retrieval just-in-time > pre-load).
@@ -141,7 +141,7 @@ perpendiculares:** INTENCIÓN (qué promete la caja), CABLEADO (cómo se conecta
 precondición (guía sin bloqueo) y la validación de composición (huérfanos/mismatch). El eje de
 intención + aceptación se sumó de la doctrina v1 (SPEC-kernel + Gherkin ejecutable); el cableado
 es el §3 original de it.10, intacto. Schema validado por
-[`docs/architecture/contracts/schema/box.contract.schema.json`](./docs/architecture/contracts/schema/box.contract.schema.json).
+[`docs/architecture/contracts/schema/box.contract.schema.json`](../architecture/contracts/schema/box.contract.schema.json).
 
 ```yaml
 contract:
@@ -268,11 +268,11 @@ reemplazar los contratos inferidos por los reales.
 
 - **ArnesIA fija un paradigma propio (principio 8), pero anclado a las mejores prácticas
   vigentes de Anthropic y los expertos** — no a una opinión estática. Ese anclaje vive en
-  [`docs/architecture/knowledge/`](./docs/architecture/knowledge/INDEX.md) como árbol versionado: L1 (evidencia oficial+experta,
+  [`docs/architecture/knowledge/`](../architecture/knowledge/INDEX.md) como árbol versionado: L1 (evidencia oficial+experta,
   fechada y con fuente) + L2 (nuestra adaptación, que **deriva** de L1) + checks evaluables.
 - **Se investiga y actualiza cada semana** (nuevos comandos tipo `/goal`, features, eventos de
   hook, deprecaciones). El árbol **crece y adiciona**, no se reescribe (lo viejo se marca
-  `deprecado`). Mecanismo en [`docs/architecture/knowledge/CADENCE.md`](./docs/architecture/knowledge/CADENCE.md).
+  `deprecado`). Mecanismo en [`docs/architecture/knowledge/CADENCE.md`](../architecture/knowledge/CADENCE.md).
 - **Excepción a «firmado = congelado» (decidida 2026-07-05):** HS-03 está **firmada**, pero la
   firma congela la **fase**, no estos documentos: `UX.md` y esta metodología quedan **docs VIVOS**
   por decisión del operador — siguen creciendo con nuevas iteraciones. **El árbol de conocimiento
@@ -286,10 +286,10 @@ reemplazar los contratos inferidos por los reales.
 
 ## 8. Doctrina de proceso — framed autonomy (doctrina v1, 2026-07-05)
 
-> Bajada as-code de [`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md),
+> Bajada as-code de [`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](../product/research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md),
 > ratificada por el operador. **Operacionalizamos Agentic BPM** (VISION §Linaje): un arnés da
 > *framed autonomy* a Claude Code por rol×proceso. Detalle por elemento del perfil de harness =
-> nodo nuevo [`docs/architecture/knowledge/elements/harness-profile.md`](./docs/architecture/knowledge/elements/harness-profile.md).
+> nodo nuevo [`docs/architecture/knowledge/elements/harness-profile.md`](../architecture/knowledge/elements/harness-profile.md).
 
 ### 8.1 Arquetipos de trabajo (la FORMA — autonomía ≠ automatización)
 
@@ -372,7 +372,7 @@ Todo lo que declaramos debe ser **primitiva nativa de Claude Code** (verificado 
 Prohibido escribir en el frontmatter claves que CC ignora en silencio (harían CERO):
 `persistent_facts`, `activation_steps_prepend`, `customize.toml`, sanctum PERSONA/CREED. El
 conocimiento estático entra por `CLAUDE.md` / rules con `paths:` / `@import` / `SessionStart` hook; la
-memoria por auto-memory nativa (≤200 líneas). Check `no-phantom-frontmatter` ([`skills`](./docs/architecture/knowledge/elements/skills.md)).
+memoria por auto-memory nativa (≤200 líneas). Check `no-phantom-frontmatter` ([`skills`](../architecture/knowledge/elements/skills.md)).
 **Es lo que nos mantiene doctrina PROPIA anclada a CC, no adaptación de un framework ajeno.**
 
 **Para profundizar (bibliografía):** manifiesto Agentic BPM ([arXiv 2603.18916](https://arxiv.org/abs/2603.18916)
@@ -385,9 +385,9 @@ Agentforce (https://architect.salesforce.com/docs/architect/fundamentals/guide/a
 ## 9. Los 3 cuerpos — posesión e inyección del know-how (FIRMADO 2026-07-07, HS-10)
 
 > Definición canónica — hasta esta firma solo vivía como investigación. Detalle y evidencia:
-> [`historias/2026-07-05-arquitectura-inyeccion-knowhow.md`](./historias/2026-07-05-arquitectura-inyeccion-knowhow.md)
+> [`historias/2026-07-05-arquitectura-inyeccion-knowhow.md`](../product/research/2026-07-05-arquitectura-inyeccion-knowhow.md)
 > (VIGENTE por la firma HS-10) · nomenclatura de reconocimiento archivo→grafo:
-> [`docs/architecture/contracts/nomenclatura-arnes.md`](./docs/architecture/contracts/nomenclatura-arnes.md) (v1 FIRMADA).
+> [`docs/architecture/contracts/nomenclatura-arnes.md`](../architecture/contracts/nomenclatura-arnes.md) (v1 FIRMADA).
 
 El know-how de la fábrica vive en TRES cuerpos, cada uno con su posesión y su vía de inyección:
 
@@ -412,7 +412,7 @@ canónica.
 > Origen: orden del operador (sesión inspector-drawer, HS-09/Hito 2): TODA funcionalidad
 > nueva se desarrolla por este flujo, y NADA vive solo en la conversación — una sesión
 > nueva retoma como si fuera la misma. Paquete de referencia (plantilla viva):
-> [`historias/2026-07-07-inspector-drawer/`](./historias/2026-07-07-inspector-drawer/INDEX.md).
+> [`historias/2026-07-07-inspector-drawer/`](../product/stories/2026-07-07-inspector-drawer/INDEX.md).
 > **Carpeta renombrada `research/` → `historias/` (HS-15, 2026-07-08):** nombre más intuitivo
 > para un humano que supervisa (calca `vitalia/docs/product/stories/`); el flujo y los
 > archivos del paquete no cambian, solo el nombre del contenedor.
@@ -448,10 +448,10 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
 2. **«Retomar aquí» siempre al día.** Si el operador dice «seguimos en otra conversación»,
    el INDEX.md ya lo contiene todo; la actualización es continua, no un ritual de cierre.
 3. **Cada iteración firmada se commitea a main** (trunk-based) — git es la memoria durable.
-4. **Sesión nueva arranca así:** `CLAUDE.md` (router puro) → [`ESTADO.md`](./ESTADO.md) nombra
+4. **Sesión nueva arranca así:** `CLAUDE.md` (router puro) → [`checkpoint.md`](../product/checkpoint.md) nombra
    el paquete activo → leer su INDEX.md («Retomar aquí») → `decisiones.md` → continuar
    exactamente donde quedó. *(Reorg 4-ejes HS-18: el backlog GLOBAL y los gates pendientes
-   viven en [`BACKLOG.md`](./BACKLOG.md), el «ahora» en `ESTADO.md`; el INDEX del paquete sigue
+   viven en [`BACKLOG.md`](../product/BACKLOG.md), el «ahora» en `checkpoint.md`; el INDEX del paquete sigue
    siendo el puntero de continuidad DEL PAQUETE, no del proyecto.)*
 5. **Mockups fieles o no sirven:** tokens DTCG reales (norma «pegarse al Storybook»),
    datos REALES (showcase/dogfood, jamás inventados), publicar siempre al MISMO artifact.
@@ -459,10 +459,10 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
    asserts + screenshots + consola limpia — disciplina UX.md, aquí obligatoria por fase).
 7. **Ningún cambio de código sin capability** (FIRMADO 2026-07-09, HS-18). Todo commit que toca
    fuente (`cmd/` · `internal/` · `web/src`) construye o modifica un capability en
-   [`CAPABILITIES.md`](./CAPABILITIES.md) — el **SSoT funcional**: qué HACE el sistema, con
+   [`CAPABILITIES.md`](../product/capabilities/INDEX.md) — el **SSoT funcional**: qué HACE el sistema, con
    puntero al código autoritativo (`file#Símbolo`) y a su check. La historia de usuario es el
    *delta*; el capability es el *saldo*. Doctrina **enforced**:
-   [`docs/architecture/boundaries/codigo-traza-a-capability.md`](./docs/architecture/boundaries/codigo-traza-a-capability.md)
+   [`docs/architecture/boundaries/codigo-traza-a-capability.md`](../architecture/boundaries/codigo-traza-a-capability.md)
    (Living Documentation + Business Capability Map; validador R1/R2 + job lefthook `capabilities`).
 
 ## Estado
@@ -475,7 +475,7 @@ fábrica (skill · maquinaria · Guardia · Base) queda firme; restan solo los e
 distribución/infra (commands · mcp · plugins · settings · output-styles · statusline · headless).
 Por **excepción declarada** (§7), la firma congela la fase pero **NO** esta metodología ni la UX:
 ambas siguen creciendo con los comentarios del operador (quedan muchos) y son la base de las specs
-de fase 4 (HS-08). El árbol [`docs/architecture/knowledge/`](./docs/architecture/knowledge/INDEX.md) también sigue vivo por diseño (§7).
+de fase 4 (HS-08). El árbol [`docs/architecture/knowledge/`](../architecture/knowledge/INDEX.md) también sigue vivo por diseño (§7).
 **Doctrina v1 (2026-07-05, ficha HS-07):** cruce de DAOP/BMAD + barrido de 7 fuentes externas (manifiesto
 Agentic BPM, Sierra ADLC, Salesforce Agentforce) → bajada as-code: §3 contrato fusionado · §8 doctrina de
 proceso (framed autonomy) · nodo `harness-profile` (nº12) · nota de linaje en VISION · 2 boundaries nuevos.
@@ -489,10 +489,10 @@ proceso e independiente de rubro.
 funcionalidad nueva itera por mockup en `historias/<fecha>-<slug>/` con decisiones/spec/design/PARIDAD
 y reglas de continuidad entre sesiones — la conversación jamás es el único registro.
 **Sync 2026-07-09 (HS-18, paquete `reorg-docs`):** alineación con el **árbol de docs de 4 ejes** —
-[`BACKLOG.md`](./BACKLOG.md) (lo-que-viene) · [`ESTADO.md`](./ESTADO.md) (ahora + cifras GENERADAS por
-`arnesia conformance`, no tecleadas) · [`CAPABILITIES.md`](./CAPABILITIES.md) (SSoT funcional) ·
-[`LEDGER.md`](./LEDGER.md) índice → `ledger/HS-NN.md` (fichas atómicas); `CLAUDE.md` = **router puro**,
+[`BACKLOG.md`](../product/BACKLOG.md) (lo-que-viene) · [`checkpoint.md`](../product/checkpoint.md) (ahora + cifras GENERADAS por
+`arnesia conformance`, no tecleadas) · [`CAPABILITIES.md`](../product/capabilities/INDEX.md) (SSoT funcional) ·
+[`LEDGER.md`](../product/LEDGER.md) índice → `ledger/HS-NN.md` (fichas atómicas); `CLAUDE.md` = **router puro**,
 ya no repositorio de estado/backlog/stack (ése vive en `STACK.md`). **§10** reconciliado (el paquete
-activo lo nombra `ESTADO.md`, el backlog global vive en `BACKLOG.md`; el INDEX del paquete sigue siendo
+activo lo nombra `checkpoint.md`, el backlog global vive en `BACKLOG.md`; el INDEX del paquete sigue siendo
 continuidad DEL paquete) + **nueva regla dura 7** «ningún cambio de código sin capability»
 (`docs/architecture/boundaries/codigo-traza-a-capability.md`, **enforced**).

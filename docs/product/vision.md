@@ -90,7 +90,7 @@ proceso** y sale transformado. Reglas de cómo se arma todo arnés nuestro:
 
 > Nota aditiva firmada por el operador (2026-07-05). **No altera los 11 principios ni A1–A7:** los
 > ancla a una disciplina y precisa una frontera. Detalle, evidencia y bibliografía:
-> [`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](./historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
+> [`historias/2026-07-05-doctrina-propia-v1-adaptacion-daop.md`](research/2026-07-05-doctrina-propia-v1-adaptacion-daop.md).
 
 **Qué operacionalizamos — no clonamos un framework.** ArnesIA **operacionaliza Agentic Business
 Process Management (APM)**: una disciplina de PROCESO, independiente de dominio, con ~30 años de
@@ -232,10 +232,10 @@ será ficha futura — no es esta visión.)
 |---|------|--------|
 | 1 | Visión del producto | **esta ficha (HS-02)** ✓ |
 | 2 | UX del producto (mapa a fondo, inspector, flujos) | ✓ firmada (HS-03, it.13) |
-| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend; HS-06 endurecimiento multisesión + HS-07 doctrina v1) — stack cerrado + `arch/` enforced (cifras vivas → `ESTADO.md`) |
+| 3 | Arquitectura del software y diseño técnico | ✓ **as code** (HS-04 backend + HS-05 frontend; HS-06 endurecimiento multisesión + HS-07 doctrina v1) — stack cerrado + `arch/` enforced (cifras vivas → `checkpoint.md`) |
 | 4 | Definición de specs | ✓ (HS-08, dogfood-first — doctrina bajada a ejecutable) |
-| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | **en curso** (estado vivo → `ESTADO.md`) |
-| 6 | Instalación y dogfood | **en curso** — instalador REAL (bundles `.deb`/`.AppImage`/`.rpm`, HS-11; `.deb` verificado instalado HS-14); dogfood `dev-full-cycle` vivo. Estado → `ESTADO.md` |
+| 5 | Implementación y pruebas (MVP = dogfood-first: arnés real antes del Mapa) | **en curso** (estado vivo → `checkpoint.md`) |
+| 6 | Instalación y dogfood | **en curso** — instalador REAL (bundles `.deb`/`.AppImage`/`.rpm`, HS-11; `.deb` verificado instalado HS-14); dogfood `dev-full-cycle` vivo. Estado → `checkpoint.md` |
 
 **Port del monorepo (regla):** nada se porta sin pasar por la fase del gran plan que le
 corresponde. Sobrevive en principio: patrón conductor (I-76/OBS-16/OBS-18), flujo creador

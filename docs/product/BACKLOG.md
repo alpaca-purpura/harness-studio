@@ -30,14 +30,24 @@
 ## Capabilities / doctrina (reorg 2026-07-09, FIRMADO)
 
 - [x] ✅ validador R1/R2 construido + boundary `codigo-traza-a-capability` **enforced** (arch-test real, 0 colgantes / 0 huérfanos / cobertura 100%) + job lefthook `capabilities` — HECHO 2026-07-09
-- [x] ✅ `scripts/estado.sh` genera la línea de ruleset a `ESTADO.md` desde conformance (RF-178) — HECHO
+- [x] ✅ `scripts/estado.sh` genera la línea de ruleset a `checkpoint.md` desde conformance (RF-178) — HECHO
 - [capabilities] R4 `cap-estado-generado` + `cap-puntero-estable`: siguen `pendiente` (defer honesto) — falta enforcer determinista · `deuda`
 - [capabilities] cablear `scripts/estado.sh` a un hook/CI para las cifras de arch/knowledge (hoy tecleadas) · `deuda`
 - [capabilities] validar los ~46 `sin-check`: partir de FE sin tests (solo stories) · `deuda`
 - [capabilities] resolver dead-code candidatos: `domain/graph.go#UnidadDeTrabajo` · enums Banda/Canal/Procedencia/Origen · `app-store#toggleTheme` — decidir seed-futuro vs borrar · `deuda`
 - [capabilities] índice SQLite real (CAP-21) + watcher fsnotify (CAP-23) + seed→JSONL corpus (CAP-22) — sale la fase-5 del stack · `bloqueo`
 
+## Homologación de metodología — continuaciones (HS-19 cerrada, estos son los siguientes)
+
+- [homologacion] **upstream del método al kit** `harness@prenter-marketplace` (nueva versión): `/pm` +
+  `cap_doctor.py` + scaffolder + capability schema + soporte plugin-mode del seam (desviación #1) · `deuda`
+- [homologacion] **replicar `docs/` + seam + `/pm` a cockpit y dev-studio** (el árbol ya probado E2E en harness-studio) · `deuda`
+- [homologacion] **forjar los 4 arneses secundarios** `/po` · `/architect` · `/dev-team` · `/auditor` (hoy `/pm` los referencia por auto-chain pero no existen — desviación #4) · `deuda`
+
 ## Fuera de alcance ahora (anotado para no perderlo)
 
-- [reorg-docs] `UX.md` (15k) y `METODOLOGIA.md` (8.5k) tienen el mismo mal (backlog+historia
-  mezclados) — atacar en paquete aparte, no mezclar ejes · `deuda`
+- [reorg-docs] `docs/product/ux.md` (15k) y `docs/process/metodologia.md` (8.5k) tienen el mismo mal
+  (backlog+historia mezclados) — atacar en paquete aparte, no mezclar ejes · `deuda`
+- [reorg-docs] 30 links rotos en snapshots históricos (`stories/`·`research/`·`ledger/HS-NN.md`) — se
+  dejaron a propósito en el cierre HS-19 (registros congelados, PARIDAD desviación #7); re-apuntarlos
+  (si se decide) es trabajo de este paquete, no de la homologación · `deuda`

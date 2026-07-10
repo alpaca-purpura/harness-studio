@@ -2,7 +2,7 @@
 
 > vig: activo · revisar: 2026-08-01
 > Puntero al stack. El **por qué** de cada decisión → `../product/vision.md` (HS-02) + `../product/ledger/`; la
-> **arquitectura ENFORZADA as-code** → [`docs/architecture/INDEX.md`](./docs/architecture/INDEX.md) (boundaries +
+> **arquitectura ENFORZADA as-code** → [`docs/architecture/INDEX.md`](INDEX.md) (boundaries +
 > convenciones, go-arch-lint/dependency-cruiser). Las **cifras vivas** → `../product/checkpoint.md`.
 
 ## Backend
@@ -32,5 +32,5 @@
 ## As-code (enforcement)
 - `arch/` = 16 boundaries + `conventions/` = ~101 checks `enforced_by:` · `fitness/` go-arch-lint.
 - `docs/architecture/knowledge/` = estándar por elemento (12 nodos · 138 checks). Motor único `arnesia conformance`.
-- `CAPABILITIES.md` = SSoT funcional (qué hace el sistema, punteros al código).
-- Cifras vivas GENERADAS → `ESTADO.md`. Historia de decisiones de stack → `ledger/`.
+- `docs/product/capabilities/` (árbol YAML por-cap + `INDEX.md`) = SSoT funcional (qué hace el sistema, punteros al código).
+- Cifras vivas GENERADAS → `docs/product/checkpoint.md`. Historia de decisiones de stack → `ledger/`.

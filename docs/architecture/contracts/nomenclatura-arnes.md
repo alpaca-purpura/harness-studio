@@ -9,7 +9,7 @@
 >
 > Norte: [`../../product/vision.md`](../../product/vision.md) (A1–A7) · [`../../process/metodologia.md`](../../process/metodologia.md)
 > §3 (contrato fusionado) · [`schema/graph.l0.schema.json`](./schema/graph.l0.schema.json) ·
-> los L1 de [`../../docs/architecture/knowledge/elements/`](../../docs/architecture/knowledge/INDEX.md) (ubicación oficial CC de
+> los L1 de [`../../docs/architecture/knowledge/elements/`](../knowledge/INDEX.md) (ubicación oficial CC de
 > cada elemento — esta tabla los ANCLA, no los duplica).
 
 ## 1. La unidad reconocible

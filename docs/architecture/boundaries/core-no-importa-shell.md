@@ -46,7 +46,7 @@ contrato único es lo que vuelve el shell intercambiable (decisión HS-04: shell
 con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: sidecar.
 
 - **El core (`internal/{domain,usecase,ports}`) NO importa ningún paquete `shell` ni bindings de
-  Tauri/Wails.** El shell real es el crate Rust [`web/src-tauri/`](../../web/src-tauri/) (Tauri 2)
+  Tauri/Wails.** El shell real es el crate Rust [`web/src-tauri/`](../../../web/src-tauri) (Tauri 2)
   — un proceso aparte, fuera del grafo de imports Go; el check guarda además que jamás aparezca
   un `shell` Go ni un binding (`tauri`, `wailsapp/wails`). El shell es un cliente del daemon, no
   al revés. ⇐ L1: hexagonal.
@@ -55,7 +55,7 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
   enforça sobre esos tres + `arch_test.go:TestCoreHasNoShellImport`. Desde HS-10 el linter corre
   en CI (`go-arch-lint check --project-path . --arch-file docs/architecture/fitness/.go-arch-lint.yml`,
   deepScan off — el grafo de imports es el enforcement).
-- El shell ([`web/src-tauri/`](../../web/src-tauri/) = crate Tauri 2 + launcher) **solo** conoce: cómo levantar/attach-ear el
+- El shell ([`web/src-tauri/`](../../../web/src-tauri) = crate Tauri 2 + launcher) **solo** conoce: cómo levantar/attach-ear el
   daemon (`attach si :4200 está arriba, si no spawnea`), setear el env de Mint
   (`WEBKIT_DISABLE_DMABUF_RENDERER=1`), y abrir el WebView. No consume el dominio directo.
 - Consecuencia que protege la decisión de Tauri-desde-v1: **«servable headless» sigue gratis** —
@@ -64,7 +64,7 @@ con el daemon como sidecar `externalBin`; el WebView apunta al daemon). ⇐ L1: 
 - **Divergencia declarada frente al research:** el research recomendó browser-first por el riesgo
   WebKitGTK en Mint; el operador eligió Tauri-desde-v1 (app de escritorio nativa). Se acepta el
   riesgo y se vuelve load-bearing la mitigación de Mint (ver
-  [`../../historias/2026-07-05-arquitectura-fase3.md`](../../historias/2026-07-05-arquitectura-fase3.md)
+  [`../../historias/2026-07-05-arquitectura-fase3.md`](../../product/research/2026-07-05-arquitectura-fase3.md)
   frente A). El boundary NO cambia: sea cual sea el shell, no lo importa el core.
 
 ## Checklist evaluable
