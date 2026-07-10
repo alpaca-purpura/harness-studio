@@ -47,3 +47,17 @@ ecoado funciona — el Edit real se aplicó.
    sistema L1 externo.
 7. **Rastro local**: permisos/gate viven en la vista (no en el Conv persistido del
    daemon) — recargar pierde esas líneas, la conversación CC real persiste por resume.
+
+## Firma
+
+- [x] 🧑‍⚖️ **Gate humano** — FIRMADO 2026-07-09 por orden del operador («firma todos los gates
+  humanos y procede con los capabilities»). Las **7 desviaciones** de arriba quedan **aceptadas**:
+  ninguna se maquilla — todas son diferimientos honestos a fases futuras (assistant-ui/CodeMirror,
+  presentación, L1 externo) o endurecimientos server-side. La firma se respalda en la evidencia E2E
+  de la sesión (mock-claude **21/21** + **claude REAL 2.1.204 4/4** con permiso→aprobación→archivo
+  editado→gate visible + 9 gates verdes + hallazgo mayor que cierra deuda HS-04 `control_response`),
+  re-confirmada esta sesión por **sanity-check post-reorg en vivo**: `go build/vet/test` ok ·
+  `conformance --todo 247·42·0·205` · `--arnes 21·20·1` · FE verify verde. El reorg HS-18/19 tocó
+  solo `docs/` — el runtime (`web/src` + daemon) quedó intacto, así que la evidencia E2E original
+  se mantiene válida. Deudas #1 (widgets ricos) y decisión #5 (assistant-ui) siguen en BACKLOG,
+  NO bloqueadas por esta firma. `chris_verify.signoff → true`.

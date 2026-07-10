@@ -53,6 +53,22 @@ fan-in con panel ↖ (`PanelDeEntrada`) · vista Actual/off 0 residuos (`Artefac
    necesario para fan-out/fan-in/dead-end reales; ningún test previo dependía de los
    nombres viejos (verificado por grep + suite verde).
 
+## Firma
+
+- [x] 🧑‍⚖️ **Gate humano** — FIRMADO 2026-07-09 por orden del operador («firma todos los gates
+  humanos y procede con los capabilities»). Las **7 desviaciones** quedan **aceptadas**: todas son
+  el patrón sano de la casa — datos que se **derivan** (no flags: `opaco` de la extensión, `final`
+  de la terminalidad del spine, espejo honesto del check Go) + toggle colapsado a la semántica de
+  RF-143 + persistencia `useState` como `capa` (no mecanismo nuevo) + fixtures reales. Respaldo:
+  evidencia visual de la sesión (**vitest browser 86/86** · depcruise/stylelint/steiger/biome/tsc ✓
+  · 6 shots headless **consola 0 errores**), re-confirmada esta sesión por sanity-check post-reorg:
+  `conformance --todo 247·42·0·205` · **FE verify verde** (depcruise 91 módulos 0 violaciones · fsd
+  0 problemas · stylelint ✓ · tsc ✓ · biome ✓). **Honestidad:** el suite vitest-browser (stories) NO
+  se pudo re-correr en este entorno bg — Playwright Chromium no lanza headless acá (cuelga al
+  arrancar, 0 output); la evidencia original de la sesión (86/86) queda sin refutar, y como el reorg
+  HS-18/19 no tocó `web/src` (la derivación de artefactos vive en `entities/arnes/model/artefactos.ts`,
+  intacta), el gate visual firmado sigue en pie. `chris_verify.signoff → true`.
+
 ## Cómo reproducir el lado a lado
 
 1. `open historias/2026-07-07-franja-artefactos/mockup-artefactos.html` (ejemplos Cobranza/

@@ -1,9 +1,9 @@
 ---
 regla: codigo-traza-a-capability
-version: 1.2
+version: 1.3
 updated: 2026-07-09
 status: enforced
-ledger: HS-18
+ledger: HS-20
 sources:
   - url: https://cucumber.io/docs/guides/living-documentation/
     autoridad: experto
@@ -14,6 +14,8 @@ sources:
 enforced_by:
   - fitness/arch_test.go:TestCapabilityPointersResolve
   - fitness/arch_test.go:TestCapabilityCoverage
+  - fitness/arch_test.go:TestCapabilityStatusConsistent
+  - fitness/arch_test.go:TestCapabilityPointersStable
 severity: error
 ---
 
@@ -47,12 +49,16 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
   está reclamado por ≥1 capability → no hay código huérfano. Allowlist explícito y con razón para
   generados, `*_test.go`, `embed_*.go`, boilerplate.
 - **Gate de commit (R3):** un commit que toca fuente construye o modifica un capability en `docs/product/capabilities/` (lefthook pre-commit).
-- **Estado generado (R4):** `vivo ⟺ check verde`, vía `arnesia conformance`; nunca a mano.
+- **Estado consistente (R4):** el estado no CONTRADICE su evidencia — `vivo`/`parcial` ⟹ tiene
+  `valida:`; `vivo·nc`/`stub` ⟹ sin `valida:` (enforcer determinista, `TestCapabilityStatusConsistent`).
+  La derivación LIVE (`vivo ⟺ check verde` corriendo cada test) sigue como cableado CI (deuda BACKLOG).
 - **Anti-drift:** el puntero es `file#Símbolo` o `paquete/`, NO `file:línea` cruda (las líneas se
   pudren) — ver `historias/2026-07-09-reorg-docs/doctrina-capabilities.md §3`.
-- **Rollout:** este nodo nace `proposed`; el validador (`capability-trace`) + job lefthook + hook CC
-  corren en `warn` hasta cobertura=100%, y recién ahí este nodo pasa a `enforced` (block). Mientras,
-  los checks difieren honesto (enforcer pendiente = nl-judge), NUNCA pass fabricado.
+- **Rollout:** este nodo nació `proposed` y graduó a `enforced` (cobertura=100%). Los 4 checks
+  determinables corren como arch-test real (R1 `cap-ptr-resuelve` · R2 `cap-sin-huerfano` · R4
+  `cap-estado-consistente` · R4 `cap-puntero-estable`); R3 = job lefthook local. Lo único que sigue
+  como deuda honesta es la derivación LIVE del estado (correr cada check y flipear el bit) → CI. NUNCA
+  pass fabricado.
 
 ## Checklist evaluable
 
@@ -61,8 +67,8 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
 | cap-ptr-resuelve | cada `punteros:` de `docs/product/capabilities/` resuelve a un archivo o símbolo real del árbol | error | «capability apunta a código inexistente (doc colgante)» | arch_test.go:TestCapabilityPointersResolve |
 | cap-sin-huerfano | todo archivo fuente (`cmd`/`internal`/`web/src`/`src-tauri/src`) está reclamado por ≥1 capability, salvo allowlist con razón | error | «archivo de código sin capability (huérfano)» | arch_test.go:TestCapabilityCoverage |
 | cap-commit-toca-registro | un commit que modifica código fuente también construye o modifica un capability en `docs/product/capabilities/` | warn | «código cambiado sin actualizar el SSoT funcional» | lefthook pre-commit (capabilities) — feedback local, no bloquea CI |
-| cap-estado-generado | el `estado` de cada capability se deriva de su check, no se teclea | warn | «estado de capability fabricado a mano» | (pendiente) generación `arnesia conformance` R4 |
-| cap-puntero-estable | los punteros usan `file#Símbolo`/`paquete/`, no `file:línea` cruda (anti-drift) | info | «puntero por número de línea (se pudre al reformatear)» | (pendiente) validador `capability-trace` |
+| cap-estado-consistente | el `estado` no contradice su evidencia (`vivo`/`parcial`⟹tiene `valida:` · `vivo·nc`/`stub`⟹sin `valida:`); nunca fabricado a mano | warn | «estado de capability incoherente con su check» | arch_test.go:TestCapabilityStatusConsistent |
+| cap-puntero-estable | los punteros usan `file#Símbolo`/`paquete/`, no `file:línea` cruda (anti-drift) | info | «puntero por número de línea (se pudre al reformatear)» | arch_test.go:TestCapabilityPointersStable |
 
 ## Changelog
 
@@ -75,6 +81,11 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
   por caps + bloque `<!--coverage-->` + allowlist con razón; 0 huérfanos) PASAN como arch-test real.
   R3 `cap-commit-toca-registro` = job `capabilities` en `lefthook.yml` (feedback local). R4
   `cap-estado-generado` + `cap-puntero-estable` siguen `pendiente` (difieren honesto, no fabrican pass).
+- 2026-07-09 · v1.3 · **R4 aterrizado (HS-20):** los 2 checks que quedaban `(pendiente)` pasan a
+  arch-test determinista. `cap-estado-consistente` (`TestCapabilityStatusConsistent`) enforcea que el
+  estado no contradiga su evidencia (vivo/parcial⟹tiene `valida:` · nc/stub⟹sin `valida:`) sobre las
+  82 hojas; `cap-puntero-estable` (`TestCapabilityPointersStable`) rechaza punteros `file:línea`. Ambos
+  verdes (0 incoherencias · 0 punteros por línea). Único resto: derivación LIVE del estado → CI.
 - 2026-07-09 · v1.2 · **Sync a la homologación de metodología** (paquete
   `docs/product/stories/2026-07-09-homologacion-metodologia/`): el SSoT dejó de ser el monolito
   `CAPABILITIES.md` y pasó a ser el árbol `docs/product/capabilities/` (82 hojas YAML por-cap +

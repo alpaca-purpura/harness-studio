@@ -59,3 +59,20 @@ Extra verificado: **dark theme** — drawer completo legible con tokens dark (sc
 5. **Showcase sin disco:** `content-studio-full` es fixture embebido → estado honesto
    («arnés sin directorio registrado»), sin round-trip 404; el mockup lo suplía con
    fuente RECONSTRUIDA rotulada. La app jamás reconstruye (decisión #4).
+
+## Firma
+
+- [x] 🧑‍⚖️ **Gate humano** — FIRMADO 2026-07-09 por orden del operador («firma todos los gates
+  humanos y procede con los capabilities»). Las **5 desviaciones** quedan **aceptadas**: refinan el
+  mockup con criterio firmado, no lo traicionan — a11y AA gana sobre el frame (RF-88 manda, 2
+  violaciones del propio mockup cazadas) · la lectura RF-81↔RF-84 (✕ deja drawer vacío/affordance)
+  es la única que mantiene vivos AMBOS RF · sticky siempre · chips inertes = `disabled` nativo ·
+  showcase sin disco = estado honesto (la app JAMÁS reconstruye, decisión #4). Respaldo: recorrido
+  mockup v6 **fila por fila** contra daemon real :4200 + Chrome DevTools MCP (RF-80…RF-96 todos ✅
+  vivos), **axe verde 62/62**, dark theme legible, consola limpia, + 2 hallazgos de validación
+  reales corregidos en `6cff1a0` (fetch abortado en red real · 404 que ensuciaba consola). El costo
+  de la FASE 3 se pagó. Re-confirmado esta sesión: `conformance --todo 247·42·0·205` · **FE verify
+  verde** (tsc+biome+depcruise+steiger+stylelint). **Honestidad:** el suite vitest-browser (axe/stories)
+  NO se pudo re-correr en este entorno bg (Playwright Chromium no lanza headless acá); la evidencia
+  original (62/62 axe) queda sin refutar y el reorg no tocó `web/src` ni el endpoint `/fuente` (Go),
+  donde vive el inspector — el gate firmado sigue en pie. `chris_verify.signoff → true`.

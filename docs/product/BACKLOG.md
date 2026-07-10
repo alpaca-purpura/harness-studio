@@ -8,10 +8,8 @@
 
 ## Gates humanos pendientes (código listo, falta firma 🧑‍⚖️ PARIDAD)
 
-- [chat-cc-funcional] firmar 7 desviaciones `PARIDAD.md` + mockup v1 · `gate`
-- [franja-artefactos] gate final lado a lado, 7 desviaciones (HS-13 F5) · `gate`
-- [boton-actualizar] gate final, 6 desviaciones `PARIDAD.md` · `gate`
-- [inspector-drawer] gate final, 5 desviaciones registradas · `gate`
+- **Ninguno.** Los 4 (chat-cc-funcional · franja-artefactos · boton-actualizar · inspector-drawer)
+  quedaron FIRMADOS 2026-07-09 (HS-20) — sus 7+7+6+5 desviaciones aceptadas; cierre en `ledger/HS-20.md`.
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
@@ -30,11 +28,13 @@
 ## Capabilities / doctrina (reorg 2026-07-09, FIRMADO)
 
 - [x] ✅ validador R1/R2 construido + boundary `codigo-traza-a-capability` **enforced** (arch-test real, 0 colgantes / 0 huérfanos / cobertura 100%) + job lefthook `capabilities` — HECHO 2026-07-09
-- [x] ✅ `scripts/estado.sh` genera la línea de ruleset a `checkpoint.md` desde conformance (RF-178) — HECHO
-- [capabilities] R4 `cap-estado-generado` + `cap-puntero-estable`: siguen `pendiente` (defer honesto) — falta enforcer determinista · `deuda`
-- [capabilities] cablear `scripts/estado.sh` a un hook/CI para las cifras de arch/knowledge (hoy tecleadas) · `deuda`
-- [capabilities] validar los ~46 `sin-check`: partir de FE sin tests (solo stories) · `deuda`
-- [capabilities] resolver dead-code candidatos: `domain/graph.go#UnidadDeTrabajo` · enums Banda/Canal/Procedencia/Origen · `app-store#toggleTheme` — decidir seed-futuro vs borrar · `deuda`
+- [x] ✅ **R4 aterrizado (HS-20):** `cap-estado-consistente` + `cap-puntero-estable` = arch-test determinista (`TestCapabilityStatusConsistent`/`TestCapabilityPointersStable`), `--todo` pass 40→42 — HECHO 2026-07-09
+- [x] ✅ **`scripts/estado.sh` genera TODO el bloque de cifras** (ruleset · `--arnes` · arch boundaries · knowledge nodos·checks · distribución capabilities) — mata la deuda «tecleadas»; cazó la línea stale «24 vivo/46 sin-check/6 STUB» → real `38 vivo · 40 vivo·nc · 1 parcial · 3 stub` — HECHO 2026-07-09 (HS-20)
+- [x] ✅ **dead-code decidido (HS-20): NADA es dead real** — `Banda`/`Canal`/`Procedencia` vivos (loader/index) · `Origen` vivo en schema+FE (el tipo Go es espejo del dominio) · `UnidadDeTrabajo` = vocabulario del Spine (motor pendiente) · `toggleTheme` único «sin caller» → todos **seed-futuro**, cero borrado (no se destruye vocabulario de schema firmado)
+- [capabilities] **derivación LIVE del estado** (`vivo ⟺ check verde` corriendo cada test, no solo consistencia) → cablear a CI · `deuda`
+- [capabilities] cablear `scripts/estado.sh` a un hook/CI para que las cifras se regeneren solas (hoy es manual) · `deuda`
+- [capabilities] validar los ~40 `vivo·nc` (sin-check): construir el test que falta por-cap; parte de FE sin tests (solo stories) — es un paquete propio · `deuda`
+- [capabilities] `toggleTheme` seed-futuro: cablear el toggle a la vista Ajustes (RF-100) o cortar · `deuda`
 - [capabilities] índice SQLite real (CAP-21) + watcher fsnotify (CAP-23) + seed→JSONL corpus (CAP-22) — sale la fase-5 del stack · `bloqueo`
 
 ## Homologación de metodología — continuaciones (HS-19 cerrada, estos son los siguientes)

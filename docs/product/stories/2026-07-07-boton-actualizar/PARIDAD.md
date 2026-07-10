@@ -44,3 +44,17 @@ Leyenda: ⬜ pendiente · 🔶 implementado sin verificar · ✅ verificado en p
 6. **Checklist NO se anima durante «actualizando»** — cementado en spec RF-104/design
    (la animación del mockup 02 era demo): el estado muestra botón bloqueado + nota, y los
    veredictos aparecen SOLO al llegar la respuesta.
+
+## Firma
+
+- [x] 🧑‍⚖️ **Gate humano** — FIRMADO 2026-07-09 por orden del operador («firma todos los gates
+  humanos y procede con los capabilities»). Las **6 desviaciones** quedan **aceptadas**: son verdad
+  cruda, no maquillaje — driver Playwright (mismo fallback documentado del MCP tomado) · 2 líneas de
+  consola ambas EXPLICADAS (el 409 lo produce el propio test del doble-POST · el ERR_INCOMPLETE del
+  SSE es inherente al re-exec) · textos fijos del spec (root/sudo, ruta completa `os.Executable()`,
+  futuras como línea muted, checklist sin animar) que el spec firmado supersede al frame ilustrativo.
+  Respaldo IRREFUTABLE: **el daemon instalado se actualizó A SÍ MISMO** `ed223a4→0a42644`
+  (`~/.local/bin/arnesia`, huella nueva tras reinicio in-situ, mismo pid, polling reconectó) —
+  evidencia en `validacion.md` + `go test -race` ✓. Re-confirmado esta sesión: `go build/vet/test`
+  ok · `conformance --todo 247·42·0·205`. Self-update vive en `internal/adapters/selfupdate` (Go),
+  no tocado por el reorg de `docs/`. `chris_verify.signoff → true`.

@@ -10,6 +10,7 @@ package fitness
 // bloque `pointers:` (+ soporte en _coverage.yaml `support_files:`).
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -135,6 +136,118 @@ func TestCapabilityPointersResolve(t *testing.T) {
 	}
 	if len(bad) > 0 {
 		t.Fatalf("R1: punteros de capabilities que no resuelven a código real: %v", bad)
+	}
+}
+
+// capMeta = frontmatter de una hoja capability, lo mínimo para R4 (estado ⟺ evidencia · puntero estable).
+type capMeta struct {
+	file        string
+	status      string
+	validaCount int
+	pointers    []string
+}
+
+// capMetas parsea el frontmatter de cada hoja capability (línea a línea, mismo estilo que capClaims;
+// sin dep de YAML en Go). Extrae `status:`, cuenta las entradas de `valida:` y colecta los `pointers:`.
+// Excluye `_coverage.yaml` (no es una capability, no lleva status).
+func capMetas(t *testing.T) (metas []capMeta) {
+	t.Helper()
+	root := repoRoot()
+	capDir := filepath.Join(root, "docs", "product", "capabilities")
+	var files []string
+	werr := filepath.WalkDir(capDir, func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !de.IsDir() && strings.HasSuffix(path, ".yaml") && filepath.Base(path) != "_coverage.yaml" {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if werr != nil {
+		t.Fatalf("no se pudo recorrer docs/product/capabilities: %v", werr)
+	}
+	if len(files) == 0 {
+		t.Fatalf("no hay capabilities en docs/product/capabilities (¿migración incompleta?)")
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f) //nolint:gosec // rutas del propio árbol del repo
+		if err != nil {
+			t.Fatalf("no se pudo leer %s: %v", f, err)
+		}
+		rel, _ := filepath.Rel(root, f)
+		m := capMeta{file: filepath.ToSlash(rel)}
+		inValida, inPointers := false, false
+		for _, ln := range strings.Split(string(b), "\n") {
+			trimmed := strings.TrimSpace(ln)
+			switch {
+			case strings.HasPrefix(trimmed, "status:"):
+				v := strings.TrimSpace(strings.TrimPrefix(trimmed, "status:"))
+				if i := strings.Index(v, "#"); i >= 0 { // corta el comentario inline
+					v = strings.TrimSpace(v[:i])
+				}
+				m.status = v
+			case trimmed == "valida:":
+				inValida, inPointers = true, false
+			case trimmed == "pointers:":
+				inPointers, inValida = true, false
+			case inValida && strings.HasPrefix(trimmed, "- "):
+				m.validaCount++
+			case inPointers && strings.HasPrefix(trimmed, "- "):
+				if mm := capQuoted.FindStringSubmatch(ln); mm != nil {
+					m.pointers = append(m.pointers, mm[1])
+				}
+			default:
+				inValida, inPointers = false, false
+			}
+		}
+		metas = append(metas, m)
+	}
+	return metas
+}
+
+// TestCapabilityStatusConsistent — R4 `cap-estado-generado` (forma determinista): el estado no puede
+// CONTRADECIR su evidencia. `vivo`/`parcial` ⟹ ≥1 `valida:` (hay check que respalda); `vivo·nc`/`stub`
+// ⟹ 0 `valida:` (por definición sin check). Esto mata el estado fabricado a mano de forma determinista.
+// La derivación LIVE (correr cada check y flipear el bit según pase/falle) sigue como cableado CI —
+// deuda honesta en BACKLOG; este enforcer garantiza la consistencia, no la frescura del resultado.
+func TestCapabilityStatusConsistent(t *testing.T) {
+	metas := capMetas(t)
+	var bad []string
+	for _, m := range metas {
+		switch m.status {
+		case "vivo", "parcial":
+			if m.validaCount == 0 {
+				bad = append(bad, fmt.Sprintf("%s: status %q sin `valida:` (evidencia ausente)", m.file, m.status))
+			}
+		case "vivo·nc", "stub":
+			if m.validaCount > 0 {
+				bad = append(bad, fmt.Sprintf("%s: status %q con %d `valida:` (contradice: nc/stub = sin check)", m.file, m.status, m.validaCount))
+			}
+		default:
+			bad = append(bad, fmt.Sprintf("%s: status %q fuera de enum {vivo,vivo·nc,parcial,stub}", m.file, m.status))
+		}
+	}
+	if len(bad) > 0 {
+		t.Fatalf("R4 estado-consistente: %d cap(s) con estado que contradice su evidencia:\n  %s", len(bad), strings.Join(bad, "\n  "))
+	}
+}
+
+// TestCapabilityPointersStable — R4 `cap-puntero-estable`: los punteros usan `file#Símbolo` / `paquete/`,
+// NUNCA `file:línea` cruda (las líneas se pudren al reformatear el código). Anti-drift determinista.
+func TestCapabilityPointersStable(t *testing.T) {
+	metas := capMetas(t)
+	lineRe := regexp.MustCompile(`\.(go|ts|tsx|rs):\d`)
+	var bad []string
+	for _, m := range metas {
+		for _, p := range m.pointers {
+			if lineRe.MatchString(p) {
+				bad = append(bad, fmt.Sprintf("%s: %q", m.file, p))
+			}
+		}
+	}
+	if len(bad) > 0 {
+		t.Fatalf("R4 puntero-estable: %d puntero(s) por número de línea (usar `#Símbolo`):\n  %s", len(bad), strings.Join(bad, "\n  "))
 	}
 }
 
