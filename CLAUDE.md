@@ -27,13 +27,15 @@ arneses propios. Constitución de 11 principios + visión → [`docs/product/vis
 | **Arquitectura as-code · boundaries · fitness** | [`docs/architecture/INDEX.md`](./docs/architecture/INDEX.md) |
 | **Estándar as-code por elemento** (skill/hook/rule/…) | [`docs/architecture/knowledge/INDEX.md`](./docs/architecture/knowledge/INDEX.md) |
 | **UX firmada · inventario · mockups** | [`docs/product/ux.md`](docs/product/ux.md) · `mockups/` |
+| **Diseñar / mockupear UI (LEER antes de forkear)** | [`mockups/INDEX.md`](./mockups/INDEX.md) — línea base vigente + disciplina superset (SSoT UI = Storybook) |
 | **Trabajar una feature** (mockup→spec→PARIDAD) | `docs/product/stories/<pkg>/INDEX.md` |
 
 ## Doctrina de desarrollo (obligatoria)
 
 - **Disciplina de paquete de trabajo** (toda feature nueva; canónico = METODOLOGIA §10): cada
   feature vive en `docs/product/stories/AAAA-MM-DD-<slug>/`; mockup→decisiones→spec→implementar→PARIDAD con
-  firmas 🧑‍⚖️ entre etapas. **Toda decisión conversada se escribe en `decisiones.md` del paquete
+  firmas 🧑‍⚖️ entre etapas. **Toda etapa de mockup/UI arranca leyendo [`mockups/INDEX.md`](./mockups/INDEX.md)**
+  (línea base = superficie vigente; propuesta = superset, jamás reinventar lo firmado; SSoT del UI = Storybook). **Toda decisión conversada se escribe en `decisiones.md` del paquete
   EN EL MISMO TURNO.** Sesión nueva arranca leyendo el `INDEX.md`/«Retomar aquí» del paquete activo
   (puntero en `docs/product/checkpoint.md`). Cada iteración firmada se commitea a main.
 - **CAPABILITIES = SSoT funcional (docs-as-code):** **ningún cambio de código existe sin construir

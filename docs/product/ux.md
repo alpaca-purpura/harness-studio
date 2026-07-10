@@ -8,6 +8,9 @@
 > **Sync 2026-07-07 (HS-10, edición mecánica — doc vivo):** S9 pasa de «11 elementos/nodos» a
 > **12** (nodo `harness-profile`, HS-07) y el inventario S2 de «7 tipos» a **10 clases** (enum
 > canónico L0 de HS-08; tokens de color 6→10 resueltos en HS-09 Fase D). Sin cambio de diseño.
+>
+> **Inventario de mockups + línea base vigente + disciplina superset → [`mockups/INDEX.md`](../../mockups/INDEX.md)**
+> (LÉELO antes de forkear un `.html`). SSoT del UI = Storybook; los `.html` son snapshots derivados y fechados.
 
 ## Bifurcaciones firmadas (grill 2026-07-04)
 

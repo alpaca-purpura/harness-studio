@@ -11,8 +11,16 @@
 
 ## Paquete de trabajo activo
 
-- **Ninguno activo.** HS-21 firmada y commiteada a `main` — las cifras de este checkpoint ahora se
-  auto-curan (hook `pre-commit`) y su drift rompe el merge (CI `estado.sh --check`).
+- **Co-diseño ABIERTO (2026-07-10) — Realineación al core del ciclo de vida del arnés.** Foco =
+  levantar·auditar·editar·publicar arneses de un marketplace; medición·observabilidad·mejora-continua
+  → **Fase 2**. Arnesia = fábrica **agnóstica al rubro**. Aún SIN paquete formal (co-diseño visual, sin código).
+- **Retomar aquí:** línea base del Mapa fijada → [`mockups/INDEX.md`](../../mockups/INDEX.md) +
+  `mockups/arnesia-mapa-baseline.html` (baseline fiel del UI actual @`a01d845`; disciplina anti-drift
+  enganchada en router/§10/ux). **Próximo:** el operador da comentarios de diseño → rehacer «Mapa DESTINO»
+  como **superset del baseline** (capas Llenado+Deriva · sello · inicializador/doctor · receta en el
+  inspector · conocimiento-del-proyecto, nombres a decidir) → 🧑‍⚖️ firma → paquete `stories/2026-07-10-<slug>/`
+  + repriorizar BACKLOG Fase-1/Fase-2. Contexto: memorias `hs-repriorizacion-core-ciclo-arnes` +
+  `hs-linea-base-ui-storybook-ssot`.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

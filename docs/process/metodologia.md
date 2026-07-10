@@ -424,7 +424,7 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
 | Archivo | Qué contiene | Cuándo se llena |
 |---|---|---|
 | `INDEX.md` | Encuadre · flujo con gates · checklist **Estado** · sección **«Retomar aquí»** (último hecho · próximo paso concreto · firmas pendientes) | Nace con el paquete; «Retomar aquí» se actualiza **al cierre de cada turno de trabajo** |
-| `mockup-*.html` | Clon iterable de la superficie, con changelog de iteraciones en comentario de cabecera | Antes de conversar cambios; una versión por iteración |
+| `mockup-*.html` | Clon iterable de la superficie **forkeado del baseline vigente ([`mockups/INDEX.md`](../../mockups/INDEX.md)) — superset, jamás reinventar lo firmado**; changelog de iteraciones en comentario de cabecera | Antes de conversar cambios; una versión por iteración |
 | `decisiones.md` | Una entrada por decisión: qué · porqué · estado PROPUESTA→FIRMADA | **En el MISMO turno en que se conversa** — jamás al final |
 | `spec.md` | El QUÉ: RF numerados + Gherkin, **cada RF trazado a `mockup:línea`** | Tras la firma del mockup |
 | `design.md` | El UI al pixel: secciones/orden · tabla de campos · tokens por marca · estados | Junto con spec.md |
@@ -432,7 +432,7 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
 
 ### El flujo (gates humanos 🧑‍⚖️, en orden)
 
-1. **Mockup** → iterar con el operador → 🧑‍⚖️ firma del mockup.
+1. **Mockup** (forkeado del baseline vigente — ver [`mockups/INDEX.md`](../../mockups/INDEX.md); SSoT del UI = Storybook, la propuesta es superset del actual) → iterar con el operador → 🧑‍⚖️ firma del mockup.
 2. **Decisiones** → cada cambio conversado queda en `decisiones.md` al instante.
 3. **Specs** (`spec.md` + `design.md`) → 🧑‍⚖️ firma del paquete.
 4. **Implementación** contra el spec firmado; story=test por marca nueva; gates
