@@ -20,7 +20,7 @@ import (
 )
 
 // runConformance implements `arnesia conformance <target>` — the ruleset runner
-// (METODOLOGIA §6, the pillar P0). It loads knowledge/+arch/ as a ruleset of data and
+// (METODOLOGIA §6, the pillar P0). It loads docs/architecture/knowledge/+arch/ as a ruleset of data and
 // runs the checks relevant to the target, emitting real per-check verdicts (never
 // markdown). Exit code is non-zero when a blocking (error-severity) check fails.
 func runConformance(args []string) error {
@@ -32,7 +32,7 @@ func runConformance(args []string) error {
 	fs.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: arnesia conformance [<elemento> | --arnes <path> | --todo] [flags]
 
-  <elemento>       run one knowledge/arch node's checks (e.g. skills, hooks, superficie-local-confinada)
+  <elemento>       run one docs/architecture/knowledge/arch node's checks (e.g. skills, hooks, superficie-local-confinada)
   --arnes <path>   validate an arnés graph.l0 JSON (box contracts + spine consistency + firewall)
   --todo           run the entire ruleset
   --root <dir>     repo root (default: walk up from cwd)
@@ -58,11 +58,11 @@ func runConformance(args []string) error {
 	)
 	if repoRoot != "" {
 		rs = ruleset.New(repoRoot)
-		schemas = mechanism.NewSchemaSet(filepath.Join(repoRoot, "arch", "contracts", "schema"))
+		schemas = mechanism.NewSchemaSet(filepath.Join(repoRoot, "docs", "architecture", "contracts", "schema"))
 	} else {
 		fmt.Fprintln(os.Stderr, "conformance: sin repo fuente — ruleset embebido en el binario (scope fabrica diferido)")
 		rs = ruleset.NewFromFS(doctrina.Files)
-		sub, err := iofs.Sub(doctrina.Files, "arch/contracts/schema")
+		sub, err := iofs.Sub(doctrina.Files, "docs/architecture/contracts/schema")
 		if err != nil {
 			return fmt.Errorf("schemas embebidos: %w", err)
 		}

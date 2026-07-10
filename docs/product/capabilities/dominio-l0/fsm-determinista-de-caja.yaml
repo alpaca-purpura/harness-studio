@@ -1,0 +1,27 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.dominio-l0.fsm-determinista-de-caja
+cap_num: CAP-11
+slug: fsm-determinista-de-caja
+name: "FSM determinista de caja (T3)"
+status: vivo          # GENERADO (R4) — no teclear
+module: dominio-l0
+verb: crear
+pointers:
+  - "internal/domain/caja_fsm.go#AvanzarCaja"
+  - "internal/domain/caja_fsm.go#RutaSiguiente"
+valida:
+  - "TestAvanzarCaja"
+  - "TestRutaSiguiente"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-11)"
+---
+
+# FSM determinista de caja (T3)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

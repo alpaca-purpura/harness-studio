@@ -1,5 +1,5 @@
 {
-	"$description": "Design tokens DTCG (2025.10) — SSOT del contrato mockup↔código (arch/boundaries/fe-tokens-contrato.md). Valores de color = lift verificado de mockups/arnesia-shell-A-galaxia.html (shell firmado HS-03 it.13); nombres = convención shadcn (capa semántica canónica COMPLETA). Dark mode = $extensions.mode.dark. Se procesa con Style Dictionary v5 → src/app/styles/theme.css (:root + :root[data-theme=dark]) + tokens.ts. Regla: los componentes consumen SOLO color.semantic / color.sidebar / radius / space / text — nunca color.primitive ni valores crudos (cero magic-value).",
+	"$description": "Design tokens DTCG (2025.10) — SSOT del contrato mockup↔código (docs/architecture/boundaries/fe-tokens-contrato.md). Valores de color = lift verificado de mockups/arnesia-shell-A-galaxia.html (shell firmado HS-03 it.13); nombres = convención shadcn (capa semántica canónica COMPLETA). Dark mode = $extensions.mode.dark. Se procesa con Style Dictionary v5 → src/app/styles/theme.css (:root + :root[data-theme=dark]) + tokens.ts. Regla: los componentes consumen SOLO color.semantic / color.sidebar / radius / space / text — nunca color.primitive ni valores crudos (cero magic-value).",
 	"color": {
 		"$type": "color",
 		"primitive": {
@@ -163,7 +163,7 @@
 			"5": { "$value": "{color.kind.mcp}" }
 		},
 		"kind": {
-			"$description": "tipo de componente de arnés (mapea a knowledge/, 10 primitivas Clase); light/dark. skill/agent/hook/knowledge/mcp/rule = lift del shell firmado; command/plugin/settings/output-style/statusline = AÑADIDOS HS-09 (propuestos, cierran el gap 6→10; la familia config comparte matices vecinos, la sub-distinción la carga el glyph).",
+			"$description": "tipo de componente de arnés (mapea a docs/architecture/knowledge/, 10 primitivas Clase); light/dark. skill/agent/hook/docs/architecture/knowledge/mcp/rule = lift del shell firmado; command/plugin/settings/output-style/statusline = AÑADIDOS HS-09 (propuestos, cierran el gap 6→10; la familia config comparte matices vecinos, la sub-distinción la carga el glyph).",
 			"skill": {
 				"$value": "{color.primitive.blue-500}",
 				"$extensions": { "mode": { "dark": "{color.primitive.blue-400}" } }

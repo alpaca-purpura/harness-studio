@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arnesia.alpacapurpura.lat/schema/box.contract.schema.json",
+  "title": "Contrato de caja de proceso — schema fusionado (doctrina v1)",
+  "description": "Bloque `contract:` del frontmatter de un SKILL.md que es caja de proceso. Un solo contrato con cuatro ejes perpendiculares: INTENCIÓN (qué promete), CLASIFICACIÓN (qué es · qué forma · cómo ejecuta), CABLEADO (cómo se conecta) y ACEPTACIÓN (cómo se prueba). Single source of truth: docs/process/metodologia.md §3 (it.10 + doctrina v1, 2026-07-05). Validar cada instancia contra este schema ES la fitness function del eval-gate A4 y de la validación de composición. Ver docs/architecture/boundaries/contrato-de-caja-es-fitness-function.md. AGNOSTICISMO (VISION p3/p7): `fase` y `estado` NO llevan enum — son datos del arnés; su validación semántica es el check per-arnés contra el spine declarado (arnes.spine en graph.l0), no este schema de caja.",
+  "type": "object",
+  "required": ["caja"],
+  "additionalProperties": false,
+  "properties": {
+    "why": {
+      "type": "string",
+      "description": "INTENCIÓN — el propósito inmutable de la caja (el 'goal'); blinda la deriva.",
+      "minLength": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "INTENCIÓN — qué logra la caja. IDs estables entre versiones (semver del contrato).",
+      "items": {
+        "type": "object",
+        "required": ["id", "what", "success"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "ID estable (p.ej. CAP-01).", "minLength": 1 },
+          "what": { "type": "string", "description": "Qué logra — WHAT, no HOW.", "minLength": 1 },
+          "success": { "type": "string", "description": "Señal concreta y verificable de éxito.", "minLength": 1 }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "description": "INTENCIÓN — solo las restricciones que doblan decisiones.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "non_goals": {
+      "type": "array",
+      "description": "INTENCIÓN — lo que la caja explícitamente NO hace.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "clase": {
+      "type": "string",
+      "description": "CLASIFICACIÓN — qué ELEMENTO es (meta.clase, I-75). Mismo enum canónico que graph.l0 $defs.clase (10 primitivas CC-native).",
+      "enum": ["skill", "subagent", "hook", "rule", "command", "mcp", "plugin", "settings", "output-style", "statusline"]
+    },
+    "arquetipo": {
+      "type": "string",
+      "description": "CLASIFICACIÓN — la FORMA del trabajo (§8.1, autonomía≠automatización). pipeline=determinista · excepcion=flujo feliz+casos raros · abierto=generativo (exento de document-as-cache estricto) · no-arnesar=juicio puro (NO es caja, sale del grafo).",
+      "enum": ["pipeline", "excepcion", "abierto", "no-arnesar"]
+    },
+    "perfil_harness": {
+      "type": "string",
+      "description": "CLASIFICACIÓN — cómo EJECUTA el loop (§8.2, eje ⊥ clase). T1=pase único · T2=workflow stateful · T3=worker autónomo (conductor Go dueña el loop). T4=shell/sesión NO es caja.",
+      "enum": ["T1", "T2", "T3"]
+    },
+    "caja": {
+      "type": "boolean",
+      "description": "CABLEADO — true si es la skill-frente de una fase (una caja de proceso). false = skill de apoyo (librería/utilidad/tercero/meta-harness), que no declara transición ni gate."
+    },
+    "fase": {
+      "type": "string",
+      "description": "CABLEADO — id de la fase que esta caja protagoniza. Dato libre; consistencia (∈ arnes.fases) = check per-arnés, no este schema.",
+      "minLength": 1
+    },
+    "estado": {
+      "type": "string",
+      "description": "CABLEADO — la transición del spine que esta caja posee: '<estado_entra> -> <estado_sale>'. Solo se valida la FORMA de la transición; que los estados existan/encadenen = check per-arnés contra arnes.spine.",
+      "pattern": "^\\s*[a-zA-Z0-9_\\-]+\\s*->\\s*[a-zA-Z0-9_\\-]+\\s*$"
+    },
+    "necesita": {
+      "type": "array",
+      "description": "CABLEADO — inputs: qué necesita para operar bien (precondición). Un input sin productor upstream = huérfano (hallazgo).",
+      "items": {
+        "type": "object",
+        "required": ["art", "de"],
+        "additionalProperties": false,
+        "properties": {
+          "art": { "type": "string", "description": "Artefacto o precondición.", "minLength": 1 },
+          "de": {
+            "type": "string",
+            "description": "Origen del input. Bandas legítimas del mapa (usuario · base · caja · libreria · maquinaria · terceros · marcas-dormidas).",
+            "pattern": "^(usuario|base:[a-zA-Z0-9_\\-]+|caja:[a-zA-Z0-9_\\-]+|libreria:[a-zA-Z0-9_\\-]+|maquinaria:[a-zA-Z0-9_\\-]+|terceros:[a-zA-Z0-9_\\-]+|marcas-dormidas:[a-zA-Z0-9_\\-]+)$"
+          },
+          "requerido": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    "entrega": {
+      "type": "array",
+      "description": "CABLEADO — outputs: artefactos as code que produce. La salida de una caja es la entrada de la siguiente. Un output que nadie consume = dead-end (hallazgo).",
+      "$comment": "Aditivo franja-artefactos D3/D9 (2026-07-08, patrón P3/HS-12): path/plantilla/refina son OPCIONALES — los contratos previos validan sin cambios. Espejo Go: domain.Output.",
+      "items": {
+        "type": "object",
+        "required": ["art"],
+        "additionalProperties": false,
+        "properties": {
+          "art": { "type": "string", "minLength": 1 },
+          "escritor_unico": {
+            "type": "boolean",
+            "default": true,
+            "description": "Un solo escritor autorizado por artefacto (mutation contract). Dos cajas escribiendo el mismo art = hallazgo de conformidad."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "D3 — identidad archivo del artefacto: ruta relativa al cwd del arnés. Presente = artefacto-archivo (el conductor lo statea y lee su document-as-cache); ausente = artefacto-etiqueta («código + tests»). Check warn `art-es-path` para cajas pipeline/excepcion."
+          },
+          "plantilla": {
+            "type": "string",
+            "minLength": 1,
+            "description": "D4 — ruta (relativa a la skill escritora) de la reference con el esqueleto de la plantilla (references/plantilla-<art>.md). Solo entregas que el arnés PRODUCE (D10): los inputs externos se ADMITEN, jamás se plantillan."
+          },
+          "refina": {
+            "type": "string",
+            "minLength": 1,
+            "description": "D9 — esta entrega es una REVISIÓN del art nombrado: única puerta legal a la multi-escritura, siempre cadena lineal (check `refina-coherente`); la versión (v2, v3…) se DERIVA de la cadena, jamás se declara."
+          }
+        }
+      }
+    },
+    "ruta": {
+      "type": "array",
+      "description": "CABLEADO — a quién entrega, CONDICIONAL (el DAG real: happy path / rework / escalate).",
+      "items": {
+        "type": "object",
+        "required": ["a"],
+        "additionalProperties": false,
+        "properties": {
+          "a": { "type": "string", "description": "skill o rol destino.", "minLength": 1 },
+          "si": { "type": "string", "description": "Condición. Omitir para el happy path." }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "description": "ACEPTACIÓN — cómo se evalúa la SALIDA de la caja (aterriza el principio 10, regla A4). HONESTO: tipo 'none' cuando la skill NO tiene eval real; jamás se fabrica un eval. Existir tolera 'none'; PROMOVER exige gate verde.",
+      "required": ["tipo"],
+      "additionalProperties": false,
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["auto", "manual", "parcial", "none"]
+        },
+        "detalle": {
+          "type": "string",
+          "description": "Cómo evalúa; si tipo=none, POR QUÉ falta (el hueco del principio 10 hecho dato)."
+        },
+        "aceptacion": {
+          "type": "array",
+          "description": "Gherkin = gate.detalle hecho ejecutable. Cuando tipo=auto, ES el eval.",
+          "items": {
+            "type": "object",
+            "required": ["given", "when", "then"],
+            "additionalProperties": false,
+            "properties": {
+              "given": { "type": "string", "description": "Precondición.", "minLength": 1 },
+              "when": { "type": "string", "description": "Acción.", "minLength": 1 },
+              "then": { "type": "string", "description": "Invariante verificable.", "minLength": 1 }
+            }
+          }
+        },
+        "evidencia": {
+          "type": "string",
+          "description": "Registro de auditoría emitido — telemetría de nacimiento (p9)."
+        }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "description": "ACEPTACIÓN — cuándo escala a humano (frontera P6/Guardia hecha dato).",
+      "required": ["cuando", "a"],
+      "additionalProperties": false,
+      "properties": {
+        "cuando": { "type": "string", "description": "Condición de alto riesgo / no-convergencia.", "minLength": 1 },
+        "a": { "type": "string", "description": "'humano' o 'caja:<skill>'.", "minLength": 1 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "caja": { "const": true } }, "required": ["caja"] },
+      "then": {
+        "required": ["why", "clase", "arquetipo", "perfil_harness", "fase", "estado", "gate"],
+        "description": "Una caja de proceso DEBE declarar su intención (why), su clasificación completa (clase·arquetipo·perfil_harness), su fase, la transición de estado que posee y su gate (aunque sea tipo none)."
+      }
+    },
+    {
+      "if": { "properties": { "arquetipo": { "const": "no-arnesar" } }, "required": ["arquetipo"] },
+      "then": {
+        "properties": { "caja": { "const": false } },
+        "description": "`no-arnesar` NO es una caja: juicio puro que no descompone en partes con contrato → se clasifica explícitamente y sale del grafo (caja=false). Saber cuándo NO arnesar es doctrina, no omisión (§8.1)."
+      }
+    }
+  ]
+}

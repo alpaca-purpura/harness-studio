@@ -6,7 +6,7 @@ import (
 )
 
 // This file models the conformance layer of the doctrine (HS-08, the pillar P0): the
-// common check contract shared by knowledge/ and arch/, the report a run produces, and
+// common check contract shared by docs/architecture/knowledge/ and arch/, the report a run produces, and
 // the spine-consistency checks parametrized by an arnés's DECLARED spine (never a
 // product enum — agnosticism, VISION p3/p7). The core owns the TYPES and the
 // consistency logic; HOW each check runs lives behind a mechanism adapter (a port).
@@ -40,7 +40,7 @@ func (m Mecanismo) Valid() bool {
 }
 
 // Severidad is a check's weight: error breaks the standard, warn smells, info is a
-// possible improvement (knowledge/ + arch/ convention).
+// possible improvement (docs/architecture/knowledge/ + arch/ convention).
 type Severidad string
 
 const (
@@ -90,7 +90,7 @@ type CheckResult struct {
 	Detalle   string    `json:"detalle,omitempty"`
 }
 
-// Ruleset is the parsed union of knowledge/ + arch/ checks — the ruleset of data the
+// Ruleset is the parsed union of docs/architecture/knowledge/ + arch/ checks — the ruleset of data the
 // RulesetPort loads. The engine never hardcodes checks; it reads this.
 type Ruleset struct {
 	Checks []Check `json:"checks"`

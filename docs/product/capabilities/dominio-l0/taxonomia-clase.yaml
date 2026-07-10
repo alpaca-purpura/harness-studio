@@ -1,0 +1,25 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.dominio-l0.taxonomia-clase
+cap_num: CAP-07
+slug: taxonomia-clase
+name: "Taxonomía Clase (10 primitivas)"
+status: vivo·nc          # GENERADO (R4) — no teclear
+module: dominio-l0
+verb: mapear
+pointers:
+  - "internal/domain/box.go#Clase"
+  - "internal/domain/box.go#Clase.Valid"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-07)"
+---
+
+# Taxonomía Clase (10 primitivas)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

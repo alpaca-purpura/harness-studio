@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arnesia.alpacapurpura.lat/schema/graph.l0.schema.json",
+  "title": "Grafo agnóstico de componentes — contrato L0 (meta.clase)",
+  "description": "El modelo núcleo de VISION: un grafo agnóstico donde cada componente declara su clase (meta.clase, I-75). Cada agente es solo un adaptador; el grafo es la verdad. Este schema es el single source del que se generan los tipos Go (indexer) y TS (mapa React Flow). Estado: fundacional/por-formalizar — algunos campos derivan del mockup v3 y se cementarán en fase 4 (specs).",
+  "type": "object",
+  "required": ["nodos"],
+  "additionalProperties": false,
+  "properties": {
+    "arnes": {
+      "type": "object",
+      "description": "Manifiesto del arnés dueño de este grafo (rol × proceso de compañía). Contiene la META de enganche (rol·proceso·reporta-a·empresa — el seam al sistema L1/organigrama externo, VISION §Linaje) y, como DATO per-arnés (no enum del producto), la FORMA de proceso de ESTE arnés: sus fases y su spine de estados. ArnesIA es agnóstico al proceso (VISION p3/p7) — esos valores viven aquí, jamás como constante del core.",
+      "additionalProperties": false,
+      "required": ["id", "rol", "proceso", "empresa", "reporta_a"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "nombre": { "type": "string", "description": "Nombre humano del arnés — el campo CANÓNICO para pintarlo en una vista (HS-12; ya nombrado por nomenclatura-arnes.md §2). Cadena de fallback bendecida: arnes.l0.nombre → plugin.json name → id.", "minLength": 1 },
+        "descripcion": { "type": "string", "description": "Descripción humana corta (HS-12). Fallback: plugin.json description." },
+        "rol": { "type": "string", "description": "META — el rol al que sirve el arnés (canónico; reemplaza `puesto`).", "minLength": 1 },
+        "proceso": { "type": "string", "description": "META — el proceso de compañía que el arnés operacionaliza.", "minLength": 1 },
+        "empresa": { "type": "string", "minLength": 1 },
+        "reporta_a": { "type": ["string", "null"], "description": "META — id del arnés al que reporta (organigrama). null = raíz (present-but-null es válido)." },
+        "canal": { "type": "string", "enum": ["beta", "estable"], "description": "Canal de release vigente." },
+        "marketplace": { "type": "string", "description": "Repo destino de publish (por defecto el de alpacapurpura; override por empresa/arnés)." },
+        "fases": {
+          "type": "array",
+          "description": "Las fases que ESTE arnés declara (dato, no enum del producto). Cada `nodo.fase` debe ∈ esta lista (check per-arnés `fase-en-fases-declaradas`).",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "spine": {
+          "type": "object",
+          "description": "La FORMA del spine de estados de ESTE arnés (dato per-arnés). El producto da el TIPO + valida consistencia; los estados concretos (idea→…→released) son del arnés. Contra este spine se parametrizan los checks estado-en-spine-declarado / transicion-legal / spine-cobertura.",
+          "additionalProperties": false,
+          "required": ["inicial", "estados"],
+          "properties": {
+            "inicial": { "type": "string", "description": "El estado de entrada único.", "minLength": 1 },
+            "terminales": { "type": "array", "description": "Estados terminales/aceptantes.", "items": { "type": "string", "minLength": 1 } },
+            "estados": { "type": "array", "description": "Todos los estados legales del trabajo.", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "categorias": {
+              "type": "object",
+              "description": "OPCIONAL (HS-12, interop DevStudio) — mapa estado→categoría semántica FIJA (enum idéntico a I-77 RN-28, patrón Azure state categories): una consola deriva comportamiento genérico de la categoría sin hardcodear nombres de estados. El enum es del PRODUCTO (capa semántica agnóstica); los estados clasificados siguen siendo dato per-arnés. Terminalidad derivada: categoría ∈ {completado, descartado}. Checks warn: categoria-estado-existe · terminal-categoria-coherente.",
+              "additionalProperties": { "type": "string", "enum": ["propuesto", "en-progreso", "completado", "descartado", "pausado"] }
+            },
+            "transiciones": {
+              "type": "array",
+              "description": "Las aristas legales entre estados.",
+              "items": {
+                "type": "object",
+                "required": ["de", "a"],
+                "additionalProperties": false,
+                "properties": {
+                  "de": { "type": "string", "minLength": 1 },
+                  "a": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "nodos": {
+      "type": "array",
+      "description": "Los componentes del arnés como nodos agnósticos.",
+      "items": { "$ref": "#/$defs/nodo" }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Relaciones entre nodos. Direccionales para invocación/escritura; punteadas sin flecha para lectura de knowledge.",
+      "items": { "$ref": "#/$defs/edge" }
+    }
+  },
+  "$defs": {
+    "clase": {
+      "type": "string",
+      "description": "La clase L0 del componente (meta.clase, I-75): qué primitiva CC-native ES. UNO de tres ejes ortogonales — clase (qué primitiva) ⊥ banda (región del mapa) ⊥ perfil_harness (cómo ejecuta); no se confunden. 10 primitivas placeables, alineadas a los nodos de docs/architecture/knowledge/ que describen un componente ubicable. Labels canónicos (subagent/rule, no los legacy agente/regla). Aditivo: crece solo si la superficie CC suma una primitiva.",
+      "$comment": "HS-08 (doctrina v1): resuelto B3. Excluidos deliberadamente de `clase`: `headless` (run-mode/maquinaria, no un tipo de nodo) y `harness-profile` (el eje ortogonal perfil_harness). El legacy `knowledge` se pliega en `rule` (la memoria/imports CC-native de la banda Base — firewall §8.6). El eje banda/rol del mapa vive en `banda`, no aquí. HS-11: `no-reconocido` NO es una 11ª primitiva — es el marcador de reconciliación honesta de nomenclatura-arnes.md §4.5 (D-c FIRMADA): un archivo que ningún reconocedor entiende se emite VISIBLE con esta clase (+ check warn), jamás se oculta ni crashea el Mapa.",
+      "enum": ["skill", "subagent", "hook", "rule", "command", "mcp", "plugin", "settings", "output-style", "statusline", "no-reconocido"]
+    },
+    "banda": {
+      "type": "string",
+      "description": "La región de la geografía fija del mapa donde vive el nodo.",
+      "enum": ["guardia", "fase", "base", "libreria-expertos", "meta-harness", "marcas-dormidas", "terceros"]
+    },
+    "nodo": {
+      "type": "object",
+      "required": ["id", "clase", "nombre"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "clase": { "$ref": "#/$defs/clase" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "banda": { "$ref": "#/$defs/banda" },
+        "fase": { "type": ["string", "null"], "description": "id de fase si banda=fase; null en Guardia/Base/transversales." },
+        "canal": { "type": "string", "enum": ["beta", "estable", "propuesto", "deprecado"] },
+        "fuente_path": { "type": "string", "description": "Ruta al archivo fuente (SKILL.md, hook, knowledge). Puntero, no contrato." },
+        "contract": {
+          "description": "El contrato de caja, si clase=skill y es caja de proceso. Valida contra box.contract.schema.json.",
+          "$ref": "box.contract.schema.json"
+        },
+        "procedencia": {
+          "type": "string",
+          "description": "Honestidad (METODOLOGIA §4): de dónde salió el dato del nodo. 'medido' pisa 'estimado'.",
+          "enum": ["medido", "estimado", "declarado", "inferido", "no-declarado"]
+        },
+        "origen": {
+          "type": "string",
+          "description": "Procedencia de INSTANCIA del nodo: 'estandar' = proviene del kit genérico del rol; 'del-puesto' = añadido/llenado en el onboarding del puesto. Lo ESTAMPA el provisioner al instanciar el arnés (③), NO lo declara el autor — es metadata sobre la instancia, no maquinaria filtrándose al grafo (coherente con los 3 cuerpos doctrina/maquinaria/producto). Eje ortogonal a `procedencia` (honestidad-del-dato) y `canal` (release). En el MVP del Mapa se dibuja como borde-izquierdo punteado; hasta que el provisioning lo pueble (Hito 3) el FE lo deriva de un fixture aislado y lo etiqueta PROPUESTA. HS-09 Fase D.",
+          "enum": ["estandar", "del-puesto"]
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["de", "a", "tipo"],
+      "additionalProperties": false,
+      "properties": {
+        "de": { "type": "string", "minLength": 1 },
+        "a": { "type": "string", "minLength": 1 },
+        "tipo": {
+          "type": "string",
+          "enum": ["invoca", "lee", "escribe"],
+          "description": "invoca/escribe = direccional con flecha; lee (knowledge) = punteado sin flecha."
+        }
+      }
+    }
+  }
+}

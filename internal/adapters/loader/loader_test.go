@@ -253,7 +253,7 @@ func edgeSet(edges []domain.Edge) map[domain.Edge]bool {
 // importar ese package (territorio de otro hilo).
 func validarContraSchema(t *testing.T, root string, g domain.Graph) {
 	t.Helper()
-	dirSchemas := filepath.Join(root, "arch", "contracts", "schema")
+	dirSchemas := filepath.Join(root, "docs", "architecture", "contracts", "schema")
 	carga := func(nombre string) (*jsonschema.Schema, error) {
 		raw, err := os.ReadFile(filepath.Join(dirSchemas, filepath.Base(nombre))) //nolint:gosec // G304: dir de schemas del repo, fijo en el test.
 		if err != nil {

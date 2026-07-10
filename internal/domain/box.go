@@ -2,7 +2,7 @@
 // contract, meta.clase / I-75) and the fused box contract (doctrina v1, HS-08). It
 // imports nothing internal — the graph is the truth, every agent is only an adapter.
 // The JSON field tags mirror the single source of truth in
-// arch/contracts/schema/graph.l0.schema.json and box.contract.schema.json; from those
+// docs/architecture/contracts/schema/graph.l0.schema.json and box.contract.schema.json; from those
 // schemas the Go (indexer) and TS (React Flow map) types are generated.
 //
 // Agnosticism rule (VISION p3/p7): the product enumerates only DOCTRINE axes as
@@ -20,7 +20,7 @@ import "strings"
 // Mirrors $defs.clase in graph.l0.schema.json.
 type Clase string
 
-// The ten CC-native placeable primitives, aligned to the knowledge/ element nodes that
+// The ten CC-native placeable primitives, aligned to the docs/architecture/knowledge/ element nodes that
 // describe a component that can live as a graph node. Labels are canonical (subagent,
 // rule — not the legacy agente/regla). Deliberately EXCLUDED from clase: `headless`
 // (a run-mode / maquinaria, not a node type) and `harness-profile` (the orthogonal

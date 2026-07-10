@@ -1,5 +1,5 @@
 {
-	"//": "TS estricto (enforced_by de arch/conventions/ts-types.md). Extiende @tsconfig/strictest + overrides Vite. `tsc --noEmit` = el gate. DECLARADO; se activa con la SPA web/ (fase 5).",
+	"//": "TS estricto (enforced_by de docs/architecture/conventions/ts-types.md). Extiende @tsconfig/strictest + overrides Vite. `tsc --noEmit` = el gate. DECLARADO; se activa con la SPA web/ (fase 5).",
 	"extends": "@tsconfig/strictest/tsconfig.json",
 	"compilerOptions": {
 		"target": "ES2022",

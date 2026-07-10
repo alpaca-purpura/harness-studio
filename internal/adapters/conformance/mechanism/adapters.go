@@ -21,12 +21,12 @@ func result(c domain.Check, v domain.Veredicto, detalle string) domain.CheckResu
 // — "no such test" — never a silent pass (this is how B4's phantom enforcers surface).
 type ArchTest struct {
 	repoRoot string
-	pkg      string // e.g. "./arch/fitness/"
+	pkg      string // e.g. "./docs/architecture/fitness/"
 }
 
 // NewArchTest returns an arch-test adapter rooted at repoRoot.
 func NewArchTest(repoRoot string) *ArchTest {
-	return &ArchTest{repoRoot: repoRoot, pkg: "./arch/fitness/"}
+	return &ArchTest{repoRoot: repoRoot, pkg: "./docs/architecture/fitness/"}
 }
 
 // Mecanismo reports the mechanism this adapter executes (arch-test).
@@ -50,7 +50,7 @@ func (a *ArchTest) Run(ctx context.Context, c domain.Check, _ ports.Target) doma
 	}
 	// The test name is parsed from the repo's own ruleset (.md as data) and anchored in
 	// the regex; the binary is the local `go` toolchain — local-first, never remote input.
-	cmd := exec.CommandContext(ctx, "go", "test", "-run", "^"+test+"$", "-count=1", "-v", a.pkg) //nolint:gosec // G204: test comes from the repo's own knowledge/+arch/ ruleset, not external input.
+	cmd := exec.CommandContext(ctx, "go", "test", "-run", "^"+test+"$", "-count=1", "-v", a.pkg) //nolint:gosec // G204: test comes from the repo's own docs/architecture/knowledge/+arch/ ruleset, not external input.
 	cmd.Dir = a.repoRoot
 	out, err := cmd.CombinedOutput()
 	s := string(out)

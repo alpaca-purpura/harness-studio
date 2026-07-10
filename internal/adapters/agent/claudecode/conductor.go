@@ -5,7 +5,7 @@
 //
 // This package is the sole owner of the Claude Code protocol. It translates raw
 // stream-json frames into normalized ports.AgentEvent values; nothing upstream
-// re-decodes the wire format (arch/boundaries/conductor-no-parsea-jsonl.md).
+// re-decodes the wire format (docs/architecture/boundaries/conductor-no-parsea-jsonl.md).
 //
 // Wire contract (verified against claude 2.1.201):
 //   - input  (stdin, NDJSON):  {"type":"user","message":{"role":"user","content":[{"type":"text","text":"…"}]}}
@@ -54,7 +54,7 @@ func New(bin string) *Conductor {
 }
 
 // SpawnArgs returns the argv (sans binary) a SpawnOpts materializes. Exported so the
-// fitness tests (arch/fitness) can assert the permission/turn-cap flags without
+// fitness tests (docs/architecture/fitness) can assert the permission/turn-cap flags without
 // spawning a real process — the flags ARE the enforcement surface.
 func SpawnArgs(opts ports.SpawnOpts) []string {
 	args := []string{
@@ -112,7 +112,7 @@ var escrituraDirecta = map[string]bool{
 }
 
 // permissionArgs materializes a role-derived PermissionSet in CC-native flags — the
-// sanctioned surface per knowledge/elements/settings-permissions.md L1:
+// sanctioned surface per docs/architecture/knowledge/elements/settings-permissions.md L1:
 //
 //   - `--permission-mode default` — deny-by-default «Manual» (L1.4); never bypass.
 //   - `--allowedTools` — ONLY the genuinely read-only part of the role's allow
@@ -121,7 +121,7 @@ var escrituraDirecta = map[string]bool{
 //     outside the model's reasoning).
 //   - `--permission-prompt-tool stdio` — routes every non-pre-approved tool to the
 //     control channel (`control_request:can_use_tool`), which the adapter forwards to
-//     the daemon (design record historias/2026-07-05-arquitectura-fase3.md §frente B command line).
+//     the daemon (design record docs/product/research/2026-07-05-arquitectura-fase3.md §frente B command line).
 //
 // GAP honesto: `Ask` has no dedicated CC flag — it is realized by NOT pre-approving +
 // prompt-tool stdio (deny-by-default posture: unlisted/ask tools hit the control
@@ -302,10 +302,10 @@ type ctrlResponseBody struct {
 // abierto). Este envelope — {"type":"control_response","response":{subtype:"success",
 // request_id, response:{behavior:"allow",updatedInput}|{behavior:"deny",message}}} — es
 // el que implementan los SDKs oficiales y el que la investigación del repo cementó
-// (historias/2026-07-05-arquitectura-fase3.md §frente B ·
-// historias/2026-07-06-deuda-backend-arch.md item 2: «{behavior, updatedInput?,
+// (docs/product/research/2026-07-05-arquitectura-fase3.md §frente B ·
+// docs/product/research/2026-07-06-deuda-backend-arch.md item 2: «{behavior, updatedInput?,
 // message?} — verificar el exacto al implementar contra el binario»). Best-effort
-// verificado contra los SDKs; el cableado se prueba con fakes (arch/fitness).
+// verificado contra los SDKs; el cableado se prueba con fakes (docs/architecture/fitness).
 func controlResponseLine(requestID string, d ports.ControlDecision) ([]byte, error) {
 	var inner any
 	if d.Allow {

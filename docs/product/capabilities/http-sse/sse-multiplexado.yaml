@@ -1,0 +1,26 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.http-sse.sse-multiplexado
+cap_num: CAP-51
+slug: sse-multiplexado
+name: "SSE multiplexado (map/dock/run, replay)"
+status: vivo·nc          # GENERADO (R4) — no teclear
+module: http-sse
+verb: observar
+pointers:
+  - "internal/adapters/transport/sse/broker.go#Publish"
+  - "internal/adapters/transport/sse/broker.go#ServeHTTP"
+  - "internal/adapters/transport/sse/broker.go#replay"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-51)"
+---
+
+# SSE multiplexado (map/dock/run, replay)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

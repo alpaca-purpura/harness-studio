@@ -1,0 +1,24 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-shell.view-strip
+cap_num: CAP-73
+slug: view-strip
+name: "View-strip (Mapa|Diag|Corridas|Tren|Hist)"
+status: vivo·nc          # GENERADO (R4) — no teclear
+module: fe-shell
+verb: observar
+pointers:
+  - "web/src/widgets/view-strip/ui/view-strip.tsx#ViewStrip"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-73)"
+---
+
+# View-strip (Mapa|Diag|Corridas|Tren|Hist)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

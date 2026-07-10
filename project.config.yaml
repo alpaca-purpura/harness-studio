@@ -1,0 +1,107 @@
+# ════════════════════════════════════════════════════════════════════════
+#  project.config.yaml — THE SEAM (contrato DIP para el harness CORE)
+# ════════════════════════════════════════════════════════════════════════
+#
+#  Único store de todo valor PROYECTO/SISTEMA/TECH que el harness CORE lee. El
+#  CORE no nombra tech/sistema/locale/engine/live-env concretos; lee estos SLOTS
+#  abstractos. Se llenan para ESTE producto (harness-studio / ArnesIA).
+#
+#  Doctor: python3 ~/.claude/plugins/marketplaces/prenter-marketplace/plugins/harness/0.5.3/scripts/harness_config.py --doctor
+#          (o el harness_config.py del kit instalado). Sentinel de slot sin llenar: __FILL_ME__
+#
+#  Kit: harness@prenter-marketplace v0.5.3 (plugin, pinned — ver CLAUDE.md / .claude/settings.json)
+#  Adopción PLENA del método del plugin firmada 2026-07-09 (paquete homologacion-metodologia).
+# ════════════════════════════════════════════════════════════════════════
+
+meta:
+  product: harness-studio
+  config_version: 1
+  description: "ArnesIA — la fábrica de los arneses que alpacapurpura crea y vende por rol × proceso (crear · mapear · observar · mejorar)"
+  # provenance: CLAUDE.md L1 / docs/product/vision.md §Qué-es (v3 FIRMADA)
+
+# sistemas[] · instancias de mercado/producto. Single-sistema = lista de UNA entrada.
+# provenance: producto standalone (solo arneses propios, VISION §Constitución)
+sistemas:
+  loop_order: [arnesia]
+  active:
+    - slug: arnesia
+      status: active
+
+# toolchain · comandos lint/format/typecheck/test/build — VERBATIM de los build files
+# del repo (go.mod / web/package.json). provenance: go.mod (go 1.23) + web/package.json
+toolchain:
+  go:
+    build: "go build ./..."
+    vet: "go vet ./..."
+    fmt_check: "gofmt -l ."
+    test: "go test ./... -count=1"
+    lint: "golangci-lint run"                          # .golangci.yml
+    arch_lint: "go run github.com/fe3dback/go-arch-lint@latest check --project-path . --arch-file docs/architecture/fitness/.go-arch-lint.yml"
+    conformance: "go run ./cmd/arnesia conformance --todo"
+  web:
+    dir: "web"
+    dev: "npm run dev"
+    build: "npm run build"                             # tsc --noEmit && vite build
+    typecheck: "npm run typecheck"                     # tsc --noEmit
+    lint: "npm run lint"                               # biome check .
+    format: "npm run format"                           # biome format --write .
+    depcruise: "npm run depcruise"                     # dependency-cruiser (FSD-lite)
+    fsd: "npm run fsd"                                 # steiger
+    stylelint: "npm run stylelint"                     # anti-magic-value (tokens)
+    test: "npm run test"                               # vitest run
+    verify: "npm run verify"                           # typecheck+lint+depcruise+fsd+stylelint
+  precommit: "lefthook run pre-commit"                 # lefthook.yml (gate local, saltable; CI = duro)
+
+# locale · regla de idioma user-facing que los copy-gates enforcen.
+# provenance: toda la UX/doc del repo en español neutro (voseo solo en maquinaria interna)
+locale: es
+
+# engine_prefix · dónde vive el código COMPARTIDO/reusable (target grep anti-duplicación).
+# provenance: núcleo hexagonal — dominio + puertos + casos de uso (no importan transporte/infra)
+engine_prefix:
+  go_glob: "internal/domain/**;internal/ports/**;internal/usecase/**"
+
+# live_verify_infra · cómo se ejercita una story EN VIVO antes de `done` (bin/URL, evidencia).
+# provenance: daemon Go `arnesia` + /healthz (HS-14) · app Tauri `arnesia-app` (sidecar arnesia-daemon)
+live_verify_infra: "go build ./cmd/arnesia && ./arnesia --addr 127.0.0.1:4200 (curl /healthz + /api/*) · app: web/src-tauri (arnesia-app) contra binario instalado (.deb/.AppImage)"
+
+# design_system_ref · canon de composición UI (o `none` si no-UI).
+# provenance: tokens DTCG SSoT del contrato mockup↔código (fe-tokens-contrato)
+design_system_ref: "web/tokens/base.tokens.json (DTCG 2025.10 → Style Dictionary v5 → src/app/styles/theme.css) · shell firmado HS-03"
+
+# domain_modules · los módulos de negocio de los que habla el proceso.
+# provenance: grupos de capability A–O de CAPABILITIES.md + dominio L0
+domain_modules:
+  - arnes            # el vendible: arnés por rol × proceso
+  - caja             # box de proceso (contrato fusionado, FSM T3)
+  - spine            # columna + 5 categorías fijas (interop I-77)
+  - permiso          # permisos derivados del rol (deny>ask>allow, TTL)
+  - sesion           # sesión = frente de trabajo
+  - loader           # reconocer + cargar arnés a grafo L0
+  - indice           # índice de arneses (portfolio)
+  - conformance      # motor de conformidad (ruleset docs/architecture/knowledge/+arch/ → checks)
+  - conductor        # conductor determinista CC-native (T3, firewall)
+  - provisioning     # inyección de arneses a Claude Code (plugin+flags)
+  - mapa             # vista Mapa (crear·mapear·observar·mejorar)
+  - chat             # chat CC funcional (permisos+alcance+gate+stop)
+  - shell            # Command Rail A + Galaxia
+  - self-update      # botón Actualizar (self-update sin sudo)
+  - kit              # arnés de construcción (plugin, backflow)
+
+# agent_roster · roles worker (split builder/auditor) a los que rutean las stories.
+# provenance: stack real del repo (Go backend + React/Tauri web); sin superficie móvil
+agent_roster:
+  builder: [backend-go, frontend-web, tauri]
+  auditor: [qa, seguridad, arquitecto-software]
+  humano-complementario: [product-owner]
+
+# value_stream · etapas de las que el mapa deriva zonas (10 estados macro del kit).
+# provenance: paradigm v4 del kit (heredado); 10 estados COMPLETOS incl. parked/dropped
+value_stream: [idea, refining, refined, ready, developing, developed, reviewing, done, parked, dropped]
+
+# wip_caps · límites work-in-progress que enforcen los closure gates.
+# provenance: ADVISORY — se visualizan, gates reportan (no bloquean duro)
+wip_caps:
+  enforcement: advisory
+  developing_por_modulo: 2
+  reviewing_por_modulo: 1

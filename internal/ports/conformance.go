@@ -15,7 +15,7 @@ import (
 type TargetKind string
 
 const (
-	// TargetElemento — run one knowledge/arch element node's checks (e.g. "skills").
+	// TargetElemento — run one docs/architecture/knowledge/arch element node's checks (e.g. "skills").
 	TargetElemento TargetKind = "elemento"
 	// TargetArnes — validate a concrete arnés graph (its box contracts + spine consistency).
 	TargetArnes TargetKind = "arnes"
@@ -32,7 +32,7 @@ type Target struct {
 	GraphPath string
 }
 
-// RulesetPort loads knowledge/ + arch/ as a parsed ruleset of DATA (principle 2). Its
+// RulesetPort loads docs/architecture/knowledge/ + arch/ as a parsed ruleset of DATA (principle 2). Its
 // adapter is a markdown frontmatter+table parser; changing the standard = changing the
 // .md files this port re-reads, never the engine.
 type RulesetPort interface {

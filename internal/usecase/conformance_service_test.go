@@ -37,7 +37,7 @@ func newService(t *testing.T) (*usecase.ConformanceService, string) {
 		mechanism.StaticScan{},
 		mechanism.SchemaAdapter{},
 	}
-	schemas := mechanism.NewSchemaSet(filepath.Join(root, "arch", "contracts", "schema"))
+	schemas := mechanism.NewSchemaSet(filepath.Join(root, "docs", "architecture", "contracts", "schema"))
 	return usecase.NewConformanceService(root, ruleset.New(root), schemas, adapters), root
 }
 

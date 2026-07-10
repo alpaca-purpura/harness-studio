@@ -114,7 +114,7 @@ func TestPermissionArgsMaterialization(t *testing.T) {
 	}
 }
 
-// TestSpawnArgsMCPAislado enforces HS-17 D2 (arch/boundaries/superficie-local-confinada.md):
+// TestSpawnArgsMCPAislado enforces HS-17 D2 (docs/architecture/boundaries/superficie-local-confinada.md):
 // every spawn with a populated Injection locks MCP to ONLY the aggregated config file —
 // never the operator's `~/.claude` servers or claude.ai account connectors.
 func TestSpawnArgsMCPAislado(t *testing.T) {
@@ -132,7 +132,7 @@ func TestSpawnArgsMCPAislado(t *testing.T) {
 	}
 }
 
-// TestSpawnArgsSettingSourcesExcludeUser enforces HS-17 D3 (arch/boundaries/
+// TestSpawnArgsSettingSourcesExcludeUser enforces HS-17 D3 (docs/architecture/boundaries/
 // superficie-local-confinada.md): EVERY spawn fixes --setting-sources to
 // "project,local" — "user" (the operator's own ~/.claude/settings.json, with THEIR
 // enabledPlugins/hooks) never rides, and there is no SpawnOpts field to reintroduce it.

@@ -19,7 +19,7 @@ var DevFullCycleJSON []byte
 // 4 canal · 5 procedencia · 4 arquetipo · 3 perfil · 4 gate.tipo · both origen · rework
 // spine). Its rol is Editorial — NON-engineering, on purpose — so the Map proves the
 // agnostic-to-rubro principle (VISION P7). Conformance-valid (arnesia conformance --arnes).
-// Design record: historias/2026-07-06-plan-hito2-doctrina-edicion-showcase/. HS-09 Hito 2.
+// Design record: docs/product/stories/2026-07-06-plan-hito2-doctrina-edicion-showcase/. HS-09 Hito 2.
 //
 //go:embed content-studio-full.graph.json
 var ContentStudioFullJSON []byte

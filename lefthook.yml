@@ -1,8 +1,8 @@
-# lefthook — gate local pre-commit (enforced_by de arch/conventions/git-hooks.md + commits.md).
+# lefthook — gate local pre-commit (enforced_by de docs/architecture/conventions/git-hooks.md + commits.md).
 # Binario Go, políglota, paralelo, Node-free. Instalar: `go install github.com/evilmartians/lefthook@latest`.
 #
 # NOTA (honestidad): declarado; se activa cuando el código aterrice (fase 5). lefthook = feedback
-# rápido (saltable con --no-verify); el gate DURO es CI (arch/conventions/ci.md).
+# rápido (saltable con --no-verify); el gate DURO es CI (docs/architecture/conventions/ci.md).
 
 pre-commit:
   parallel: true
@@ -26,14 +26,14 @@ pre-commit:
       glob: "*.rs"
       run: cargo fmt
     capabilities:
-      # R1 integridad + R2 cobertura de CAPABILITIES.md (arch/boundaries/codigo-traza-a-capability.md).
+      # R1 integridad + R2 cobertura de docs/product/capabilities/ (docs/architecture/boundaries/codigo-traza-a-capability.md).
       # Corre al tocar código fuente: si agregás un archivo sin reclamarlo en el SSoT funcional, R2
       # falla acá (feedback local; el gate DURO es CI vía `arnesia conformance`). ~4ms.
       glob: "*.{go,ts,tsx,rs}"
-      run: go test ./arch/fitness/ -run 'TestCapability(PointersResolve|Coverage)'
+      run: go test ./docs/architecture/fitness/ -run 'TestCapability(PointersResolve|Coverage)'
 
 commit-msg:
   commands:
     conventional:
-      # Conventional Commits + scope HS-NN (regex Node-free — ver arch/conventions/commits.md)
+      # Conventional Commits + scope HS-NN (regex Node-free — ver docs/architecture/conventions/commits.md)
       run: 'grep -qE "^(feat|fix|docs|refactor|chore|test|perf|build|ci)(\(.+\))?: " {1} || { echo "commit no-Conventional (feat|fix|…: descripción)"; exit 1; }'

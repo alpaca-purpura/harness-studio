@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-// This file models role-derived permissions (arch/boundaries/permisos-derivan-del-rol.md,
+// This file models role-derived permissions (docs/architecture/boundaries/permisos-derivan-del-rol.md,
 // Salesforce + APM normative frame). A permission-set is NOT a fixed default: it is what
 // the ROLE authorizes, so the SAME tool carries different decisions per role. Permissions
 // are enforced outside the model's reasoning (hooks / control_request) and can be

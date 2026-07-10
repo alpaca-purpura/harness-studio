@@ -11,7 +11,7 @@ import (
 )
 
 // BoxConductor runs a T3 box's autonomous loop. It is the realization of
-// arch/boundaries/orquestacion-determinista-entre-cajas.md: the Go conductor OWNS the
+// docs/architecture/boundaries/orquestacion-determinista-entre-cajas.md: the Go conductor OWNS the
 // control flow — it spawns `claude` with a hard --max-turns, applies an explicit repair
 // cap (double red), reads the `result` subtype + the artifact `status` (document-as-
 // cache) to advance the internal FSM, terminates in `blocked`→handoff, and executes

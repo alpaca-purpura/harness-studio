@@ -14,7 +14,7 @@ import (
 
 // runEventType is the SSE event name for run lifecycle frames. It mirrors
 // sse.EventRun; kept as a literal so this package needs no transport import (same
-// pattern as dockEventType — arch/boundaries/dominio-independiente-de-transporte.md).
+// pattern as dockEventType — docs/architecture/boundaries/dominio-independiente-de-transporte.md).
 const runEventType = "run"
 
 // Sentinels the transport maps to status codes (404 / 422).

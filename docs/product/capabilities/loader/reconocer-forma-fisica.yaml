@@ -1,0 +1,27 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.loader.reconocer-forma-fisica
+cap_num: CAP-15
+slug: reconocer-forma-fisica
+name: "Reconocer forma física (plugin|instalado)"
+status: vivo          # GENERADO (R4) — no teclear
+module: loader
+verb: mapear
+pointers:
+  - "internal/adapters/loader/loader.go#detectarElementos"
+  - "internal/adapters/loader/loader.go#LoadArnes"
+valida:
+  - "TestLoaderInstalado"
+  - "TestLoaderNoEsArnes"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-15)"
+---
+
+# Reconocer forma física (plugin|instalado)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

@@ -1,4 +1,4 @@
-// Package ruleset implements ports.RulesetPort: it parses the knowledge/ and arch/
+// Package ruleset implements ports.RulesetPort: it parses the docs/architecture/knowledge/ and arch/
 // trees into a domain.Ruleset of DATA (principle 2 — the knowledge is data, not code).
 // Each `Checklist evaluable` table row becomes a domain.Check; a check's mechanism and
 // enforced_by are either declared explicitly in the node's `conformance:` frontmatter
@@ -21,7 +21,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Loader parses the knowledge/ + arch/ trees of an fs.FS (el disco del repo en dev; el
+// Loader parses the docs/architecture/knowledge/ + arch/ trees of an fs.FS (el disco del repo en dev; el
 // embed del binario en una instalación de cliente — misma lógica, cero divergencia:
 // boundary doctrina-una-fuente-dos-targets de la investigación de inyección, firmado HS-10).
 type Loader struct {
@@ -35,14 +35,14 @@ var _ ports.RulesetPort = (*Loader)(nil)
 func New(repoRoot string) *Loader { return NewFromFS(os.DirFS(repoRoot)) }
 
 // NewFromFS returns a Loader over any fs.FS carrying the three check-bearing trees:
-// knowledge/elements, arch/boundaries and arch/conventions (rutas slash, raíz del FS).
+// docs/architecture/knowledge/elements, docs/architecture/boundaries and docs/architecture/conventions (rutas slash, raíz del FS).
 func NewFromFS(fsys fs.FS) *Loader {
 	return &Loader{
 		fsys: fsys,
 		dirs: []string{
-			"knowledge/elements",
-			"arch/boundaries",
-			"arch/conventions",
+			"docs/architecture/knowledge/elements",
+			"docs/architecture/boundaries",
+			"docs/architecture/conventions",
 		},
 	}
 }

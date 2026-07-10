@@ -164,7 +164,7 @@ func runServe(args []string) error {
 	// el binario instalado se comporta igual que el de dev; el scope `fabrica`
 	// (arch-test/go-arch-lint, repoRoot="") difiere honesto, el scope `arnes` (schema +
 	// spine + escritor único + firewall) da pass/fail real vía RunGraph.
-	schemaFS, err := iofs.Sub(doctrina.Files, "arch/contracts/schema")
+	schemaFS, err := iofs.Sub(doctrina.Files, "docs/architecture/contracts/schema")
 	if err != nil {
 		return fmt.Errorf("schemas embebidos: %w", err)
 	}
@@ -338,7 +338,7 @@ func runIndex(args []string) error {
 		fmt.Fprint(os.Stderr, `usage: arnesia index [-o out.graph.json] [<dir-del-arnés>]   (flags ANTES del dir — semántica flag de Go)
 
   <dir>   raíz de un arnés (plugin CC con .claude-plugin/, o proyecto con .claude/):
-          se reconoce archivo-por-archivo según arch/contracts/nomenclatura-arnes.md
+          se reconoce archivo-por-archivo según docs/architecture/contracts/nomenclatura-arnes.md
           y se emite su graph.l0 (fuente_path ESTAMPADOS; no-reconocido VISIBLE).
   sin dir: re-seedea el índice in-memory embebido (fixtures dogfood).
 `)

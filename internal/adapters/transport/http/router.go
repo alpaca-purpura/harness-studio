@@ -1,7 +1,7 @@
 // Package httpapi is the HTTP delivery adapter: it mounts the daemon's routes
-// (arch/contracts/api/openapi.yaml) onto a net/http mux and translates requests to
+// (docs/architecture/contracts/api/openapi.yaml) onto a net/http mux and translates requests to
 // use-case calls. It holds no business rules (see
-// arch/boundaries/dominio-independiente-de-transporte.md). The SSE stream is injected
+// docs/architecture/boundaries/dominio-independiente-de-transporte.md). The SSE stream is injected
 // as a plain http.Handler so this package need not know the concrete broker.
 package httpapi
 

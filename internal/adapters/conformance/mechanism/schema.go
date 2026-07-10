@@ -28,11 +28,11 @@ type SchemaSet struct {
 }
 
 // NewSchemaSet returns a SchemaSet rooted at the on-disk schema directory
-// (arch/contracts/schema under the repo root).
+// (docs/architecture/contracts/schema under the repo root).
 func NewSchemaSet(schemaDir string) *SchemaSet { return NewSchemaSetFS(os.DirFS(schemaDir)) }
 
 // NewSchemaSetFS returns a SchemaSet over any fs.FS whose root contains the schema
-// files (p.ej. fs.Sub(doctrina.Files, "arch/contracts/schema")).
+// files (p.ej. fs.Sub(doctrina.Files, "docs/architecture/contracts/schema")).
 func NewSchemaSetFS(fsys fs.FS) *SchemaSet {
 	return &SchemaSet{fsys: fsys, resolved: map[string]*jsonschema.Resolved{}}
 }

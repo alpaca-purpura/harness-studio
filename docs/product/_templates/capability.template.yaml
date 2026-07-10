@@ -1,0 +1,91 @@
+---
+# ============================================================================
+# Capability YAML · schema harness-studio v1 (homologación 2026-07-09)
+# SSoT funcional: docs/product/capabilities/{module}/{slug}.yaml
+# Doctrina: docs/architecture/boundaries/codigo-traza-a-capability.md (R1/R2/R3/R4)
+# ============================================================================
+# = schema del plugin (4 dimensiones + scenarios BDD + change_log + related)
+#   FUSIONADO con los campos anti-drift de harness-studio (pointers file#Símbolo
+#   + valida + estado GENERADO). El story es el DELTA; el capability es el SALDO.
+# Copiá este file a {module}/{slug}.yaml. `cap_doctor.py` valida los campos duros.
+# NO se teclea el `estado` a mano (R4): lo deriva `arnesia conformance`.
+# ============================================================================
+
+# ── IDENTIDAD ────────────────────────────────────────────────────────────
+capability_id: arnesia.{module}.{slug}    # único · convención product.module.slug
+cap_num: CAP-NN                            # id corto legacy (continuidad CAPABILITIES.md)
+slug: {slug}                              # kebab-case · único dentro del module
+name: "{Nombre human-readable de la capacidad}"    # ≤80 chars · español neutro
+status: vivo                              # vivo | vivo·nc | parcial | stub  (GENERADO — R4)
+license: brand-local                      # brand-local | core-shared | proprietary
+
+# ── DIMENSIÓN 1 · TÉCNICA ─────────────────────────────────────────────────
+module: {module}                          # uno de project.config.yaml domain_modules
+layer: dominio                            # dominio | usecase | adapter | transport | fe | tauri | cmd
+
+# ── DIMENSIÓN 2 · USER-FACING ─────────────────────────────────────────────
+verb: crear                              # crear | mapear | observar | mejorar | infra (VISION anatomía)
+functional_area: "{module}.{area-kebab}"  # agrupación para el Mapa
+
+# ── DIMENSIÓN 3 · VISIBILIDAD ─────────────────────────────────────────────
+user_visible: false                       # true = aparece en el Mapa · false = infra cross-cutting
+
+# ── DIMENSIÓN 4 · NATURALEZA ──────────────────────────────────────────────
+nature: feature                           # feature | scaffold | extension-point
+
+# ── PUNTEROS ANTI-DRIFT (R1 · file#Símbolo, NUNCA nº de línea) ─────────────
+pointers:
+  - "internal/{path}.go#Símbolo"          # cada uno DEBE resolver a código real (R1)
+# ── VERIFICACIÓN (los checks que sostienen `status`) ──────────────────────
+valida:
+  - TestNombre                            # test(s) Go/vitest · vacío ⇒ status vivo·nc/stub
+
+# ── DEV_PREVIEW (obligatorio si user_visible: true) ───────────────────────
+dev_preview:
+  route: null                             # ruta FE (ej "/mapa") · null si no-UI
+  how_to_navigate: null                   # pasos verbatim para llegar en sesión local
+  main_component: null                    # web/src/features/{m}/... · null si BE-only
+  api_endpoints: []                       # endpoints que consume (ej "GET /api/arneses")
+  e2e_test: null                          # spec e2e · null si no tiene aún
+
+# ── LEDGER (trazabilidad · SSoT del cambio) ───────────────────────────────
+created_in_story: {story-id}
+created_date: 2026-MM-DD
+last_modified: 2026-MM-DD
+source_ref: null                          # docs/product/research/... o ledger/HS-NN.md (fuente original)
+change_log:
+  - story_id: {story-id}
+    date: 2026-MM-DD
+    type: new                             # new | fix | extend | derive
+    summary: "{qué hace en 1-2 líneas}"
+    merge_sha: null
+
+# ── scenarios (BDD · comportamiento observable, unidad atómica) ────────────
+scenarios:
+  - id: <kebab-scenario-id>
+    name: "<Nombre user-facing>"
+    status: live                          # live | wip | deprecated
+    given: "{contexto · 1 línea}"
+    when: "{acción · 1 línea}"
+    then: "{resultado observable · 1+ líneas}"
+    verifica: null                        # test/ruta que lo prueba REAL (no "200")
+
+# ── business_rules (invariantes del dominio) ──────────────────────────────
+business_rules: []
+  # - id: <kebab-rule-id>
+  #   rule: "{regla en 1-2 líneas}"
+  #   enforcement: ["docs/architecture/boundaries/{node}.md"]
+  #   severity: medium                     # critical | high | medium | low
+
+# ── related_capabilities (grafo de dependencias) ──────────────────────────
+related_capabilities:
+  depends_on: []                          # caps que ESTE necesita activas
+  enables: []                             # caps que SE habilitan por este
+  similar: []
+  obsoletes: []
+---
+
+# {Capability name}
+
+{Resumen opcional · 1-3 párrafos: arquitectura interna, decisión cardinal,
+surface, cobertura de tests, análisis de promoción.}

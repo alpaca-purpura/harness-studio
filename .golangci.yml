@@ -1,9 +1,9 @@
-# golangci-lint v2 — convenciones Go de ArnesIA (enforced_by de arch/conventions/go-style.md).
+# golangci-lint v2 — convenciones Go de ArnesIA (enforced_by de docs/architecture/conventions/go-style.md).
 # Rompe CI: `golangci-lint run ./...` (hallazgos) · `golangci-lint fmt --diff` (formato).
 #
-# NOTA (honestidad, arch/CADENCE): el módulo Go aún no existe (cero código de producto, fase 5).
+# NOTA (honestidad, docs/architecture/CADENCE): el módulo Go aún no existe (cero código de producto, fase 5).
 # Este archivo DECLARA el set objetivo; se activa cuando el módulo `arnesia` aterrice. El grafo de
-# imports hexagonal vive aparte en arch/fitness/.go-arch-lint.yml; aquí van estilo + depguard.
+# imports hexagonal vive aparte en docs/architecture/fitness/.go-arch-lint.yml; aquí van estilo + depguard.
 version: "2"
 
 linters:
@@ -35,7 +35,7 @@ linters:
     - unconvert
     - wastedassign
     # estilo / API
-    - revive           # naming idiomático (ver arch/conventions/naming.md)
+    - revive           # naming idiomático (ver docs/architecture/conventions/naming.md)
     - gocritic
     - unparam
     - predeclared
@@ -62,7 +62,7 @@ linters:
     depguard:
       rules:
         domain-sin-transporte:
-          # el dominio no importa transporte/infra (espejo de arch/boundaries/dominio-independiente-de-transporte)
+          # el dominio no importa transporte/infra (espejo de docs/architecture/boundaries/dominio-independiente-de-transporte)
           files: ["**/internal/domain/**", "**/internal/usecase/**"]
           deny:
             - { pkg: "net/http", desc: "el dominio no conoce HTTP (usa un puerto)" }
@@ -73,6 +73,6 @@ formatters:
     - gofumpt
     - goimports
 
-# Evitados por ruido (criterio documentado en arch/conventions/go-style.md):
+# Evitados por ruido (criterio documentado en docs/architecture/conventions/go-style.md):
 # lll wsl nlreturn err113 exhaustruct varnamelen mnd godox gochecknoglobals gochecknoinits dupl
 # tagliatelle maintidx forcetypeassert paralleltest

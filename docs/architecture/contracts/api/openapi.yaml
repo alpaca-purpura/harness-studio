@@ -1,0 +1,482 @@
+openapi: 3.1.0
+info:
+  title: ArnesIA daemon API
+  # 0.2.0-hs09: + GET /harnesses/{id}/nodes/{nodeId}/fuente (tab Contenido del
+  # inspector, paquete inspector-drawer RF-93 — lectura confinada S2).
+  # 0.3.0-hs11: + GET /version · POST /self-update (paquete boton-actualizar,
+  # RF-104..107 — self-update sin sudo del binario instalado).
+  version: 0.3.0-hs11
+  description: >-
+    Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
+    tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
+    (docs/architecture/boundaries/dominio-independiente-de-transporte.md).
+
+
+    **Confinamiento (HS-06, docs/architecture/boundaries/superficie-local-confinada.md).** Toda ruta (salvo
+    `/healthz`) pasa tres gates: (1) `Host` debe ser un loopback esperado (anti DNS-rebinding); (2)
+    un `Origin` de navegador debe estar en el allowlist y se refleja exacto (nunca `*`); (3) si el
+    daemon arrancó con token (`ARNESIA_AUTH_TOKEN`/`--auth-token`, minteado por el shell Tauri), toda
+    request lo exige (`Authorization: Bearer` o `X-Arnesia-Token`, o `?token=` para el SSE). En dev
+    sin token, los gates 1+2 siguen. Los gates Host/Origin no se expresan en OpenAPI (son de header);
+    se documentan aquí.
+servers:
+  - url: http://127.0.0.1:4200/api
+    description: daemon local (single-user). El WebView Tauri y el browser dev consumen esta misma API.
+security:
+  - bearerAuth: []
+  # En dev (daemon sin token) la seguridad efectiva es Host+Origin; el token gate se salta.
+paths:
+  /harnesses:
+    get:
+      operationId: listHarnesses
+      summary: Portafolio (S1) — arneses con salud + telemetría resumida.
+      responses:
+        "200":
+          description: Lista de arneses (organigrama/cuadrícula).
+  /harnesses/{id}/graph:
+    get:
+      operationId: getHarnessGraph
+      summary: Mapa (S2) — el grafo agnóstico del arnés (nodos + edges).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Grafo L0.
+          content:
+            application/json:
+              schema:
+                $ref: ../schema/graph.l0.schema.json
+  /harnesses/{id}/nodes/{nodeId}:
+    get:
+      operationId: getNode
+      summary: Inspector (S3) — identidad + métricas + contrato + hallazgos del nodo.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: nodeId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Nodo con contrato (valida box.contract.schema.json) y métricas. }
+  /harnesses/{id}/nodes/{nodeId}/fuente:
+    get:
+      operationId: getNodeFuente
+      summary: >-
+        Fuente del nodo (RF-93, tab Contenido del inspector): el artefacto REAL que el loader
+        reconoció (fuente_path), servido tal cual (read-only) — autodocumentación como efecto.
+        Lectura CONFINADA al directorio REGISTRADO del arnés (S2, valida traversal; un arnés sin
+        directorio registrado responde 404 honesto — los fixtures embebidos no viven en disco).
+        La ruta servida viaja en el header X-Arnesia-Fuente-Path.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: nodeId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: El archivo fuente, tal cual está en disco.
+          content:
+            text/plain:
+              schema: { type: string }
+        "403": { description: La fuente resuelta escapa del directorio del arnés (traversal). }
+        "404": { description: "Arnés no indexado · nodo inexistente · nodo sin fuente_path (pendiente del reconocedor) · arnés sin directorio registrado · archivo ausente — el cuerpo dice cuál." }
+  /harnesses/{id}/runs:
+    get:
+      operationId: listRuns
+      summary: Corridas (S8) — corridas reales derivadas del JSONL (enumerar/replay, no parsear schema).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Lista de corridas. }
+  /harnesses/{id}/conformance:
+    get:
+      operationId: getConformance
+      summary: >-
+        Auditoría del arnés (HS-11, puente 3): el motor corre el scope `arnes` (schema graph.l0 +
+        contratos de caja + spine + escritor único + firewall CC-native) sobre el grafo indexado —
+        pass/fail real con ruleset EMBEBIDO en el binario, sin repo fuente. El scope `fabrica`
+        (arch-test/go-arch-lint) no pasa por aquí: vive en el CI del repo.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "ConformanceReport: target + results[] {check{id,severidad,que,mecanismo,enforced_by}, veredicto pass|fail|error|deferred|n/a, detalle}." }
+        "404": { description: Arnés no indexado. }
+
+  /harnesses/{id}/boxes/{boxId}/run:
+    post:
+      operationId: runBox
+      summary: >-
+        Conductor T3 (Fase E, D2 gate-0): corre el loop determinista de UNA caja — recurso propio,
+        separado del turno conversacional del Dock (docs/architecture/boundaries/orquestacion-determinista-entre-
+        cajas.md). El daemon resuelve el rol del arnés (META `arnes.rol` del grafo indexado) →
+        permission-set del rol (permisos-derivan-del-rol) → spawnea `claude` confinado al árbol del
+        arnés con `--max-turns` SIEMPRE + flags de permisos CC-native + inyección de doctrina; el
+        loop lee `result.subtype` + el `status:` del artefacto (document-as-cache, jamás el texto del
+        chat) y rutea por `contract.ruta`. SÍNCRONO: el loop está acotado (repair-cap × --max-turns)
+        y el desenlace ES la respuesta (un fallo de spawn llega al caller, no se pierde en un 202);
+        el progreso vivo viaja en paralelo por /events (event: run).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: boxId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Desenlace terminal del loop (estado interno + ruteo decidido por CÓDIGO).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunResult" }
+        "404": { description: Arnés no indexado, o el nodo no existe en su grafo. }
+        "422": { description: El nodo no es una caja con contrato (solo una caja de proceso corre T3), o el arnés no declara rol (META de enganche incompleta — el permission-set deriva del rol). }
+        "500": { description: Fallo del spawn/conductor — el error REAL, nunca un 501 genérico. }
+
+  /version:
+    get:
+      operationId: getVersion
+      summary: >-
+        Identidad honesta del binario corriendo (RF-107): huella VCS del buildinfo de Go
+        (vcs.revision[:7], sufijo «+sucio» si vcs.modified; sin VCS → «dev»), ruta REAL del
+        ejecutable, si el proceso puede reemplazarlo (escritura en su directorio — RF-102) y el
+        repo configurado al daemon (--repo / ARNESIA_REPO; vacío = RF-103). Fuente de la tarjeta
+        «Versión y actualización» y del polling del reinicio (RF-105). La UI jamás inventa nada.
+      responses:
+        "200":
+          description: Identidad del binario.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VersionInfo" }
+  /self-update:
+    post:
+      operationId: selfUpdate
+      summary: >-
+        Self-update sin sudo (RF-104, paquete boton-actualizar): compila el árbol local
+        (scripts/bundle.sh --daemon-only, cwd = repo CONFIGURADO), inspecciona el binario
+        producido SIN ejecutarlo (buildinfo), instala write-tmp→rename atómico EN el directorio
+        del ejecutable y agenda el re-exec POST-respuesta (RF-105). SÍNCRONO: la respuesta ES el
+        reporte con el veredicto REAL de cada paso; un paso fallido corta el flujo (posteriores
+        «no-corrido») y el binario instalado queda INTACTO. Seguridad (RF-106, decisión #4): bajo
+        withAuth; el request NO lleva parámetros — ni rutas ni flags, el cuerpo se IGNORA; un
+        self-update a la vez; huella igual = «ya-al-dia», éxito sin reinstalar.
+      responses:
+        "200":
+          description: Reporte terminal (actualizado · ya-al-dia · fallo) con los 5 pasos.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SelfUpdateReport" }
+        "409": { description: Ya hay un self-update en curso (o el daemon está por reiniciar — el lock se retiene tras «actualizado»). }
+        "503": { description: "No puede NI empezar: binario no escribible (RF-102) o repo no configurado (RF-103) — el cuerpo dice cuál." }
+
+  /arneses:
+    get:
+      operationId: listArneses
+      summary: >-
+        Registro arnés→ruta (S2) — cada arnés mapea a la working dir donde corre `claude`. Confina la
+        sesión a su árbol (docs/architecture/boundaries/permisos-gui `sesion-aislada-por-cwd`).
+      responses:
+        "200":
+          description: Entradas registradas.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ArnesPath" } }
+  /arneses/{id}:
+    put:
+      operationId: registerArnes
+      summary: Registra (o reemplaza) la working dir de un arnés. Valida absoluta·existe·dir·no-protegida.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [path], properties: { path: { type: string } } }
+      responses:
+        "200":
+          description: Registrada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArnesPath" }
+        "400": { description: "Ruta inválida o protegida (`/`, `$HOME`, `~/.claude`, `~/.ssh`, relativa…)." }
+
+  /sessions:
+    get:
+      operationId: listSessions
+      summary: Multisesión (S4) — los frentes de trabajo abiertos (rail).
+      responses:
+        "200":
+          description: Sesiones en orden estable de creación.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Session" } }
+    post:
+      operationId: createSession
+      summary: Abre un frente. `path` opcional registra la ruta del arnés en la misma llamada (S2).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewSession" }
+      responses:
+        "201":
+          description: Sesión creada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { description: Payload inválido o ruta de arnés rechazada. }
+  /sessions/{id}:
+    get:
+      operationId: getSession
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: La sesión.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } }
+        "404": { description: No existe. }
+    patch:
+      operationId: patchSession
+      summary: Renombra el frente y/o registra la vista donde quedó parqueada.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { frente: { type: string }, view: { type: string } }
+      responses:
+        "200":
+          description: Sesión actualizada.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } }
+        "404": { description: No existe. }
+    delete:
+      operationId: closeSession
+      summary: Cierra la sesión (detiene el conductor, la saca del registro).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Cerrada. }
+        "404": { description: No existe. }
+  /sessions/{id}/turn:
+    post:
+      operationId: sendTurn
+      summary: Dock (S4) — envía un turno a la sesión CC viva (streaming input al subproceso).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties: { text: { type: string } }
+      responses:
+        "202":
+          description: "Turno encolado; la respuesta llega por /events (event: dock)."
+        "400": { description: Turno vacío. }
+        "409":
+          description: >-
+            La sesión ya está streaming — un turno en vuelo (docs/architecture/boundaries/sesion-viva-consistente
+            `un-turno-a-la-vez`). No se encola un segundo turno.
+  /sessions/{id}/permission:
+    post:
+      operationId: resolvePermission
+      summary: >-
+        Diff-approval (human-in-the-loop, REAL desde Fase E — reemplaza el 501). Resuelve el
+        control_request:can_use_tool que el adapter reenvió como tarjeta `permission` del Dock (D3):
+        la decisión humana corre BAJO la autoridad del rol — `PermissionSet.Decide` con deny > ask >
+        allow, así que un deny del rol gana incluso al click de aprobar (la autoridad se impone fuera
+        del razonamiento Y fuera del click); un allow mintea un Grant EFÍMERO (TTL del rol; el
+        operador solo puede ACOTARLO con ttl_segundos, nunca ampliarlo) y mientras esté vigente el
+        mismo tool no re-pregunta en la sesión. La respuesta viaja al conductor como
+        control_response por stdin. Ver docs/architecture/boundaries/permisos-gui-human-in-the-loop.md +
+        permisos-derivan-del-rol.md.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [request_id, decision]
+              properties:
+                request_id: { type: string, description: el id del control_request pendiente (llegó en la tarjeta `permission` del Dock). }
+                decision: { type: string, enum: [allow, deny] }
+                role: { type: string, description: "opcional (RF-114, decisión #6): omitido ⇒ el daemon usa el rol del ARNÉS de la sesión (graph.l0 META) — el FE no elige autoridad. Deny-by-default: sin rol resoluble no hay resolución." }
+                ttl_segundos: { type: integer, description: "opcional: ACOTA el TTL del grant por debajo del que el rol autoriza (jamás lo amplía)." }
+      responses:
+        "200":
+          description: Resuelto — la decisión EFECTIVA tras aplicar la autoridad del rol.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionResolution" }
+        "400": { description: Decisión inválida, rol vacío/irresoluble, o request_id ausente. }
+        "404": { description: No hay control_request pendiente con ese id en esa sesión. }
+        "500": { description: La respuesta no llegó al conductor (proceso muerto / stdin roto). }
+  /sessions/{id}/interrupt:
+    post:
+      operationId: interruptSession
+      summary: >-
+        Stop real (RF-116, paquete chat-cc-funcional): interrumpe el turno en vuelo IN-BAND —
+        los asks de permiso pendientes se deniegan con motivo «interrumpido por el operador» y el
+        conductor recibe control_request subtype=interrupt por stdin (wire verificado contra el SDK
+        oficial + implementaciones de referencia, investigación 2026-07-08 §Frente ①). El subproceso
+        sigue vivo: emite su frame `result` y la sesión asienta idle por el flujo normal. Matar el
+        proceso es solo fallback del adapter, jamás esta API.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "202":
+          description: "Interrupt enviado; el cierre del turno llega por /events (event: dock)."
+        "404": { description: Sesión inexistente. }
+        "409": { description: No hay turno en vuelo que interrumpir (sesión idle o sin conductor vivo). }
+        "500": { description: El interrupt no llegó al conductor (stdin roto). }
+
+  /events:
+    get:
+      operationId: streamEvents
+      summary: >-
+        SSE multiplexado — UNA conexión, eventos tipados (event: map | dock | run). Reconexión por
+        Last-Event-ID; un subscriber rezagado se descarta y reconecta+replaya (sesion-viva-consistente
+        `sin-perdida-silenciosa`). Cada frame `dock` lleva session_id + run_id (rutear N streams +
+        idempotencia).
+      security:
+        - bearerAuth: []
+        - sseToken: []
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: { type: string }
+        - name: token
+          in: query
+          required: false
+          description: Token de capacidad para el EventSource (no puede poner headers).
+          schema: { type: string }
+      responses:
+        "200":
+          description: text/event-stream. Taxonomía AG-UI (subset text/tool/lifecycle) + CUSTOM para eventos CC.
+          content:
+            text/event-stream:
+              schema:
+                description: "Frames `event: dock` con este payload:"
+                $ref: "#/components/schemas/DockFrame"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        Token de capacidad minteado por el shell Tauri (`ARNESIA_AUTH_TOKEN`). También aceptado como
+        header `X-Arnesia-Token`. Ausente en dev → gate se salta (Host+Origin siguen).
+    sseToken:
+      type: apiKey
+      in: query
+      name: token
+      description: Variante para el EventSource (que no puede setear headers).
+  schemas:
+    Session:
+      type: object
+      required: [id, frente, arnes, status, view]
+      properties:
+        id: { type: string }
+        frente: { type: string }
+        arnes: { type: string }
+        empresa: { type: string }
+        puesto: { type: string }
+        salud: { type: string, enum: [ok, warn, crit, info] }
+        status: { type: string, enum: [streaming, await, idle] }
+        view: { type: string }
+        parked: { type: string }
+        claude_session_id: { type: string }
+        model: { type: string }
+        ctx_pct: { type: integer }
+        conv:
+          type: array
+          items:
+            type: object
+            properties:
+              rol: { type: string, enum: [user, assistant, sys] }
+              text: { type: string }
+    NewSession:
+      type: object
+      required: [arnes]
+      properties:
+        arnes: { type: string }
+        frente: { type: string }
+        empresa: { type: string }
+        puesto: { type: string }
+        salud: { type: string, enum: [ok, warn, crit, info] }
+        view: { type: string }
+        parked: { type: string }
+        path: { type: string, description: "opcional — registra la working dir del arnés (S2)." }
+    DockFrame:
+      type: object
+      required: [session_id, kind]
+      properties:
+        session_id: { type: string, description: "rutea N conversaciones en una conexión." }
+        run_id: { type: string, description: "el turno al que pertenece el frame (idempotencia)." }
+        kind:
+          type: string
+          enum: [status, init, delta, message, result, error, permission, permission_result]
+          description: >-
+            permission = tarjeta ask→UI de un control_request (lleva request_id + tool + input crudo
+            para pintar el diff; la sesión pasa a `await`); permission_result la cierra con la
+            decisión efectiva.
+        text: { type: string }
+        status: { type: string, enum: [streaming, await, idle] }
+        ctx_pct: { type: integer }
+        model: { type: string }
+        claude_session_id: { type: string }
+        request_id: { type: string, description: "id del control_request (kinds permission*)." }
+        tool: { type: string, description: "el tool que Claude Code pide correr." }
+        input: { type: object, description: "input crudo del tool (file_path/old_string/new_string…) — el GUI pinta el diff de aquí." }
+        decision: { type: string, enum: [allow, deny], description: "decisión efectiva (kind=permission_result)." }
+    RunResult:
+      type: object
+      required: [run_id, box, estado, iteraciones, handoff]
+      properties:
+        run_id: { type: string }
+        box: { type: string }
+        rol: { type: string, description: "el rol cuya autoridad parametrizó la corrida." }
+        estado: { type: string, enum: [draft, working, review, done, blocked], description: "estado interno terminal de la caja (FSM del conductor)." }
+        iteraciones: { type: integer }
+        siguiente: { type: string, description: "a dónde ruteó CÓDIGO leyendo contract.ruta (o el handoff)." }
+        handoff: { type: boolean, description: "true = blocked → escalación humana." }
+    PermissionResolution:
+      type: object
+      required: [request_id, tool, efectiva]
+      properties:
+        request_id: { type: string }
+        tool: { type: string }
+        efectiva: { type: string, enum: [allow, deny], description: "la decisión tras aplicar deny-del-rol > click humano." }
+        motivo: { type: string }
+        expira: { type: string, format: date-time, description: "fin del grant efímero (solo efectiva=allow)." }
+    ArnesPath:
+      type: object
+      required: [arnes, path]
+      properties:
+        arnes: { type: string }
+        path: { type: string }
+    VersionInfo:
+      type: object
+      required: [huella, fecha, instalado_en, escribible, repo, sucio]
+      properties:
+        huella: { type: string, description: "vcs.revision[:7] (+«+sucio» si vcs.modified); «dev» sin VCS info." }
+        fecha: { type: string, description: "fecha del commit (vcs.time, solo día); vacía sin VCS." }
+        instalado_en: { type: string, description: "ruta REAL del ejecutable (os.Executable, capturada al boot)." }
+        escribible: { type: boolean, description: "el proceso puede escribir el DIRECTORIO del ejecutable (el rename lo exige)." }
+        repo: { type: string, description: "repo configurado al daemon (--repo/ARNESIA_REPO); vacío = sin repo (RF-103)." }
+        sucio: { type: boolean, description: "vcs.modified del build corriente (decisión #7, aditivo)." }
+    SelfUpdateReport:
+      type: object
+      required: [resultado, pasos]
+      properties:
+        resultado: { type: string, enum: [actualizado, ya-al-dia, fallo] }
+        huella_nueva: { type: string, description: "huella del binario recién compilado (presente en actualizado y ya-al-dia)." }
+        pasos:
+          type: array
+          description: "SIEMPRE los 5 pasos (verificar · build · verificar binario · instalar · reiniciar) con su veredicto REAL — la UI pinta la checklist de aquí, jamás inventa (RF-104)."
+          items:
+            type: object
+            required: [paso, estado]
+            properties:
+              paso: { type: string, enum: [verificar, build, verificar binario, instalar, reiniciar] }
+              estado: { type: string, enum: [ok, fallo, no-corrido, agendado], description: "«agendado» = solo el paso reiniciar tras «actualizado»: la respuesta sale ANTES del re-exec (RF-105)." }
+              detalle: { type: string, description: "detalle humano; en un fallo lleva la cola del stderr." }

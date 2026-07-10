@@ -2,7 +2,7 @@
 
 Primera versión de la aplicación: **Vite + React + TypeScript**, envuelta por **Tauri 2**
 (`src-tauri/`), embebible por `go:embed` en el daemon `arnesia`. Topología **FSD-lite**
-(arch/boundaries/fe-topologia-fsd.md). **Vacía a propósito**: el shell (Command Rail · lienzo del
+(docs/architecture/boundaries/fe-topologia-fsd.md). **Vacía a propósito**: el shell (Command Rail · lienzo del
 Mapa · dock de conversación) se construye en la próxima sesión — aquí queda todo el cableado listo.
 
 ## Correr (requiere `npm install` primero — sin red en el scaffold)

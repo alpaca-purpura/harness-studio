@@ -1,0 +1,26 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.conformance.parsear-ruleset-a-data
+cap_num: CAP-26
+slug: parsear-ruleset-a-data
+name: "Parsear ruleset a data (knowledge+arch→checks)"
+status: vivo          # GENERADO (R4) — no teclear
+module: conformance
+verb: mapear
+pointers:
+  - "internal/adapters/conformance/ruleset/parser.go#Loader.Load"
+  - "internal/adapters/conformance/ruleset/parser.go#checklistRows"
+valida:
+  - "TestLoadRuleset"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-26)"
+---
+
+# Parsear ruleset a data (knowledge+arch→checks)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

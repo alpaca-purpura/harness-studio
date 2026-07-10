@@ -7,7 +7,7 @@ import (
 )
 
 // PermissionPort resolves the permission-set an arnés runs with, parametrized by the ROLE
-// that hydrates it (arch/boundaries/permisos-derivan-del-rol.md). The concrete adapter is
+// that hydrates it (docs/architecture/boundaries/permisos-derivan-del-rol.md). The concrete adapter is
 // the KitProvisioner; the authority behind the policy is external (the future L1
 // organigrama), so this port is the seam ArnesIA consumes, not a consultancy of ours.
 type PermissionPort interface {

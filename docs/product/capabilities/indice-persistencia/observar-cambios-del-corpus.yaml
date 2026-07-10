@@ -1,0 +1,24 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.indice-persistencia.observar-cambios-del-corpus
+cap_num: CAP-23
+slug: observar-cambios-del-corpus
+name: "Observar cambios del corpus (watcher)"
+status: stub          # GENERADO (R4) — no teclear
+module: indice-persistencia
+verb: observar
+pointers:
+  - "internal/adapters/watch/watcher.go#Watch"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-23)"
+---
+
+# Observar cambios del corpus (watcher)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

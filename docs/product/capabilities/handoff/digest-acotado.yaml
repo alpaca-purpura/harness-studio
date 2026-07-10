@@ -1,0 +1,26 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.handoff.digest-acotado
+cap_num: CAP-46
+slug: digest-acotado
+name: "Digest acotado (economía de contexto, −90%)"
+status: vivo          # GENERADO (R4) — no teclear
+module: handoff
+verb: mapear
+pointers:
+  - "internal/adapters/artifact/reader.go#Resumen"
+  - "internal/adapters/artifact/reader.go#capBytes"
+valida:
+  - "TestResumen"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-46)"
+---
+
+# Digest acotado (economía de contexto, −90%)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

@@ -5,7 +5,7 @@ import "context"
 // This file declares the ports the T3 box conductor needs beyond AgentPort. The
 // conductor owns the loop (12-Factor «own your control flow» / DAOP-A2) and reads the
 // artifact `status` (document-as-cache) through ArtifactReader — it never scrapes the
-// chat text (arch/boundaries/orquestacion-determinista-entre-cajas.md).
+// chat text (docs/architecture/boundaries/orquestacion-determinista-entre-cajas.md).
 
 // ArtifactReader reads the document-as-cache `status:` of a box's output artifact. The
 // artifact is the source of truth for done/blocked, not the conversation. A concrete

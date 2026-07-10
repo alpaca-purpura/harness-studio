@@ -1,6 +1,6 @@
 // Package loader implementa el reconocedor de arneses en disco (Puente 1, HS-11): convierte
 // un directorio con forma de plugin CC o de arnés instalado en el domain.Graph L0, según el
-// contrato FIRMADO arch/contracts/nomenclatura-arnes.md (v1, HS-10). Reemplaza los grafos
+// contrato FIRMADO docs/architecture/contracts/nomenclatura-arnes.md (v1, HS-10). Reemplaza los grafos
 // dogfood armados a mano: los nodos salen de los archivos reales y el loader ESTAMPA
 // fuente_path/clase/procedencia (§4.1 — «fuente_path deja de ser manual»).
 //

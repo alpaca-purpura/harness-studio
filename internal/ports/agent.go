@@ -12,7 +12,7 @@ import (
 // AgentEventKind is the normalized meaning of a conductor event. The claudecode
 // adapter owns the Claude Code stream-json protocol and translates its raw frames
 // into these; nothing upstream re-decodes the protocol (see
-// arch/boundaries/conductor-no-parsea-jsonl.md — the on-disk JSONL corpus is for
+// docs/architecture/boundaries/conductor-no-parsea-jsonl.md — the on-disk JSONL corpus is for
 // enumerate/replay, and the live stream is interpreted only here, by its expert).
 type AgentEventKind string
 
@@ -47,7 +47,7 @@ type AgentEvent struct {
 	CtxPct          int
 	// Subtype carries the `result` frame subtype (e.g. "success", "error_max_turns").
 	// The T3 conductor reads THIS machine signal to decide continue/stop — never the chat
-	// text (arch/boundaries/orquestacion-determinista-entre-cajas.md).
+	// text (docs/architecture/boundaries/orquestacion-determinista-entre-cajas.md).
 	Subtype string
 	// RequestID / Tool / Input carry a forwarded control_request (Kind=
 	// EventControlRequest): the id to answer with RespondControl, the tool Claude Code
@@ -120,7 +120,7 @@ type AgentSession interface {
 
 // AgentPort spawns and drives a Claude Code conductor (conductor pattern, I-76). It is
 // deliberately interchangeable: nothing outside the concrete adapter knows which agent
-// backs it (see arch/boundaries/adaptadores-de-agente-intercambiables.md).
+// backs it (see docs/architecture/boundaries/adaptadores-de-agente-intercambiables.md).
 type AgentPort interface {
 	// Spawn starts a persistent conductor and returns the live session.
 	Spawn(ctx context.Context, opts SpawnOpts) (AgentSession, error)

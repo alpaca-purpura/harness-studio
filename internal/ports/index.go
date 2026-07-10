@@ -7,7 +7,7 @@ import (
 )
 
 // IndexPort is the disposable index over the JSONL source of truth: it can always be
-// rebuilt from scratch (see arch/boundaries/indice-desechable-jsonl-es-verdad.md).
+// rebuilt from scratch (see docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md).
 type IndexPort interface {
 	// Rebuild reconstructs the whole index from the JSONL corpus.
 	Rebuild(ctx context.Context) error

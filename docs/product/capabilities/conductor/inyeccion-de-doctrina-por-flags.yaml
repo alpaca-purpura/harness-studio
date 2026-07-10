@@ -1,0 +1,24 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.conductor.inyeccion-de-doctrina-por-flags
+cap_num: CAP-35
+slug: inyeccion-de-doctrina-por-flags
+name: "Inyección de doctrina por flags"
+status: vivo·nc          # GENERADO (R4) — no teclear
+module: conductor
+verb: crear
+pointers:
+  - "internal/adapters/agent/claudecode/conductor.go#SpawnArgs"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-35)"
+---
+
+# Inyección de doctrina por flags
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

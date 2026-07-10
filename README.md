@@ -10,26 +10,26 @@ mejora. ArnesIA es el medio de producción; el vendible es el arnés.
 
 ## Documentos norte
 
-Los docs se organizan en un **árbol de 4 ejes** (BACKLOG · ESTADO · CAPABILITIES · LEDGER); el
-router de todo es [`CLAUDE.md`](./CLAUDE.md) — «necesito X → leo Y».
+Todo (salvo skills y `CLAUDE.md`) vive en [`docs/`](./docs/README.md), organizado por el método del
+kit `harness@prenter-marketplace` en 3 zonas — **product · architecture · process**. El router
+«necesito X → leo Y» es [`CLAUDE.md`](./CLAUDE.md); el front-door del proceso es el skill `/pm`.
 
-- **Qué SABE HACER el sistema hoy** (SSoT funcional, con punteros al código) — [`CAPABILITIES.md`](./CAPABILITIES.md)
-- **Estado · fase · cifras vivas** (generadas, no tecleadas) — [`ESTADO.md`](./ESTADO.md)
-- **Lo que viene / abierto** — [`BACKLOG.md`](./BACKLOG.md)
-- **Historia de decisiones** — [`LEDGER.md`](./LEDGER.md) (índice → `ledger/HS-NN.md`; OBS-01..OBS-20 en la incubadora `prenter-harness`)
-- **Visión** — [`VISION.md`](./VISION.md) (v3 firmada: constitución de 11 principios + anatomía A1–A7)
-- **Reglas de negocio / metodología** — [`METODOLOGIA.md`](./METODOLOGIA.md) (doc vivo: fábrica de cajas, contrato de caja, honestidad)
-- **UX del producto** — [`UX.md`](./UX.md) (fase 2 firmada it.13 · Command Rail + Organigrama)
-- **Stack / tecnologías** — [`STACK.md`](./STACK.md)
-- **Arquitectura as code** — [`arch/INDEX.md`](./arch/INDEX.md) (boundaries + convenciones `enforced_by:`; cifras vivas en [`ESTADO.md`](./ESTADO.md))
-- **Estándar as code por elemento** — [`knowledge/INDEX.md`](./knowledge/INDEX.md) (nodos skill/hook/rule/…, se actualiza cada semana)
+- **Dónde estamos · fase · cifras vivas** (generadas) — [`docs/product/checkpoint.md`](./docs/product/checkpoint.md)
+- **Qué SABE HACER el sistema hoy** (SSoT funcional, YAML por-cap) — [`docs/product/capabilities/INDEX.md`](./docs/product/capabilities/INDEX.md)
+- **Lo que viene / abierto** — [`docs/product/BACKLOG.md`](./docs/product/BACKLOG.md)
+- **Historia de decisiones** — [`docs/product/LEDGER.md`](./docs/product/LEDGER.md) (índice → `ledger/HS-NN.md`)
+- **Visión / constitución** (11 principios + anatomía A1–A7) — [`docs/product/vision.md`](./docs/product/vision.md)
+- **UX firmada** (Command Rail + Organigrama) — [`docs/product/ux.md`](./docs/product/ux.md)
+- **Metodología · reglas de negocio · disciplina** — [`docs/process/metodologia.md`](./docs/process/metodologia.md)
+- **Arquitectura as-code + stack** — [`docs/architecture/INDEX.md`](./docs/architecture/INDEX.md) · [`docs/architecture/stack.md`](./docs/architecture/stack.md)
+- **Estándar as-code por elemento** — [`docs/architecture/knowledge/INDEX.md`](./docs/architecture/knowledge/INDEX.md)
 
 ## Estado
 
-**Fase 5 (Implementación) en curso** (fases 1–4 ✓: Visión · UX · Arquitectura · Specs). El
-estado vivo, la fase y las **cifras generadas** (`arnesia conformance`) viven en
-[`ESTADO.md`](./ESTADO.md); el port del monorepo sigue gobernado por el gran plan (nada se porta
-sin pasar su fase).
+**Fase 5 (Implementación) en curso** (fases 1–4 ✓: Visión · UX · Arquitectura · Specs). El estado
+vivo, la fase y las **cifras generadas** (`arnesia conformance`) viven en
+[`docs/product/checkpoint.md`](./docs/product/checkpoint.md); el port del monorepo sigue gobernado
+por el gran plan (nada se porta sin pasar su fase).
 
 ## Arnés de construcción
 

@@ -1,4 +1,4 @@
-# CI — todo check rompe el merge (enforced_by de arch/conventions/ci.md).
+# CI — todo check rompe el merge (enforced_by de docs/architecture/conventions/ci.md).
 # Jobs paralelos = required status checks en main. Es la garantía dura de los boundaries
 # `enforced` de arch/: lo que aquí corre es lo mismo que corre local (lefthook / pnpm / go test).
 #
@@ -27,7 +27,7 @@ jobs:
       - name: format check
         run: golangci-lint fmt --diff
       - name: go-arch-lint (grafo de imports permitido)
-        run: go run github.com/fe3dback/go-arch-lint@latest check --project-path . --arch-file arch/fitness/.go-arch-lint.yml
+        run: go run github.com/fe3dback/go-arch-lint@latest check --project-path . --arch-file docs/architecture/fitness/.go-arch-lint.yml
       - name: test
         run: go test ./... -race
       - name: build
@@ -63,7 +63,7 @@ jobs:
         run: pnpm run tokens:build && git diff --exit-code src/app/styles/theme.css
       - name: openapi-gen-check (tipos generados ⟷ contrato)
         id: openapi-gen-check
-        # Se activa cuando el codegen exista de verdad (arch/contracts/gen/ → src/shared/api/generated).
+        # Se activa cuando el codegen exista de verdad (docs/architecture/contracts/gen/ → src/shared/api/generated).
         # Hoy los tipos son a mano (checks `tipos-generados` = warn, deuda registrada); guard honesto
         # sobre el DIRECTORIO GENERADO, no sobre el yaml — el yaml existe desde HS-04.
         if: ${{ hashFiles('web/src/shared/api/generated/**') != '' }}

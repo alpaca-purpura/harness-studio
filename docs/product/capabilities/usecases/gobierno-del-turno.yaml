@@ -1,0 +1,27 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.gobierno-del-turno
+cap_num: CAP-54
+slug: gobierno-del-turno
+name: "Gobierno del turno (permisos HITL + interrupt)"
+status: vivo          # GENERADO (R4) — no teclear
+module: usecases
+verb: observar
+pointers:
+  - "internal/usecase/session_service.go#onControlRequest"
+  - "internal/usecase/session_service.go#ResolvePermission"
+  - "internal/usecase/session_service.go#Interrupt"
+valida:
+  - "TestResolvePermissionUsesArnesRole"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-54)"
+---
+
+# Gobierno del turno (permisos HITL + interrupt)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

@@ -1,0 +1,29 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.conformance.built-ins-de-conformidad-del-dominio
+cap_num: CAP-29
+slug: built-ins-de-conformidad-del-dominio
+name: "Built-ins de conformidad del dominio (spine/escritor-único/composición/veredicto)"
+status: vivo          # GENERADO (R4) — no teclear
+module: conformance
+verb: observar
+pointers:
+  - "internal/domain/conformance.go#VerificarSpine"
+  - "internal/domain/conformance.go#VerificarEscritorUnico"
+  - "internal/domain/conformance.go#VerificarSinHuerfanos"
+  - "internal/domain/conformance.go#VerificarDeadEnds"
+  - "internal/domain/conformance.go#VerificarRutaExiste"
+valida:
+  - "internal/domain/conformance_test.go"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-29)"
+---
+
+# Built-ins de conformidad del dominio (spine/escritor-único/composición/veredicto)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

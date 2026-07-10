@@ -18,7 +18,7 @@ import (
 
 // dockEventType is the SSE event name multiplexed for the Dock. It mirrors
 // sse.EventDock; kept as a literal so this package needs no transport import (see
-// arch/boundaries/dominio-independiente-de-transporte.md).
+// docs/architecture/boundaries/dominio-independiente-de-transporte.md).
 const dockEventType = "dock"
 
 // ErrBusy is returned by Turn when the session's conductor is already generating. A turn

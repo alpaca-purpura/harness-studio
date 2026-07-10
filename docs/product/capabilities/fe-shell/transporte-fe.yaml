@@ -1,0 +1,25 @@
+---
+# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
+# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-shell.transporte-fe
+cap_num: CAP-78
+slug: transporte-fe
+name: "Transporte FE (REST+SSE+token)"
+status: vivo·nc          # GENERADO (R4) — no teclear
+module: fe-shell
+verb: infra
+pointers:
+  - "web/src/shared/api/client.ts#api"
+  - "web/src/shared/api/sse.ts#connectDock"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-78)"
+---
+
+# Transporte FE (REST+SSE+token)
+
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).

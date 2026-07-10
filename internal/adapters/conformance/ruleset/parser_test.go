@@ -34,7 +34,7 @@ func TestLoadRuleset(t *testing.T) {
 		t.Fatalf("expected the full ruleset (>200 checks), got %d", len(rs.Checks))
 	}
 
-	// knowledge: skills declares 17 checks (knowledge/INDEX.md).
+	// knowledge: skills declares 17 checks (docs/architecture/knowledge/INDEX.md).
 	if n := len(rs.ForElemento("skills")); n != 17 {
 		t.Errorf("skills element: got %d checks, want 17", n)
 	}

@@ -7,7 +7,7 @@ doctrina. Reglas que no se negocian:
 ## Anatomía (VISION A1–A7)
 
 - Un arnés opera un proceso por **rol × proceso**: fases → cada fase tiene **cajas**; una
-  caja = una skill-frente con contrato. Guardia (hooks) y Base (knowledge/reglas) son
+  caja = una skill-frente con contrato. Guardia (hooks) y Base (docs/architecture/knowledge/reglas) son
   bandas transversales, NO cajas.
 - El trabajo lleva su estado por el **spine que el arnés declara** (`arnes.l0.json`); una
   caja posee UNA transición del spine (`estado: "a -> b"`). Jamás inventes estados fuera

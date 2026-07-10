@@ -95,7 +95,7 @@ func (p *Provisioner) materialize() error {
 	if err := os.WriteFile(filepath.Join(p.baseDir, "doctrine.md"), overlay, 0o600); err != nil {
 		return fmt.Errorf("provision: doctrine.md: %w", err)
 	}
-	if err := copyTree(p.doctrinaFS, "knowledge/elements", filepath.Join(p.baseDir, "knowhow")); err != nil {
+	if err := copyTree(p.doctrinaFS, "docs/architecture/knowledge/elements", filepath.Join(p.baseDir, "knowhow")); err != nil {
 		return fmt.Errorf("provision: knowhow: %w", err)
 	}
 	return p.materializeMCPConfig()
