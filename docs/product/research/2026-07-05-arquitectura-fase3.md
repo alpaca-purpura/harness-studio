@@ -1,7 +1,7 @@
 # Investigación de arquitectura — fase 3 (HS-04, 2026-07-05)
 
 > **5 frentes en paralelo (subagentes), verificados contra la web vigente (julio 2026).**
-> Es la **evidencia L1** que respaldan los boundary nodes de [`../arch/`](../docs/architecture/INDEX.md).
+> Es la **evidencia L1** que respaldan los boundary nodes de [`../arch/`](../../architecture/INDEX.md).
 > Condensado: lo decisivo para la propuesta. Prioridad de fuentes = docs oficiales
 > (code.claude.com/docs, platform.claude.com) › estándares/proyectos maduros › expertos.
 > Norte: [`../vision.md`](../vision.md) (decisiones técnicas fundacionales HS-02).
@@ -49,7 +49,7 @@ propio `claude` bundled** → manejaría un Claude bundled, no el install del us
 «manejar el install LOCAL»). Managed Agents (REST hosted, beta GA 2026-04-08) corre en sandbox
 remoto → **no toca `~/.claude` ni el filesystem** → descartado.
 
-**Dos correcciones load-bearing al nodo [`headless-sdk`](../docs/architecture/knowledge/elements/headless-sdk.md):**
+**Dos correcciones load-bearing al nodo [`headless-sdk`](../../architecture/knowledge/elements/headless-sdk.md):**
 1. **`--bare` ROMPE el auth de suscripción.** `--bare` salta OAuth/keychain y exige
    `ANTHROPIC_API_KEY`/`apiKeyHelper`. Un conductor que monta el login Pro/Max del operador NO
    puede default-earlo. Úsalo solo cuando estás deliberadamente sobre API key. Y `-p` hará
@@ -258,7 +258,7 @@ reactflow.dev/learn/advanced-use/performance (v12.11.1) · nuqs.dev/blog/nuqs-2 
   severidad+señal. Literalmente «la conformidad de arquitectura corre como linter igual que el
   árbol de metodología».
 
-**Árbol propuesto (espeja `docs/architecture/knowledge/`):** ver [`../docs/architecture/INDEX.md`](../docs/architecture/INDEX.md). Cada
+**Árbol propuesto (espeja `docs/architecture/knowledge/`):** ver [`../../architecture/INDEX.md`](../../architecture/INDEX.md). Cada
 boundary node = frontmatter (`version/updated/status/ledger/sources/enforced_by/severity`) + **L1**
 (principio con fuente) + **L2** (realización en este árbol Go) + tabla de checks (severidad +
 señal). Separación limpia: check ejecutable → `fitness/` · diagrama → `model/` (render on-demand,

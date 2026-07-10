@@ -13,7 +13,7 @@
 > conformance embebido + endpoint), ficha siguiente.
 > **Norte:** [`../vision.md`](../vision.md) (11 principios + A1–A7) · [`../../process/metodologia.md`](../../process/metodologia.md)
 > (§0 dueño de crear+mantener · §5 sensor=telemetry-emit del kit · §6 conformación) ·
-> [`docs/architecture/knowledge/`](../docs/architecture/knowledge/INDEX.md) (11 elementos · 122 checks) · [`arch/`](../docs/architecture/INDEX.md)
+> [`docs/architecture/knowledge/`](../../architecture/knowledge/INDEX.md) (11 elementos · 122 checks) · [`arch/`](../../architecture/INDEX.md)
 > (14 boundaries · 89 checks).
 > **Verificación externa:** investigación 4-subagentes live contra docs oficiales `code.claude.com/docs`
 > (CC v2.1.x, 2026-07-05); ver §Fuentes.

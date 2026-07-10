@@ -10,7 +10,7 @@
 > Producto de un estudio 5-frentes (subagentes por capa) que cruzó la investigación externa
 > **DAOP v0.2** (`~/Descargas/doctrina-kits-v0.2.md`, derivada de BMAD v6 + Agent SDK) contra
 > nuestras capas: [`../vision.md`](../vision.md) · [`../../process/metodologia.md`](../../process/metodologia.md) ·
-> [`docs/architecture/knowledge/`](../docs/architecture/knowledge/INDEX.md) · [`arch/`](../docs/architecture/INDEX.md) ·
+> [`docs/architecture/knowledge/`](../../architecture/knowledge/INDEX.md) · [`arch/`](../../architecture/INDEX.md) ·
 > [`historias/…inyeccion-knowhow.md`](./2026-07-05-arquitectura-inyeccion-knowhow.md).
 > **Norte:** adaptar lo bueno de DAOP a NUESTRA visión sin importar los mecanismos BMAD que
 > Claude Code no soporta. VISION firmada = intacta.

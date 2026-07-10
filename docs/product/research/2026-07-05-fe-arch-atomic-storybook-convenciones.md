@@ -2,7 +2,7 @@
 
 > **5 frentes en paralelo (subagentes), verificados contra la web vigente (julio 2026).**
 > Es la **evidencia L1** que respaldará los boundary/convention nodes del frontend en
-> [`../arch/`](../docs/architecture/INDEX.md) (gemelo FE de los 7 boundaries backend de HS-04). Condensado:
+> [`../arch/`](../../architecture/INDEX.md) (gemelo FE de los 7 boundaries backend de HS-04). Condensado:
 > lo decisivo para la propuesta. Prioridad de fuentes = docs oficiales › estándares/proyectos
 > maduros › expertos. Norte: [`../vision.md`](../vision.md) · contexto: **app instalable de
 > escritorio** (Tauri 2 · daemon sidecar · SPA `go:embed` · local-first · Linux/Mint-first ·

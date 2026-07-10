@@ -1,8 +1,8 @@
 # Plan Hito 2 — Mapa doctrina-completa + edición gobernada con Claude Code
 
 > Ficha **HS-09** (fase 5 · Implementación) · 2026-07-06
-> Antecede: [`../2026-07-06-plan-goal-hito1-mapa-y-deuda.md`](../2026-07-06-plan-goal-hito1-mapa-y-deuda.md) (Hito 1 landeado) · specs Hito 1: [`../2026-07-06-mapa-mvp/`](../2026-07-06-mapa-mvp/)
-> Deuda backend de base: [`../2026-07-06-deuda-backend-arch.md`](../2026-07-06-deuda-backend-arch.md)
+> Antecede: [`../2026-07-06-plan-goal-hito1-mapa-y-deuda.md`](../../research/2026-07-06-plan-goal-hito1-mapa-y-deuda.md) (Hito 1 landeado) · specs Hito 1: [`../2026-07-06-mapa-mvp/`](../2026-07-06-mapa-mvp/)
+> Deuda backend de base: [`../2026-07-06-deuda-backend-arch.md`](../../research/2026-07-06-deuda-backend-arch.md)
 
 ## Norte del hito
 

@@ -255,14 +255,11 @@ Cómo el producto muestra datos, para que jamás mienta:
 4. **Corregir AQUÍ** — ArnesIA reescribe el componente a la estructura estándar.
 5. **Re-extraer contratos → remapear** con el match correcto.
 
-Loop en curso: el prompt de kit-dev (UX.md it.10) formaliza los contratos en los SKILL.md y
-emite `docs/process/contracts.index.yaml` + `contracts-gaps.md`, que ArnesIA extrae para
-reemplazar los contratos inferidos por los reales.
-
-> **Nota de supersesión (2026-07-07, sync HS-10):** ese loop de kit-dev/luana quedó SUPERADO por
+> **Nota de supersesión (2026-07-07, sync HS-10):** el loop originalmente previsto aquí (prompt de
+> kit-dev formalizando contratos en luana-platform, `ux.md` it.10) quedó SUPERADO por
 > **dogfood-first** (HS-07): los contratos reales nacieron en el arnés `dev-full-cycle` (HS-08),
 > validados de verdad por `arnesia conformance` (ruta `--arnes`, 13/13 verde). Luana queda como
-> candidato futuro de conformación; el prompt it.10 se conserva como historia.
+> candidato futuro de conformación; el prompt it.10 se conserva como historia en `ledger/HS-03.md`.
 
 ## 7. El estándar as code es un árbol vivo (no un doc congelado)
 
@@ -412,12 +409,14 @@ canónica.
 > Origen: orden del operador (sesión inspector-drawer, HS-09/Hito 2): TODA funcionalidad
 > nueva se desarrolla por este flujo, y NADA vive solo en la conversación — una sesión
 > nueva retoma como si fuera la misma. Paquete de referencia (plantilla viva):
-> [`historias/2026-07-07-inspector-drawer/`](../product/stories/2026-07-07-inspector-drawer/INDEX.md).
-> **Carpeta renombrada `research/` → `historias/` (HS-15, 2026-07-08):** nombre más intuitivo
-> para un humano que supervisa (calca `vitalia/docs/product/stories/`); el flujo y los
-> archivos del paquete no cambian, solo el nombre del contenedor.
+> [`docs/product/stories/2026-07-07-inspector-drawer/`](../product/stories/2026-07-07-inspector-drawer/INDEX.md).
+> **Renombres del contenedor (histórico):** `research/` → `historias/` (2026-07-08, sin ficha propia
+> en el LEDGER — referencia previa a HS-15 quedó huérfana, corregida 2026-07-10) → `historias/` se
+> partió en `docs/product/stories/` + `docs/product/research/` en la homologación (HS-19,
+> 2026-07-09). El flujo y los archivos del paquete no cambiaron en ninguno de los dos, solo el
+> nombre/forma del contenedor.
 
-**Unidad = paquete de trabajo**: carpeta `historias/AAAA-MM-DD-<slug>/` por funcionalidad.
+**Unidad = paquete de trabajo**: carpeta `docs/product/stories/AAAA-MM-DD-<slug>/` por funcionalidad.
 El código NO se toca hasta que el paquete lo autorice (specs firmados).
 
 ### Los archivos del paquete — qué contiene cada uno y CUÁNDO se llena
@@ -467,32 +466,10 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
 
 ## Estado
 
-Documento vivo. **HS-03 FIRMADA** (it.13, 2026-07-05; §4 al día: retirado el andamiaje REAL vs
-DEMO del mockup; la honestidad sigue). **§2 extendido 2026-07-05:** cementada la estructura
-obligatoria de **subagente · hook · rule/conocimiento** (derivada de los nodos `docs/architecture/knowledge/` ya
-firmados — no doctrina nueva, promoción de checks L2 a regla de negocio) → el núcleo de la
-fábrica (skill · maquinaria · Guardia · Base) queda firme; restan solo los elementos de
-distribución/infra (commands · mcp · plugins · settings · output-styles · statusline · headless).
-Por **excepción declarada** (§7), la firma congela la fase pero **NO** esta metodología ni la UX:
-ambas siguen creciendo con los comentarios del operador (quedan muchos) y son la base de las specs
-de fase 4 (HS-08). El árbol [`docs/architecture/knowledge/`](../architecture/knowledge/INDEX.md) también sigue vivo por diseño (§7).
-**Doctrina v1 (2026-07-05, ficha HS-07):** cruce de DAOP/BMAD + barrido de 7 fuentes externas (manifiesto
-Agentic BPM, Sierra ADLC, Salesforce Agentforce) → bajada as-code: §3 contrato fusionado · §8 doctrina de
-proceso (framed autonomy) · nodo `harness-profile` (nº12) · nota de linaje en VISION · 2 boundaries nuevos.
-Reencuadre: **operacionalizamos Agentic BPM, no clonamos un framework**; la doctrina es PROPIA, basada en
-proceso e independiente de rubro.
-**Sync 2026-07-07 (HS-10):** §3 `necesita.de` al día con el schema (5→7 orígenes: +`terceros:` ·
-+`marcas-dormidas:`) · notas de supersesión en §0 y §6 (dogfood-first: el primer arnés real fue
-`dev-full-cycle`, HS-08; luana = candidato futuro, no mandato) · nueva **§9 «Los 3 cuerpos»**
-(posesión e inyección del know-how — definición canónica FIRMADA HS-10, antes solo en investigación).
-**§10 «Disciplina de desarrollo por paquete de trabajo» (2026-07-07, orden del operador):** toda
-funcionalidad nueva itera por mockup en `historias/<fecha>-<slug>/` con decisiones/spec/design/PARIDAD
-y reglas de continuidad entre sesiones — la conversación jamás es el único registro.
-**Sync 2026-07-09 (HS-18, paquete `reorg-docs`):** alineación con el **árbol de docs de 4 ejes** —
-[`BACKLOG.md`](../product/BACKLOG.md) (lo-que-viene) · [`checkpoint.md`](../product/checkpoint.md) (ahora + cifras GENERADAS por
-`arnesia conformance`, no tecleadas) · [`CAPABILITIES.md`](../product/capabilities/INDEX.md) (SSoT funcional) ·
-[`LEDGER.md`](../product/LEDGER.md) índice → `ledger/HS-NN.md` (fichas atómicas); `CLAUDE.md` = **router puro**,
-ya no repositorio de estado/backlog/stack (ése vive en `STACK.md`). **§10** reconciliado (el paquete
-activo lo nombra `checkpoint.md`, el backlog global vive en `BACKLOG.md`; el INDEX del paquete sigue siendo
-continuidad DEL paquete) + **nueva regla dura 7** «ningún cambio de código sin capability»
-(`docs/architecture/boundaries/codigo-traza-a-capability.md`, **enforced**).
+Documento vivo — por **excepción declarada** (§7), la firma de HS-03 congela la fase pero no esta
+metodología: sigue creciendo con cada decisión de doctrina, y es la base de las specs de cada fase
+siguiente. El historial completo de cuándo se cementó cada sección (§2 extendido HS-03 · doctrina
+v1 HS-07 · sync 5→7 orígenes + «los 3 cuerpos» HS-10 · disciplina de paquete HS-09/Hito-2 · reorg
+de 4 ejes HS-18) vive en el [`LEDGER.md`](../product/LEDGER.md) → `ledger/HS-NN.md` — no se repite
+aquí para no mantener dos bitácoras de lo mismo. El árbol
+[`docs/architecture/knowledge/`](../architecture/knowledge/INDEX.md) también sigue vivo por diseño (§7).

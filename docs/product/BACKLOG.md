@@ -45,13 +45,28 @@
 
 - [homologacion] **upstream del método al kit** `harness@prenter-marketplace` (nueva versión): `/pm` +
   `cap_doctor.py` + scaffolder + capability schema + soporte plugin-mode del seam (desviación #1) · `deuda`
-- [homologacion] **replicar `docs/` + seam + `/pm` a cockpit y dev-studio** (el árbol ya probado E2E en harness-studio) · `deuda`
 - [homologacion] **forjar los 4 arneses secundarios** `/po` · `/architect` · `/dev-team` · `/auditor` (hoy `/pm` los referencia por auto-chain pero no existen — desviación #4) · `deuda`
 
-## Fuera de alcance ahora (anotado para no perderlo)
+## Backlog de UX (extraído de `ux.md` al sanear el eje historia/vigente, 2026-07-10)
 
-- [reorg-docs] `docs/product/ux.md` (15k) y `docs/process/metodologia.md` (8.5k) tienen el mismo mal
-  (backlog+historia mezclados) — atacar en paquete aparte, no mezclar ejes · `deuda`
-- [reorg-docs] 30 links rotos en snapshots históricos (`stories/`·`research/`·`ledger/HS-NN.md`) — se
-  dejaron a propósito en el cierre HS-19 (registros congelados, PARIDAD desviación #7); re-apuntarlos
-  (si se decide) es trabajo de este paquete, no de la homologación · `deuda`
+- [ux] Vista A/B real (hoy «Evaluar A/B» solo salta al tren) · `deuda`
+- [ux] ¿Flujo canónico/ideal por skill como concepto aparte del replay real? · `deuda`
+- [ux] Detalle de evals del gate («Ver evals») + telemetría post-deploy por proyecto · `deuda`
+- [ux] Historia: mapa por versión (exige snapshot del índice — decidir en fase 3) · `deuda`
+- [ux] Onboarding/captura de base a fondo (hoy solo dock guionado) · `deuda`
+- [ux] Multi-proyecto: ¿vista por proyecto instalado? · `deuda`
+- [ux] Búsqueda global (componentes, corridas, hallazgos) · `deuda`
+- [ux] Accesibilidad teclado completa (hoy parcial) · estados vacíos restantes · `deuda`
+- [ux] Taxonomía: ¿subtipos de regla / clase L0 visible en el nodo? · `deuda`
+- [ux] Leyenda del mapa: falta filtro para el tipo `command` (se renderiza, no se puede filtrar) · `deuda`
+- [ux] Organigrama: posición ¿100% libre vs auto-layout+ajuste fino? ¿persistir posiciones como
+  metadato? · marketplace por-arnés ¿override o hereda de la empresa? · reporta-a ¿cross-empresa o
+  solo intra? · «＋ crear arnés para un puesto» desde el organigrama · `deuda`
+- [ux] Badge de conformidad por-nodo sobre el mapa: conectar los checks del árbol de conocimiento a
+  Diagnóstico real por arnés (hoy «ver arneses afectados» es demo) · `deuda`
+- [ux] ⌘K quick-switch de sesión (palette P4) como añadido al rail, no reemplazo · `deuda`
+- [ux] Persistencia de la lista de sesiones: índice SQLite desechable vs sidecar propio (JSONL
+  sigue siendo fuente de verdad) · `deuda`
+- [ux] Unificar al portar: shell-A-galaxia (it.13) + shell-A-sessions (it.14) + detalle v3 en un
+  solo shell · `deuda`
+- [ux] Empleados-IA del producto (Valeria·Lisa…) vs roster de dev — ¿dos vistas separadas? · `deuda`
