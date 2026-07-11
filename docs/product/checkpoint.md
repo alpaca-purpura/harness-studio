@@ -11,16 +11,22 @@
 
 ## Paquete de trabajo activo
 
-- **Co-diseño (2026-07-10) — Realineación al core del ciclo de vida del arnés.** Foco =
-  levantar·auditar·editar·publicar arneses de un marketplace; medición·observabilidad·mejora-continua
-  → **Fase 2**. Arnesia = fábrica **agnóstica al rubro**. → **MODELO DE TERRENO FIRMADO 🧑‍⚖️ 2026-07-10**
-  (paquete [`stories/2026-07-10-terreno-conocimiento/`](stories/2026-07-10-terreno-conocimiento/INDEX.md):
-  D0-D20 + `arnes.yaml` dogfood + `estructura-terreno.html` v4). Nombres/estructura ya decididos.
-- **Retomar aquí:** modelo firmado → **dogfood: aplicar el terreno a ArnesIA misma** (scaffold `docs/terreno/`
-  + `docs/wip/` derivados del `arnes.yaml`, migrando `docs/architecture/`) → **Mapa DESTINO** renderiza ese
-  terreno como superset del baseline (`mockups/arnesia-mapa-baseline.html`, SSoT=Storybook, anti-drift §10/ux)
-  → empalmar con la forja/modificación de arneses (init/doctor/loop-forward, D8) → repriorizar BACKLOG
-  Fase-1/Fase-2. Contexto: memorias `hs-repriorizacion-core-ciclo-arnes` + `hs-linea-base-ui-storybook-ssot`.
+- **SPIKE de CARGA de arneses (2026-07-10) — ACTIVO.** El user quiere **usar la app y mejorar arneses YA**
+  (trabajo retrasado). La app CORRE (`bin/arnesia serve` → `127.0.0.1:4200`; kit ①② inyectado desde `~/.arnesia`;
+  3 arneses de ejercicio cargados) pero falta **agencia**: elegir desde la app qué arnés/proyecto cargar. Paquete
+  [`stories/2026-07-10-spike-carga-arneses/`](stories/2026-07-10-spike-carga-arneses/INDEX.md): backend de carga
+  single-arnés HECHO (`PUT /api/arneses/{id}`+loader+índice); gaps = **dialog FE** (dif. HS-07) + **detección
+  proyecto-multi** (lock `.devstudio/arneses.yaml`, dif. HS-12). Flujo pedido: revisar estado → ideas → mockup → build.
+- **Fase 1 «forja-ciclo-vivo» — PAUSADA** ([`stories/2026-07-10-forja-ciclo-vivo/`](stories/2026-07-10-forja-ciclo-vivo/INDEX.md)):
+  Slice 1a (golden scaffold `docs/terreno/` dim piloto `forma-trabajo` + `docs/wip/`) **construido, pendiente firma
+  🧑‍⚖️**; verificado verde (F-D4). **Aclaración F-D5:** la expertise de forja se encarna en el **kit ② embebido**
+  (cuerpos ①②, HS-10) — se inyecta al chat in-app; NO es `docs/terreno/` top-level (eso es un ③ dogfood mal-ubicado,
+  migrará, no revertir). Firmado «docs/terreno absorbe architecture» → bajo revisión (P9 en terreno-conocimiento).
+- **Modelo de TERRENO FIRMADO 🧑‍⚖️ 2026-07-10** ([`stories/2026-07-10-terreno-conocimiento/`](stories/2026-07-10-terreno-conocimiento/INDEX.md):
+  D0-D20 + `arnes.yaml` + `estructura-terreno.html` v4). Sigue válido como **schema que el forjador aplica**.
+- **Retomar aquí:** correr el **spike de carga** en conversación nueva (revisar → ideas → mockup story-first
+  superset anti-drift → build). Al cerrar el spike → firmar Slice 1a → paso 2 forjador (reencuadrado por F-D5).
+  Contexto: memorias `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

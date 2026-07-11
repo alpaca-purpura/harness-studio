@@ -11,6 +11,25 @@
 - **Ninguno.** Los 4 (chat-cc-funcional · franja-artefactos · boton-actualizar · inspector-drawer)
   quedaron FIRMADOS 2026-07-09 (HS-20) — sus 7+7+6+5 desviaciones aceptadas; cierre en `ledger/HS-20.md`.
 
+## Outcome ACTIVO — Fase 1 · Ciclo de forja de arneses vivo (2026-07-10)
+
+> Modelo de terreno FIRMADO 🧑‍⚖️ (`stories/2026-07-10-terreno-conocimiento/`, D0-D20 + `arnes.yaml`).
+> Ejecución en `stories/2026-07-10-forja-ciclo-vivo/`. Loop meta: `chat → arnes.yaml → gate → scaffold → Mapa`.
+> Agnóstico al rubro (dev = un ejemplo). Slice fino primero (Shape-Up).
+
+- [ ] **1. Dogfood scaffold** — `docs/terreno/{proposito,producto,organizacion}/` + `docs/wip/` derivados del
+  `arnes.yaml` (INDEX/dim + hojas atómicas D9 + `knowledge/`), migrando `docs/architecture/`→`terreno/producto/`;
+  reconciliar 11 dims ↔ 82 caps sin romper R1-R4 (P6) · `gate`
+  - [ ] **1a** dimensión piloto `forma-trabajo` end-to-end (golden/fixture) + raíz terreno + esqueleto wip
+  - [ ] **1b** migración `docs/architecture/`→`terreno/producto/` + reconciliación P6 (82 caps)
+- [ ] **2. Forjador mínimo + gate de completitud** — motor que LEE `arnes.yaml`, corre el gate (D19, extiende
+  `arnesia conformance`) y reproduce el golden determinísticamente (rellena PLANTILLAS). Dogfood: forjar arnés-dev · `gate`
+- [ ] **3. Chat forja/edita** (corazón) — chat CC in-app: crear arnés por conversación → yaml→gate→scaffold; editar
+  vía init/doctor/loop-forward (D8 sello/deriva/cosecha-back) · `gate`
+- [ ] **4. Mapa DESTINO** — superset ESTRICTO del baseline renderizando terreno real (salud · WIP estados→done ·
+  overlays calidad+economía · sello/deriva · receta en inspector) → portar a Storybook · `gate`
+- [ ] **5. Después** — forjar 2° orden (`/po /architect /dev-team /auditor`) + upstream schema `arnes.yaml`+terreno al kit · `deuda`
+
 ## Deuda viva (registrada, no bloquea la línea principal)
 
 - [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`

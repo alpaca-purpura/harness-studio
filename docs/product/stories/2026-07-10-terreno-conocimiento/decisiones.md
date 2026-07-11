@@ -272,6 +272,11 @@ No bloquean lo firmado; se cocean cuando su etapa llegue:
   `capabilities/` (= Producto durable). Mapear dimensiones ↔ modules sin romper R1-R4.
 - **P7 · Refresco `HANDOFF.md` §1-§7** (quedó stale; el banner ya apunta a D18-D20).
 - **P8 · Overlays carve-out:** seguridad · testing · compliance · economía-durable → carpeta + proyección; formalizar.
+- **P9 · Revisar «`docs/terreno` absorbe `docs/architecture` in-repo» (INDEX L22) vs los 3 cuerpos (HS-10):**
+  el user (2026-07-10, paquete forja-ciclo-vivo F-D5) aclaró que la expertise de forja se encarna en el **kit ②
+  embebido** (lo que ships e inyecta el chat), y que el terreno es un arnés-③ que vive en SU tree, no top-level
+  mezclado con el motor (A). El scaffold `docs/terreno/` queda (migrará), pero **no es la ubicación canónica**.
+  → decidir dónde vive el terreno del dogfood (③ aparte) y si `docs/architecture` se mueve o no. Nueva `D` + firma cuando toque.
 
 ## Abiertas (siguiente)
 - ✅ Modelo cerrado: 4 territorios (Propósito·Producto·Organización·WIP) + Calidad · 3 planos (definición/
