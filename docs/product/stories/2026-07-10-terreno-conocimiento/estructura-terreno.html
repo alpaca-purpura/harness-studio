@@ -1,0 +1,394 @@
+<!doctype html>
+<!--
+  ArnesIA — Landscape del proyecto: estructura + carpetas (v4, modelo D0-D19).
+  Co-diseño 2026-07-10. NO es el mapa-UI-producto: es el modelo que el mapa-UI luego renderiza.
+  4 TERRITORIOS: Propósito · Producto · Organización · WIP  + Calidad y Economía (overlays).
+  - Propósito/Producto/Organización = DEFINICIÓN (dimensiones + método + plantillas + conocimiento).
+  - WIP = 4º territorio de naturaleza INSTANCIA: trabajo vivo (paquetes con estados + foto) → done/.
+  - capability = detalle implementado + CIERRE del paquete; Producto = Σ capabilities (func + NO-func).
+  - REGLA DE LAS 3 CARAS (D18): NORMA→dimensión · PASO→proceso · ARTEFACTO→WIP. Un hogar por cara.
+  - 11 canónicas (D19): requisitos migró a Producto · nació necesidad en Propósito · economía→overlay ·
+    NUEVA gestion-trabajo (schema de WIP) en Organización.
+  Motor = FORJA (nosotros creamos los arneses). Rename per-arnés OBLIGATORIO (toggle Canónico/Dev/Finanzas).
+  Tokens = web/tokens/base.tokens.json.
+-->
+<meta charset="utf-8">
+<title>ArnesIA · Landscape — estructura + carpetas (v4)</title>
+<style>
+  :root{
+    --background:#f2f4f7;--card:#ffffff;--secondary:#e9edf2;--foreground:#212832;--muted-foreground:#5d6a79;
+    --border:#d5dbe3;--input:#c3cbd6;--primary:#a8742c;
+    --c-skill:#2f74b5;--c-agent:#7455c2;--c-hook:#bb4c85;--c-knowledge:#20826f;--c-mcp:#586c80;--c-rule:#7a7a24;
+    --ok:#2e8f5e;--warn:#c96a2e;--crit:#c94545;
+    --a-proposito:#bb4c85;--a-producto:#2f74b5;--a-organizacion:#20826f;--a-wip:#7455c2;--a-calidad:#c96a2e;
+    --radius-md:8px;--radius-lg:11px;--radius-full:9999px;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --background:#14171c;--card:#1b2027;--secondary:#242b34;--foreground:#e8ecf1;--muted-foreground:#94a1af;
+    --border:#2d3743;--input:#3a4655;--primary:#d9a35b;
+    --c-skill:#5b9dd9;--c-agent:#9b7fd4;--c-hook:#d46a9e;--c-knowledge:#4fb3a1;--c-mcp:#8195a9;--c-rule:#b5b558;
+    --ok:#57b380;--warn:#e0904f;--crit:#e25b5b;
+    --a-proposito:#d46a9e;--a-producto:#5b9dd9;--a-organizacion:#4fb3a1;--a-wip:#9b7fd4;--a-calidad:#e0904f;
+  }}
+  :root[data-theme="dark"]{
+    --background:#14171c;--card:#1b2027;--secondary:#242b34;--foreground:#e8ecf1;--muted-foreground:#94a1af;
+    --border:#2d3743;--input:#3a4655;--primary:#d9a35b;--c-skill:#5b9dd9;--c-agent:#9b7fd4;--c-hook:#d46a9e;--c-knowledge:#4fb3a1;--c-mcp:#8195a9;--c-rule:#b5b558;--ok:#57b380;--warn:#e0904f;--crit:#e25b5b;--a-proposito:#d46a9e;--a-producto:#5b9dd9;--a-organizacion:#4fb3a1;--a-wip:#9b7fd4;--a-calidad:#e0904f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 22px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted-foreground);font-size:13px;margin:0 0 10px}
+  .naming{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .naming .n{border:1px solid var(--border);background:var(--card);border-radius:var(--radius-md);padding:6px 11px;font-size:12.5px}
+  .naming .n b{font-family:var(--font-mono)}
+  section{margin-top:30px}
+  h2{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted-foreground);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  h2::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  .rubro{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;background:var(--background)}
+  .rubro .seg{display:inline-flex;gap:2px;border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-lg);padding:3px}
+  .rubro .seg button{font:inherit;font-size:13px;cursor:pointer;border:0;background:transparent;color:var(--muted-foreground);border-radius:7px;padding:5px 13px;font-weight:500}
+  .rubro .seg button[aria-pressed="true"]{background:var(--card);color:var(--foreground);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .rubro .hint{font-size:12px;color:var(--muted-foreground)}
+
+  .layers{display:flex;flex-direction:column;gap:8px}
+  .layer{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-left:4px solid var(--lc,var(--border));border-radius:var(--radius-md);background:var(--card);padding:10px 14px}
+  .layer .tag{font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--lc);min-width:92px}
+  .layer .txt{font-size:12.5px}.layer .txt b{font-weight:600}
+  .arrowdown{text-align:center;color:var(--muted-foreground);font-family:var(--font-mono);font-size:11px}
+
+  .area{border:1px solid var(--border);border-left:4px solid var(--ac);border-radius:var(--radius-lg);background:color-mix(in srgb,var(--ac) 4%,var(--card));padding:14px 16px;margin-bottom:16px}
+  .area-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .area-hd h3{margin:0;font-size:15px;font-weight:700}
+  .area-hd .canon{font-family:var(--font-mono);font-size:10px;color:var(--ac);border:1px solid color-mix(in srgb,var(--ac) 45%,var(--border));border-radius:var(--radius-full);padding:1px 8px}
+  .area-hd .nat{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);border:1px solid var(--border);border-radius:var(--radius-full);padding:1px 7px}
+  .area-hd .desc{font-size:12px;color:var(--muted-foreground)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+  .dim{border:1px solid var(--border);border-top:3px solid var(--ac);border-radius:var(--radius-md);background:var(--card);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+  .dim-top{display:flex;align-items:center;gap:7px}
+  .dim-top .dot{width:10px;height:10px;border-radius:50%;flex:none;border:1.6px solid var(--muted-foreground)}
+  .dot.lleno{background:var(--ok);border-color:var(--ok)}.dot.parcial{background:linear-gradient(90deg,var(--warn) 50%,transparent 50%);border-color:var(--warn)}.dot.vacio{border-style:dashed}
+  .dim-nm{font-weight:600;font-size:13.5px;flex:1}
+  .zt{font-family:var(--font-mono);font-size:9px;font-weight:700;color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent);border:1px solid color-mix(in srgb,var(--ac) 35%,var(--border));border-radius:4px;padding:1px 5px}
+  .cid{font-family:var(--font-mono);font-size:9.5px;color:var(--muted-foreground)}
+  .dim-desc{font-size:11.5px;color:var(--muted-foreground)}
+  .expand{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+  .expand .ex{font-family:var(--font-mono);font-size:9px;color:var(--a-producto);border:1px solid color-mix(in srgb,var(--a-producto) 35%,var(--border));border-radius:var(--radius-full);padding:1px 6px}
+  .expand .lbl{font-size:9.5px;color:var(--muted-foreground);align-self:center}
+
+  /* WIP block */
+  .wip{display:flex;flex-direction:column;gap:12px}
+  .wip .hier{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .wip .wu{border:1px solid var(--border);border-left:3px solid var(--a-wip);border-radius:var(--radius-md);background:var(--card);padding:8px 11px;font-size:12.5px}
+  .wip .wu b{font-weight:600}.wip .wu .st{display:block;font-family:var(--font-mono);font-size:9px;color:var(--muted-foreground);margin-top:2px}
+  .wip .arr{color:var(--muted-foreground);font-family:var(--font-mono)}
+  .estados{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .estados .e{font-family:var(--font-mono);font-size:10px;border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-full);padding:2px 8px;color:var(--muted-foreground)}
+  .estados .e.done{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--border));background:color-mix(in srgb,var(--ok) 9%,transparent)}
+  .foldflow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px}
+  .foldflow .fold{font-family:var(--font-mono);font-size:11px;border:1px solid var(--border);border-radius:var(--radius-md);padding:5px 10px;background:var(--card)}
+  .foldflow .fold.done{border-color:color-mix(in srgb,var(--ok) 45%,var(--border));background:color-mix(in srgb,var(--ok) 7%,var(--card))}
+  .wnote{font-size:11.5px;color:var(--muted-foreground)}
+
+  .overlay{border:1.5px dashed color-mix(in srgb,var(--a-calidad) 55%,var(--border));background:color-mix(in srgb,var(--a-calidad) 5%,var(--card));border-radius:var(--radius-lg);padding:14px 16px}
+  .overlay .ov-note{font-size:12px;color:var(--muted-foreground);margin:0 0 10px}
+  .qchips{display:flex;flex-wrap:wrap;gap:7px}
+  .q{font-size:12px;border:1px solid color-mix(in srgb,var(--a-calidad) 35%,var(--border));background:color-mix(in srgb,var(--a-calidad) 8%,transparent);border-radius:var(--radius-full);padding:3px 10px}
+
+  .flowbig{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:12.5px}
+  .flowbig .b{border:1px solid var(--border);background:var(--card);border-radius:var(--radius-md);padding:7px 10px}
+  .flowbig .b.hi{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--card))}
+  .flowbig .b small{display:block;color:var(--muted-foreground);font-size:10.5px}
+  .flowbig .arr{color:var(--muted-foreground);font-family:var(--font-mono)}
+
+  .gate{border:1px solid color-mix(in srgb,var(--crit) 35%,var(--border));background:color-mix(in srgb,var(--crit) 5%,var(--card));border-radius:var(--radius-lg);padding:14px 16px}
+  .gate h4{margin:0 0 8px;font-size:13px;color:var(--crit)}
+  .gate ul{margin:0;padding-left:18px;font-size:12.5px}.gate li{margin:2px 0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media (max-width:720px){.two{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);padding:14px 16px}
+  .panel h4{margin:0 0 8px;font-size:13px}.panel p{margin:0 0 8px;font-size:12.5px;color:var(--muted-foreground)}
+  .panel ul{margin:0;padding-left:18px;font-size:12.5px}.panel li{margin:3px 0}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px}
+  .flow .box{border:1px solid var(--border);background:var(--card);border-radius:var(--radius-md);padding:7px 11px}
+  .flow .box.hi{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--card))}
+  .flow .arr{color:var(--muted-foreground);font-family:var(--font-mono)}
+  .deriva{display:flex;flex-direction:column;gap:5px;font-size:12px}.deriva .d{display:flex;align-items:center;gap:8px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+  pre{background:color-mix(in srgb,var(--secondary) 50%,var(--card));border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:11.5px;line-height:1.55;margin:0}
+  pre .c{color:var(--muted-foreground)}pre .k{color:var(--c-knowledge)}pre .p{color:var(--primary)}pre .w{color:var(--a-wip)}
+  code{font-family:var(--font-mono)}.src{font-size:10.5px;color:var(--muted-foreground);margin-top:8px}
+</style>
+
+<div class="wrap">
+  <h1>ArnesIA · Landscape del proyecto <span style="font-size:13px;color:var(--muted-foreground)">v4 · modelo D0-D19</span></h1>
+  <p class="sub">4 territorios (Propósito · Producto · Organización · WIP) + Calidad y Economía (overlays) · <b>11 canónicas</b>. Fundado en marcos (ISO 42010 · SWEBOK/Essence · Zachman · ISO 25010) + arneses-as-code (Kiro·OpenSpec·BMAD·cruft/copier·aider) + Vitalia.</p>
+  <div class="naming">
+    <span class="n"><b>Terreno</b> = el landscape (4 territorios)</span>
+    <span class="n"><b>Dimensión</b> = cada eje</span>
+    <span class="n"><b>paquete</b> = vessel/instancia de WIP (con estados)</span>
+    <span class="n"><b>artefacto</b> = doc que cada paso llena y refina el paquete</span>
+    <span class="n"><b>capability</b> = lo durable que el paquete ratifica al cerrar</span>
+  </div>
+
+  <div class="rubro">
+    <div class="seg" role="group" aria-label="Rubro">
+      <button data-r="canonico" aria-pressed="true">Canónico (motor)</button>
+      <button data-r="dev" aria-pressed="false">Dev</button>
+      <button data-r="finanzas" aria-pressed="false">Analista financiero</button>
+    </div>
+    <span class="hint" id="rubro-hint"></span>
+  </div>
+
+  <section>
+    <h2>El modelo en capas · ArnesIA = FORJA</h2>
+    <div class="layers">
+      <div class="layer" style="--lc:var(--primary)"><span class="tag">Motor</span><span class="txt">frame fijo agnóstico: 4 territorios + Zachman + sello/deriva + <b>11 dimensiones canónicas</b> (gate) + calidad/economía + <b>forjador</b></span></div>
+      <div class="arrowdown">▼ forja con NUESTRA metodología (fases→cajas→gates→PARIDAD) · plantillas · determinista</div>
+      <div class="layer" style="--lc:var(--c-skill)"><span class="tag">Arnés</span><span class="txt">forjado por nosotros. DEFINICIÓN: Propósito·Producto·Organización (dimensiones + método + plantillas + conocimiento)</span></div>
+      <div class="arrowdown">▼ init instancia · el trabajo corre en WIP · doctor valida</div>
+      <div class="layer" style="--lc:var(--c-agent)"><span class="tag">Proyecto</span><span class="txt">del usuario. EJECUCIÓN (WIP): paquetes con estados → al cerrar ratifican <b>capabilities</b> → constituyen el Producto durable</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Regla de las 3 caras · dónde va cada cosa (D18)</h2>
+    <div class="panel">
+      <p>Todo <em>concern</em> (requisitos, ux, datos, seguridad…) puede mostrar hasta 3 caras. La cara decide dónde vive — <b>independiente del rubro</b>. Un solo hogar por cara:</p>
+      <div class="flowbig">
+        <span class="b" style="border-left:3px solid var(--a-producto)"><b>NORMA</b><small>regla/estándar durable que todos comparten</small></span><span class="arr">→</span>
+        <span class="b hi" style="border-left:3px solid var(--a-producto)"><b>dimensión de terreno</b><small>Propósito / Producto / Organización</small></span>
+      </div>
+      <div class="flowbig" style="margin-top:8px">
+        <span class="b" style="border-left:3px solid var(--a-organizacion)"><b>PASO</b><small>momento donde alguien hace algo</small></span><span class="arr">→</span>
+        <span class="b hi" style="border-left:3px solid var(--a-organizacion)"><b>caja del proceso</b><small>Organización · rol + plantilla</small></span>
+      </div>
+      <div class="flowbig" style="margin-top:8px">
+        <span class="b" style="border-left:3px solid var(--a-wip)"><b>ARTEFACTO</b><small>plantilla LLENADA para este paquete</small></span><span class="arr">→</span>
+        <span class="b hi" style="border-left:3px solid var(--a-wip)"><b>dentro del paquete</b><small>WIP · lo refina</small></span>
+      </div>
+      <p class="src"><b>Paquete vs artefacto (D20):</b> el <b>paquete</b> (historia · engagement · vacante) es el <b>vessel/instancia</b> de WIP — su schema = <code>gestion-trabajo</code>; los <b>artefactos</b> son los docs-hijos que cada paso llena y acumula, refinándolo. <b>Ejemplo UX:</b> design-system = NORMA (Producto) · "pasa por UX" = PASO (proceso) · el mockup de este feature = ARTEFACTO (dentro del paquete). Estructural: NORMA→dimensión · PASO→<code>proceso</code> · ARTEFACTO→WIP.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Los 4 territorios</h2>
+    <div id="areas"></div>
+  </section>
+
+  <section>
+    <h2>Overlays transversales → capabilities NO-funcionales</h2>
+    <div class="two">
+      <div class="overlay">
+        <p class="ov-note"><b>Calidad.</b> Permea todas las dimensiones (no es un lugar) → se <b>proyecta</b> como checks. <b>Catálogo por rubro</b>. Al ratificarse produce las <b>capabilities NO-funcionales</b> que —junto a las funcionales— <b>constituyen el Producto</b>.</p>
+        <div class="qchips" id="calidad"></div>
+      </div>
+      <div class="overlay" style="--a-calidad:var(--a-organizacion)">
+        <p class="ov-note"><b>Economía.</b> Costo/valor <b>permea toda decisión</b> (ex-canónica → overlay, D19). Catálogo por rubro; carve-out para el <b>modelo económico durable</b>.</p>
+        <div class="qchips" id="economia"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>El flujo completo · de la necesidad al producto</h2>
+    <div class="panel">
+      <div class="flowbig">
+        <span class="b" style="border-left:3px solid var(--a-proposito)"><b>necesidad</b><small>Propósito</small></span><span class="arr">→ siembra →</span>
+        <span class="b hi" style="border-left:3px solid var(--a-wip)"><b>paquete</b><small>nace en WIP · con estado</small></span><span class="arr">→ sigue →</span>
+        <span class="b" style="border-left:3px solid var(--a-organizacion)"><b>método (Proceso)</b><small>plantillas del arnés</small></span><span class="arr">→ produce →</span>
+        <span class="b" style="border-left:3px solid var(--a-wip)"><b>artefactos llenados</b><small>en WIP</small></span><span class="arr">→ al cerrar ratifica →</span>
+        <span class="b hi"><b>capability</b><small>func + no-func</small></span><span class="arr">→ constituye →</span>
+        <span class="b" style="border-left:3px solid var(--a-producto)"><b>Producto</b><small>durable</small></span>
+      </div>
+      <p class="src">Al cerrar, la carpeta de trabajo pasa a <code>done/</code> → orden permanente. La capability es el <b>puente y el criterio de cierre</b> (mata el "cajón sin cierre").</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fix del concepto "épica" (lección de Vitalia + PM research)</h2>
+    <div class="panel">
+      <ul>
+        <li><b>UNA jerarquía limpia</b> outcome→paquete→sub, cada uno instancia-con-estado + criterio de cierre. Framing por <b>OUTCOME</b> (Opportunity Solution Tree), no épica-cajón-de-output.</li>
+        <li><b>Release/fase = TAG ortogonal</b>, jamás en el slug/id (Vitalia mete <code>fase2</code> en el slug → choca con <code>release</code>).</li>
+        <li><b>Snapshot-vivo (auto-gen, DO-NOT-EDIT) ≠ bitácora append-only (LEDGER)</b> — nada de prosa-log en YAML.</li>
+        <li>Pipeline de artefactos que <b>ESCALA al appetite</b> (Shape-Up) — no forzar 00→07 en todo.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Gate de completitud · la forja FALLA si…</h2>
+    <div class="gate">
+      <h4>determinista · verificable (extiende <code>arnesia conformance</code> + PARIDAD)</h4>
+      <ul>
+        <li>falta un <b>territorio</b> o una <b>dimensión canónica</b> (de las 11, incluida <code>gestion-trabajo</code>);</li>
+        <li>una canónica sin <b>label en el lenguaje del rubro</b> (regla E);</li>
+        <li>una canónica sin <b>receta</b> (plantilla + scraping + preguntas);</li>
+        <li>no se declararon los <b>catálogos de calidad y economía</b> (≥1 atributo c/u);</li>
+        <li><code>gestion-trabajo</code> sin <b>máquina de estados + criterio de cierre</b> (ratificar capability + <code>done/</code>) que forje el esqueleto de WIP;</li>
+        <li><em>(rec)</em> una decisión sin <b>rule/skill trazable</b>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Conocimiento · capa co-locada</h2>
+    <div class="panel">
+      <p>De las <b>decisiones</b> de cada dimensión <b>nacen</b> rules + skills (viven en <code>&lt;dimensión&gt;/knowledge/</code>). Traza bidireccional (<code>codigo-traza-a-capability</code>).</p>
+      <div class="flow">
+        <span class="box">decisión de <b>dimensión</b></span><span class="arr">→ nace →</span>
+        <span class="box hi"><b>rule</b> (fitness function)</span><span class="arr">+</span>
+        <span class="box hi"><b>skill</b> de conocimiento</span><span class="arr">→ es →</span>
+        <span class="box"><b>capability</b> (SSoT funcional)</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ciclo del arnés · sello → deriva → doctor → loop-forward</h2>
+    <div class="two">
+      <div class="panel">
+        <h4>Mecanismo (cruft · copier · projen)</h4>
+        <div class="flow" style="margin-bottom:10px">
+          <span class="box hi"><b>init</b></span><span class="arr">→</span>
+          <span class="box"><b>sello</b> <span style="color:var(--muted-foreground);font-size:11px">answers+versión+firma+hashes</span></span><span class="arr">→</span>
+          <span class="box"><b>doctor</b> <span style="color:var(--muted-foreground);font-size:11px">idempotente por marker</span></span>
+        </div>
+        <div class="deriva">
+          <span class="d"><span class="swatch" style="background:var(--muted-foreground)"></span> <b>original</b> — idéntico al render de fábrica</span>
+          <span class="d"><span class="swatch" style="background:var(--warn)"></span> <b>modificado-usuario</b></span>
+          <span class="d"><span class="swatch" style="background:var(--c-knowledge)"></span> <b>generado</b> — con marker</span>
+          <span class="d"><span class="swatch" style="background:var(--crit)"></span> <b>no-reconocido</b> — doctor jamás lo toca</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h4>Loop-forward ★ (invierte cruft — nadie lo tiene)</h4>
+        <div class="flow">
+          <span class="box">construir</span><span class="arr">→</span><span class="box">marketplace</span><span class="arr">→</span>
+          <span class="box">init</span><span class="arr">→</span><span class="box hi">usuario <b>deriva</b></span><span class="arr">→</span>
+          <span class="box hi">fábrica <b>cosecha</b></span><span class="arr">→</span><span class="box">publica</span><span class="arr">→</span><span class="box"><code>update</code></span>
+        </div>
+        <p class="src">Diferencial: nadie tiene sello+deriva+cosecha-back. Propiedad parcial.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Organización en carpetas</h2>
+    <pre><span class="c"># SEAM + routers</span>
+project.config.yaml · CLAUDE.md · AGENTS.md · arnes.yaml   <span class="c"># seam · router · fachada · dimension-set</span>
+
+docs/<span class="p">terreno/</span>                  <span class="c"># DEFINICIÓN (3 territorios de dimensiones) — el arnés</span>
+  proposito/   encargo/ stakeholders/ necesidad/
+  producto/    requisitos/ producto/ datos/ contexto/
+               <span class="c"># dev expande producto/: arquitectura(←MIGRA docs/architecture/)·ux·tecnologias·concurrencia</span>
+  organizacion/ proceso/(spine.yaml raci.yaml handoffs/ <b>plantillas/</b>) equipo/ forma-trabajo/ <b>gestion-trabajo/</b>
+  calidad/ · economia/  <span class="c"># overlays: perfiles; hojas solo seguridad/testing/compliance</span>
+  <span class="c"># cada dimensión: INDEX.md + hojas atómicas + </span><span class="k">knowledge/{rules,skills}</span>
+
+docs/<span class="w">wip/</span>                      <span class="c"># EJECUCIÓN (4º territorio) — el trabajo vivo, instancias con estados</span>
+  activo/&lt;outcome&gt;/&lt;paquete&gt;/    <span class="c"># artefactos LLENADOS + estado + foto</span>
+  <span class="w">done/</span>&lt;outcome&gt;/               <span class="c"># cerrados (ratificaron capability) → orden permanente</span>
+  INDEX.md                     <span class="c"># foto viva AUTO-GENERADA (DO-NOT-EDIT)</span>
+
+docs/product/capabilities/     <span class="c"># PRODUCTO durable: Σ capabilities (func + no-func) — SSoT</span>
+.claude/                       <span class="c"># rules/skills OPERATIVAS del harness (gates) — kit</span>
+sello.yaml + .baseline-hashes  <span class="c"># manifiesto firmado + hash por-archivo → deriva</span></pre>
+    <p class="src">Nav low-token 3-4 saltos: <code>CLAUDE.md → docs/terreno/INDEX → &lt;dimensión&gt;/INDEX → hoja → puntero-a-código</code>.</p>
+  </section>
+</div>
+
+<script>
+const RUBROS={
+  canonico:{hint:"nombres canónicos internos del motor · cada arnés los RENOMBRA (regla dura E)",
+    areas:{proposito:"Propósito",producto:"Producto",organizacion:"Organización",wip:"WIP"},cal:"software"},
+  dev:{hint:"arnés-dev: mismo esqueleto, lenguaje de desarrollo. producto se EXPANDE en sub-nodos. (canónico ya habla dev → labels ≈ canónicos, no se fuerza empeorar)",
+    areas:{proposito:"Propósito",producto:"Producto",organizacion:"Organización",wip:"WIP · outcome→historia→sub"},cal:"software"},
+  finanzas:{hint:"arnés-analista-financiero: MISMO esqueleto, otro rubro. Prueba de agnosticismo.",
+    areas:{proposito:"Mandato",producto:"Informe",organizacion:"Metodología",wip:"Engagements · análisis"},cal:"finanzas"},
+};
+const AREAS=[
+  {id:"proposito",ac:"var(--a-proposito)",nat:"definición",desc:"por qué · para quién · qué se pide"},
+  {id:"producto",ac:"var(--a-producto)",nat:"definición",desc:"lo construido durable = Σ capabilities (func + no-func)"},
+  {id:"organizacion",ac:"var(--a-organizacion)",nat:"definición",desc:"cómo trabajamos: método + plantillas"},
+  {id:"wip",ac:"var(--a-wip)",nat:"instancia",desc:"el trabajo vivo: paquetes con estados + foto → done/"},
+];
+const DIMS=[
+  {area:"proposito",id:"encargo",z:"Why",u:"por qué existe el trabajo / oportunidad",salud:"vacio",l:{canonico:"Encargo",dev:"Oportunidad / brief",finanzas:"Mandato / tesis"}},
+  {area:"proposito",id:"stakeholders",z:"Who",u:"para quién · afectados",salud:"parcial",l:{canonico:"Stakeholders",dev:"Stakeholders",finanzas:"CFO · comité · regulador"}},
+  {area:"proposito",id:"necesidad",z:"What",u:"el problema / outcome a resolver (nivel-problema, estable)",salud:"parcial",l:{canonico:"Necesidad",dev:"Necesidad / problema de usuario",finanzas:"Pregunta a responder (valuación·riesgo)"}},
+  {area:"producto",id:"requisitos",z:"What",u:"contrato: qué debe CUMPLIR la solución (durable; peso por rubro)",salud:"parcial",l:{canonico:"Requisitos / alcance",dev:"Requisitos / specs / BDD",finanzas:"Alcance (supuestos·restricciones·aceptación)"}},
+  {area:"producto",id:"producto",z:"How/What",u:"estructura del entregable — el rubro EXPANDE o AGREGA",salud:"lleno",
+    expand:{dev:["arquitectura","ux","tecnologías","concurrencia"],finanzas:["modelo 3-estados","supuestos","escenarios"]},
+    l:{canonico:"Producto",dev:"Producto",finanzas:"Modelo / Informe"}},
+  {area:"producto",id:"datos",z:"What",u:"insumos / materia prima de datos",salud:"parcial",l:{canonico:"Datos",dev:"Datos / persistencia",finanzas:"EEFF · market-data · ERP"}},
+  {area:"producto",id:"contexto",z:"Where",u:"perímetro / integraciones / sistemas externos (C4)",salud:"parcial",l:{canonico:"Contexto",dev:"Contexto (C4 L1)",finanzas:"entidades · período · moneda"}},
+  {area:"organizacion",id:"proceso",z:"When/How",u:"la SECUENCIA: mapa {tipo-de-paquete → spine pasos→rol→plantilla} (D20)",salud:"lleno",l:{canonico:"Proceso",dev:"Ciclo dev (idea→UX→arq→dev)",finanzas:"Metodología del análisis"}},
+  {area:"organizacion",id:"equipo",z:"Who",u:"quién ejecuta · RACI",salud:"parcial",l:{canonico:"Equipo",dev:"Roles dev",finanzas:"analista · senior · aprobador"}},
+  {area:"organizacion",id:"forma-trabajo",z:"How",u:"convenciones · prácticas · disciplina",salud:"vacio",l:{canonico:"Forma-de-trabajo",dev:"code-style · PARIDAD",finanzas:"convenciones de modelado"}},
+  {area:"organizacion",id:"gestion-trabajo",z:"How",u:"CONTENEDOR: declara los TIPOS-de-paquete (jerarquía · estados · cierre) · backlog · WIP-caps → forja el esqueleto de WIP",salud:"vacio",l:{canonico:"Gestión del trabajo",dev:"Backlog / flujo de historias",finanzas:"Gestión de engagements"}},
+];
+const CALIDAD={
+  software:["Functional-Suitability","Performance-Efficiency","Compatibility","Interaction-Capability","Reliability","Security","Maintainability","Flexibility","Safety"],
+  finanzas:["Exactitud","Auditabilidad","Oportunidad","Cumplimiento","Consistencia","Completitud","Reproducibilidad","Confidencialidad","Robustez-de-supuestos"],
+};
+const ECONOMIA={
+  software:["Costo-infra","ROI / valor","Time-to-market","Deuda-técnica","Coste-mantenimiento"],
+  finanzas:["Costo del análisis","Valor de la decisión","Honorarios","Margen","Riesgo-oportunidad"],
+};
+const WIP_HIER={
+  canonico:["outcome","paquete","sub"],dev:["outcome","historia","sub-tarea"],finanzas:["engagement","análisis","hoja de cálculo"],
+};
+const ARTEFACTOS={
+  canonico:["artefacto·paso-1","artefacto·paso-2","…","artefacto·paso-n"],
+  dev:["research","spec","mockup","ADR","PR","PARIDAD"],
+  finanzas:["tesis","captura de datos","modelo DCF","escenarios","informe","QA senior"],
+};
+let rubro="canonico";
+function esc(s){const d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}
+function wipBlock(){
+  const h=WIP_HIER[rubro];const arts=ARTEFACTOS[rubro];
+  return `<div class="wip">
+    <div class="wnote"><b>N pipelines por TIPO de paquete</b> (D20): el proceso es un mapa {tipo → spine}. Un tipo, su jerarquía:</div>
+    <div class="hier">${h.map((x,i)=>`<span class="wu"><b>${esc(x)}</b><span class="st">${i===1?'paquete · vessel':'nivel'}</span></span>${i<h.length-1?'<span class="arr">→</span>':''}`).join("")}</div>
+    <div class="wnote">cada <b>paquete</b> = vessel con estado que <b>contiene artefactos</b> (plantillas llenadas que lo refinan):</div>
+    <div class="estados"><span class="wnote">paquete ⊃</span>${arts.map(a=>`<span class="e">${esc(a)}</span>`).join("")}</div>
+    <div class="estados"><span class="wnote">estados:</span><span class="e">idea</span><span class="arr">→</span><span class="e">refinando</span><span class="arr">→</span><span class="e">listo</span><span class="arr">→</span><span class="e">en-curso</span><span class="arr">→</span><span class="e done">done ✓</span></div>
+    <div class="foldflow"><span class="fold">activo/</span><span class="arr">——— al cerrar (ratifica capability) ———→</span><span class="fold done">done/</span></div>
+    <p class="wnote">Regla anti-cajón: cada paquete lleva estado + criterio de cierre + pasa a <b>done/</b>. El <b>schema</b> (tipos·estados·jerarquía·cierre) lo define <code>gestion-trabajo</code>; las <b>plantillas</b> viven en <code>proceso</code>; los artefactos <b>llenados</b> viven acá.</p>
+  </div>`;
+}
+function render(){
+  const R=RUBROS[rubro];
+  document.getElementById("rubro-hint").textContent=R.hint;
+  const host=document.getElementById("areas");host.innerHTML="";
+  AREAS.forEach(a=>{
+    const sec=document.createElement("div");sec.className="area";sec.style.setProperty("--ac",a.ac);
+    sec.innerHTML=`<div class="area-hd"><h3>${esc(R.areas[a.id])}</h3><span class="canon">canónico: ${a.id}</span><span class="nat">${a.nat}</span><span class="desc">${esc(a.desc)}</span></div>`;
+    if(a.id==="wip"){sec.insertAdjacentHTML("beforeend",wipBlock());host.appendChild(sec);return;}
+    const cards=document.createElement("div");cards.className="cards";
+    DIMS.filter(d=>d.area===a.id).forEach(d=>{
+      const nm=d.l[rubro]||d.l.canonico,same=(nm===d.l.canonico);
+      let ex="";
+      if(d.expand&&d.expand[rubro])ex=`<div class="expand"><span class="lbl">expande →</span>${d.expand[rubro].map(x=>`<span class="ex">${esc(x)}</span>`).join("")}</div>`;
+      else if(d.expand)ex=`<div class="expand"><span class="lbl">el rubro expande o agrega hermanas</span></div>`;
+      const card=document.createElement("div");card.className="dim";
+      card.innerHTML=`<div class="dim-top"><span class="dot ${d.salud}"></span><span class="dim-nm">${esc(nm)}</span><span class="zt">${esc(d.z)}</span></div>`+
+        (same?"":`<div class="cid">canónico: ${esc(d.id)}</div>`)+`<div class="dim-desc">${esc(d.u)}</div>`+ex;
+      cards.appendChild(card);
+    });
+    sec.appendChild(cards);host.appendChild(sec);
+  });
+  document.getElementById("calidad").innerHTML=CALIDAD[R.cal].map(q=>`<span class="q">${esc(q)}</span>`).join("");
+  document.getElementById("economia").innerHTML=ECONOMIA[R.cal].map(q=>`<span class="q">${esc(q)}</span>`).join("");
+}
+document.querySelector(".rubro .seg").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-r]");if(!b)return;rubro=b.dataset.r;
+  [...document.querySelectorAll(".rubro .seg button")].forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.r===rubro)));
+  render();
+});
+render();
+</script>
