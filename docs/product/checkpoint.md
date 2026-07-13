@@ -6,17 +6,18 @@
 ## Fase del gran plan
 
 **Fase 5 (Implementación) EN CURSO.** Fases 1-4 ✓ (Visión · UX · Arquitectura · Specs).
-Última ficha cerrada: **HS-21** (estado.sh → CI drift-gate + auto-cura `pre-commit`; eje N2
-«honestidad automática», Paquete A — FIRMADA 2026-07-10). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
+Última ficha cerrada: **HS-22** (spike CARGA → **Programa «Portafolio · ciclo de vida del arnés»**; modelo
+FIRMADO 🧑‍⚖️ 2026-07-13 tras revisión adversaria de 4 subagentes). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
 
 ## Paquete de trabajo activo
 
-- **SPIKE de CARGA de arneses (2026-07-10) — ACTIVO.** El user quiere **usar la app y mejorar arneses YA**
-  (trabajo retrasado). La app CORRE (`bin/arnesia serve` → `127.0.0.1:4200`; kit ①② inyectado desde `~/.arnesia`;
-  3 arneses de ejercicio cargados) pero falta **agencia**: elegir desde la app qué arnés/proyecto cargar. Paquete
-  [`stories/2026-07-10-spike-carga-arneses/`](stories/2026-07-10-spike-carga-arneses/INDEX.md): backend de carga
-  single-arnés HECHO (`PUT /api/arneses/{id}`+loader+índice); gaps = **dialog FE** (dif. HS-07) + **detección
-  proyecto-multi** (lock `.devstudio/arneses.yaml`, dif. HS-12). Flujo pedido: revisar estado → ideas → mockup → build.
+- **Programa «Portafolio · ciclo de vida del arnés» — modelo FIRMADO 🧑‍⚖️ (HS-22, 2026-07-13), en cola de build.**
+  El spike de CARGA se reencuadró en el front-door del ciclo de vida (agregar de marketplace/proyecto · observar · mejorar ·
+  publicar · actualizar · reparar). Modelo firmado: identidad **`(home,id)`** · N:M:M · **canónico** (editable) + N **instalaciones**
+  (read-only) · ley anti-drift descriptiva · **`deriva`**. Revisión adversaria (4 subagentes) probó que el FE no es construible sin
+  cimientos → recut **Slice 0 «Cimientos» (dominio) → Slice 1 «FE»** (épica en `BACKLOG.md`). Paquete
+  [`stories/2026-07-10-spike-carga-arneses/`](stories/2026-07-10-spike-carga-arneses/INDEX.md) (specs + casuística + revisión + mockup v2).
+  **Hand-off:** el operador divide tickets con **Fable 5** (arquitecto) → build con **Sonnet 5**. **Sin código aún.**
 - **Fase 1 «forja-ciclo-vivo» — PAUSADA** ([`stories/2026-07-10-forja-ciclo-vivo/`](stories/2026-07-10-forja-ciclo-vivo/INDEX.md)):
   Slice 1a (golden scaffold `docs/terreno/` dim piloto `forma-trabajo` + `docs/wip/`) **construido, pendiente firma
   🧑‍⚖️**; verificado verde (F-D4). **Aclaración F-D5:** la expertise de forja se encarna en el **kit ② embebido**
@@ -24,9 +25,12 @@
   migrará, no revertir). Firmado «docs/terreno absorbe architecture» → bajo revisión (P9 en terreno-conocimiento).
 - **Modelo de TERRENO FIRMADO 🧑‍⚖️ 2026-07-10** ([`stories/2026-07-10-terreno-conocimiento/`](stories/2026-07-10-terreno-conocimiento/INDEX.md):
   D0-D20 + `arnes.yaml` + `estructura-terreno.html` v4). Sigue válido como **schema que el forjador aplica**.
-- **Retomar aquí:** correr el **spike de carga** en conversación nueva (revisar → ideas → mockup story-first
-  superset anti-drift → build). Al cerrar el spike → firmar Slice 1a → paso 2 forjador (reencuadrado por F-D5).
-  Contexto: memorias `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
+- **Retomar aquí:** el modelo del **Portafolio** está firmado (HS-22). Próximo = **Fable 5 (arquitecto) divide tickets de
+  Slice 0 «Cimientos»** (dominio: store separado · walker + fallback `plugin.json` · `version` · `empresas[]`/`registries[]` ·
+  identidad `(home,id)` · cadena de origen collect-all · `deriva`; empezar por **investigar el eslabón CC de procedencia**, F5) →
+  build con Sonnet 5. Superficie de tickets = `stories/2026-07-10-spike-carga-arneses/spec-funcional.md` §9+§11 + `casuistica.md §I`.
+  Pausadas: **Fase 1 forja** (Slice 1a pendiente firma) · **terreno** (schema firmado). Contexto: memorias
+  `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

@@ -34,6 +34,7 @@
 | mockup | fecha (alta→últ) | rol | spec / paquete | estado |
 |---|---|---|---|---|
 | `arnesia-mapa-baseline.html` | 2026-07-10 | **BASELINE** del Mapa (superficie completa) | este INDEX + `map-canvas.stories.tsx` | **✅ vigente** |
+| `arnesia-portafolio.html` | 2026-07-13 | **PROPUESTA** · Portafolio (Slice 1, front-door del ciclo de vida del arnés) | `stories/2026-07-10-spike-carga-arneses/` (S-D5/S-D6) · BACKLOG «Outcome Portafolio» | 🟡 **propuesta** — superset del baseline, tokens fieles, SIN firmar. NO reemplaza nada |
 | `arnesia-mapa-mvp.html` | 2026-07-06 | Mapa MVP Hito 1 (canvas bandas/carriles + SVG) | `stories/2026-07-06-mapa-mvp/{00-BRIEF,spec,design}.md` (Gate 1 ✓ `0736d2c`) | ⚠️ **superado** — le faltan franja-artefactos + inspector 3-tabs. NO forkear |
 | `arnesia-mockup-v3.html` | 2026-07-04→05 | Shell + detalle (capas/inspector) it.13 | `ux.md` Inventario final §I · `stories/2026-07-07-inspector-drawer/analisis-drawer-v3.md` | 📎 referencia (detalle inspector) |
 | `arnesia-shell-A-galaxia.html` | 2026-07-05 | Shell A «galaxia» it.13 — **fuente de VALORES de tokens** | `ux.md` Inventario final · `architecture/boundaries/fe-tokens-contrato.md` | 🔒 firmado (tokens) |
@@ -46,3 +47,12 @@
 > **Co-diseño en curso (2026-07-10):** «Mapa DESTINO» (sello · llenado/deriva · slots con receta ·
 > conocimiento-del-proyecto) se está diseñando como **superset del baseline vigente**. Mientras no
 > esté firmado NO reemplaza el baseline; vive como propuesta. Al firmar → se funde y se re-estampa aquí.
+>
+> **Co-diseño en curso (2026-07-13, v2 navegable):** «**Portafolio**» (`arnesia-portafolio.html`) — front-door
+> del ciclo de vida. **3 superficies navegables:** Lista (por empresa, fila compacta) → Drawer detalle → Wizard
+> agregar. Modelo cerrado S-D8: unidad = **arnés por identidad** (1 card), con **canónico** (única copia editable)
+> + **instalaciones** (espejos read-only); **ley anti-drift** visible; relación arnés–empresa–marketplace = **N:M:M**
+> (empresa/marketplace = lentes). Reusa tokens + familia de tarjeta del `.node`. **Naming RESUELTO (S-D10/F-C):**
+> «drift» → **`deriva`** (`en-deriva`/`al-hilo`/`deriva-no-evaluable`). **⚠ El mockup v2 fabrica datos** (deriva/update/empresa)
+> que el FE-Slice-1 no puede computar honesto — fixes G1-G9 pendientes para la etapa FE (ver `revision-adversaria.md`). Post-revisión
+> adversaria, el build se re-cortó: **Slice 0 cimientos (dominio) → Slice 1 FE**.

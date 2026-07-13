@@ -29,8 +29,17 @@ para chatear/mejorar? ¿Qué existe, qué falta, y cuál es el slice fino que da
   (detector multi-arnés HS-12). El spike lo **decide en papel**; build posterior.
 
 ## Retomar aquí
-> Slice fino en curso: **dialog FE "Cargar carpeta"** → input path → `PUT /api/arneses/{id}` existente →
-> arnés en picker+Mapa → sesión → chat. Decisiones de diseño → `decisiones.md`.
+> **Reencuadrado spike→PROGRAMA «Portafolio · ciclo de vida del arnés»** (S-D5..S-D8, modelo CERRADO). Mockup v2
+> FIRMADO por el user (`mockups/arnesia-portafolio.html`, 3 superficies). **Etapa: SPEC — revisada por 4 subagentes adversarios (INTEGRADA).**
+> Forks cerrados (S-D10): **Slice 0 cimientos (dominio) → Slice 1 FE** · identidad **`(home,id)`** · **`deriva`** (ex-drift).
+> **Siguiente:** firmar el modelo (cierra el spike, → LEDGER) → build **Slice 0** (store separado · walker + fallback `plugin.json` ·
+> `version` · `empresas[]`/`registries[]` · identidad + canonicalización · cadena de origen collect-all · `deriva`; capabilities +
+> tests; investigar eslabón CC). Épica re-cortada en `docs/product/BACKLOG.md`. Contexto: `hs-forja-fase1-carga-spike` · `hs-linea-base-ui-storybook-ssot`.
 
 ## Archivos
-- `decisiones.md` — hallazgos + decisiones de diseño del mecanismo (S-D0…).
+- `decisiones.md` — decisiones S-D0…S-D10 (forks, N:M:M, ley anti-drift, IA 3-superficies, revisión adversaria, forks cerrados).
+- `spec-funcional.md` — **(rev)** modelo cerrado: identidad `(home,id)` · N:M:M · anti-drift descriptiva · `deriva` · resolución de origen collect-all · deltas de dominio · recut Slice 0/1 · capabilities.
+- `casuistica.md` — **(rev)** matriz de escenarios adversos + §I nuevos (17 confirmados por la revisión).
+- `spec-usabilidad.md` — **(rev)** 3 superficies · defaults honestos · estados · a11y.
+- `revision-adversaria.md` — consolidado de los 4 subagentes (deduplicado, por tema, con resolución ✅/🔀/📋/🎭).
+- Mockup: `mockups/arnesia-portafolio.html` (v2; fixes de honestidad G1-G9 pendientes para la etapa FE/Slice 1).

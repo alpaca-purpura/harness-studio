@@ -30,6 +30,36 @@
   overlays calidad+economía · sello/deriva · receta en inspector) → portar a Storybook · `gate`
 - [ ] **5. Después** — forjar 2° orden (`/po /architect /dev-team /auditor`) + upstream schema `arnes.yaml`+terreno al kit · `deuda`
 
+## Outcome — Programa «Portafolio · ciclo de vida del arnés» (2026-07-13)
+
+> Del SPIKE [`stories/2026-07-10-spike-carga-arneses/`](stories/2026-07-10-spike-carga-arneses/INDEX.md)
+> (S-D5/S-D6, forks resueltos). Portafolio = **front-door del ciclo de vida** (crear·mapear·observar·mejorar,
+> VISION). Reencuadrado spike→programa (F5). Agrupa por `empresa`; **`empresa` ⊥ `marketplace`** (ambos YA en
+> `arnes.l0.json` + `domain.Arnes`). Procedencia = **lock `.devstudio/arneses.yaml`** (HS-12, detector 3°).
+> Auth GitHub = **`gh` si existe / PAT fallback** (user-owned, auth-terms firmado — app = conductor). Update =
+> **híbrido** (notify propio semver-vs-tag + re-materializa plugin-native CC). Cierre del spike = firmar el modelo de entidades.
+> **Unidad = arnés por identidad `(home, id)`** (S-D10/F-A; home = marketplace autor-declarado): 1 = **canónico** (única
+> copia editable) + N **instalaciones** (espejos read-only). Arnés↔empresa↔registry-de-adquisición = **N:M:M** (facetas).
+> **Ley anti-drift (descriptiva de ArnesIA):** ArnesIA nunca introduce una copia editable divergente nueva; observa +
+> re-materializa (reparar) + backportea; el marketplace `home` = SSoT (pull-antes-de-push). **`deriva`** (ex-«drift») =
+> hash vs `home/plugins/<id>/<versión>/`. **Recut post-revisión adversaria (S-D9/S-D10):** el FE no es construible sin cimientos.
+
+- [ ] **0. Cimientos del Portafolio** (dominio/backend, SIN FE) — store de portafolio **separado** de `arneses.json` (degrada
+  honesto) · **walker** `.claude/plugins/<id>/` + **fallback `plugin.json`** · campo `version` · `empresas[]`/`registries[]` ·
+  identidad `(home,id)` + canonicalización · cadena de origen **collect-all** (lock>manifiesto) · **`deriva`** = hash vs
+  `home/plugins/<id>/<v>/` (o `deriva-no-evaluable`) · detector lock. Capabilities + tests · `gate`
+  - [ ] **investiga eslabón CC** (dónde registra CC la procedencia de un plugin instalado) ANTES de firmar el orden de la cadena
+- [ ] **1. FE Portafolio** (sobre cimientos) — 3 superficies (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) +
+  Observar (Abrir en Mapa, reusa CAP-58/61) + Desvincular; **defaults honestos** (deriva-no-evaluable · update no-verificado ·
+  marketplace disabled) · fix mockup G1-G9 · porte a Storybook · `gate` · `bloqueo`(0)
+- [ ] **2. Agregar de marketplace → clonar + mejorar** — git url → **validar `marketplace.json`** → listar → elegir → checkout
+  `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1)
+- [ ] **3. Publicar** — pull/rebase → conformance-verde → bump semver → changelog obligatorio → push → **tag-tras-push** · `gate` · `bloqueo`(2)
+- [ ] **4. Update-check + notify** — versión vs último tag de `home` + changelog + **alias de rename** (no cegar el aviso) · `gate` · `bloqueo`(3)
+- [ ] **5. Reparar + Backport** — reparar overwrite SOLO dir privado (superficies compartidas = merge) + bloqueo si lock DevStudio +
+  `conformance --arnes`; backport instalación→canónico (alineación de versión) · `gate` · `bloqueo`(1)
+- Asociación de negocio (`reporta_a`, arneses que se nutren mutuamente) → materializa en **Galaxia** (Mapa), fuera de alcance inmediato · `deuda`
+
 ## Deuda viva (registrada, no bloquea la línea principal)
 
 - [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`
