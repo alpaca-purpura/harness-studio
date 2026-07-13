@@ -55,36 +55,52 @@ var ErrNoEsArnes = errors.New("no es un arnés: sin .claude-plugin/plugin.json n
 // fixtures; si pasa un dir absoluto, salen absolutos — en ambos casos el path resultante es
 // resoluble tal cual, sin estado oculto ni detección mágica de raíz.
 func LoadArnes(dir string) (domain.Graph, error) {
+	g, _, err := LoadArnesInfo(dir)
+	return g, err
+}
+
+// Info trae metadata de la carga que no cabe en domain.Graph — hoy solo el aviso de
+// reconciliación entre manifiestos (RN-IDENT-3: arnes.l0.id ≠ plugin.json.name, u otro
+// aviso degradado honesto); crece si hace falta. Aviso=="" ⇒ nada que reportar.
+type Info struct {
+	Aviso string
+}
+
+// LoadArnesInfo es LoadArnes con el aviso de reconciliación de manifiestos visible al
+// caller (el Portafolio lo necesita para anotar discrepancias, S0-D del paquete
+// Slice 0); LoadArnes lo descarta por compatibilidad con los callers existentes.
+func LoadArnesInfo(dir string) (domain.Graph, Info, error) {
 	elementos, err := detectarElementos(dir)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 
 	// Nodes arranca NO-nil: un arnés reconocido sin componentes emite `nodos: []`
 	// (schema-válido), nunca `null`.
 	g := domain.Graph{Nodes: []domain.Box{}}
 
-	g.Arnes, err = leerManifiesto(dir)
+	var info Info
+	g.Arnes, info.Aviso, err = leerManifiesto(dir)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 
 	skills, err := reconocerSkills(elementos)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 	g.Nodes = append(g.Nodes, skills...)
 
 	// La celda de `hook` en forma-plugin es hooks/hooks.json (§3): la Guardia del arnés.
 	hooks, err := reconocerHooks(elementos)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 	g.Nodes = append(g.Nodes, hooks...)
 
 	// La celda de `rule` es el CLAUDE.md de la raíz del arnés en AMBAS formas (§3).
 	if regla, ok, rerr := reconocerRegla(dir); rerr != nil {
-		return domain.Graph{}, rerr
+		return domain.Graph{}, Info{}, rerr
 	} else if ok {
 		g.Nodes = append(g.Nodes, regla)
 	}
@@ -93,13 +109,13 @@ func LoadArnes(dir string) (domain.Graph, error) {
 	// layout en ambas formas físicas (elementos ya resuelve cuál base usar).
 	comandos, err := reconocerArchivosSoporte(elementos, "commands", domain.ClaseCommand)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 	g.Nodes = append(g.Nodes, comandos...)
 
 	outputStyles, err := reconocerArchivosSoporte(elementos, "output-styles", domain.ClaseOutputStyle)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 	g.Nodes = append(g.Nodes, outputStyles...)
 
@@ -107,7 +123,7 @@ func LoadArnes(dir string) (domain.Graph, error) {
 	// como el resto de la forma instalada, así que se resuelve contra dir, no elementos.
 	servidoresMCP, err := reconocerMCP(dir)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 	g.Nodes = append(g.Nodes, servidoresMCP...)
 
@@ -115,12 +131,12 @@ func LoadArnes(dir string) (domain.Graph, error) {
 	// settings.json (§3) — un solo reconocedor, un solo archivo leído.
 	settings, err := reconocerSettings(elementos)
 	if err != nil {
-		return domain.Graph{}, err
+		return domain.Graph{}, Info{}, err
 	}
 	g.Nodes = append(g.Nodes, settings...)
 
 	g.Edges = derivarEdges(g.Nodes)
-	return g, nil
+	return g, info, nil
 }
 
 // detectarElementos aplica el detector de §1 y devuelve el directorio bajo el que viven los
@@ -136,24 +152,108 @@ func detectarElementos(dir string) (string, error) {
 	return "", fmt.Errorf("%w: %s", ErrNoEsArnes, dir)
 }
 
-// leerManifiesto lee `arnes.l0.json` de la raíz (§2, D-a firmada). Ausente → (nil, nil):
-// modo degradado honesto — el grafo sale sin carriles de fase ni spine y el caller emite el
-// check `manifiesto-ausente` rojo. Un manifiesto presente pero corrupto sí es error (%w):
-// eso no es degradación, es un arnés roto que no debe cargarse como si nada.
-func leerManifiesto(dir string) (*domain.Arnes, error) {
-	ruta := filepath.Join(dir, "arnes.l0.json")
-	b, err := os.ReadFile(ruta) //nolint:gosec // G304: ruta construida sobre el dir del arnés que el caller eligió cargar (local-first).
+// pluginJSON es el subset de `.claude-plugin/plugin.json` que leerManifiesto necesita —
+// la forma oficial de plugin CC (nomenclatura-arnes.md §2, HS-12).
+type pluginJSON struct {
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+}
+
+// leerPluginJSON lee `.claude-plugin/plugin.json`. Ausente → (nil, nil); corrupto → error
+// (el caller decide si degrada o si aborta según qué otra fuente tenga).
+func leerPluginJSON(dir string) (*pluginJSON, error) {
+	ruta := filepath.Join(dir, ".claude-plugin", "plugin.json")
+	b, err := os.ReadFile(ruta) //nolint:gosec // G304: ruta bajo el dir del arnés que el caller eligió cargar.
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("leer manifiesto %s: %w", ruta, err)
+		return nil, fmt.Errorf("leer %s: %w", ruta, err)
 	}
-	var a domain.Arnes
-	if err := json.Unmarshal(b, &a); err != nil {
-		return nil, fmt.Errorf("manifiesto %s inválido: %w", ruta, err)
+	var p pluginJSON
+	if err := json.Unmarshal(b, &p); err != nil {
+		return nil, fmt.Errorf("%s inválido: %w", ruta, err)
 	}
-	return &a, nil
+	return &p, nil
+}
+
+// firstNonEmpty devuelve el primer string no vacío de vals, o "" si ninguno lo es.
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// leerManifiesto lee el manifiesto del arnés (§2, D-a firmada + C-N-14). `arnes.l0.json`
+// en la raíz MANDA cuando existe: si además hay `.claude-plugin/plugin.json`, lo usa para
+// completar `Version` (y `Nombre`/`Descripcion` si vinieran vacíos — cadena bendecida §2)
+// y anota una discrepancia visible si `arnes.l0.id` ≠ `plugin.json.name` (RN-IDENT-3:
+// arnes.l0 gana, nunca elección silenciosa). Sin `arnes.l0.json` pero CON `plugin.json`
+// (C-N-14, el caso más común — un plugin de marketplace normal) → fallback:
+// `Arnes{ID:name, Nombre:displayName‖name, Descripcion:description, Version:version,
+// FuenteManifiesto:"plugin.json"}`. Un `plugin.json` presente pero corrupto degrada a
+// (nil, aviso, nil) — visible, jamás error fatal; a diferencia de un `arnes.l0.json`
+// corrupto, que SIGUE siendo error real (es la fuente que el autor escribió a mano).
+// Ninguno de los dos → (nil, "", nil), como antes: forma-instalada sin manifiesto sigue
+// siendo legal.
+func leerManifiesto(dir string) (*domain.Arnes, string, error) {
+	rutaL0 := filepath.Join(dir, "arnes.l0.json")
+	b, err := os.ReadFile(rutaL0) //nolint:gosec // G304: ruta construida sobre el dir del arnés que el caller eligió cargar (local-first).
+	switch {
+	case err == nil:
+		var a domain.Arnes
+		if uerr := json.Unmarshal(b, &a); uerr != nil {
+			return nil, "", fmt.Errorf("manifiesto %s inválido: %w", rutaL0, uerr)
+		}
+		a.FuenteManifiesto = "arnes.l0.json"
+
+		pj, perr := leerPluginJSON(dir)
+		if perr != nil {
+			// plugin.json roto no invalida un arnes.l0.json bueno: se ignora el
+			// complemento, visible solo como aviso — no bloquea la fuente real.
+			return &a, fmt.Sprintf("plugin.json ilegible, se ignora el complemento: %v", perr), nil
+		}
+		var aviso string
+		if pj != nil {
+			if a.Version == "" {
+				a.Version = pj.Version
+			}
+			if a.Nombre == "" {
+				a.Nombre = firstNonEmpty(pj.DisplayName, pj.Name)
+			}
+			if a.Descripcion == "" {
+				a.Descripcion = pj.Description
+			}
+			if pj.Name != "" && a.ID != "" && pj.Name != a.ID {
+				aviso = fmt.Sprintf("id discrepante: arnes.l0.id=%q ≠ plugin.json.name=%q (gana arnes.l0)", a.ID, pj.Name)
+			}
+		}
+		return &a, aviso, nil
+
+	case errors.Is(err, os.ErrNotExist):
+		pj, perr := leerPluginJSON(dir)
+		if perr != nil {
+			return nil, fmt.Sprintf("plugin.json ilegible: %v", perr), nil // degradado visible (C-N-14), jamás error fatal.
+		}
+		if pj == nil {
+			return nil, "", nil // ninguno de los dos manifiestos: forma-instalada sin manifiesto, legal.
+		}
+		return &domain.Arnes{
+			ID:               pj.Name,
+			Nombre:           firstNonEmpty(pj.DisplayName, pj.Name),
+			Descripcion:      pj.Description,
+			Version:          pj.Version,
+			FuenteManifiesto: "plugin.json",
+		}, "", nil
+
+	default:
+		return nil, "", fmt.Errorf("leer manifiesto %s: %w", rutaL0, err)
+	}
 }
 
 // reconocerSkills escanea `skills/<id>/SKILL.md` (§3, fila skill) bajo el dir de elementos.

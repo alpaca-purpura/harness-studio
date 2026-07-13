@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -168,13 +169,14 @@ func TestLoaderNoReconocido(t *testing.T) {
 	}
 }
 
-// TestLoaderSinManifiesto cubre el modo degradado honesto (§2): sin arnes.l0.json el grafo
-// sale con Arnes nil y SIN error — los nodos igual se reconocen; el check rojo lo decide el
-// caller.
+// TestLoaderSinManifiesto cubre el modo degradado honesto (§2): SIN NINGÚN manifiesto
+// (ni arnes.l0.json ni plugin.json — forma instalada pelada) el grafo sale con Arnes nil
+// y SIN error — los nodos igual se reconocen; el check rojo lo decide el caller. (Un
+// plugin.json presente SIN arnes.l0.json ya no cae acá desde C-N-14/T3: ese caso puebla
+// Arnes vía fallback — ver TestLoaderFallbackPluginJSON.)
 func TestLoaderSinManifiesto(t *testing.T) {
 	dir := t.TempDir()
-	escribir(t, filepath.Join(dir, ".claude-plugin", "plugin.json"), `{"name":"sin-manifiesto"}`)
-	escribir(t, filepath.Join(dir, "skills", "hola", "SKILL.md"),
+	escribir(t, filepath.Join(dir, ".claude", "skills", "hola", "SKILL.md"),
 		"---\nname: hola\nnombre: saludar\n---\n\n# hola\n")
 
 	g, err := loader.LoadArnes(dir)
@@ -182,7 +184,7 @@ func TestLoaderSinManifiesto(t *testing.T) {
 		t.Fatalf("LoadArnes: %v", err)
 	}
 	if g.Arnes != nil {
-		t.Errorf("sin manifiesto el Arnes debe ser nil, got %+v", g.Arnes)
+		t.Errorf("sin ningún manifiesto el Arnes debe ser nil, got %+v", g.Arnes)
 	}
 	if n, ok := g.NodeByID("hola"); !ok || n.Clase != domain.ClaseSkill || n.Nombre != "saludar" {
 		t.Errorf("la skill debe reconocerse igual en modo degradado, got %+v (ok=%v)", n, ok)
@@ -215,6 +217,104 @@ func TestLoaderInstalado(t *testing.T) {
 	quiero := filepath.ToSlash(filepath.Join(dir, ".claude", "skills", "hola", "SKILL.md"))
 	if n.FuentePath != quiero {
 		t.Errorf("fuente_path got %q, quiero %q", n.FuentePath, quiero)
+	}
+}
+
+// TestLoaderFallbackPluginJSON cubre C-N-14 (D-DOM-4, el caso más común: un plugin de
+// marketplace normal, CON plugin.json y SIN arnes.l0.json): el fallback puebla
+// ID/Nombre/Descripcion/Version desde plugin.json y estampa FuenteManifiesto —
+// "bloqueante de cimientos" resuelto, ya no `Arnes==nil` ni el id ausente.
+func TestLoaderFallbackPluginJSON(t *testing.T) {
+	dir := t.TempDir()
+	escribir(t, filepath.Join(dir, ".claude-plugin", "plugin.json"),
+		`{"name":"harness-x","displayName":"Harness X","description":"un plugin normal","version":"2.1.0"}`)
+
+	g, err := loader.LoadArnes(dir)
+	if err != nil {
+		t.Fatalf("LoadArnes: %v", err)
+	}
+	if g.Arnes == nil {
+		t.Fatal("con plugin.json el fallback debe poblar Arnes, no dejarlo nil (C-N-14)")
+	}
+	want := domain.Arnes{
+		ID:               "harness-x",
+		Nombre:           "Harness X",
+		Descripcion:      "un plugin normal",
+		Version:          "2.1.0",
+		FuenteManifiesto: "plugin.json",
+	}
+	if !reflect.DeepEqual(*g.Arnes, want) {
+		t.Errorf("Arnes = %+v, quiero %+v", *g.Arnes, want)
+	}
+}
+
+// TestLoaderVersionDesdePluginJSON cubre §2.4 punto 1: con arnes.l0.json presente Y
+// plugin.json, la version SIGUE saliendo del plugin.json (arnes.l0.json no la trae) —
+// el manifiesto real manda en ID/Nombre/Descripcion, plugin.json solo completa lo que
+// falta.
+func TestLoaderVersionDesdePluginJSON(t *testing.T) {
+	dir := t.TempDir()
+	escribir(t, filepath.Join(dir, ".claude-plugin", "plugin.json"),
+		`{"name":"harness-x","version":"3.4.5"}`)
+	escribir(t, filepath.Join(dir, "arnes.l0.json"),
+		`{"id":"harness-x","nombre":"Harness X real","rol":"r","proceso":"p","empresas":["a"],"reporta_a":null}`)
+
+	g, err := loader.LoadArnes(dir)
+	if err != nil {
+		t.Fatalf("LoadArnes: %v", err)
+	}
+	if g.Arnes == nil {
+		t.Fatal("Arnes no debe ser nil")
+	}
+	if g.Arnes.Version != "3.4.5" {
+		t.Errorf("Version = %q, quiero 3.4.5 (desde plugin.json)", g.Arnes.Version)
+	}
+	if g.Arnes.Nombre != "Harness X real" {
+		t.Errorf("Nombre = %q, arnes.l0.json manda sobre plugin.json", g.Arnes.Nombre)
+	}
+	if g.Arnes.FuenteManifiesto != "arnes.l0.json" {
+		t.Errorf("FuenteManifiesto = %q, quiero arnes.l0.json (es la fuente que manda)", g.Arnes.FuenteManifiesto)
+	}
+}
+
+// TestLoaderPluginJSONCorrupto cubre el degradado honesto: un plugin.json que no parsea,
+// SIN arnes.l0.json, no debe ser un error fatal — Arnes sale nil con un aviso visible
+// (LoadArnesInfo lo expone; LoadArnes lo descarta por compatibilidad, pero el load no
+// truena).
+func TestLoaderPluginJSONCorrupto(t *testing.T) {
+	dir := t.TempDir()
+	escribir(t, filepath.Join(dir, ".claude-plugin", "plugin.json"), `{esto no es json`)
+
+	g, info, err := loader.LoadArnesInfo(dir)
+	if err != nil {
+		t.Fatalf("un plugin.json corrupto no debe ser error fatal: %v", err)
+	}
+	if g.Arnes != nil {
+		t.Errorf("Arnes debe quedar nil ante un plugin.json ilegible, got %+v", g.Arnes)
+	}
+	if info.Aviso == "" {
+		t.Error("quiero un aviso visible cuando plugin.json no parsea")
+	}
+}
+
+// TestLoaderIDsDiscrepantes cubre RN-IDENT-3: arnes.l0.id ≠ plugin.json.name → arnes.l0
+// gana el ID (es la fuente que el autor escribió a mano) pero la discrepancia queda
+// anotada como aviso visible, nunca elegida en silencio.
+func TestLoaderIDsDiscrepantes(t *testing.T) {
+	dir := t.TempDir()
+	escribir(t, filepath.Join(dir, ".claude-plugin", "plugin.json"), `{"name":"nombre-del-plugin"}`)
+	escribir(t, filepath.Join(dir, "arnes.l0.json"),
+		`{"id":"nombre-del-manifiesto","rol":"r","proceso":"p","empresas":["a"],"reporta_a":null}`)
+
+	g, info, err := loader.LoadArnesInfo(dir)
+	if err != nil {
+		t.Fatalf("LoadArnesInfo: %v", err)
+	}
+	if g.Arnes == nil || g.Arnes.ID != "nombre-del-manifiesto" {
+		t.Fatalf("arnes.l0.id debe ganar, got %+v", g.Arnes)
+	}
+	if info.Aviso == "" {
+		t.Error("quiero un aviso visible ante la discrepancia de ids (RN-IDENT-3)")
 	}
 }
 

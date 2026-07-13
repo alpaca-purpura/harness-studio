@@ -9,6 +9,8 @@
     "reporta_a": null,
     "canal": "beta",
     "marketplace": "alpacapurpura/prenter-marketplace",
+    "version": "0.1.0",
+    "fuente_manifiesto": "arnes.l0.json",
     "fases": [
       "spec",
       "build",
