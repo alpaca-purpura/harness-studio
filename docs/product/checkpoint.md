@@ -25,10 +25,12 @@ FIRMADO 🧑‍⚖️ 2026-07-13 tras revisión adversaria de 4 subagentes). Ín
   migrará, no revertir). Firmado «docs/terreno absorbe architecture» → bajo revisión (P9 en terreno-conocimiento).
 - **Modelo de TERRENO FIRMADO 🧑‍⚖️ 2026-07-10** ([`stories/2026-07-10-terreno-conocimiento/`](stories/2026-07-10-terreno-conocimiento/INDEX.md):
   D0-D20 + `arnes.yaml` + `estructura-terreno.html` v4). Sigue válido como **schema que el forjador aplica**.
-- **Retomar aquí:** el modelo del **Portafolio** está firmado (HS-22). Próximo = **Fable 5 (arquitecto) divide tickets de
-  Slice 0 «Cimientos»** (dominio: store separado · walker + fallback `plugin.json` · `version` · `empresas[]`/`registries[]` ·
-  identidad `(home,id)` · cadena de origen collect-all · `deriva`; empezar por **investigar el eslabón CC de procedencia**, F5) →
-  build con Sonnet 5. Superficie de tickets = `stories/2026-07-10-spike-carga-arneses/spec-funcional.md` §9+§11 + `casuistica.md §I`.
+- **Retomar aquí:** **plan de Slice 0 LISTO (Fable 5, 2026-07-13)** en
+  [`stories/2026-07-13-portafolio-slice0-cimientos/`](stories/2026-07-13-portafolio-slice0-cimientos/INDEX.md):
+  tickets T1-T9 + decisiones S0-D1..D11 + gate local + goal verificable. **Eslabón CC (F5) investigado con
+  evidencia real** (CC registra procedencia en `~/.claude/plugins/{installed_plugins,known_marketplaces}.json` +
+  `enabledPlugins`; instalación CC = referenciada al cache global). Próximo = **Sonnet 5 ejecuta T1-T9**
+  (un commit por ticket, gates verdes); al final: `paridad.md` + gate humano del operador.
   Pausadas: **Fase 1 forja** (Slice 1a pendiente firma) · **terreno** (schema firmado). Contexto: memorias
   `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.

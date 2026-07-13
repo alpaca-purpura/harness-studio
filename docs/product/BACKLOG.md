@@ -47,8 +47,12 @@
 - [ ] **0. Cimientos del Portafolio** (dominio/backend, SIN FE) — store de portafolio **separado** de `arneses.json` (degrada
   honesto) · **walker** `.claude/plugins/<id>/` + **fallback `plugin.json`** · campo `version` · `empresas[]`/`registries[]` ·
   identidad `(home,id)` + canonicalización · cadena de origen **collect-all** (lock>manifiesto) · **`deriva`** = hash vs
-  `home/plugins/<id>/<v>/` (o `deriva-no-evaluable`) · detector lock. Capabilities + tests · `gate`
-  - [ ] **investiga eslabón CC** (dónde registra CC la procedencia de un plugin instalado) ANTES de firmar el orden de la cadena
+  `home/plugins/<id>/<v>/` (o `deriva-no-evaluable`) · detector lock. Capabilities + tests · `gate` ·
+  **PLAN LISTO** → [`stories/2026-07-13-portafolio-slice0-cimientos/`](stories/2026-07-13-portafolio-slice0-cimientos/INDEX.md) (T1-T9, ejecuta Sonnet 5)
+  - [x] ✅ **eslabón CC investigado** (Fable 5, 2026-07-13, S0-D1): CC SÍ registra procedencia —
+    `~/.claude/plugins/installed_plugins.json` (v2: `id@marketplace`→projectPath·version·cache-path) +
+    `known_marketplaces.json` (marketplace→repo GitHub) + `enabledPlugins` en settings del proyecto; orden fino
+    de cadena cerrado en papel, ratifica el operador en el gate PARIDAD de Slice 0
 - [ ] **1. FE Portafolio** (sobre cimientos) — 3 superficies (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) +
   Observar (Abrir en Mapa, reusa CAP-58/61) + Desvincular; **defaults honestos** (deriva-no-evaluable · update no-verificado ·
   marketplace disabled) · fix mockup G1-G9 · porte a Storybook · `gate` · `bloqueo`(0)

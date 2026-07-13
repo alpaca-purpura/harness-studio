@@ -29,12 +29,11 @@ para chatear/mejorar? ¿Qué existe, qué falta, y cuál es el slice fino que da
   (detector multi-arnés HS-12). El spike lo **decide en papel**; build posterior.
 
 ## Retomar aquí
-> **Reencuadrado spike→PROGRAMA «Portafolio · ciclo de vida del arnés»** (S-D5..S-D8, modelo CERRADO). Mockup v2
-> FIRMADO por el user (`mockups/arnesia-portafolio.html`, 3 superficies). **Etapa: SPEC — revisada por 4 subagentes adversarios (INTEGRADA).**
-> Forks cerrados (S-D10): **Slice 0 cimientos (dominio) → Slice 1 FE** · identidad **`(home,id)`** · **`deriva`** (ex-drift).
-> **Siguiente:** firmar el modelo (cierra el spike, → LEDGER) → build **Slice 0** (store separado · walker + fallback `plugin.json` ·
-> `version` · `empresas[]`/`registries[]` · identidad + canonicalización · cadena de origen collect-all · `deriva`; capabilities +
-> tests; investigar eslabón CC). Épica re-cortada en `docs/product/BACKLOG.md`. Contexto: `hs-forja-fase1-carga-spike` · `hs-linea-base-ui-storybook-ssot`.
+> **SPIKE CERRADO** — modelo FIRMADO 🧑‍⚖️ (S-D11, → `ledger/HS-22.md`). El build de **Slice 0 «Cimientos»**
+> tiene paquete propio: [`../2026-07-13-portafolio-slice0-cimientos/`](../2026-07-13-portafolio-slice0-cimientos/INDEX.md)
+> (plan del arquitecto Fable 5: tickets T1-T9 + decisiones S0-D1..D11 — **eslabón CC F5 ya investigado** con
+> evidencia real: `~/.claude/plugins/{installed_plugins,known_marketplaces}.json` + `enabledPlugins`).
+> Este paquete queda como fuente de specs (funcional · casuística · usabilidad · revisión adversaria).
 
 ## Archivos
 - `decisiones.md` — decisiones S-D0…S-D10 (forks, N:M:M, ley anti-drift, IA 3-superficies, revisión adversaria, forks cerrados).
