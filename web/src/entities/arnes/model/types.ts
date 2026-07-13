@@ -67,16 +67,19 @@ export interface Spine {
 }
 
 // Arnes — the harness manifiesto (META de enganche + this arnés's declared fases/spine).
+// empresas — N:M facet (S0-D3, Portafolio Slice 0); replaces the legacy `empresa` scalar.
 export interface Arnes {
   id?: string
   nombre?: string
   descripcion?: string
   rol?: string
   proceso?: string
-  empresa?: string
+  empresas?: string[]
   reporta_a: string | null
   canal?: Canal
   marketplace?: string
+  version?: string
+  fuente_manifiesto?: string
   fases?: string[]
   spine?: Spine
 }

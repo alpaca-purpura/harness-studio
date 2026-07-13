@@ -15,7 +15,7 @@ export const devFullCycle = {
     descripcion: "Arnés dogfood de ArnesIA: desarrollo de software end-to-end (idea → released).",
     rol: "Ingeniería · Desarrollo full-cycle",
     proceso: "desarrollo de software end-to-end (idea → released)",
-    empresa: "alpacapurpura",
+    empresas: ["alpacapurpura"],
     reporta_a: null,
     canal: "beta",
     marketplace: "alpacapurpura/prenter-marketplace",

@@ -11,7 +11,7 @@ export const cobranzaProveedores = {
     id: "cobranza-proveedores",
     rol: "Administración · Pago a proveedores",
     proceso: "de factura recibida a pago ejecutado y comprobado",
-    empresa: "acme",
+    empresas: ["acme"],
     reporta_a: "acme-finanzas",
     fases: ["recepción", "validación", "registro", "pago"],
     spine: {

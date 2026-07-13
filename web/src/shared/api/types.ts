@@ -49,7 +49,7 @@ export interface HarnessSummary {
   id: string
   rol?: string
   proceso?: string
-  empresa?: string
+  empresas?: string[]
 }
 
 // DockFrame is one SSE `dock` event payload. Every frame carries session_id so one

@@ -3,7 +3,7 @@
     "id": "content-studio-full",
     "rol": "Editorial · Content Lead",
     "proceso": "producción editorial end-to-end (idea → publicado → medido)",
-    "empresa": "alpacapurpura",
+    "empresas": ["alpacapurpura"],
     "reporta_a": "marketing-lead",
     "canal": "estable",
     "marketplace": "alpacapurpura/prenter-marketplace",

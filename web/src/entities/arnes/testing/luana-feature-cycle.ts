@@ -19,7 +19,7 @@ export const luanaFeatureCycle = {
     id: "luana-feature-cycle",
     rol: "Producto · Ciclo de feature end-to-end",
     proceso: "de necesidad del usuario a feature en producción y operada",
-    empresa: "luana",
+    empresas: ["luana"],
     reporta_a: "luana-plataforma",
     canal: "estable",
     marketplace: "alpacapurpura/prenter-marketplace",

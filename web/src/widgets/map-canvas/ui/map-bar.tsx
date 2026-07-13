@@ -76,7 +76,7 @@ export function MapBar({
         <span className="font-mono text-xs text-muted-foreground">{arnes?.id ?? "—"}</span>
       )}
       <div className="flex flex-wrap gap-1.5">
-        <MetaChip k="empresa" v={arnes?.empresa} />
+        <MetaChip k="empresa" v={arnes?.empresas?.[0] ?? "—"} />
         <MetaChip k="rol" v={arnes?.rol} />
         <MetaChip k="reporta a" v={arnes?.reporta_a ?? "—"} />
         <MetaChip k="⬡" v={arnes?.marketplace} />
