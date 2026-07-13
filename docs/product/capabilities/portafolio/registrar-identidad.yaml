@@ -1,0 +1,56 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.registrar-identidad
+cap_num: CAP-83
+slug: registrar-identidad
+name: "Registrar identidad de arnés (home,id)"
+status: stub          # T1: dominio puro construido; sube a vivo en T8 con valida: real.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: crear
+functional_area: "portafolio.identidad"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#IdentidadArnes"
+  - "internal/domain/portafolio.go#ResolverIdentidad"
+  - "internal/domain/repo_ref.go#CanonicalizarRepo"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice0-cimientos
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-10-spike-carga-arneses/spec-funcional.md §3"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: new
+    summary: "T1 — IdentidadArnes(home,id,scope) + ResolverIdentidad (RN-IDENT-2/3) + CanonicalizarRepo (RN-IDENT-1)."
+    merge_sha: null
+
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Registrar identidad de arnés (home,id)
+
+Clave del Portafolio (BR-1): `(home, id)` canonicalizado, con fallback a identidad
+provisional `(⟂sin-home, id, scope)` cuando no hay marketplace resoluble (RN-IDENT-2).

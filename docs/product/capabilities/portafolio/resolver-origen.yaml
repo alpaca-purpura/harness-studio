@@ -1,0 +1,55 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.resolver-origen
+cap_num: CAP-85
+slug: resolver-origen
+name: "Resolver origen (collect-all + reconcilia)"
+status: stub          # T1: dominio puro construido; sube a vivo en T8 con valida: real.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: observar
+functional_area: "portafolio.origen"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#OrigenPortafolio"
+  - "internal/domain/portafolio.go#ResolverOrigen"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice0-cimientos
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-10-spike-carga-arneses/spec-funcional.md §6"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: new
+    summary: "T1 — ResolverOrigen: autoridad S0-D1 (lock≙cc-plugins>git-plugin>manifiesto), discrepancias visibles (C-OR-6)."
+    merge_sha: null
+
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-identidad]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Resolver origen (collect-all + reconcilia)
+
+Recolecta TODOS los eslabones disponibles (spec §6) y reconcilia por autoridad (S0-D1);
+todo conflicto queda visible en `Discrepancias`, nunca una elección silenciosa (C-OR-6).

@@ -1,5 +1,7 @@
 package domain
 
+import "encoding/json"
+
 // TipoEdge is the kind of relation between two nodes. invoca/escribe are directional
 // (drawn with an arrow); lee (reading knowledge) is dotted without an arrow. Mirrors
 // $defs.edge.tipo in graph.l0.schema.json.
@@ -28,17 +30,37 @@ type Edge struct {
 // per-arnés, never as an enum in the core. Mirrors the top-level `arnes` object in
 // graph.l0.schema.json.
 type Arnes struct {
-	ID          string  `json:"id,omitempty"`
-	Nombre      string  `json:"nombre,omitempty"`      // human name — canonical for painting the arnés; fallback chain: plugin.json name → id (HS-12).
-	Descripcion string  `json:"descripcion,omitempty"` // short human description; fallback: plugin.json description (HS-12).
-	Rol         string  `json:"rol,omitempty"`         // canonical (was `puesto`); the role the arnés serves.
-	Proceso     string  `json:"proceso,omitempty"`     // the company process the arnés operationalizes.
-	Empresa     string  `json:"empresa,omitempty"`
-	ReportaA    *string `json:"reporta_a"` // id of the arnés it reports to (organigrama). null = root — the META field is required by graph.l0, so nil must emit `null`, not be omitted.
-	Canal       Canal   `json:"canal,omitempty"`
-	Marketplace string  `json:"marketplace,omitempty"`
-	Fases       []Fase  `json:"fases,omitempty"` // the phases THIS arnés declares (data, not a product enum).
-	Spine       *Spine  `json:"spine,omitempty"` // THIS arnés's work-state spine (data, not a product enum).
+	ID               string   `json:"id,omitempty"`
+	Nombre           string   `json:"nombre,omitempty"`      // human name — canonical for painting the arnés; fallback chain: plugin.json name → id (HS-12).
+	Descripcion      string   `json:"descripcion,omitempty"` // short human description; fallback: plugin.json description (HS-12).
+	Rol              string   `json:"rol,omitempty"`         // canonical (was `puesto`); the role the arnés serves.
+	Proceso          string   `json:"proceso,omitempty"`     // the company process the arnés operationalizes.
+	Empresas         []string `json:"empresas,omitempty"`    // N:M facet (S0-D3); UnmarshalJSON below tolerates the legacy scalar `empresa`.
+	ReportaA         *string  `json:"reporta_a"`             // id of the arnés it reports to (organigrama). null = root — the META field is required by graph.l0, so nil must emit `null`, not be omitted.
+	Canal            Canal    `json:"canal,omitempty"`
+	Marketplace      string   `json:"marketplace,omitempty"`       // home autor-declarado, CRUDO (S0-D3): la procedencia de la copia vive en domain.Origen del Portafolio, jamás acá.
+	Version          string   `json:"version,omitempty"`           // fuente: plugin.json.version vía el loader (D-DOM-1).
+	FuenteManifiesto string   `json:"fuente_manifiesto,omitempty"` // "arnes.l0.json" | "plugin.json" — de dónde salió este manifiesto (BR-3).
+	Fases            []Fase   `json:"fases,omitempty"`             // the phases THIS arnés declares (data, not a product enum).
+	Spine            *Spine   `json:"spine,omitempty"`             // THIS arnés's work-state spine (data, not a product enum).
+}
+
+// UnmarshalJSON acepta el legacy escalar `"empresa":"x"` (pre S0-D3), normalizándolo a
+// `Empresas:["x"]`; la forma nueva `"empresas":[...]` pasa directo. Si ambas vienen,
+// `empresas` gana (es la forma canónica) — Marshal siempre emite solo `empresas`.
+func (a *Arnes) UnmarshalJSON(b []byte) error {
+	type alias Arnes // separa el tipo para que json.Unmarshal no reentre en este método.
+	aux := struct {
+		Empresa *string `json:"empresa,omitempty"`
+		*alias
+	}{alias: (*alias)(a)}
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+	if len(a.Empresas) == 0 && aux.Empresa != nil && *aux.Empresa != "" {
+		a.Empresas = []string{*aux.Empresa}
+	}
+	return nil
 }
 
 // Spine is the FORM of an arnés's work-state machine — the shape only, never product

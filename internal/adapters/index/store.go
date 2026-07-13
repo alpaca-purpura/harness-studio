@@ -99,7 +99,7 @@ func (s *Store) seed() {
 			ID:       "demo",
 			Rol:      "backend",
 			Proceso:  "desarrollo",
-			Empresa:  "alpacapurpura",
+			Empresas: []string{"alpacapurpura"},
 			ReportaA: nil, // raíz (emite null, válido contra graph.l0).
 			Canal:    domain.CanalBeta,
 			Fases:    []domain.Fase{"spec"},

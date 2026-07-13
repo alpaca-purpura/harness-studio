@@ -1,0 +1,58 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.desvincular
+cap_num: CAP-87
+slug: desvincular
+name: "Desvincular arnés del Portafolio"
+status: stub          # T1: solo la forma de EntradaPortafolio; el store.Desvincular llega en T6.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: mejorar
+functional_area: "portafolio.gestion"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#EntradaPortafolio"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice0-cimientos
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-10-spike-carga-arneses/spec-funcional.md §7.8"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: new
+    summary: "T1 — domain.EntradaPortafolio (1 card por identidad, BR-1); store.Desvincular llega en T6."
+    merge_sha: null
+
+scenarios: []
+business_rules:
+  - id: desvincular-no-desinstala
+    rule: "Desvincular solo saca la entrada del registro del Portafolio; no desinstala ni borra ningún clon (C-UNL-3, RN-UNL-1)."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: medium
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-identidad]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Desvincular arnés del Portafolio
+
+Quita la identidad del registro; jamás toca disco de proyectos ni el clon canónico
+(C-UNL-3).

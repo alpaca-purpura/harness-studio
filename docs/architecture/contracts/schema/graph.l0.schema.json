@@ -11,17 +11,24 @@
       "type": "object",
       "description": "Manifiesto del arnés dueño de este grafo (rol × proceso de compañía). Contiene la META de enganche (rol·proceso·reporta-a·empresa — el seam al sistema L1/organigrama externo, VISION §Linaje) y, como DATO per-arnés (no enum del producto), la FORMA de proceso de ESTE arnés: sus fases y su spine de estados. ArnesIA es agnóstico al proceso (VISION p3/p7) — esos valores viven aquí, jamás como constante del core.",
       "additionalProperties": false,
-      "required": ["id", "rol", "proceso", "empresa", "reporta_a"],
+      "required": ["id", "rol", "proceso", "reporta_a"],
+      "anyOf": [
+        { "required": ["empresa"] },
+        { "required": ["empresas"] }
+      ],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "nombre": { "type": "string", "description": "Nombre humano del arnés — el campo CANÓNICO para pintarlo en una vista (HS-12; ya nombrado por nomenclatura-arnes.md §2). Cadena de fallback bendecida: arnes.l0.nombre → plugin.json name → id.", "minLength": 1 },
         "descripcion": { "type": "string", "description": "Descripción humana corta (HS-12). Fallback: plugin.json description." },
         "rol": { "type": "string", "description": "META — el rol al que sirve el arnés (canónico; reemplaza `puesto`).", "minLength": 1 },
         "proceso": { "type": "string", "description": "META — el proceso de compañía que el arnés operacionaliza.", "minLength": 1 },
-        "empresa": { "type": "string", "minLength": 1 },
+        "empresa": { "type": "string", "minLength": 1, "description": "DEPRECADO (S0-D3, Slice 0 Portafolio) — escalar legacy; el dominio lo normaliza a `empresas[]` en la carga y nunca lo re-emite. Se acepta en input por compatibilidad." },
+        "empresas": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Facetas empresa, N:M (S0-D3) — colección canónica que reemplaza el escalar `empresa`." },
         "reporta_a": { "type": ["string", "null"], "description": "META — id del arnés al que reporta (organigrama). null = raíz (present-but-null es válido)." },
         "canal": { "type": "string", "enum": ["beta", "estable"], "description": "Canal de release vigente." },
-        "marketplace": { "type": "string", "description": "Repo destino de publish (por defecto el de alpacapurpura; override por empresa/arnés)." },
+        "marketplace": { "type": "string", "description": "Home autor-declarado, CRUDO (S0-D3) — repo destino de publish (por defecto el de alpacapurpura; override por empresa/arnés). La procedencia de la copia (registry de adquisición) vive en el Portafolio, no acá." },
+        "version": { "type": "string", "description": "Versión instalada, parseada de plugin.json.version vía el loader (D-DOM-1)." },
+        "fuente_manifiesto": { "type": "string", "enum": ["arnes.l0.json", "plugin.json"], "description": "De dónde salió este manifiesto (BR-3, C-N-14): arnes.l0.json si existe, fallback plugin.json si no." },
         "fases": {
           "type": "array",
           "description": "Las fases que ESTE arnés declara (dato, no enum del producto). Cada `nodo.fase` debe ∈ esta lista (check per-arnés `fase-en-fases-declaradas`).",

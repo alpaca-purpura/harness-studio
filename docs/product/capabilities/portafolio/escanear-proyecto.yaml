@@ -1,0 +1,54 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.escanear-proyecto
+cap_num: CAP-84
+slug: escanear-proyecto
+name: "Escanear proyecto (walker multi-instalación)"
+status: stub          # T1: solo el vocabulario TipoInstalacion; el walker físico llega en T4.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: crear
+functional_area: "portafolio.escaneo"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#TipoInstalacion"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice0-cimientos
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice0-cimientos/decisiones.md S0-D2"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: new
+    summary: "T1 — domain.TipoInstalacion (materializada|referenciada-cc|proyecto-instalado, S0-D2); el walker físico (scanner.go) llega en T4."
+    merge_sha: null
+
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-identidad]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Escanear proyecto (walker multi-instalación)
+
+Reconoce las 3 formas de instalación (S0-D2) bajo un proyecto: materializada, referenciada
+por Claude Code, y el `.claude/` del propio proyecto.

@@ -1,0 +1,58 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.evaluar-deriva
+cap_num: CAP-86
+slug: evaluar-deriva
+name: "Evaluar deriva (hash vs referencia inmutable)"
+status: stub          # T1: solo el vocabulario EstadoDeriva; el hasher llega en T5.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: observar
+functional_area: "portafolio.deriva"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#EstadoDeriva"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice0-cimientos
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice0-cimientos/decisiones.md S0-D7"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: new
+    summary: "T1 — domain.EstadoDeriva (al-hilo|en-deriva|deriva-no-evaluable, BR-4); el hasher (deriva.go) llega en T5."
+    merge_sha: null
+
+scenarios: []
+business_rules:
+  - id: nunca-semver-como-veredicto
+    rule: "La deriva se decide por hash de contenido contra la referencia inmutable; jamás por semver-string ni `git status` (BR-4)."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-identidad]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Evaluar deriva (hash vs referencia inmutable)
+
+BR-4: `deriva(inst) = ∃ hash(inst) ≠ hash(home/plugins/<id>/<versiónInst>/)`; sin
+referencia accesible, `deriva-no-evaluable` (default honesto, S0-D7).

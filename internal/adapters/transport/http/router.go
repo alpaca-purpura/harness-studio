@@ -84,10 +84,10 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 // harnessSummary is one row of GET /api/harnesses — the lightweight portfolio entry the Map
 // picker (RF-72) consumes; the full graph is a separate call (getHarnessGraph).
 type harnessSummary struct {
-	ID      string `json:"id"`
-	Rol     string `json:"rol,omitempty"`
-	Proceso string `json:"proceso,omitempty"`
-	Empresa string `json:"empresa,omitempty"`
+	ID       string   `json:"id"`
+	Rol      string   `json:"rol,omitempty"`
+	Proceso  string   `json:"proceso,omitempty"`
+	Empresas []string `json:"empresas,omitempty"` // S0-D3: facet N:M, ya no escalar (portafolio/T1).
 }
 
 // listHarnesses (S1) — portfolio, from the index (RF-72).
@@ -104,10 +104,10 @@ func listHarnesses(maps *usecase.MapService) http.HandlerFunc {
 				continue
 			}
 			out = append(out, harnessSummary{
-				ID:      g.Arnes.ID,
-				Rol:     g.Arnes.Rol,
-				Proceso: g.Arnes.Proceso,
-				Empresa: g.Arnes.Empresa,
+				ID:       g.Arnes.ID,
+				Rol:      g.Arnes.Rol,
+				Proceso:  g.Arnes.Proceso,
+				Empresas: g.Arnes.Empresas,
 			})
 		}
 		writeJSON(w, http.StatusOK, out)

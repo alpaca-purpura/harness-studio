@@ -78,3 +78,18 @@ conocidos del store → CANÓNICO, jamás instalación) + test.
 - 5 capabilities nuevas módulo `portafolio` (las que firma spec-funcional §9): `registrar-identidad` ·
   `escanear-proyecto` · `resolver-origen` · `evaluar-deriva` · `desvincular`; + `change_log: extend` en
   CAP-15/16/17 (loader). `portafolio` se suma a `domain_modules` en `project.config.yaml` (seam).
+
+## S0-D12 · Desviaciones de ejecución (Sonnet 5, T1) — anti-drift documentado
+
+- **Colisión de nombre `Origen`:** el plan §2.1 nombra el tipo de reconciliación collect-all
+  `domain.Origen`, pero ese identificador YA existe (`internal/domain/box.go:177`, `nodo.origen` L0:
+  estandar/del-puesto). Alternativa más cercana al espíritu: `domain.OrigenPortafolio` (mismo shape,
+  mismos campos `Registry/Version/Eslabones/Discrepancias`; el campo `Instalacion.Origen` lo tipa).
+- **Fix de compilación forzado a T1 (fuera del file-list de T2):** `domain.Arnes.Empresa string` →
+  `Empresas []string` rompe la compilación de dos sitios Go que el plan asignaba a T2/no mencionaba:
+  `internal/adapters/index/store.go:102` (seed, SÍ estaba en T2 — se adelantó) e
+  `internal/adapters/transport/http/router.go` `harnessSummary.Empresa` (NO estaba en el file-list de
+  ningún ticket). Se cambió `harnessSummary.Empresa string` → `Empresas []string` (json
+  `empresas,omitempty`) para mantener `go build ./...` verde en T1 — el tipo FE `HarnessSummary` en
+  `web/src/shared/api/types.ts` migra recién en T2 junto con el resto de los tipos FE (hoy compila
+  igual porque TS estructural no exige el campo).
