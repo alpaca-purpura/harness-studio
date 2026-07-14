@@ -261,3 +261,19 @@ Esc vía `onKeyDown` local). Reusable tal cual por el wizard (T6, mismos requisi
 tocar este archivo. `@base-ui-components/react` sigue como dependencia intacta (no se quitó del
 `package.json`, NO deps nuevas — §P.4); simplemente no se usó su `Dialog` compound para esta
 superficie por el conflicto estructural con el patrón de test del repo.
+
+## S1-D19 · Wizard: Esc/✕ NO cierran mientras `estado==="agregando"` (criterio delegado, T6)
+
+El ticket T6 delegó explícitamente el criterio: «Esc llama `onClose` en cualquier paso (salvo
+mientras `estado==="agregando"` si te parece más seguro no cerrar a mitad de un POST — usá tu
+criterio y documentalo si te desviás)». Decisión: **sí se bloquea** — mientras `estado===
+"agregando"` el `POST /api/portafolio/proyectos` de la página (T7) está en vuelo; cerrar el
+wizard en ese instante no aborta el POST (a diferencia del escaneo, que sí tiene
+`onCancelarEscaneo`/`AbortSignal`, S1-D9) — solo desmontaría la UI mientras el request sigue
+vivo en el server, dejando al usuario sin feedback del resultado. Mismo espíritu que
+`UpdateCard` (`features/self-update`), que tampoco permite cancelar a mitad de un self-update.
+Implementación: el botón ✕ queda `disabled` + `title="agregando en curso — esperá a que
+termine"`, y el handler de `Escape` no llama `onClose` en ese estado (`bloqueadoParaCierre`,
+`portafolio-wizard.tsx`). Cubierto por la story `Agregando` (assert de `disabled`+`title`+Esc
+sin efecto) — la story `A11yModal` prueba el camino normal (Esc SÍ cierra) en `estado:"fuente"`.
+Cancelar/cerrar en cualquier OTRO paso sigue siendo CERO efectos (S1-D9 intacto).

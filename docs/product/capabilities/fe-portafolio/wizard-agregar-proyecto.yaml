@@ -24,12 +24,13 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
   - "web/src/entities/portafolio/ui/chips.tsx#TipoInstalacionChip"
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
+  - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
 valida: []
 
 dev_preview:
   route: null
   how_to_navigate: null
-  main_component: null
+  main_component: "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
   api_endpoints:
     - "POST /api/portafolio/escaneos"
     - "POST /api/portafolio/proyectos"
@@ -58,6 +59,23 @@ change_log:
       (G1), `TipoInstalacionChip` y `AvisoChip`. Sigue `stub`/sin `valida:`: el widget del
       wizard que los consume real llega en T6.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T6 — widget `PortafolioWizard` construido: tabs Proyecto/Marketplace SIEMPRE visibles
+      (Marketplace disabled+tooltip S2, G3 — jamás un "✓ marketplace válido" fingido en ningún
+      estado); paso fuente (input path SIEMPRE + «Elegir carpeta…» solo si `onElegirCarpeta`
+      viene, patrón Tauri de RF-110; radio GitHub disabled S2); paso escaneando (spinner +
+      Cancelar real); paso candidatos (checkbox por candidato, v?/«origen desconocido» honestos,
+      badge «ya en el portafolio» con checkbox habilitado S1-D10, copy propio de `es_canonico`,
+      0-hallazgos y error-400 sin candidato fantasma); paso agregando (botón bloqueado, sin
+      checklist inventada). A11y (G8): `role="dialog"`+`aria-modal`, tabs `role="tab"`/
+      `aria-selected`, foco atrapado (reusa `shared/lib/focus-trap.ts` de T5), Esc cierra salvo
+      durante "agregando" (S1-D19, nueva). 7 stories con `play()` +
+      `Paso1FuenteConElegirCarpeta` (cobertura extra del picker Tauri). Sigue `stub`/`valida: []`
+      — T8 gradúa a `vivo` con la evidencia E2E viva.
+    merge_sha: null
 
 scenarios: []
 business_rules: []
@@ -72,5 +90,7 @@ related_capabilities:
 
 Superficie 2 del Portafolio (spec §10, G3/G5/G8). T2 construye el contrato; T6 construye el
 widget `portafolio-wizard.tsx` (paso fuente → escaneando → candidatos honestos `v?`/«origen
-desconocido»/«ya en el portafolio» S1-D10 → agregar) — ese ticket gradúa este capability a
-`vivo`. Ramas GitHub/Marketplace quedan disabled+tooltip «próximo · S2», sin validación fingida.
+desconocido»/«ya en el portafolio» S1-D10 → agregar) — construido, con 7 stories `play()` +
+1 story extra de cobertura del picker Tauri. Ramas GitHub/Marketplace quedan disabled+tooltip
+«próximo · S2», sin validación fingida (G3, verificado en `Paso1Fuente`/`A11yModal`). T8 gradúa
+este capability a `vivo` con la evidencia E2E viva.

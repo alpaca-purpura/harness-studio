@@ -558,12 +558,215 @@
   font-size: var(--text-xs);
 }
 
-/* ── G8 a11y: reduced-motion apaga las transiciones de chips/dot (T4-T6 suman las suyas
-      a este mismo bloque cuando agreguen hover/foco animados). ── */
+/* ── T6: widget Wizard rama Proyecto (plan §2.6/§3 T6, G3/G5/G8). Mismo scope
+      .arnesia-portafolio, mismos tokens; `role="dialog"` propio (S1-D18, reusa
+      shared/lib/focus-trap.ts sin portal — mismo patrón que el drawer T5). ── */
+
+.arnesia-portafolio .pf-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.arnesia-portafolio .pf-wizard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-wizard-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+/* ── Paso 0: tabs Proyecto/Marketplace, SIEMPRE visibles (G3) ── */
+.arnesia-portafolio .pf-wizard-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.arnesia-portafolio .pf-wizard-tab {
+  padding: 6px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.arnesia-portafolio .pf-wizard-tab.activa {
+  border-bottom-color: var(--primary);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.arnesia-portafolio .pf-wizard-tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── PasoFuente (paso 1, y retry embebido en escaneando/candidatos-vacío/error) ── */
+.arnesia-portafolio .pf-wizard-fuente {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-wizard-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.arnesia-portafolio .pf-wizard-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-wizard-radio:has(input:disabled) {
+  color: var(--muted-foreground);
+  cursor: not-allowed;
+}
+.arnesia-portafolio .pf-wizard-path-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.arnesia-portafolio .pf-wizard-input {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+.arnesia-portafolio .pf-wizard-input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ── Paso 2: escaneando (spinner + Cancelar + input bloqueado) ── */
+.arnesia-portafolio .pf-wizard-escaneando {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-wizard-spinner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-wizard-spinner-glifo {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  animation: pf-wizard-girar 0.8s linear infinite;
+}
+@keyframes pf-wizard-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Paso 3: candidatos (checklist + nota espejos-read-only + Agregar N) ── */
+.arnesia-portafolio .pf-wizard-candidatos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-wizard-lista-candidatos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.arnesia-portafolio .pf-wizard-candidato {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+}
+.arnesia-portafolio .pf-wizard-candidato-check {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.arnesia-portafolio .pf-wizard-candidato-check .mono {
+  font-family: var(--font-mono);
+}
+.arnesia-portafolio .pf-wizard-candidato-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-wizard-candidato-meta .mono {
+  font-family: var(--font-mono);
+}
+.arnesia-portafolio .pf-chip-ya-presente {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+}
+.arnesia-portafolio .pf-chip-canonico {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--foreground);
+  white-space: normal;
+  max-width: 360px;
+}
+.arnesia-portafolio .pf-wizard-nota {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* ── 0 hallazgos / error de path (G5) ── */
+.arnesia-portafolio .pf-wizard-vacio,
+.arnesia-portafolio .pf-wizard-error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Paso 4: agregando (botón bloqueado, sin checklist inventada) ── */
+.arnesia-portafolio .pf-wizard-agregando {
+  display: flex;
+}
+
+/* ── G8 a11y: reduced-motion apaga las transiciones/animaciones de chips/dot/spinner (T4-T6
+      suman las suyas a este mismo bloque cuando agreguen hover/foco animados). ── */
 @media (prefers-reduced-motion: reduce) {
   .arnesia-portafolio .pf-chip,
   .arnesia-portafolio .pf-dot-salud,
-  .arnesia-portafolio .pf-skeleton-fila {
+  .arnesia-portafolio .pf-skeleton-fila,
+  .arnesia-portafolio .pf-wizard-spinner-glifo {
     transition: none;
     animation: none;
   }
