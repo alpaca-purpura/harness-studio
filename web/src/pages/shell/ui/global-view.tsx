@@ -7,13 +7,11 @@ import {
   type VersionInfo,
 } from "@/features/self-update"
 import { ApiError, api, ComingSoon, isTauri, useAppStore } from "@/shared"
+import { PortafolioView } from "./portafolio-view"
 
+// GLOBAL — el ComingSoon que le queda a lo que sigue staged. «portafolio» murió de acá
+// (Slice 1, plan §2.7/§3 T7): la ruta la sirve <PortafolioView/> real, más abajo.
 const GLOBAL: Record<string, { glyph: string; title: string; note: string }> = {
-  portafolio: {
-    glyph: "⌂",
-    title: "Portafolio",
-    note: "Organigrama (arneses por empresa/puesto, «reporta a») ↔ Cuadrícula. Llega después del MVP del Mapa.",
-  },
   estandar: {
     glyph: "⟳",
     title: "Estándar as code",
@@ -187,10 +185,12 @@ function AjustesView() {
 }
 
 // GlobalView renders the daemon-wide destinations (rail foot). «Ajustes» es REAL desde
-// el paquete boton-actualizar (RF-100); portafolio/estándar siguen staged honestos.
+// el paquete boton-actualizar (RF-100); «Portafolio» es REAL desde Slice 1 (T7); «Estándar»
+// sigue staged honesto.
 export function GlobalView() {
   const route = useAppStore((s) => s.view)
   if (route === "ajustes") return <AjustesView />
+  if (route === "portafolio") return <PortafolioView />
   const g = GLOBAL[route]
   if (!g) return <ComingSoon title="Vista" />
   return <ComingSoon glyph={g.glyph} title={g.title} note={g.note} />

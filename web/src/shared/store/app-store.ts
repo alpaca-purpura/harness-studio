@@ -14,14 +14,20 @@ function readView(): string {
 interface AppState {
   theme: Theme
   view: string
+  // mapaPeek (Slice 1, plan §2.7/S1-D13): puente Portafolio→Mapa, un solo consumo —
+  // WorkspaceStage lo lee una vez (apunta viewedId al id efectivo devuelto por
+  // observarEnMapa) y lo limpia. NO más lógica que esto, es solo un buzón.
+  mapaPeek: string | null
   toggleTheme: () => void
   setView: (view: string) => void
   syncFromHash: () => void
+  setMapaPeek: (id: string | null) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   theme: "light",
   view: readView(),
+  mapaPeek: null,
   toggleTheme: () => {
     const next: Theme = get().theme === "light" ? "dark" : "light"
     if (typeof document !== "undefined") document.documentElement.setAttribute("data-theme", next)
@@ -32,6 +38,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ view })
   },
   syncFromHash: () => set({ view: readView() }),
+  setMapaPeek: (id) => set({ mapaPeek: id }),
 }))
 
 /** Cablea el store al hashchange del navegador. Llamar una vez en el arranque (app layer). */

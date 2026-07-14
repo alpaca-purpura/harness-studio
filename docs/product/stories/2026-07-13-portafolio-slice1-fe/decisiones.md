@@ -277,3 +277,50 @@ termine"`, y el handler de `Escape` no llama `onClose` en ese estado (`bloqueado
 `portafolio-wizard.tsx`). Cubierto por la story `Agregando` (assert de `disabled`+`title`+Esc
 sin efecto) — la story `A11yModal` prueba el camino normal (Esc SÍ cierra) en `estado:"fuente"`.
 Cancelar/cerrar en cualquier OTRO paso sigue siendo CERO efectos (S1-D9 intacto).
+
+## S1-D20 · Confirm de colisión de id: dialog propio EN LA PÁGINA, no un cambio de contrato (T7)
+
+Hallazgo de build (Sonnet 5, T7): el plan (§2.7) pide "confirmación de colisión (S1-D2:
+`idsColisionados` + dialog propio, mismo primitivo del confirm de desvincular)" ANTES de
+`onObservar`. Pero `PortafolioDrawerProps` (§2.6, cerrado en T5) no tiene ningún slot de
+confirmación intermedia — el prop es `onObservar?: (installPath: string) => void`, directo. Los
+3 widgets son props puras y su contrato está cerrado (§P.1: no relitigar); tocarlo para sumar un
+paso de confirmación habría sido exactamente el tipo de "detalle de test/flujo filtrándose al
+contrato de dominio" que S1-D18 ya rechazó por otro motivo. → **Decisión:** el confirm de
+colisión vive ENTERAMENTE en `pages/shell/ui/portafolio-view.tsx` (`ColisionConfirmDialog`,
+componente local del archivo): la página intercepta el click ANTES de que `onObservar` exista
+como tal — su propio `onObservarInstalacion` corre `idsColisionados(entradas)` primero y, si hay
+colisión, guarda `{clave, installPath, idMostrado, otraClave}` en estado local y renderiza el
+dialog en vez de llamar al backend; `Confirmar` dispara `ejecutarObservar` (el mismo POST que
+habría corrido directo). El dialog reusa el vocabulario visual de `pf-drawer`/`pf-btn-*`
+(`portafolio.css`, T5) y el primitivo de foco `trapTabKeyDown` (`shared/lib/focus-trap.ts`,
+S1-D18) — mismo patrón, cero widget tocado, cero prop nueva en el contrato cerrado. Texto exacto
+de S1-D2: «el Mapa de hoy keyea por id pelado — abrir "X" acá re-apunta la vista de "X" de
+`<otra clave>`».
+
+## S1-D21 · Error de `onObservar`: banner propio de la página (T7)
+
+`onObservar?: (installPath: string) => void` (§2.6) es fire-and-forget — el widget no espera
+ningún resultado ni tiene un slot de error (a diferencia de `desvincularError`, que sí existe
+para el DELETE). `POST /api/portafolio/arneses/{clave}/mapa` (S1-D1) puede fallar en la vida
+real (400 install_path ajeno tras un re-escaneo que movió la instalación, 404 si la entrada se
+desvincula en otra pestaña, 500 si el loader no puede leer el dir) y silenciar ese fallo sería
+fabricar un éxito de palabra (BR-8). → **Decisión:** la página guarda `observarError` en estado
+propio y pinta un `<p role="alert" className="pf-error">` FUERA del `<PortafolioDrawer>` (por
+encima, mismo overlay) cuando lo hay — cero prop nueva en el contrato cerrado, mismo espíritu que
+S1-D20 (el contrato no se toca; la página resuelve por fuera). Se limpia al reintentar observar o
+al abrir otra fila.
+
+## S1-D22 · Error de `agregarProyecto` (POST /proyectos): reusa el slot `error` del wizard (T7)
+
+El contrato del wizard (§2.6) trae un único slot textual `error?: string` documentado para "el
+motivo 400 del backend" del ESCANEO (G5, `ErrorDePath`) — no hay un slot separado para un fallo
+del POST final de agregar (`estado==="agregando"` solo pinta el botón bloqueado, sin rama de
+error, plan §3 T6: "sin checklist inventada"). Un fallo real ahí (path movido entre el escaneo y
+el click de Agregar, C-P-9 en juego) no puede fabricarse como éxito. → **Decisión:** la página
+reusa el mismo slot `error` + vuelve `estado` a `"candidatos"` — el usuario ve el motivo real y
+puede reintentar desde el mismo formulario de re-escaneo que ya existe para el error de escaneo
+(`PasoCandidatos` con `error` truthy). Costo aceptado: la checklist de candidatos deja de
+mostrarse mientras el error está visible (el componente widget no distingue "error de escaneo" de
+"error de agregar" — mismo slot, mismo render). No se tocó el widget: es la opción más honesta
+sin ampliar el contrato cerrado de T6.

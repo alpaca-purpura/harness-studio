@@ -7,6 +7,7 @@ import {
   SALUD_LABEL,
   STATUS_LABEL,
   selectActive,
+  useAppStore,
   useSessions,
   VIEWS,
 } from "@/shared"
@@ -130,6 +131,39 @@ export function WorkspaceStage() {
       alive = false
     }
   }, [isMapa])
+
+  // Consumo del peek Portafolio→Mapa (Slice 1, plan §2.7/S1-D13): «Abrir en Mapa» del
+  // Portafolio deja un id en el buzón `mapaPeek` (app-store) y aparca la sesión en Mapa
+  // (parkView, hecho por PortafolioView) — acá, cuando el peek está seteado Y la vista activa
+  // ES Mapa, se re-fetchea el índice (el guard de arriba solo acepta ids que ya estaban en el
+  // snapshot `harnesses`; un arnés recién observado no está ahí todavía) ANTES de apuntar
+  // `viewedId`, y el peek se limpia siempre — es un buzón de un solo consumo, nunca vuelve a
+  // disparar solo. NO toca nada más del stage (el chip de alcance y el picker existentes
+  // siguen intactos).
+  const mapaPeek = useAppStore((st) => st.mapaPeek)
+  const setMapaPeek = useAppStore((st) => st.setMapaPeek)
+  useEffect(() => {
+    if (!mapaPeek || !isMapa) return
+    let alive = true
+    api
+      .listHarnesses<HarnessSummary[]>()
+      .then((hs) => {
+        if (!alive) return
+        setHarnesses(hs ?? [])
+        setHarnessesLoaded(true)
+        setViewedId(mapaPeek)
+      })
+      .catch(() => {
+        if (!alive) return
+        setViewedId(mapaPeek)
+      })
+      .finally(() => {
+        setMapaPeek(null)
+      })
+    return () => {
+      alive = false
+    }
+  }, [mapaPeek, isMapa, setMapaPeek])
 
   const pickerItems = useMemo(
     () => harnesses.map((h) => ({ id: h.id, label: h.rol ?? h.id })),

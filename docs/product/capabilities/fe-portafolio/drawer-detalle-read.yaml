@@ -29,12 +29,13 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
   - "web/src/shared/lib/focus-trap.ts#trapTabKeyDown"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
 valida: []
 
 dev_preview:
-  route: null
-  how_to_navigate: null
-  main_component: "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  route: "#/portafolio"
+  how_to_navigate: "rail → Portafolio → abrir una fila (Enter/click)"
+  main_component: "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   api_endpoints:
     - "DELETE /api/portafolio/arneses/{clave}"
   e2e_test: null
@@ -81,6 +82,20 @@ change_log:
       portala a `document.body` y rompe `within(canvasElement)` en todo el Storybook del
       repo). 10 stories obligatorias con `play()`. Sigue `stub`/sin `valida:` a propósito (R4):
       graduar a `vivo` es T8, con `paridad.md` y el gate humano — no se adelanta acá.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T7 — `pages/shell/ui/portafolio-view.tsx` cablea el transporte real del drawer:
+      `onDesvincular` (DELETE real con `desvinculando`/`desvincularError`, cierra el drawer +
+      refetch de la lista al éxito) y `onObservar` (confirmación de colisión de bare-id ANTES
+      de llamar al backend cuando `idsColisionados` detecta ≥2 claves con el mismo id — S1-D2,
+      dialog propio de la página `ColisionConfirmDialog`, S1-D20 — y `undefined` sin sesión
+      activa, disabled+tooltip «necesita una sesión abierta…», S1-D13). El error de
+      `onObservar` (sin slot dedicado en el contrato §2.6) se muestra como banner propio de la
+      página (S1-D21). Sigue `stub`/sin `valida:`: graduar a `vivo` con evidencia E2E viva es
+      T8.
     merge_sha: null
 
 scenarios: []

@@ -21,19 +21,22 @@ pointers:
   - "web/src/shared/api/client.ts#observarEnMapa"
   - "web/src/entities/portafolio/model/selectors.ts#idsColisionados"
   - "web/src/entities/portafolio/model/selectors.test.ts#idsColisionados"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/shared/store/app-store.ts#setMapaPeek"
+  - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
 valida: []
 
 dev_preview:
-  route: null
-  how_to_navigate: null
-  main_component: null
+  route: "#/portafolio → drawer → ◉ Abrir/Observar en Mapa"
+  how_to_navigate: "necesita una sesión activa (S1-D13); sin ella el botón queda disabled"
+  main_component: "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   api_endpoints:
     - "POST /api/portafolio/arneses/{clave}/mapa"
   e2e_test: null
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-14
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D1/S1-D2/S1-D13"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -46,6 +49,26 @@ change_log:
       real (confirmación de colisión, `mapaPeek` en app-store, consumo en `WorkspaceStage`,
       disabled+tooltip sin sesión activa S1-D13) llega en T7 — ese ticket gradúa este
       capability a `vivo`.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T7 — wiring completo: `pages/shell/ui/portafolio-view.tsx` computa `idsColisionados` sobre
+      las entradas cargadas ANTES de llamar `observarEnMapa`; si la identidad de la entrada
+      colisiona con otra clave muestra `ColisionConfirmDialog` (dialog propio de la página,
+      S1-D20 — el contrato cerrado del drawer no tiene slot para esto) con el texto EXACTO de
+      S1-D2; al confirmar (o directo si no hay colisión) llama `api.observarEnMapa(clave,
+      installPath)`, guarda el `id` efectivo en `useAppStore().setMapaPeek`, hace
+      `useSessions().parkView("Mapa")` y `useAppStore().setView("mapa")` (ruta no-global).
+      `pages/shell/ui/workspace-stage.tsx` suma el `useEffect` que consume el peek: re-fetchea
+      `listHarnesses` (el guard existente rechaza ids fuera del snapshot previo) ANTES de
+      `setViewedId(mapaPeek)`, limpia el peek siempre (buzón de un solo consumo). Sin sesión
+      activa (`useSessions` sin `activeId`), `onObservar` es `undefined` — el drawer deshabilita
+      el botón con el tooltip S1-D13 EXACTO. Un fallo del POST se muestra en un banner propio de
+      la página (S1-D21, sin slot dedicado en el contrato). Smoke manual contra el daemon real
+      (T7, no el E2E exhaustivo — eso es T8). Sigue `stub`/sin `valida:` a propósito (R4):
+      graduar a `vivo` con evidencia E2E viva es T8.
     merge_sha: null
 
 scenarios: []

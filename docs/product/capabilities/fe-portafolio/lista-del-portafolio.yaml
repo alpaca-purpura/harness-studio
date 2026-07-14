@@ -29,12 +29,13 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
   - "web/src/widgets/portafolio/ui/portafolio-list.tsx#PortafolioList"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
 valida: []
 
 dev_preview:
-  route: null
-  how_to_navigate: null
-  main_component: null
+  route: "#/portafolio"
+  how_to_navigate: "rail → Portafolio (pie del rail, GLOBAL_VIEWS)"
+  main_component: "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   api_endpoints:
     - "GET /api/portafolio"
   e2e_test: null
@@ -78,6 +79,17 @@ change_log:
       `ErrorDeCarga`/`ConDatos`/`LentePlano`/`CorruptasVisibles`/`FiltroSinResultados`).
       Sigue `stub`/sin `valida:` a propósito (R4): graduar a `vivo` es T8, cuando `paridad.md`
       cierre el slice completo con el gate humano — no se adelanta acá.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T7 — composition-root `pages/shell/ui/portafolio-view.tsx` cablea el transporte real: GET
+      /api/portafolio al montar (`cargar`) con estado cargando→datos/error real (sin fixtures),
+      refetch tras `agregarProyecto`/`desvincularDelPortafolio` exitosos, `lente`/`busqueda`
+      como estado de la página, `onAbrir`→drawer. `GlobalView` rutea `#/portafolio` acá (muere
+      su `ComingSoon`). Sigue `stub`/sin `valida:` a propósito (R4): graduar a `vivo` con
+      evidencia E2E viva es T8.
     merge_sha: null
 
 scenarios: []

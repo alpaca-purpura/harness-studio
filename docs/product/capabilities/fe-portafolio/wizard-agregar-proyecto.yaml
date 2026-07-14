@@ -25,12 +25,13 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#TipoInstalacionChip"
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
 valida: []
 
 dev_preview:
-  route: null
-  how_to_navigate: null
-  main_component: "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
+  route: "#/portafolio"
+  how_to_navigate: "rail → Portafolio → ＋ Agregar"
+  main_component: "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   api_endpoints:
     - "POST /api/portafolio/escaneos"
     - "POST /api/portafolio/proyectos"
@@ -75,6 +76,20 @@ change_log:
       durante "agregando" (S1-D19, nueva). 7 stories con `play()` +
       `Paso1FuenteConElegirCarpeta` (cobertura extra del picker Tauri). Sigue `stub`/`valida: []`
       — T8 gradúa a `vivo` con la evidencia E2E viva.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T7 — `pages/shell/ui/portafolio-view.tsx` cablea el transporte real: `onEscanear` llama
+      `api.escanearProyecto(path, signal)` con `AbortController` real (S1-D9 — `onCancelarEscaneo`
+      lo aborta, `onClose` también lo aborta si se cierra a mitad de un escaneo, CERO efectos);
+      `onAgregar` llama `api.agregarProyecto(pathEscaneado, elegidos)` (el `path` lo recuerda la
+      página desde `onEscanear`, ya que `onAgregar` del widget solo trae `elegidos` — el POST no
+      trae `clave` en la respuesta, plan §2.1, la página re-fetchea la lista) y cierra el wizard
+      al éxito; un fallo del POST vuelve a `"candidatos"` reusando el slot `error` compartido con
+      el escaneo (S1-D22, nueva — sin slot dedicado en el contrato §2.6). `onElegirCarpeta` solo
+      dentro de Tauri (`isTauri()`, patrón RF-110). Sigue `stub`/`valida: []` — T8 gradúa.
     merge_sha: null
 
 scenarios: []
