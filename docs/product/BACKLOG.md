@@ -44,14 +44,14 @@
 > re-materializa (reparar) + backportea; el marketplace `home` = SSoT (pull-antes-de-push). **`deriva`** (ex-«drift») =
 > hash vs `home/plugins/<id>/<versión>/`. **Recut post-revisión adversaria (S-D9/S-D10):** el FE no es construible sin cimientos.
 
-- [x] ✅ **0. Cimientos del Portafolio** (dominio/backend, SIN FE) — **CONSTRUIDO** (Sonnet 5, 2026-07-13, T1-T9):
-  store de portafolio **separado** de `arneses.json` (degrada honesto) · **walker** `.claude/plugins/<id>/` +
-  **fallback `plugin.json`** · campo `version` · `empresas[]` (`registries[]` vive en `EntradaPortafolio`, S0-D3) ·
-  identidad `(home,id)` + canonicalización · cadena de origen **collect-all** (lock≙cc-plugins>git-plugin>manifiesto) ·
-  **`deriva`** = hash vs `home/plugins/<id>/<v>/` (o `deriva-no-evaluable`) · detector lock · HTTP+CLI · capabilities+boundary
-  as-code. 27 tests Go nuevos + E2E vivo contra la máquina real (cazó y corrigió 2 bugs reales, S0-D14/D15).
+- [x] ✅ **0. Cimientos del Portafolio** (dominio/backend, SIN FE) — **CONSTRUIDO Y FIRMADO 🧑‍⚖️** (Sonnet 5,
+  T1-T9 · gate firmado 2026-07-13, HS-23): store de portafolio **separado** de `arneses.json` (degrada honesto) ·
+  **walker** `.claude/plugins/<id>/` + **fallback `plugin.json`** · campo `version` · `empresas[]` (`registries[]`
+  vive en `EntradaPortafolio`, S0-D3) · identidad `(home,id)` + canonicalización · cadena de origen **collect-all**
+  (lock≙cc-plugins>git-plugin>manifiesto) · **`deriva`** = hash vs `home/plugins/<id>/<v>/` (o `deriva-no-evaluable`) ·
+  detector lock · HTTP+CLI · capabilities+boundary as-code. 27 tests Go nuevos + E2E vivo contra la máquina real
+  (cazó y corrigió 2 bugs reales, S0-D14/D15).
   → [`stories/2026-07-13-portafolio-slice0-cimientos/paridad.md`](stories/2026-07-13-portafolio-slice0-cimientos/paridad.md)
-  **Gate humano 🧑‍⚖️ PENDIENTE** (bloquea el arranque del item 1).
   - [x] ✅ **eslabón CC investigado** (Fable 5, 2026-07-13, S0-D1) + **corregido con evidencia real** (Sonnet 5,
     S0-D14): `~/.claude/plugins/installed_plugins.json` (v2) anida las entradas bajo una clave `plugins` —
     `{"version":2,"plugins":{"id@marketplace":[...]}}`, no en el nivel raíz como se había asumido en S0-D1.
@@ -59,9 +59,10 @@
     calificado sigue diferido a cuando "Abrir en Mapa" de una instalación lo exija (S0-D6, A2 acotada) · política
     definitiva de conservación de entradas corruptas del store más allá de un ciclo save (hoy: sobrevive si es
     JSON sintácticamente válido, se pierde si el archivo entero está roto — ver `paridad.md` desviación #4).
-- [ ] **1. FE Portafolio** (sobre cimientos) — 3 superficies (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) +
-  Observar (Abrir en Mapa, reusa CAP-58/61) + Desvincular; **defaults honestos** (deriva-no-evaluable · update no-verificado ·
-  marketplace disabled) · fix mockup G1-G9 · porte a Storybook · `gate` · `bloqueo`(0)
+- [ ] **1. FE Portafolio** (sobre cimientos, **DESBLOQUEADO** — item 0 firmado HS-23) — 3 superficies
+  (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) + Observar (Abrir en Mapa, reusa CAP-58/61) +
+  Desvincular; **defaults honestos** (deriva-no-evaluable · update no-verificado · marketplace disabled) ·
+  fix mockup G1-G9 · porte a Storybook · `gate`
 - [ ] **2. Agregar de marketplace → clonar + mejorar** — git url → **validar `marketplace.json`** → listar → elegir → checkout
   `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1)
 - [ ] **3. Publicar** — pull/rebase → conformance-verde → bump semver → changelog obligatorio → push → **tag-tras-push** · `gate` · `bloqueo`(2)

@@ -150,7 +150,7 @@ Ninguna decisión quedó abierta. El detalle completo de cada una vive en `decis
 
 ## Firma
 
-- [ ] 🧑‍⚖️ **Gate humano** — **PENDIENTE**. El operador revisa: goal §0 del plan (8 puntos) contra
-  esta hoja + el E2E vivo de arriba, y las 5 desviaciones registradas. Al firmar, actualizar este
-  checkbox + `checkpoint.md` (paquete activo → cerrado) + `BACKLOG.md` (item 0 → construido y
-  firmado).
+- [x] 🧑‍⚖️ **Gate humano** — **FIRMADO 2026-07-13** (operador). Goal §0 del plan (8 puntos) revisado
+  contra esta hoja + el E2E vivo de arriba, y las 5 desviaciones registradas ACEPTADAS sin
+  objeción. Cierre: `checkpoint.md` (paquete activo → Slice 0 cerrado) + `BACKLOG.md` (item 0 →
+  construido y firmado) + `ledger/HS-23.md`.
