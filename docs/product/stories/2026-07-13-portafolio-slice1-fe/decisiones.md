@@ -234,3 +234,30 @@ a chocar con la misma heurística. → **Decisión:** `web/steiger.config.ts` ap
 `fsd/insignificant-slice`, con razón documentada inline) — steiger es gate secundario/BETA
 (`enforced_by` primario = dependency-cruiser, según el propio comentario de cabecera del config); las
 demás reglas de steiger (public-api, no-cross-imports, layer-direction) siguen activas y enforced.
+
+## S1-D18 · Drawer modal (G8): primitivo de a11y propio, NO `@base-ui-components/react/dialog` (T5)
+
+Hallazgo de build (Sonnet 5, T5): el repo no tenía ningún dialog/drawer existente con
+`role="dialog"`/`aria-modal`/trap-de-Tab/Esc que reusar (se buscó en `widgets/map-canvas/ui/
+inspector.tsx` — el drawer del Mapa, que NO es modal: Esc solo colapsa, sin trap, sin
+`role="dialog"`). `@base-ui-components/react` YA es dependencia (`package.json`, sin uso real
+todavía) y trae `Dialog` (`@base-ui-components/react/dialog`, `Root/Portal/Popup/Title/Close`)
+con trap de foco + dismiss nativo — la opción evidente por "no reinventar el primitivo si ya
+existe uno compartido" (instrucción del ticket). Probado: `Dialog.Popup` exige un
+`<Dialog.Portal>` ancestro (`useDialogPortalContext` tira `Error` sin él) y `DialogPortal`, por
+`default`, monta su contenido vía `FloatingPortal` en `document.body` — **fuera** del árbol que
+`within(canvasElement)` recorre en TODAS las stories de este repo (patrón fe-visual-fitness
+ya usado en `portafolio-list.stories.tsx` y todo el resto del Storybook). Pasar un `container`
+propio a `Dialog.Portal` habría exigido colar una prop de "dónde portalar" a través del
+contrato puro `PortafolioDrawerProps` (§2.6, cerrado) — un detalle de test filtrándose al
+contrato de dominio, lo que el plan prohíbe (§P.1: no relitigar contratos cerrados). Verificado
+además que Base UI tampoco setea `aria-modal` por su cuenta (`DialogPopup.js`/`useRole` de
+`floating-ui-react`: solo agregan `role`, nunca `aria-modal`) — habría que agregarlo a mano de
+todos modos. → **Decisión:** primitivo propio y chico en `web/src/shared/lib/focus-trap.ts`
+(`focusablesEn` + `trapTabKeyDown`, sin dependencias nuevas — reusa lo que ya hay: React +
+DOM), documentado inline con el porqué, aplicado en `portafolio-drawer.tsx` (`role="dialog"`
+`aria-modal="true"` `aria-labelledby` propios, foco inicial al botón cerrar vía `useEffect`,
+Esc vía `onKeyDown` local). Reusable tal cual por el wizard (T6, mismos requisitos G8) sin
+tocar este archivo. `@base-ui-components/react` sigue como dependencia intacta (no se quitó del
+`package.json`, NO deps nuevas — §P.4); simplemente no se usó su `Dialog` compound para esta
+superficie por el conflicto estructural con el patrón de test del repo.

@@ -317,6 +317,247 @@
   color: var(--foreground);
 }
 
+/* ── T5: widget Drawer READ + confirm Desvincular (plan §2.6/§3 T5,
+      G1/G2/G4/G5/G6/G7/G8). Mismo scope .arnesia-portafolio, mismos tokens. `role="dialog"`
+      propio (shared/lib/focus-trap.ts, S1-D18) — sin portal, vive inline en el árbol. ── */
+
+.arnesia-portafolio .pf-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.arnesia-portafolio .pf-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-drawer-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.arnesia-portafolio .pf-drawer-id .mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.arnesia-portafolio .pf-drawer-nombre {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .pf-drawer-cerrar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+  cursor: pointer;
+}
+.arnesia-portafolio .pf-drawer-cerrar:focus-visible,
+.arnesia-portafolio .pf-btn-primary:focus-visible,
+.arnesia-portafolio .pf-btn-secundario:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.arnesia-portafolio .pf-drawer-identidad {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-drawer-identidad .mono {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+}
+
+/* ── facetas (empresas/marketplaces): chips o "desconocida/o" honesto (G4) ── */
+.arnesia-portafolio .pf-drawer-facetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.arnesia-portafolio .pf-faceta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .pf-faceta-label {
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.arnesia-portafolio .pf-faceta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ── callout ley anti-drift: tono neutro, siempre visible ── */
+.arnesia-portafolio .pf-callout-antidrift {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+}
+
+/* ── update: no-verificado (S1-D5/G2) — línea fija, semibold, sin flag de versión ── */
+.arnesia-portafolio .pf-update-linea {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+/* ── zonas Canónico/Instalaciones ── */
+.arnesia-portafolio .pf-zona {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.arnesia-portafolio .pf-zona-titulo {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.arnesia-portafolio .pf-zona-badge {
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-foreground);
+}
+
+.arnesia-portafolio .pf-canonico,
+.arnesia-portafolio .pf-canonico-ausente {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arnesia-portafolio .pf-canonico .mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.arnesia-portafolio .pf-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.arnesia-portafolio .pf-instalaciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-instalacion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+}
+.arnesia-portafolio .pf-instalacion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.arnesia-portafolio .pf-instalacion-path {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  word-break: break-all;
+}
+
+/* ── origen de la copia (S1-D14 — NO se rotula "origen" a secas) ── */
+.arnesia-portafolio .pf-origen-copia {
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .pf-origen-copia .mono {
+  font-family: var(--font-mono);
+}
+.arnesia-portafolio .pf-discrepancias {
+  margin: 4px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--warn);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-trazabilidad {
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-trazabilidad summary {
+  cursor: pointer;
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-trazabilidad ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+.arnesia-portafolio .pf-trazabilidad .mono {
+  font-family: var(--font-mono);
+}
+
+/* ── frescura (S1-D15): la foto del último escaneo, nunca tiempo-real ── */
+.arnesia-portafolio .pf-frescura {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* ── footer + confirm interno de Desvincular (G7) ── */
+.arnesia-portafolio .pf-drawer-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.arnesia-portafolio .pf-confirm-desvincular {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.arnesia-portafolio .pf-confirm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-confirm-checkbox input:disabled {
+  cursor: not-allowed;
+}
+.arnesia-portafolio .pf-error {
+  margin: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--crit);
+  background: var(--crit-soft);
+  color: var(--foreground);
+  padding: 6px 10px;
+  font-size: var(--text-xs);
+}
+
 /* ── G8 a11y: reduced-motion apaga las transiciones de chips/dot (T4-T6 suman las suyas
       a este mismo bloque cuando agreguen hover/foco animados). ── */
 @media (prefers-reduced-motion: reduce) {

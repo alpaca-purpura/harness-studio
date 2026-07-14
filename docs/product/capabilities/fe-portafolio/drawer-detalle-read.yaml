@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.drawer-detalle-read
 cap_num: CAP-90
 slug: drawer-detalle-read
 name: "Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)"
-status: stub           # T2: alta as-code, contrato (tipos+selectores) construido; UI en T5.
+status: stub           # T2 contrato + T5 widget construidos (a11y/confirm); gradúa a vivo en T8.
 license: brand-local
 
 module: fe-portafolio
@@ -27,12 +27,14 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
   - "web/src/entities/portafolio/ui/chips.tsx#TipoInstalacionChip"
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  - "web/src/shared/lib/focus-trap.ts#trapTabKeyDown"
 valida: []
 
 dev_preview:
   route: null
   how_to_navigate: null
-  main_component: null
+  main_component: "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
   api_endpoints:
     - "DELETE /api/portafolio/arneses/{clave}"
   e2e_test: null
@@ -40,7 +42,7 @@ dev_preview:
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
 last_modified: 2026-07-14
-source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D5/S1-D14/S1-D15"
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D5/S1-D14/S1-D15/S1-D18"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
     date: 2026-07-13
@@ -61,6 +63,25 @@ change_log:
       S0-D2) y `AvisoChip` (zona instalaciones). Sigue `stub`/sin `valida:`: el widget del
       drawer que los consume real llega en T5.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T5 — widget `portafolio-drawer.tsx` construido: header+identidad (home o «identidad
+      provisional (sin home) · scope», G6) · facetas empresas/marketplaces («desconocida/o»
+      honesto, G4) · callout ley anti-drift · «update: no-verificado» (G2/S1-D5) · zona
+      Canónico (presente con `Abrir en Mapa` real / ausente con CTA disabled S2) · zona
+      Instalaciones (tipo·deriva real·aviso·«origen de la copia»·discrepancias·`<details>`
+      trazabilidad de eslabones crudos, S1-D14 · `Observar en Mapa` real / Reparar·Backport
+      disabled S5, S1-D11) · línea de frescura (S1-D15) · confirm interno de Desvincular (G7,
+      copy exacto + checkbox borrar-clon disabled S2) · a11y (G8): `role="dialog"`
+      `aria-modal` `aria-labelledby`, foco inicial al botón cerrar, trap de Tab en ambas
+      direcciones, Esc cierra — primitivo propio `shared/lib/focus-trap.ts` (S1-D18: NO se usó
+      `@base-ui-components/react/dialog` porque exige `<Dialog.Portal>`, que por default
+      portala a `document.body` y rompe `within(canvasElement)` en todo el Storybook del
+      repo). 10 stories obligatorias con `play()`. Sigue `stub`/sin `valida:` a propósito (R4):
+      graduar a `vivo` es T8, con `paridad.md` y el gate humano — no se adelanta acá.
+    merge_sha: null
 
 scenarios: []
 business_rules: []
@@ -73,7 +94,9 @@ related_capabilities:
 
 # Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)
 
-Superficie 3 del Portafolio (spec §10/§4, G1/G2/G4/G5/G6/G7/G8). T2 construye el contrato; T5
-construye el widget `portafolio-drawer.tsx` (identidad resuelta/provisional, update
-no-verificado, trazabilidad de eslabones, confirm de Desvincular con a11y) — ese ticket gradúa
-este capability a `vivo`.
+Superficie 3 del Portafolio (spec §10/§4, G1/G2/G4/G5/G6/G7/G8). T2 construyó el contrato; T5
+construyó el widget `portafolio-drawer.tsx` (identidad resuelta/provisional, update
+no-verificado, trazabilidad de eslabones, confirm de Desvincular con a11y — `role="dialog"`
+propio sobre `shared/lib/focus-trap.ts`, S1-D18) con sus 10 stories obligatorias. Sigue
+`status: stub` a propósito (R4, sin `valida:`): la graduación a `vivo` es T8, cuando
+`paridad.md` cierre el slice completo con el gate humano.
