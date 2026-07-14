@@ -167,6 +167,7 @@ func (s *Scanner) escanearLock(root string) []domain.HallazgoInstalacion {
 	var out []domain.HallazgoInstalacion
 	for _, e := range lf.Arneses {
 		h := domain.HallazgoInstalacion{
+			IDConocido: e.ID,
 			Eslabones: []domain.EslabonOrigen{
 				{Fuente: "lock-devstudio", Campo: "registry", Valor: e.Registry},
 				{Fuente: "lock-devstudio", Campo: "version", Valor: e.Version},

@@ -19,6 +19,8 @@ nature: feature
 
 pointers:
   - "internal/domain/portafolio.go#EntradaPortafolio"
+  - "internal/adapters/portafolio/store.go#Store"
+  - "internal/ports/portafolio.go#PortafolioStore"
 valida: []
 
 dev_preview:
@@ -37,6 +39,11 @@ change_log:
     date: 2026-07-13
     type: new
     summary: "T1 — domain.EntradaPortafolio (1 card por identidad, BR-1); store.Desvincular llega en T6."
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T6 — portafolio.Store: envelope versionado, degrada honesto (BR-11), Upsert/Desvincular/Checkouts atómicos."
     merge_sha: null
 
 scenarios: []

@@ -127,3 +127,10 @@ func EvaluarDeriva(installDir string, refs *Referencias, home, id, version strin
 	}
 	return domain.DerivaEnDeriva, "hash de contenido distinto de la referencia " + refDir
 }
+
+// Evaluar satisface ports.DerivaEvaluator (S0-D13 del paquete: el plan dejó "refs …" sin
+// especificar cómo el usecase, que no puede importar este adapter, invoca la evaluación
+// de deriva — se resuelve con este método puente, cableado por interfaz en cmd).
+func (r *Referencias) Evaluar(installDir, home, id, version string) (domain.EstadoDeriva, string) {
+	return EvaluarDeriva(installDir, r, home, id, version)
+}

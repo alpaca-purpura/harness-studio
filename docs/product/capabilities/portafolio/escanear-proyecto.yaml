@@ -22,6 +22,8 @@ pointers:
   - "internal/domain/portafolio.go#HallazgoInstalacion"
   - "internal/adapters/portafolio/scanner.go#Scanner"
   - "internal/adapters/portafolio/gitconfig.go#ResolverRemotesGit"
+  - "internal/usecase/portafolio.go#PortafolioService"
+  - "internal/ports/portafolio.go#PortafolioScanner"
 valida: []
 
 dev_preview:
@@ -45,6 +47,11 @@ change_log:
     date: 2026-07-13
     type: extend
     summary: "T4 — Scanner walker físico: 3 formas de instalación + lock DevStudio + cruce CC + git-plugin/git-proyecto + descenso monorepo acotado."
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T6 — PortafolioService.Escanear/AgregarProyecto: orquesta walk→cargar→ResolverIdentidad/Origen→clasificar checkout→EvaluarDeriva vía puertos; root pasa por la política de path protegido."
     merge_sha: null
 
 scenarios: []

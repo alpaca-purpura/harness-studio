@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -247,6 +248,18 @@ type HallazgoInstalacion struct {
 	Tipo      TipoInstalacion // "" si Dir=="" (sin forma física que clasificar).
 	Eslabones []EslabonOrigen // crudos: lock-devstudio | cc-plugins | git-plugin | git-proyecto | no-legible.
 	Aviso     string          // C-P-5 no-reconocible · C-P-14 declarada-ausente · CC ilegible.
+	// IDConocido es el id declarado por la fuente del hallazgo (p.ej. el `id` de una fila
+	// del lock DevStudio) cuando Dir=="" no permite cargarlo con el loader — best-effort:
+	// sabemos EL ID sin poder leer el manifiesto físico (C-P-14). "" si no hay ninguno.
+	IDConocido string
+}
+
+// EntradaCorrupta es una fila del store del Portafolio que no parseó como
+// EntradaPortafolio (BR-11, S0-D5): se conserva CRUDA y visible, jamás se pierde ni
+// impide el arranque (C-N-4).
+type EntradaCorrupta struct {
+	Raw    json.RawMessage `json:"raw"`
+	Motivo string          `json:"motivo"`
 }
 
 // EntradaPortafolio es 1 card por identidad (BR-1): empresas y registries son facetas

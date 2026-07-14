@@ -93,3 +93,17 @@ conocidos del store → CANÓNICO, jamás instalación) + test.
   `empresas,omitempty`) para mantener `go build ./...` verde en T1 — el tipo FE `HarnessSummary` en
   `web/src/shared/api/types.ts` migra recién en T2 junto con el resto de los tipos FE (hoy compila
   igual porque TS estructural no exige el campo).
+
+## S0-D13 · Puerto DerivaEvaluator (T6) — cierra el "refs …" que el plan dejó abierto
+
+El plan §2.7 esboza `PortafolioService struct { store …; scan …; cargar …; refs … }` — los tres
+primeros campos tipados por puerto (`ports.PortafolioStore/Scanner/ArnesLoader`), el cuarto con una
+elipsis literal: el arquitecto no cerró cómo el usecase (que por go-arch-lint SOLO puede depender de
+`domain`+`ports`, nunca de un adapter concreto) invoca `EvaluarDeriva`, que vive en
+`internal/adapters/portafolio/deriva.go`. Resuelto con un puerto nuevo `ports.DerivaEvaluator`
+(`Evaluar(installDir, home, id, version) (domain.EstadoDeriva, string)`) que `*portafolio.Referencias`
+satisface vía un método puente (`Referencias.Evaluar` delega a la función libre `EvaluarDeriva`) —
+`cmd` cablea `&portafolio.Referencias{...}` como ese puerto, igual que cablea el resto de adapters
+concretos a interfaces. Mismo motivo que `domain.HallazgoInstalacion`/`EntradaCorrupta`: el tipo que
+cruza la frontera puerto↔usecase vive donde ambos lados pueden verlo sin violar la regla de
+dependencia (domain para los tipos de datos, ports para el contrato de comportamiento).
