@@ -19,6 +19,8 @@ nature: feature
 
 pointers:
   - "internal/domain/portafolio.go#EstadoDeriva"
+  - "internal/adapters/portafolio/deriva.go#HashFormaPlugin"
+  - "internal/adapters/portafolio/deriva.go#EvaluarDeriva"
 valida: []
 
 dev_preview:
@@ -37,6 +39,11 @@ change_log:
     date: 2026-07-13
     type: new
     summary: "T1 — domain.EstadoDeriva (al-hilo|en-deriva|deriva-no-evaluable, BR-4); el hasher (deriva.go) llega en T5."
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T5 — HashFormaPlugin (sha256 determinista, excluye .git/.in_use/.orphaned_at) + Referencias.RutaReferencia (checkout local vía known_marketplaces.json) + EvaluarDeriva."
     merge_sha: null
 
 scenarios: []
