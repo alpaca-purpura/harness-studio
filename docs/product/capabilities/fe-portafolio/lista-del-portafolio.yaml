@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.lista-del-portafolio
 cap_num: CAP-89
 slug: lista-del-portafolio
 name: "Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)"
-status: stub           # T2: alta as-code, contrato (tipos+selectores) construido; UI en T4.
+status: stub           # T2/T3/T4: contrato + chips + widget construidos; gradúa a vivo en T8 (paridad.md).
 license: brand-local
 
 module: fe-portafolio
@@ -28,6 +28,7 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
+  - "web/src/widgets/portafolio/ui/portafolio-list.tsx#PortafolioList"
 valida: []
 
 dev_preview:
@@ -63,6 +64,21 @@ change_log:
       propia por rama — `sin-senal` nunca el color de `ok`). Sigue `stub`/sin `valida:`: el
       widget de fila que los consume real llega en T4.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T4 — widget `portafolio-list.tsx` construido: topbar (contadores reales + ＋ Agregar) ·
+      toolbar (buscar + lentes empresa/plano · lentes proyecto/marketplace y filtros
+      estado/marketplace disabled+tooltip, S1-D8/BR-8) · banner de corruptas (BR-11) ·
+      estados vacío/cargando/error/sin-resultados/agrupado/plano (G5) · fila = `<button>`
+      accesible (Enter/click → `onAbrir(clave)`, G6/G8) SIN flag de update (G2) · chips
+      honestos por fila (`en-deriva` si aplica G1 · `origen?` sin registry · aviso) · dot de
+      salud con `aria-label` (G9). 7 stories obligatorias con `play()` (`Vacia`/`Cargando`/
+      `ErrorDeCarga`/`ConDatos`/`LentePlano`/`CorruptasVisibles`/`FiltroSinResultados`).
+      Sigue `stub`/sin `valida:` a propósito (R4): graduar a `vivo` es T8, cuando `paridad.md`
+      cierre el slice completo con el gate humano — no se adelanta acá.
+    merge_sha: null
 
 scenarios: []
 business_rules: []
@@ -76,7 +92,9 @@ related_capabilities:
 # Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)
 
 Superficie 1 del Portafolio (spec §10, `revision-adversaria.md` G1/G2/G4/G5/G6/G8/G9). T2
-construye el contrato (tipos + selectores + fixtures + cliente HTTP); T4 construye el widget
-`portafolio-list.tsx` con sus stories `Vacia`/`Cargando`/`ErrorDeCarga`/`ConDatos`/`LentePlano`/
-`CorruptasVisibles`/`FiltroSinResultados` — ese ticket gradúa este capability a `vivo` (`valida:`
-poblado con los nombres reales de esas stories).
+construyó el contrato (tipos + selectores + fixtures + cliente HTTP); T3 los chips/dot de
+dominio; T4 construyó el widget `portafolio-list.tsx` con sus 7 stories obligatorias
+(`Vacia`/`Cargando`/`ErrorDeCarga`/`ConDatos`/`LentePlano`/`CorruptasVisibles`/
+`FiltroSinResultados`, cada una con `play()`). Sigue `status: stub` a propósito (R4, sin
+`valida:`): la graduación a `vivo` es T8, cuando `paridad.md` cierre el slice completo con el
+gate humano — este ticket NO se adelanta a firmarla.
