@@ -142,6 +142,14 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-80 · Sidecar del daemon (bind-or-bail, kill al salir)** `vivo·nc` · tauri/sidecar-del-daemon.yaml — `web/src-tauri/src/lib.rs#daemon_running`
 - **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
 - **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
+
+### `portafolio` (5)
+
+- **CAP-83 · Registrar identidad de arnés (home,id)** `vivo` · portafolio/registrar-identidad.yaml — `internal/domain/portafolio.go#IdentidadArnes`
+- **CAP-84 · Escanear proyecto (walker multi-instalación)** `vivo` · portafolio/escanear-proyecto.yaml — `internal/domain/portafolio.go#TipoInstalacion`
+- **CAP-85 · Resolver origen (collect-all + reconcilia)** `vivo` · portafolio/resolver-origen.yaml — `internal/domain/portafolio.go#OrigenPortafolio`
+- **CAP-86 · Evaluar deriva (hash vs referencia inmutable)** `vivo` · portafolio/evaluar-deriva.yaml — `internal/domain/portafolio.go#EstadoDeriva`
+- **CAP-87 · Desvincular arnés del Portafolio** `vivo` · portafolio/desvincular.yaml — `internal/domain/portafolio.go#EntradaPortafolio`
 <!--caps:end-->
 
 ## Cobertura & honestidad (para la doctrina de enforcement)

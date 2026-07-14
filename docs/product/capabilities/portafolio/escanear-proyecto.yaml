@@ -4,7 +4,7 @@ capability_id: arnesia.portafolio.escanear-proyecto
 cap_num: CAP-84
 slug: escanear-proyecto
 name: "Escanear proyecto (walker multi-instalación)"
-status: stub          # T1: solo el vocabulario TipoInstalacion; el walker físico llega en T4.
+status: vivo           # T8: graduado — valida: real (R4).
 license: brand-local
 
 module: portafolio
@@ -24,7 +24,20 @@ pointers:
   - "internal/adapters/portafolio/gitconfig.go#ResolverRemotesGit"
   - "internal/usecase/portafolio.go#PortafolioService"
   - "internal/ports/portafolio.go#PortafolioScanner"
-valida: []
+valida:
+  - "TestScannerProyectoInstalado"
+  - "TestScannerMaterializada"
+  - "TestScannerPluginRotoVisible"
+  - "TestScannerLockDevstudio"
+  - "TestScannerReferenciadaCC"
+  - "TestScannerCCMetadataIlegible"
+  - "TestScannerMonorepoAcotado"
+  - "TestScannerRootInvalido"
+  - "TestGitConfigParse"
+  - "TestServiceEscanearClasificaCheckout"
+  - "TestServiceAgregarSoloElegidos"
+  - "TestServiceRootProtegido"
+  - "TestPortafolioEscanearNoPersiste"
 
 dev_preview:
   route: null

@@ -10,14 +10,25 @@ module: loader
 verb: mapear
 pointers:
   - "internal/adapters/loader/loader.go#leerManifiesto"
+  - "internal/adapters/loader/loader.go#leerPluginJSON"
 valida:
   - "TestLoaderSinManifiesto"
+  - "TestLoaderFallbackPluginJSON"
+  - "TestLoaderVersionDesdePluginJSON"
+  - "TestLoaderPluginJSONCorrupto"
+  - "TestLoaderIDsDiscrepantes"
 scenarios: []
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-17)"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T3 (Slice 0 Portafolio, C-N-14) — fallback a plugin.json cuando arnes.l0.json está ausente (D-DOM-4): antes Arnes salía nil, ahora se puebla ID/Nombre/Descripcion/Version + FuenteManifiesto. Con ambos manifiestos, arnes.l0 sigue mandando; plugin.json solo completa Version y avisa discrepancias de id (RN-IDENT-3)."
+    merge_sha: null
 ---
 
 # Leer manifiesto (degradado honesto)

@@ -4,7 +4,7 @@ capability_id: arnesia.portafolio.registrar-identidad
 cap_num: CAP-83
 slug: registrar-identidad
 name: "Registrar identidad de arnés (home,id)"
-status: stub          # T1: dominio puro construido; sube a vivo en T8 con valida: real.
+status: vivo           # T8: graduado — valida: real (R4).
 license: brand-local
 
 module: portafolio
@@ -22,7 +22,10 @@ pointers:
   - "internal/domain/portafolio.go#ResolverIdentidad"
   - "internal/domain/repo_ref.go#CanonicalizarRepo"
   - "internal/adapters/transport/http/portafolio.go#listPortafolio"
-valida: []
+valida:
+  - "TestResolverIdentidad"
+  - "TestCanonicalizarRepo"
+  - "TestPortafolioListIncluyeCorruptas"
 
 dev_preview:
   route: null

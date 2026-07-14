@@ -87,6 +87,7 @@ domain_modules:
   - shell            # Command Rail A + Galaxia
   - self-update      # botón Actualizar (self-update sin sudo)
   - kit              # arnés de construcción (plugin, backflow)
+  - portafolio       # Portafolio de arneses: identidad (home,id) + origen + deriva (Slice 0, HS-22)
 
 # agent_roster · roles worker (split builder/auditor) a los que rutean las stories.
 # provenance: stack real del repo (Go backend + React/Tauri web); sin superficie móvil

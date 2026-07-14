@@ -10,6 +10,7 @@ module: loader
 verb: mapear
 pointers:
   - "internal/adapters/loader/loader.go#LoadArnes"
+  - "internal/adapters/loader/loader.go#LoadArnesInfo"
 valida:
   - "TestLoaderDevFullCycle"
 scenarios: []
@@ -18,6 +19,12 @@ related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-16)"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T3 (Slice 0 Portafolio) — nuevo LoadArnesInfo(dir) (domain.Graph, Info, error) expone el aviso de reconciliación de manifiestos (RN-IDENT-3) que el Portafolio necesita; LoadArnes(dir) sigue igual (delega, descarta el aviso) — cero breaking change."
+    merge_sha: null
 ---
 
 # Cargar arnés a grafo L0

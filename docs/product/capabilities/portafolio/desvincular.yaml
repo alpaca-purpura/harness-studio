@@ -4,7 +4,7 @@ capability_id: arnesia.portafolio.desvincular
 cap_num: CAP-87
 slug: desvincular
 name: "Desvincular arnés del Portafolio"
-status: stub          # T1: solo la forma de EntradaPortafolio; el store.Desvincular llega en T6.
+status: vivo           # T8: graduado — valida: real (R4).
 license: brand-local
 
 module: portafolio
@@ -21,7 +21,16 @@ pointers:
   - "internal/domain/portafolio.go#EntradaPortafolio"
   - "internal/adapters/portafolio/store.go#Store"
   - "internal/ports/portafolio.go#PortafolioStore"
-valida: []
+valida:
+  - "TestStoreDegradaHonesto"
+  - "TestStoreArchivoTotalmenteIlegible"
+  - "TestStoreUpsertMergePorIdentidad"
+  - "TestStoreNoFusionaProvisional"
+  - "TestStoreDobleCanonico"
+  - "TestStoreSaveAtomico"
+  - "TestServiceDesvincularNoTocaDisco"
+  - "TestPortafolioDesvincular404"
+  - "TestPortafolioAgregar"
 
 dev_preview:
   route: null

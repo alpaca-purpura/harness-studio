@@ -4,7 +4,7 @@ capability_id: arnesia.portafolio.resolver-origen
 cap_num: CAP-85
 slug: resolver-origen
 name: "Resolver origen (collect-all + reconcilia)"
-status: stub          # T1: dominio puro construido; sube a vivo en T8 con valida: real.
+status: vivo           # T8: graduado — valida: real (R4).
 license: brand-local
 
 module: portafolio
@@ -20,7 +20,8 @@ nature: feature
 pointers:
   - "internal/domain/portafolio.go#OrigenPortafolio"
   - "internal/domain/portafolio.go#ResolverOrigen"
-valida: []
+valida:
+  - "TestResolverOrigen"
 
 dev_preview:
   route: null

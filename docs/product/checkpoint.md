@@ -38,11 +38,11 @@ FIRMADO 🧑‍⚖️ 2026-07-13 tras revisión adversaria de 4 subagentes). Ín
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `249 checks · pass 42 · fail 0 · error 0 · deferred 207 · n/a 0` (medido 2026-07-13, `go run ./cmd/arnesia conformance --todo`)
+- **ruleset `--todo`:** `253 checks · pass 42 · fail 0 · error 0 · deferred 211 · n/a 0` (medido 2026-07-13, `go run ./cmd/arnesia conformance --todo`)
 - **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-13
-- **arch/:** 17 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
+- **arch/:** 18 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 87 — 38 vivo · 40 vivo·nc · 1 parcial · 8 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 87 — 43 vivo · 40 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):

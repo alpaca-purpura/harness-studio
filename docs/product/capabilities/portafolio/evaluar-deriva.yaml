@@ -4,7 +4,7 @@ capability_id: arnesia.portafolio.evaluar-deriva
 cap_num: CAP-86
 slug: evaluar-deriva
 name: "Evaluar deriva (hash vs referencia inmutable)"
-status: stub          # T1: solo el vocabulario EstadoDeriva; el hasher llega en T5.
+status: vivo           # T8: graduado — valida: real (R4).
 license: brand-local
 
 module: portafolio
@@ -21,7 +21,12 @@ pointers:
   - "internal/domain/portafolio.go#EstadoDeriva"
   - "internal/adapters/portafolio/deriva.go#HashFormaPlugin"
   - "internal/adapters/portafolio/deriva.go#EvaluarDeriva"
-valida: []
+valida:
+  - "TestHashFormaPluginDeterminista"
+  - "TestEvaluarDerivaAlHilo"
+  - "TestEvaluarDerivaEnDeriva"
+  - "TestDerivaNuncaSemver"
+  - "TestEvaluarDerivaNoEvaluable"
 
 dev_preview:
   route: null

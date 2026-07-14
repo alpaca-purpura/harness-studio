@@ -64,9 +64,10 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 | [`boundaries/codigo-traza-a-capability.md`](./boundaries/codigo-traza-a-capability.md) | Todo código fuente traza a un capability (`CAPABILITIES.md` = SSoT funcional) | 🌳 enforced | 1.1 | 5 | arch_test.go:TestCapabilityPointersResolve · TestCapabilityCoverage |
+| [`boundaries/portafolio-identidad-y-deriva-honesta.md`](./boundaries/portafolio-identidad-y-deriva-honesta.md) | Identidad `(home,id)` calificada (nunca fusión por coincidencia) + deriva por hash de contenido (nunca semver-string) | 🌳 enforced | 1.0 | 4 | portafolio/store_test.go · portafolio/deriva_test.go · domain/portafolio_test.go |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 17 · 81 checks** — fundacional HS-04
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 18 · 85 checks** — fundacional HS-04
 (backend, 7 boundaries · 29 checks; **+3 en franja-artefactos Fase 1** (2026-07-08): `dead-end` ·
 `ruta-a-existe` · `refina-coherente` en `contrato-de-caja-es-fitness-function` v1.3, y `sin-huerfanos`
 pasó de promesa a enforcer vivo `domain.VerificarSinHuerfanos` — los 5 verificadores de composición
@@ -79,9 +80,12 @@ mismo día del fix ②, no mejora cosmética; ver su changelog) **= 13 checks)**
 **enforced en HS-08** con `TestConductorOwnsBoxRouting` + `TestPermissionSetParametrizedByRole`)** + **HS-18
 (2026-07-09, doctrina de trazado): 1 boundary · 5 checks — `codigo-traza-a-capability` **enforced**
 (`TestCapabilityPointersResolve` + `TestCapabilityCoverage`; R1/R2 pasan sobre el árbol `docs/product/capabilities/`)**. **+
+HS-22** (2026-07-14, Portafolio Slice 0 «Cimientos»): 1 boundary · 4 checks —
+`portafolio-identidad-y-deriva-honesta` **enforced** (identidad calificada única · deriva nunca
+semver · store degrada honesto · procedencia anotada; los 4 con test Go real ya verde). **+
 [`conventions/`](./conventions/INDEX.md): 8 convention nodes · 26 checks** (HS-05). **Gran total `arch/`:
-107 checks** (81 boundary + 26 convention; nota: el ruleset `--todo` cuenta **247 checks a datos**
-arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, ver `checkpoint.md`).
+111 checks** (85 boundary + 26 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
+arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, cifra viva en `checkpoint.md`).
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
 > no corriendo** (`status: proposed`) — se activan cuando cada superficie aterrice. **Excepción HS-06:**
