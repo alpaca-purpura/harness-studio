@@ -15,15 +15,20 @@ import (
 
 // Candidato es un resultado de Escanear: NO PERSISTIDO — el usuario elige cuáles agregar
 // (spec §7.1). Trae ya resuelta la identidad/origen/deriva de un hallazgo del walker.
+// Lleva tags json: es el tipo que cruza al wire (HTTP/CLI) tal cual, sin DTO aparte —
+// mismo patrón que usecase.SelfUpdateReport.
 type Candidato struct {
-	Identidad   domain.IdentidadArnes
-	Nombre      string
-	Descripcion string
-	Empresas    []string
-	Instalacion domain.Instalacion
+	// Clave es Identidad.Clave() ya resuelto: lo que el cliente devuelve en `elegidos[]`
+	// de AgregarProyecto (evita que HTTP/CLI reimplementen el slug).
+	Clave       string                `json:"clave"`
+	Identidad   domain.IdentidadArnes `json:"identidad"`
+	Nombre      string                `json:"nombre,omitempty"`
+	Descripcion string                `json:"descripcion,omitempty"`
+	Empresas    []string              `json:"empresas,omitempty"`
+	Instalacion domain.Instalacion    `json:"instalacion"`
 	// EsCanonico marca un hallazgo cuyo path ES un checkout conocido del store
 	// (RN-IDENT-4): se ofrece como candidato a CANÓNICO, jamás como instalación.
-	EsCanonico bool
+	EsCanonico bool `json:"es_canonico,omitempty"`
 }
 
 // PortafolioService orquesta el ciclo escanear→elegir→persistir del Portafolio (Slice 0)
@@ -100,7 +105,7 @@ func (s *PortafolioService) candidatoDe(root string, h domain.HallazgoInstalacio
 		inst.Deriva, inst.DerivaDetalle = s.deriva.Evaluar(h.Dir, identidad.Home, identidad.ID, origen.Version)
 	}
 
-	c := Candidato{Identidad: identidad, Instalacion: inst, EsCanonico: esCanonico}
+	c := Candidato{Clave: identidad.Clave(), Identidad: identidad, Instalacion: inst, EsCanonico: esCanonico}
 	if a != nil {
 		c.Nombre = a.Nombre
 		c.Descripcion = a.Descripcion

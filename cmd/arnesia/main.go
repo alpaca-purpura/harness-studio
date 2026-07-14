@@ -28,6 +28,7 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
+	"github.com/alpacapurpura/arnesia/internal/adapters/portafolio"
 	"github.com/alpacapurpura/arnesia/internal/adapters/provision"
 	"github.com/alpacapurpura/arnesia/internal/adapters/publish"
 	"github.com/alpacapurpura/arnesia/internal/adapters/selfupdate"
@@ -35,6 +36,7 @@ import (
 	httpapi "github.com/alpacapurpura/arnesia/internal/adapters/transport/http"
 	"github.com/alpacapurpura/arnesia/internal/adapters/transport/sse"
 	"github.com/alpacapurpura/arnesia/internal/adapters/watch"
+	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
@@ -57,6 +59,8 @@ func main() {
 		err = runPublish(os.Args[2:])
 	case "conformance":
 		err = runConformance(os.Args[2:])
+	case "portafolio":
+		err = runPortafolio(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -82,6 +86,7 @@ commands:
   index     load an arnés directory into a graph.l0 (nomenclatura-arnes.md)
   publish   publish a harness to its marketplace repo (stub)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
+  portafolio   escanear/listar/agregar/desvincular arneses del Portafolio (Slice 0)
 `)
 }
 
@@ -222,7 +227,16 @@ func runServe(args []string) error {
 	}
 	updSvc := usecase.NewSelfUpdateService(updater)
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
+	// Portafolio de arneses (Slice 0, HS-22): store separado de arneses.json (A1) + walker
+	// físico READ-ONLY + evaluador de deriva local + wrapper del loader real. Mismo wiring
+	// que usa el subcomando `portafolio` — newPortafolioService lo factoriza para no
+	// duplicarlo.
+	portafolioSvc, err := newPortafolioService()
+	if err != nil {
+		return err
+	}
+
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
 	go func() {
@@ -261,6 +275,13 @@ func runServe(args []string) error {
 type brokerPublisher struct{ b *sse.Broker }
 
 func (p brokerPublisher) Publish(eventType string, data []byte) { p.b.Publish(eventType, data) }
+
+// arnesLoaderFunc adapta una función libre (loader.LoadArnes) a ports.ArnesLoader — el
+// usecase del Portafolio no puede importar el paquete loader (go-arch-lint), así que cmd
+// cablea la función concreta detrás del puerto.
+type arnesLoaderFunc func(dir string) (domain.Graph, error)
+
+func (f arnesLoaderFunc) Load(dir string) (domain.Graph, error) { return f(dir) }
 
 // embeddedUI returns the SPA handler when this build carries web/dist (scripts/
 // bundle.sh la compila antes del daemon), or nil for an honest dev build without UI.
@@ -386,4 +407,109 @@ func runPublish(args []string) error {
 	}
 	pub := publish.New("git")
 	return pub.Publish(context.Background(), *harness, *target)
+}
+
+// newPortafolioService cablea el usecase del Portafolio con sus adapters por default
+// (store en ~/.arnesia/portafolio.json, Scanner/Referencias con CCPluginsDir/MaxDepth
+// default) — compartido entre `serve` y el subcomando `portafolio`, sin duplicar wiring.
+func newPortafolioService() (*usecase.PortafolioService, error) {
+	st, err := portafolio.NewStore("")
+	if err != nil {
+		return nil, fmt.Errorf("portafolio store: %w", err)
+	}
+	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), &portafolio.Referencias{}), nil
+}
+
+// runPortafolio es la vía de verificación E2E del Portafolio sin FE (S0-D9): reusa el
+// MISMO usecase que el HTTP — cero lógica propia acá.
+func runPortafolio(args []string) error {
+	fs := flag.NewFlagSet("portafolio", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Fprint(os.Stderr, `usage: arnesia portafolio <subcomando> [args]
+
+  escanear <dir>            escanea dir (abs o relativo a cwd) y emite los candidatos crudos (JSON); NO persiste.
+  listar                    emite las entradas del registro + las corruptas visibles (JSON).
+  agregar <dir> <clave>...  re-escanea dir y persiste SOLO los candidatos con esas claves.
+  desvincular <clave>       quita la entrada del registro; no borra nada de disco.
+`)
+	}
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() < 1 {
+		fs.Usage()
+		return errors.New("arnesia portafolio: falta el subcomando")
+	}
+
+	svc, err := newPortafolioService()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	switch sub, rest := fs.Arg(0), fs.Args()[1:]; sub {
+	case "escanear":
+		if len(rest) < 1 {
+			return errors.New("uso: arnesia portafolio escanear <dir>")
+		}
+		dir, aerr := filepath.Abs(rest[0])
+		if aerr != nil {
+			return aerr
+		}
+		cands, serr := svc.Escanear(ctx, dir)
+		if serr != nil {
+			return serr
+		}
+		return imprimirJSON(cands)
+
+	case "listar":
+		sanas, corruptas, lerr := svc.Listar(ctx)
+		if lerr != nil {
+			return lerr
+		}
+		return imprimirJSON(struct {
+			Entradas  []domain.EntradaPortafolio `json:"entradas"`
+			Corruptas []domain.EntradaCorrupta   `json:"corruptas,omitempty"`
+		}{sanas, corruptas})
+
+	case "agregar":
+		if len(rest) < 2 {
+			return errors.New("uso: arnesia portafolio agregar <dir> <clave> [<clave>...]")
+		}
+		dir, aerr := filepath.Abs(rest[0])
+		if aerr != nil {
+			return aerr
+		}
+		persistidas, perr := svc.AgregarProyecto(ctx, dir, rest[1:])
+		if perr != nil {
+			return perr
+		}
+		return imprimirJSON(persistidas)
+
+	case "desvincular":
+		if len(rest) < 1 {
+			return errors.New("uso: arnesia portafolio desvincular <clave>")
+		}
+		ok, derr := svc.Desvincular(ctx, rest[0])
+		if derr != nil {
+			return derr
+		}
+		return imprimirJSON(map[string]bool{"desvinculado": ok})
+
+	default:
+		fs.Usage()
+		return fmt.Errorf("arnesia portafolio: subcomando desconocido %q", sub)
+	}
+}
+
+// imprimirJSON emite v indentado a stdout — la forma común de las 4 salidas de
+// `arnesia portafolio`.
+func imprimirJSON(v any) error {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+	b = append(b, '\n')
+	_, err = os.Stdout.Write(b)
+	return err
 }

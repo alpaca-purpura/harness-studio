@@ -5,7 +5,9 @@ info:
   # inspector, paquete inspector-drawer RF-93 — lectura confinada S2).
   # 0.3.0-hs11: + GET /version · POST /self-update (paquete boton-actualizar,
   # RF-104..107 — self-update sin sudo del binario instalado).
-  version: 0.3.0-hs11
+  # 0.4.0-hs22: + GET /portafolio · POST /portafolio/escaneos · POST /portafolio/proyectos
+  # · DELETE /portafolio/arneses/{clave} (Portafolio de arneses, Slice 0 — S0-D9).
+  version: 0.4.0-hs22
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -189,6 +191,65 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ArnesPath" }
         "400": { description: "Ruta inválida o protegida (`/`, `$HOME`, `~/.claude`, `~/.ssh`, relativa…)." }
+
+  /portafolio:
+    get:
+      operationId: listPortafolio
+      summary: >-
+        Portafolio de arneses (Slice 0, S0-D9) — el registro persistente (identidades `(home,id)`,
+        separado del registro arnés→ruta de `/arneses`). Degrada honesto (BR-11): una entrada
+        corrupta del store JAMÁS impide listar el resto, se reporta aparte.
+      responses:
+        "200":
+          description: "Entradas sanas + corruptas visibles: `{entradas:[{clave,identidad,nombre,empresas,canonico,instalaciones,agregado}], corruptas:[{motivo}]}`."
+  /portafolio/escaneos:
+    post:
+      operationId: postEscanearPortafolio
+      summary: >-
+        Escanea `path` (walker READ-ONLY, D-DOM-3/6) y devuelve los candidatos crudos —
+        identidad/origen/deriva ya resueltos. NO persiste nada (spec §7.1: el usuario elige qué
+        agregar en un segundo paso).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [path], properties: { path: { type: string } } }
+      responses:
+        "200":
+          description: "Candidatos: `[{clave, identidad, nombre, empresas, instalacion, es_canonico}]`."
+        "400": { description: "Path inválido, inexistente, protegido, o bare repo (no escaneable)." }
+  /portafolio/proyectos:
+    post:
+      operationId: postAgregarPortafolio
+      summary: >-
+        Re-escanea `path` y persiste SOLO los candidatos cuya `clave` está en `elegidos[]`
+        (TOCTOU-safe: nunca confía en un snapshot viejo). Idempotente por identidad+installPath —
+        re-agregar es re-escanear, jamás duplica (C-P-8).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path, elegidos]
+              properties:
+                path: { type: string }
+                elegidos: { type: array, items: { type: string } }
+      responses:
+        "200":
+          description: Entradas persistidas (mismo shape que GET /portafolio, sin corruptas).
+        "400": { description: "Path inválido/protegido, o conflicto de canónicos (C-N-5)." }
+  /portafolio/arneses/{clave}:
+    delete:
+      operationId: deleteDesvincularPortafolio
+      summary: >-
+        Desvincula la identidad `clave` del registro. NO desinstala nada, NO borra ningún clon
+        (C-UNL-3) — solo saca la entrada del Portafolio.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "`{desvinculado: true}`." }
+        "404": { description: Clave desconocida en el Portafolio. }
 
   /sessions:
     get:

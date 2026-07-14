@@ -21,10 +21,11 @@ type errorBody struct {
 
 // NewHandler builds the daemon's router. maps serves the Map/graph endpoints; sessions
 // drives the multisesión Dock; runs is the T3 conductor entry (D2); arneses is the
-// arnés→path registry (per-session workdir confinement); events is the SSE broker
+// arnés→path registry (per-session workdir confinement); portafolio es el Portafolio de
+// arneses (Slice 0, S0-D9 — superficie observable sin FE); events is the SSE broker
 // mounted at /events. auth confines the whole surface (Host+Origin+token, boundary
 // superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, portafolio *usecase.PortafolioService, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 
 	// UI embebida (HS-11): el daemon sirve la SPA en "/" cuando el build la trae
@@ -63,6 +64,12 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	// Arnés registry (S2) — maps an arnés to the working dir its sessions run claude in.
 	mux.HandleFunc("GET /api/arneses", listArneses(arneses))
 	mux.HandleFunc("PUT /api/arneses/{id}", registerArnes(arneses, onArnesRegistered))
+
+	// Portafolio de arneses (Slice 0, S0-D9): superficie observable sin FE — Slice 1 la consume.
+	mux.HandleFunc("GET /api/portafolio", listPortafolio(portafolio))
+	mux.HandleFunc("POST /api/portafolio/escaneos", postEscanear(portafolio))
+	mux.HandleFunc("POST /api/portafolio/proyectos", postAgregar(portafolio))
+	mux.HandleFunc("DELETE /api/portafolio/arneses/{clave}", deleteDesvincular(portafolio))
 
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))

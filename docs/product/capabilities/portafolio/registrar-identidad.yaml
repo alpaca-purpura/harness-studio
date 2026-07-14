@@ -21,13 +21,18 @@ pointers:
   - "internal/domain/portafolio.go#IdentidadArnes"
   - "internal/domain/portafolio.go#ResolverIdentidad"
   - "internal/domain/repo_ref.go#CanonicalizarRepo"
+  - "internal/adapters/transport/http/portafolio.go#listPortafolio"
 valida: []
 
 dev_preview:
   route: null
   how_to_navigate: null
   main_component: null
-  api_endpoints: []
+  api_endpoints:
+    - "GET /api/portafolio"
+    - "POST /api/portafolio/escaneos"
+    - "POST /api/portafolio/proyectos"
+    - "DELETE /api/portafolio/arneses/{clave}"
   e2e_test: null
 
 created_in_story: 2026-07-13-portafolio-slice0-cimientos
@@ -39,6 +44,11 @@ change_log:
     date: 2026-07-13
     type: new
     summary: "T1 — IdentidadArnes(home,id,scope) + ResolverIdentidad (RN-IDENT-2/3) + CanonicalizarRepo (RN-IDENT-1)."
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T7 — superficie HTTP S0-D9: los 4 endpoints (GET listar, POST escaneos/proyectos, DELETE arneses/{clave}) + subcomando CLI `arnesia portafolio`."
     merge_sha: null
 
 scenarios: []
