@@ -143,13 +143,21 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
 - **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
 
-### `portafolio` (5)
+### `fe-portafolio` (4)
+
+- **CAP-89 · Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)** `vivo` · fe-portafolio/lista-del-portafolio.yaml — `web/src/entities/portafolio/model/types.ts#EntradaPortafolio`
+- **CAP-90 · Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)** `vivo` · fe-portafolio/drawer-detalle-read.yaml — `web/src/entities/portafolio/model/types.ts#Instalacion`
+- **CAP-91 · Wizard agregar proyecto (escanear carpeta local → candidatos honestos → elegir)** `vivo` · fe-portafolio/wizard-agregar-proyecto.yaml — `web/src/entities/portafolio/model/types.ts#Candidato`
+- **CAP-92 · Abrir en Mapa desde el Portafolio (peek al stage de sesión, colisión visible)** `vivo` · fe-portafolio/abrir-en-mapa.yaml — `web/src/shared/api/client.ts#observarEnMapa`
+
+### `portafolio` (6)
 
 - **CAP-83 · Registrar identidad de arnés (home,id)** `vivo` · portafolio/registrar-identidad.yaml — `internal/domain/portafolio.go#IdentidadArnes`
 - **CAP-84 · Escanear proyecto (walker multi-instalación)** `vivo` · portafolio/escanear-proyecto.yaml — `internal/domain/portafolio.go#TipoInstalacion`
 - **CAP-85 · Resolver origen (collect-all + reconcilia)** `vivo` · portafolio/resolver-origen.yaml — `internal/domain/portafolio.go#OrigenPortafolio`
 - **CAP-86 · Evaluar deriva (hash vs referencia inmutable)** `vivo` · portafolio/evaluar-deriva.yaml — `internal/domain/portafolio.go#EstadoDeriva`
 - **CAP-87 · Desvincular arnés del Portafolio** `vivo` · portafolio/desvincular.yaml — `internal/domain/portafolio.go#EntradaPortafolio`
+- **CAP-88 · Observar en Mapa (presencia read-only del Portafolio)** `vivo` · portafolio/observar-en-mapa.yaml — `internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa`
 <!--caps:end-->
 
 ## Cobertura & honestidad (para la doctrina de enforcement)

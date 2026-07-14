@@ -59,10 +59,16 @@
     calificado sigue diferido a cuando "Abrir en Mapa" de una instalación lo exija (S0-D6, A2 acotada) · política
     definitiva de conservación de entradas corruptas del store más allá de un ciclo save (hoy: sobrevive si es
     JSON sintácticamente válido, se pierde si el archivo entero está roto — ver `paridad.md` desviación #4).
-- [ ] **1. FE Portafolio** (sobre cimientos, **DESBLOQUEADO** — item 0 firmado HS-23) — 3 superficies
-  (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) + Observar (Abrir en Mapa, reusa CAP-58/61) +
-  Desvincular; **defaults honestos** (deriva-no-evaluable · update no-verificado · marketplace disabled) ·
-  fix mockup G1-G9 · porte a Storybook · `gate`
+- [ ] **1. FE Portafolio** — **CONSTRUIDO (Sonnet 5, T1-T8, 2026-07-14), gate humano 🧑‍⚖️ PENDIENTE**
+  (mismo patrón que el item 0 hasta HS-23: no se borra hasta la firma) — 3 superficies (Lista/lente
+  empresa · Wizard-Proyecto/carpeta-local · Drawer READ) + Observar (Abrir en Mapa, cierra GAP-1,
+  reusa CAP-58/61) + Desvincular con confirmación; **defaults honestos** (deriva real ·
+  update no-verificado · marketplace disabled) · los 9 fixes G1-G9 aplicados y evidenciados · 34
+  stories `play()` + `selectors.test.ts` (Storybook = SSoT) · mockup `arnesia-portafolio.html`
+  corregido en sitio · 4 capabilities `fe-portafolio/*` graduadas `vivo` (R4) · E2E vivo real
+  (GAP-1 reproducido: instalación `referenciada-cc` real, CERO cwd registrado).
+  → [`stories/2026-07-13-portafolio-slice1-fe/paridad.md`](stories/2026-07-13-portafolio-slice1-fe/paridad.md)
+  `gate`
 - [ ] **2. Agregar de marketplace → clonar + mejorar** — git url → **validar `marketplace.json`** → listar → elegir → checkout
   `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1)
 - [ ] **3. Publicar** — pull/rebase → conformance-verde → bump semver → changelog obligatorio → push → **tag-tras-push** · `gate` · `bloqueo`(2)
@@ -73,6 +79,13 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
+- [Slice1-FE] **re-key del índice in-memory a `(home,id,scope)` calificado SIGUE abierta** (S0-D6/GAP-2):
+  Slice 1 la ACOTÓ visible (colisión de bare-id detectada por `idsColisionados` + confirmación explícita
+  antes de observar, S1-D2) pero NO la resolvió — el re-key global (index + MapService + endpoints +
+  picker + sesiones) sigue siendo cirugía de otro paquete · `deuda`
+- [Slice1-FE] lentes `proyecto`/`marketplace` de la toolbar del Portafolio y filtros `estado`/
+  `marketplace` — quedaron disabled+tooltip (S1-D8), sin slice asignado; diferidas si alguien las
+  pide · `deuda`
 - [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`
 - [HS-11/chat] spike `control_response` vs claude real (confirmar en papel/e2e) · `deuda`
 - [HS-11] run async del `/boxes/{id}/run` + gate post-run · `deuda`

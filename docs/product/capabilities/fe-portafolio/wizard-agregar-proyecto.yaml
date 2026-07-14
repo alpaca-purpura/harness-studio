@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.wizard-agregar-proyecto
 cap_num: CAP-91
 slug: wizard-agregar-proyecto
 name: "Wizard agregar proyecto (escanear carpeta local → candidatos honestos → elegir)"
-status: stub           # T2: alta as-code, contrato (tipos+cliente) construido; UI en T6.
+status: vivo           # T8: graduado — valida: real (R4), 8 stories con play() (a11y incluida).
 license: brand-local
 
 module: fe-portafolio
@@ -26,7 +26,9 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
-valida: []
+valida:
+  - "web/src/widgets/portafolio/ui/portafolio-wizard.stories.tsx"
+  - "web/src/entities/portafolio/ui/chips.stories.tsx"
 
 dev_preview:
   route: "#/portafolio"
@@ -91,8 +93,43 @@ change_log:
       el escaneo (S1-D22, nueva — sin slot dedicado en el contrato §2.6). `onElegirCarpeta` solo
       dentro de Tauri (`isTauri()`, patrón RF-110). Sigue `stub`/`valida: []` — T8 gradúa.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T8 — graduado a `vivo` (R4): `paridad.md` cierra el slice con evidencia E2E viva (escaneo
+      real de un proyecto, candidatos reales agregados al portafolio). `valida:` cita las 8
+      stories de `portafolio-wizard.stories.tsx` (7 obligatorias + `Paso1FuenteConElegirCarpeta`,
+      cada una con `play()`) + `chips.stories.tsx`. Scenarios BDD agregados citando G3/G5/G8
+      (forma sin `status:` por-scenario, S1-D16).
+    merge_sha: null
 
-scenarios: []
+scenarios:
+  - id: wizard-marketplace-disabled-sin-fingir
+    name: "Marketplace/GitHub quedan disabled, cero validación fingida (G3)"
+    given: "el wizard en paso 1"
+    when: "se inspecciona el tab Marketplace y el radio GitHub"
+    then: "ambos disabled+tooltip «próximo · S2»; NINGÚN «✓ marketplace válido» existe en el DOM"
+    verifica: "Paso1Fuente"
+  - id: wizard-candidatos-honestos
+    name: "Los candidatos del escaneo muestran solo datos reales (G1/G5)"
+    given: "un escaneo real con candidatos sin version/registry"
+    when: "se renderiza el paso candidatos"
+    then: "«v?» / «origen desconocido» / chip deriva honesto / badge «ya en el portafolio» habilitado (S1-D10)"
+    verifica: "CandidatosReales"
+  - id: wizard-estados-vacio-y-error
+    name: "0 hallazgos y error de path se muestran sin candidato fantasma (G5)"
+    given: "un escaneo sin arneses o con un path inválido"
+    when: "el backend responde 0 resultados o 400"
+    then: "copy honesto C-P-4/C-P-3, jamás una fila inventada"
+    verifica: "SinHallazgos · ErrorDePath"
+  - id: wizard-a11y-modal-tabs
+    name: "El wizard es un dialog modal con tabs accesibles (G8)"
+    given: "el wizard abierto"
+    when: "se navega por teclado"
+    then: "role=dialog+aria-modal, tabs role=tab/aria-selected, foco atrapado, Esc cierra salvo agregando en vuelo (S1-D19)"
+    verifica: "A11yModal · Agregando"
+
 business_rules: []
 related_capabilities:
   depends_on: [arnesia.portafolio.escanear-proyecto, arnesia.portafolio.registrar-identidad]
@@ -106,6 +143,7 @@ related_capabilities:
 Superficie 2 del Portafolio (spec §10, G3/G5/G8). T2 construye el contrato; T6 construye el
 widget `portafolio-wizard.tsx` (paso fuente → escaneando → candidatos honestos `v?`/«origen
 desconocido»/«ya en el portafolio» S1-D10 → agregar) — construido, con 7 stories `play()` +
-1 story extra de cobertura del picker Tauri. Ramas GitHub/Marketplace quedan disabled+tooltip
-«próximo · S2», sin validación fingida (G3, verificado en `Paso1Fuente`/`A11yModal`). T8 gradúa
-este capability a `vivo` con la evidencia E2E viva.
+1 story extra de cobertura del picker Tauri; T7 cableó el transporte real (AbortController,
+POST real). Ramas GitHub/Marketplace quedan disabled+tooltip «próximo · S2», sin validación
+fingida (G3, verificado en `Paso1Fuente`/`A11yModal`). **T8 gradúa a `vivo`** (R4): `paridad.md`
+cierra el slice con la evidencia E2E viva.

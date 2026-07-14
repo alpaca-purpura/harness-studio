@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.abrir-en-mapa
 cap_num: CAP-92
 slug: abrir-en-mapa
 name: "Abrir en Mapa desde el Portafolio (peek al stage de sesión, colisión visible)"
-status: stub           # T2: alta as-code, contrato (cliente+selector colisión) construido; wiring en T7.
+status: vivo           # T8: graduado — valida: real (R4), wiring E2E vivo (GAP-1 demostrado).
 license: brand-local
 
 module: fe-portafolio
@@ -24,7 +24,9 @@ pointers:
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   - "web/src/shared/store/app-store.ts#setMapaPeek"
   - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
-valida: []
+valida:
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.stories.tsx"
+  - "web/src/entities/portafolio/model/selectors.test.ts"
 
 dev_preview:
   route: "#/portafolio → drawer → ◉ Abrir/Observar en Mapa"
@@ -70,8 +72,39 @@ change_log:
       (T7, no el E2E exhaustivo — eso es T8). Sigue `stub`/sin `valida:` a propósito (R4):
       graduar a `vivo` con evidencia E2E viva es T8.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T8 — graduado a `vivo` (R4): el E2E vivo de `paridad.md` reprodujo GAP-1 con evidencia
+      fresca — Abrir en Mapa de una instalación `referenciada-cc` real bajo
+      `~/.claude/plugins/cache/…`, el Mapa renderiza el grafo real, `curl GET /api/arneses`
+      confirma CERO cwd nuevo registrado. `valida:` cita `ConCanonico`/`ObservarSinSesion`
+      (`portafolio-drawer.stories.tsx`, disparan/deshabilitan `onObservar`) + `idsColisionados`
+      (`selectors.test.ts`, S1-D2). Scenarios BDD agregados (forma sin `status:` por-scenario,
+      S1-D16).
+    merge_sha: null
 
-scenarios: []
+scenarios:
+  - id: abrir-mapa-instalacion-referenciada-cc
+    name: "Observar una instalación referenciada-cc real (GAP-1 cerrado)"
+    given: "una entrada con canónico o instalación referenciada-cc, con sesión activa"
+    when: "se hace click en «Abrir/Observar en Mapa»"
+    then: "onObservar(installPath) dispara el POST real; el Mapa renderiza sin registrar cwd"
+    verifica: "ConCanonico (portafolio-drawer.stories.tsx) · E2E vivo (paridad.md §E2E)"
+  - id: abrir-mapa-colision-bare-id
+    name: "Colisión de bare-id se confirma explícitamente, nunca se pisa en silencio (S1-D2)"
+    given: "dos entradas del Portafolio con el mismo identidad.id"
+    when: "idsColisionados(entradas) detecta ≥2 claves"
+    then: "el ColisionConfirmDialog de la página intercepta el click con el texto exacto de S1-D2 antes de llamar al backend"
+    verifica: "idsColisionados (selectors.test.ts)"
+  - id: abrir-mapa-sin-sesion
+    name: "Sin sesión activa el botón queda disabled con tooltip (S1-D13)"
+    given: "useSessions() sin sesión activa"
+    when: "se abre el drawer"
+    then: "onObservar es undefined; el drawer deshabilita TODOS los botones de Observar con el motivo exacto"
+    verifica: "ObservarSinSesion"
+
 business_rules: []
 related_capabilities:
   depends_on: [arnesia.portafolio.observar-en-mapa]
@@ -85,6 +118,7 @@ related_capabilities:
 Contraparte FE de `arnesia.portafolio.observar-en-mapa` (CAP-88, T1). T2 construye el contrato
 (cliente HTTP + selector de colisión de bare-id); T7 cablea el flujo completo en
 `pages/shell/ui/portafolio-view.tsx` (confirmar-si-colisión → `observarEnMapa` →
-`setMapaPeek` → `parkView("Mapa")` → `WorkspaceStage` consume el peek) — ese ticket gradúa este
-capability a `vivo`. Sin sesión activa, el botón queda disabled+tooltip (S1-D13): el Mapa vive
-en el stage de sesión, crear una sesión de la nada es un efecto demasiado grande para un click.
+`setMapaPeek` → `parkView("Mapa")` → `WorkspaceStage` consume el peek). Sin sesión activa, el
+botón queda disabled+tooltip (S1-D13): el Mapa vive en el stage de sesión, crear una sesión de
+la nada es un efecto demasiado grande para un click. **T8 gradúa a `vivo`** (R4): el E2E vivo
+reprodujo GAP-1 (instalación `referenciada-cc` real) con evidencia fresca.

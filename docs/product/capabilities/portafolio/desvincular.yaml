@@ -54,6 +54,22 @@ change_log:
     type: extend
     summary: "T6 — portafolio.Store: envelope versionado, degrada honesto (BR-11), Upsert/Desvincular/Checkouts atómicos."
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T5/T7/T8 (Slice 1 FE) — superficie FE real sobre este `DELETE /api/portafolio/arneses/{clave}`:
+      el drawer (`widgets/portafolio/ui/portafolio-drawer.tsx`) exige confirmación explícita
+      antes de llamar al backend (G7): dialog interno con copy exacto «solo lo saca del
+      portafolio — no desinstala ni borra nada del disco», checkbox «…y borrar clon local»
+      disabled+tooltip S2 (RN-UNL-2, el borrado de clon no está construido), Cancelar cierra sin
+      efecto, Confirmar dispara `onDesvincular` (transporte real en
+      `pages/shell/ui/portafolio-view.tsx#PortafolioView`, T7). E2E vivo (T8, `paridad.md`):
+      DELETE real seguido de un segundo DELETE de la misma clave → 404 honesto reproducido desde
+      el navegador. Story `ConfirmarDesvincular` (`portafolio-drawer.stories.tsx`) es la
+      evidencia FE — se referencia acá sin duplicar `valida:` (la cap FE dueña de esa story es
+      `arnesia.fe-portafolio.drawer-detalle-read`).
+    merge_sha: null
 
 scenarios: []
 business_rules:

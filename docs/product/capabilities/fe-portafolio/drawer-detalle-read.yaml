@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.drawer-detalle-read
 cap_num: CAP-90
 slug: drawer-detalle-read
 name: "Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)"
-status: stub           # T2 contrato + T5 widget construidos (a11y/confirm); gradúa a vivo en T8.
+status: vivo           # T8: graduado — valida: real (R4), 10 stories con play() (a11y/confirm).
 license: brand-local
 
 module: fe-portafolio
@@ -30,7 +30,10 @@ pointers:
   - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
   - "web/src/shared/lib/focus-trap.ts#trapTabKeyDown"
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
-valida: []
+valida:
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.stories.tsx"
+  - "web/src/entities/portafolio/ui/chips.stories.tsx"
+  - "web/src/entities/portafolio/model/selectors.test.ts"
 
 dev_preview:
   route: "#/portafolio"
@@ -97,8 +100,62 @@ change_log:
       página (S1-D21). Sigue `stub`/sin `valida:`: graduar a `vivo` con evidencia E2E viva es
       T8.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T8 — graduado a `vivo` (R4): `paridad.md` cierra el slice con evidencia E2E viva (drawer
+      del `harness` en-deriva real, trazabilidad de eslabones, Desvincular DELETE real). `valida:`
+      cita las 10 stories obligatorias de `portafolio-drawer.stories.tsx` (cada una con `play()`,
+      incluida `FocoYTeclado` — el axe automático corre en TODAS por el addon-a11y) +
+      `chips.stories.tsx` + `selectors.test.ts`. Scenarios BDD agregados citando
+      G1/G2/G4/G5/G6/G7/G8 (forma sin `status:` por-scenario, S1-D16).
+    merge_sha: null
 
-scenarios: []
+scenarios:
+  - id: drawer-identidad-provisional-visible
+    name: "Identidad provisional se muestra, nunca se oculta (G6)"
+    given: "una entrada sin home (identidad.id vacío o provisional)"
+    when: "se abre el drawer"
+    then: "«identidad provisional (sin home) · scope: …» visible, facetas empresa/marketplace «desconocida/o» (G4)"
+    verifica: "IdentidadProvisional"
+  - id: drawer-update-no-verificado
+    name: "Update honesto: no-verificado, jamás un flag fabricado (G2/S1-D5)"
+    given: "cualquier entrada (sin dato de update-check en S1)"
+    when: "se abre el drawer"
+    then: "línea fija «update: no-verificado» con tooltip S4; cero «⬆» en el DOM"
+    verifica: "UpdateNoVerificado"
+  - id: drawer-deriva-real-con-detalle
+    name: "El chip de deriva sale del dato real con su detalle (G1)"
+    given: "una instalación con deriva en-deriva real (fixture harness@0.5.2, E2E de Slice 0)"
+    when: "se abre el drawer"
+    then: "chip «en-deriva» con `deriva_detalle` como title — nunca un contador inventado"
+    verifica: "InstalacionEnDerivaReal"
+  - id: drawer-estados-honestos
+    name: "Sin instalaciones y con discrepancias se muestran sin ocultar nada (G5)"
+    given: "una entrada sin instalaciones · una instalación con discrepancias de origen"
+    when: "se abre el drawer"
+    then: "«sin instalaciones registradas» honesto · discrepancias visibles como texto plano (C-OR-6)"
+    verifica: "SinInstalaciones · ConDiscrepancias"
+  - id: drawer-confirm-desvincular
+    name: "Desvincular exige confirmación explícita (G7)"
+    given: "click en «⊘ Desvincular»"
+    when: "se abre el confirm interno"
+    then: "copy exacto «solo lo saca del portafolio…», checkbox «…y borrar clon local» disabled+tooltip S2, Cancelar NO llama onDesvincular, Confirmar SÍ"
+    verifica: "ConfirmarDesvincular"
+  - id: drawer-a11y-modal
+    name: "El drawer es un dialog modal real (G8)"
+    given: "el drawer abierto"
+    when: "se inspecciona el DOM y se navega por teclado"
+    then: "role=dialog + aria-modal + aria-labelledby, foco inicial dentro, trap de Tab en ambas direcciones, Esc cierra"
+    verifica: "FocoYTeclado"
+  - id: drawer-trazabilidad-eslabones
+    name: "La trazabilidad de origen expone los eslabones crudos (BR-3/S1-D14)"
+    given: "una instalación con discrepancias de origen"
+    when: "se expande el <details> de trazabilidad"
+    then: "lista fuente·campo·valor crudos"
+    verifica: "TrazabilidadEslabones"
+
 business_rules: []
 related_capabilities:
   depends_on: [arnesia.portafolio.resolver-origen, arnesia.portafolio.evaluar-deriva]
@@ -112,6 +169,6 @@ related_capabilities:
 Superficie 3 del Portafolio (spec §10/§4, G1/G2/G4/G5/G6/G7/G8). T2 construyó el contrato; T5
 construyó el widget `portafolio-drawer.tsx` (identidad resuelta/provisional, update
 no-verificado, trazabilidad de eslabones, confirm de Desvincular con a11y — `role="dialog"`
-propio sobre `shared/lib/focus-trap.ts`, S1-D18) con sus 10 stories obligatorias. Sigue
-`status: stub` a propósito (R4, sin `valida:`): la graduación a `vivo` es T8, cuando
-`paridad.md` cierre el slice completo con el gate humano.
+propio sobre `shared/lib/focus-trap.ts`, S1-D18) con sus 10 stories obligatorias; T7 cableó el
+transporte real (DELETE, confirmación de colisión). **T8 gradúa a `vivo`** (R4): `paridad.md`
+cierra el slice con la evidencia E2E viva.

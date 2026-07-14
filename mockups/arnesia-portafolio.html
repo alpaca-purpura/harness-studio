@@ -10,6 +10,18 @@
   @a01d845 · tokens = web/tokens/base.tokens.json. SSoT del UI = Storybook. Slice 1 = lista + agregar-
   proyecto(carpeta) + detectar/resolver + drawer READ + observar(Abrir Mapa) + desvincular; el resto
   visible pero DESHABILITADO+tooltip (jamás falso).
+
+  CORREGIDO EN SITIO 2026-07-14 (Slice 1 FE, T8, S1-D12) contra los 9 hallazgos G1-G9 de
+  revision-adversaria.md §G: fuera `drift:N` (G1, → `deriva`: al-hilo/en-deriva/deriva-no-evaluable,
+  con `deriva_detalle` como tooltip) · fuera `⬆ v1.2.0`/`dirty:false` (G2, → línea fija "update:
+  no-verificado" en el drawer) · fuera `✓ marketplace válido` fingido (G3, → tab Marketplace
+  GENUINAMENTE disabled, cero validación simulada) · fuera `empresa:"Vitalia"` inferida del
+  proyecto contenedor (G4, → `legal-administrativo` sin empresa declarada = grupo "sin empresa"
+  honesto) · dot de salud ahora COMPUTADO por regla S1-D4 (G9, ya no un campo tecleado a mano) ·
+  las filas/el drawer se abren por CLAVE calificada (`ARNESES` keyeado por clave, no por id
+  desnudo, G6) · checkbox "…y borrar clon local" ahora disabled+tooltip (G7). Snapshot DERIVADO —
+  la implementación real y sus 25 stories con play() viven en Storybook (SSoT), ver
+  `docs/product/stories/2026-07-13-portafolio-slice1-fe/paridad.md`.
 -->
 <title>ArnesIA · Portafolio v2</title>
 <style>
@@ -104,7 +116,11 @@
   .row .rmid{flex:none;display:flex;gap:5px}
   .row .rflags{flex:none;display:flex;gap:5px;min-width:120px;justify-content:flex-end}
   .hdot{flex:none;width:9px;height:9px;border-radius:50%}
-  .hdot.ok{background:var(--ok)}.hdot.warn{background:var(--warn)}.hdot.info{background:var(--c-skill)}.hdot.crit{background:var(--crit)}
+  /* salud del Portafolio = SOLO 3 estados computados por regla (S1-D4/G9) — "sin-señal" NUNCA
+     comparte color con "ok" ("no sé" ≠ "sano"): hueco/muted, no verde fabricado. */
+  .hdot.ok{background:var(--ok)}
+  .hdot.atencion{background:var(--warn)}
+  .hdot.sin-senal{background:transparent;border:1.5px solid var(--muted-foreground)}
 
   .pb{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:9px;border-radius:var(--radius-full);padding:1px 8px;border:1px solid var(--border);white-space:nowrap}
   .pb.canon{color:var(--c-knowledge);border-color:color-mix(in srgb,var(--c-knowledge) 40%,transparent);background:color-mix(in srgb,var(--c-knowledge) 9%,transparent)}
@@ -266,8 +282,13 @@
             <div class="t">📁 Proyecto</div>
             <div class="d">Carpeta o repo con arneses ya instalados. Los detectamos para observar / reparar.</div>
           </div>
-          <div class="wz-tab" id="tab-mkt" aria-selected="false" onclick="wzTab('mkt')">
-            <div class="t">🛒 Marketplace</div>
+          <!-- G3: el tab Marketplace queda GENUINAMENTE inalcanzable (disabled real, sin
+               onclick) — no hay backend de validación en este slice, así que jamás puede
+               mostrarse un "✓ marketplace válido" fingido (calca role="tab" disabled del
+               widget real, portafolio-wizard.tsx). -->
+          <div class="wz-tab" id="tab-mkt" aria-selected="false" role="tab" aria-disabled="true"
+               title="próximo · S2" style="cursor:not-allowed;opacity:.55;pointer-events:none">
+            <div class="t">🛒 Marketplace &nbsp;<span class="deferred">S2</span></div>
             <div class="d">Apuntá a un marketplace git. Validamos y listamos sus arneses para elegir cuáles trabajar.</div>
           </div>
         </div>
@@ -294,24 +315,26 @@
           </div>
         </div>
 
-        <!-- rama MARKETPLACE -->
+        <!-- rama MARKETPLACE — inalcanzable en este slice (tab disabled arriba, G3). Se deja
+             el contenido como placeholder honesto para quien lea la fuente: NINGÚN dato
+             fabricado, ninguna validación fingida, todo explícitamente disabled. -->
         <div id="branch-mkt" style="display:none">
           <div class="wz-step">
             <div class="sl">paso 1 · apuntar al marketplace &nbsp;<span class="deferred">Slice 2</span></div>
-            <div class="field"><input value="https://github.com/alpacapurpura/prenter-marketplace" /><button class="go">Validar</button></div>
-            <div class="valid ok">✓ marketplace válido · estructura OK · 5 arneses &nbsp;<span style="color:var(--muted-foreground)">(si no: ✗ «no tiene estructura de marketplace»)</span></div>
+            <div class="field"><input value="https://github.com/alpacapurpura/prenter-marketplace" disabled /><button class="go" disabled title="próximo · S2">Validar</button></div>
+            <div class="kv">deshabilitado en este slice — sin backend de validación de marketplace; jamás se pinta un «✓ marketplace válido» sin una respuesta real detrás (G3)</div>
           </div>
           <div class="wz-step">
             <div class="sl">paso 2 · elegir arneses a trabajar (clona canónico editable)</div>
             <div class="pick">
-              <label class="pi"><input type="checkbox" /><span class="mono">dev-full-cycle</span><span class="mut">v0.1.0 · alpacapurpura</span></label>
-              <label class="pi"><input type="checkbox" /><span class="mono">ux-nordia</span><span class="mut">v0.3.1 · Nordia</span></label>
-              <label class="pi"><input type="checkbox" /><span class="mono">code-review-base</span><span class="mut">v2.0.0 · base · varias empresas</span></label>
+              <label class="pi"><input type="checkbox" disabled /><span class="mono">dev-full-cycle</span><span class="mut">v0.1.0 · alpacapurpura</span></label>
+              <label class="pi"><input type="checkbox" disabled /><span class="mono">ux-nordia</span><span class="mut">v0.3.1 · Nordia</span></label>
+              <label class="pi"><input type="checkbox" disabled /><span class="mono">code-review-base</span><span class="mut">v2.0.0 · base · varias empresas</span></label>
             </div>
           </div>
           <div class="wz-foot">
             <span class="note">acceso: <b>gh</b> si está autenticado · PAT fallback (auth-terms) — la app es conductor, no proxya login</span>
-            <button class="wz-primary" disabled>Agregar seleccionados</button>
+            <button class="wz-primary" disabled title="próximo · S2">Agregar seleccionados</button>
           </div>
         </div>
       </div>
@@ -322,120 +345,189 @@
 <button class="themebtn" title="Tema" onclick="var r=document.documentElement,d=r.getAttribute('data-theme');r.setAttribute('data-theme',d==='dark'?'light':'dark')">◐</button>
 
 <script>
+// ── Datos honestos post-revisión-adversaria (S1-D12, corregido en T8 del Slice 1) ──
+// La CLAVE de cada entrada del objeto ARNESES es la identidad calificada (mismo shape que
+// `EntradaPortafolio.clave` real: `<home-slug>~<id>~<scope>`) — NUNCA el id desnudo (G6). `id`
+// adentro es `identidad.id`, el bare-id que se MUESTRA; puede colisionar entre dos claves
+// distintas en la vida real (deuda GAP-2/S1-D2), motivo extra para no keyear por él acá.
+// PROHIBIDO todo dato que el wire real no tenga: nada de `drift:N` (G1, muerto — ver `deriva`
+// abajo), nada de `update:"x.y.z"`/`dirty:false` (G2, muerto — el drawer siempre dice
+// "update: no-verificado", S1-D5), ninguna `empresa` inferida del path/proyecto contenedor (G4 —
+// `legal-administrativo` no declara empresa: cae honesto en el grupo «sin empresa»).
 const EMP_COLOR={alpacapurpura:"var(--primary)",Vitalia:"var(--c-hook)",Nordia:"var(--c-agent)"};
+const SIN_EMPRESA="sin empresa";
 const ARNESES={
- "reclutamiento-seleccion":{ds:"Personas que ingresan · reclutamiento y selección",salud:"ok",
-   empresas:["Vitalia"],marketplaces:["vitalia/arneses"],canonico:null,update:"1.2.0",
-   instalaciones:[{proyecto:"vitalia-rrhh",path:"~/vitalia-rrhh",version:"1.1.0",drift:0,salud:"ok"}]},
- "clima-cultura":{ds:"Personas que ya son de la empresa · clima y cultura",salud:"info",
-   empresas:["Vitalia"],marketplaces:["vitalia/arneses"],canonico:null,update:null,
-   instalaciones:[{proyecto:"vitalia-rrhh",path:"~/vitalia-rrhh",version:"0.9.0",drift:0,salud:"info"}]},
- "legal-administrativo":{ds:"Gestión legal y administrativa de RRHH",salud:"warn",
-   empresas:["Vitalia"],marketplaces:[],canonico:null,update:null,
-   instalaciones:[{proyecto:"vitalia-rrhh",path:"~/vitalia-rrhh",version:"?",drift:1,salud:"warn",unresolved:true}]},
- "ux-nordia":{ds:"Diseño · UX end-to-end",salud:"warn",
-   empresas:["Nordia"],marketplaces:["alpacapurpura/prenter-marketplace"],canonico:null,update:null,
-   instalaciones:[{proyecto:"nordia-ux",path:"~/clientes/nordia-ux",version:"0.3.1",drift:3,salud:"warn"}]},
- "dev-full-cycle":{ds:"Desarrollo full-cycle (idea → released) · arnés insignia",salud:"ok",
+ "vitalia-org~reclutamiento-seleccion~":{id:"reclutamiento-seleccion",
+   ds:"Personas que ingresan · reclutamiento y selección",
+   empresas:["Vitalia"],marketplaces:["vitalia/arneses"],canonico:null,
+   instalaciones:[{proyecto:"vitalia-rrhh",path:"~/vitalia-rrhh",version:"1.1.0",deriva:"al-hilo"}]},
+ "vitalia-org~clima-cultura~":{id:"clima-cultura",
+   ds:"Personas que ya son de la empresa · clima y cultura",
+   empresas:["Vitalia"],marketplaces:["vitalia/arneses"],canonico:null,
+   instalaciones:[{proyecto:"vitalia-rrhh",path:"~/vitalia-rrhh",version:"0.9.0",deriva:"al-hilo"}]},
+ // G4: SIN empresa declarada (el mockup v2 la inferí­a del proyecto contenedor "vitalia-rrhh" —
+ // BR-5 lo prohíbe: la empresa sale SOLO del manifiesto, jamás del path). Origen tampoco resuelto
+ // → cae honesto en «sin empresa» + "origen?" + deriva-no-evaluable con aviso.
+ "sin-home~legal-administrativo~vitalia-rrhh":{id:"legal-administrativo",
+   ds:"Gestión legal y administrativa de RRHH",
+   empresas:[],marketplaces:[],canonico:null,
+   instalaciones:[{proyecto:"vitalia-rrhh",path:"~/vitalia-rrhh",version:"?",
+     deriva:"deriva-no-evaluable",derivaDetalle:"sin version instalada conocida",
+     aviso:"origen sin resolver"}]},
+ "nordia-org~ux-nordia~":{id:"ux-nordia",ds:"Diseño · UX end-to-end",
+   empresas:["Nordia"],marketplaces:["alpacapurpura/prenter-marketplace"],canonico:null,
+   instalaciones:[{proyecto:"nordia-ux",path:"~/clientes/nordia-ux",version:"0.3.1",
+     deriva:"en-deriva",
+     derivaDetalle:"hash de contenido distinto de la referencia del marketplace"}]},
+ "alpacapurpura~dev-full-cycle~":{id:"dev-full-cycle",
+   ds:"Desarrollo full-cycle (idea → released) · arnés insignia",
    empresas:["alpacapurpura"],marketplaces:["alpacapurpura/prenter-marketplace"],
-   canonico:{version:"0.1.0",path:"~/.arnesia/checkouts/dev-full-cycle",dirty:false},update:null,
+   canonico:{version:"0.1.0",path:"~/.arnesia/checkouts/alpacapurpura/dev-full-cycle"},
    instalaciones:[
-     {proyecto:"cliente-acme",path:"~/clientes/acme-app",version:"0.1.0",drift:2,salud:"warn"},
-     {proyecto:"cliente-beta",path:"~/clientes/beta-app",version:"0.1.0",drift:0,salud:"ok"}]},
- "code-review-base":{ds:"Revisión de código · arnés base compartido (N empresas)",salud:"ok",base:true,
+     {proyecto:"cliente-acme",path:"~/clientes/acme-app",version:"0.1.0",deriva:"en-deriva",
+       derivaDetalle:"hash de contenido distinto de la referencia del marketplace"},
+     {proyecto:"cliente-beta",path:"~/clientes/beta-app",version:"0.1.0",deriva:"al-hilo"}]},
+ "alpacapurpura~code-review-base~":{id:"code-review-base",base:true,
+   ds:"Revisión de código · arnés base compartido (N empresas)",
    empresas:["alpacapurpura","Vitalia","Nordia"],marketplaces:["alpacapurpura/prenter-marketplace"],
-   canonico:{version:"2.0.0",path:"~/.arnesia/checkouts/code-review-base",dirty:false},update:null,instalaciones:[]},
+   canonico:{version:"2.0.0",path:"~/.arnesia/checkouts/alpacapurpura/code-review-base"},
+   instalaciones:[]},
 };
 const EMP_ORDER=["Vitalia","Nordia","alpacapurpura"];
 
 function esc(s){const d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}
 function initial(s){return (s[0]||"?").toUpperCase();}
 
+// saludDe — regla EXACTA S1-D4 (computada, NUNCA un campo `salud` tecleado a mano — eso era G9:
+// "mock incoherente: drift:2→ok, drift:1→warn"). atencion ⟺ ∃ instalación en-deriva ∨ con aviso;
+// ok ⟺ ≥1 instalación y TODAS al-hilo; sin-senal ⟺ el resto («no sé» ≠ «sano»).
+function saludDe(a){
+  const insts=a.instalaciones||[];
+  if(insts.some(i=>i.deriva==="en-deriva"||!!i.aviso)) return "atencion";
+  if(insts.length>0 && insts.every(i=>i.deriva==="al-hilo")) return "ok";
+  return "sin-senal";
+}
+const SALUD_LABEL={ok:"ok",atencion:"atención","sin-senal":"sin señal"};
+
 function presenceBadges(a){
   let h="";
   if(a.canonico) h+=`<span class="pb canon">◆ canónico v${esc(a.canonico.version)}</span>`;
   else h+=`<span class="pb canon none">◇ sin canónico</span>`;
-  if(a.instalaciones.length) h+=`<span class="pb inst">▣ ${a.instalaciones.length} instalac.</span>`;
+  h+=`<span class="pb inst">▣ ${(a.instalaciones||[]).length} instalac.</span>`;
   return h;
 }
+// flagBadges — G1/G2: el chip de deriva SOLO sale cuando una instalación real está en-deriva
+// (mismo criterio que `Fila` en portafolio-list.tsx — nunca un dot arbitrario); CERO flag de
+// update (el drawer, no la fila, dice "update: no-verificado" — S1-D5); "origen?" cuando no hay
+// ningún marketplace resuelto (G4/BR-3); aviso real si alguna instalación lo trae.
 function flagBadges(a){
   let h="";
-  if(a.update) h+=`<span class="flag up">⬆ v${esc(a.update)}</span>`;
-  const drift=a.instalaciones.some(i=>i.drift>0);
-  if(drift) h+=`<span class="flag dr">◐ drift</span>`;
-  if(a.marketplaces.length===0) h+=`<span class="flag unk">origen?</span>`;
+  const insts=a.instalaciones||[];
+  const enDeriva=insts.find(i=>i.deriva==="en-deriva");
+  if(enDeriva) h+=`<span class="flag dr" title="${esc(enDeriva.derivaDetalle||"")}">en-deriva</span>`;
+  if(!(a.marketplaces&&a.marketplaces.length)) h+=`<span class="flag unk">origen?</span>`;
+  const conAviso=insts.find(i=>i.aviso);
+  if(conAviso) h+=`<span class="flag unk" title="${esc(conAviso.aviso)}">${esc(conAviso.aviso)}</span>`;
   return h;
 }
 
+// renderList — lente empresa N:M con grupo «sin empresa» SIEMPRE al final si aplica (S1-D8/G4);
+// keyeado por CLAVE en el dataset de cada fila (G6), nunca por id desnudo.
 function renderList(){
   const list=document.getElementById("list"); list.innerHTML="";
-  document.getElementById("counts").textContent=`${Object.keys(ARNESES).length} arneses · ${EMP_ORDER.length} empresas · lente: empresa`;
-  EMP_ORDER.forEach(emp=>{
-    const ids=Object.keys(ARNESES).filter(id=>ARNESES[id].empresas.includes(emp));
-    if(!ids.length) return;
-    const grp=document.createElement("div"); grp.className="grp";
-    grp.innerHTML=`<div class="grp-hd"><span class="emb" style="background:${EMP_COLOR[emp]||'var(--c-mcp)'}">${esc(initial(emp))}</span>`+
-      `<span class="gn">${esc(emp)}</span><span class="count">${ids.length}</span><span class="rule"></span></div>`;
-    ids.forEach(id=>{
-      const a=ARNESES[id];
-      const row=document.createElement("button"); row.className="row"; row.dataset.id=id;
-      row.innerHTML=
-        `<span class="emb" style="background:${EMP_COLOR[a.empresas[0]]||'var(--c-plugin)'}">${esc(initial(id))}</span>`+
-        `<span class="rid"><span class="nm">${esc(id)} ${a.base?'<span class="basetag">base · N empresas</span>':''}</span><span class="ds">${esc(a.ds)}</span></span>`+
-        `<span class="rmid">${presenceBadges(a)}</span>`+
-        `<span class="rflags">${flagBadges(a)}<span class="hdot ${a.salud}" title="salud ${a.salud}"></span></span>`;
-      row.onclick=()=>openArnes(id);
-      grp.appendChild(row);
-    });
-    list.appendChild(grp);
+  const claves=Object.keys(ARNESES);
+  const empresasSet=new Set();
+  claves.forEach(k=>(ARNESES[k].empresas||[]).forEach(e=>empresasSet.add(e)));
+  document.getElementById("counts").textContent=`${claves.length} arneses · ${empresasSet.size} empresas · lente: empresa`;
+
+  const gruposConEmpresa=EMP_ORDER.filter(emp=>claves.some(k=>(ARNESES[k].empresas||[]).includes(emp)));
+  gruposConEmpresa.forEach(emp=>{
+    renderGrupo(list, emp, claves.filter(k=>(ARNESES[k].empresas||[]).includes(emp)));
   });
+  const sinEmpresa=claves.filter(k=>!(ARNESES[k].empresas||[]).length);
+  if(sinEmpresa.length) renderGrupo(list, SIN_EMPRESA, sinEmpresa);
 }
 
+function renderGrupo(list, nombreGrupo, claves){
+  const grp=document.createElement("div"); grp.className="grp";
+  const color=EMP_COLOR[nombreGrupo]||"var(--c-mcp)";
+  grp.innerHTML=`<div class="grp-hd"><span class="emb" style="background:${color}">${esc(initial(nombreGrupo))}</span>`+
+    `<span class="gn">${esc(nombreGrupo)}</span><span class="count">${claves.length}</span><span class="rule"></span></div>`;
+  claves.forEach(clave=>{
+    const a=ARNESES[clave];
+    const salud=saludDe(a);
+    const row=document.createElement("button"); row.className="row"; row.dataset.clave=clave;
+    row.innerHTML=
+      `<span class="emb" style="background:${EMP_COLOR[(a.empresas||[])[0]]||'var(--c-plugin)'}">${esc(initial(a.id))}</span>`+
+      `<span class="rid"><span class="nm">${esc(a.id)} ${a.base?'<span class="basetag">base · N empresas</span>':''}</span><span class="ds">${esc(a.ds)}</span></span>`+
+      `<span class="rmid">${presenceBadges(a)}</span>`+
+      `<span class="rflags">${flagBadges(a)}<span class="hdot ${salud}" role="img" aria-label="salud: ${SALUD_LABEL[salud]}" title="salud: ${SALUD_LABEL[salud]}"></span></span>`;
+    row.onclick=()=>openArnes(clave);
+    grp.appendChild(row);
+  });
+  list.appendChild(grp);
+}
+
+// instBlock — el chip de deriva es el veredicto LITERAL (`al-hilo`/`en-deriva`/
+// `deriva-no-evaluable`, S1-D14), `derivaDetalle` como tooltip nativo — jamás un contador
+// inventado (G1). Aviso, si lo hay, se muestra completo (BR-8: la honestidad no se recorta).
 function instBlock(i){
-  const driftTxt = i.unresolved ? `<span class="flag unk">origen sin resolver</span>`
-    : (i.drift>0 ? `<span class="flag dr">◐ ${i.drift} archivo(s) cambiados</span>` : `<span class="kv">sin drift</span>`);
+  const derivaTxt = i.deriva==="al-hilo"
+    ? `<span class="kv">al-hilo</span>`
+    : `<span class="flag ${i.deriva==="en-deriva"?"dr":"unk"}" title="${esc(i.derivaDetalle||"")}">${esc(i.deriva)}</span>`;
+  const avisoTxt = i.aviso ? `<div class="kv" style="color:var(--warn)">⚠ ${esc(i.aviso)}</div>` : "";
   return `<div class="inst">
-    <div class="ih"><span class="hdot ${i.salud}"></span><span class="pn">${esc(i.proyecto)}</span><span class="kv" style="margin-left:auto">v${esc(i.version)}</span></div>
+    <div class="ih"><span class="pn">${esc(i.proyecto)}</span><span class="kv" style="margin-left:auto">v${esc(i.version)}</span></div>
     <div class="kv">${esc(i.path)}</div>
-    <div>${driftTxt}</div>
+    <div>${derivaTxt}</div>
+    ${avisoTxt}
     <div class="acts">
       <button class="act primary">◉ Observar en Mapa</button>
-      <button class="act" disabled>⚒ Reparar <span class="soon">S5</span></button>
-      <button class="act" disabled>↩ Backport al canónico <span class="soon">S2</span></button>
+      <button class="act" disabled title="próximo · S5">⚒ Reparar <span class="soon">S5</span></button>
+      <button class="act" disabled title="próximo · S5">↩ Backport al canónico <span class="soon">S5</span></button>
     </div></div>`;
 }
 
+// canonZone — S1-D15: "estado del checkout: no evaluado en este slice" (nunca un `dirty:
+// true/false` inventado); S1-D5: la línea "update: no-verificado" vive SIEMPRE acá, jamás un
+// "⬆ hay vX" fabricado (G2 — muerto).
 function canonZone(a){
   if(a.canonico){
     return `<div class="zone"><div class="zone-hd"><span class="zt">Canónico</span><span class="zk edit">única copia editable</span></div>
       <div class="zone-bd">
-        <div class="kv"><b>v${esc(a.canonico.version)}</b> · ${esc(a.canonico.path)}</div>
-        ${a.update?`<div class="kv" style="color:var(--warn)">⬆ hay v${esc(a.update)} en el marketplace</div>`:''}
+        <div class="kv"><b>v${esc(a.canonico.version)}</b> · ${esc(a.canonico.path)} · estado del checkout: no evaluado en este slice</div>
+        <div class="kv" title="update-check llega en Slice 4">update: no-verificado</div>
         <div class="acts">
           <button class="act primary">◉ Abrir en Mapa</button>
-          <button class="act" disabled>✎ Mejorar (chat) <span class="soon">S2</span></button>
-          <button class="act" disabled>▲ Publicar <span class="soon">S3</span></button>
+          <button class="act" disabled title="próximo · S2">✎ Mejorar (chat) <span class="soon">S2</span></button>
+          <button class="act" disabled title="próximo · S3">▲ Publicar <span class="soon">S3</span></button>
         </div>
       </div></div>`;
   }
   return `<div class="zone"><div class="zone-hd"><span class="zt">Canónico</span><span class="zk">no traído</span></div>
     <div class="zone-bd">
       <div class="kv">No tenés el canónico local. Necesario para <b>autorear/mejorar/publicar</b>.</div>
-      <button class="cta" disabled>↧ Traer canónico del marketplace <span class="soon" style="margin-left:6px">S2</span></button>
+      <button class="cta" disabled title="próximo · S2">↧ Traer canónico del marketplace <span class="soon" style="margin-left:6px">S2</span></button>
     </div></div>`;
 }
 
-function openArnes(id){
-  const a=ARNESES[id];
-  document.querySelectorAll(".row").forEach(r=>r.classList.toggle("sel",r.dataset.id===id));
-  const emp=a.empresas.map(e=>`<span class="fchip">${esc(e)}</span>`).join("");
-  const mkt=a.marketplaces.length?a.marketplaces.map(m=>`<span class="fchip">${esc(m)}</span>`).join("")
-    :`<span class="fchip unk">desconocido</span>`;
+// openArnes(clave) — G6: recibe la CLAVE calificada, no el id desnudo (dos claves distintas
+// pueden compartir el mismo `id`, deuda viva GAP-2/S1-D2 — keyear por clave es justamente lo que
+// evita pisarlas en este mock). G4: «sin empresa»/«desconocido» honestos, nunca inferidos.
+function openArnes(clave){
+  const a=ARNESES[clave];
+  document.querySelectorAll(".row").forEach(r=>r.classList.toggle("sel",r.dataset.clave===clave));
+  const emp=(a.empresas&&a.empresas.length)
+    ? a.empresas.map(e=>`<span class="fchip">${esc(e)}</span>`).join("")
+    : `<span class="fchip unk">${esc(SIN_EMPRESA)}</span>`;
+  const mkt=(a.marketplaces&&a.marketplaces.length)
+    ? a.marketplaces.map(m=>`<span class="fchip">${esc(m)}</span>`).join("")
+    : `<span class="fchip unk">desconocido</span>`;
   const dw=document.getElementById("drawer");
   dw.innerHTML=
     `<div class="dw-head">
-       <span class="emb" style="background:${EMP_COLOR[a.empresas[0]]||'var(--c-plugin)'}">${esc(initial(id))}</span>
-       <div class="dw-id"><div class="nm">${esc(id)}</div><div class="ds">${esc(a.ds)}</div></div>
+       <span class="emb" style="background:${EMP_COLOR[(a.empresas||[])[0]]||'var(--c-plugin)'}">${esc(initial(a.id))}</span>
+       <div class="dw-id"><div class="nm">${esc(a.id)}</div><div class="ds">${esc(a.ds)}</div></div>
        <button class="dw-close" onclick="closeDrawer()">✕</button>
      </div>
      <div class="dw-body">
@@ -447,12 +539,12 @@ function openArnes(id){
        ${canonZone(a)}
        <div class="zone"><div class="zone-hd"><span class="zt">Instalaciones</span><span class="zk ro">observación · read-only</span></div>
          <div class="zone-bd">
-           ${a.instalaciones.length?a.instalaciones.map(instBlock).join(""):'<div class="kv">sin instalaciones registradas</div>'}
+           ${(a.instalaciones&&a.instalaciones.length)?a.instalaciones.map(instBlock).join(""):'<div class="kv">sin instalaciones registradas</div>'}
          </div></div>
      </div>
      <div class="dw-foot">
        <button class="unlink">⊘ Desvincular del portafolio</button>
-       <span class="unlink-sec">solo lo saca de la vista — no desinstala ni borra el clon. &nbsp;<label><input type="checkbox" style="vertical-align:-1px"/> …y borrar clon local</label></span>
+       <span class="unlink-sec">solo lo saca del portafolio — no desinstala ni borra nada del disco. &nbsp;<label><input type="checkbox" disabled title="próximo · S2" style="vertical-align:-1px"/> …y borrar clon local</label></span>
      </div>`;
   dw.classList.add("open"); dw.setAttribute("aria-hidden","false");
   document.getElementById("scrim").classList.add("on");

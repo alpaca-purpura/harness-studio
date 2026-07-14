@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.lista-del-portafolio
 cap_num: CAP-89
 slug: lista-del-portafolio
 name: "Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)"
-status: stub           # T2/T3/T4: contrato + chips + widget construidos; gradúa a vivo en T8 (paridad.md).
+status: vivo           # T8: graduado — valida: real (R4), 7 stories + selectores unit-tested.
 license: brand-local
 
 module: fe-portafolio
@@ -30,7 +30,10 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
   - "web/src/widgets/portafolio/ui/portafolio-list.tsx#PortafolioList"
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
-valida: []
+valida:
+  - "web/src/widgets/portafolio/ui/portafolio-list.stories.tsx"
+  - "web/src/entities/portafolio/ui/chips.stories.tsx"
+  - "web/src/entities/portafolio/model/selectors.test.ts"
 
 dev_preview:
   route: "#/portafolio"
@@ -91,8 +94,50 @@ change_log:
       su `ComingSoon`). Sigue `stub`/sin `valida:` a propósito (R4): graduar a `vivo` con
       evidencia E2E viva es T8.
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T8 — graduado a `vivo` (R4): `paridad.md` cierra el slice con evidencia E2E viva
+      (`#/portafolio` lista lo real contra el daemon, `GET /api/portafolio`). `valida:` cita
+      las 7 stories obligatorias de `portafolio-list.stories.tsx` (cada una con `play()`) +
+      `chips.stories.tsx` (dot/chips de dominio) + `selectors.test.ts` (proyecto vitest `unit`,
+      S1-D7). Scenarios BDD agregados citando G1/G2/G4/G5/G6/G8/G9 (forma sin `status:`
+      por-scenario, S1-D16 — el arch-test naive lo rompería).
+    merge_sha: null
 
-scenarios: []
+scenarios:
+  - id: lista-lente-empresa-agrupa-nm
+    name: "Lente empresa agrupa N:M con «sin empresa» al final (G4)"
+    given: "entradas reales con 0 o más empresas declaradas"
+    when: "se renderiza PortafolioList con lente empresa"
+    then: "cada entrada aparece en TODOS sus grupos de empresa; el grupo «sin empresa» queda SIEMPRE al final si aplica — la empresa NUNCA se infiere del path"
+    verifica: "ConDatos (portafolio-list.stories.tsx) · agruparPorEmpresa (selectors.test.ts)"
+  - id: lista-sin-flag-update-fabricado
+    name: "La fila jamás pinta un flag de update (G2)"
+    given: "entradas reales sin ningún dato de update-check (Slice 4 no construido)"
+    when: "se renderiza la fila"
+    then: "ausencia total de cualquier «⬆» en el DOM"
+    verifica: "ConDatos (assert queryByText(/⬆/) === null)"
+  - id: lista-estados-honestos
+    name: "Los estados de la lista son reales, nunca fabricados (G5)"
+    given: "vacío / cargando / error / corruptas / búsqueda sin match"
+    when: "se renderiza PortafolioList en cada estado"
+    then: "cada uno pinta su copy honesto — 0 filas fantasma en cargando, motivo textual real en error, banner de corruptas visible sin ocultar el resto (BR-11)"
+    verifica: "Vacia · Cargando · ErrorDeCarga · CorruptasVisibles · FiltroSinResultados"
+  - id: lista-dot-salud-regla-testeada
+    name: "El dot de salud sigue la regla S1-D4 testeada (G9)"
+    given: "instalaciones en-deriva/aviso/discrepancias (atención) · todas al-hilo (ok) · deriva-no-evaluable o 0 instalaciones (sin-señal)"
+    when: "se computa saludDe(entrada)"
+    then: "cada rama devuelve su color/aria-label propio — sin-señal NUNCA comparte clase con ok"
+    verifica: "saludDe (selectors.test.ts, 6 ramas) · DotSaludTresRamas (chips.stories.tsx) · ConDatos"
+  - id: lista-fila-accesible-por-teclado
+    name: "La fila abre el drawer por click o Enter, keyeada por clave (G6/G8)"
+    given: "una fila keyeada por `clave` (no id desnudo)"
+    when: "click o foco+Enter sobre la fila"
+    then: "onAbrir(clave) se dispara con la clave EXACTA — misma superficie por mouse y teclado"
+    verifica: "ConDatos (assert onAbrir con clave y Enter)"
+
 business_rules: []
 related_capabilities:
   depends_on: [arnesia.portafolio.registrar-identidad]
@@ -107,6 +152,5 @@ Superficie 1 del Portafolio (spec §10, `revision-adversaria.md` G1/G2/G4/G5/G6/
 construyó el contrato (tipos + selectores + fixtures + cliente HTTP); T3 los chips/dot de
 dominio; T4 construyó el widget `portafolio-list.tsx` con sus 7 stories obligatorias
 (`Vacia`/`Cargando`/`ErrorDeCarga`/`ConDatos`/`LentePlano`/`CorruptasVisibles`/
-`FiltroSinResultados`, cada una con `play()`). Sigue `status: stub` a propósito (R4, sin
-`valida:`): la graduación a `vivo` es T8, cuando `paridad.md` cierre el slice completo con el
-gate humano — este ticket NO se adelanta a firmarla.
+`FiltroSinResultados`, cada una con `play()`); T7 cableó el transporte real. **T8 gradúa a
+`vivo`** (R4): `paridad.md` cierra el slice con la evidencia E2E viva.

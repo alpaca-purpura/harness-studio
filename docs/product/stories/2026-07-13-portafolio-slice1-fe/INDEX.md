@@ -27,10 +27,13 @@ CAP-58/61) + Desvincular con confirmación — todo porteado a Storybook (SSoT, 
 
 ## Retomar aquí
 
-> **Estado (2026-07-13): PLAN ESCRITO, build NO arrancado.** El arquitecto (Fable 5) dejó plan +
-> decisiones listos; el gate de Slice 0 está firmado (HS-23) así que este slice está DESBLOQUEADO.
-> **Siguiente paso:** (1) el operador revisa `decisiones.md` — en particular los 3 gaps flaggeados
-> (registro-protegido → S1-D1 · colisión bare-id → S1-D2 · `Registries` sin poblar → S1-D3) — y da la
-> orden de build; (2) Sonnet 5 ejecuta T1→T8 EN ORDEN, un commit por ticket, gate §M verde antes de cada
-> commit, desviaciones documentadas como S1-D nuevas EN EL MISMO TURNO; (3) al cerrar T8: `paridad.md`
-> con evidencia real → gate humano 🧑‍⚖️ del operador (la firma NO se simula).
+> **Estado (2026-07-14): BUILD COMPLETO T1-T8, gate humano 🧑‍⚖️ PENDIENTE.** T1-T7 commiteados a
+> `main` (`7d27a7d`,`cefccb7`,`6ed3fa8`,`d4c9fd6`,`f8fe840`,`7413390`,`dfa82b5`). T8 (capabilities
+> completas as-code · mockup `arnesia-portafolio.html` corregido G1-G9 + `mockups/INDEX.md`
+> re-estampado · `paridad.md` con E2E vivo real · cierre documental) ejecutado en esta sesión y
+> **NO commiteado** por instrucción explícita del orquestador («NO COMMITEES NI HAGAS PUSH») — queda en
+> el working tree para que el operador lo commitee junto a (o después de) la firma.
+> **Siguiente paso:** el operador lee [`paridad.md`](./paridad.md) completa (goal §0 · tabla G1-G9 ·
+> E2E vivo · 22 decisiones S1-D · 8 desviaciones) y firma el gate humano (checkbox de la sección
+> `## Firma`, HOY sin marcar) — la firma NO se simula acá. Al firmar: commitear T8 + actualizar
+> `checkpoint.md`/`BACKLOG.md` (ítem 1 → cerrado) + `ledger/HS-24.md`.

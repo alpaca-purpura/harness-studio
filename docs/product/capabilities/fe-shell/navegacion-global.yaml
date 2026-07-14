@@ -10,13 +10,15 @@ module: fe-shell
 verb: infra
 pointers:
   - "web/src/pages/shell/ui/global-view.tsx#GlobalView"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
 valida: []
-scenarios: []
+scenarios:
+  - "«portafolio» murió de ComingSoon (Slice 1 FE, 2026-07-14): GlobalView rutea GET route===\"portafolio\" → <PortafolioView/> real, cableado al HTTP real de docs/product/capabilities/portafolio/* — ver docs/product/capabilities/fe-portafolio/{lista-del-portafolio,drawer-detalle-read,wizard-agregar-proyecto,abrir-en-mapa}.yaml para la superficie completa"
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-75)"
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-75); extendido docs/product/stories/2026-07-13-portafolio-slice1-fe/ (T7/T8)"
 ---
 
 # Navegación global (portafolio/estándar/ajustes)
