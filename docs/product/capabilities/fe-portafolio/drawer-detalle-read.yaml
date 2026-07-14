@@ -4,7 +4,7 @@ capability_id: arnesia.fe-portafolio.drawer-detalle-read
 cap_num: CAP-90
 slug: drawer-detalle-read
 name: "Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)"
-status: vivo           # T8: graduado — valida: real (R4), 10 stories con play() (a11y/confirm).
+status: vivo           # T8: graduado — valida: real (R4); 11 stories con play() en el archivo (10 obligatorias del plan + ConCanonico; 2 las reclama CAP-92).
 license: brand-local
 
 module: fe-portafolio

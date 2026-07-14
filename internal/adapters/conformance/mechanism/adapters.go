@@ -2,7 +2,10 @@ package mechanism
 
 import (
 	"context"
+	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -16,8 +19,11 @@ func result(c domain.Check, v domain.Veredicto, detalle string) domain.CheckResu
 
 // ── arch-test ───────────────────────────────────────────────────────────────
 
-// ArchTest runs a named Go fitness test (arch_test.go:TestX) as a subprocess and maps
-// its outcome. A dangling enforced_by (a test that does not exist) yields VeredictoError
+// ArchTest runs a named Go test as a subprocess and maps its outcome. The enforced_by
+// decide el paquete: el alias histórico "arch_test.go:TestX" corre en el paquete fitness;
+// una ruta repo-relativa "dir/foo_test.go:TestX" corre en el paquete de ESE archivo
+// (tests colocados junto al código que guardan — patrón del boundary del Portafolio).
+// A dangling enforced_by (a test or file that does not exist) yields VeredictoError
 // — "no such test" — never a silent pass (this is how B4's phantom enforcers surface).
 type ArchTest struct {
 	repoRoot string
@@ -48,9 +54,14 @@ func (a *ArchTest) Run(ctx context.Context, c domain.Check, _ ports.Target) doma
 		return result(c, domain.VeredictoDiferido,
 			"enforcer genérico `arch_test.go` sin función nombrada — sin test específico que correr")
 	}
+	pkg, ok := pkgOf(a.repoRoot, c.EnforcedBy, a.pkg)
+	if !ok {
+		return result(c, domain.VeredictoError,
+			"enforced_by cuelga: el archivo de `"+c.EnforcedBy+"` no existe en el árbol")
+	}
 	// The test name is parsed from the repo's own ruleset (.md as data) and anchored in
 	// the regex; the binary is the local `go` toolchain — local-first, never remote input.
-	cmd := exec.CommandContext(ctx, "go", "test", "-run", "^"+test+"$", "-count=1", "-v", a.pkg) //nolint:gosec // G204: test comes from the repo's own docs/architecture/knowledge/+arch/ ruleset, not external input.
+	cmd := exec.CommandContext(ctx, "go", "test", "-run", "^"+test+"$", "-count=1", "-v", pkg) //nolint:gosec // G204: test comes from the repo's own docs/architecture/knowledge/+arch/ ruleset, not external input.
 	cmd.Dir = a.repoRoot
 	out, err := cmd.CombinedOutput()
 	s := string(out)
@@ -68,6 +79,25 @@ func (a *ArchTest) Run(ctx context.Context, c domain.Check, _ ports.Target) doma
 	default:
 		return result(c, domain.VeredictoFail, firstFail(s))
 	}
+}
+
+// pkgOf resolves the Go package dir an enforced_by runs in. Sin ruta con "/" (el alias
+// histórico "arch_test.go:TestX") mantiene el paquete fitness por defecto; con ruta
+// repo-relativa ("dir/foo_test.go:TestX") corre en el paquete del archivo referido.
+// ok=false cuando el archivo referido no existe — enforcer colgante, jamás pass.
+func pkgOf(repoRoot, enforcedBy, fallback string) (string, bool) {
+	i := strings.LastIndex(enforcedBy, ":")
+	if i < 0 {
+		return fallback, true
+	}
+	file := strings.TrimSpace(enforcedBy[:i])
+	if !strings.Contains(file, "/") {
+		return fallback, true
+	}
+	if _, err := os.Stat(filepath.Join(repoRoot, filepath.FromSlash(file))); err != nil {
+		return "", false
+	}
+	return "./" + path.Dir(file) + "/", true
 }
 
 // testNameOf extracts the Go test name from an enforced_by like "arch_test.go:TestX".

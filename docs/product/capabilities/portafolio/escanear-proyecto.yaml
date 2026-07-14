@@ -24,6 +24,9 @@ pointers:
   - "internal/adapters/portafolio/gitconfig.go#ResolverRemotesGit"
   - "internal/usecase/portafolio.go#PortafolioService"
   - "internal/ports/portafolio.go#PortafolioScanner"
+  - "internal/adapters/transport/http/portafolio.go#postEscanear"
+  - "internal/adapters/transport/http/portafolio.go#postAgregar"
+  - "cmd/arnesia/main.go#runPortafolio"
 valida:
   - "TestScannerProyectoInstalado"
   - "TestScannerMaterializada"
@@ -65,6 +68,11 @@ change_log:
     date: 2026-07-13
     type: extend
     summary: "T6 — PortafolioService.Escanear/AgregarProyecto: orquesta walk→cargar→ResolverIdentidad/Origen→clasificar checkout→EvaluarDeriva vía puertos; root pasa por la política de path protegido."
+    merge_sha: null
+  - story_id: 2026-07-14-auditoria-portafolio-carga
+    date: 2026-07-14
+    type: fix
+    summary: "Punteros completados: postEscanear/postAgregar (handlers HTTP) y runPortafolio (CLI) no estaban reclamados por ningún capability a nivel símbolo — el archivo quedaba cubierto solo incidentalmente."
     merge_sha: null
 
 scenarios: []

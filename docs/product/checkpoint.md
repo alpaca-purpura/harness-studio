@@ -19,9 +19,11 @@
   cimientos → recut **Slice 0 «Cimientos» (dominio) → Slice 1 «FE»** (épica en `BACKLOG.md`). Paquete
   [`stories/2026-07-10-spike-carga-arneses/`](stories/2026-07-10-spike-carga-arneses/INDEX.md) (specs + casuística + revisión + mockup v2).
   **Hand-off:** Fable 5 (arquitecto) planificó → Sonnet 5 (constructor) ejecutó Slice 0 T1-T9 y Slice 1
-  T1-T8. Slice 1 T1-T7 commiteados a `main`; **T8 (capabilities+mockup+paridad+cierre) construido y
-  verificado, sin commitear** por instrucción de la sesión que lo ejecutó — el operador lo commitea al
-  firmar. Ver «Retomar aquí».
+  T1-T8 — los 8 tickets YA en `main` (T8 = `b35ff6c`, commiteado por el operador). **Auditoría post-build
+  de la carga (Fable 5, 2026-07-14) EJECUTADA:** build sano; CI-rojo por lint preexistente REPARADO,
+  motor conformance extendido a tests colocados (pass 42→46), docs stale sincronizadas →
+  [`stories/2026-07-14-auditoria-portafolio-carga/`](stories/2026-07-14-auditoria-portafolio-carga/informe.md).
+  Ver «Retomar aquí».
 - **Fase 1 «forja-ciclo-vivo» — PAUSADA** ([`stories/2026-07-10-forja-ciclo-vivo/`](stories/2026-07-10-forja-ciclo-vivo/INDEX.md)):
   Slice 1a (golden scaffold `docs/terreno/` dim piloto `forma-trabajo` + `docs/wip/`) **construido, pendiente firma
   🧑‍⚖️**; verificado verde (F-D4). **Aclaración F-D5:** la expertise de forja se encarna en el **kit ② embebido**
@@ -53,11 +55,11 @@
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `253 checks · pass 42 · fail 0 · error 0 · deferred 211 · n/a 0` (medido 2026-07-14, `go run ./cmd/arnesia conformance --todo`)
+- **ruleset `--todo`:** `253 checks · pass 46 · fail 0 · error 0 · deferred 207 · n/a 0` (medido 2026-07-14, `go run ./cmd/arnesia conformance --todo`)
 - **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-14
 - **arch/:** 18 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 92 — 48 vivo · 40 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 92 — 49 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):

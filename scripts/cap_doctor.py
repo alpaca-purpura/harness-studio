@@ -6,9 +6,11 @@
 # (docs/product/_templates/capability.template.yaml) y reporta lo que falta.
 #
 # Es el doctor RÁPIDO local (pre-commit / feedback). El enforcer DURO de R1/R2
-# (punteros que resuelven a símbolo real · cobertura sin huérfanos) vive en Go:
-# arch/fitness/capability_trace_test.go. cap_doctor valida FORMA + existencia de
-# archivo del puntero + enum de status; NO resuelve símbolos (eso lo hace go test).
+# (punteros que resuelven a archivo real · cobertura sin huérfanos) vive en Go:
+# docs/architecture/fitness/capability_trace_test.go. cap_doctor valida FORMA +
+# existencia de archivo del puntero + enum de status. OJO (honestidad, auditoría
+# 2026-07-14): NADIE resuelve la parte `#Símbolo` hoy — ni este doctor ni go test
+# (ambos stat-ean solo el archivo). R1 a nivel símbolo = deuda BACKLOG.
 #
 # Uso:
 #   python3 scripts/cap_doctor.py            # valida todo el árbol
@@ -74,7 +76,7 @@ def _check_cap(root: Path, path: Path, data: dict) -> list[str]:
     # módulo del path == módulo del YAML
     if data.get("module") and path.parent.name != data["module"]:
         errs.append(f"module `{data['module']}` != carpeta `{path.parent.name}`")
-    # punteros: archivo (parte antes de #) existe (R1 lite — go test resuelve el símbolo)
+    # punteros: archivo (parte antes de #) existe (R1 — nadie resuelve el símbolo aún, deuda)
     for ptr in data.get("pointers") or []:
         rel = str(ptr).split("#", 1)[0].strip()
         if rel and not (root / rel).exists():
@@ -88,7 +90,7 @@ def _check_cap(root: Path, path: Path, data: dict) -> list[str]:
 GROUP_ORDER = [
     "cli-daemon", "dominio-l0", "loader", "indice-persistencia", "conformance",
     "conductor", "provisioning", "handoff", "http-sse", "usecases", "self-update",
-    "fe-mapa", "fe-chat", "fe-shell", "tauri",
+    "portafolio", "fe-mapa", "fe-chat", "fe-shell", "fe-portafolio", "tauri",
 ]
 IDX_BEGIN, IDX_END = "<!--caps:begin-->", "<!--caps:end-->"
 

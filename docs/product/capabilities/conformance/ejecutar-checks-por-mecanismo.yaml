@@ -5,20 +5,28 @@ capability_id: arnesia.conformance.ejecutar-checks-por-mecanismo
 cap_num: CAP-28
 slug: ejecutar-checks-por-mecanismo
 name: "Ejecutar checks por mecanismo (arch-test/go-arch-lint/schema/static/nl-judge)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # graduado 2026-07-14 (auditoría): valida: real (TestPkgOf/TestTestNameOf, R4)
 module: conformance
 verb: observar
 pointers:
   - "internal/adapters/conformance/mechanism/adapters.go#ArchTest.Run"
   - "internal/adapters/conformance/mechanism/adapters.go#GoArchLint.Run"
   - "internal/adapters/conformance/mechanism/schema.go#Validate"
-valida: []
+valida:
+  - "TestPkgOf"
+  - "TestTestNameOf"
 scenarios: []
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-28)"
+change_log:
+  - story_id: 2026-07-14-auditoria-portafolio-carga
+    date: 2026-07-14
+    type: extend
+    summary: "ArchTest.Run deriva el paquete del enforced_by (pkgOf): alias `arch_test.go:TestX` = fitness; ruta repo-relativa = el paquete de ese archivo; archivo inexistente = VeredictoError (colgante visible). Graduado vivo con adapters_test.go."
+    merge_sha: null
 ---
 
 # Ejecutar checks por mecanismo (arch-test/go-arch-lint/schema/static/nl-judge)

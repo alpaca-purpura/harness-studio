@@ -59,6 +59,45 @@ func TestLoadRuleset(t *testing.T) {
 	if byMec[domain.MecArchTest] < 4 {
 		t.Errorf("expected several arch-test checks inferred, got %d", byMec[domain.MecArchTest])
 	}
+
+	// Los 4 checks del boundary del Portafolio referencian tests COLOCADOS junto al
+	// código (ruta repo-relativa, no arch_test.go) — deben clasificar arch-test, no
+	// caer a nl-judge (si cayeran, el motor los reportaría deferred pese a que el
+	// enforcer existe y corre en CI).
+	for _, c := range rs.ForElemento("portafolio-identidad-y-deriva-honesta") {
+		if c.Mecanismo != domain.MecArchTest {
+			t.Errorf("check %s: mecanismo %q, quiero arch-test (test colocado)", c.ID, c.Mecanismo)
+		}
+	}
 	t.Logf("ruleset: %d checks across %d elements; by mechanism: %v",
 		len(rs.Checks), len(rs.Elementos()), byMec)
+}
+
+func TestInferMechanism(t *testing.T) {
+	cases := []struct {
+		enforcer string
+		mec      domain.Mecanismo
+		enf      string
+	}{
+		{"arch_test.go:TestCoreNoImportaShell", domain.MecArchTest, "arch_test.go:TestCoreNoImportaShell"},
+		{"`fitness/arch_test.go:TestX`", domain.MecArchTest, "arch_test.go:TestX"},
+		{
+			"internal/adapters/portafolio/store_test.go:TestStoreDegradaHonesto", domain.MecArchTest,
+			"internal/adapters/portafolio/store_test.go:TestStoreDegradaHonesto",
+		},
+		{
+			"docs/architecture/fitness/capability_trace_test.go:TestCapabilityCoverage", domain.MecArchTest,
+			"docs/architecture/fitness/capability_trace_test.go:TestCapabilityCoverage",
+		},
+		{"go-arch-lint check", domain.MecGoArchLint, "go-arch-lint"},
+		{"graph.l0.schema.json", domain.MecSchema, "graph.l0.schema.json"},
+		{"golangci-lint run", domain.MecNLJudge, ""},
+		{"L1.2", domain.MecNLJudge, ""},
+	}
+	for _, c := range cases {
+		mec, enf := inferMechanism(c.enforcer)
+		if mec != c.mec || enf != c.enf {
+			t.Errorf("inferMechanism(%q) = (%q, %q), quiero (%q, %q)", c.enforcer, mec, enf, c.mec, c.enf)
+		}
+	}
 }

@@ -18,6 +18,12 @@ related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-27)"
+change_log:
+  - story_id: 2026-07-14-auditoria-portafolio-carga
+    date: 2026-07-14
+    type: extend
+    summary: "inferMechanism reconoce enforcers con ruta repo-relativa `dir/foo_test.go:TestX` (tests colocados junto al código, patrón del boundary portafolio-identidad-y-deriva-honesta) como arch-test — antes caían a nl-judge y salían deferred pese a correr en CI. + TestInferMechanism table-driven."
+    merge_sha: null
 ---
 
 # Inferir mecanismo + wiring por check

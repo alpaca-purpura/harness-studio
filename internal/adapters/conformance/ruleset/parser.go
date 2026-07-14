@@ -92,6 +92,7 @@ type frontmatter struct {
 var (
 	sepFrontmatter = regexp.MustCompile(`(?s)^---\n(.*?)\n---`)
 	reArchTest     = regexp.MustCompile(`arch_test\.go:(Test\w+)`)
+	reGoTest       = regexp.MustCompile(`((?:[\w.-]+/)+[\w.-]+_test\.go):(Test\w+)`)
 	reTestName     = regexp.MustCompile(`\b(Test\w+)\b`)
 )
 
@@ -215,6 +216,12 @@ func inferMechanism(enforcer string) (domain.Mecanismo, string) {
 			return domain.MecArchTest, "arch_test.go:" + m[1]
 		}
 		return domain.MecArchTest, "arch_test.go"
+	case reGoTest.MatchString(e):
+		// Test colocado junto al código que guarda (patrón HS-22/HS-24, p.ej.
+		// internal/adapters/portafolio/store_test.go:TestX): ruta repo-relativa,
+		// el adapter arch-test corre `go test` en ESE paquete.
+		m := reGoTest.FindStringSubmatch(e)
+		return domain.MecArchTest, m[1] + ":" + m[2]
 	case strings.Contains(e, "go-arch-lint"):
 		return domain.MecGoArchLint, "go-arch-lint"
 	case strings.Contains(e, ".schema.json"), strings.Contains(e, "box.contract"), strings.Contains(e, "graph.l0"):

@@ -97,6 +97,13 @@
 - [HS-16 Grupo A] 6 checks composición `deferred` (rediseño de motor; bloqueado por SQLite fase5 / OTel / modo-por-fase) · `bloqueo`
 - [HS-16 Grupo C] `gate-honesto`: necesita diseño previo · `deuda`
 - [HS-14] deep-link `arnesia://` en callback single-instance (ojo bug tauri#12726) · `deuda`
+- [auditoría 2026-07-14] **R1 a nivel símbolo:** ningún enforcer resuelve la parte `#Símbolo` de los
+  punteros de capabilities (go test y cap_doctor solo stat-ean el archivo) — un símbolo renombrado
+  pasa en silencio; la doctrina decía «archivo/símbolo real» (overclaim corregido en
+  `codigo-traza-a-capability` v1.4) · `deuda`
+- [Slice1-FE/S1-D16] **`capMetas` no parsea YAML real** (`capability_trace_test.go`): toma como status
+  CUALQUIER línea `status:` sin mirar anidamiento — un scenario BDD con `status:` por-scenario pisa el
+  root y rompe el enforcer; migrar a `yaml` de verdad antes de poblar scenarios con esa forma · `deuda`
 
 ## Capabilities / doctrina (reorg 2026-07-09, FIRMADO)
 

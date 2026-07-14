@@ -21,6 +21,7 @@ pointers:
   - "internal/domain/portafolio.go#EntradaPortafolio"
   - "internal/adapters/portafolio/store.go#Store"
   - "internal/ports/portafolio.go#PortafolioStore"
+  - "internal/adapters/transport/http/portafolio.go#deleteDesvincular"
 valida:
   - "TestStoreDegradaHonesto"
   - "TestStoreArchivoTotalmenteIlegible"
@@ -69,6 +70,11 @@ change_log:
       el navegador. Story `ConfirmarDesvincular` (`portafolio-drawer.stories.tsx`) es la
       evidencia FE — se referencia acá sin duplicar `valida:` (la cap FE dueña de esa story es
       `arnesia.fe-portafolio.drawer-detalle-read`).
+    merge_sha: null
+  - story_id: 2026-07-14-auditoria-portafolio-carga
+    date: 2026-07-14
+    type: fix
+    summary: "Puntero completado: deleteDesvincular (handler HTTP) no estaba reclamado a nivel símbolo por ningún capability."
     merge_sha: null
 
 scenarios: []

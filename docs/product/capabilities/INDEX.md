@@ -57,7 +57,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 
 - **CAP-26 · Parsear ruleset a data (knowledge+arch→checks)** `vivo` · conformance/parsear-ruleset-a-data.yaml — `internal/adapters/conformance/ruleset/parser.go#Loader.Load`
 - **CAP-27 · Inferir mecanismo + wiring por check** `vivo` · conformance/inferir-mecanismo-wiring-por-check.yaml — `internal/adapters/conformance/ruleset/parser.go#inferMechanism`
-- **CAP-28 · Ejecutar checks por mecanismo (arch-test/go-arch-lint/schema/static/nl-judge)** `vivo·nc` · conformance/ejecutar-checks-por-mecanismo.yaml — `internal/adapters/conformance/mechanism/adapters.go#ArchTest.Run`
+- **CAP-28 · Ejecutar checks por mecanismo (arch-test/go-arch-lint/schema/static/nl-judge)** `vivo` · conformance/ejecutar-checks-por-mecanismo.yaml — `internal/adapters/conformance/mechanism/adapters.go#ArchTest.Run`
 - **CAP-29 · Built-ins de conformidad del dominio (spine/escritor-único/composición/veredicto)** `vivo` · conformance/built-ins-de-conformidad-del-dominio.yaml — `internal/domain/conformance.go#VerificarSpine`
 - **CAP-30 · Servicio de conformidad (rutea target + firewall CC-native)** `vivo` · conformance/servicio-de-conformidad.yaml — `internal/usecase/conformance_service.go#RunGraph`
 - **CAP-31 · Scope fabrica|arnes (portabilidad)** `vivo·nc` · conformance/scope-fabrica-arnes.yaml — `internal/adapters/conformance/mechanism/adapters.go`
@@ -109,6 +109,15 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 
 - **CAP-60 · Self-update sin sudo (5 pasos atómico)** `vivo` · self-update/self-update-sin-sudo.yaml — `internal/usecase/selfupdate_service.go#Actualizar`
 
+### `portafolio` (6)
+
+- **CAP-83 · Registrar identidad de arnés (home,id)** `vivo` · portafolio/registrar-identidad.yaml — `internal/domain/portafolio.go#IdentidadArnes`
+- **CAP-84 · Escanear proyecto (walker multi-instalación)** `vivo` · portafolio/escanear-proyecto.yaml — `internal/domain/portafolio.go#TipoInstalacion`
+- **CAP-85 · Resolver origen (collect-all + reconcilia)** `vivo` · portafolio/resolver-origen.yaml — `internal/domain/portafolio.go#OrigenPortafolio`
+- **CAP-86 · Evaluar deriva (hash vs referencia inmutable)** `vivo` · portafolio/evaluar-deriva.yaml — `internal/domain/portafolio.go#EstadoDeriva`
+- **CAP-87 · Desvincular arnés del Portafolio** `vivo` · portafolio/desvincular.yaml — `internal/domain/portafolio.go#EntradaPortafolio`
+- **CAP-88 · Observar en Mapa (presencia read-only del Portafolio)** `vivo` · portafolio/observar-en-mapa.yaml — `internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa`
+
 ### `fe-mapa` (7)
 
 - **CAP-61 · Renderizar el Mapa (HTML+SVG)** `vivo` · fe-mapa/renderizar-el-mapa.yaml — `web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas`
@@ -136,13 +145,6 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-77 · Botón actualizar (UI self-update)** `vivo` · fe-shell/boton-actualizar.yaml — `web/src/features/self-update/ui/update-card.tsx#UpdateCard`
 - **CAP-78 · Transporte FE (REST+SSE+token)** `vivo·nc` · fe-shell/transporte-fe.yaml — `web/src/shared/api/client.ts#api`
 
-### `tauri` (4)
-
-- **CAP-79 · Single-instance reenfoca** `vivo·nc` · tauri/single-instance-reenfoca.yaml — `web/src-tauri/src/lib.rs`
-- **CAP-80 · Sidecar del daemon (bind-or-bail, kill al salir)** `vivo·nc` · tauri/sidecar-del-daemon.yaml — `web/src-tauri/src/lib.rs#daemon_running`
-- **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
-- **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
-
 ### `fe-portafolio` (4)
 
 - **CAP-89 · Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)** `vivo` · fe-portafolio/lista-del-portafolio.yaml — `web/src/entities/portafolio/model/types.ts#EntradaPortafolio`
@@ -150,27 +152,27 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-91 · Wizard agregar proyecto (escanear carpeta local → candidatos honestos → elegir)** `vivo` · fe-portafolio/wizard-agregar-proyecto.yaml — `web/src/entities/portafolio/model/types.ts#Candidato`
 - **CAP-92 · Abrir en Mapa desde el Portafolio (peek al stage de sesión, colisión visible)** `vivo` · fe-portafolio/abrir-en-mapa.yaml — `web/src/shared/api/client.ts#observarEnMapa`
 
-### `portafolio` (6)
+### `tauri` (4)
 
-- **CAP-83 · Registrar identidad de arnés (home,id)** `vivo` · portafolio/registrar-identidad.yaml — `internal/domain/portafolio.go#IdentidadArnes`
-- **CAP-84 · Escanear proyecto (walker multi-instalación)** `vivo` · portafolio/escanear-proyecto.yaml — `internal/domain/portafolio.go#TipoInstalacion`
-- **CAP-85 · Resolver origen (collect-all + reconcilia)** `vivo` · portafolio/resolver-origen.yaml — `internal/domain/portafolio.go#OrigenPortafolio`
-- **CAP-86 · Evaluar deriva (hash vs referencia inmutable)** `vivo` · portafolio/evaluar-deriva.yaml — `internal/domain/portafolio.go#EstadoDeriva`
-- **CAP-87 · Desvincular arnés del Portafolio** `vivo` · portafolio/desvincular.yaml — `internal/domain/portafolio.go#EntradaPortafolio`
-- **CAP-88 · Observar en Mapa (presencia read-only del Portafolio)** `vivo` · portafolio/observar-en-mapa.yaml — `internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa`
+- **CAP-79 · Single-instance reenfoca** `vivo·nc` · tauri/single-instance-reenfoca.yaml — `web/src-tauri/src/lib.rs`
+- **CAP-80 · Sidecar del daemon (bind-or-bail, kill al salir)** `vivo·nc` · tauri/sidecar-del-daemon.yaml — `web/src-tauri/src/lib.rs#daemon_running`
+- **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
+- **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
 <!--caps:end-->
 
 ## Cobertura & honestidad (para la doctrina de enforcement)
 
-- **82 capabilities** mapeadas a código real. Estado: ~24 `vivo` (test/story) · ~46 `vivo·nc`
-  (sin check automático) · 3 `parcial/stub-dentro` · **6 STUB** (CAP-04 publish, CAP-05 open,
-  CAP-23 watcher, CAP-22 seed-parcial, endpoint `listRuns` 501, `mint_token` sin test).
+- **92 capabilities** mapeadas a código real (82 de HS-18 + 6 `portafolio/` + 4 `fe-portafolio/`
+  del programa Portafolio, HS-22/23). La distribución por estado es cifra VIVA — se genera con
+  `estado.sh` en `docs/product/checkpoint.md`, acá no se teclea.
 - **⚠ DRIFT CLAUDE.md ↔ código:** CLAUDE.md decía «SQLite puro-Go (modernc, WAL)». Realidad:
   índice = **map in-memory** (CAP-21), persistencia = **archivos JSON atómicos** (CAP-25).
   SQLite es fase 5 futura (comentarios en `index/store.go:1-5`, `store/registry.go:3-4`).
-- **FE sin tests:** `web/` NO tiene `*.test.*`/`e2e/`; única validación = `.stories.tsx`. Los
-  widgets de chrome (chat-dock, session-rail, topbar, view-strip), pages/shell y stores/api
-  quedan `nc` pese a ser capabilities reales. Deuda de validación → BACKLOG.
+- **FE con tests unitarios desde Slice 1 Portafolio (S1-D7):** existe el proyecto vitest `unit`
+  (node) — `web/src/entities/portafolio/model/selectors.test.ts` (26 tests) corre en CI job `ts`.
+  El resto del FE sigue validándose solo por `.stories.tsx`: los widgets de chrome (chat-dock,
+  session-rail, topbar, view-strip), pages/shell y stores/api quedan `nc` pese a ser capabilities
+  reales. Deuda de validación → BACKLOG.
 - **Dead-code candidatos (sin capability):** `domain/graph.go#UnidadDeTrabajo:119` (sin uso) ·
   enums `Banda/Canal/Procedencia/Origen` en box.go (serializados, sin comportamiento propio) ·
   `app-store.ts#toggleTheme:25` (latente, sin control en UI). → decidir: reclamar o borrar.
@@ -179,7 +181,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **Soporte para R2** (código que implementa un cap pero no es su puntero autoritativo):
   `_coverage.yaml`.
 
-## Apéndice — 23 endpoints REST (`transport/http/router.go`)
+## Apéndice — 28 endpoints REST (`transport/http/router.go`)
 
 ```
 /                                              UI embebida | 404          CAP-50
@@ -199,4 +201,9 @@ GET/POST/GET/PATCH/DELETE /api/sessions[...]   multisesión CRUD           CAP-5
 POST /api/sessions/{id}/turn                   turno                      CAP-53
 POST /api/sessions/{id}/permission             permisos HITL              CAP-54
 POST /api/sessions/{id}/interrupt              interrupción               CAP-54
+GET  /api/portafolio                           listado + corruptas        CAP-83
+POST /api/portafolio/escaneos                  escanear (no persiste)     CAP-84
+POST /api/portafolio/proyectos                 agregar elegidos           CAP-84
+DELETE /api/portafolio/arneses/{clave}         desvincular                CAP-87
+POST /api/portafolio/arneses/{clave}/mapa      observar en Mapa           CAP-88
 ```

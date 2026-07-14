@@ -1,7 +1,7 @@
 ---
 regla: codigo-traza-a-capability
-version: 1.3
-updated: 2026-07-09
+version: 1.4
+updated: 2026-07-14
 status: enforced
 ledger: HS-20
 sources:
@@ -12,10 +12,10 @@ sources:
     autoridad: oficial
     revisado: 2026-07-09
 enforced_by:
-  - fitness/arch_test.go:TestCapabilityPointersResolve
-  - fitness/arch_test.go:TestCapabilityCoverage
-  - fitness/arch_test.go:TestCapabilityStatusConsistent
-  - fitness/arch_test.go:TestCapabilityPointersStable
+  - docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersResolve
+  - docs/architecture/fitness/capability_trace_test.go:TestCapabilityCoverage
+  - docs/architecture/fitness/capability_trace_test.go:TestCapabilityStatusConsistent
+  - docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersStable
 severity: error
 ---
 
@@ -44,7 +44,9 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
 - `docs/product/capabilities/{module}/{slug}.yaml` (una hoja por capability) lista cada capability
   con `punteros:` al código autoritativo (`file#Símbolo`) y `valida:` su check. Estado
   (`vivo`/`sin-check`/`stub`) derivado del check. `INDEX.md` = índice generado (`cap_doctor.py --index`).
-- **Integridad (R1):** cada puntero resuelve a un archivo/símbolo real → no hay doc colgante.
+- **Integridad (R1):** cada puntero resuelve a un ARCHIVO real → no hay doc colgante. Honestidad
+  del alcance: la parte `#Símbolo` del puntero HOY no se verifica (el enforcer hace stat del path
+  recortado en `#`) — un símbolo renombrado pasa en silencio. Resolución de símbolo = deuda BACKLOG.
 - **Cobertura (R2):** todo archivo fuente bajo `cmd/`, `internal/`, `web/src/`, `web/src-tauri/src/`
   está reclamado por ≥1 capability → no hay código huérfano. Allowlist explícito y con razón para
   generados, `*_test.go`, `embed_*.go`, boilerplate.
@@ -64,14 +66,21 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| cap-ptr-resuelve | cada `punteros:` de `docs/product/capabilities/` resuelve a un archivo o símbolo real del árbol | error | «capability apunta a código inexistente (doc colgante)» | arch_test.go:TestCapabilityPointersResolve |
-| cap-sin-huerfano | todo archivo fuente (`cmd`/`internal`/`web/src`/`src-tauri/src`) está reclamado por ≥1 capability, salvo allowlist con razón | error | «archivo de código sin capability (huérfano)» | arch_test.go:TestCapabilityCoverage |
+| cap-ptr-resuelve | cada `punteros:` de `docs/product/capabilities/` resuelve a un ARCHIVO real del árbol (el `#Símbolo` aún no se verifica — deuda) | error | «capability apunta a código inexistente (doc colgante)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersResolve |
+| cap-sin-huerfano | todo archivo fuente (`cmd`/`internal`/`web/src`/`src-tauri/src`) está reclamado por ≥1 capability, salvo allowlist con razón | error | «archivo de código sin capability (huérfano)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityCoverage |
 | cap-commit-toca-registro | un commit que modifica código fuente también construye o modifica un capability en `docs/product/capabilities/` | warn | «código cambiado sin actualizar el SSoT funcional» | lefthook pre-commit (capabilities) — feedback local, no bloquea CI |
-| cap-estado-consistente | el `estado` no contradice su evidencia (`vivo`/`parcial`⟹tiene `valida:` · `vivo·nc`/`stub`⟹sin `valida:`); nunca fabricado a mano | warn | «estado de capability incoherente con su check» | arch_test.go:TestCapabilityStatusConsistent |
-| cap-puntero-estable | los punteros usan `file#Símbolo`/`paquete/`, no `file:línea` cruda (anti-drift) | info | «puntero por número de línea (se pudre al reformatear)» | arch_test.go:TestCapabilityPointersStable |
+| cap-estado-consistente | el `estado` no contradice su evidencia (`vivo`/`parcial`⟹tiene `valida:` · `vivo·nc`/`stub`⟹sin `valida:`); nunca fabricado a mano | warn | «estado de capability incoherente con su check» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityStatusConsistent |
+| cap-puntero-estable | los punteros usan `file#Símbolo`/`paquete/`, no `file:línea` cruda (anti-drift) | info | «puntero por número de línea (se pudre al reformatear)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersStable |
 
 ## Changelog
 
+- 2026-07-14 · v1.4 · Auditoría Portafolio: (a) los `enforced_by` apuntaban a
+  `fitness/arch_test.go` pero los 4 tests viven en `fitness/capability_trace_test.go` —
+  refs corregidas a la ruta real (el motor ahora resuelve rutas repo-relativas, cf.
+  `portafolio-identidad-y-deriva-honesta` v1.1); (b) honestidad de R1: el enforcer valida
+  el ARCHIVO del puntero, no el `#Símbolo` (stat del path recortado en `#`) — el texto
+  decía «archivo/símbolo real» y `cap_doctor.py` afirmaba «go test resuelve el símbolo»,
+  ambos overclaim; corregidos + deuda «R1 a nivel símbolo» registrada en BACKLOG.
 - 2026-07-09 · v1.0 · Nodo fundacional (HS-18, paquete `reorg-docs`). L1 = Living Documentation
   (BDD) + Business Capability Map (TOGAF). L2 = `CAPABILITIES.md` SSoT + reglas R1-R4. Nació
   `proposed`: 5 checks diferían honesto (enforcer pendiente).

@@ -30,7 +30,7 @@
   (Linux/WebKitGTK 4.1). Ruta a «app vendible» = aditiva (wrap del mismo daemon).
 
 ## As-code (enforcement)
-- `arch/` = 16 boundaries + `conventions/` = ~101 checks `enforced_by:` · `fitness/` go-arch-lint.
+- `docs/architecture/` = 18 boundaries (85 checks) + `conventions/` (26) = 111 checks `enforced_by:` · `fitness/` go-arch-lint. Conteo canónico vivo → [`INDEX.md`](./INDEX.md).
 - `docs/architecture/knowledge/` = estándar por elemento (12 nodos · 138 checks). Motor único `arnesia conformance`.
 - `docs/product/capabilities/` (árbol YAML por-cap + `INDEX.md`) = SSoT funcional (qué hace el sistema, punteros al código).
 - Cifras vivas GENERADAS → `docs/product/checkpoint.md`. Historia de decisiones de stack → `ledger/`.
