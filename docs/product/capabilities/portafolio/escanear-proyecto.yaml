@@ -19,6 +19,9 @@ nature: feature
 
 pointers:
   - "internal/domain/portafolio.go#TipoInstalacion"
+  - "internal/domain/portafolio.go#HallazgoInstalacion"
+  - "internal/adapters/portafolio/scanner.go#Scanner"
+  - "internal/adapters/portafolio/gitconfig.go#ResolverRemotesGit"
 valida: []
 
 dev_preview:
@@ -37,6 +40,11 @@ change_log:
     date: 2026-07-13
     type: new
     summary: "T1 — domain.TipoInstalacion (materializada|referenciada-cc|proyecto-instalado, S0-D2); el walker físico (scanner.go) llega en T4."
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice0-cimientos
+    date: 2026-07-13
+    type: extend
+    summary: "T4 — Scanner walker físico: 3 formas de instalación + lock DevStudio + cruce CC + git-plugin/git-proyecto + descenso monorepo acotado."
     merge_sha: null
 
 scenarios: []

@@ -236,6 +236,19 @@ type Canonico struct {
 	Version string `json:"version,omitempty"`
 }
 
+// HallazgoInstalacion es un hallazgo crudo del walker (D-DOM-3/6): el adapter
+// `portafolio.Scanner` lo emite, el usecase `PortafolioService` lo consume (cargar vía
+// loader → ResolverIdentidad/ResolverOrigen → persistir). Vive en domain (no en el
+// adapter ni en ports) para no duplicar la definición entre ambos lados del puerto.
+// Dir=="" es legal: una entrada de lock/CC declarada pero sin dir físico resoluble
+// (C-P-14) sigue siendo un hallazgo VISIBLE vía Aviso, solo que no cargable.
+type HallazgoInstalacion struct {
+	Dir       string          // dir a cargar con el loader (forma-plugin o raíz de proyecto); "" si no resoluble.
+	Tipo      TipoInstalacion // "" si Dir=="" (sin forma física que clasificar).
+	Eslabones []EslabonOrigen // crudos: lock-devstudio | cc-plugins | git-plugin | git-proyecto | no-legible.
+	Aviso     string          // C-P-5 no-reconocible · C-P-14 declarada-ausente · CC ilegible.
+}
+
 // EntradaPortafolio es 1 card por identidad (BR-1): empresas y registries son facetas
 // N:M, nunca dueños de la identidad.
 type EntradaPortafolio struct {

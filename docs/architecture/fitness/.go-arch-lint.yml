@@ -70,6 +70,8 @@ components:
     in: internal/adapters/loader/**
   selfupdate:
     in: internal/adapters/selfupdate/**
+  portafolio:
+    in: internal/adapters/portafolio/**
 
   # --- datos embebidos (go:embed) ---
   dogfood:
@@ -122,6 +124,9 @@ deps:
     canUse: [yaml]               # parsea el frontmatter fusionado de los SKILL.md (nomenclatura v1)
   selfupdate:
     mayDependOn: [domain, ports] # build/instalar/re-exec del binario (paquete boton-actualizar)
+  portafolio:
+    mayDependOn: [domain, ports] # walker + lock + deriva + store del Portafolio (Slice 0)
+    canUse: [yaml]               # parsea el lock DevStudio (.devstudio/arneses.yaml, S0-D4/D8)
 
   # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
@@ -129,4 +134,4 @@ deps:
 
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, dogfood, doctrina]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, dogfood, doctrina]
