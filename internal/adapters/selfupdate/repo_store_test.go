@@ -30,7 +30,7 @@ func TestRepoStore(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Guardar("/repo/uno"); err != nil {
+		if err = s.Guardar("/repo/uno"); err != nil {
 			t.Fatal(err)
 		}
 		// "reinicio" = una instancia NUEVA sobre el mismo archivo.
@@ -52,7 +52,7 @@ func TestRepoStore(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Guardar("/repo/dos"); err != nil {
+		if err = s.Guardar("/repo/dos"); err != nil {
 			t.Fatal(err)
 		}
 		got, err := s.Leer()

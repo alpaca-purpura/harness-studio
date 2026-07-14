@@ -106,7 +106,7 @@ func validarRepo(repo string) (string, error) {
 	if repo == "" {
 		return "", errors.New("repo no configurado (arranca el daemon con --repo o ARNESIA_REPO)")
 	}
-	gomod, err := os.ReadFile(filepath.Join(repo, "go.mod"))
+	gomod, err := os.ReadFile(filepath.Join(repo, "go.mod")) //nolint:gosec // G304: el repo lo configura el operador (--repo/ARNESIA_REPO/Ajustes) y esta función ES su validación.
 	if err != nil {
 		return "", fmt.Errorf("el repo configurado no es un árbol Go legible: %w", err)
 	}
