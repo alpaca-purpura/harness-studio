@@ -137,6 +137,12 @@ export const api = {
   // parámetros en el request (RF-106): repo y destino los conoce SOLO el daemon.
   selfUpdate: <T = unknown>() => req<T>("/api/self-update", { method: "POST" }),
 
+  // configurarRepo (RF-109, bugfix fix-repo-self-update) — ÚNICO endpoint que acepta
+  // un path: fija+persiste el repo del self-update cuando el daemon arrancó sin
+  // --repo/ARNESIA_REPO (instalación empaquetada). selfUpdate arriba sigue sin params.
+  configurarRepo: <T = unknown>(path: string) =>
+    req<T>("/api/self-update/repo", { method: "PUT", body: JSON.stringify({ path }) }),
+
   // registerArnes sets the working directory an arnés's sessions run claude in (S2).
   registerArnes: (id: string, path: string) =>
     req<{ arnes: string; path: string }>(`/api/arneses/${id}`, {

@@ -16,6 +16,14 @@ interface UpdateCardProps {
   /** error fuera del reporte: 409 en vuelo, red caída, timeout del polling (RF-105). */
   mensaje?: string | undefined
   onUpdate: () => void
+  /** abre el selector nativo de carpeta (bugfix fix-repo-self-update, RF-110) — SOLO
+   *  presente dentro de Tauri; ausente en browser plano (la página decide, la tarjeta
+   *  no sabe de plataforma). Sin esta prop el estado sinRepo queda IGUAL que antes. */
+  onElegirRepo?: (() => void) | undefined
+  /** el PUT /api/self-update/repo está en vuelo tras elegir carpeta. */
+  configurandoRepo?: boolean | undefined
+  /** motivo exacto de un PUT /api/self-update/repo rechazado (RF-109) — nunca un fallo mudo. */
+  repoConfigError?: string | undefined
 }
 
 // dotClass mapea el veredicto REAL del paso al dot del mockup (done/fail/doing).
@@ -59,6 +67,9 @@ export function UpdateCard({
   reporte,
   mensaje,
   onUpdate,
+  onElegirRepo,
+  configurandoRepo,
+  repoConfigError,
 }: UpdateCardProps) {
   const ocupado = estado === "actualizando" || estado === "reiniciando"
   const noEscribible = version !== null && !version.escribible
@@ -129,6 +140,22 @@ export function UpdateCard({
               )}
             </span>
           </div>
+          {sinRepo && onElegirRepo && (
+            <div className="uc-kv">
+              <span className="uc-k" />
+              <span className="uc-v">
+                <button
+                  type="button"
+                  className="uc-btn"
+                  disabled={configurandoRepo}
+                  onClick={onElegirRepo}
+                >
+                  {configurandoRepo ? "Configurando…" : "Elegir carpeta…"}
+                </button>
+              </span>
+            </div>
+          )}
+          {repoConfigError && <p className="uc-critbox">{repoConfigError}</p>}
         </>
       )}
 

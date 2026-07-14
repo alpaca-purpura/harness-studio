@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -34,8 +35,12 @@ const colaDetalle = 1600
 // path captured at construction time (decisión #8: tras el rename, /proc/self/exe
 // reporta «(deleted)» — leerlo tarde re-ejecutaría una ruta que ya no existe).
 type Updater struct {
-	repo    string
 	exePath string
+
+	// mu guarda repo: ConfigurarRepo (bugfix fix-repo-self-update, RF-109) lo fija en
+	// caliente mientras Version/Verificar/Build pueden estar leyéndolo concurrentemente.
+	mu   sync.RWMutex
+	repo string
 }
 
 // New returns an Updater for the daemon binary now running. repo may be empty (sin
@@ -55,7 +60,7 @@ func (u *Updater) Version() ports.VersionInfo {
 	v := ports.VersionInfo{
 		Huella:      "dev",
 		InstaladoEn: u.exePath,
-		Repo:        u.repo,
+		Repo:        u.repoAtual(),
 		Escribible:  dirEscribible(filepath.Dir(u.exePath)),
 	}
 	if bi, ok := debug.ReadBuildInfo(); ok {
@@ -67,17 +72,48 @@ func (u *Updater) Version() ports.VersionInfo {
 // Verificar valida el terreno (paso ①): repo presente y del módulo esperado, script de
 // build presente, toolchain (go · pnpm) resoluble en PATH.
 func (u *Updater) Verificar(_ context.Context) (string, error) {
-	if u.repo == "" {
+	return validarRepo(u.repoAtual())
+}
+
+// ConfigurarRepo valida path (mismas reglas que Verificar, corriendo SOBRE el
+// candidato — no sobre u.repo) y, si pasa, lo fija como repo activo (bugfix
+// fix-repo-self-update, RF-109). No persiste — eso es responsabilidad del usecase vía
+// ports.RepoConfigStore.
+func (u *Updater) ConfigurarRepo(_ context.Context, path string) (string, error) {
+	detalle, err := validarRepo(path)
+	if err != nil {
+		return "", err
+	}
+	u.mu.Lock()
+	u.repo = path
+	u.mu.Unlock()
+	return detalle, nil
+}
+
+// repoAtual devuelve el repo activo bajo lock de lectura (ConfigurarRepo puede
+// cambiarlo concurrentemente con Version/Verificar/Build/binNuevo).
+func (u *Updater) repoAtual() string {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+	return u.repo
+}
+
+// validarRepo es el terreno del paso ① (RF-104), factorizado para que Verificar (sobre
+// el repo YA activo) y ConfigurarRepo (sobre un candidato AÚN no activo) compartan
+// exactamente las mismas reglas — un path que no pasa esto tampoco debería poder
+// guardarse como «el repo configurado» (decisión #5 del bugfix fix-repo-self-update).
+func validarRepo(repo string) (string, error) {
+	if repo == "" {
 		return "", errors.New("repo no configurado (arranca el daemon con --repo o ARNESIA_REPO)")
 	}
-	gomod, err := os.ReadFile(filepath.Join(u.repo, "go.mod"))
+	gomod, err := os.ReadFile(filepath.Join(repo, "go.mod"))
 	if err != nil {
 		return "", fmt.Errorf("el repo configurado no es un árbol Go legible: %w", err)
 	}
 	if !strings.Contains(string(gomod), moduloEsperado) {
-		return "", fmt.Errorf("%s/go.mod no es el módulo esperado (%s)", u.repo, moduloEsperado)
+		return "", fmt.Errorf("%s/go.mod no es el módulo esperado (%s)", repo, moduloEsperado)
 	}
-	if _, err := os.Stat(filepath.Join(u.repo, "scripts", "bundle.sh")); err != nil {
+	if _, err := os.Stat(filepath.Join(repo, "scripts", "bundle.sh")); err != nil {
 		return "", fmt.Errorf("el repo no trae scripts/bundle.sh: %w", err)
 	}
 	for _, tool := range []string{"go", "pnpm", "bash"} {
@@ -85,7 +121,7 @@ func (u *Updater) Verificar(_ context.Context) (string, error) {
 			return "", fmt.Errorf("toolchain incompleta: %q no está en PATH (feature de operador-dev)", tool)
 		}
 	}
-	return fmt.Sprintf("repo %s · módulo esperado · go/pnpm/bash presentes", u.repo), nil
+	return fmt.Sprintf("repo %s · módulo esperado · go/pnpm/bash presentes", repo), nil
 }
 
 // Build compila el árbol local (paso ②): scripts/bundle.sh --daemon-only con cwd=repo,
@@ -94,7 +130,7 @@ func (u *Updater) Build(ctx context.Context) (string, error) {
 	//nolint:gosec // G204: es EL diseño (RF-104 ②): correr el bundle.sh del repo CONFIGURADO
 	// al daemon (flag/env, jamás del request — RF-106); Verificar ya ancló el árbol al módulo esperado.
 	cmd := exec.CommandContext(ctx, "bash", filepath.Join("scripts", "bundle.sh"), "--daemon-only")
-	cmd.Dir = u.repo
+	cmd.Dir = u.repoAtual()
 	// La cancelación mata el GRUPO entero (bash + go/pnpm/vite hijos): matar solo a
 	// bash dejaría a los hijos corriendo Y sosteniendo el pipe (CombinedOutput jamás
 	// retornaría). WaitDelay corta el pipe si algún nieto sobrevive al SIGKILL.
@@ -169,7 +205,7 @@ func (u *Updater) Reiniciar() error {
 }
 
 func (u *Updater) binNuevo() string {
-	return filepath.Join(u.repo, "bin", "arnesia")
+	return filepath.Join(u.repoAtual(), "bin", "arnesia")
 }
 
 // huellaDeSettings extrae (huella, fecha, sucio) de los settings del buildinfo:

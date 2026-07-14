@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -27,6 +28,36 @@ type versionBody struct {
 	Escribible  bool   `json:"escribible"`
 	Repo        string `json:"repo"`
 	Sucio       bool   `json:"sucio"`
+}
+
+// repoConfigBody es el wire-format de PUT /api/self-update/repo (RF-109, bugfix
+// fix-repo-self-update) — ÚNICO endpoint que acepta un path del request; el disparador
+// POST /api/self-update sigue con cero parámetros (RF-106 intacto).
+type repoConfigBody struct {
+	Path string `json:"path"`
+}
+
+// putSelfUpdateRepo — PUT /api/self-update/repo: valida path (mismas reglas del paso
+// Verificar) y, solo si pasa, lo fija en caliente + persiste (RF-108/109). Un path
+// inválido responde 400 con el motivo exacto — no persiste, no toca el repo activo.
+func putSelfUpdateRepo(updates *usecase.SelfUpdateService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body repoConfigBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "body inválido: " + err.Error()})
+			return
+		}
+		if body.Path == "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "path requerido"})
+			return
+		}
+		detalle, err := updates.ConfigurarRepo(r.Context(), body.Path)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"detalle": detalle})
+	}
 }
 
 // getVersion — GET /api/version: la fuente de RF-101 y del polling del reinicio

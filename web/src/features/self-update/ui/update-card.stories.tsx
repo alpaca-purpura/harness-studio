@@ -147,6 +147,43 @@ export const SinRepo: Story = {
   },
 }
 
+// RF-110 (bugfix fix-repo-self-update) — sin repo DENTRO de Tauri: gana el botón
+// «Elegir carpeta…» (la página solo pasa onElegirRepo cuando isTauri()).
+export const SinRepoConSelectorNativo: Story = {
+  args: { version: { ...versionOk, repo: "" }, onElegirRepo: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const btn = c.getByRole("button", { name: "Elegir carpeta…" })
+    await expect(btn).toBeEnabled()
+    await btn.click()
+    await expect(args.onElegirRepo).toHaveBeenCalled()
+  },
+}
+
+// RF-110 — configurando (PUT en vuelo): botón del picker bloqueado, texto «Configurando…».
+export const ConfigurandoRepo: Story = {
+  args: { version: { ...versionOk, repo: "" }, onElegirRepo: fn(), configurandoRepo: true },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("button", { name: "Configurando…" })).toBeDisabled()
+  },
+}
+
+// RF-109 — candidato inválido: el motivo exacto del servidor, nunca un fallo mudo.
+export const RepoConfigInvalido: Story = {
+  args: {
+    version: { ...versionOk, repo: "" },
+    onElegirRepo: fn(),
+    repoConfigError:
+      "el repo configurado no es un árbol Go legible: open /tmp/go.mod: no such file or directory",
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/árbol Go legible/)).toBeInTheDocument()
+    await expect(c.getByRole("button", { name: "Elegir carpeta…" })).toBeEnabled()
+  },
+}
+
 // RF-105 — reiniciando: checklist real con reiniciar «en curso», botón bloqueado,
 // nota del polling.
 export const Reiniciando: Story = {

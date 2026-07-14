@@ -24,6 +24,7 @@ export {
 } from "./api"
 export { type TokenName, tokens } from "./config/tokens"
 export { cn } from "./lib/cn"
+export { isTauri } from "./lib/platform"
 export { bindHashState, type Theme, useAppStore } from "./store/app-store"
 export {
   selectActive,

@@ -13,11 +13,19 @@ pointers:
   - "internal/adapters/selfupdate/updater.go#Build"
   - "internal/adapters/selfupdate/updater.go#Instalar"
   - "internal/adapters/selfupdate/updater.go#Reiniciar"
+  - "internal/usecase/selfupdate_service.go#ConfigurarRepo"
+  - "internal/adapters/selfupdate/updater.go#ConfigurarRepo"
+  - "internal/adapters/selfupdate/repo_store.go#RepoStore"
 valida:
   - "internal/usecase/selfupdate_service_test.go"
   - "updater_test.go"
-scenarios: []
-business_rules: []
+  - "repo_store_test.go"
+scenarios:
+  - "Instalación empaquetada sin --repo/ARNESIA_REPO: configurar un repo válido vía PUT /api/self-update/repo lo fija en caliente y lo persiste en ~/.arnesia/self-update.json"
+  - "Un candidato inválido (módulo ajeno, sin bundle.sh, toolchain incompleta) se rechaza con el motivo exacto — NO persiste, NO toca el repo activo"
+  - "Al reiniciar sin flag/env, el daemon relee el repo persistido (precedencia: --repo/ARNESIA_REPO > persistido > vacío)"
+business_rules:
+  - "RF-108/109 (bugfix fix-repo-self-update, 2026-07-13): configurar el repo es una acción SEPARADA de dispararlo — POST /api/self-update sigue ignorando el body por completo (RF-106 intacto)"
 related_capabilities:
   depends_on: []
   enables: []

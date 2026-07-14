@@ -46,4 +46,20 @@ type SelfUpdater interface {
 	// Reiniciar re-ejecuta el daemon (mismo path, mismos args) — paso ⑤; el transport
 	// lo agenda POST-respuesta.
 	Reiniciar() error
+	// ConfigurarRepo valida path con las MISMAS reglas que Verificar (repo existe · es
+	// el módulo esperado · trae scripts/bundle.sh · toolchain en PATH) y, solo si pasa,
+	// lo fija como repo activo EN CALIENTE (bugfix fix-repo-self-update, RF-109). No
+	// persiste — la persistencia vive en RepoConfigStore, responsabilidad del usecase.
+	ConfigurarRepo(ctx context.Context, path string) (detalle string, err error)
+}
+
+// RepoConfigStore persiste el path del repo configurado vía UI cuando el daemon
+// arrancó sin --repo/ARNESIA_REPO (bugfix fix-repo-self-update, RF-108). Vive aparte
+// del puerto SelfUpdater porque es persistencia, no mecánica de update — mismo patrón
+// que ports.PortafolioStore.
+type RepoConfigStore interface {
+	// Leer devuelve el path persistido, o "" si nunca se configuró nada.
+	Leer() (path string, err error)
+	// Guardar persiste path (escritura atómica); reemplaza cualquier valor previo.
+	Guardar(path string) error
 }

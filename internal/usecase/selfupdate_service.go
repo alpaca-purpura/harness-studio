@@ -69,13 +69,16 @@ type SelfUpdateReport struct {
 // update a la vez (RF-106). La regla «ya al día» (huella nueva == corriente → éxito
 // sin reinstalar) vive aquí — es negocio, no mecánica del adapter.
 type SelfUpdateService struct {
-	updater ports.SelfUpdater
-	mu      sync.Mutex
+	updater   ports.SelfUpdater
+	repoStore ports.RepoConfigStore // nil = sin persistencia (dev/tests); ver ConfigurarRepo.
+	mu        sync.Mutex
 }
 
-// NewSelfUpdateService returns a SelfUpdateService over the SelfUpdater port.
-func NewSelfUpdateService(updater ports.SelfUpdater) *SelfUpdateService {
-	return &SelfUpdateService{updater: updater}
+// NewSelfUpdateService returns a SelfUpdateService over the SelfUpdater port. repoStore
+// puede ser nil (dev/tests sin persistencia) — ConfigurarRepo entonces fija el repo en
+// caliente sin sobrevivir a un reinicio.
+func NewSelfUpdateService(updater ports.SelfUpdater, repoStore ports.RepoConfigStore) *SelfUpdateService {
+	return &SelfUpdateService{updater: updater, repoStore: repoStore}
 }
 
 // Version reporta la identidad del binario corriendo (RF-107) — passthrough al puerto.
@@ -84,6 +87,23 @@ func (s *SelfUpdateService) Version() ports.VersionInfo { return s.updater.Versi
 // Reiniciar re-ejecuta el daemon (paso ⑤). El transporte lo agenda POST-respuesta
 // (RF-105): jamás dentro de Actualizar, que debe responder primero.
 func (s *SelfUpdateService) Reiniciar() error { return s.updater.Reiniciar() }
+
+// ConfigurarRepo valida y fija el repo activo (bugfix fix-repo-self-update, RF-109):
+// delega la validación al puerto (las MISMAS reglas de Verificar) y, solo si pasa,
+// persiste vía repoStore. Un path inválido no persiste ni activa nada — el error del
+// puerto viaja tal cual (el transporte lo mapea a 400).
+func (s *SelfUpdateService) ConfigurarRepo(ctx context.Context, path string) (string, error) {
+	detalle, err := s.updater.ConfigurarRepo(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	if s.repoStore != nil {
+		if serr := s.repoStore.Guardar(path); serr != nil {
+			return "", fmt.Errorf("repo válido pero no se pudo persistir (sobrevive esta sesión, no un reinicio): %w", serr)
+		}
+	}
+	return detalle, nil
+}
 
 // Actualizar corre el flujo completo (RF-104). Devuelve error SOLO cuando el flujo no
 // pudo NI empezar (ErrActualizacionEnCurso → 409 · ErrNoActualizable → 503); un paso

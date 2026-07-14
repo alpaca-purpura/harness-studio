@@ -59,6 +59,10 @@ pub fn run() {
             // (ojo bug single-instance+deep-link tauri#12726).
         }))
         .plugin(tauri_plugin_shell::init())
+        // Selector nativo de carpeta (bugfix fix-repo-self-update, RF-110): gesto real
+        // de OS para configurar el repo del self-update — no scriptable por contenido
+        // web/XSS de la SPA (decisión #3 del paquete).
+        .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             // Ventana programática (no en tauri.conf.json): el initialization_script se fija
             // al construir y el token se mintea en runtime. El script corre en CADA documento

@@ -150,6 +150,56 @@ func TestVerificar(t *testing.T) {
 	})
 }
 
+// TestConfigurarRepo (bugfix fix-repo-self-update, RF-109): mismas reglas que
+// Verificar, mas corriendo sobre un CANDIDATO — nunca sobre u.repo hasta que pasa.
+func TestConfigurarRepo(t *testing.T) {
+	ctx := context.Background()
+	stubs := t.TempDir()
+	for _, tool := range []string{"go", "pnpm", "bash"} {
+		escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
+	}
+	t.Setenv("PATH", stubs+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	t.Run("candidato valido activa el repo", func(t *testing.T) {
+		u := &Updater{}
+		candidato := repoFake(t, "")
+		detalle, err := u.ConfigurarRepo(ctx, candidato)
+		if err != nil {
+			t.Fatalf("candidato válido debe pasar: %v", err)
+		}
+		if !strings.Contains(detalle, "módulo esperado") {
+			t.Fatalf("detalle sin sustancia: %q", detalle)
+		}
+		if got := u.repoAtual(); got != candidato {
+			t.Fatalf("repo activo = %q, quiero %q", got, candidato)
+		}
+	})
+
+	t.Run("candidato invalido NO toca el repo activo", func(t *testing.T) {
+		activo := repoFake(t, "")
+		u := &Updater{repo: activo}
+		invalido := t.TempDir() // sin go.mod: falla validarRepo.
+		if _, err := u.ConfigurarRepo(ctx, invalido); err == nil {
+			t.Fatal("un dir sin go.mod debe rechazarse")
+		}
+		if got := u.repoAtual(); got != activo {
+			t.Fatalf("un candidato inválido NO debe mover el repo activo: tengo %q, quiero %q", got, activo)
+		}
+	})
+
+	t.Run("modulo ajeno rechazado", func(t *testing.T) {
+		u := &Updater{}
+		dir := t.TempDir()
+		escribe(t, filepath.Join(dir, "go.mod"), "module github.com/otra/cosa\n", 0o600)
+		if _, err := u.ConfigurarRepo(ctx, dir); err == nil {
+			t.Fatal("módulo ajeno debe rechazarse igual que Verificar (decisión #4c)")
+		}
+		if got := u.repoAtual(); got != "" {
+			t.Fatalf("repo activo debe seguir vacío, tengo %q", got)
+		}
+	})
+}
+
 func TestBuildStubOK(t *testing.T) {
 	repo := repoFake(t, "#!/usr/bin/env bash\nmkdir -p bin\necho compilado > bin/arnesia\n")
 	u := &Updater{repo: repo}

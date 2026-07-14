@@ -7,7 +7,10 @@ info:
   # RF-104..107 — self-update sin sudo del binario instalado).
   # 0.4.0-hs22: + GET /portafolio · POST /portafolio/escaneos · POST /portafolio/proyectos
   # · DELETE /portafolio/arneses/{clave} (Portafolio de arneses, Slice 0 — S0-D9).
-  version: 0.4.0-hs22
+  # 0.5.0-fix-repo-self-update: + PUT /self-update/repo (bugfix 2026-07-13, RF-108/109
+  # — configura el repo del self-update cuando el daemon arrancó sin --repo/ARNESIA_REPO;
+  # ÚNICO endpoint que acepta un path, separado del disparador POST /self-update).
+  version: 0.5.0-fix-repo-self-update
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -160,6 +163,32 @@ paths:
               schema: { $ref: "#/components/schemas/SelfUpdateReport" }
         "409": { description: Ya hay un self-update en curso (o el daemon está por reiniciar — el lock se retiene tras «actualizado»). }
         "503": { description: "No puede NI empezar: binario no escribible (RF-102) o repo no configurado (RF-103) — el cuerpo dice cuál." }
+
+  /self-update/repo:
+    put:
+      operationId: configurarSelfUpdateRepo
+      summary: >-
+        Configura el repo del self-update (RF-108/109, bugfix fix-repo-self-update
+        2026-07-13) — para una instalación empaquetada (Tauri/.deb) cuyo daemon arrancó
+        sin --repo/ARNESIA_REPO. ÚNICO endpoint que acepta un path del request; POST
+        /self-update arriba sigue ignorando el body por completo (RF-106 intacto: se
+        separa CONFIGURAR de DISPARAR). Valida con las MISMAS reglas del paso ①
+        Verificar (repo existe · go.mod es el módulo esperado · scripts/bundle.sh ·
+        toolchain go/pnpm/bash en PATH) ANTES de fijar/persistir; un path inválido
+        responde 400 sin tocar el repo activo ni el store (~/.arnesia/self-update.json).
+        Precedencia al boot: --repo/ARNESIA_REPO > persistido > vacío.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [path], properties: { path: { type: string } } }
+      responses:
+        "200":
+          description: Repo válido — fijado en caliente y persistido.
+          content:
+            application/json:
+              schema: { type: object, properties: { detalle: { type: string } } }
+        "400": { description: "Path vacío, o candidato inválido (motivo exacto de Verificar) — no persiste, no toca el repo activo." }
 
   /arneses:
     get:

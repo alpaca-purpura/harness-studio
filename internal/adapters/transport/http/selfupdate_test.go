@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -35,12 +36,15 @@ func (f *tuercaFake) VerificarBinario(context.Context) (string, string, error) {
 }
 func (f *tuercaFake) Instalar(context.Context) (string, error) { return "ok", nil }
 func (f *tuercaFake) Reiniciar() error                         { return nil }
+func (f *tuercaFake) ConfigurarRepo(context.Context, string) (string, error) {
+	return "ok", nil
+}
 
 func TestGetVersionWire(t *testing.T) {
 	svc := usecase.NewSelfUpdateService(&tuercaFake{version: ports.VersionInfo{
 		Huella: "1c7443f", Fecha: "2026-07-07", InstaladoEn: "/home/x/.local/bin/arnesia",
 		Repo: "/repo", Escribible: true,
-	}})
+	}}, nil)
 	w := httptest.NewRecorder()
 	getVersion(svc)(w, httptest.NewRequestWithContext(context.Background(), "GET", "/api/version", nil))
 	if w.Code != 200 {
@@ -65,7 +69,7 @@ func TestPostSelfUpdateIgnoraParametrosDelRequest(t *testing.T) {
 	f := &tuercaFake{version: ports.VersionInfo{
 		Huella: "aaaaaaa", Repo: "/repo-configurado", Escribible: true, InstaladoEn: "/x",
 	}, huella: "bbbbbbb"}
-	svc := usecase.NewSelfUpdateService(f)
+	svc := usecase.NewSelfUpdateService(f, nil)
 	// Un request hostil manda rutas: NO viajan a ningún lado (RF-106: cero params).
 	r := httptest.NewRequestWithContext(context.Background(), "POST", "/api/self-update", strings.NewReader(`{"repo":"/tmp/evil"}`))
 	w := httptest.NewRecorder()
@@ -87,7 +91,7 @@ func TestPostSelfUpdateIgnoraParametrosDelRequest(t *testing.T) {
 
 func TestPostSelfUpdate409EnVuelo(t *testing.T) {
 	f := &tuercaFake{version: ports.VersionInfo{Huella: "aaaaaaa", Repo: "/r", Escribible: true, InstaladoEn: "/x"}, huella: "bbbbbbb"}
-	svc := usecase.NewSelfUpdateService(f)
+	svc := usecase.NewSelfUpdateService(f, nil)
 	// Primer update termina «actualizado» → lock retenido (decisión #9) → segundo = 409.
 	w1 := httptest.NewRecorder()
 	postSelfUpdate(svc)(w1, httptest.NewRequestWithContext(context.Background(), "POST", "/api/self-update", nil))
@@ -101,13 +105,71 @@ func TestPostSelfUpdate409EnVuelo(t *testing.T) {
 	}
 }
 
+// tuercaConfigurable extiende tuercaFake con ConfigurarRepo programable (bugfix
+// fix-repo-self-update, RF-109) para probar el wire de PUT /api/self-update/repo.
+type tuercaConfigurable struct {
+	tuercaFake
+	configurarErr error
+	pathRecibido  string
+}
+
+func (f *tuercaConfigurable) ConfigurarRepo(_ context.Context, path string) (string, error) {
+	f.pathRecibido = path
+	if f.configurarErr != nil {
+		return "", f.configurarErr
+	}
+	return "repo válido", nil
+}
+
+func TestPutSelfUpdateRepoValido(t *testing.T) {
+	f := &tuercaConfigurable{}
+	svc := usecase.NewSelfUpdateService(f, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "PUT", "/api/self-update/repo", strings.NewReader(`{"path":"/repo/candidato"}`))
+	w := httptest.NewRecorder()
+	putSelfUpdateRepo(svc)(w, r)
+	if w.Code != 200 {
+		t.Fatalf("status %d: %s", w.Code, w.Body)
+	}
+	if f.pathRecibido != "/repo/candidato" {
+		t.Fatalf("el path del body debe llegar EXACTO al puerto, tengo %q", f.pathRecibido)
+	}
+}
+
+func TestPutSelfUpdateRepoInvalido400(t *testing.T) {
+	f := &tuercaConfigurable{configurarErr: errors.New("módulo ajeno")}
+	svc := usecase.NewSelfUpdateService(f, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "PUT", "/api/self-update/repo", strings.NewReader(`{"path":"/repo/malo"}`))
+	w := httptest.NewRecorder()
+	putSelfUpdateRepo(svc)(w, r)
+	if w.Code != 400 {
+		t.Fatalf("status %d, quiero 400 (cuerpo %s)", w.Code, w.Body)
+	}
+	if !strings.Contains(w.Body.String(), "módulo ajeno") {
+		t.Fatalf("el 400 debe llevar el motivo exacto: %s", w.Body)
+	}
+}
+
+func TestPutSelfUpdateRepoSinPath400(t *testing.T) {
+	f := &tuercaConfigurable{}
+	svc := usecase.NewSelfUpdateService(f, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "PUT", "/api/self-update/repo", strings.NewReader(`{}`))
+	w := httptest.NewRecorder()
+	putSelfUpdateRepo(svc)(w, r)
+	if w.Code != 400 {
+		t.Fatalf("status %d, quiero 400 (path vacío)", w.Code)
+	}
+	if f.pathRecibido != "" {
+		t.Fatal("sin path el puerto NUNCA debe llamarse")
+	}
+}
+
 func TestPostSelfUpdate503NoActualizable(t *testing.T) {
 	casos := []ports.VersionInfo{
 		{Huella: "a", Repo: "/r", Escribible: false, InstaladoEn: "/usr/bin/arnesia"}, // RF-102
 		{Huella: "a", Repo: "", Escribible: true, InstaladoEn: "/x"},                  // RF-103
 	}
 	for _, v := range casos {
-		svc := usecase.NewSelfUpdateService(&tuercaFake{version: v})
+		svc := usecase.NewSelfUpdateService(&tuercaFake{version: v}, nil)
 		w := httptest.NewRecorder()
 		postSelfUpdate(svc)(w, httptest.NewRequestWithContext(context.Background(), "POST", "/api/self-update", nil))
 		if w.Code != 503 {

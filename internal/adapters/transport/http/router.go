@@ -49,6 +49,10 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	// todo /api/* (RF-106); el POST no acepta parámetros — cero rutas del request.
 	mux.HandleFunc("GET /api/version", getVersion(updates))
 	mux.HandleFunc("POST /api/self-update", postSelfUpdate(updates))
+	// PUT /api/self-update/repo (RF-108/109, bugfix fix-repo-self-update): ÚNICO
+	// endpoint que acepta un path — configura, no dispara; POST /api/self-update arriba
+	// sigue sin parámetros.
+	mux.HandleFunc("PUT /api/self-update/repo", putSelfUpdateRepo(updates))
 
 	// Portfolio / Map / Inspector / Runs (S1–S3, S8).
 	mux.HandleFunc("GET /api/harnesses", listHarnesses(maps))

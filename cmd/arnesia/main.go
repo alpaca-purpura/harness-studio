@@ -221,11 +221,27 @@ func runServe(args []string) error {
 
 	// Self-update sin sudo (paquete boton-actualizar): el repo llega por flag/env —
 	// JAMÁS del request (RF-106); sin repo la tarjeta lo dice y el botón queda disabled.
-	updater, err := selfupdate.New(*repo)
+	// Bugfix fix-repo-self-update (RF-108): si no vino por flag/env, se intenta el
+	// último configurado vía UI (persistido en ~/.arnesia/self-update.json) — así una
+	// instalación empaquetada (Tauri/.deb, sin --repo en su sidecar) puede actualizar
+	// tras configurarlo UNA vez desde Ajustes, sin volver a tocar CLI.
+	repoStore, err := selfupdate.NewRepoStore("")
+	if err != nil {
+		return fmt.Errorf("self-update: repo store: %w", err)
+	}
+	repoInicial := *repo
+	if repoInicial == "" {
+		if persistido, perr := repoStore.Leer(); perr == nil {
+			repoInicial = persistido
+		} else {
+			slog.Warn("self-update: repo store ilegible al boot — arranca sin repo", "err", perr)
+		}
+	}
+	updater, err := selfupdate.New(repoInicial)
 	if err != nil {
 		return fmt.Errorf("self-update: %w", err)
 	}
-	updSvc := usecase.NewSelfUpdateService(updater)
+	updSvc := usecase.NewSelfUpdateService(updater, repoStore)
 
 	// Portafolio de arneses (Slice 0, HS-22): store separado de arneses.json (A1) + walker
 	// físico READ-ONLY + evaluador de deriva local + wrapper del loader real. Mismo wiring

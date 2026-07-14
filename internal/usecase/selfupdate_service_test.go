@@ -16,12 +16,13 @@ type fakeUpdater struct {
 	mu       sync.Mutex
 	llamadas []string
 
-	version      ports.VersionInfo
-	verificarErr error
-	buildErr     error
-	verBinErr    error
-	instalarErr  error
-	huellaNueva  string
+	version           ports.VersionInfo
+	verificarErr      error
+	buildErr          error
+	verBinErr         error
+	instalarErr       error
+	configurarRepoErr error
+	huellaNueva       string
 	// buildEmpezo/buildSigue permiten congelar el flujo DENTRO del build para probar
 	// el 409 concurrente de verdad (no por timing).
 	buildEmpezo chan struct{}
@@ -68,6 +69,30 @@ func (f *fakeUpdater) Reiniciar() error {
 	return nil
 }
 
+func (f *fakeUpdater) ConfigurarRepo(context.Context, string) (string, error) {
+	f.marca("configurar-repo")
+	if f.configurarRepoErr != nil {
+		return "", f.configurarRepoErr
+	}
+	return "ok", nil
+}
+
+// fakeRepoStore implementa ports.RepoConfigStore en memoria — prueba que el usecase
+// persiste SOLO cuando el puerto validó (bugfix fix-repo-self-update, RF-108/109).
+type fakeRepoStore struct {
+	guardado   string
+	guardarErr error
+}
+
+func (f *fakeRepoStore) Leer() (string, error) { return f.guardado, nil }
+func (f *fakeRepoStore) Guardar(path string) error {
+	if f.guardarErr != nil {
+		return f.guardarErr
+	}
+	f.guardado = path
+	return nil
+}
+
 func actualizable(huellaNueva string) *fakeUpdater {
 	return &fakeUpdater{
 		version:     ports.VersionInfo{Huella: "aaaaaaa", InstaladoEn: "/x/arnesia", Repo: "/repo", Escribible: true},
@@ -89,7 +114,7 @@ func estadosPorPaso(t *testing.T, rep SelfUpdateReport) map[string]string {
 
 func TestActualizarCaminoFeliz(t *testing.T) {
 	f := actualizable("bbbbbbb")
-	s := NewSelfUpdateService(f)
+	s := NewSelfUpdateService(f, nil)
 	rep, err := s.Actualizar(context.Background())
 	if err != nil {
 		t.Fatalf("camino feliz: %v", err)
@@ -111,7 +136,7 @@ func TestActualizarCaminoFeliz(t *testing.T) {
 func TestCorteAlPrimerFallo(t *testing.T) {
 	f := actualizable("bbbbbbb")
 	f.buildErr = errors.New("exit 1")
-	s := NewSelfUpdateService(f)
+	s := NewSelfUpdateService(f, nil)
 	rep, err := s.Actualizar(context.Background())
 	if err != nil {
 		t.Fatalf("un paso fallido es desenlace normal (200), no error: %v", err)
@@ -143,7 +168,7 @@ func TestCorteAlPrimerFallo(t *testing.T) {
 
 func TestYaAlDia(t *testing.T) {
 	f := actualizable("aaaaaaa") // misma huella que el binario corriendo.
-	s := NewSelfUpdateService(f)
+	s := NewSelfUpdateService(f, nil)
 	rep, err := s.Actualizar(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +195,7 @@ func TestNoActualizable(t *testing.T) {
 	t.Run("no escribible", func(t *testing.T) {
 		f := actualizable("bbbbbbb")
 		f.version.Escribible = false
-		s := NewSelfUpdateService(f)
+		s := NewSelfUpdateService(f, nil)
 		if _, err := s.Actualizar(context.Background()); !errors.Is(err, ErrNoActualizable) {
 			t.Fatalf("quiero ErrNoActualizable, tengo %v", err)
 		}
@@ -181,7 +206,7 @@ func TestNoActualizable(t *testing.T) {
 	t.Run("sin repo", func(t *testing.T) {
 		f := actualizable("bbbbbbb")
 		f.version.Repo = ""
-		s := NewSelfUpdateService(f)
+		s := NewSelfUpdateService(f, nil)
 		if _, err := s.Actualizar(context.Background()); !errors.Is(err, ErrNoActualizable) {
 			t.Fatalf("quiero ErrNoActualizable, tengo %v", err)
 		}
@@ -197,7 +222,7 @@ func Test409Concurrente(t *testing.T) {
 	f := actualizable("bbbbbbb")
 	f.buildEmpezo = make(chan struct{})
 	f.buildSigue = make(chan struct{})
-	s := NewSelfUpdateService(f)
+	s := NewSelfUpdateService(f, nil)
 
 	done := make(chan SelfUpdateReport, 1)
 	go func() {
@@ -215,9 +240,59 @@ func Test409Concurrente(t *testing.T) {
 	}
 }
 
+// TestConfigurarRepo (bugfix fix-repo-self-update, RF-109): el usecase delega la
+// validación al puerto y persiste SOLO si el puerto no erroró.
+func TestConfigurarRepo(t *testing.T) {
+	t.Run("valido: delega al updater y persiste", func(t *testing.T) {
+		f := actualizable("bbbbbbb")
+		store := &fakeRepoStore{}
+		s := NewSelfUpdateService(f, store)
+		detalle, err := s.ConfigurarRepo(context.Background(), "/repo/candidato")
+		if err != nil {
+			t.Fatalf("candidato válido: %v", err)
+		}
+		if detalle != "ok" {
+			t.Fatalf("detalle = %q, quiero el del fake", detalle)
+		}
+		if store.guardado != "/repo/candidato" {
+			t.Fatalf("no persistió: guardado=%q", store.guardado)
+		}
+	})
+
+	t.Run("invalido: NO persiste", func(t *testing.T) {
+		f := actualizable("bbbbbbb")
+		f.configurarRepoErr = errors.New("módulo ajeno")
+		store := &fakeRepoStore{}
+		s := NewSelfUpdateService(f, store)
+		if _, err := s.ConfigurarRepo(context.Background(), "/repo/malo"); err == nil {
+			t.Fatal("candidato inválido debe propagar el error del puerto")
+		}
+		if store.guardado != "" {
+			t.Fatalf("un candidato inválido NUNCA debe persistir, tengo %q", store.guardado)
+		}
+	})
+
+	t.Run("repoStore nil: fija sin persistir, no crashea", func(t *testing.T) {
+		f := actualizable("bbbbbbb")
+		s := NewSelfUpdateService(f, nil)
+		if _, err := s.ConfigurarRepo(context.Background(), "/repo/candidato"); err != nil {
+			t.Fatalf("repoStore nil debe ser válido (dev/tests sin persistencia): %v", err)
+		}
+	})
+
+	t.Run("persistencia falla: el error viaja, el candidato SÍ pasó la validación", func(t *testing.T) {
+		f := actualizable("bbbbbbb")
+		store := &fakeRepoStore{guardarErr: errors.New("disco lleno")}
+		s := NewSelfUpdateService(f, store)
+		if _, err := s.ConfigurarRepo(context.Background(), "/repo/candidato"); err == nil {
+			t.Fatal("un fallo de persistencia debe reportarse, no tragarse en silencio")
+		}
+	})
+}
+
 func TestLockRetenidoTrasActualizado(t *testing.T) {
 	f := actualizable("bbbbbbb")
-	s := NewSelfUpdateService(f)
+	s := NewSelfUpdateService(f, nil)
 	rep, err := s.Actualizar(context.Background())
 	if err != nil || rep.Resultado != ResultadoActualizado {
 		t.Fatalf("setup: %v %q", err, rep.Resultado)

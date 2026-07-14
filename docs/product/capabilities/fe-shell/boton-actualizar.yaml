@@ -10,10 +10,17 @@ module: fe-shell
 verb: mejorar
 pointers:
   - "web/src/features/self-update/ui/update-card.tsx#UpdateCard"
+  - "web/src/pages/shell/ui/global-view.tsx#AjustesView"
+  - "web/src/shared/lib/platform.ts#isTauri"
 valida:
   - "web/src/features/self-update/ui/update-card.stories.tsx"
-scenarios: []
-business_rules: []
+scenarios:
+  - "Estado sinRepo DENTRO de Tauri: la tarjeta gana el botón «Elegir carpeta…» (isTauri() gatea la prop onElegirRepo)"
+  - "Elegir carpeta con el diálogo nativo dispara PUT /api/self-update/repo y refresca GET /api/version al confirmar"
+  - "Un candidato rechazado por el servidor muestra el motivo exacto inline (repoConfigError), nunca un fallo mudo"
+  - "En browser plano (sin Tauri) el botón no existe — el mensaje sigue apuntando a --repo/ARNESIA_REPO"
+business_rules:
+  - "RF-110 (bugfix fix-repo-self-update, 2026-07-13): selector NATIVO de carpeta, no input de texto — gesto real de OS, no scriptable por contenido web"
 related_capabilities:
   depends_on: []
   enables: []

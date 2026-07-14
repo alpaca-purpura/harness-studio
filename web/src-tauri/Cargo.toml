@@ -34,6 +34,7 @@ tauri-build = { version = "2", features = [] }   # verificar al instalar
 tauri = { version = "2", features = [] }         # verificar al instalar
 tauri-plugin-single-instance = "2"               # verificar al instalar (mitigación Mint: 1 sola ventana)
 tauri-plugin-shell = "2"                          # spawn del daemon Go como sidecar (externalBin)
+tauri-plugin-dialog = "2"                         # selector nativo de carpeta (bugfix fix-repo-self-update, RF-110)
 serde = { version = "1", features = ["derive"] } # verificar al instalar
 serde_json = "1"                                 # verificar al instalar
 getrandom = "0.2"                                # HS-06: mint del token de API (raíz de confianza del shell)

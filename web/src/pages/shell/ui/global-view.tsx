@@ -1,3 +1,4 @@
+import { open as elegirCarpeta } from "@tauri-apps/plugin-dialog"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   type SelfUpdateReport,
@@ -5,7 +6,7 @@ import {
   type UpdateEstado,
   type VersionInfo,
 } from "@/features/self-update"
-import { ApiError, api, ComingSoon, useAppStore } from "@/shared"
+import { ApiError, api, ComingSoon, isTauri, useAppStore } from "@/shared"
 
 const GLOBAL: Record<string, { glyph: string; title: string; note: string }> = {
   portafolio: {
@@ -40,6 +41,11 @@ function AjustesView() {
   const [estado, setEstado] = useState<UpdateEstado>("idle")
   const [reporte, setReporte] = useState<SelfUpdateReport>()
   const [mensaje, setMensaje] = useState<string>()
+  // configurandoRepo/repoConfigError (RF-110, bugfix fix-repo-self-update): el picker
+  // nativo + PUT /api/self-update/repo, SEPARADO de la máquina de estados del update
+  // en sí (esto configura, no dispara).
+  const [configurandoRepo, setConfigurandoRepo] = useState(false)
+  const [repoConfigError, setRepoConfigError] = useState<string>()
   // vivo evita setState tras unmount durante el polling largo del reinicio.
   const vivo = useRef(true)
   useEffect(() => {
@@ -124,6 +130,36 @@ function AjustesView() {
       })
   }, [version, pollReinicio])
 
+  // onElegirRepo (RF-110): diálogo nativo de carpeta → PUT /api/self-update/repo →
+  // refresca GET /api/version. Un candidato inválido NO rompe el flujo — el motivo
+  // exacto del servidor viaja a repoConfigError (jamás un fallo mudo). SOLO se pasa a
+  // la tarjeta dentro de Tauri (isTauri()); en browser plano la prop queda undefined y
+  // el estado sinRepo sigue igual que siempre.
+  const onElegirRepo = useCallback(async () => {
+    setRepoConfigError(undefined)
+    let seleccion: string | string[] | null
+    try {
+      seleccion = await elegirCarpeta({
+        directory: true,
+        title: "Elegí el repo local de ArnesIA (arnesia-app)",
+      })
+    } catch (e: unknown) {
+      if (vivo.current) setRepoConfigError(e instanceof Error ? e.message : String(e))
+      return
+    }
+    if (!seleccion || Array.isArray(seleccion)) return // cancelado (picker de una sola carpeta).
+    setConfigurandoRepo(true)
+    try {
+      await api.configurarRepo(seleccion)
+      const v = await api.getVersion<VersionInfo>()
+      if (vivo.current) setVersion(v)
+    } catch (e: unknown) {
+      if (vivo.current) setRepoConfigError(e instanceof Error ? e.message : String(e))
+    } finally {
+      if (vivo.current) setConfigurandoRepo(false)
+    }
+  }, [])
+
   return (
     <div className="arnesia-ajustes flex h-full flex-col">
       <header className="border-b border-border bg-card px-[18px] py-3 text-sm text-muted-foreground">
@@ -137,6 +173,9 @@ function AjustesView() {
           reporte={reporte}
           mensaje={mensaje}
           onUpdate={onUpdate}
+          onElegirRepo={isTauri() ? onElegirRepo : undefined}
+          configurandoRepo={configurandoRepo}
+          repoConfigError={repoConfigError}
         />
         {/* RF-100: lo que llega después, como texto muted — jamás tarjetas fingiendo. */}
         <p className="text-xs text-muted-foreground">

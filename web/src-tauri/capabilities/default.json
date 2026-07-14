@@ -1,7 +1,7 @@
 {
 	"$schema": "../gen/schemas/desktop-schema.json",
 	"identifier": "default",
-	"description": "Capability base del shell ArnesIA: ventana 'main' + spawn del daemon Go como sidecar.",
+	"description": "Capability base del shell ArnesIA: ventana 'main' + spawn del daemon Go como sidecar + selector nativo de carpeta.",
 	"windows": ["main"],
 	"permissions": [
 		"core:default",
@@ -10,6 +10,7 @@
 			"allow": [
 				{ "name": "binaries/arnesia-daemon", "sidecar": true, "args": ["serve"] }
 			]
-		}
+		},
+		"dialog:allow-open"
 	]
 }
