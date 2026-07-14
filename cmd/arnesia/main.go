@@ -247,7 +247,7 @@ func runServe(args []string) error {
 	// físico READ-ONLY + evaluador de deriva local + wrapper del loader real. Mismo wiring
 	// que usa el subcomando `portafolio` — newPortafolioService lo factoriza para no
 	// duplicarlo.
-	portafolioSvc, err := newPortafolioService()
+	portafolioSvc, err := newPortafolioService(idx)
 	if err != nil {
 		return err
 	}
@@ -428,12 +428,15 @@ func runPublish(args []string) error {
 // newPortafolioService cablea el usecase del Portafolio con sus adapters por default
 // (store en ~/.arnesia/portafolio.json, Scanner/Referencias con CCPluginsDir/MaxDepth
 // default) — compartido entre `serve` y el subcomando `portafolio`, sin duplicar wiring.
-func newPortafolioService() (*usecase.PortafolioService, error) {
+// indice es el 5° puerto (S1-D1, Observar en Mapa): `serve` pasa el `idx` real que ya
+// construyó; el subcomando CLI pasa nil — no necesita indexar (ObservarEnMapa con índice
+// nil da el error honesto «requiere el daemon», jamás un nil-pointer panic).
+func newPortafolioService(indice ports.IndexPort) (*usecase.PortafolioService, error) {
 	st, err := portafolio.NewStore("")
 	if err != nil {
 		return nil, fmt.Errorf("portafolio store: %w", err)
 	}
-	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), &portafolio.Referencias{}), nil
+	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), &portafolio.Referencias{}, indice), nil
 }
 
 // runPortafolio es la vía de verificación E2E del Portafolio sin FE (S0-D9): reusa el
@@ -457,7 +460,8 @@ func runPortafolio(args []string) error {
 		return errors.New("arnesia portafolio: falta el subcomando")
 	}
 
-	svc, err := newPortafolioService()
+	// nil: el CLI no observa en Mapa (esa vía es HTTP-only, S1-D1) — no necesita el 5° puerto.
+	svc, err := newPortafolioService(nil)
 	if err != nil {
 		return err
 	}

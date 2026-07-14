@@ -110,6 +110,11 @@ func (s *Store) Upsert(e domain.EntradaPortafolio) error {
 
 	merged := e
 	merged.Instalaciones = mergeInstalaciones(existing.Instalaciones, e.Instalaciones)
+	// S1-D3 (cierra GAP-3): Empresas/Registries son facetas N:M — se UNEN, jamás se
+	// reemplazan; un re-agregar con menos datos (p.ej. un candidato sin registry
+	// resuelto) NO borra lo que ya estaba persistido.
+	merged.Empresas = unionDedup(existing.Empresas, e.Empresas)
+	merged.Registries = unionDedup(existing.Registries, e.Registries)
 	switch {
 	case e.Canonico != nil && existing.Canonico != nil && e.Canonico.Path != existing.Canonico.Path:
 		return fmt.Errorf("portafolio store: dos canónicos distintos para %q: %q vs %q (C-N-5)",
@@ -139,6 +144,34 @@ func mergeInstalaciones(oldList, newList []domain.Instalacion) []domain.Instalac
 		out = append(out, i)
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].InstallPath < out[b].InstallPath })
+	return out
+}
+
+// unionDedup une existing∪nueva preservando el orden de aparición (lo existente primero,
+// luego lo nuevo que no estaba) sin duplicados ni strings vacíos (S1-D3): una faceta vacía
+// en `nueva` NUNCA borra lo existente — unionDedup(existing, nil) == existing. Devuelve
+// nil (no un slice vacío) cuando ambas entradas están vacías, para que `omitempty` siga
+// funcionando en el wire.
+func unionDedup(existing, nueva []string) []string {
+	if len(existing) == 0 && len(nueva) == 0 {
+		return nil
+	}
+	seen := make(map[string]bool, len(existing)+len(nueva))
+	out := make([]string, 0, len(existing)+len(nueva))
+	for _, v := range existing {
+		if v == "" || seen[v] {
+			continue
+		}
+		seen[v] = true
+		out = append(out, v)
+	}
+	for _, v := range nueva {
+		if v == "" || seen[v] {
+			continue
+		}
+		seen[v] = true
+		out = append(out, v)
+	}
 	return out
 }
 

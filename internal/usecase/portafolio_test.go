@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -72,6 +73,24 @@ func (f *fakePortafolioStore) Desvincular(clave string) (bool, error) {
 
 func (f *fakePortafolioStore) Checkouts() []string { return f.checkouts }
 
+// fakeIndexPort satisface ports.IndexPort para testear ObservarEnMapa (S1-D1, Slice 1): el
+// único método que el usecase ejercita es Upsert — Rebuild/Query/List son stubs no
+// llamados desde este service (el 5° puerto es de solo-escritura acá).
+type fakeIndexPort struct {
+	upserted []domain.Graph
+	err      error
+}
+
+func (f *fakeIndexPort) Rebuild(context.Context) error { return nil }
+func (f *fakeIndexPort) Query(context.Context, string) (domain.Graph, error) {
+	return domain.Graph{}, nil
+}
+func (f *fakeIndexPort) List(context.Context) ([]domain.Graph, error) { return nil, nil }
+func (f *fakeIndexPort) Upsert(_ context.Context, g domain.Graph) error {
+	f.upserted = append(f.upserted, g)
+	return f.err
+}
+
 // TestServiceEscanearClasificaCheckout cubre RN-IDENT-4/C-N-12: un hallazgo cuyo Dir ES
 // un checkout conocido del store se clasifica CANÓNICO, jamás instalación (cierra el
 // doble-conteo/deriva auto-referencial del dogfood).
@@ -87,7 +106,7 @@ func TestServiceEscanearClasificaCheckout(t *testing.T) {
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
 		checkoutDir: {Arnes: &domain.Arnes{ID: "x", Marketplace: "owner/repo"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{})
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil {
@@ -117,7 +136,7 @@ func TestServiceAgregarSoloElegidos(t *testing.T) {
 		dirA: {Arnes: &domain.Arnes{ID: "harness-a", Marketplace: "owner/repo-a"}},
 		dirB: {Arnes: &domain.Arnes{ID: "harness-b", Marketplace: "owner/repo-b"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{})
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil {
@@ -160,7 +179,7 @@ func TestServiceDesvincularNoTocaDisco(t *testing.T) {
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
 		root: {Arnes: &domain.Arnes{ID: "harness-x", Marketplace: "owner/repo"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{})
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil || len(cands) != 1 {
@@ -193,7 +212,7 @@ func TestServiceRootProtegido(t *testing.T) {
 	store := newFakePortafolioStore()
 	scan := &fakePortafolioScanner{}
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{})
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
 
 	if _, err := svc.Escanear(context.Background(), home); err == nil {
 		t.Error("root == $HOME debe rechazarse")
@@ -204,5 +223,192 @@ func TestServiceRootProtegido(t *testing.T) {
 	}
 	if _, err := svc.Escanear(context.Background(), sshDir); err == nil {
 		t.Error("root dentro de una ubicación protegida debe rechazarse")
+	}
+}
+
+// ── ObservarEnMapa (Slice 1, S1-D1 — cierra GAP-1) ──
+
+// TestObservarEnMapaIndexaSinRegistro cubre el camino feliz: una entrada YA PERSISTIDA con
+// una instalación cuyo install_path coincide se publica al índice del Mapa — el fake index
+// recibe exactamente el grafo cargado por el loader, y devuelve el bare id EFECTIVO
+// (S1-D2). "cero interacción con ArnesRegistry" es estructural: PortafolioService no
+// recibe ese puerto en su constructor en absoluto — observar NO registra cwd.
+func TestObservarEnMapaIndexaSinRegistro(t *testing.T) {
+	store := newFakePortafolioStore()
+	installPath := filepath.Join(t.TempDir(), "instalacion")
+	entrada := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Home: "owner/repo", ID: "harness-x"},
+		Instalaciones: []domain.Instalacion{{InstallPath: installPath, Tipo: domain.InstReferenciadaCC}},
+	}
+	if err := store.Upsert(entrada); err != nil {
+		t.Fatal(err)
+	}
+	clave := entrada.Identidad.Clave()
+
+	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
+		installPath: {Arnes: &domain.Arnes{ID: "harness-x", Marketplace: "owner/repo"}},
+	}}
+	idx := &fakeIndexPort{}
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx)
+
+	id, err := svc.ObservarEnMapa(context.Background(), clave, installPath)
+	if err != nil {
+		t.Fatalf("ObservarEnMapa: %v", err)
+	}
+	if id != "harness-x" {
+		t.Errorf("id = %q, quiero %q (el bare id EFECTIVO indexado, S1-D2)", id, "harness-x")
+	}
+	if len(idx.upserted) != 1 {
+		t.Fatalf("indice.Upsert llamado %d veces, quiero 1", len(idx.upserted))
+	}
+	if idx.upserted[0].Arnes == nil || idx.upserted[0].Arnes.ID != "harness-x" {
+		t.Errorf("grafo indexado = %+v, no es el que cargó el loader", idx.upserted[0])
+	}
+}
+
+// TestObservarEnMapaInstallPathAjeno: un install_path que no es ni una instalación ni el
+// canónico de la entrada es ajeno — 400-style, jamás carga un directorio arbitrario.
+func TestObservarEnMapaInstallPathAjeno(t *testing.T) {
+	store := newFakePortafolioStore()
+	instReal := filepath.Join(t.TempDir(), "real")
+	entrada := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Home: "owner/repo", ID: "harness-y"},
+		Instalaciones: []domain.Instalacion{{InstallPath: instReal}},
+	}
+	if err := store.Upsert(entrada); err != nil {
+		t.Fatal(err)
+	}
+	clave := entrada.Identidad.Clave()
+
+	idx := &fakeIndexPort{}
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{},
+		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, idx)
+
+	ajeno := filepath.Join(t.TempDir(), "ajeno")
+	if _, err := svc.ObservarEnMapa(context.Background(), clave, ajeno); !errors.Is(err, usecase.ErrObservarInstallPathAjeno) {
+		t.Fatalf("err = %v, quiero ErrObservarInstallPathAjeno", err)
+	}
+	if len(idx.upserted) != 0 {
+		t.Error("un install_path ajeno NO debe indexar nada")
+	}
+}
+
+// TestObservarEnMapaClaveInexistente: solo se observa lo YA PERSISTIDO — una clave que no
+// está en el store es 404-style, nunca un candidato de escaneo.
+func TestObservarEnMapaClaveInexistente(t *testing.T) {
+	store := newFakePortafolioStore()
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{},
+		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, &fakeIndexPort{})
+
+	if _, err := svc.ObservarEnMapa(context.Background(), "no-existe", "/cualquier/path"); !errors.Is(err, usecase.ErrObservarClaveNoEncontrada) {
+		t.Fatalf("err = %v, quiero ErrObservarClaveNoEncontrada", err)
+	}
+}
+
+// TestObservarEnMapaSinIndice: el subcomando CLI cablea el 5° puerto en nil — el error es
+// honesto («requiere el daemon»), jamás un nil-pointer panic.
+func TestObservarEnMapaSinIndice(t *testing.T) {
+	store := newFakePortafolioStore()
+	installPath := filepath.Join(t.TempDir(), "instalacion")
+	entrada := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Home: "owner/repo", ID: "harness-z"},
+		Instalaciones: []domain.Instalacion{{InstallPath: installPath}},
+	}
+	if err := store.Upsert(entrada); err != nil {
+		t.Fatal(err)
+	}
+	clave := entrada.Identidad.Clave()
+
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{},
+		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, nil)
+
+	if _, err := svc.ObservarEnMapa(context.Background(), clave, installPath); !errors.Is(err, usecase.ErrObservarSinIndice) {
+		t.Fatalf("err = %v, quiero ErrObservarSinIndice", err)
+	}
+}
+
+// TestObservarEnMapaNoCargable: install_path pertenece a la entrada pero el loader falla —
+// el motivo real del loader viaja en el error, jamás se indexa un grafo inventado.
+func TestObservarEnMapaNoCargable(t *testing.T) {
+	store := newFakePortafolioStore()
+	installPath := filepath.Join(t.TempDir(), "instalacion")
+	entrada := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Home: "owner/repo", ID: "harness-w"},
+		Instalaciones: []domain.Instalacion{{InstallPath: installPath}},
+	}
+	if err := store.Upsert(entrada); err != nil {
+		t.Fatal(err)
+	}
+	clave := entrada.Identidad.Clave()
+
+	idx := &fakeIndexPort{}
+	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{}} // sin fixture: Load falla.
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx)
+
+	_, err := svc.ObservarEnMapa(context.Background(), clave, installPath)
+	if err == nil {
+		t.Fatal("un dir no cargable debe fallar, jamás indexar un grafo inventado")
+	}
+	if errors.Is(err, usecase.ErrObservarClaveNoEncontrada) || errors.Is(err, usecase.ErrObservarInstallPathAjeno) || errors.Is(err, usecase.ErrObservarSinIndice) {
+		t.Fatalf("err = %v: debe ser el motivo del loader, no uno de los otros 3 casos", err)
+	}
+	if len(idx.upserted) != 0 {
+		t.Error("un loader que falla NO debe llegar a indexar nada")
+	}
+}
+
+// ── AgregarProyecto: Registries (Slice 1, S1-D3 — cierra GAP-3) ──
+
+// TestAgregarProyectoPueblaRegistries: el registry de origen resuelto se puebla como facet
+// — canonicalizado cuando CanonicalizarRepo lo reconoce, crudo VISIBLE cuando no parsea
+// (el dato no se descarta por no parsear).
+func TestAgregarProyectoPueblaRegistries(t *testing.T) {
+	root := t.TempDir()
+	dirCanon := filepath.Join(root, "canon")
+	dirCrudo := filepath.Join(root, "crudo")
+
+	store := newFakePortafolioStore()
+	scan := &fakePortafolioScanner{hallazgos: []domain.HallazgoInstalacion{
+		{Dir: dirCanon, Tipo: domain.InstProyectoInstalado, Eslabones: []domain.EslabonOrigen{
+			{Fuente: "lock-devstudio", Campo: "registry", Valor: "owner/repo"},
+		}},
+		{Dir: dirCrudo, Tipo: domain.InstProyectoInstalado, Eslabones: []domain.EslabonOrigen{
+			{Fuente: "lock-devstudio", Campo: "registry", Valor: "esto no es un repo"},
+		}},
+	}}
+	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
+		dirCanon: {Arnes: &domain.Arnes{ID: "harness-canon"}},
+		dirCrudo: {Arnes: &domain.Arnes{ID: "harness-crudo"}},
+	}}
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
+
+	cands, err := svc.Escanear(context.Background(), root)
+	if err != nil || len(cands) != 2 {
+		t.Fatalf("setup: %v %d", err, len(cands))
+	}
+	elegidos := []string{cands[0].Identidad.Clave(), cands[1].Identidad.Clave()}
+	persistidas, err := svc.AgregarProyecto(context.Background(), root, elegidos)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(persistidas) != 2 {
+		t.Fatalf("persistidas = %d, quiero 2", len(persistidas))
+	}
+
+	sanas, _, _ := svc.Listar(context.Background())
+	var canon, crudo domain.EntradaPortafolio
+	for _, e := range sanas {
+		switch {
+		case len(e.Instalaciones) == 1 && e.Instalaciones[0].InstallPath == dirCanon:
+			canon = e
+		case len(e.Instalaciones) == 1 && e.Instalaciones[0].InstallPath == dirCrudo:
+			crudo = e
+		}
+	}
+	if len(canon.Registries) != 1 || canon.Registries[0] != "github.com/owner/repo" {
+		t.Errorf("registries canónico = %v, quiero [github.com/owner/repo]", canon.Registries)
+	}
+	if len(crudo.Registries) != 1 || crudo.Registries[0] != "esto no es un repo" {
+		t.Errorf("registries crudo = %v, quiero el valor crudo visible (no parsea a host/owner/repo)", crudo.Registries)
 	}
 }

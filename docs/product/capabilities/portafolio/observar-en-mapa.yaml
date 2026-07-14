@@ -1,0 +1,136 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.observar-en-mapa
+cap_num: CAP-88
+slug: observar-en-mapa
+name: "Observar en Mapa (presencia read-only del Portafolio)"
+status: vivo           # T1: pointers resuelven + valida real (R4).
+license: brand-local
+
+module: portafolio
+layer: usecase
+
+verb: observar
+functional_area: "portafolio.mapa"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa"
+  - "internal/usecase/portafolio.go#instalPathPerteneceA"
+  - "internal/adapters/transport/http/portafolio.go#postObservarEnMapa"
+  - "internal/ports/index.go#IndexPort"
+valida:
+  - "TestObservarEnMapaIndexaSinRegistro"
+  - "TestObservarEnMapaInstallPathAjeno"
+  - "TestObservarEnMapaClaveInexistente"
+  - "TestObservarEnMapaSinIndice"
+  - "TestObservarEnMapaNoCargable"
+  - "TestAgregarProyectoPueblaRegistries"
+  - "TestUpsertMergeUneFacetas"
+  - "TestPortafolioObservar"
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /api/portafolio/arneses/{clave}/mapa"
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice1-fe
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D1/S1-D2/S1-D3"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-13
+    type: new
+    summary: >-
+      T1 — cierra GAP-1: `POST /api/portafolio/arneses/{clave}/mapa` publica una
+      presencia YA PERSISTIDA del Portafolio al índice del Mapa (5° puerto `ports.IndexPort`
+      en PortafolioService) sin registrar cwd — la única vía honesta de indexar una
+      instalación `referenciada-cc` bajo `~/.claude/…`, donde `PUT /arneses/{id}` rechaza
+      el path (`checkProtected`). Delta S1-D3: `AgregarProyecto` puebla `Registries` y
+      `store.Upsert` mergea `Empresas`/`Registries` por unión (cierra GAP-3).
+    merge_sha: null
+
+scenarios:
+  - id: observar-instalacion-persistida
+    name: "Observar una instalación ya persistida indexa su grafo"
+    given: "una entrada del Portafolio con una instalación cuyo install_path coincide (S1-D1)"
+    when: "POST /api/portafolio/arneses/{clave}/mapa con ese install_path"
+    then: "el loader carga el dir y el grafo se publica al índice del Mapa vía IndexPort.Upsert; responde {id, indexed:true} con el bare id EFECTIVO (S1-D2); arneses.json NO se toca"
+    verifica: "TestObservarEnMapaIndexaSinRegistro · TestPortafolioObservar"
+  - id: observar-canonico-checkout
+    name: "El canónico de un checkout detectado (C-N-12) también es observable"
+    given: "una entrada cuyo path ES un checkout conocido del store — se clasificó CANÓNICO, jamás instalación (RN-IDENT-4/C-N-12)"
+    when: "POST …/mapa con install_path == canonico.path"
+    then: "la comparación canónica (EvalSymlinks+Clean) lo reconoce como presencia real de la entrada y lo indexa igual que una instalación"
+    verifica: "TestObservarEnMapaIndexaSinRegistro"
+  - id: observar-clave-desconocida
+    name: "Solo se observa lo persistido, jamás un candidato"
+    given: "una clave que no existe en el store del Portafolio"
+    when: "POST /api/portafolio/arneses/{clave}/mapa"
+    then: "404 honesto — el endpoint nunca resuelve contra un escaneo en vivo"
+    verifica: "TestObservarEnMapaClaveInexistente · TestPortafolioObservar"
+  - id: observar-install-path-ajeno
+    name: "install_path ajeno a la entrada se rechaza sin cargar nada"
+    given: "una entrada real y un install_path que NO está entre sus instalaciones ni es su canónico"
+    when: "POST …/mapa con ese path"
+    then: "400 — el endpoint jamás carga un directorio arbitrario, la autoridad es el store"
+    verifica: "TestObservarEnMapaInstallPathAjeno · TestPortafolioObservar"
+  - id: observar-sin-indice
+    name: "El subcomando CLI no cablea el 5° puerto"
+    given: "PortafolioService construido con indice=nil (arnesia portafolio, sin daemon)"
+    when: "se invoca ObservarEnMapa"
+    then: "error honesto «requiere el daemon», jamás un nil-pointer panic"
+    verifica: "TestObservarEnMapaSinIndice"
+  - id: observar-dir-no-cargable
+    name: "Un dir no cargable jamás produce un grafo inventado"
+    given: "install_path pertenece a la entrada pero el loader falla al cargarlo"
+    when: "se invoca ObservarEnMapa"
+    then: "el motivo REAL del loader viaja en el error; IndexPort.Upsert nunca se llama"
+    verifica: "TestObservarEnMapaNoCargable"
+  - id: agregar-puebla-registries
+    name: "AgregarProyecto puebla Registries desde el origen resuelto"
+    given: "un candidato cuyo origen.registry resolvió (S0-D1)"
+    when: "AgregarProyecto lo persiste"
+    then: "Registries = [CanonicalizarRepo(registry)] si parsea, o el valor CRUDO visible si no (jamás se descarta)"
+    verifica: "TestAgregarProyectoPueblaRegistries"
+  - id: upsert-une-facetas
+    name: "El merge de Upsert une Empresas/Registries, nunca los reemplaza"
+    given: "una identidad ya persistida con Empresas/Registries no vacíos"
+    when: "un nuevo Upsert de la misma identidad trae una faceta distinta, o directamente vacía"
+    then: "el resultado es la unión (orden estable, sin duplicados); una faceta vacía NUNCA borra lo existente"
+    verifica: "TestUpsertMergeUneFacetas"
+
+business_rules:
+  - id: observar-no-registra-cwd
+    rule: "Observar en Mapa es un espejo READ-ONLY de la ley anti-drift: jamás registra el arnés en ArnesRegistry/arneses.json — esa es otra frontera (confinamiento de sesión, S1-D1)."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+  - id: install-path-autoridad-del-store
+    rule: "El endpoint jamás carga un directorio arbitrario del request: install_path debe pertenecer a la entrada persistida (instalaciones[] o canonico), la autoridad es el store, no el body."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-identidad, arnesia.mapa]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Observar en Mapa (presencia read-only del Portafolio)
+
+Cierra GAP-1 (`decisiones.md` Slice 1): la única vía previa de indexar un arnés al Mapa,
+`PUT /api/arneses/{id}`, registra cwd Y `checkProtected` rechaza todo path bajo
+`~/.claude` — exactamente donde vive el cache CC (`referenciada-cc`, la forma de
+instalación MÁS COMÚN real, S0-D1). `PortafolioService` gana un 5° puerto
+`ports.IndexPort`; `ObservarEnMapa` valida clave+install_path contra el store persistido
+y publica el grafo cargado al índice, sin tocar el registro de sesión. La colisión de
+bare-id en el índice (dos identidades del Portafolio con el mismo `id`) sigue siendo
+deuda de GAP-2 — el endpoint devuelve el id EFECTIVO indexado para que el FE (Slice 1,
+T7) pueda decidir con esa información (S1-D2).

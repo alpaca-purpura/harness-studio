@@ -123,6 +123,63 @@ func TestStoreUpsertMergePorIdentidad(t *testing.T) {
 	}
 }
 
+// TestUpsertMergeUneFacetas cubre S1-D3 (cierra GAP-3): Empresas/Registries se UNEN entre
+// upserts de la misma identidad (orden estable, sin duplicados) y un upsert con la faceta
+// vacía NO borra lo ya persistido — el escaneo fresco nunca degrada el dato acumulado.
+func TestUpsertMergeUneFacetas(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "portafolio.json")
+	s, err := portafolio.NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := domain.IdentidadArnes{Home: "github.com/o/r", ID: "harness-x"}
+
+	e1 := domain.EntradaPortafolio{
+		Identidad:  id,
+		Empresas:   []string{"alpacapurpura"},
+		Registries: []string{"github.com/o/r"},
+	}
+	if err := s.Upsert(e1); err != nil {
+		t.Fatal(err)
+	}
+
+	// e2 trae una faceta NUEVA (empresa distinta) y repite el mismo registry: unión sin
+	// duplicar, orden estable (existente primero).
+	e2 := domain.EntradaPortafolio{
+		Identidad:  id,
+		Empresas:   []string{"vitalia"},
+		Registries: []string{"github.com/o/r"},
+	}
+	if err := s.Upsert(e2); err != nil {
+		t.Fatal(err)
+	}
+
+	sanas, _ := s.Listar()
+	if len(sanas) != 1 {
+		t.Fatalf("quiero 1 entrada, got %d", len(sanas))
+	}
+	if got := sanas[0].Empresas; len(got) != 2 || got[0] != "alpacapurpura" || got[1] != "vitalia" {
+		t.Fatalf("Empresas = %v, quiero unión estable [alpacapurpura vitalia]", got)
+	}
+	if got := sanas[0].Registries; len(got) != 1 || got[0] != "github.com/o/r" {
+		t.Fatalf("Registries = %v, quiero dedup [github.com/o/r]", got)
+	}
+
+	// e3 llega con las facetas VACÍAS (p.ej. un re-escaneo que no resolvió empresa ni
+	// registry): NO debe borrar lo ya persistido.
+	e3 := domain.EntradaPortafolio{Identidad: id}
+	if err := s.Upsert(e3); err != nil {
+		t.Fatal(err)
+	}
+	sanas, _ = s.Listar()
+	if got := sanas[0].Empresas; len(got) != 2 {
+		t.Fatalf("un upsert con Empresas vacío NO debe borrar lo existente, got %v", got)
+	}
+	if got := sanas[0].Registries; len(got) != 1 {
+		t.Fatalf("un upsert con Registries vacío NO debe borrar lo existente, got %v", got)
+	}
+}
+
 func TestStoreNoFusionaProvisional(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "portafolio.json")
 	s, err := portafolio.NewStore(path)

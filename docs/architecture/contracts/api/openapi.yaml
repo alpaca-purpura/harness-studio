@@ -10,7 +10,10 @@ info:
   # 0.5.0-fix-repo-self-update: + PUT /self-update/repo (bugfix 2026-07-13, RF-108/109
   # — configura el repo del self-update cuando el daemon arrancó sin --repo/ARNESIA_REPO;
   # ÚNICO endpoint que acepta un path, separado del disparador POST /self-update).
-  version: 0.5.0-fix-repo-self-update
+  # 0.6.0-portafolio-slice1: + POST /portafolio/arneses/{clave}/mapa (Slice 1, T1, S1-D1
+  # — cierra GAP-1): publica una presencia YA PERSISTIDA del Portafolio al índice del Mapa,
+  # read-only — NO registra cwd, NO toca /arneses.
+  version: 0.6.0-portafolio-slice1
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -279,6 +282,36 @@ paths:
       responses:
         "200": { description: "`{desvinculado: true}`." }
         "404": { description: Clave desconocida en el Portafolio. }
+  /portafolio/arneses/{clave}/mapa:
+    post:
+      operationId: postObservarEnMapaPortafolio
+      summary: >-
+        Observar en Mapa (Slice 1, S1-D1, cierra GAP-1): publica una presencia YA
+        PERSISTIDA del Portafolio al índice del Mapa — read-only, espejo de la ley
+        anti-drift. NO registra cwd, NO toca `/arneses`/`arneses.json` (esa es otra
+        frontera — confinamiento de sesión, no observación); es la única vía honesta de
+        indexar una instalación `referenciada-cc` (cache CC bajo `~/.claude/…`), donde
+        `PUT /arneses/{id}` rechaza el path por `checkProtected`. `install_path` debe ser
+        una presencia REAL de `clave` (∈ `instalaciones[].install_path` o `== canonico.path`,
+        comparación canónica EvalSymlinks+Clean — así un checkout clasificado CANÓNICO por
+        RN-IDENT-4/C-N-12 también es observable). Responde el bare id EFECTIVO indexado
+        (S1-D2: el índice sigue keyeando por id pelado — deuda de GAP-2 fuera de este slice).
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [install_path], properties: { install_path: { type: string } } }
+      responses:
+        "200":
+          description: Indexado.
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, indexed: { type: boolean } } }
+        "404": { description: Clave desconocida en el Portafolio (solo se observa lo YA persistido). }
+        "400": { description: "`install_path` ajeno a la entrada, o no cargable (motivo real del loader — jamás un grafo inventado)." }
+        "500": { description: PortafolioService sin el 5° puerto cableado (subcomando CLI, no el daemon). }
 
   /sessions:
     get:

@@ -38,13 +38,35 @@ type PortafolioService struct {
 	scan   ports.PortafolioScanner
 	cargar ports.ArnesLoader
 	deriva ports.DerivaEvaluator
+	// indice es el 5° puerto (Slice 1, S1-D1): publica presencias del Portafolio al
+	// índice del Mapa vía ObservarEnMapa. nil en el subcomando CLI (no lo necesita) — un
+	// nil explícito, no un adapter vacío, así ObservarEnMapa puede dar el error honesto
+	// «requiere el daemon» en vez de un nil-pointer panic.
+	indice ports.IndexPort
 }
 
-// NewPortafolioService cablea el usecase a sus 4 puertos (cmd es quien inyecta los
-// adapters concretos — composition root, igual que el resto de services).
-func NewPortafolioService(store ports.PortafolioStore, scan ports.PortafolioScanner, cargar ports.ArnesLoader, deriva ports.DerivaEvaluator) *PortafolioService {
-	return &PortafolioService{store: store, scan: scan, cargar: cargar, deriva: deriva}
+// NewPortafolioService cablea el usecase a sus 5 puertos (cmd es quien inyecta los
+// adapters concretos — composition root, igual que el resto de services). indice puede
+// ser nil (subcomando CLI: la observación en Mapa no aplica sin daemon).
+func NewPortafolioService(store ports.PortafolioStore, scan ports.PortafolioScanner, cargar ports.ArnesLoader, deriva ports.DerivaEvaluator, indice ports.IndexPort) *PortafolioService {
+	return &PortafolioService{store: store, scan: scan, cargar: cargar, deriva: deriva, indice: indice}
 }
+
+// Los errores centinela de ObservarEnMapa (S1-D1) — distinguibles por errors.Is desde el
+// handler HTTP para mapear el status code correcto (404/400/500), mismo patrón que
+// usecase.ErrBusy/ErrNadaQueInterrumpir en sessions.go.
+var (
+	// ErrObservarClaveNoEncontrada: solo se observa lo YA PERSISTIDO en el Portafolio —
+	// jamás un candidato de un escaneo (S1-D1).
+	ErrObservarClaveNoEncontrada = errors.New("portafolio: clave no encontrada en el Portafolio")
+	// ErrObservarInstallPathAjeno: install_path no es una presencia real de la entrada
+	// (ni instalaciones[].install_path ni canonico.path) — el endpoint jamás carga un
+	// directorio arbitrario, la autoridad es el store (S1-D1).
+	ErrObservarInstallPathAjeno = errors.New("portafolio: install_path ajeno a la entrada")
+	// ErrObservarSinIndice: PortafolioService no tiene el 5° puerto cableado (subcomando
+	// CLI) — la observación en Mapa requiere el daemon.
+	ErrObservarSinIndice = errors.New("portafolio: observar en Mapa requiere el daemon")
+)
 
 // Escanear recorre root y devuelve TODOS los candidatos crudos (collect-all, spec §7.1):
 // walk → por hallazgo, cargar (loader con fallback plugin.json) → ResolverIdentidad →
@@ -200,6 +222,16 @@ func (s *PortafolioService) AgregarProyecto(ctx context.Context, root string, el
 			Empresas:    c.Empresas,
 			Agregado:    time.Now().UTC().Format(time.RFC3339),
 		}
+		// S1-D3 (cierra GAP-3): el registry de origen resuelto se puebla como facet —
+		// canonicalizado si RutaReferencia lo reconoce, crudo VISIBLE si no (el dato no
+		// se descarta por no parsear).
+		if r := c.Instalacion.Origen.Registry; r != "" {
+			canon, ok := domain.CanonicalizarRepo(r)
+			if !ok {
+				canon = r
+			}
+			e.Registries = []string{canon}
+		}
 		if c.EsCanonico {
 			e.Canonico = &domain.Canonico{Path: c.Instalacion.InstallPath, Version: c.Instalacion.Origen.Version}
 		} else {
@@ -211,6 +243,89 @@ func (s *PortafolioService) AgregarProyecto(ctx context.Context, root string, el
 		out = append(out, e)
 	}
 	return out, nil
+}
+
+// ObservarEnMapa publica una presencia YA PERSISTIDA del Portafolio al índice del Mapa —
+// read-only, espejo de la ley anti-drift (S1-D1, cierra GAP-1): jamás registra cwd, jamás
+// toca `arneses.json`/`ArnesRegistry` (esa es otra frontera — confinamiento de sesión).
+// Orden de validación (decisiones.md S1-D1): (1) clave debe existir en el store — solo se
+// observa lo persistido, nunca un candidato del escaneo; (2) installPath debe ser una
+// presencia REAL de esa entrada (∈ instalaciones[].InstallPath o == canonico.Path,
+// comparación canónica EvalSymlinks+Clean — así un checkout clasificado CANÓNICO por
+// RN-IDENT-4/C-N-12 también es observable); (3) el 5° puerto debe estar cableado (nil en
+// el subcomando CLI); (4) el loader debe resolver un *domain.Arnes real — un dir no
+// cargable jamás produce un grafo inventado. OK → indice.Upsert(ctx, g) y devuelve
+// g.Arnes.ID: el bare id EFECTIVO que quedó indexado (S1-D2 — el FE lo usa para apuntar
+// el Mapa incluso cuando colisiona con otra clave; el re-key del índice sigue siendo
+// deuda de GAP-2, fuera de este slice).
+func (s *PortafolioService) ObservarEnMapa(ctx context.Context, clave, installPath string) (string, error) {
+	sanas, _ := s.store.Listar()
+	var entrada domain.EntradaPortafolio
+	var encontrada bool
+	for _, e := range sanas {
+		if e.Identidad.Clave() == clave {
+			entrada = e
+			encontrada = true
+			break
+		}
+	}
+	if !encontrada {
+		return "", fmt.Errorf("%w: %q", ErrObservarClaveNoEncontrada, clave)
+	}
+
+	if !instalPathPerteneceA(entrada, installPath) {
+		return "", fmt.Errorf("%w: %q", ErrObservarInstallPathAjeno, installPath)
+	}
+
+	if s.indice == nil {
+		return "", ErrObservarSinIndice
+	}
+
+	g, lerr := s.cargar.Load(installPath)
+	if lerr != nil {
+		return "", fmt.Errorf("portafolio: observar en Mapa: cargar %q: %w", installPath, lerr)
+	}
+	if g.Arnes == nil {
+		return "", fmt.Errorf("portafolio: observar en Mapa: %q no resolvió un arnés cargable", installPath)
+	}
+
+	if uerr := s.indice.Upsert(ctx, g); uerr != nil {
+		return "", fmt.Errorf("portafolio: observar en Mapa: indexar: %w", uerr)
+	}
+	return g.Arnes.ID, nil
+}
+
+// instalPathPerteneceA reporta si installPath es una presencia REAL de entrada: alguna de
+// sus instalaciones, o su canónico (S1-D1) — comparación canónica (EvalSymlinks+Clean)
+// para que un alias/symlink del mismo dir no cuente como ajeno.
+func instalPathPerteneceA(entrada domain.EntradaPortafolio, installPath string) bool {
+	target := canonicalPathPortafolio(installPath)
+	if target == "" {
+		return false
+	}
+	if entrada.Canonico != nil && canonicalPathPortafolio(entrada.Canonico.Path) == target {
+		return true
+	}
+	for _, inst := range entrada.Instalaciones {
+		if canonicalPathPortafolio(inst.InstallPath) == target {
+			return true
+		}
+	}
+	return false
+}
+
+// canonicalPathPortafolio normaliza p para comparación estable: Clean siempre, más
+// EvalSymlinks best-effort — un path que no resuelve (p.ej. ya no existe en disco) sigue
+// comparándose por su forma Clean, jamás aborta la comparación silenciosamente.
+func canonicalPathPortafolio(p string) string {
+	if p == "" {
+		return ""
+	}
+	clean := filepath.Clean(p)
+	if resolved, err := filepath.EvalSymlinks(clean); err == nil {
+		return resolved
+	}
+	return clean
 }
 
 // Listar pasa a través del store (BR-11: entradas sanas + corruptas visibles aparte). ctx

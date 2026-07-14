@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -109,5 +110,40 @@ func deleteDesvincular(svc *usecase.PortafolioService) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"desvinculado": true})
+	}
+}
+
+// postObservarBody is the POST /api/portafolio/arneses/{clave}/mapa payload.
+type postObservarBody struct {
+	InstallPath string `json:"install_path"`
+}
+
+// postObservarEnMapa — POST /api/portafolio/arneses/{clave}/mapa: publica una presencia
+// YA PERSISTIDA del Portafolio al índice del Mapa (S1-D1) — read-only, jamás registra cwd
+// (NO toca ArnesRegistry/arneses.json). 404 clave desconocida · 400 install_path ajeno o
+// no cargable · 500 sin índice cableado (subcomando CLI).
+func postObservarEnMapa(svc *usecase.PortafolioService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clave := r.PathValue("clave")
+		var body postObservarBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		id, err := svc.ObservarEnMapa(r.Context(), clave, body.InstallPath)
+		if err != nil {
+			switch {
+			case errors.Is(err, usecase.ErrObservarClaveNoEncontrada):
+				writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			case errors.Is(err, usecase.ErrObservarSinIndice):
+				writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			default:
+				// ErrObservarInstallPathAjeno o un dir no cargable (loader/Arnes==nil):
+				// ambos son 400-style — el motivo real viaja en el body (jamás un grafo
+				// inventado).
+				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"id": id, "indexed": true})
 	}
 }
