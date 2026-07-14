@@ -33,4 +33,15 @@ export default defineConfig([
 		// widgets del shell (topbar/view-strip) son slices legítimos que crecen; no es un gate.
 		rules: { "fsd/insignificant-slice": "off" },
 	},
+	{
+		// `inconsistent-naming` (S1-D17, Portafolio Slice 1): usa una librería de pluralización EN
+		// (`pluralize`) sobre nombres de slice en ESPAÑOL — falso positivo estructural, no una
+		// violación real. "arnes" termina en "s" ⇒ la heurística lo clasifica "plural"; "portafolio"
+		// no ⇒ "singular"; el checker exige que TODOS los slices de entities/ compartan la misma
+		// clasificación y proponía renombrar "portafolio"→"portafolios" (fix automático) — cirugía de
+		// nombre fuera de alcance sobre un slice ya consumido ampliamente (`entities/arnes`), y el
+		// próximo slice en español volvería a chocar contra la misma heurística EN. Apagado global:
+		// el dominio de este repo es español, la regla no aplica.
+		rules: { "fsd/inconsistent-naming": "off" },
+	},
 ]);

@@ -61,6 +61,8 @@ jobs:
         run: pnpm exec steiger src
       - name: tokens (stylelint anti-magic-value)
         run: pnpm exec stylelint "src/**/*.css"
+      - name: unit (selectores puros — S1-D7, Node, sin Chromium)
+        run: pnpm exec vitest --project=unit run
       - name: fitness visual (Storybook 10 = tests)
         id: visual-fitness
         run: pnpm exec playwright install --with-deps chromium && pnpm exec vitest --project=storybook run

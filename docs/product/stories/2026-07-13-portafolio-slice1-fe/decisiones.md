@@ -216,3 +216,21 @@ scenarios BDD reales Y pasar el gate `go test ./docs/architecture/fitness/...` h
 YAML real y una pasada sobre las 82 hojas existentes). Deuda para BACKLOG: `capMetas` debería parsear
 YAML de verdad (o al menos ignorar líneas con indentación > 0) antes de que alguien más pise esta misma
 trampa con scenarios BDD poblados.
+
+## S1-D17 · steiger `fsd/inconsistent-naming` es un falso positivo EN sobre nombres ES (T2)
+
+Hallazgo de build (Sonnet 5, T2): al crear `entities/portafolio/` (segundo slice bajo `entities/`,
+junto a `entities/arnes/`), `pnpm exec steiger src` empezó a fallar con «Inconsistent pluralization of
+slice names. Prefer all plural names», auto-fix propuesto: renombrar el directorio `portafolio` →
+`portafolios`. Investigado en el código del plugin (`@feature-sliced/steiger-plugin` 0.6.0,
+`inconsistent-naming` check): usa una librería de pluralización **en inglés** sobre los nombres de
+slice; "arnes" termina en "s" así que la heurística EN lo clasifica "plural", "portafolio" no termina
+en "s" así que lo clasifica "singular" — el checker exige que TODOS los slices de una capa compartan
+la misma clasificación. Es un artefacto de que el dominio está en **español**, no una violación FSD
+real (ambos nombres son sustantivos singulares en español). Renombrar `entities/arnes` (consumido en
+decenas de imports ya mergeados) está fuera de alcance de T2, y cualquier slice nuevo en español volvería
+a chocar con la misma heurística. → **Decisión:** `web/steiger.config.ts` apaga
+`fsd/inconsistent-naming` globalmente (mismo patrón que el apagado ya existente de
+`fsd/insignificant-slice`, con razón documentada inline) — steiger es gate secundario/BETA
+(`enforced_by` primario = dependency-cruiser, según el propio comentario de cabecera del config); las
+demás reglas de steiger (public-api, no-cross-imports, layer-direction) siguen activas y enforced.

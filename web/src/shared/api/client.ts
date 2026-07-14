@@ -78,6 +78,33 @@ export const api = {
   getNodeFuente: (id: string, nodeId: string) =>
     reqText(`/api/harnesses/${encodeURIComponent(id)}/nodes/${encodeURIComponent(nodeId)}/fuente`),
 
+  // Portafolio (S1, Slice 1 FE — decisiones.md §2.5): listar/escanear/agregar/desvincular +
+  // observar-en-Mapa del `~/.arnesia/portafolio.json`. Genéricos <T> (domain-free, mismo
+  // patrón que getGraph) — la entity entities/portafolio parametriza con sus tipos.
+  listPortafolio: <T = unknown>() => req<T>("/api/portafolio"),
+
+  escanearProyecto: <T = unknown>(path: string, signal?: AbortSignal) =>
+    req<T>("/api/portafolio/escaneos", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+      ...(signal ? { signal } : {}),
+    }),
+
+  agregarProyecto: <T = unknown>(path: string, elegidos: string[]) =>
+    req<T>("/api/portafolio/proyectos", {
+      method: "POST",
+      body: JSON.stringify({ path, elegidos }),
+    }),
+
+  desvincularDelPortafolio: <T = unknown>(clave: string) =>
+    req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}`, { method: "DELETE" }),
+
+  observarEnMapa: <T = unknown>(clave: string, installPath: string) =>
+    req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}/mapa`, {
+      method: "POST",
+      body: JSON.stringify({ install_path: installPath }),
+    }),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   createSession: (input: NewSession) =>

@@ -1,0 +1,65 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.wizard-agregar-proyecto
+cap_num: CAP-91
+slug: wizard-agregar-proyecto
+name: "Wizard agregar proyecto (escanear carpeta local → candidatos honestos → elegir)"
+status: stub           # T2: alta as-code, contrato (tipos+cliente) construido; UI en T6.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: crear
+functional_area: "fe-portafolio.wizard"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/entities/portafolio/model/types.ts#Candidato"
+  - "web/src/shared/api/client.ts#escanearProyecto"
+  - "web/src/shared/api/client.ts#agregarProyecto"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /api/portafolio/escaneos"
+    - "POST /api/portafolio/proyectos"
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice1-fe
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D9/S1-D10"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-13
+    type: new
+    summary: >-
+      T2 — alta stub: tipo `Candidato` (espejo de usecase.Candidato, NO persistido) +
+      `api.escanearProyecto` (cancelable vía AbortSignal, S1-D9) + `api.agregarProyecto`. El
+      widget (`widgets/portafolio/ui/portafolio-wizard.tsx`, rama Proyecto/carpeta-local; rama
+      GitHub y tab Marketplace disabled+tooltip S2, G3) llega en T6 — ese ticket gradúa este
+      capability a `vivo`.
+    merge_sha: null
+
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: [arnesia.portafolio.escanear-proyecto, arnesia.portafolio.registrar-identidad]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Wizard agregar proyecto (escanear carpeta local → candidatos honestos → elegir)
+
+Superficie 2 del Portafolio (spec §10, G3/G5/G8). T2 construye el contrato; T6 construye el
+widget `portafolio-wizard.tsx` (paso fuente → escaneando → candidatos honestos `v?`/«origen
+desconocido»/«ya en el portafolio» S1-D10 → agregar) — ese ticket gradúa este capability a
+`vivo`. Ramas GitHub/Marketplace quedan disabled+tooltip «próximo · S2», sin validación fingida.

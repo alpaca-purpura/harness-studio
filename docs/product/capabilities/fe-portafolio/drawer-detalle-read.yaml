@@ -1,0 +1,66 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.drawer-detalle-read
+cap_num: CAP-90
+slug: drawer-detalle-read
+name: "Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)"
+status: stub           # T2: alta as-code, contrato (tipos+selectores) construido; UI en T5.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: observar
+functional_area: "fe-portafolio.drawer"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/entities/portafolio/model/types.ts#Instalacion"
+  - "web/src/entities/portafolio/model/types.ts#OrigenCopia"
+  - "web/src/entities/portafolio/model/selectors.ts#saludDe"
+  - "web/src/entities/portafolio/model/selectors.ts#registriesDe"
+  - "web/src/entities/portafolio/model/selectors.test.ts#saludDe"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "DELETE /api/portafolio/arneses/{clave}"
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice1-fe
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D5/S1-D14/S1-D15"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-13
+    type: new
+    summary: >-
+      T2 — alta stub: `saludDe` (regla S1-D4, dot de salud) + `registriesDe` (facet
+      «marketplaces», S1-D3 unión) + tipos `Instalacion`/`OrigenCopia` (rotulado «origen de
+      la copia» en la UI, S1-D14 — no pisa el `Origen` L0). El widget
+      (`widgets/portafolio/ui/portafolio-drawer.tsx`, confirm de Desvincular G7, a11y G8)
+      llega en T5 — ese ticket gradúa este capability a `vivo`.
+    merge_sha: null
+
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: [arnesia.portafolio.resolver-origen, arnesia.portafolio.evaluar-deriva]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Drawer de detalle READ (identidad, facetas, origen de la copia, instalaciones)
+
+Superficie 3 del Portafolio (spec §10/§4, G1/G2/G4/G5/G6/G7/G8). T2 construye el contrato; T5
+construye el widget `portafolio-drawer.tsx` (identidad resuelta/provisional, update
+no-verificado, trazabilidad de eslabones, confirm de Desvincular con a11y) — ese ticket gradúa
+este capability a `vivo`.

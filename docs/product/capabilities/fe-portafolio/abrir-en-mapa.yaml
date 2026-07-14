@@ -1,0 +1,67 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.abrir-en-mapa
+cap_num: CAP-92
+slug: abrir-en-mapa
+name: "Abrir en Mapa desde el Portafolio (peek al stage de sesión, colisión visible)"
+status: stub           # T2: alta as-code, contrato (cliente+selector colisión) construido; wiring en T7.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: mapear
+functional_area: "fe-portafolio.mapa"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/shared/api/client.ts#observarEnMapa"
+  - "web/src/entities/portafolio/model/selectors.ts#idsColisionados"
+  - "web/src/entities/portafolio/model/selectors.test.ts#idsColisionados"
+valida: []
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /api/portafolio/arneses/{clave}/mapa"
+  e2e_test: null
+
+created_in_story: 2026-07-13-portafolio-slice1-fe
+created_date: 2026-07-13
+last_modified: 2026-07-13
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D1/S1-D2/S1-D13"
+change_log:
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-13
+    type: new
+    summary: >-
+      T2 — alta stub: `api.observarEnMapa` (consume el endpoint de T1) + `idsColisionados`
+      (selector puro que detecta colisión de bare-id entre entradas del Portafolio, GAP-2/
+      S1-D2 — deuda de re-key del índice sigue viva, esto solo la hace VISIBLE). El wiring
+      real (confirmación de colisión, `mapaPeek` en app-store, consumo en `WorkspaceStage`,
+      disabled+tooltip sin sesión activa S1-D13) llega en T7 — ese ticket gradúa este
+      capability a `vivo`.
+    merge_sha: null
+
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: [arnesia.portafolio.observar-en-mapa]
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Abrir en Mapa desde el Portafolio (peek al stage de sesión, colisión visible)
+
+Contraparte FE de `arnesia.portafolio.observar-en-mapa` (CAP-88, T1). T2 construye el contrato
+(cliente HTTP + selector de colisión de bare-id); T7 cablea el flujo completo en
+`pages/shell/ui/portafolio-view.tsx` (confirmar-si-colisión → `observarEnMapa` →
+`setMapaPeek` → `parkView("Mapa")` → `WorkspaceStage` consume el peek) — ese ticket gradúa este
+capability a `vivo`. Sin sesión activa, el botón queda disabled+tooltip (S1-D13): el Mapa vive
+en el stage de sesión, crear una sesión de la nada es un efecto demasiado grande para un click.
