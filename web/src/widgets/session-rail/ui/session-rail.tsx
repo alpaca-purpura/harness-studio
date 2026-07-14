@@ -17,6 +17,8 @@ export function SessionRail() {
   const switchTo = useSessions((s) => s.switchTo)
   const toggleRail = useSessions((s) => s.toggleRail)
   const setGlobal = useAppStore((s) => s.setView)
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
 
   const arnCount = (arnes: string) => sessions.filter((s) => s.arnes === arnes).length
 
@@ -106,6 +108,15 @@ export function SessionRail() {
               {!collapsed && <span>{label}</span>}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === "light" ? "Modo oscuro" : "Modo claro"}
+            className="flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 text-[8.5px] text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <span className="text-sm">{theme === "light" ? "☾" : "☀"}</span>
+            {!collapsed && <span>{theme === "light" ? "Oscuro" : "Claro"}</span>}
+          </button>
         </div>
       </div>
     </aside>

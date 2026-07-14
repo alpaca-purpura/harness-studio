@@ -11,8 +11,10 @@ verb: crear
 pointers:
   - "web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail"
   - "web/src/shared/store/sessions-store.ts#create"
+  - "web/src/shared/store/app-store.ts#toggleTheme"
 valida: []
-scenarios: []
+scenarios:
+  - "El pie del rail gana un botón claro/oscuro (☾/☀) que llama toggleTheme() — la infra data-theme + tokens ya existía (theme.css), solo faltaba el control de UI (2026-07-13)"
 business_rules: []
 related_capabilities:
   depends_on: []
