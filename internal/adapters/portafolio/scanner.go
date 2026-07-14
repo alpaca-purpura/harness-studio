@@ -207,23 +207,18 @@ func leerInstalledPlugins(path string) (map[string][]ccInstalledPlugin, bool) {
 	if err != nil {
 		return nil, false
 	}
-	var raw map[string]json.RawMessage
+	var raw struct {
+		Version int                        `json:"version"`
+		Plugins map[string]json.RawMessage `json:"plugins"`
+	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return nil, false
 	}
-	verRaw, ok := raw["version"]
-	if !ok {
-		return nil, false
-	}
-	var ver int
-	if err := json.Unmarshal(verRaw, &ver); err != nil || ver != 2 {
+	if raw.Version != 2 {
 		return nil, false
 	}
 	out := map[string][]ccInstalledPlugin{}
-	for k, v := range raw {
-		if k == "version" {
-			continue
-		}
+	for k, v := range raw.Plugins {
 		var entries []ccInstalledPlugin
 		if err := json.Unmarshal(v, &entries); err != nil {
 			continue // una clave individual ilegible no invalida el resto del archivo.

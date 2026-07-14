@@ -102,7 +102,22 @@ func (s *PortafolioService) candidatoDe(root string, h domain.HallazgoInstalacio
 		inst.Deriva = domain.DerivaNoEvaluable
 		inst.DerivaDetalle = "sin dir físico resoluble"
 	default:
-		inst.Deriva, inst.DerivaDetalle = s.deriva.Evaluar(h.Dir, identidad.Home, identidad.ID, origen.Version)
+		// homeParaDeriva: Home (arnes.l0.marketplace) manda; sin arnes.l0.json (el caso
+		// MÁS COMÚN real — un plugin CC normal sin manifiesto propio, C-N-14) la identidad
+		// queda honestamente provisional (RN-IDENT-2) pero origen.Registry YA canonicalizó
+		// un repo vía cc-plugins/lock — usarlo acá es la diferencia entre evaluar deriva de
+		// verdad o `deriva-no-evaluable` en la mayoría de los casos reales (BR-4: hash
+		// siempre que HAYA una referencia accesible, nunca negarla por falta de manifiesto).
+		homeParaDeriva := identidad.Home
+		if homeParaDeriva == "" {
+			// origen.Registry es el valor CRUDO del eslabón ganador (p.ej. "owner/repo"
+			// corto) — RutaReferencia compara contra la forma canónica, así que se
+			// canonicaliza acá antes de usarlo como fallback.
+			if canon, ok := domain.CanonicalizarRepo(origen.Registry); ok {
+				homeParaDeriva = canon
+			}
+		}
+		inst.Deriva, inst.DerivaDetalle = s.deriva.Evaluar(h.Dir, homeParaDeriva, identidad.ID, origen.Version)
 	}
 
 	c := Candidato{Clave: identidad.Clave(), Identidad: identidad, Instalacion: inst, EsCanonico: esCanonico}

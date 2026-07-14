@@ -143,7 +143,9 @@ func TestScannerReferenciadaCC(t *testing.T) {
 	installDir := filepath.Join(ccDir, "cache", "kit-mkt", "harness", "1.2.3")
 	escribir(t, filepath.Join(ccDir, "installed_plugins.json"), `{
 		"version": 2,
-		"harness@kit-mkt": [{"scope":"project","projectPath":"`+root+`","installPath":"`+installDir+`","version":"1.2.3"}]
+		"plugins": {
+			"harness@kit-mkt": [{"scope":"project","projectPath":"`+root+`","installPath":"`+installDir+`","version":"1.2.3"}]
+		}
 	}`)
 	escribir(t, filepath.Join(ccDir, "known_marketplaces.json"), `{
 		"kit-mkt": {"source":{"source":"github","repo":"owner/kit-mkt"},"installLocation":"`+ccDir+`/marketplaces/kit-mkt"}

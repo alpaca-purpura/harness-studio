@@ -107,3 +107,40 @@ satisface vía un método puente (`Referencias.Evaluar` delega a la función lib
 concretos a interfaces. Mismo motivo que `domain.HallazgoInstalacion`/`EntradaCorrupta`: el tipo que
 cruza la frontera puerto↔usecase vive donde ambos lados pueden verlo sin violar la regla de
 dependencia (domain para los tipos de datos, ports para el contrato de comportamiento).
+
+## S0-D14 · `installed_plugins.json` real: `plugins` es un wrapper, no está en el nivel raíz (T9)
+
+S0-D1 (investigación 2026-07-13) describió el shape de `installed_plugins.json` como
+`{"version":2, "<id>@<mkt>": [...]}` — mapa plano en el nivel raíz junto a `version`. El E2E de T9
+contra `~/.claude/plugins/installed_plugins.json` REAL de esta máquina mostró que el shape
+verdadero anida las entradas bajo una clave `plugins`:
+`{"version":2, "plugins": {"<id>@<mkt>": [...]}}`. `leerInstalledPlugins`
+(`internal/adapters/portafolio/scanner.go`) se corrigió para decodificar `raw.Plugins` en vez de
+iterar las claves del nivel raíz — bug real, encontrado y arreglado por el propio E2E que el plan
+mandaba correr (para eso es T9, no un trámite). Fixtures de `scanner_test.go` actualizados al
+shape real; `TestScannerReferenciadaCC`/`TestScannerCCMetadataIlegible` siguen verdes. Verificado
+en vivo: `arnesia portafolio escanear ~/Proyectos/luana-vitalia` ahora resuelve `registry`/`version`
+reales del plugin `harness@prenter-marketplace` instalado ahí (antes del fix, el hallazgo
+`referenciada-cc` salía `no-legible` pese a que el archivo real ERA legible — el bug hacía que
+`json.Unmarshal` interpretara cada `<id>@<mkt>` de nivel raíz como si fuera un array de instalación,
+lo cual fallaba silenciosamente para toda entrada real).
+
+## S0-D15 · Deriva usa `origen.Registry` como fallback de `home` cuando no hay `arnes.l0.json` (T9)
+
+Hallazgo del E2E: la mayoría de las instalaciones reales `referenciada-cc` (el caso MÁS COMÚN, ya
+anticipado por S0-D1 — "realidad medida: NINGÚN proyecto tiene `.claude/plugins/<id>/` físico hoy")
+son plugins CC normales SIN `arnes.l0.json` (C-N-14): su `Home` (que solo sale de
+`arnes.l0.marketplace`) queda honestamente `""` (identidad provisional, RN-IDENT-2) — pero
+`origen.Registry` YA canonicalizó un repo real vía el eslabón `cc-plugins`/lock. El diseño original
+de T6 pasaba `identidad.Home` a `EvaluarDeriva` y nada más — con `Home==""` el resultado era
+SIEMPRE `deriva-no-evaluable`, incluso cuando el checkout local de referencia EXISTÍA y era
+perfectamente evaluable. Corregido en `PortafolioService.candidatoDe`
+(`internal/usecase/portafolio.go`): si `identidad.Home==""`, usa `CanonicalizarRepo(origen.Registry)`
+como `home` para la llamada a `s.deriva.Evaluar` — la identidad reportada SIGUE siendo
+honestamente provisional (Registry≠Home conceptualmente, N:M — esto NO cambia RN-IDENT-2/3), solo
+la evaluación de deriva gana una fuente adicional de referencia. Verificado en vivo: el hallazgo
+`harness@prenter-marketplace` (0.5.2) en `~/Proyectos/luana-vitalia` pasó de
+`deriva-no-evaluable` a `en-deriva` REAL (hash de contenido distinto entre el cache CC y el
+checkout del marketplace en `~/.claude/plugins/marketplaces/prenter-marketplace/plugins/harness/0.5.2/`)
+— exactamente el tipo de señal que BR-4 existe para dar, y que el diseño original negaba sin
+necesidad en el caso más común.

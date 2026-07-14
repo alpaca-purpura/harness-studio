@@ -11,13 +11,13 @@ FIRMADO 🧑‍⚖️ 2026-07-13 tras revisión adversaria de 4 subagentes). Ín
 
 ## Paquete de trabajo activo
 
-- **Programa «Portafolio · ciclo de vida del arnés» — modelo FIRMADO 🧑‍⚖️ (HS-22, 2026-07-13), en cola de build.**
+- **Programa «Portafolio · ciclo de vida del arnés» — modelo FIRMADO 🧑‍⚖️ (HS-22, 2026-07-13); Slice 0 CONSTRUIDO.**
   El spike de CARGA se reencuadró en el front-door del ciclo de vida (agregar de marketplace/proyecto · observar · mejorar ·
   publicar · actualizar · reparar). Modelo firmado: identidad **`(home,id)`** · N:M:M · **canónico** (editable) + N **instalaciones**
   (read-only) · ley anti-drift descriptiva · **`deriva`**. Revisión adversaria (4 subagentes) probó que el FE no es construible sin
   cimientos → recut **Slice 0 «Cimientos» (dominio) → Slice 1 «FE»** (épica en `BACKLOG.md`). Paquete
   [`stories/2026-07-10-spike-carga-arneses/`](stories/2026-07-10-spike-carga-arneses/INDEX.md) (specs + casuística + revisión + mockup v2).
-  **Hand-off:** el operador divide tickets con **Fable 5** (arquitecto) → build con **Sonnet 5**. **Sin código aún.**
+  **Hand-off:** Fable 5 (arquitecto) planificó → Sonnet 5 (constructor) ejecutó T1-T9. Gate humano pendiente — ver «Retomar aquí».
 - **Fase 1 «forja-ciclo-vivo» — PAUSADA** ([`stories/2026-07-10-forja-ciclo-vivo/`](stories/2026-07-10-forja-ciclo-vivo/INDEX.md)):
   Slice 1a (golden scaffold `docs/terreno/` dim piloto `forma-trabajo` + `docs/wip/`) **construido, pendiente firma
   🧑‍⚖️**; verificado verde (F-D4). **Aclaración F-D5:** la expertise de forja se encarna en el **kit ② embebido**
@@ -25,12 +25,17 @@ FIRMADO 🧑‍⚖️ 2026-07-13 tras revisión adversaria de 4 subagentes). Ín
   migrará, no revertir). Firmado «docs/terreno absorbe architecture» → bajo revisión (P9 en terreno-conocimiento).
 - **Modelo de TERRENO FIRMADO 🧑‍⚖️ 2026-07-10** ([`stories/2026-07-10-terreno-conocimiento/`](stories/2026-07-10-terreno-conocimiento/INDEX.md):
   D0-D20 + `arnes.yaml` + `estructura-terreno.html` v4). Sigue válido como **schema que el forjador aplica**.
-- **Retomar aquí:** **plan de Slice 0 LISTO (Fable 5, 2026-07-13)** en
+- **Retomar aquí:** **Slice 0 «Cimientos» CONSTRUIDO (Sonnet 5, 2026-07-13)** en
   [`stories/2026-07-13-portafolio-slice0-cimientos/`](stories/2026-07-13-portafolio-slice0-cimientos/INDEX.md):
-  tickets T1-T9 + decisiones S0-D1..D11 + gate local + goal verificable. **Eslabón CC (F5) investigado con
-  evidencia real** (CC registra procedencia en `~/.claude/plugins/{installed_plugins,known_marketplaces}.json` +
-  `enabledPlugins`; instalación CC = referenciada al cache global). Próximo = **Sonnet 5 ejecuta T1-T9**
-  (un commit por ticket, gates verdes); al final: `paridad.md` + gate humano del operador.
+  tickets T1-T9 ejecutados y commiteados a `main` (un commit por ticket, gate local verde antes de
+  cada uno). Dominio `(home,id)` + walker 3-formas + fallback `plugin.json` + origen collect-all +
+  `deriva` por hash + store separado que degrada honesto + HTTP/CLI mínimos + capabilities/boundary
+  as-code — todo con test real (27 tests portafolio + 4 checks del boundary nuevo). **E2E vivo
+  contra la máquina real cazó y corrigió 2 bugs reales** (`installed_plugins.json` anida bajo
+  `plugins`; la deriva no se evaluaba con `home` vacío pese a haber referencia local — S0-D14/D15
+  en `decisiones.md`). `paridad.md` escrita con el goal §0 verificado + evidencia E2E pegada.
+  **Próximo: gate humano 🧑‍⚖️ del operador** sobre `paridad.md` (8 puntos + 5 desviaciones) — recién
+  después arranca Slice 1 (FE).
   Pausadas: **Fase 1 forja** (Slice 1a pendiente firma) · **terreno** (schema firmado). Contexto: memorias
   `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.

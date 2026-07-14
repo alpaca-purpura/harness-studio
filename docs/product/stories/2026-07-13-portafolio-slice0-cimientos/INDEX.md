@@ -19,10 +19,14 @@ store separado que degrada honesto · HTTP+CLI mínimos · capabilities + bounda
 - [`decisiones.md`](./decisiones.md) — S0-D1..D11: decisiones del arquitecto que cierran lo que S-D11
   difirió al build (eslabón CC investigado con evidencia real · 3 tipos de instalación · empresas[] ·
   layout hexagonal · store · deriva local-only · E3 en papel · boundary nuevo).
-- `paridad.md` — la escribe el constructor en T9 (tabla spec↔realidad + evidencia E2E). Firma pendiente.
+- [`paridad.md`](./paridad.md) — tabla spec↔realidad + evidencia E2E vivo contra la máquina real
+  (2 bugs reales encontrados y corregidos: S0-D14/S0-D15). **Firma 🧑‍⚖️ PENDIENTE.**
 
 ## Retomar aquí
 
-> **Estado (2026-07-13): plan listo, build NO arrancado.** Siguiente = ejecutar T1 (dominio) según
-> `plan-implementacion.md` §3, en orden, un commit por ticket, gate §M verde antes de cada commit.
-> Al terminar T9: paridad.md escrita + este bloque actualizado + gate humano PENDIENTE para el operador.
+> **Estado (2026-07-13): T1→T9 CONSTRUIDOS Y COMMITEADOS a `main`.** Los 9 tickets del plan
+> ejecutados en orden (`git log --oneline --grep="feat(portafolio): T"`), gate local (§M) verde
+> antes de cada commit. `paridad.md` escrita con el goal §0 del plan verificado punto por punto +
+> evidencia E2E real. **Siguiente paso: gate humano 🧑‍⚖️ del operador** — revisar `paridad.md`
+> (8 puntos del goal + 5 desviaciones registradas) y firmar. Tras la firma: cerrar el paquete en
+> `checkpoint.md`/`BACKLOG.md` (item 0 → construido y firmado) y decidir el recorte de Slice 1 (FE).
