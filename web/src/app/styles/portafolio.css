@@ -1,0 +1,84 @@
+/* Vista Portafolio — chips/dot de dominio (T3, plan §2.7/§3 T3). Mismo patrón que
+   ajustes.css/map.css: scoped bajo .arnesia-portafolio, todo color es un token var(--…)
+   (fe-tokens-contrato/stylelint strict-value); T4-T6 suman las reglas de lista/drawer/wizard
+   a este mismo archivo (el SSoT crece con el código, plan §M). */
+
+/* ── chip base (S1-D14: badge mono, mismo espíritu que .fchip del mockup) ── */
+.arnesia-portafolio .pf-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.4;
+  padding: 1px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* ── DerivaChip (G1): 3 estados, cada uno su tono — literal del wire, nunca parafraseado ── */
+.arnesia-portafolio .pf-chip-deriva.al-hilo {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.arnesia-portafolio .pf-chip-deriva.en-deriva {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+.arnesia-portafolio .pf-chip-deriva.deriva-no-evaluable {
+  border-color: var(--border);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+
+/* ── TipoInstalacionChip (S0-D2): descriptivo, sin tono de salud (no es un veredicto) ── */
+.arnesia-portafolio .pf-chip-tipo {
+  color: var(--muted-foreground);
+}
+
+/* ── AvisoChip: solo existe si hay dato (plan §3 T3) → siempre tono warn, texto completo
+      (nunca truncado, BR-8) ── */
+.arnesia-portafolio .pf-chip-aviso {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--foreground);
+  white-space: normal;
+  max-width: 360px;
+}
+
+/* ── DotSaludPortafolio (G9, S1-D4): CADA rama su propia clase/color; "sin-senal" es un
+      hueco/muted que NUNCA reusa el color de "ok" — "no sé" ≠ "sano" (regla dura). ── */
+.arnesia-portafolio .pf-dot-salud {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.arnesia-portafolio .pf-dot-salud.ok {
+  background: var(--ok);
+}
+.arnesia-portafolio .pf-dot-salud.atencion {
+  background: var(--warn);
+}
+.arnesia-portafolio .pf-dot-salud.sin-senal {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--muted-foreground);
+}
+
+/* ── G8 a11y: reduced-motion apaga las transiciones de chips/dot (T4-T6 suman las suyas
+      a este mismo bloque cuando agreguen hover/foco animados). ── */
+@media (prefers-reduced-motion: reduce) {
+  .arnesia-portafolio .pf-chip,
+  .arnesia-portafolio .pf-dot-salud {
+    transition: none;
+  }
+}

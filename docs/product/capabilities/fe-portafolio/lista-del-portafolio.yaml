@@ -24,6 +24,10 @@ pointers:
   - "web/src/entities/portafolio/testing/entradas.ts#entradasDemo"
   - "web/src/entities/portafolio/model/selectors.test.ts#agruparPorEmpresa"
   - "web/src/shared/api/client.ts#listPortafolio"
+  - "web/src/entities/portafolio/ui/chips.tsx#EmblemaInicial"
+  - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
+  - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
+  - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
 valida: []
 
 dev_preview:
@@ -36,7 +40,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-14
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D6/S1-D8"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -48,6 +52,16 @@ change_log:
       fixtures honestas del E2E de Slice 0 + `api.listPortafolio`. El widget de lista
       (`widgets/portafolio/ui/portafolio-list.tsx`, estados vacío/cargando/error/corruptas)
       llega en T4 — este capability gradúa a `vivo` ahí.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T3 — chips/dot de dominio construidos: `EmblemaInicial` (inicial + color determinista
+      sobre la paleta `--c-*` de kind), `DerivaChip` (G1, literal de EstadoDeriva),
+      `AvisoChip` (solo si hay dato) y `DotSaludPortafolio` (G9, regla S1-D4 con clase
+      propia por rama — `sin-senal` nunca el color de `ok`). Sigue `stub`/sin `valida:`: el
+      widget de fila que los consume real llega en T4.
     merge_sha: null
 
 scenarios: []

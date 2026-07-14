@@ -21,6 +21,9 @@ pointers:
   - "web/src/entities/portafolio/model/types.ts#Candidato"
   - "web/src/shared/api/client.ts#escanearProyecto"
   - "web/src/shared/api/client.ts#agregarProyecto"
+  - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
+  - "web/src/entities/portafolio/ui/chips.tsx#TipoInstalacionChip"
+  - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
 valida: []
 
 dev_preview:
@@ -34,7 +37,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-14
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D9/S1-D10"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -46,6 +49,14 @@ change_log:
       widget (`widgets/portafolio/ui/portafolio-wizard.tsx`, rama Proyecto/carpeta-local; rama
       GitHub y tab Marketplace disabled+tooltip S2, G3) llega en T6 — ese ticket gradúa este
       capability a `vivo`.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T3 — chips de dominio construidos, reusados por cada candidato del wizard: `DerivaChip`
+      (G1), `TipoInstalacionChip` y `AvisoChip`. Sigue `stub`/sin `valida:`: el widget del
+      wizard que los consume real llega en T6.
     merge_sha: null
 
 scenarios: []

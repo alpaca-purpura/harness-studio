@@ -23,6 +23,10 @@ pointers:
   - "web/src/entities/portafolio/model/selectors.ts#saludDe"
   - "web/src/entities/portafolio/model/selectors.ts#registriesDe"
   - "web/src/entities/portafolio/model/selectors.test.ts#saludDe"
+  - "web/src/entities/portafolio/ui/chips.tsx#EmblemaInicial"
+  - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
+  - "web/src/entities/portafolio/ui/chips.tsx#TipoInstalacionChip"
+  - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
 valida: []
 
 dev_preview:
@@ -35,7 +39,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-14
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D5/S1-D14/S1-D15"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -47,6 +51,15 @@ change_log:
       la copia» en la UI, S1-D14 — no pisa el `Origen` L0). El widget
       (`widgets/portafolio/ui/portafolio-drawer.tsx`, confirm de Desvincular G7, a11y G8)
       llega en T5 — ese ticket gradúa este capability a `vivo`.
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-14
+    type: extend
+    summary: >-
+      T3 — chips/dot de dominio construidos: `EmblemaInicial` (header), `DerivaChip` (G1, con
+      `deriva_detalle` como tooltip nativo), `TipoInstalacionChip` (badge de la forma física,
+      S0-D2) y `AvisoChip` (zona instalaciones). Sigue `stub`/sin `valida:`: el widget del
+      drawer que los consume real llega en T5.
     merge_sha: null
 
 scenarios: []
