@@ -62,8 +62,8 @@
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `253 checks · pass 46 · fail 0 · error 0 · deferred 207 · n/a 0` (medido 2026-07-14, `go run ./cmd/arnesia conformance --todo`)
-- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-14
+- **ruleset `--todo`:** `257 checks · pass 48 · fail 0 · error 0 · deferred 209 · n/a 0` (medido 2026-07-16, `go run ./cmd/arnesia conformance --todo`)
+- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-16
 - **arch/:** 18 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
 - **capabilities (SSoT):** 92 — 49 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
