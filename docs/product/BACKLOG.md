@@ -6,6 +6,28 @@
 > (firma humana) · `deuda` · `bloqueo` (depende de otra cosa).
 > SSoT del futuro: reemplaza los `Siguiente`/`Deuda` que vivían enterrados en LEDGER.
 
+## Construido, gate humano PENDIENTE — Rebrand sistema de diseño PRENTER (2026-07-15)
+
+- [ ] **Chrome de tokens (color/tipografía/radios/sombras) reemplazado por el sistema PRENTER**
+  (dark-first, negro+teal `#00b7aa`) — **IMPLEMENTADO** en `web/` (tokens+build+fuentes self-hosted+
+  dark-default), verificado en vivo (`pnpm run verify` + `vitest` 127/127+21/21 + screenshot real de
+  Storybook). `color.kind`/`health`/`heat` (paleta funcional del Mapa) INTACTOS (D1, verificado en
+  `theme.css`). 2 correcciones WCAG reales cazadas por el suite de a11y (D9). Reemplaza VALORES de una
+  base firmada (HS-03/HS-05/HS-09) — falta el gate humano antes de re-derivar
+  `arnesia-shell-A-galaxia.html` (🔒 firmado) y cerrar el paquete.
+  → [`stories/2026-07-15-rebrand-prenter-design-system/INDEX.md`](stories/2026-07-15-rebrand-prenter-design-system/INDEX.md)
+  · **siguiente paso: el operador corre la app en vivo y firma** (falta `paridad.md`) · deuda registrada:
+  botones/CTA por-módulo siguen en `font.sans`, sin QA visual (D8) · `gate`
+
+## Idea en research — Instalador público + licencias org (2026-07-15)
+
+- [ ] **Instalador `curl\|sh` público + activación por key de organización** (org→N-sub-keys) —
+  `state: idea`, research de mercado hecho y verificado en vivo (Keygen.sh CE recomendado).
+  Alcance acotado con el operador: interno, NO venta externa de ArnesIA (no toca `vision.md`).
+  Bloquea `refining`: confirmar en código real que `Groups` de Keygen vive en CE (no EE) +
+  decidir módulo destino en el seam (`self-update` extendido vs. `distribucion` nuevo).
+  → [`stories/2026-07-15-instalador-publico-licencias-org/INDEX.md`](stories/2026-07-15-instalador-publico-licencias-org/INDEX.md) · `deuda`
+
 ## Gates humanos pendientes (código listo, falta firma 🧑‍⚖️ PARIDAD)
 
 - **Ninguno.** Los 4 (chat-cc-funcional · franja-artefactos · boton-actualizar · inspector-drawer)

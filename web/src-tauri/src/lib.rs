@@ -87,10 +87,40 @@ pub fn run() {
                 eprintln!("[arnesia] daemon ya activo en {DAEMON_ADDR}; no spawneo (attach: WebView sin token)");
                 return Ok(());
             }
-            match app.shell().sidecar("arnesia-daemon") {
-                // El token viaja por env, no por args → no cambia el allowlist de la capability
-                // (`shell:allow-execute` fija args a ["serve"]).
-                Ok(cmd) => match cmd
+            // override local (bugfix self-update-sidecar-ignora-path): tauri_plugin_shell
+            // resuelve sidecar() SIEMPRE como dirname(current_exe())/programa — jamás vía
+            // $PATH (ver relative_command_path en tauri-plugin-shell/src/process/mod.rs).
+            // Un install .deb/.rpm pone arnesia-app Y el sidecar en /usr/bin (root): el hint
+            // de la tarjeta Ajustes ("migra a ~/.local/bin/arnesia, el botón funciona sin
+            // sudo") era FALSO para el flujo GUI — copiar el binario ahí no cambiaba cuál
+            // sidecar se lanzaba. Este check hace ese hint real: si el operador ya migró,
+            // usamos ESE binario (espacio de usuario, permite self-update); si no, el
+            // sidecar empaquetado de siempre.
+            let override_local = app
+                .path()
+                .home_dir()
+                .ok()
+                .map(|home| home.join(".local").join("bin").join("arnesia"))
+                .filter(|p| p.is_file());
+
+            let cmd = if let Some(bin) = &override_local {
+                eprintln!("[arnesia] override local en {}: spawneo ESE binario, no el sidecar empaquetado", bin.display());
+                Some(app.shell().command(bin))
+            } else {
+                eprintln!("[arnesia] sin override en ~/.local/bin/arnesia: spawneo el sidecar empaquetado");
+                match app.shell().sidecar("arnesia-daemon") {
+                    // El token viaja por env, no por args → no cambia el allowlist de la
+                    // capability (`shell:allow-execute` fija args a ["serve"]).
+                    Ok(cmd) => Some(cmd),
+                    Err(e) => {
+                        eprintln!("[arnesia] sidecar 'arnesia-daemon' no disponible: {e}");
+                        None
+                    }
+                }
+            };
+
+            if let Some(cmd) = cmd {
+                match cmd
                     .args(["serve"])
                     .env("ARNESIA_AUTH_TOKEN", &token_for_setup)
                     .spawn()
@@ -115,8 +145,7 @@ pub fn run() {
                         });
                     }
                     Err(e) => eprintln!("[arnesia] no pude spawnear el daemon: {e}"),
-                },
-                Err(e) => eprintln!("[arnesia] sidecar 'arnesia-daemon' no disponible: {e}"),
+                }
             }
             Ok(())
         })

@@ -24,3 +24,11 @@ web/src-tauri/gen/
 .env
 .env.*
 mockups/.shots/
+
+# Artefactos de build del instalador de escritorio (make installer): binarios versionados
+# LOCALMENTE en instaladores/vX.Y.Z/ (~90M por versión) — al repo va el BUMP de los 3
+# manifiestos, jamás los binarios (docs/architecture/conventions/versionado.md).
+instaladores/
+
+# Config local del editor (vault Obsidian del operador)
+.obsidian/

@@ -29,9 +29,11 @@ convención en este árbol DEBE romper CI** (si no, es una nota, va al doc de hi
 | [`git-hooks.md`](./git-hooks.md) | Gate local pre-commit (lefthook, binario Go) | 🌱 vivo | `/lefthook.yml` | hook exit≠0 |
 | [`editor.md`](./editor.md) | Indentación/EOL única (EditorConfig) | 🌱 vivo | `/.editorconfig` | (vía format checks) |
 | [`ci.md`](./ci.md) | Todo check rompe el merge (GitHub Actions) | 🌱 vivo | `/.github/workflows/ci.yml` | required status checks |
+| [`versionado.md`](./versionado.md) | SemVer plano sin prefijo `v`, `Cargo.toml` SoT, sync 3 manifiestos | 🌱 vivo | `/Makefile` | `arch_test.go:TestVersionManifestsInSync` |
 
 Leyenda: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 estable · 🔍 en-revisión.
-**Total: 8 convention nodes · 26 checks · pasada fundacional 2026-07-05 (HS-05).**
+**Total: 9 convention nodes · 30 checks · pasada fundacional 2026-07-05 (HS-05); +1 nodo
+`versionado.md` 2026-07-15 (4 checks, enforcer real desde el día 1).**
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** el código es real (daemon Go
 > `internal/`+`cmd/`, SPA `web/`, shell Rust `web/src-tauri/` — HS-06/HS-08) y los configs

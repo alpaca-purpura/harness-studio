@@ -83,8 +83,9 @@ mismo día del fix ②, no mejora cosmética; ver su changelog) **= 13 checks)**
 HS-22** (2026-07-14, Portafolio Slice 0 «Cimientos»): 1 boundary · 4 checks —
 `portafolio-identidad-y-deriva-honesta` **enforced** (identidad calificada única · deriva nunca
 semver · store degrada honesto · procedencia anotada; los 4 con test Go real ya verde). **+
-[`conventions/`](./conventions/INDEX.md): 8 convention nodes · 26 checks** (HS-05). **Gran total `arch/`:
-111 checks** (85 boundary + 26 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
+[`conventions/`](./conventions/INDEX.md): 9 convention nodes · 30 checks** (HS-05 + nodo
+`versionado.md` 2026-07-15). **Gran total `arch/`:
+115 checks** (85 boundary + 30 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
 arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, cifra viva en `checkpoint.md`).
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,

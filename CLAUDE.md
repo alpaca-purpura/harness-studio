@@ -27,6 +27,7 @@ arneses propios. Constitución de 11 principios + visión → [`docs/product/vis
 | **Arquitectura as-code · boundaries · fitness** | [`docs/architecture/INDEX.md`](./docs/architecture/INDEX.md) |
 | **Estándar as-code por elemento** (skill/hook/rule/…) | [`docs/architecture/knowledge/INDEX.md`](./docs/architecture/knowledge/INDEX.md) |
 | **UX firmada · inventario · mockups** | [`docs/product/ux.md`](docs/product/ux.md) · `mockups/` |
+| **Armar/actualizar instalador de escritorio** (chequear ANTES de `bundle.sh` a mano) | `make installer` → versiona en `instaladores/vX.Y.Z/`, nunca pisa — [`docs/architecture/conventions/versionado.md`](docs/architecture/conventions/versionado.md) |
 | **Diseñar / mockupear UI (LEER antes de forkear)** | [`mockups/INDEX.md`](./mockups/INDEX.md) — línea base vigente + disciplina superset (SSoT UI = Storybook) |
 | **Trabajar una feature** (mockup→spec→PARIDAD) | `docs/product/stories/<pkg>/INDEX.md` |
 

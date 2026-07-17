@@ -117,11 +117,104 @@ func validarRepo(repo string) (string, error) {
 		return "", fmt.Errorf("el repo no trae scripts/bundle.sh: %w", err)
 	}
 	for _, tool := range []string{"go", "pnpm", "bash"} {
-		if _, err := exec.LookPath(tool); err != nil {
+		if _, err := lookPathEn(tool, pathAumentado()); err != nil {
 			return "", fmt.Errorf("toolchain incompleta: %q no está en PATH (feature de operador-dev)", tool)
 		}
 	}
 	return fmt.Sprintf("repo %s · módulo esperado · go/pnpm/bash presentes", repo), nil
+}
+
+// candidatosPATH — ubicaciones ESTÁNDAR de instalación de go/pnpm que un proceso
+// lanzado desde el launcher gráfico no hereda: el `.desktop` arranca con el PATH de la
+// sesión (systemd/display-manager), fijado al iniciar sesión — jamás lee
+// ~/.profile/~/.bashrc como sí hace una terminal interactiva. Root cause del bug real
+// (no un problema de build viejo): "toolchain incompleta: X no está en PATH" con la
+// herramienta instalada y en el PATH de CUALQUIER terminal del mismo usuario. El fix
+// original (HS) solo cubrió go; pnpm pegaba el mismo síntoma vía nvm (ver
+// nvmBinsInstalados) y quedó afuera hasta ahora.
+func candidatosPATH() []string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	cands := []string{
+		filepath.Join(home, ".local", "go", "bin"), // convención de este repo (ver ~/.profile)
+		filepath.Join(home, "go", "bin"),           // convención oficial go.dev (go install)
+		"/usr/local/go/bin",                        // convención oficial go.dev (tarball)
+	}
+	return append(cands, nvmBinsInstalados(home)...)
+}
+
+// nvmBinsInstalados — mismo root cause que go (ver candidatosPATH): el launcher gráfico
+// no corre ~/.bashrc, así que nvm.sh nunca carga y el pnpm de la versión de node activa
+// queda fuera del PATH aunque esté instalado (ver ~/.nvm/versions/node/*/bin). nvm no
+// fija un symlink "current" — cada versión vive en su propio dir versionado — así que se
+// agregan TODOS los bin/ instalados: cualquiera resuelve pnpm/node/npm igual de bien
+// para bundle.sh.
+func nvmBinsInstalados(home string) []string {
+	nvmDir := os.Getenv("NVM_DIR")
+	if nvmDir == "" {
+		nvmDir = filepath.Join(home, ".nvm")
+	}
+	versionesDir := filepath.Join(nvmDir, "versions", "node")
+	entries, err := os.ReadDir(versionesDir)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			out = append(out, filepath.Join(versionesDir, e.Name(), "bin"))
+		}
+	}
+	return out
+}
+
+// pathAumentado agrega los candidatosPATH() que EXISTEN al PATH heredado — nunca lo
+// reemplaza, nunca muta os.Environ() del proceso (concurrente con otros pasos).
+func pathAumentado() string {
+	base := os.Getenv("PATH")
+	var extra []string
+	for _, dir := range candidatosPATH() {
+		if st, err := os.Stat(dir); err == nil && st.IsDir() {
+			extra = append(extra, dir)
+		}
+	}
+	if len(extra) == 0 {
+		return base
+	}
+	return strings.Join(extra, string(os.PathListSeparator)) + string(os.PathListSeparator) + base
+}
+
+// lookPathEn busca tool en cada directorio de pathEnv (semántica de exec.LookPath, pero
+// contra un PATH explícito en vez de leer os.Getenv("PATH") — necesario para probar
+// pathAumentado() sin mutar el proceso real).
+func lookPathEn(tool, pathEnv string) (string, error) {
+	for _, dir := range filepath.SplitList(pathEnv) {
+		if dir == "" {
+			continue
+		}
+		candidato := filepath.Join(dir, tool)
+		if st, err := os.Stat(candidato); err == nil && !st.IsDir() && st.Mode().Perm()&0o111 != 0 {
+			return candidato, nil
+		}
+	}
+	return "", fmt.Errorf("%s: %w", tool, exec.ErrNotFound)
+}
+
+// envConPathAumentado copia el entorno del proceso reemplazando SOLO PATH — para el
+// subproceso de Build(), que hereda env por defecto (mismo PATH roto que validarRepo
+// ya corrigió para el check; sin esto el check pasa pero bundle.sh igual falla al
+// invocar go/pnpm adentro).
+func envConPathAumentado() []string {
+	env := os.Environ()
+	out := make([]string, 0, len(env)+1)
+	for _, e := range env {
+		if !strings.HasPrefix(e, "PATH=") {
+			out = append(out, e)
+		}
+	}
+	return append(out, "PATH="+pathAumentado())
 }
 
 // Build compila el árbol local (paso ②): scripts/bundle.sh --daemon-only con cwd=repo,
@@ -131,6 +224,7 @@ func (u *Updater) Build(ctx context.Context) (string, error) {
 	// al daemon (flag/env, jamás del request — RF-106); Verificar ya ancló el árbol al módulo esperado.
 	cmd := exec.CommandContext(ctx, "bash", filepath.Join("scripts", "bundle.sh"), "--daemon-only")
 	cmd.Dir = u.repoAtual()
+	cmd.Env = envConPathAumentado()
 	// La cancelación mata el GRUPO entero (bash + go/pnpm/vite hijos): matar solo a
 	// bash dejaría a los hijos corriendo Y sosteniendo el pipe (CombinedOutput jamás
 	// retornaría). WaitDelay corta el pipe si algún nieto sobrevive al SIGKILL.

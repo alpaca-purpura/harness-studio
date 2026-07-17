@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -1370,5 +1371,46 @@ func TestArnesPathContainment(t *testing.T) {
 	good := t.TempDir()
 	if err := reg.Register("x", good); err != nil {
 		t.Errorf("Register(%q) should succeed: %v", good, err)
+	}
+}
+
+// --- versionado.md (source scans) ---
+
+// TestVersionManifestsInSync guards docs/architecture/conventions/versionado.md: the desktop
+// bundle version lives in three manifests (Cargo.toml is the source of truth — Tauri falls
+// back to it — but tauri.conf.json/package.json stay explicit per Tauri's own recommendation)
+// that `make bump-patch` keeps in lockstep. A hand-edit to just one of them, or a stray "v"
+// prefix (which Keygen's Release.version rejects, see the licensing story), drifts silently
+// until someone diffs a shipped installer against its own about box.
+func TestVersionManifestsInSync(t *testing.T) {
+	cargo := readSourceFile(t, "web/src-tauri/Cargo.toml")
+	tauriConf := readSourceFile(t, "web/src-tauri/tauri.conf.json")
+	pkg := readSourceFile(t, "web/package.json")
+	if cargo == "" || tauriConf == "" || pkg == "" {
+		return
+	}
+
+	cargoVer := regexp.MustCompile(`(?m)^version = "([^"]+)"`).FindStringSubmatch(cargo)
+	tauriVer := regexp.MustCompile(`"version":\s*"([^"]+)"`).FindStringSubmatch(tauriConf)
+	pkgVer := regexp.MustCompile(`"version":\s*"([^"]+)"`).FindStringSubmatch(pkg)
+	if cargoVer == nil {
+		t.Fatal("no [package].version en web/src-tauri/Cargo.toml")
+	}
+	if tauriVer == nil {
+		t.Fatal("no \"version\" en web/src-tauri/tauri.conf.json")
+	}
+	if pkgVer == nil {
+		t.Fatal("no \"version\" en web/package.json")
+	}
+
+	v := cargoVer[1]
+	if strings.HasPrefix(v, "v") {
+		t.Errorf("Cargo.toml version=%q lleva prefijo v — Keygen.Release.version lo rechaza", v)
+	}
+	if tauriVer[1] != v {
+		t.Errorf("tauri.conf.json version=%q != Cargo.toml version=%q (drift — correr `make bump-patch`)", tauriVer[1], v)
+	}
+	if pkgVer[1] != v {
+		t.Errorf("package.json version=%q != Cargo.toml version=%q (drift — correr `make bump-patch`)", pkgVer[1], v)
 	}
 }

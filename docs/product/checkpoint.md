@@ -50,6 +50,13 @@
   cimientos/`) sigue FIRMADO (`ledger/HS-23.md`), sin cambios.
   Pausadas: **Fase 1 forja** (Slice 1a pendiente firma) · **terreno** (schema firmado). Contexto: memorias
   `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
+- **Nuevo (2026-07-15): Rebrand sistema de diseño PRENTER — IMPLEMENTADO, gate humano PENDIENTE.**
+  `docs/product/stories/2026-07-15-rebrand-prenter-design-system/`: decisiones D1-D9 (paleta funcional
+  del Mapa intacta · dark-first default · fuentes self-hosted · 2 correcciones WCAG reales cazadas por
+  el suite de a11y, D9). Aplicado a `web/`: tokens+`theme.css`+`index.css`+`app-store.ts`+3 `.woff2`.
+  Verificado en vivo: `pnpm run verify` + `vitest` 127/127+21/21 + screenshot real (Storybook `:6006`).
+  Falta: el operador corre la app y firma antes de re-derivar `arnesia-shell-A-galaxia.html`
+  (🔒 firmado, HS-03/HS-05) y cerrar el paquete (`paridad.md` sin escribir aún).
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

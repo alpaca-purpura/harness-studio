@@ -142,10 +142,51 @@ func TestVerificar(t *testing.T) {
 	})
 	t.Run("toolchain incompleta", func(t *testing.T) {
 		// PATH SIN pnpm/go/bash → Verificar corta honesto (feature de operador-dev).
+		// HOME aislado: si esto corre en la máquina de un operador con go instalado en
+		// ~/.local/go/bin (fallback real de pathAumentado), el caso negativo debe
+		// seguir fallando — no puede depender de qué toolchain tenga el host.
 		t.Setenv("PATH", t.TempDir())
+		t.Setenv("HOME", t.TempDir())
 		u := &Updater{repo: repoFake(t, "")}
 		if _, err := u.Verificar(ctx); err == nil {
 			t.Fatal("sin toolchain en PATH debe fallar honesto")
+		}
+	})
+	t.Run("toolchain resuelta por PATH aumentado (fallback go.dev)", func(t *testing.T) {
+		// Bug real (no de staleness): un proceso lanzado desde el launcher gráfico NO
+		// hereda ~/.profile/~/.bashrc — go queda fuera de PATH aunque cualquier
+		// terminal lo vea. pathAumentado() debe encontrarlo igual vía la convención
+		// ~/.local/go/bin (ver ~/.profile) sin que el operador reinicie sesión.
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		golangStub := filepath.Join(home, ".local", "go", "bin", "go")
+		escribe(t, golangStub, "#!/bin/sh\nexit 0\n", 0o755)
+		stubs := t.TempDir()
+		for _, tool := range []string{"pnpm", "bash"} { // go NO va acá: debe venir del fallback.
+			escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
+		}
+		t.Setenv("PATH", stubs)
+		u := &Updater{repo: repoFake(t, "")}
+		if _, err := u.Verificar(ctx); err != nil {
+			t.Fatalf("go en ~/.local/go/bin debe resolverse vía fallback: %v", err)
+		}
+	})
+	t.Run("toolchain resuelta por PATH aumentado (fallback nvm pnpm)", func(t *testing.T) {
+		// Mismo root cause que el caso go de arriba: pnpm instalado vía nvm vive en
+		// ~/.nvm/versions/node/vX.Y.Z/bin, invisible para un proceso lanzado sin
+		// ~/.bashrc. pathAumentado() debe encontrarlo igual, sin symlink "current".
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		pnpmStub := filepath.Join(home, ".nvm", "versions", "node", "v24.18.0", "bin", "pnpm")
+		escribe(t, pnpmStub, "#!/bin/sh\nexit 0\n", 0o755)
+		stubs := t.TempDir()
+		for _, tool := range []string{"go", "bash"} { // pnpm NO va acá: debe venir del fallback nvm.
+			escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
+		}
+		t.Setenv("PATH", stubs)
+		u := &Updater{repo: repoFake(t, "")}
+		if _, err := u.Verificar(ctx); err != nil {
+			t.Fatalf("pnpm en ~/.nvm/versions/node/*/bin debe resolverse vía fallback: %v", err)
 		}
 	})
 }
@@ -208,6 +249,32 @@ func TestBuildStubOK(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(repo, "bin", "arnesia")); err != nil {
 		t.Fatalf("el stub debió dejar bin/arnesia: %v", err)
+	}
+}
+
+func TestBuildVePathAumentado(t *testing.T) {
+	// Regresión del bug real: validarRepo podía encontrar go vía fallback pero Build()
+	// heredaba el PATH SIN aumentar (cmd.Env nil = os.Environ() tal cual) — bundle.sh
+	// fallaba igual adentro. bundle.sh acá resuelve "go" vía `command -v`, que solo
+	// existe en el fallback ~/.local/go/bin, nunca en el PATH base del test.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	escribe(t, filepath.Join(home, ".local", "go", "bin", "go"), "#!/bin/sh\nexit 0\n", 0o755)
+	// base PATH fiel al bug real: bash SÍ resuelve (systemd/session lo trae de
+	// /usr/bin — por eso el error reportado era solo sobre "go"), pero go NO — solo
+	// el fallback ~/.local/go/bin lo resuelve. bashDir real (no un stub): así el
+	// bash que corre bundle.sh es el de verdad, no otra capa de fixture.
+	bashReal, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("host sin bash resoluble — no puedo probar el PATH aumentado")
+	}
+	t.Setenv("PATH", filepath.Dir(bashReal))
+
+	repo := repoFake(t, "#!/usr/bin/env bash\ncommand -v go >/dev/null || { echo 'go no resuelto' >&2; exit 1; }\nmkdir -p bin\necho compilado > bin/arnesia\n")
+	u := &Updater{repo: repo}
+	detalle, err := u.Build(context.Background())
+	if err != nil {
+		t.Fatalf("Build debe heredar el PATH aumentado (go vía fallback): %v — detalle: %s", err, detalle)
 	}
 }
 

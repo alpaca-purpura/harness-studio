@@ -3,6 +3,9 @@
 	"identifier": "default",
 	"description": "Capability base del shell ArnesIA: ventana 'main' + spawn del daemon Go como sidecar + selector nativo de carpeta.",
 	"windows": ["main"],
+	"remote": {
+		"urls": ["http://127.0.0.1:4200/*"]
+	},
 	"permissions": [
 		"core:default",
 		{
