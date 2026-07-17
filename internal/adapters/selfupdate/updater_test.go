@@ -177,6 +177,11 @@ func TestVerificar(t *testing.T) {
 		// ~/.bashrc. pathAumentado() debe encontrarlo igual, sin symlink "current".
 		home := t.TempDir()
 		t.Setenv("HOME", home)
+		// NVM_DIR manda sobre ~/.nvm (comportamiento correcto de producción) — pinnearlo
+		// al home fake: los runners de GitHub traen nvm SIN versiones con NVM_DIR global
+		// (/home/runner/.nvm), que secuestraba el fallback y el stub nunca se encontraba
+		// (CI rojo 2026-07-17); en dev, un NVM_DIR real con pnpm enmascaraba el caso.
+		t.Setenv("NVM_DIR", filepath.Join(home, ".nvm"))
 		pnpmStub := filepath.Join(home, ".nvm", "versions", "node", "v24.18.0", "bin", "pnpm")
 		escribe(t, pnpmStub, "#!/bin/sh\nexit 0\n", 0o755)
 		stubs := t.TempDir()
