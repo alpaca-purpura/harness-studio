@@ -5,6 +5,7 @@ import {
   DerivaChip,
   EmblemaInicial,
   type EntradaPortafolio,
+  identificadorDe,
   registriesDe,
   TipoInstalacionChip,
 } from "@/entities/portafolio"
@@ -76,7 +77,7 @@ export function PortafolioDrawer({
     if (dialogRef.current) trapTabKeyDown(dialogRef.current, e)
   }
 
-  const idMostrado = entrada.identidad.id || "(sin id)"
+  const idMostrado = identificadorDe(entrada.identidad)
   const empresas = entrada.empresas ?? []
   const marketplaces = registriesDe(entrada)
   const instalaciones = entrada.instalaciones ?? []

@@ -5,6 +5,7 @@ import {
   type Candidato,
   type EntradaCorrupta,
   type EntradaPortafolio,
+  identificadorDe,
   idsColisionados,
   type LentePortafolio,
   type PortafolioListado,
@@ -204,7 +205,7 @@ export function PortafolioView() {
     (installPath: string) => {
       if (!seleccionadaEntrada) return
       const clave = seleccionadaEntrada.clave
-      const idMostrado = seleccionadaEntrada.identidad.id || "(sin id)"
+      const idMostrado = identificadorDe(seleccionadaEntrada.identidad)
       const colisiones = idsColisionados(entradas)
       const otras = (colisiones.get(seleccionadaEntrada.identidad.id) ?? []).filter(
         (c) => c !== clave,

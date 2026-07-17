@@ -1,6 +1,13 @@
 import type { ChangeEvent, KeyboardEvent } from "react"
 import { useEffect, useId, useRef, useState } from "react"
-import { AvisoChip, type Candidato, DerivaChip, TipoInstalacionChip } from "@/entities/portafolio"
+import {
+  AvisoChip,
+  type Candidato,
+  DerivaChip,
+  gruposCandidatosDe,
+  identificadorDe,
+  TipoInstalacionChip,
+} from "@/entities/portafolio"
 import { trapTabKeyDown } from "@/shared/lib/focus-trap"
 
 // PortafolioWizard — superficie 2 del Portafolio (plan §2.6/§3 T6, G3/G5/G8). Props puras:
@@ -22,11 +29,15 @@ export interface PortafolioWizardProps {
   /** aborta el fetch en curso (S1-D9: AbortSignal en la página). */
   onCancelarEscaneo: () => void
   onAgregar: (elegidos: string[]) => void
-  /** undefined fuera de Tauri — el botón «Elegir carpeta…» no se renderiza (S1-D9). */
+  /** undefined fuera de Tauri — el radio «Elegir carpeta» queda disabled+tooltip (S1-D23). */
   onElegirCarpeta?: (() => Promise<string | undefined>) | undefined
 }
 
+/** Cómo el usuario carga la ruta del proyecto en el paso Fuente (S1-D23, supersede S1-D9). */
+type ModoFuente = "escribir" | "elegir"
+
 const TOOLTIP_S2 = "próximo · S2"
+const TOOLTIP_WEB = "solo disponible en la app de escritorio"
 
 // S1-D19 (T6, criterio delegado por el ticket): Esc/✕ NO cierran mientras estado==="agregando"
 // — el POST /proyectos está en vuelo y cancelar a mitad de un POST es más riesgoso que un
@@ -37,26 +48,42 @@ function bloqueadoParaCierre(estado: PortafolioWizardProps["estado"]): boolean {
   return estado === "agregando"
 }
 
-// ── PasoFuente — input de path SIEMPRE + «Elegir carpeta…» solo si el picker vino (S1-D9);
-// radio «Repositorio GitHub» disabled+tooltip S2. Reusado en el paso 1, dentro de "escaneando"
-// (disabled) y como retry embebido en 0-hallazgos/error (candidatos) — no hay callback propio
-// de "volver a fuente" en el contrato (§2.6 cerrado): re-mostrar este mismo formulario ES la
-// forma de "vuelve a paso 1" sin inventar una prop nueva. ──
+// ── PasoFuente — 2 niveles de radiogroup, ambos con look ButtonGroup (CSS, S1-D23): Nivel 1
+// fuente (Carpeta local activo / Repositorio GitHub disabled+S2) y Nivel 2 modo (Escribir ruta /
+// Elegir carpeta — Elegir carpeta disabled+TOOLTIP_WEB fuera de Tauri, jamás oculto en
+// silencio). El input es UN SOLO elemento siempre presente: editable en modo "escribir",
+// `readOnly` en modo "elegir" (la ruta la pone el picker, mostrada arriba solo-lectura). El
+// botón trigger «Elegir carpeta…» solo aparece en modo "elegir" — deliberadamente separado del
+// radio (evita disparar un diálogo nativo del SO como efecto secundario de seleccionar un radio,
+// mal patrón de a11y; también permite reintentar tras cancelar el picker, algo que un click
+// repetido sobre un radio ya marcado no puede disparar). «Escanear» exige ruta no-vacía además
+// del flag `disabled` de todo el paso. Reusado en el paso 1, dentro de "escaneando" (disabled) y
+// como retry embebido en 0-hallazgos/error (candidatos) — no hay callback propio de "volver a
+// fuente" en el contrato (§2.6 cerrado): re-mostrar este mismo formulario ES la forma de "vuelve
+// a paso 1" sin inventar una prop nueva. ──
 function PasoFuente({
   path,
   onPathChange,
   onEscanear,
   onElegirCarpeta,
+  modo,
+  onModoChange,
   disabled,
 }: {
   path: string
   onPathChange: (v: string) => void
   onEscanear: () => void
   onElegirCarpeta?: (() => void) | undefined
+  modo: ModoFuente
+  onModoChange: (m: ModoFuente) => void
   disabled: boolean
 }) {
+  const elegirNoDisponible = !onElegirCarpeta
+  const escanearDeshabilitado = disabled || path.trim() === ""
+
   return (
     <div className="pf-wizard-fuente">
+      <span className="pf-faceta-label">Origen</span>
       <div className="pf-wizard-radios" role="radiogroup" aria-label="Origen del proyecto">
         <label className="pf-wizard-radio">
           <input type="radio" name="pf-wizard-fuente-radio" checked readOnly disabled={disabled} />
@@ -67,17 +94,44 @@ function PasoFuente({
           Repositorio GitHub
         </label>
       </div>
+      <span className="pf-faceta-label">Cómo cargar la ruta</span>
+      <div className="pf-wizard-radios" role="radiogroup" aria-label="Cómo indicar la carpeta">
+        <label className="pf-wizard-radio">
+          <input
+            type="radio"
+            name="pf-wizard-modo-radio"
+            checked={modo === "escribir"}
+            disabled={disabled}
+            onChange={() => onModoChange("escribir")}
+          />
+          Escribir ruta
+        </label>
+        <label className="pf-wizard-radio" title={elegirNoDisponible ? TOOLTIP_WEB : undefined}>
+          <input
+            type="radio"
+            name="pf-wizard-modo-radio"
+            checked={modo === "elegir"}
+            disabled={disabled || elegirNoDisponible}
+            title={elegirNoDisponible ? TOOLTIP_WEB : undefined}
+            onChange={() => onModoChange("elegir")}
+          />
+          Elegir carpeta
+        </label>
+      </div>
       <div className="pf-wizard-path-row">
         <input
           type="text"
           className="pf-wizard-input"
           aria-label="Ruta del proyecto"
-          placeholder="~/Proyectos/mi-arnes"
+          placeholder={
+            modo === "elegir" ? "ninguna carpeta elegida todavía" : "~/Proyectos/mi-arnes"
+          }
           value={path}
           disabled={disabled}
+          readOnly={modo === "elegir"}
           onChange={(e: ChangeEvent<HTMLInputElement>) => onPathChange(e.target.value)}
         />
-        {onElegirCarpeta && (
+        {modo === "elegir" && onElegirCarpeta && (
           <button
             type="button"
             className="pf-btn-secundario"
@@ -87,17 +141,25 @@ function PasoFuente({
             Elegir carpeta…
           </button>
         )}
-        <button type="button" className="pf-btn-primary" disabled={disabled} onClick={onEscanear}>
-          Escanear
-        </button>
       </div>
+      <button
+        type="button"
+        className="pf-btn-primary pf-wizard-escanear"
+        disabled={escanearDeshabilitado}
+        onClick={onEscanear}
+      >
+        Escanear
+      </button>
     </div>
   )
 }
 
-// ── CandidatoFila — id mono+nombre · v<version>|v? · registry resuelto|«origen desconocido» ·
-// tipo/canónico · DerivaChip · AvisoChip; badge «ya en el portafolio» con checkbox HABILITADO
-// (S1-D10); es_canonico con copy propio (NO se pinta como espejo). ──
+// ── CandidatoFila — identificador mono+nombre · v<version>|v? · registry resuelto|«origen
+// desconocido» · tipo/canónico · DerivaChip · AvisoChip; badge «ya en el portafolio» con
+// checkbox HABILITADO (S1-D10); es_canonico con copy propio (NO se pinta como espejo). El
+// identificador sigue la cadena id → scope → «(sin id)» (S1-D26: sin manifiesto, el scope —
+// ruta relativa o remote — es lo único que distingue N tarjetas de un monorepo); un candidato
+// sin id lleva el chip «sin manifiesto» que explica el porqué. ──
 function CandidatoFila({
   candidato,
   yaPresente,
@@ -109,7 +171,7 @@ function CandidatoFila({
   elegido: boolean
   onToggle: () => void
 }) {
-  const idMostrado = candidato.identidad.id || "(sin id)"
+  const idMostrado = identificadorDe(candidato.identidad)
   const version = candidato.instalacion.origen.version
 
   return (
@@ -118,6 +180,7 @@ function CandidatoFila({
         <input type="checkbox" checked={elegido} onChange={onToggle} />
         <span className="mono">{idMostrado}</span>
         {candidato.nombre && <span className="pf-mut">{candidato.nombre}</span>}
+        {!candidato.identidad.id && <span className="pf-chip">sin manifiesto</span>}
         {yaPresente && <span className="pf-chip pf-chip-ya-presente">ya en el portafolio</span>}
       </label>
       <div className="pf-wizard-candidato-meta">
@@ -157,6 +220,8 @@ function PasoCandidatos({
   onPathChange,
   onEscanear,
   onElegirCarpeta,
+  modo,
+  onModoChange,
 }: {
   error: string | undefined
   candidatos: Candidato[]
@@ -168,6 +233,8 @@ function PasoCandidatos({
   onPathChange: (v: string) => void
   onEscanear: () => void
   onElegirCarpeta?: (() => void) | undefined
+  modo: ModoFuente
+  onModoChange: (m: ModoFuente) => void
 }) {
   if (error) {
     return (
@@ -180,6 +247,8 @@ function PasoCandidatos({
           onPathChange={onPathChange}
           onEscanear={onEscanear}
           onElegirCarpeta={onElegirCarpeta}
+          modo={modo}
+          onModoChange={onModoChange}
           disabled={false}
         />
       </div>
@@ -195,25 +264,50 @@ function PasoCandidatos({
           onPathChange={onPathChange}
           onEscanear={onEscanear}
           onElegirCarpeta={onElegirCarpeta}
+          modo={modo}
+          onModoChange={onModoChange}
           disabled={false}
         />
       </div>
     )
   }
 
+  // Agrupación por subcarpeta (monorepo, S1-D26): con UN solo grupo la lista queda plana
+  // (proyecto simple, cero ruido); con varios, cada grupo lleva su heading muted — el walker
+  // desciende hasta 4 niveles (C-P-11) y sin esto N hallazgos anidados eran indistinguibles.
+  const grupos = gruposCandidatosDe(candidatos)
+  const listaDe = (cs: Candidato[]) => (
+    <ul className="pf-wizard-lista-candidatos">
+      {cs.map((c) => (
+        <CandidatoFila
+          key={c.clave}
+          candidato={c}
+          yaPresente={clavesExistentes.has(c.clave)}
+          elegido={elegidos.has(c.clave)}
+          onToggle={() => onToggle(c.clave)}
+        />
+      ))}
+    </ul>
+  )
+
   return (
     <div className="pf-wizard-candidatos">
-      <ul className="pf-wizard-lista-candidatos">
-        {candidatos.map((c) => (
-          <CandidatoFila
-            key={c.clave}
-            candidato={c}
-            yaPresente={clavesExistentes.has(c.clave)}
-            elegido={elegidos.has(c.clave)}
-            onToggle={() => onToggle(c.clave)}
-          />
-        ))}
-      </ul>
+      {grupos.length === 1 && grupos[0] ? (
+        listaDe(grupos[0].candidatos)
+      ) : (
+        <div className="pf-wizard-grupos">
+          {grupos.map((g) => (
+            <section
+              key={g.grupo}
+              className="pf-wizard-grupo"
+              aria-label={`hallazgos en ${g.grupo}`}
+            >
+              <span className="pf-faceta-label mono">{g.grupo}</span>
+              {listaDe(g.candidatos)}
+            </section>
+          ))}
+        </div>
+      )}
       <p className="pf-mut pf-wizard-nota">
         espejos read-only — la única copia editable es el canónico.
       </p>
@@ -250,6 +344,10 @@ export function PortafolioWizard({
   // usuario (BR-8, "honestidad > limpieza" — ni siquiera un "seleccionar todo" implícito).
   const [path, setPath] = useState("")
   const [elegidos, setElegidos] = useState<ReadonlySet<string>>(new Set())
+  // modo — S1-D23: lifted igual que `path` (misma razón: el contrato §2.6 no trae un valor
+  // controlado). Default SIEMPRE "escribir" (funciona con y sin Tauri); se resetea solo porque
+  // el widget entero desmonta al cerrar el wizard (la página lo renderiza condicional).
+  const [modo, setModo] = useState<ModoFuente>("escribir")
 
   useEffect(() => {
     if (abierto) closeBtnRef.current?.focus()
@@ -275,11 +373,11 @@ export function PortafolioWizard({
     })
   }
 
-  // elegirCarpetaClick — llama el picker async (S1-D9, patrón RF-110 de AjustesView): si
-  // resuelve con un path lo pone en el input. El contrato no trae un slot de error dedicado
-  // para esta rama (distinto del 400 del backend, que sí viaja por `error`) — un rechazo del
-  // picker nativo (cancelación del SO, permiso denegado) se ignora silenciosamente; el path
-  // sigue siendo editable a mano (input SIEMPRE presente).
+  // elegirCarpetaClick — llama el picker async (patrón RF-110 de AjustesView): si resuelve con
+  // un path lo pone en el input. El contrato no trae un slot de error dedicado para esta rama
+  // (distinto del 400 del backend, que sí viaja por `error`) — un rechazo del picker nativo
+  // (cancelación del SO, permiso denegado) se ignora silenciosamente; el trigger sigue visible
+  // en modo "elegir" (S1-D23) para reintentar con otro click.
   async function elegirCarpetaClick() {
     if (!onElegirCarpeta) return
     try {
@@ -340,6 +438,8 @@ export function PortafolioWizard({
           onPathChange={setPath}
           onEscanear={() => onEscanear(path)}
           onElegirCarpeta={onElegirCarpeta ? elegirCarpetaClick : undefined}
+          modo={modo}
+          onModoChange={setModo}
           disabled={false}
         />
       )}
@@ -351,6 +451,8 @@ export function PortafolioWizard({
             onPathChange={setPath}
             onEscanear={() => onEscanear(path)}
             onElegirCarpeta={onElegirCarpeta ? elegirCarpetaClick : undefined}
+            modo={modo}
+            onModoChange={setModo}
             disabled
           />
           <div className="pf-wizard-spinner" role="status" aria-live="polite">
@@ -375,6 +477,8 @@ export function PortafolioWizard({
           onPathChange={setPath}
           onEscanear={() => onEscanear(path)}
           onElegirCarpeta={onElegirCarpeta ? elegirCarpetaClick : undefined}
+          modo={modo}
+          onModoChange={setModo}
         />
       )}
 

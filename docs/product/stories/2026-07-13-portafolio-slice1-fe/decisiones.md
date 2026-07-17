@@ -324,3 +324,168 @@ puede reintentar desde el mismo formulario de re-escaneo que ya existe para el e
 mostrarse mientras el error está visible (el componente widget no distingue "error de escaneo" de
 "error de agregar" — mismo slot, mismo render). No se tocó el widget: es la opción más honesta
 sin ampliar el contrato cerrado de T6.
+
+## S1-D24 · Auditoría UX del paso Fuente (skill frontend-design) — 4 fixes aplicados (2026-07-15)
+
+Post S1-D23, el operador pidió auditar `Paso1Fuente` con la skill `frontend-design`, enfoque
+usabilidad/intuitividad. Verificado en vivo (Storybook `:6006`, screenshot real, `getComputedStyle`),
+no a ojo — 4 hallazgos reales, los 4 corregidos y re-verificados (`pnpm run verify` + `vitest`
+127/127 + 21/21):
+
+1. **Los 2 ButtonGroup (fuente/modo) se leían como el mismo control repetido** — sin nada que marque
+   que son ejes distintos. Fix: label `.pf-faceta-label` (reusado del drawer, no una clase nueva)
+   arriba de cada grupo: «ORIGEN» / «CÓMO CARGAR LA RUTA».
+2. **`accent-color: auto` en los radios/checkboxes nativos** — el navegador pintaba el punto en su
+   azul default, chocando contra el pill teal de fondo. Fix: regla módulo-wide
+   `.arnesia-portafolio input[type="radio"|"checkbox"] { accent-color: var(--primary) }` — cubre las
+   6 instancias del módulo (wizard + drawer), cero por-componente que perseguir a futuro.
+3. **Layout se rompía en modo "elegir"**: input+trigger+Escanear todos en `.pf-wizard-path-row`
+   hacía que Escanear saltara de línea sin control cuando el contenido no entraba. Fix: Escanear sale
+   de esa fila, vive como hermano directo en `.pf-wizard-fuente` (fila propia siempre, `align-self:
+   flex-start` para no stretchear full-width por el flex-column padre).
+4. **Botón cerrar `×` (28px, borde `--border`) fácil de perder** — esquina lejana, bajo contraste.
+   Fix: 32px, borde `--input` (más contraste), `font-size` del glifo subido, hover feedback nuevo.
+
+Verificado con screenshot real ANTES/DESPUÉS de los 4 (light+dark), incl. el caso "elegir" que tenía
+el bug de layout — confirmado resuelto, Escanear queda en su propia fila sin romperse.
+
+**Reubicación (mismo turno, "aplicá donde corresponda"):** el fix #2 (`accent-color`) se movió de
+`portafolio.css` (scoped `.arnesia-portafolio`) a `index.css` `@layer base` (global) — es
+correctitud de nivel token («todo radio/checkbox nativo usa `--primary`, no el azul del navegador»),
+no algo específico del Portafolio; dejarlo scoped hubiera significado repetirlo por módulo cada vez
+que otra superficie sume un checkbox. Verificado por grep: HOY ningún otro módulo (Mapa/Ajustes/Chat)
+tiene `<input type="radio"|"checkbox">` ni un botón «Cerrar» propio — los fixes #1/#3/#4 (labels,
+layout de Escanear, botón cerrar) quedan correctamente scoped a Portafolio, nada más que propagar.
+Re-verificado tras el move: `pnpm run verify` + `vitest` 127/127 + 21/21.
+
+## S1-D23 · Wizard Paso Fuente: modo Escribir/Elegir explícito + ButtonGroup — SUPERSEDE S1-D9 (2026-07-15)
+
+Amendment post-review: el operador revisó el build de T1-T8 en vivo (sin firmar el gate aún) y pidió 2
+cambios sobre el paso 1 del wizard, antes de firmar. Documentado acá porque cambia comportamiento ya
+descrito en S1-D9 — S1-D9 queda **superseded**, no borrada (regla de continuidad del paquete).
+
+**Pedido del operador (2 partes):**
+1. En vez de un input SIEMPRE editable + botón «Elegir carpeta…» condicional, el usuario debe poder
+   **elegir explícitamente** entre tipear la ruta o abrir el picker nativo — con la ruta resuelta
+   mostrada arriba, solo-lectura, y «Escanear» deshabilitado hasta que haya una ruta cargada.
+2. El selector «Carpeta local / Repositorio GitHub» (hoy radios pelados) debe leer como un
+   **ButtonGroup** — mismo criterio aplica al nuevo selector de modo.
+
+**Diseño resuelto:**
+
+- **Nivel 1 (fuente, sin cambio de markup)** — sigue siendo `<input type="radio">` nativo
+  (`role="radiogroup"` implícito), NO se migra a `@base-ui-components/react/toggle-group`: el repo
+  usaba de fábrica el patrón «radio + CSS `:has(input:checked)`» (`pf-wizard-radio:has(input:disabled)`
+  ya existía, línea 634 de `portafolio.css` antes de este cambio) — reusarlo es menos riesgo que sumar
+  un primitivo nuevo, y semánticamente un radiogroup («elegí exactamente una fuente, siempre una
+  elegida») es más correcto que un ToggleGroup tipo-toolbar para este caso. Solo cambia el CSS: de
+  «radio pelado + label» a segmentos con borde compartido, fondo resaltado en el `:checked` — el
+  ButtonGroup pedido es 100% CSS, cero cambio de estructura ni de tests existentes de rol (`getByRole
+  ("radio", {name})` sigue funcionando igual).
+- **Nivel 2 (modo, NUEVO)** — mismo patrón exacto: radiogroup `Escribir ruta` / `Elegir carpeta`,
+  estado LOCAL del widget (`useState<ModoFuente>("escribir")` en `PortafolioWizard`, mismo criterio que
+  `path`/`elegidos` ya lifted — S1-D9 original). Default siempre `"escribir"` (funciona con y sin
+  Tauri). `Elegir carpeta` disabled+tooltip **`"solo disponible en la app de escritorio"`** cuando
+  `onElegirCarpeta` es `undefined` (fuera de Tauri) — mismo criterio «disabled+tooltip, jamás oculto en
+  silencio» que ya rige GitHub/Marketplace (G3), pero tooltip DISTINTO de `TOOLTIP_S2` («próximo · S2»)
+  porque esto no es un roadmap diferido, es un límite de plataforma permanente (File System Access API
+  del browser nunca expone la ruta absoluta real del OS, por diseño de sandboxing — Tauri sí, porque
+  corre con privilegios nativos fuera del sandbox del navegador; explicación técnica dada al operador en
+  el mismo turno).
+- **El input es UN SOLO elemento siempre presente** (no se swap-ea por un `<span>`): en modo `escribir`
+  es editable; en modo `elegir` pasa a `readOnly` (sigue con `role="textbox"`, sigue anunciado por
+  lectores de pantalla, sigue en el DOM en la misma posición — cero breaking change de selector en los
+  tests existentes que hacen `getByRole("textbox", {name: "Ruta del proyecto"})`). Placeholder cambia
+  según modo: `"ninguna carpeta elegida todavía"` en `elegir` sin resolver aún.
+- **El botón «Elegir carpeta…» (trigger) solo se renderiza en modo `elegir`** (antes: condicionado solo
+  a que `onElegirCarpeta` existiera). **Deliberadamente NO se auto-dispara el picker al seleccionar el
+  radio** — evaluado y descartado: un radio que lanza un diálogo nativo del SO al ser seleccionado (incl.
+  por navegación de flechas de un lector de pantalla) es una sorpresa de foco/acción no pedida, mal
+  patrón de a11y. En cambio: seleccionar el radio revela el botón trigger (siempre clickeable, reintentos
+  después de cancelar el picker del SO sin fricción — un radio ya-marcado no re-dispara `onChange` en un
+  segundo click, por eso el trigger es un botón aparte, no el propio radio).
+- **`Escanear` deshabilitado hasta `path.trim() !== ""`** — antes solo dependía del flag `disabled`
+  (form-wide, ligado a `estado==="escaneando"`). Ahora: `disabled || path.trim() === ""`, en los 3 sitios
+  donde `PasoFuente` se renderiza (paso 1, embebido en escaneando-disabled, retry en candidatos
+  vacío/error).
+
+**Impacto en tests existentes (S1, `portafolio-wizard.stories.tsx`):**
+- `Paso1Fuente` — extendida (no rota): agrega assert de `Escanear` disabled ANTES de tipear + assert del
+  radio `Elegir carpeta` disabled+tooltip nuevo.
+- `Paso1FuenteConElegirCarpeta` — el flujo cambia de 1 paso (click directo en «Elegir carpeta…») a 2
+  (seleccionar radio `Elegir carpeta` → click en el botón trigger que aparece) — reescrita.
+- `A11yModal` — el último focuseable del trap deja de ser `Escanear` (ahora arranca disabled sin ruta) y
+  pasa a ser el input (el nuevo radio `Escribir ruta` se suma al medio del loop, cuenta neta de
+  focuseables NO cambia: 5). Reescrita la sección de trap hacia atrás.
+- `SinHallazgos`/`ErrorDePath`/`CandidatosReales`/`Escaneando`/`Agregando` — sin cambios de fondo (no
+  interactúan con el picker ni dependen del último-focuseable).
+
+**Deuda diferida (no bloquea, registrada acá):** `mockups/arnesia-portafolio.html` línea ~300 (radio
+pelado «Carpeta local») queda SIN corregir en este turno — S1-D12 ya estableció que el SSoT es Storybook
+y el mockup es snapshot derivado corregido solo en cierres de ticket (T8 lo hizo); este cambio es un
+amendment pre-firma dentro del mismo slice, no un ticket nuevo. Si el gate se firma antes de tocar el
+mockup, queda como ítem de BACKLOG.
+
+## S1-D25 · Homologación del término «arnés» (fase cero de lenguaje, operador 2026-07-16)
+
+Observación del operador pre-firma: antes de seguir iterando, fijar QUÉ llamamos arnés y cómo se
+relaciona con el estándar de la industria. Resolución conversada y firmada de palabra en el turno:
+
+- **En la industria (2025-2026), «harness / agent harness» = el runtime que envuelve al modelo**
+  (loop de contexto, ejecución de tools, feed de resultados) — Claude Code ES el harness en ese
+  vocabulario; «harness engineering» = construir ese runtime. Lo que NOSOTROS empaquetamos encima
+  de CC (skills, agents, commands, hooks, CLAUDE.md, MCP, docs, arquitectura as-code por
+  rol×proceso) la industria lo llama «plugin» (mecanismo oficial CC) / «skills pack» / «agent
+  configuration» — NO existe un término estándar único para el paquete completo.
+- **Decisión: «arnés» se mantiene como término de PRODUCTO** (marca: ArnesIA, Prenter Harness) con
+  la definición que ya fija `docs/architecture/contracts/nomenclatura-arnes.md` §1 (FIRMADA v1.1):
+  paquete de know-how por rol×proceso, distribuido como plugin CC, manifiesto `arnes.l0.json`.
+  Regla interna de conversación: arnés = el paquete (la carga); harness (industria) = CC (el
+  vehículo). Hacia afuera, «Claude Code plugin» es la traducción que el mundo entiende.
+- La definición del operador («todo lo que se instala encima de Claude Code para que el usuario
+  trabaje y cumpla sus objetivos») coincide con la doctrina firmada — no hay corrección de fondo,
+  solo el deslinde explícito contra el uso industrial del término.
+
+## S1-D26 · Wizard identificable: cadena id→scope, aviso con id, worktrees, agrupación monorepo (operador 2026-07-16)
+
+Observación del operador probando en vivo (pre-firma del gate): agregar `~/Proyectos/luana-vitalia`
+(monorepo + worktree git de `luana-platform`) mostraba **11 tarjetas «(sin id)» indistinguibles** +
+2 avisos anónimos «enabledPlugins declara X pero sin record». Diagnóstico verificado contra el
+código y el registro CC real; 4 fixes con go explícito del operador:
+
+1. **FE — cadena de identificación `id → scope → «(sin id)»`** (`identificadorDe()`, selector puro
+   con unit test): la identidad provisional de un hallazgo sin manifiesto ES su scope (RN-IDENT-2 —
+   ruta relativa al proyecto o remote), el backend YA lo mandaba en el wire y el FE lo tiraba.
+   Aplicado en wizard, lista, drawer y confirm de colisión de la página. Candidato sin id lleva
+   chip «sin manifiesto». `TipoInstalacionChip` con `tipo:""` (hallazgo sin forma física, C-P-14)
+   ahora no pinta nada — antes: chip vacío; `types.ts` refleja que `tipo:""` es wire real.
+2. **Scanner — el aviso sin-record conserva el id** (`IDConocido` = parte-id de la clave
+   `enabledPlugins`, misma semántica que la fila del lock DevStudio — la rama estaba inconsistente):
+   la tarjeta-aviso muestra «commit-commands», no «(sin id)». Test `TestScannerCCSinRecordConservaID`.
+3. **Scanner — cruce CC resuelve worktrees** (`gitCommonDir()`: mecanismo canónico
+   `<gitdir>/commondir`, no heurística de nombres): CC keyea el install-record por el path EXACTO
+   del proyecto, pero un worktree linkeado comparte el `settings.json` versionado — record de otro
+   working tree del MISMO repo ahora resuelve, con **aviso visible** «record de instalación de
+   <path> (worktree del mismo repo)», jamás en silencio. Era la causa real de los 2 avisos de
+   luana-vitalia (records bajo `luana-platform`). Test `TestScannerCCWorktreeResuelveRecord`.
+4. **FE — agrupación por subcarpeta** (`gruposCandidatosDe()`, selector puro con unit test): los
+   candidatos de un escaneo se agrupan por primer segmento de `install_path` relativo a
+   `proyecto_path` — grupo «proyecto (raíz)» primero (incluye fuera-de-árbol/cache CC, dirs
+   ocultos `.claude/…` y avisos sin dir), una sección con heading por subcarpeta. Con UN solo
+   grupo la lista queda plana (proyecto simple, cero ruido). Story
+   `CandidatosMonorepoAgrupados` calca el caso luana-vitalia post-fix.
+5. **Scanner — los remotes del proyecto resuelven en worktrees** (destapado por la verificación
+   en vivo del fix 3, preexistente): `ResolverRemotesGit` leía el config del gitdir PROPIO del
+   worktree (`.git/worktrees/<n>/config`), que no tiene remotes — viven en el config COMÚN. Ahora
+   lee vía `gitCommonDir()`: el root de un worktree gana su scope remoto (antes: scope `"."`).
+   Assert agregado a `TestScannerCCWorktreeResuelveRecord`.
+
+Evidencia: Go `./internal/...` verde con los 2 tests nuevos; FE `pnpm run verify` limpio + vitest
+unit 27/27 + storybook 128/128 (la story nueva incluida; `ConDatos` de la lista extendida: la
+entrada provisional se identifica por scope y el selector de fila se ancla `/^harness\b/`).
+**Escaneo VIVO re-corrido contra `~/Proyectos/luana-vitalia` real** (`arnesia portafolio escanear`,
+binario del árbol): 15/15 candidatos identificables — root = `github.com/alpacapurpura/luana-platform`,
+10 sub-apps por su ruta (`comunify`…`vitalia`), y los 2 ex-avisos anónimos ahora RESUELVEN como
+`referenciada-cc` con id (`claude-md-management`, `commit-commands`) + aviso «record de instalación
+de …/luana-platform (worktree del mismo repo)». Pendiente del operador: verlo en la app instalada
+(el daemon corre el binario viejo hasta reinstalar) y firmar.

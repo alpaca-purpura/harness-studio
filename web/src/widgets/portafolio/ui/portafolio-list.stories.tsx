@@ -109,8 +109,15 @@ export const ConDatos: Story = {
     await expect(c.getAllByRole("img", { name: "salud: atención" })).toHaveLength(2)
     await expect(c.getByRole("img", { name: "salud: sin señal" })).toBeInTheDocument()
 
+    // S1-D26 — la entrada provisional (sin manifiesto) se identifica por su scope, ya no
+    // «(sin id)»: la cadena id → scope → «(sin id)» rige en TODAS las superficies.
+    await expect(c.getByText("github.com/alpacapurpura/harness-studio")).toBeInTheDocument()
+    await expect(c.queryByText("(sin id)")).toBeNull()
+
     // G6/G8 — la fila es un <button> nativo: click Y Enter llaman onAbrir(clave) EXACTA.
-    const filaHarness = c.getByRole("button", { name: /harness/ })
+    // `/^harness\b/`: el nombre accesible de la fila provisional ahora ARRANCA con su scope
+    // (contiene «harness-studio») — anclar al inicio desambigua (S1-D26).
+    const filaHarness = c.getByRole("button", { name: /^harness\b/ })
     await userEvent.click(filaHarness)
     await expect(args.onAbrir).toHaveBeenCalledWith(
       "sin-home~harness~github-com-alpacapurpura-luana-vitalia",

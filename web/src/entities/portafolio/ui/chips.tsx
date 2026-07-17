@@ -28,10 +28,13 @@ export function DerivaChip({ estado, detalle }: DerivaChipProps) {
 // "referenciada-cc" / "proyecto-instalado", literal del wire (mismo espíritu que DerivaChip:
 // ninguna copy amigable que pueda driftar del backend). ──
 interface TipoInstalacionChipProps {
-  tipo: TipoInstalacion
+  tipo: TipoInstalacion | ""
 }
 
 export function TipoInstalacionChip({ tipo }: TipoInstalacionChipProps) {
+  // "" = hallazgo sin forma física que clasificar (aviso declarado-sin-dir, C-P-14/S1-D26):
+  // no hay tipo que pintar — nada, no un chip vacío (mismo criterio que AvisoChip).
+  if (!tipo) return null
   return <span className={cn("pf-chip", "pf-chip-tipo", tipo)}>{tipo}</span>
 }
 

@@ -45,7 +45,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-14
+last_modified: 2026-07-16
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D5/S1-D14/S1-D15/S1-D18"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -112,6 +112,14 @@ change_log:
       G1/G2/G4/G5/G6/G7/G8 (forma sin `status:` por-scenario, S1-D16).
     merge_sha: null
 
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-16
+    type: extend
+    summary: >-
+      S1-D26 — la cabecera del drawer identifica entradas sin manifiesto por la cadena `id → scope → «(sin
+      id)»` (`identificadorDe`, selector puro de entities/portafolio con unit test): la identidad
+      provisional muestra su scope (RN-IDENT-2) en vez de un «(sin id)» indistinguible.
+    merge_sha: null
 scenarios:
   - id: drawer-identidad-provisional-visible
     name: "Identidad provisional se muestra, nunca se oculta (G6)"

@@ -215,6 +215,88 @@ func TestScannerCCMetadataIlegible(t *testing.T) {
 	}
 }
 
+func TestScannerCCSinRecordConservaID(t *testing.T) {
+	root := t.TempDir()
+	ccDir := t.TempDir()
+	escribir(t, filepath.Join(root, ".claude", "settings.json"), `{"enabledPlugins":{"harness@kit-mkt":true}}`)
+	// installed_plugins.json legible pero SIN record para este root (S1-D26): el aviso queda,
+	// pero el id que enabledPlugins declara NO se tira — la tarjeta deja de ser «(sin id)».
+	escribir(t, filepath.Join(ccDir, "installed_plugins.json"), `{"version": 2, "plugins": {}}`)
+
+	s := &portafolio.Scanner{CCPluginsDir: ccDir}
+	hs, err := s.Escanear(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var visto bool
+	for _, h := range hs {
+		if h.Aviso != "" && h.Tipo == "" {
+			visto = true
+			if h.IDConocido != "harness" {
+				t.Errorf("IDConocido = %q, quiero %q (la fuente declara el id)", h.IDConocido, "harness")
+			}
+		}
+	}
+	if !visto {
+		t.Fatalf("quiero el hallazgo-aviso sin record, got %+v", hs)
+	}
+}
+
+func TestScannerCCWorktreeResuelveRecord(t *testing.T) {
+	// luana-vitalia real (S1-D26): el proyecto escaneado es un worktree linkeado; CC registró
+	// la instalación bajo el projectPath de OTRO working tree del MISMO repo. El cruce debe
+	// resolver el record vía gitdir común — con aviso visible, jamás en silencio.
+	principal := t.TempDir()
+	escribir(t, filepath.Join(principal, ".git", "config"),
+		"[core]\n\tbare = false\n[remote \"origin\"]\n\turl = https://github.com/acme/mono.git\n")
+	escribir(t, filepath.Join(principal, ".git", "worktrees", "wt", "commondir"), "../..\n")
+
+	wt := t.TempDir()
+	escribir(t, filepath.Join(wt, ".git"), "gitdir: "+filepath.Join(principal, ".git", "worktrees", "wt"))
+	escribir(t, filepath.Join(wt, ".claude", "settings.json"), `{"enabledPlugins":{"harness@kit-mkt":true}}`)
+
+	ccDir := t.TempDir()
+	installDir := filepath.Join(ccDir, "cache", "kit-mkt", "harness", "1.2.3")
+	escribir(t, filepath.Join(ccDir, "installed_plugins.json"), `{
+		"version": 2,
+		"plugins": {
+			"harness@kit-mkt": [{"scope":"project","projectPath":"`+principal+`","installPath":"`+installDir+`","version":"1.2.3"}]
+		}
+	}`)
+
+	s := &portafolio.Scanner{CCPluginsDir: ccDir}
+	hs, err := s.Escanear(context.Background(), wt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, ok := hallazgoConTipo(hs, domain.InstReferenciadaCC)
+	if !ok {
+		t.Fatalf("quiero un hallazgo referenciada-cc resuelto vía worktree, got %+v", hs)
+	}
+	if h.Dir != installDir {
+		t.Errorf("Dir = %q, quiero %q", h.Dir, installDir)
+	}
+	if h.IDConocido != "harness" {
+		t.Errorf("IDConocido = %q, quiero %q", h.IDConocido, "harness")
+	}
+	if h.Aviso == "" {
+		t.Error("quiero un aviso visible «record de instalación de <otro worktree>», jamás resolución silenciosa")
+	}
+	// Los remotes del PROYECTO también resuelven en un worktree (viven en el config COMÚN,
+	// no en el del gitdir propio del worktree) — sin esto el root salía sin scope remoto.
+	var remoteVisto bool
+	for _, hh := range hs {
+		for _, e := range hh.Eslabones {
+			if e.Fuente == "git-proyecto" && e.Valor == "https://github.com/acme/mono.git" {
+				remoteVisto = true
+			}
+		}
+	}
+	if !remoteVisto {
+		t.Error("quiero el eslabón git-proyecto con el remote del config común del repo")
+	}
+}
+
 func TestScannerMonorepoAcotado(t *testing.T) {
 	root := t.TempDir()
 	// .claude anidado dentro de un paquete del monorepo.

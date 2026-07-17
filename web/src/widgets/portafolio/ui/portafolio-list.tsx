@@ -7,6 +7,7 @@ import {
   type EntradaCorrupta,
   type EntradaPortafolio,
   filtrarEntradas,
+  identificadorDe,
   type LentePortafolio,
   registriesDe,
   saludDe,
@@ -155,7 +156,7 @@ function Fila({
   const instalaciones = entrada.instalaciones ?? []
   const instalacionEnDeriva = instalaciones.find((i) => i.deriva === "en-deriva")
   const instalacionConAviso = instalaciones.find((i) => i.aviso)
-  const idMostrado = entrada.identidad.id || "(sin id)"
+  const idMostrado = identificadorDe(entrada.identidad)
 
   return (
     <li className="pf-fila-wrap">

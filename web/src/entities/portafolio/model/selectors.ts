@@ -2,7 +2,51 @@
 // cualquier capa (FSD: entities/*/model). Unit-tested por el proyecto vitest `unit`
 // (environment node, NO Storybook/browser) — ver selectors.test.ts.
 
-import type { EntradaPortafolio, SaludPortafolio } from "./types"
+import type { Candidato, EntradaPortafolio, IdentidadArnes, SaludPortafolio } from "./types"
+
+// identificadorDe — cadena de identificación visible (S1-D26): `id` → `scope` → «(sin id)».
+// Cuando no hay manifiesto, el scope ES el discriminador de la identidad provisional
+// (RN-IDENT-2: ruta relativa al proyecto, o el remote del proyecto) — el backend ya lo manda
+// en el wire; ocultarlo dejaba N tarjetas «(sin id)» indistinguibles (caso real luana-vitalia).
+export function identificadorDe(identidad: IdentidadArnes): string {
+  return identidad.id || identidad.scope || "(sin id)"
+}
+
+const GRUPO_RAIZ = "proyecto (raíz)"
+
+// gruposCandidatosDe — lente monorepo del wizard (S1-D26): agrupa los candidatos de UN escaneo
+// por la primera subcarpeta de `install_path` relativo a `proyecto_path`. Van al grupo
+// «proyecto (raíz)»: la instalación del propio root, las que viven fuera del árbol del proyecto
+// (cache CC, avisos sin dir físico) y las de dirs ocultos (`.claude/plugins/...` = instalación
+// a nivel proyecto, no una subcarpeta del monorepo). Orden: raíz primero, resto por aparición
+// (el orden del walker es estable). Puro, sin inferencia — solo reagrupa lo que el wire trae.
+export function gruposCandidatosDe(cs: Candidato[]): { grupo: string; candidatos: Candidato[] }[] {
+  const orden: string[] = []
+  const porGrupo = new Map<string, Candidato[]>()
+  for (const c of cs) {
+    const grupo = grupoDeCandidato(c)
+    let lista = porGrupo.get(grupo)
+    if (!lista) {
+      lista = []
+      porGrupo.set(grupo, lista)
+      orden.push(grupo)
+    }
+    lista.push(c)
+  }
+  orden.sort((a, b) => Number(b === GRUPO_RAIZ) - Number(a === GRUPO_RAIZ))
+  return orden.map((grupo) => ({ grupo, candidatos: porGrupo.get(grupo) ?? [] }))
+}
+
+function grupoDeCandidato(c: Candidato): string {
+  const raiz = c.instalacion.proyecto_path.replace(/\/+$/, "")
+  const instalado = c.instalacion.install_path
+  if (!raiz || !instalado || instalado === raiz || !instalado.startsWith(`${raiz}/`)) {
+    return GRUPO_RAIZ
+  }
+  const primerSegmento = instalado.slice(raiz.length + 1).split("/")[0] ?? ""
+  if (primerSegmento === "" || primerSegmento.startsWith(".")) return GRUPO_RAIZ
+  return `${primerSegmento}/`
+}
 
 // saludDe — regla EXACTA de S1-D4 (definida + testeada, G9 «definir regla o quitar»): «no sé»
 // ≠ «sano», jamás un verde fabricado.

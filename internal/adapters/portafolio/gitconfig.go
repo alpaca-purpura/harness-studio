@@ -50,6 +50,29 @@ func gitDir(dir string) (string, bool) {
 	return filepath.Clean(ref), true
 }
 
+// gitCommonDir resuelve el gitdir COMÚN del repo de dir (S1-D26): dos working trees del
+// mismo repo (worktree linkeado + principal) comparten el común. Un worktree linkeado tiene
+// `<gitdir>/commondir` apuntando (relativo o absoluto) al `.git` principal — el mecanismo
+// canónico de git, no una heurística de nombres; un repo normal ES su propio común.
+func gitCommonDir(dir string) (string, bool) {
+	gd, ok := gitDir(dir)
+	if !ok {
+		return "", false
+	}
+	b, err := os.ReadFile(filepath.Join(gd, "commondir")) //nolint:gosec // G304: ruta derivada del dir que el caller eligió escanear.
+	if err != nil {
+		return gd, true
+	}
+	common := strings.TrimSpace(string(b))
+	if common == "" {
+		return gd, true
+	}
+	if !filepath.IsAbs(common) {
+		common = filepath.Join(gd, common)
+	}
+	return filepath.Clean(common), true
+}
+
 // esBare reporta si el repo cuyo gitDir es gitDirPath es un bare repo (C-N-1: sin
 // working tree, no escaneable) — vía `core.bare` de su config.
 func esBare(gitDirPath string) bool {
@@ -61,9 +84,11 @@ func esBare(gitDirPath string) bool {
 }
 
 // ResolverRemotesGit lee el remote origin/upstream del repo git en dir. ok=false si dir
-// no es un repo git resoluble (sin `.git`, o `.git` roto).
+// no es un repo git resoluble (sin `.git`, o `.git` roto). Lee el config del gitdir COMÚN
+// (S1-D26): los remotes son repo-level y en un worktree linkeado viven ahí — el config del
+// gitdir propio del worktree no los tiene (por eso el root de luana-vitalia salía sin scope).
 func ResolverRemotesGit(dir string) (GitRemotes, bool) {
-	gd, ok := gitDir(dir)
+	gd, ok := gitCommonDir(dir)
 	if !ok {
 		return GitRemotes{}, false
 	}

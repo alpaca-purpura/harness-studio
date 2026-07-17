@@ -6,6 +6,8 @@
 export {
   agruparPorEmpresa,
   filtrarEntradas,
+  gruposCandidatosDe,
+  identificadorDe,
   idsColisionados,
   registriesDe,
   saludDe,

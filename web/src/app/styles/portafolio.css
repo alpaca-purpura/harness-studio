@@ -355,13 +355,20 @@
 }
 .arnesia-portafolio .pf-drawer-cerrar {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--input);
   background: var(--secondary);
   color: var(--foreground);
+  font-size: 15px;
   cursor: pointer;
+}
+/* Auditoría UX 2026-07-15: 28px + borde --border era fácil de perder en la esquina — sube a
+   32px/--input (más contraste) + feedback de hover, sin tocar el foco-visible ya existente. */
+.arnesia-portafolio .pf-drawer-cerrar:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--ring);
 }
 .arnesia-portafolio .pf-drawer-cerrar:focus-visible,
 .arnesia-portafolio .pf-btn-primary:focus-visible,
@@ -613,27 +620,55 @@
   cursor: not-allowed;
 }
 
-/* ── PasoFuente (paso 1, y retry embebido en escaneando/candidatos-vacío/error) ── */
+/* ── PasoFuente (paso 1, y retry embebido en escaneando/candidatos-vacío/error) ──
+   Nivel 1 (fuente) y Nivel 2 (modo, S1-D23) comparten el mismo look ButtonGroup segmentado:
+   radio nativo real (mantiene el radiogroup accesible, "elegí exactamente una opción, siempre
+   una elegida") con el label pintado como segmento de un grupo con borde compartido —
+   `:has(input:checked)` resalta el activo, mismo criterio que ya usaba
+   `:has(input:disabled)` acá abajo. */
 .arnesia-portafolio .pf-wizard-fuente {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .arnesia-portafolio .pf-wizard-radios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 .arnesia-portafolio .pf-wizard-radio {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-sm);
+  padding: 6px 12px;
+  background: var(--secondary);
   color: var(--foreground);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-right: 1px solid var(--border);
+}
+.arnesia-portafolio .pf-wizard-radio:last-child {
+  border-right: none;
+}
+.arnesia-portafolio .pf-wizard-radio:has(input:checked) {
+  background: var(--accent-soft);
+  font-weight: 600;
 }
 .arnesia-portafolio .pf-wizard-radio:has(input:disabled) {
   color: var(--muted-foreground);
   cursor: not-allowed;
+}
+.arnesia-portafolio .pf-wizard-radio:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+/* Auditoría UX 2026-07-15: Escanear vive fuera de .pf-wizard-path-row (fila propia, siempre —
+   antes se apretaba junto al input+trigger en modo "elegir" y saltaba de línea sin control).
+   align-self evita el stretch del flex-column padre (.pf-wizard-fuente), que lo haría full-width. */
+.arnesia-portafolio .pf-wizard-escanear {
+  align-self: flex-start;
 }
 .arnesia-portafolio .pf-wizard-path-row {
   display: flex;
@@ -654,6 +689,10 @@
 .arnesia-portafolio .pf-wizard-input:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+.arnesia-portafolio .pf-wizard-input:read-only:not(:disabled) {
+  background: var(--secondary);
+  cursor: default;
 }
 
 /* ── Paso 2: escaneando (spinner + Cancelar + input bloqueado) ── */
@@ -699,6 +738,24 @@
   gap: 8px;
   max-height: 280px;
   overflow-y: auto;
+}
+/* Agrupación por subcarpeta (monorepo, S1-D26): UNA sola barra de scroll en el contenedor de
+   grupos — las listas internas no se acotan solas (misma altura total que la lista plana). */
+.arnesia-portafolio .pf-wizard-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.arnesia-portafolio .pf-wizard-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arnesia-portafolio .pf-wizard-grupo .pf-wizard-lista-candidatos {
+  max-height: none;
+  overflow-y: visible;
 }
 .arnesia-portafolio .pf-wizard-candidato {
   display: flex;

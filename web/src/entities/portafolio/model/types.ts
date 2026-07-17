@@ -45,10 +45,12 @@ export interface IdentidadArnes {
 }
 
 // Instalacion — materialización read-only de un arnés en un proyecto (spec §2, N por identidad).
+// `tipo: ""` es wire REAL (S1-D26): un hallazgo declarado sin dir físico resoluble (lock/CC,
+// C-P-14) no tiene forma que clasificar — domain.HallazgoInstalacion.Tipo viaja vacío.
 export interface Instalacion {
   proyecto_path: string
   install_path: string
-  tipo: TipoInstalacion
+  tipo: TipoInstalacion | ""
   origen: OrigenCopia
   deriva: EstadoDeriva
   deriva_detalle?: string

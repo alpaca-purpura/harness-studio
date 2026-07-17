@@ -45,7 +45,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-14
+last_modified: 2026-07-16
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D6/S1-D8"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -106,6 +106,14 @@ change_log:
       por-scenario, S1-D16 — el arch-test naive lo rompería).
     merge_sha: null
 
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-16
+    type: extend
+    summary: >-
+      S1-D26 — la fila de la lista identifica entradas sin manifiesto por la cadena `id → scope → «(sin
+      id)»` (`identificadorDe`, selector puro de entities/portafolio con unit test): la identidad
+      provisional muestra su scope (RN-IDENT-2) en vez de un «(sin id)» indistinguible. Story `ConDatos` extendida (asserta el scope visible y ancla el selector de fila).
+    merge_sha: null
 scenarios:
   - id: lista-lente-empresa-agrupa-nm
     name: "Lente empresa agrupa N:M con «sin empresa» al final (G4)"

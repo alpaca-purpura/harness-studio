@@ -34,6 +34,8 @@ valida:
   - "TestScannerLockDevstudio"
   - "TestScannerReferenciadaCC"
   - "TestScannerCCMetadataIlegible"
+  - "TestScannerCCSinRecordConservaID"
+  - "TestScannerCCWorktreeResuelveRecord"
   - "TestScannerMonorepoAcotado"
   - "TestScannerRootInvalido"
   - "TestGitConfigParse"
@@ -51,7 +53,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice0-cimientos
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-16
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice0-cimientos/decisiones.md S0-D2"
 change_log:
   - story_id: 2026-07-13-portafolio-slice0-cimientos
@@ -73,6 +75,20 @@ change_log:
     date: 2026-07-14
     type: fix
     summary: "Punteros completados: postEscanear/postAgregar (handlers HTTP) y runPortafolio (CLI) no estaban reclamados por ningún capability a nivel símbolo — el archivo quedaba cubierto solo incidentalmente."
+    merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-16
+    type: fix
+    summary: >-
+      S1-D26 (observación del operador con luana-vitalia real, pre-firma): (a) el cruce
+      enabledPlugins×installed_plugins conserva el id declarado cuando no hay record
+      (`IDConocido` = parte-id de la clave — la rama estaba inconsistente con la fila del lock
+      DevStudio); (b) el match de projectPath resuelve worktrees git vía `gitCommonDir()`
+      (`<gitdir>/commondir`, mecanismo canónico): un record registrado bajo OTRO working tree
+      del mismo repo resuelve con aviso visible, jamás en silencio; (c) `ResolverRemotesGit`
+      lee el config del gitdir COMÚN — los remotes del proyecto ahora resuelven también en
+      worktrees (antes el root de un worktree quedaba sin scope remoto). 2 tests nuevos +
+      escaneo vivo re-corrido contra luana-vitalia real (15/15 identificables).
     merge_sha: null
 
 scenarios: []

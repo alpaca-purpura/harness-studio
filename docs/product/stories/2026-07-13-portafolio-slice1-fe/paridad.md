@@ -213,6 +213,21 @@ consolidadas (son las S1-D16..D22 de la tabla arriba, más 2 encontradas en T8 m
    documental) vive en el working tree pero NO en un commit — a diferencia de Slice 0 (T9 sí se
    commiteó antes de la firma). El operador decide cuándo commitear (antes o junto con la firma).
 
+## Amendment pre-firma (2026-07-15) — S1-D23
+
+El operador revisó este `paridad.md` en vivo (gate humano AÚN pendiente) y pidió 2 cambios sobre el
+paso Fuente del wizard antes de firmar: modo explícito Escribir-ruta/Elegir-carpeta (input pasa a
+solo-lectura en modo elegir, «Escanear» gated por ruta no-vacía) + look ButtonGroup para los radios.
+Implementado y documentado en `decisiones.md` **S1-D23** (supersede S1-D9). Re-verificado tras el
+cambio: `pnpm run verify` (typecheck·lint·depcruise·fsd·stylelint) verde · `vitest --project=storybook
+run` **127/127** (foreground) · `vitest --project=unit run` **21/21** · `cap_doctor.py` **92
+capabilities válidas** · `go test ./docs/architecture/fitness/... -run TestCapability` **4/4 PASS**
+(R1/R2/R4 sin regresión). Capability `fe-portafolio/wizard-agregar-proyecto.yaml` extendida (nuevo
+`change_log` + scenario `wizard-fuente-modo-escribir-o-elegir`), sin tocar entradas históricas. Deuda
+diferida: `mockups/arnesia-portafolio.html` queda sin corregir para este modo (registrado en S1-D23).
+La tabla del goal §0 y G1-G9 arriba sigue vigente sin cambios de fondo — este amendment no reabre
+ningún punto ya cerrado, solo extiende el paso Fuente descrito en el punto 2.
+
 ## Firma
 
 - [ ] 🧑‍⚖️ **Gate humano** — **PENDIENTE** (operador). Falta revisar: goal §0 del plan (10 puntos, 8 ✅

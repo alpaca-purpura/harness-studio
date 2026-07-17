@@ -248,9 +248,11 @@ type HallazgoInstalacion struct {
 	Tipo      TipoInstalacion // "" si Dir=="" (sin forma física que clasificar).
 	Eslabones []EslabonOrigen // crudos: lock-devstudio | cc-plugins | git-plugin | git-proyecto | no-legible.
 	Aviso     string          // C-P-5 no-reconocible · C-P-14 declarada-ausente · CC ilegible.
-	// IDConocido es el id declarado por la fuente del hallazgo (p.ej. el `id` de una fila
-	// del lock DevStudio) cuando Dir=="" no permite cargarlo con el loader — best-effort:
-	// sabemos EL ID sin poder leer el manifiesto físico (C-P-14). "" si no hay ninguno.
+	// IDConocido es el id declarado por la fuente del hallazgo (el `id` de una fila del
+	// lock DevStudio, la parte-id de una clave `enabledPlugins`) — best-effort: la fuente
+	// SABE el id aunque el manifiesto físico falte o no cargue (C-P-14, S1-D26); si el
+	// manifiesto sí carga y discrepa, ResolverIdentidad lo hace visible como aviso. "" si
+	// ninguna fuente lo declara.
 	IDConocido string
 }
 

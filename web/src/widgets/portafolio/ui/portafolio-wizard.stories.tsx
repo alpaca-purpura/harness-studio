@@ -109,11 +109,13 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-// Paso1Fuente (G3) — radio "Carpeta local" activo con input+Escanear; radio "Repositorio
+// Paso1Fuente (G3/S1-D23) — radio "Carpeta local" activo con input+Escanear; radio "Repositorio
 // GitHub" disabled+title; tab Marketplace disabled+title y NINGÚN "✓ marketplace válido" en
-// TODO el DOM (G3, el fix central del ticket); sin `onElegirCarpeta` el botón "Elegir
-// carpeta…" NO se renderiza (cubre el caso "browser plano", S1-D9). El caso "con picker" vive
-// en `Paso1FuenteConElegirCarpeta` (abajo) — dos stories, no un assert condicional.
+// TODO el DOM (G3, el fix central del ticket); modo "Escribir ruta" activo por default, "Elegir
+// carpeta" disabled+TOOLTIP_WEB (S1-D23: sin `onElegirCarpeta`, cubre el caso "browser plano" —
+// jamás oculto en silencio, mismo criterio que GitHub/Marketplace). "Escanear" arranca disabled
+// SIN ruta cargada (S1-D23) y se habilita recién al tipear. El caso "con picker" vive en
+// `Paso1FuenteConElegirCarpeta` (abajo) — dos stories, no un assert condicional.
 export const Paso1Fuente: Story = {
   play: async ({ canvasElement, args }) => {
     const c = within(canvasElement)
@@ -134,40 +136,67 @@ export const Paso1Fuente: Story = {
     await expect(radioGithub).toBeDisabled()
     await expect(radioGithub).toHaveAttribute("title", "próximo · S2")
 
-    // Sin onElegirCarpeta (default de esta story) — el botón no existe (S1-D9).
+    // S1-D23 — modo: "Escribir ruta" activo por default; "Elegir carpeta" disabled+tooltip de
+    // plataforma (distinto de "próximo · S2": esto NO es roadmap, es límite permanente fuera de
+    // Tauri) sin `onElegirCarpeta` (default de esta story).
+    const radioEscribir = c.getByRole("radio", { name: "Escribir ruta" })
+    await expect(radioEscribir).toBeChecked()
+    const radioElegir = c.getByRole("radio", { name: "Elegir carpeta" })
+    await expect(radioElegir).toBeDisabled()
+    await expect(radioElegir).toHaveAttribute("title", "solo disponible en la app de escritorio")
+
+    // Sin onElegirCarpeta (default de esta story) — el botón trigger no existe (solo aparece en
+    // modo "elegir", que acá es inalcanzable).
     await expect(c.queryByRole("button", { name: "Elegir carpeta…" })).toBeNull()
 
     const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
     await expect(input).toBeEnabled()
-    await userEvent.type(input, "~/Proyectos/mi-arnes")
 
+    // S1-D23 — Escanear arranca disabled: sin ruta cargada, no hay nada que escanear.
     const escanear = c.getByRole("button", { name: "Escanear" })
+    await expect(escanear).toBeDisabled()
+
+    await userEvent.type(input, "~/Proyectos/mi-arnes")
     await expect(escanear).toBeEnabled()
     await userEvent.click(escanear)
     await expect(args.onEscanear).toHaveBeenCalledWith("~/Proyectos/mi-arnes")
   },
 }
 
-// Paso1FuenteConElegirCarpeta (S1-D9) — la otra mitad de la cobertura: CON `onElegirCarpeta`
-// (patrón Tauri de RF-110/AjustesView), el botón "Elegir carpeta…" SÍ se renderiza, lo llama, y
-// si resuelve con un path lo pone en el input.
+// Paso1FuenteConElegirCarpeta (S1-D23, supersede S1-D9) — CON `onElegirCarpeta` (patrón Tauri de
+// RF-110/AjustesView) el radio "Elegir carpeta" queda habilitado; seleccionarlo revela el input
+// en modo solo-lectura + el botón trigger — recién el CLICK del botón abre el picker (nunca la
+// sola selección del radio, ver decisiones.md S1-D23 sobre por qué). Si resuelve con un path, lo
+// muestra arriba y habilita Escanear.
 export const Paso1FuenteConElegirCarpeta: Story = {
   args: {
     onElegirCarpeta: fn(async () => "~/Proyectos/elegida-por-el-picker"),
   },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
+
+    const radioElegir = c.getByRole("radio", { name: "Elegir carpeta" })
+    await expect(radioElegir).toBeEnabled()
+    await userEvent.click(radioElegir)
+
+    const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
+    await expect(input).toHaveAttribute("readonly")
+    await expect(input).toHaveAttribute("placeholder", "ninguna carpeta elegida todavía")
+
+    const escanear = c.getByRole("button", { name: "Escanear" })
+    await expect(escanear).toBeDisabled()
+
     const elegir = c.getByRole("button", { name: "Elegir carpeta…" })
     await expect(elegir).toBeEnabled()
     await userEvent.click(elegir)
 
-    const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
     await waitFor(() => expect(input).toHaveValue("~/Proyectos/elegida-por-el-picker"))
+    await expect(escanear).toBeEnabled()
   },
 }
 
-// Escaneando (G5) — spinner + Cancelar habilitado (dispara onCancelarEscaneo); input+Escanear
-// bloqueados (el usuario no puede disparar un segundo escaneo en paralelo).
+// Escaneando (G5) — spinner + Cancelar habilitado (dispara onCancelarEscaneo); input+Escanear+
+// radios de modo bloqueados (el usuario no puede disparar un segundo escaneo en paralelo).
 export const Escaneando: Story = {
   args: { estado: "escaneando" },
   play: async ({ canvasElement, args }) => {
@@ -178,6 +207,8 @@ export const Escaneando: Story = {
 
     const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
     await expect(input).toBeDisabled()
+    const radioEscribir = c.getByRole("radio", { name: "Escribir ruta" })
+    await expect(radioEscribir).toBeDisabled()
     const escanear = c.getByRole("button", { name: "Escanear" })
     await expect(escanear).toBeDisabled()
 
@@ -247,6 +278,86 @@ export const CandidatosReales: Story = {
   },
 }
 
+// ── Fixtures del caso monorepo REAL (S1-D26 — calcado del escaneo vivo de luana-vitalia que
+// destapó la observación del operador, 2026-07-16): N hallazgos `proyecto-instalado` SIN
+// manifiesto (id vacío — ANTES: N tarjetas «(sin id)» indistinguibles) + un aviso sin dir
+// físico cuyo id SÍ se conoce (enabledPlugins lo declara; el scanner ahora lo conserva vía
+// IDConocido). Shape real del wire post-fix. ──
+const RAIZ_MONOREPO = "/home/u/Proyectos/luana-vitalia"
+
+function candidatoSinManifiesto(scope: string, installPath: string): Candidato {
+  return {
+    clave: `sin-home~~${scope.replace(/[^a-z0-9-_]+/g, "-")}`,
+    identidad: { id: "", scope },
+    instalacion: {
+      proyecto_path: RAIZ_MONOREPO,
+      install_path: installPath,
+      tipo: "proyecto-instalado",
+      origen: {},
+      deriva: "deriva-no-evaluable",
+      deriva_detalle: "sin home ni registry accesible",
+    },
+  }
+}
+
+const candidatosMonorepo: Candidato[] = [
+  candidatoSinManifiesto("github.com/alpacapurpura/luana-platform", RAIZ_MONOREPO),
+  {
+    clave: "sin-home~commit-commands~",
+    identidad: { id: "commit-commands" },
+    instalacion: {
+      proyecto_path: RAIZ_MONOREPO,
+      install_path: "",
+      tipo: "",
+      origen: {},
+      deriva: "deriva-no-evaluable",
+      deriva_detalle: "sin dir físico resoluble",
+      aviso: `enabledPlugins declara "commit-commands@claude-plugins-official" pero sin record de instalación para ${RAIZ_MONOREPO}`,
+    },
+  },
+  candidatoSinManifiesto("comunify", `${RAIZ_MONOREPO}/comunify`),
+  candidatoSinManifiesto("fitflow", `${RAIZ_MONOREPO}/fitflow`),
+]
+
+// CandidatosMonorepoAgrupados (S1-D26) — el fix de la observación del operador: cada tarjeta
+// sin manifiesto se identifica por su scope (ruta relativa / remote del proyecto) + chip «sin
+// manifiesto»; los hallazgos se agrupan por subcarpeta (raíz primero); el aviso sin record
+// muestra el id que enabledPlugins declara; «(sin id)» ya no existe cuando hay CUALQUIER dato
+// mejor; el hallazgo sin forma física no pinta un chip de tipo vacío.
+export const CandidatosMonorepoAgrupados: Story = {
+  args: {
+    estado: "candidatos",
+    candidatos: candidatosMonorepo,
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+
+    // Agrupación: raíz primero, una sección por subcarpeta (orden de aparición del walker).
+    const grupos = canvasElement.querySelectorAll(".pf-wizard-grupo .pf-faceta-label")
+    await expect(Array.from(grupos).map((g) => g.textContent)).toEqual([
+      "proyecto (raíz)",
+      "comunify/",
+      "fitflow/",
+    ])
+
+    // Identificación sin manifiesto: scope visible + chip «sin manifiesto» (3 tarjetas sin id).
+    await expect(c.getByText("github.com/alpacapurpura/luana-platform")).toBeInTheDocument()
+    await expect(c.getByText("comunify")).toBeInTheDocument()
+    await expect(c.getByText("fitflow")).toBeInTheDocument()
+    await expect(c.getAllByText("sin manifiesto")).toHaveLength(3)
+
+    // El aviso sin record YA NO es anónimo: el id que enabledPlugins declara se muestra.
+    const filaAviso = c.getByText("commit-commands").closest(".pf-wizard-candidato") as HTMLElement
+    await expect(filaAviso).not.toBeNull()
+    await expect(within(filaAviso).getByText(/sin record de instalación/)).toBeInTheDocument()
+    // …y sin forma física no hay chip de tipo (nada, no un chip vacío).
+    await expect(filaAviso.querySelector(".pf-chip-tipo")).toBeNull()
+
+    // «(sin id)» solo queda como último recurso — acá ninguna tarjeta lo necesita.
+    await expect(c.queryByText("(sin id)")).toBeNull()
+  },
+}
+
 // SinHallazgos (G5, C-P-4) — copy honesto de 0 hallazgos + el formulario de fuente reaparece
 // para "elegir otra carpeta" (no hay callback dedicado de "volver" en el contrato — reusar el
 // mismo formulario ES la forma de "vuelve a paso 1", ver comentario en portafolio-wizard.tsx).
@@ -303,8 +414,10 @@ export const Agregando: Story = {
 // A11yModal (G8, CRÍTICO) — role="dialog"+aria-modal+aria-labelledby; tabs role="tab"/
 // aria-selected; foco inicial dentro del wizard (Cerrar); trap de Tab en ambas direcciones;
 // Escape llama onClose. Paso "fuente" sin picker: 5 focuseables (Cerrar · tab Proyecto · radio
-// Carpeta local · input · Escanear) — Marketplace/GitHub quedan FUERA del trap por `disabled`
-// (mismo criterio que `focusablesEn`, shared/lib/focus-trap.ts).
+// Carpeta local · radio Escribir ruta · input) — Marketplace/GitHub/Elegir-carpeta quedan FUERA
+// del trap por `disabled`, y Escanear TAMBIÉN queda fuera (S1-D23: arranca disabled sin ruta
+// cargada, el input pasa a ser el último focuseable en vez de Escanear) — mismo criterio que
+// `focusablesEn`, shared/lib/focus-trap.ts.
 export const A11yModal: Story = {
   play: async ({ canvasElement, args }) => {
     const c = within(canvasElement)
@@ -321,15 +434,16 @@ export const A11yModal: Story = {
     await expect(tabMarketplace).toHaveAttribute("aria-selected", "false")
 
     const closeBtn = c.getByRole("button", { name: "Cerrar" })
-    const escanearBtn = c.getByRole("button", { name: "Escanear" })
+    const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
+    await expect(c.getByRole("button", { name: "Escanear" })).toBeDisabled()
 
     // Foco inicial: dentro del wizard, en Cerrar.
     await waitFor(() => expect(closeBtn).toHaveFocus())
 
-    // Trap hacia atrás: Shift+Tab desde el primer focuseable (Cerrar) va al último (Escanear) —
-    // los disabled (tab Marketplace, radio GitHub) quedan fuera del loop.
+    // Trap hacia atrás: Shift+Tab desde el primer focuseable (Cerrar) va al último — el input
+    // (S1-D23: Escanear arranca disabled sin ruta, sale del loop hasta que haya texto).
     await userEvent.tab({ shift: true })
-    await expect(escanearBtn).toHaveFocus()
+    await expect(input).toHaveFocus()
 
     // Trap hacia adelante: Tab desde el último vuelve al primero.
     await userEvent.tab()

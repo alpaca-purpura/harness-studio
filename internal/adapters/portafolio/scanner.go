@@ -272,39 +272,61 @@ func (s *Scanner) escanearCC(root string) []domain.HallazgoInstalacion {
 
 	installed, iok := leerInstalledPlugins(filepath.Join(s.ccPluginsDir(), "installed_plugins.json"))
 	marketplaces, mok := leerKnownMarketplaces(filepath.Join(s.ccPluginsDir(), "known_marketplaces.json"))
+	// commonRoot: gitdir común del root (S1-D26) — CC keyea el install-record por el path
+	// EXACTO del proyecto, pero un worktree linkeado comparte el settings.json versionado con
+	// el resto del repo: el record puede vivir bajo el projectPath de OTRO working tree.
+	commonRoot, commonOK := gitCommonDir(root)
 
 	var out []domain.HallazgoInstalacion
 	for key, enabled := range st.EnabledPlugins {
 		if !enabled {
 			continue
 		}
-		_, mkt, ok := strings.Cut(key, "@")
+		idParte, mkt, ok := strings.Cut(key, "@")
 		if !ok {
 			continue
 		}
 		if !iok {
 			out = append(out, domain.HallazgoInstalacion{
-				Eslabones: []domain.EslabonOrigen{{Fuente: "no-legible", Campo: "version", Valor: key}},
-				Aviso:     fmt.Sprintf("enabledPlugins declara %q pero installed_plugins.json es ilegible", key),
+				IDConocido: idParte,
+				Eslabones:  []domain.EslabonOrigen{{Fuente: "no-legible", Campo: "version", Valor: key}},
+				Aviso:      fmt.Sprintf("enabledPlugins declara %q pero installed_plugins.json es ilegible", key),
 			})
 			continue
 		}
 		var record *ccInstalledPlugin
+		var avisoRecord string
 		for i, e := range installed[key] {
 			if e.ProjectPath == root {
 				record = &installed[key][i]
 				break
 			}
 		}
+		if record == nil && commonOK {
+			for i, e := range installed[key] {
+				if e.ProjectPath == "" {
+					continue
+				}
+				if c, cok := gitCommonDir(e.ProjectPath); cok && c == commonRoot {
+					record = &installed[key][i]
+					// visible, jamás en silencio: el record es de otro working tree del repo.
+					avisoRecord = fmt.Sprintf("record de instalación de %s (worktree del mismo repo)", e.ProjectPath)
+					break
+				}
+			}
+		}
 		if record == nil {
 			out = append(out, domain.HallazgoInstalacion{
-				Aviso: fmt.Sprintf("enabledPlugins declara %q pero sin record de instalación para %s", key, root),
+				IDConocido: idParte,
+				Aviso:      fmt.Sprintf("enabledPlugins declara %q pero sin record de instalación para %s", key, root),
 			})
 			continue
 		}
 		h := domain.HallazgoInstalacion{
-			Dir:  record.InstallPath,
-			Tipo: domain.InstReferenciadaCC,
+			Dir:        record.InstallPath,
+			Tipo:       domain.InstReferenciadaCC,
+			IDConocido: idParte,
+			Aviso:      avisoRecord,
 			Eslabones: []domain.EslabonOrigen{
 				{Fuente: "cc-plugins", Campo: "version", Valor: record.Version},
 			},

@@ -41,8 +41,8 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-14
-source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D9/S1-D10"
+last_modified: 2026-07-16
+source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D9/S1-D10/S1-D23/S1-D26"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
     date: 2026-07-13
@@ -103,6 +103,34 @@ change_log:
       cada una con `play()`) + `chips.stories.tsx`. Scenarios BDD agregados citando G3/G5/G8
       (forma sin `status:` por-scenario, S1-D16).
     merge_sha: null
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-15
+    type: extend
+    summary: >-
+      S1-D23 (amendment pre-firma, revisión en vivo del operador) — paso Fuente rediseñado: radio
+      Nivel 1 (Carpeta local/GitHub) y NUEVO radio Nivel 2 (Escribir ruta/Elegir carpeta), ambos
+      con look ButtonGroup segmentado (CSS puro, `:has(input:checked)`, sin nueva dependencia). El
+      input es un único elemento que pasa a `readOnly` en modo "elegir" (la ruta la resuelve el
+      picker nativo, mostrada arriba solo-lectura); el botón trigger «Elegir carpeta…» solo
+      aparece en modo "elegir"; «Elegir carpeta» disabled+tooltip «solo disponible en la app de
+      escritorio» fuera de Tauri (límite de plataforma, no roadmap — distinto de S2). «Escanear»
+      ahora exige `path` no-vacío además del flag `disabled`. `Paso1Fuente` extendida,
+      `Paso1FuenteConElegirCarpeta` y `A11yModal` reescritas (el último focuseable del trap pasa
+      de Escanear al input, S1-D23 lo explica). 8 stories siguen verdes (127/127 storybook global).
+    merge_sha: null
+
+  - story_id: 2026-07-13-portafolio-slice1-fe
+    date: 2026-07-16
+    type: extend
+    summary: >-
+      S1-D26 (amendment pre-firma, observación del operador con luana-vitalia real): cadena de
+      identificación `id → scope → «(sin id)»` (`identificadorDe`, selector puro) + chip «sin
+      manifiesto» en candidatos sin id + agrupación por subcarpeta del monorepo
+      (`gruposCandidatosDe`: «proyecto (raíz)» primero, una sección por subcarpeta, lista plana
+      si hay un solo grupo) + el aviso sin-record ya no es anónimo (el scanner conserva el id) +
+      `TipoInstalacionChip` no pinta chip vacío con `tipo:""`. Story nueva
+      `CandidatosMonorepoAgrupados` (calca el caso real post-fix); unit tests de los 2 selectores.
+    merge_sha: null
 
 scenarios:
   - id: wizard-marketplace-disabled-sin-fingir
@@ -129,6 +157,18 @@ scenarios:
     when: "se navega por teclado"
     then: "role=dialog+aria-modal, tabs role=tab/aria-selected, foco atrapado, Esc cierra salvo agregando en vuelo (S1-D19)"
     verifica: "A11yModal · Agregando"
+  - id: wizard-fuente-modo-escribir-o-elegir
+    name: "Modo explícito Escribir ruta / Elegir carpeta, Escanear gated por ruta (S1-D23)"
+    given: "el paso Fuente del wizard"
+    when: "no hay ruta cargada, o se cambia de modo, o se resuelve el picker nativo"
+    then: "Escanear queda disabled hasta path no-vacío; en modo elegir el input es readOnly y el trigger «Elegir carpeta…» aparece; sin onElegirCarpeta el radio Elegir carpeta queda disabled+tooltip de plataforma, nunca oculto"
+    verifica: "Paso1Fuente · Paso1FuenteConElegirCarpeta"
+  - id: wizard-candidatos-monorepo-identificables
+    name: "Candidatos sin manifiesto identificables y agrupados por subcarpeta (S1-D26)"
+    given: "un escaneo de un monorepo con N hallazgos proyecto-instalado sin manifiesto + un aviso sin record"
+    when: "se renderiza el paso candidatos"
+    then: "cada tarjeta muestra su scope (ruta relativa/remote) + chip «sin manifiesto»; los hallazgos se agrupan por subcarpeta con «proyecto (raíz)» primero; el aviso muestra el id que enabledPlugins declara; «(sin id)» solo como último recurso"
+    verifica: "CandidatosMonorepoAgrupados"
 
 business_rules: []
 related_capabilities:
@@ -146,4 +186,6 @@ desconocido»/«ya en el portafolio» S1-D10 → agregar) — construido, con 7 
 1 story extra de cobertura del picker Tauri; T7 cableó el transporte real (AbortController,
 POST real). Ramas GitHub/Marketplace quedan disabled+tooltip «próximo · S2», sin validación
 fingida (G3, verificado en `Paso1Fuente`/`A11yModal`). **T8 gradúa a `vivo`** (R4): `paridad.md`
-cierra el slice con la evidencia E2E viva.
+cierra el slice con la evidencia E2E viva. **S1-D23 (2026-07-15, amendment pre-firma):** el paso
+Fuente pasa a modo explícito Escribir/Elegir carpeta con look ButtonGroup — ver scenario
+`wizard-fuente-modo-escribir-o-elegir`.

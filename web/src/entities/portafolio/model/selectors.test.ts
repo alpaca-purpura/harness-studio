@@ -11,11 +11,13 @@ import {
 import {
   agruparPorEmpresa,
   filtrarEntradas,
+  gruposCandidatosDe,
+  identificadorDe,
   idsColisionados,
   registriesDe,
   saludDe,
 } from "./selectors"
-import type { EntradaPortafolio, Instalacion } from "./types"
+import type { Candidato, EntradaPortafolio, Instalacion } from "./types"
 
 // instalacion — helper mínimo con los defaults "limpios" (al-hilo, sin aviso/discrepancias);
 // cada test overridea SOLO lo que le importa a esa rama.
@@ -184,5 +186,109 @@ describe("idsColisionados", () => {
     const a = entrada({ clave: "clave-a", identidad: { id: "harness" } })
     const b = entrada({ clave: "clave-b", identidad: { id: "otro" } })
     expect(idsColisionados([a, b]).size).toBe(0)
+  })
+})
+
+// candidato — helper mínimo para los selectores de S1-D26 (Candidato NO tiene fixture en
+// testing/entradas.ts por diseño — resultado no-persistido, mismo criterio que T6).
+function candidato(
+  overrides: Omit<Partial<Candidato>, "instalacion"> & { instalacion?: Partial<Instalacion> },
+): Candidato {
+  const { instalacion: instOverrides, ...resto } = overrides
+  return {
+    clave: "clave-x",
+    identidad: { id: "x" },
+    instalacion: instalacion(instOverrides),
+    ...resto,
+  }
+}
+
+describe("identificadorDe", () => {
+  it("id manda cuando existe", () => {
+    expect(identificadorDe({ id: "harness", scope: "algo" })).toBe("harness")
+  })
+
+  it("sin id ⇒ el scope discrimina (RN-IDENT-2 — ruta relativa o remote del proyecto)", () => {
+    expect(identificadorDe({ id: "", scope: "comunify" })).toBe("comunify")
+  })
+
+  it("sin id ni scope ⇒ «(sin id)» honesto, último recurso", () => {
+    expect(identificadorDe({ id: "" })).toBe("(sin id)")
+  })
+})
+
+describe("gruposCandidatosDe", () => {
+  const raiz = "/home/u/Proyectos/mono"
+
+  it("monorepo real: raíz primero, una subcarpeta por grupo, ocultos y fuera-de-árbol a la raíz", () => {
+    const enRaiz = candidato({
+      clave: "c-raiz",
+      identidad: { id: "", scope: "github.com/acme/mono" },
+      instalacion: { proyecto_path: raiz, install_path: raiz, tipo: "proyecto-instalado" },
+    })
+    const enSub = candidato({
+      clave: "c-sub",
+      identidad: { id: "", scope: "comunify" },
+      instalacion: {
+        proyecto_path: raiz,
+        install_path: `${raiz}/comunify`,
+        tipo: "proyecto-instalado",
+      },
+    })
+    const enSubProfundo = candidato({
+      clave: "c-sub2",
+      identidad: { id: "", scope: "apps/fitflow" },
+      instalacion: {
+        proyecto_path: raiz,
+        install_path: `${raiz}/apps/fitflow`,
+        tipo: "proyecto-instalado",
+      },
+    })
+    const materializadaNivelProyecto = candidato({
+      clave: "c-mat",
+      identidad: { id: "bar-cli" },
+      instalacion: { proyecto_path: raiz, install_path: `${raiz}/.claude/plugins/bar-cli` },
+    })
+    const cacheCc = candidato({
+      clave: "c-cc",
+      identidad: { id: "harness" },
+      instalacion: {
+        proyecto_path: raiz,
+        install_path: "/home/u/.claude/plugins/cache/mkt/harness/1.0.0",
+        tipo: "referenciada-cc",
+      },
+    })
+    const avisoSinDir = candidato({
+      clave: "c-aviso",
+      identidad: { id: "commit-commands" },
+      instalacion: { proyecto_path: raiz, install_path: "", aviso: "sin record de instalación" },
+    })
+
+    const grupos = gruposCandidatosDe([
+      enSub,
+      enRaiz,
+      enSubProfundo,
+      materializadaNivelProyecto,
+      cacheCc,
+      avisoSinDir,
+    ])
+    expect(grupos.map((g) => g.grupo)).toEqual(["proyecto (raíz)", "comunify/", "apps/"])
+    expect(grupos[0]?.candidatos.map((c) => c.clave)).toEqual([
+      "c-raiz",
+      "c-mat",
+      "c-cc",
+      "c-aviso",
+    ])
+    expect(grupos[1]?.candidatos.map((c) => c.clave)).toEqual(["c-sub"])
+    expect(grupos[2]?.candidatos.map((c) => c.clave)).toEqual(["c-sub2"])
+  })
+
+  it("proyecto simple (todo en raíz) ⇒ un único grupo", () => {
+    const unico = candidato({ instalacion: { proyecto_path: raiz, install_path: raiz } })
+    expect(gruposCandidatosDe([unico]).map((g) => g.grupo)).toEqual(["proyecto (raíz)"])
+  })
+
+  it("0 candidatos ⇒ 0 grupos (nada inventado)", () => {
+    expect(gruposCandidatosDe([])).toEqual([])
   })
 })
