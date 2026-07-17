@@ -1,7 +1,7 @@
 {
 	"name": "arnesia-web",
 	"private": true,
-	"version": "0.2.7",
+	"version": "0.2.8",
 	"type": "module",
 	"packageManager": "pnpm@9.15.9",
 	"_comment": "SPA de ArnesIA (Vite+React, embebida vía go:embed; envuelta por Tauri 2). Topología FSD-lite (docs/architecture/boundaries/fe-topologia-fsd.md). Versiones = rango razonable a jul-2026; verificar/lock al primer `npm install`.",
