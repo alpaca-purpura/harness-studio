@@ -25,7 +25,10 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  theme: "light",
+  // dark-first (rebrand PRENTER, decisiones.md D2): identidad real de marca = negro+teal.
+  // El pipeline de tokens NO cambia de convención ($value=light sigue siendo la raíz DTCG,
+  // $extensions.mode.dark el override) — lo único que cambia es este default runtime.
+  theme: "dark",
   view: readView(),
   mapaPeek: null,
   toggleTheme: () => {

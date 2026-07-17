@@ -4,282 +4,629 @@
 		"$type": "color",
 		"primitive": {
 			"$description": "raw — no consumir en componentes; solo alias semánticos abajo",
-			"white": { "$value": "#ffffff" },
-			"sand-600": { "$value": "#a8742c" },
-			"sand-400": { "$value": "#d9a35b" },
-			"blue-500": { "$value": "#2f74b5" },
-			"blue-400": { "$value": "#5b9dd9" },
-			"violet-500": { "$value": "#7455c2" },
-			"violet-400": { "$value": "#9b7fd4" },
-			"magenta-500": { "$value": "#bb4c85" },
-			"magenta-400": { "$value": "#d46a9e" },
-			"teal-600": { "$value": "#20826f" },
-			"teal-400": { "$value": "#4fb3a1" },
-			"slate-500": { "$value": "#586c80" },
-			"slate-400": { "$value": "#8195a9" },
-			"olive-600": { "$value": "#7a7a24" },
-			"olive-400": { "$value": "#b5b558" },
-			"green-600": { "$value": "#2e8f5e" },
-			"green-400": { "$value": "#57b380" },
-			"orange-600": { "$value": "#c96a2e" },
-			"orange-400": { "$value": "#e0904f" },
-			"red-600": { "$value": "#c94545" },
-			"red-400": { "$value": "#e25b5b" },
-			"cyan-600": { "$value": "#0f7f96" },
-			"cyan-400": { "$value": "#49aec7" },
-			"amber-600": { "$value": "#9c7b1a" },
-			"amber-400": { "$value": "#cdae54" },
-			"taupe-600": { "$value": "#766753" },
-			"taupe-400": { "$value": "#a4917c" },
-			"rose-600": { "$value": "#a85274" },
-			"rose-400": { "$value": "#cc7d9c" },
-			"sage-600": { "$value": "#5f7a52" },
-			"sage-400": { "$value": "#8aa87d" }
+			"white": {
+				"$value": "#ffffff"
+			},
+			"black": {
+				"$value": "#000000"
+			},
+			"brand-teal-500": {
+				"$value": "#00b7aa"
+			},
+			"brand-teal-400": {
+				"$value": "#1fc6b8"
+			},
+			"danger": {
+				"$value": "#bd3a2e"
+			},
+			"neutral-50": {
+				"$value": "#f6f8f8"
+			},
+			"neutral-100": {
+				"$value": "#eef1f1"
+			},
+			"neutral-200": {
+				"$value": "#e1e6e6"
+			},
+			"neutral-300": {
+				"$value": "#c9d1d1"
+			},
+			"neutral-500": {
+				"$value": "#4d5555"
+			},
+			"neutral-900": {
+				"$value": "#0e1312"
+			},
+			"dark-bg": {
+				"$value": "#000000"
+			},
+			"dark-surface": {
+				"$value": "#0c1110"
+			},
+			"dark-raised": {
+				"$value": "#141a19"
+			},
+			"dark-border": {
+				"$value": "#1f2826"
+			},
+			"blue-500": {
+				"$value": "#2f74b5"
+			},
+			"blue-400": {
+				"$value": "#5b9dd9"
+			},
+			"violet-500": {
+				"$value": "#7455c2"
+			},
+			"violet-400": {
+				"$value": "#9b7fd4"
+			},
+			"magenta-500": {
+				"$value": "#bb4c85"
+			},
+			"magenta-400": {
+				"$value": "#d46a9e"
+			},
+			"teal-600": {
+				"$value": "#20826f"
+			},
+			"teal-400": {
+				"$value": "#4fb3a1"
+			},
+			"slate-500": {
+				"$value": "#586c80"
+			},
+			"slate-400": {
+				"$value": "#8195a9"
+			},
+			"olive-600": {
+				"$value": "#7a7a24"
+			},
+			"olive-400": {
+				"$value": "#b5b558"
+			},
+			"green-600": {
+				"$value": "#2e8f5e"
+			},
+			"green-400": {
+				"$value": "#57b380"
+			},
+			"orange-600": {
+				"$value": "#c96a2e"
+			},
+			"orange-400": {
+				"$value": "#e0904f"
+			},
+			"red-600": {
+				"$value": "#c94545"
+			},
+			"red-400": {
+				"$value": "#e25b5b"
+			},
+			"cyan-600": {
+				"$value": "#0f7f96"
+			},
+			"cyan-400": {
+				"$value": "#49aec7"
+			},
+			"amber-600": {
+				"$value": "#9c7b1a"
+			},
+			"amber-400": {
+				"$value": "#cdae54"
+			},
+			"taupe-600": {
+				"$value": "#766753"
+			},
+			"taupe-400": {
+				"$value": "#a4917c"
+			},
+			"rose-600": {
+				"$value": "#a85274"
+			},
+			"rose-400": {
+				"$value": "#cc7d9c"
+			},
+			"sage-600": {
+				"$value": "#5f7a52"
+			},
+			"sage-400": {
+				"$value": "#8aa87d"
+			}
 		},
 		"semantic": {
-			"$description": "intent — vocabulario shadcn COMPLETO que consumen los componentes. light = raíz; dark en $extensions.mode.dark. Valores neutrales = mockup firmado (--bg/--surface/--surface2/--line/--line2/--text/--muted); marca = sand (gold).",
+			"$description": "intent — vocabulario shadcn COMPLETO que consumen los componentes. light = raíz; dark en $extensions.mode.dark. Valores neutrales = mockup firmado (--bg/--surface/--surface2/--line/--line2/--text/--muted); marca = teal PRENTER (`#00b7aa`, rebrand 2026-07-15).",
 			"background": {
-				"$value": "#f2f4f7",
-				"$extensions": { "mode": { "dark": "#14171c" } }
+				"$value": "{color.primitive.neutral-50}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-bg}"
+					}
+				}
 			},
 			"foreground": {
-				"$value": "#212832",
-				"$extensions": { "mode": { "dark": "#e8ecf1" } }
+				"$value": "{color.primitive.neutral-900}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.92)"
+					}
+				}
 			},
 			"card": {
 				"$value": "{color.primitive.white}",
-				"$extensions": { "mode": { "dark": "#1b2027" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-surface}"
+					}
+				}
 			},
 			"card-foreground": {
-				"$value": "#212832",
-				"$extensions": { "mode": { "dark": "#e8ecf1" } }
+				"$value": "{color.primitive.neutral-900}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.92)"
+					}
+				}
 			},
 			"popover": {
 				"$value": "{color.primitive.white}",
-				"$extensions": { "mode": { "dark": "#1b2027" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-raised}"
+					}
+				}
 			},
 			"popover-foreground": {
-				"$value": "#212832",
-				"$extensions": { "mode": { "dark": "#e8ecf1" } }
+				"$value": "{color.primitive.neutral-900}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.92)"
+					}
+				}
 			},
 			"primary": {
-				"$value": "{color.primitive.sand-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.sand-400}" } }
+				"$value": "{color.primitive.brand-teal-500}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.brand-teal-400}"
+					}
+				}
 			},
 			"primary-foreground": {
-				"$value": "{color.primitive.white}",
-				"$extensions": { "mode": { "dark": "{color.primitive.white}" } }
+				"$value": "{color.primitive.black}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.black}"
+					}
+				}
 			},
 			"secondary": {
-				"$value": "#e9edf2",
-				"$extensions": { "mode": { "dark": "#242b34" } }
+				"$value": "{color.primitive.neutral-100}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-raised}"
+					}
+				}
 			},
 			"secondary-foreground": {
-				"$value": "#212832",
-				"$extensions": { "mode": { "dark": "#e8ecf1" } }
+				"$value": "{color.primitive.neutral-900}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.92)"
+					}
+				}
 			},
 			"muted": {
-				"$value": "#e9edf2",
-				"$extensions": { "mode": { "dark": "#242b34" } }
+				"$value": "{color.primitive.neutral-100}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-raised}"
+					}
+				}
 			},
 			"muted-foreground": {
-				"$value": "#5d6a79",
-				"$extensions": { "mode": { "dark": "#94a1af" } }
+				"$value": "{color.primitive.neutral-500}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.58)"
+					}
+				}
 			},
 			"accent": {
-				"$value": "#e9edf2",
-				"$extensions": { "mode": { "dark": "#242b34" } }
+				"$value": "{color.primitive.neutral-100}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-raised}"
+					}
+				}
 			},
 			"accent-foreground": {
-				"$value": "#212832",
-				"$extensions": { "mode": { "dark": "#e8ecf1" } }
+				"$value": "{color.primitive.neutral-900}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.92)"
+					}
+				}
 			},
 			"accent-soft": {
-				"$value": "rgba(168,116,44,.14)",
-				"$extensions": { "mode": { "dark": "rgba(217,163,91,.14)" } }
+				"$value": "rgba(0,183,170,.14)",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(0,183,170,.14)"
+					}
+				}
 			},
 			"destructive": {
-				"$value": "{color.primitive.red-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.red-400}" } }
+				"$value": "{color.primitive.danger}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.danger}"
+					}
+				}
 			},
 			"destructive-foreground": {
 				"$value": "{color.primitive.white}",
-				"$extensions": { "mode": { "dark": "{color.primitive.white}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.white}"
+					}
+				}
 			},
 			"border": {
-				"$value": "#d5dbe3",
-				"$extensions": { "mode": { "dark": "#2d3743" } }
+				"$value": "{color.primitive.neutral-200}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-border}"
+					}
+				}
 			},
 			"input": {
-				"$value": "#c3cbd6",
-				"$extensions": { "mode": { "dark": "#3a4655" } }
+				"$value": "{color.primitive.neutral-300}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(0,183,170,.35)"
+					}
+				}
 			},
 			"ring": {
-				"$value": "{color.primitive.sand-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.sand-400}" } }
+				"$value": "{color.primitive.brand-teal-400}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.brand-teal-400}"
+					}
+				}
 			}
 		},
 		"sidebar": {
 			"$description": "Command Rail (shell-A) = componente sidebar de shadcn. Rail slim de iconos izq. + dock derecho invocable.",
 			"background": {
 				"$value": "{color.primitive.white}",
-				"$extensions": { "mode": { "dark": "#1b2027" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-surface}"
+					}
+				}
 			},
 			"foreground": {
-				"$value": "#5d6a79",
-				"$extensions": { "mode": { "dark": "#94a1af" } }
+				"$value": "{color.primitive.neutral-500}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.58)"
+					}
+				}
 			},
 			"primary": {
-				"$value": "{color.primitive.sand-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.sand-400}" } }
+				"$value": "{color.primitive.brand-teal-500}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.brand-teal-400}"
+					}
+				}
 			},
 			"primary-foreground": {
-				"$value": "{color.primitive.white}",
-				"$extensions": { "mode": { "dark": "{color.primitive.white}" } }
+				"$value": "{color.primitive.black}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.black}"
+					}
+				}
 			},
 			"accent": {
-				"$value": "#e9edf2",
-				"$extensions": { "mode": { "dark": "#242b34" } }
+				"$value": "{color.primitive.neutral-100}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-raised}"
+					}
+				}
 			},
 			"accent-foreground": {
-				"$value": "#212832",
-				"$extensions": { "mode": { "dark": "#e8ecf1" } }
+				"$value": "{color.primitive.neutral-900}",
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(255,255,255,.92)"
+					}
+				}
 			},
 			"border": {
-				"$value": "#d5dbe3",
-				"$extensions": { "mode": { "dark": "#2d3743" } }
+				"$value": "{color.primitive.neutral-200}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.dark-border}"
+					}
+				}
 			},
 			"ring": {
-				"$value": "{color.primitive.sand-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.sand-400}" } }
+				"$value": "{color.primitive.brand-teal-400}",
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.brand-teal-400}"
+					}
+				}
 			}
 		},
 		"chart": {
 			"$description": "paleta categórica dataviz — alias de color.kind (5 series, buen spread de matiz)",
-			"1": { "$value": "{color.kind.skill}" },
-			"2": { "$value": "{color.kind.knowledge}" },
-			"3": { "$value": "{color.kind.agent}" },
-			"4": { "$value": "{color.kind.hook}" },
-			"5": { "$value": "{color.kind.mcp}" }
+			"1": {
+				"$value": "{color.kind.skill}"
+			},
+			"2": {
+				"$value": "{color.kind.knowledge}"
+			},
+			"3": {
+				"$value": "{color.kind.agent}"
+			},
+			"4": {
+				"$value": "{color.kind.hook}"
+			},
+			"5": {
+				"$value": "{color.kind.mcp}"
+			}
 		},
 		"kind": {
 			"$description": "tipo de componente de arnés (mapea a docs/architecture/knowledge/, 10 primitivas Clase); light/dark. skill/agent/hook/docs/architecture/knowledge/mcp/rule = lift del shell firmado; command/plugin/settings/output-style/statusline = AÑADIDOS HS-09 (propuestos, cierran el gap 6→10; la familia config comparte matices vecinos, la sub-distinción la carga el glyph).",
 			"skill": {
 				"$value": "{color.primitive.blue-500}",
-				"$extensions": { "mode": { "dark": "{color.primitive.blue-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.blue-400}"
+					}
+				}
 			},
 			"agent": {
 				"$value": "{color.primitive.violet-500}",
-				"$extensions": { "mode": { "dark": "{color.primitive.violet-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.violet-400}"
+					}
+				}
 			},
 			"hook": {
 				"$value": "{color.primitive.magenta-500}",
-				"$extensions": { "mode": { "dark": "{color.primitive.magenta-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.magenta-400}"
+					}
+				}
 			},
 			"knowledge": {
 				"$value": "{color.primitive.teal-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.teal-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.teal-400}"
+					}
+				}
 			},
 			"mcp": {
 				"$value": "{color.primitive.slate-500}",
-				"$extensions": { "mode": { "dark": "{color.primitive.slate-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.slate-400}"
+					}
+				}
 			},
 			"rule": {
 				"$value": "{color.primitive.olive-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.olive-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.olive-400}"
+					}
+				}
 			},
 			"command": {
 				"$value": "{color.primitive.cyan-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.cyan-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.cyan-400}"
+					}
+				}
 			},
 			"plugin": {
 				"$value": "{color.primitive.amber-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.amber-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.amber-400}"
+					}
+				}
 			},
 			"settings": {
 				"$value": "{color.primitive.taupe-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.taupe-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.taupe-400}"
+					}
+				}
 			},
 			"output-style": {
 				"$value": "{color.primitive.rose-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.rose-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.rose-400}"
+					}
+				}
 			},
 			"statusline": {
 				"$value": "{color.primitive.sage-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.sage-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.sage-400}"
+					}
+				}
 			}
 		},
 		"health": {
 			"$description": "salud de trazas (estado); base + variante -soft para fills. Valores de mockup shell-A (light L7-8 / dark L18-19).",
 			"ok": {
 				"$value": "{color.primitive.green-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.green-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.green-400}"
+					}
+				}
 			},
 			"warn": {
 				"$value": "{color.primitive.orange-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.orange-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.orange-400}"
+					}
+				}
 			},
 			"crit": {
 				"$value": "{color.primitive.red-600}",
-				"$extensions": { "mode": { "dark": "{color.primitive.red-400}" } }
+				"$extensions": {
+					"mode": {
+						"dark": "{color.primitive.red-400}"
+					}
+				}
 			},
 			"ok-soft": {
 				"$value": "rgba(46,143,94,.13)",
-				"$extensions": { "mode": { "dark": "rgba(87,179,128,.14)" } }
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(87,179,128,.14)"
+					}
+				}
 			},
 			"warn-soft": {
 				"$value": "rgba(201,106,46,.13)",
-				"$extensions": { "mode": { "dark": "rgba(224,144,79,.14)" } }
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(224,144,79,.14)"
+					}
+				}
 			},
 			"crit-soft": {
 				"$value": "rgba(201,69,69,.12)",
-				"$extensions": { "mode": { "dark": "rgba(226,91,91,.13)" } }
+				"$extensions": {
+					"mode": {
+						"dark": "rgba(226,91,91,.13)"
+					}
+				}
 			}
 		},
 		"heat": {
 			"$description": "desempeño/heatmap — escala de v3 (más rica que el --heat único de shell-A); overlay theme-agnóstico",
-			"1": { "$value": "rgba(205,105,55,.10)" },
-			"2": { "$value": "rgba(205,105,55,.22)" },
-			"3": { "$value": "rgba(205,105,55,.36)" },
-			"4": { "$value": "rgba(205,105,55,.50)" }
+			"1": {
+				"$value": "rgba(205,105,55,.10)"
+			},
+			"2": {
+				"$value": "rgba(205,105,55,.22)"
+			},
+			"3": {
+				"$value": "rgba(205,105,55,.36)"
+			},
+			"4": {
+				"$value": "rgba(205,105,55,.50)"
+			}
 		}
 	},
 	"radius": {
 		"$type": "dimension",
 		"$description": "curado del mockup (composer/box/send = 9px → lg). Escala nombrada, no magic-value.",
-		"sm": { "$value": "6px" },
-		"md": { "$value": "8px" },
-		"lg": { "$value": "9px" },
-		"xl": { "$value": "12px" },
-		"full": { "$value": "9999px" }
+		"sm": {
+			"$value": "4px"
+		},
+		"md": {
+			"$value": "8px"
+		},
+		"lg": {
+			"$value": "14px"
+		},
+		"xl": {
+			"$value": "22px"
+		},
+		"full": {
+			"$value": "9999px"
+		}
 	},
 	"space": {
 		"$type": "dimension",
 		"$description": "escala de espaciado base-4 (snap de los paddings/gaps hardcodeados del mockup: 8/10/12px)",
-		"1": { "$value": "4px" },
-		"2": { "$value": "8px" },
-		"3": { "$value": "12px" },
-		"4": { "$value": "16px" },
-		"5": { "$value": "20px" },
-		"6": { "$value": "24px" },
-		"8": { "$value": "32px" },
-		"10": { "$value": "40px" },
-		"12": { "$value": "48px" }
+		"1": {
+			"$value": "4px"
+		},
+		"2": {
+			"$value": "8px"
+		},
+		"3": {
+			"$value": "12px"
+		},
+		"4": {
+			"$value": "16px"
+		},
+		"5": {
+			"$value": "20px"
+		},
+		"6": {
+			"$value": "24px"
+		},
+		"8": {
+			"$value": "32px"
+		},
+		"10": {
+			"$value": "40px"
+		},
+		"12": {
+			"$value": "48px"
+		}
 	},
 	"text": {
 		"$type": "dimension",
 		"$description": "escala tipográfica (snap de los font-size del mockup: 12.5px cuerpo dock)",
-		"xs": { "$value": "11px" },
-		"sm": { "$value": "12.5px" },
-		"base": { "$value": "14px" },
-		"lg": { "$value": "16px" },
-		"xl": { "$value": "20px" },
-		"2xl": { "$value": "26px" }
+		"xs": {
+			"$value": "11px"
+		},
+		"sm": {
+			"$value": "12.5px"
+		},
+		"base": {
+			"$value": "14px"
+		},
+		"lg": {
+			"$value": "16px"
+		},
+		"xl": {
+			"$value": "20px"
+		},
+		"2xl": {
+			"$value": "26px"
+		}
 	},
 	"font": {
 		"$type": "fontFamily",
+		"display": {
+			"$value": [
+				"Jost",
+				"system-ui",
+				"-apple-system",
+				"Segoe UI",
+				"Roboto",
+				"sans-serif"
+			]
+		},
 		"sans": {
 			"$value": [
+				"Mulish",
 				"system-ui",
 				"-apple-system",
 				"Segoe UI",
@@ -289,6 +636,7 @@
 		},
 		"mono": {
 			"$value": [
+				"JetBrains Mono",
 				"ui-monospace",
 				"SFMono-Regular",
 				"Menlo",
@@ -296,6 +644,25 @@
 				"Liberation Mono",
 				"monospace"
 			]
+		}
+	},
+	"shadow": {
+		"$type": "shadow",
+		"$description": "PRENTER — sombras suaves de bajo contraste; string CSS crudo (el formatter custom de style-dictionary.config.mjs no transforma composites DTCG, ver decisiones.md D5).",
+		"xs": {
+			"$value": "0 1px 2px rgba(11,15,14,.05)"
+		},
+		"sm": {
+			"$value": "0 1px 3px rgba(11,15,14,.07), 0 1px 2px rgba(11,15,14,.04)"
+		},
+		"md": {
+			"$value": "0 4px 14px rgba(11,15,14,.08), 0 2px 4px rgba(11,15,14,.04)"
+		},
+		"lg": {
+			"$value": "0 14px 40px rgba(11,15,14,.10), 0 4px 10px rgba(11,15,14,.05)"
+		},
+		"brand": {
+			"$value": "0 8px 24px rgba(0,183,170,.22)"
 		}
 	}
 }

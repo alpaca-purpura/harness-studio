@@ -48,6 +48,13 @@
 > conocimiento-del-proyecto) se está diseñando como **superset del baseline vigente**. Mientras no
 > esté firmado NO reemplaza el baseline; vive como propuesta. Al firmar → se funde y se re-estampa aquí.
 >
+> **Rebrand PRENTER en curso (2026-07-15):** propuesta de reemplazo de VALORES de tokens (chrome
+> estructural: colores/tipografía/radios/sombras, dark-first) extraída de Claude Design — **NO toca**
+> `color.kind`/`health`/`heat` (paleta funcional del Mapa, intacta). Afecta directo el estado
+> `🔒 firmado (tokens)` de `arnesia-shell-A-galaxia.html` abajo — mientras no haya gate humano, ese
+> renglón sigue vigente tal cual. Ver
+> [`stories/2026-07-15-rebrand-prenter-design-system/INDEX.md`](../docs/product/stories/2026-07-15-rebrand-prenter-design-system/INDEX.md).
+>
 > **Portafolio — CONSTRUIDO (Slice 1 FE, 2026-07-13→14):** «**Portafolio**» (`arnesia-portafolio.html`) —
 > front-door del ciclo de vida. **3 superficies navegables:** Lista (por empresa, fila compacta) → Drawer
 > detalle → Wizard agregar. Modelo FIRMADO S-D8: unidad = **arnés por identidad** (1 card), con **canónico**
