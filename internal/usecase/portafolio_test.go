@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -263,6 +264,135 @@ func TestObservarEnMapaIndexaSinRegistro(t *testing.T) {
 	}
 	if idx.upserted[0].Arnes == nil || idx.upserted[0].Arnes.ID != "harness-x" {
 		t.Errorf("grafo indexado = %+v, no es el que cargó el loader", idx.upserted[0])
+	}
+}
+
+// TestObservarEnMapaDegradadoSintetiza cubre S1-D27 (Opción A, honra contrato §2): una
+// presencia SIN sello (loader devuelve Arnes==nil) NO se rechaza — se sintetiza un arnés
+// mínimo con la huella de path como llave sintética estable, se marca Degradado, y los nodos
+// que el loader reconoció se preservan. Antes esto era un 400 «no resolvió un arnés cargable».
+func TestObservarEnMapaDegradadoSintetiza(t *testing.T) {
+	store := newFakePortafolioStore()
+	installPath := filepath.Join(t.TempDir(), "cruda")
+	entrada := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Scope: ".", Disc: "deadbeef1234"}, // anónima persistida
+		Instalaciones: []domain.Instalacion{{InstallPath: installPath, Tipo: domain.InstProyectoInstalado}},
+	}
+	if err := store.Upsert(entrada); err != nil {
+		t.Fatal(err)
+	}
+	clave := entrada.Identidad.Clave()
+
+	// Loader degradado: sin sello (Arnes==nil) pero con un nodo reconocido.
+	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
+		installPath: {Arnes: nil, Degradado: true, Nodes: []domain.Box{{ID: "std", Clase: domain.ClaseRule}}},
+	}}
+	idx := &fakeIndexPort{}
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx)
+
+	id, err := svc.ObservarEnMapa(context.Background(), clave, installPath)
+	if err != nil {
+		t.Fatalf("ObservarEnMapa degradado NO debe fallar (S1-D27): %v", err)
+	}
+	if id == "" {
+		t.Fatal("el degradado debe indexar con una llave sintética no vacía (huella de path)")
+	}
+	if len(idx.upserted) != 1 {
+		t.Fatalf("indice.Upsert llamado %d veces, quiero 1", len(idx.upserted))
+	}
+	g := idx.upserted[0]
+	if g.Arnes == nil || g.Arnes.ID != id {
+		t.Errorf("grafo indexado sin arnés sintético estable: %+v (id=%q)", g.Arnes, id)
+	}
+	if !g.Degradado {
+		t.Error("el grafo indexado debe seguir marcado Degradado")
+	}
+	if g.Arnes.Nombre != "cruda" {
+		t.Errorf("Nombre = %q, quiero el basename del install_path como fallback", g.Arnes.Nombre)
+	}
+	if len(g.Nodes) != 1 {
+		t.Errorf("los nodos reconocidos por el loader deben preservarse, got %d", len(g.Nodes))
+	}
+}
+
+// TestIdentificarSellaYRekey cubre S1-D28: Identificar escribe el sello `arnes.l0.json`
+// IN-SITU (scaffold mínimo) y re-keya la entrada anónima con su identidad ya sellada,
+// desvinculando la clave vieja. El fake loader simula que, tras sellar, el loader lee el
+// manifiesto y resuelve id — la escritura del sello, las guardas y el re-key son reales.
+func TestIdentificarSellaYRekey(t *testing.T) {
+	dir := t.TempDir()
+
+	store := newFakePortafolioStore()
+	anon := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Scope: ".", Disc: domain.HuellaPath(dir)},
+		Instalaciones: []domain.Instalacion{{ProyectoPath: dir, InstallPath: dir, Tipo: domain.InstProyectoInstalado}},
+	}
+	if err := store.Upsert(anon); err != nil {
+		t.Fatal(err)
+	}
+	claveVieja := anon.Identidad.Clave()
+
+	scan := &fakePortafolioScanner{hallazgos: []domain.HallazgoInstalacion{
+		{Dir: dir, Tipo: domain.InstProyectoInstalado},
+	}}
+	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
+		dir: {Arnes: &domain.Arnes{ID: "mi-arnes", Nombre: "Mi Arnés"}},
+	}}
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, &fakeIndexPort{})
+
+	nueva, err := svc.Identificar(context.Background(), claveVieja, dir, "mi-arnes", "Mi Arnés")
+	if err != nil {
+		t.Fatalf("Identificar: %v", err)
+	}
+
+	// 1. El sello se escribió con el scaffold mínimo (id · version · reporta_a null).
+	b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json"))
+	if rerr != nil {
+		t.Fatalf("el sello no se escribió: %v", rerr)
+	}
+	var sello map[string]any
+	if jerr := json.Unmarshal(b, &sello); jerr != nil {
+		t.Fatalf("sello inválido: %v", jerr)
+	}
+	if sello["id"] != "mi-arnes" || sello["version"] != "0.1.0" {
+		t.Errorf("sello = %v, quiero id=mi-arnes version=0.1.0", sello)
+	}
+	if v, ok := sello["reporta_a"]; !ok || v != nil {
+		t.Errorf("el sello debe emitir reporta_a: null, got %v (ok=%v)", v, ok)
+	}
+
+	// 2. Re-key: la entrada nueva tiene la identidad sellada; la vieja anónima se desvinculó.
+	if nueva.Identidad.ID != "mi-arnes" {
+		t.Errorf("identidad re-keyed = %+v", nueva.Identidad)
+	}
+	if _, ok := store.entradas[claveVieja]; ok {
+		t.Error("la clave vieja anónima debe desvincularse tras el re-key")
+	}
+	if _, ok := store.entradas[nueva.Identidad.Clave()]; !ok {
+		t.Error("la entrada sellada debe quedar persistida bajo su clave nueva")
+	}
+}
+
+// TestIdentificarNoPisaSelloExistente cubre la guarda 2 de S1-D28: un dir que YA tiene
+// arnes.l0.json no se re-sella (ErrIdentificarYaSellado) — editar un sello es otra operación.
+func TestIdentificarNoPisaSelloExistente(t *testing.T) {
+	dir := t.TempDir()
+	if werr := os.WriteFile(filepath.Join(dir, "arnes.l0.json"), []byte(`{"id":"ya"}`), 0o600); werr != nil {
+		t.Fatal(werr)
+	}
+	store := newFakePortafolioStore()
+	e := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Scope: ".", Disc: domain.HuellaPath(dir)},
+		Instalaciones: []domain.Instalacion{{ProyectoPath: dir, InstallPath: dir}},
+	}
+	if err := store.Upsert(e); err != nil {
+		t.Fatal(err)
+	}
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, &fakeIndexPort{})
+
+	_, err := svc.Identificar(context.Background(), e.Identidad.Clave(), dir, "", "")
+	if !errors.Is(err, usecase.ErrIdentificarYaSellado) {
+		t.Fatalf("err = %v, quiero ErrIdentificarYaSellado", err)
 	}
 }
 

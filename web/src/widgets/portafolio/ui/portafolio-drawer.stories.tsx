@@ -57,6 +57,23 @@ const entradaSinCanonicoSinInstalaciones: EntradaPortafolio = {
   agregado: "2026-07-11T08:30:00Z",
 }
 
+// entradaSinSello — story IdentificarSinSello (S1-D28): una presencia SIN manifiesto
+// (`identidad.id` vacío) escaneada en su raíz → se ofrece «Identificar» para sellar in-situ.
+const entradaSinSello: EntradaPortafolio = {
+  clave: "sin-home~~abc123def456",
+  identidad: { id: "", scope: "." },
+  instalaciones: [
+    {
+      proyecto_path: "~/Proyectos/cruda",
+      install_path: "~/Proyectos/cruda",
+      tipo: "proyecto-instalado",
+      origen: {},
+      deriva: "deriva-no-evaluable",
+    },
+  ],
+  agregado: "2026-07-17T10:00:00Z",
+}
+
 const meta = {
   title: "widgets/portafolio/PortafolioDrawer",
   component: PortafolioDrawer,
@@ -121,6 +138,30 @@ export const IdentidadProvisional: Story = {
     const cf = within(facetas)
     await expect(cf.getByText("desconocida")).toBeInTheDocument()
     await expect(cf.getByText("desconocido")).toBeInTheDocument()
+  },
+}
+
+// IdentificarSinSello — S1-D28: una presencia sin manifiesto muestra la marca roja
+// `manifiesto-ausente` y ofrece «Identificar»; abrir el form, rellenar el id y sellar dispara
+// onIdentificar con (install_path, id, nombre) — el sello se escribe in-situ.
+export const IdentificarSinSello: Story = {
+  args: { entrada: entradaSinSello, onIdentificar: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+
+    await expect(c.getByText("manifiesto-ausente")).toBeInTheDocument()
+
+    const abrir = c.getByRole("button", { name: "✦ Identificar" })
+    await expect(abrir).toBeEnabled()
+    await userEvent.click(abrir)
+
+    const idInput = c.getByRole("textbox", { name: "id" })
+    await userEvent.type(idInput, "mi-cruda")
+
+    await userEvent.click(c.getByRole("button", { name: "Sellar in-situ" }))
+    await waitFor(() =>
+      expect(args.onIdentificar).toHaveBeenCalledWith("~/Proyectos/cruda", "mi-cruda", ""),
+    )
   },
 }
 

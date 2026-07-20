@@ -10,11 +10,15 @@ module: fe-shell
 verb: crear
 pointers:
   - "web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail"
+  - "web/src/widgets/session-rail/ui/new-session-picker.tsx#NewSessionPicker"
+  - "web/src/widgets/session-rail/model/portafolio-picker-store.ts#usePortafolioPicker"
+  - "web/src/widgets/session-rail/model/portafolio-picker-store.test.ts#portafolio-picker-store"
   - "web/src/shared/store/sessions-store.ts#create"
   - "web/src/shared/store/app-store.ts#toggleTheme"
 valida: []
 scenarios:
   - "El pie del rail gana un botón claro/oscuro (☾/☀) que llama toggleTheme() — la infra data-theme + tokens ya existía (theme.css), solo faltaba el control de UI (2026-07-13)"
+  - "«＋ Nueva sesión» abre un picker INLINE (el <aside> ensancha 224→360px, cero popover/backdrop): el arnés se elige del Portafolio REAL (GET /api/portafolio) con buscador en vivo + selección identidad→copia cuando hay 2+ copias; reemplaza el arnes:'nuevo-arnes' hardcodeado y el window.prompt() de ruta. Verificado por new-session-picker.stories.tsx (7 play(), Chromium) + portafolio-picker-store.test.ts (paquete shell-topbar-selector-arnes, 2026-07-20)"
 business_rules: []
 related_capabilities:
   depends_on: []

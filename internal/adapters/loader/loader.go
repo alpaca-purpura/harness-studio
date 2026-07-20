@@ -136,6 +136,16 @@ func LoadArnesInfo(dir string) (domain.Graph, Info, error) {
 	g.Nodes = append(g.Nodes, settings...)
 
 	g.Edges = derivarEdges(g.Nodes)
+
+	// Modo degradado (S1-D27, contrato §2): el arnés se reconoció por sus archivos pero NO
+	// tiene manifiesto que lo selle (`g.Arnes==nil`). Se marca visible; el aviso
+	// `manifiesto-ausente` es la señal única que consumen el Mapa (marca roja) y el drawer.
+	if g.Arnes == nil {
+		g.Degradado = true
+		if info.Aviso == "" {
+			info.Aviso = "manifiesto-ausente: sin arnes.l0.json ni .claude-plugin/plugin.json (sin sellar)"
+		}
+	}
 	return g, info, nil
 }
 

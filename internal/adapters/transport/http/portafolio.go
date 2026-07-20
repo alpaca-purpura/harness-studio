@@ -137,13 +137,50 @@ func postObservarEnMapa(svc *usecase.PortafolioService) http.HandlerFunc {
 			case errors.Is(err, usecase.ErrObservarSinIndice):
 				writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
 			default:
-				// ErrObservarInstallPathAjeno o un dir no cargable (loader/Arnes==nil):
-				// ambos son 400-style — el motivo real viaja en el body (jamás un grafo
-				// inventado).
+				// ErrObservarInstallPathAjeno o un dir que el loader no pudo cargar: 400-style
+				// — el motivo real viaja en el body. Un dir sin manifiesto ya NO cae acá: se
+				// observa en modo degradado (S1-D27), jamás un grafo inventado.
 				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
 			}
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"id": id, "indexed": true})
+	}
+}
+
+// postIdentificarBody is the POST /api/portafolio/arneses/{clave}/identificar payload.
+// id/nombre opcionales — el usecase cae a defaults (basename del install-path) si vienen "".
+type postIdentificarBody struct {
+	InstallPath string `json:"install_path"`
+	ID          string `json:"id,omitempty"`
+	Nombre      string `json:"nombre,omitempty"`
+}
+
+// postIdentificar — POST /api/portafolio/arneses/{clave}/identificar: escribe el sello
+// `arnes.l0.json` IN-SITU en la instalación y re-keya la entrada (S1-D28). 404 clave
+// desconocida · 409 ya sellado · 400 install_path ajeno / path protegido / otro. Devuelve la
+// entrada re-keyed (su nueva clave viaja en identidad → el FE re-apunta el drawer).
+func postIdentificar(svc *usecase.PortafolioService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clave := r.PathValue("clave")
+		var body postIdentificarBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		entrada, err := svc.Identificar(r.Context(), clave, body.InstallPath, body.ID, body.Nombre)
+		if err != nil {
+			switch {
+			case errors.Is(err, usecase.ErrObservarClaveNoEncontrada):
+				writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			case errors.Is(err, usecase.ErrIdentificarYaSellado):
+				writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+			default:
+				// install_path ajeno, path protegido, o fallo de escritura/re-escaneo — el
+				// motivo real viaja en el body.
+				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, entrada)
 	}
 }

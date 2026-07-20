@@ -2,8 +2,9 @@
 
 > `tipo: paquete-de-trabajo` · abierto 2026-07-20 · disparado por observación directa del operador
 > («hay una barra que tiene esa información hardcodeada alpacapurpura») usando la app. Etapa:
-> **mockup → decisiones (Gate 1 FIRMADO 🧑‍⚖️ 2026-07-20) → spec → implementar → PARIDAD**. Spec y
-> build siguen abiertos.
+> **mockup → decisiones (Gate 1 FIRMADO 🧑‍⚖️ 2026-07-20) → spec+design (ESCRITAS) → implementar
+> (CONSTRUIDO 2026-07-20, verde) → PARIDAD (escrita, gate humano final PENDIENTE 🧑‍⚖️)**. El
+> operador ordenó «Desarrolla» → se tomó como autorización de Gate 2 (implementar contra el spec).
 
 ## Qué resuelve
 
@@ -30,8 +31,14 @@ diseña sobre un dato que no existe.
 
 ## Documentos
 
-- [`decisiones.md`](./decisiones.md) — TS-D1..D9, las decisiones de diseño cerradas en la conversación
-  (con el porqué de cada una — varias corrigen un error de un intento anterior, documentado).
+- [`decisiones.md`](./decisiones.md) — TS-D1..D9 (mockup, firmadas 🧑‍⚖️) + TS-D10..D17 (deuda de
+  TS-D9 resuelta al escribir la spec: host del picker, estados vacío/error/colisión, refetch,
+  cómputo de copias, payload real de sesión, dónde vive el fetch).
+- [`spec.md`](./spec.md) — RF-1..17 + Gherkin, trazado a `mockup:línea`.
+- [`design.md`](./design.md) — anatomía al pixel, tabla de campos por fila, estados, tokens
+  (reuso total, cero CSS nuevo).
+- [`PARIDAD.md`](./PARIDAD.md) — RF por RF → verificación (7 stories + 5 unit + build + R1/R2/R4),
+  desviaciones documentadas, y el checklist del gate humano final (sin marcar).
 - Mockup firmado: [`mockups/arnesia-shell-topbar-selector-arnes.html`](../../../../mockups/arnesia-shell-topbar-selector-arnes.html)
   (snapshot derivado; ver `mockups/INDEX.md` antes de tocarlo).
 
@@ -57,7 +64,26 @@ diseña sobre un dato que no existe.
 >    reventando el ancho: falta de `min-width:0` en cadenas flex anidadas, y un track `1fr` de CSS
 >    Grid sin `minmax(0, …)`).
 >
-> **Retomar aquí:** siguiente etapa = **spec**. Ver `decisiones.md` §«Para la spec» — deuda visible
-> pendiente de resolver ahí (estado vacío del Portafolio, colisión de `id` entre entradas, qué pasa
-> si `GET /api/portafolio` falla al abrir el picker). Luego implementar (Storybook = SSoT real, este
-> `.html` es solo referencia de paridad visual) y cerrar con PARIDAD + gate humano.
+> **Estado (2026-07-20, mismo día): spec + design ESCRITAS, luego IMPLEMENTADAS.** `spec.md`
+> (RF-1..17 + Gherkin) y `design.md` (anatomía/tokens/estados) resuelven la deuda TS-D9 completa vía
+> TS-D10..D17 — layout real del picker (rail 224→360px, TS-D10), fetch en store propio del widget
+> (`portafolio-picker-store.ts`, TS-D17), estados vacío/error/colisión/refetch (TS-D11-14), copias
+> 0/1/2+ (TS-D15), payload real (TS-D16).
+>
+> **Estado (2026-07-20): CONSTRUIDO — todo verde.** El operador ordenó «Desarrolla» (autorización de
+> Gate 2). Implementado:
+> - `topbar.tsx` (RF-1..4): empresa fuera · chip plano sin ▾ · Conversar 2ª línea · `parked` fuera.
+> - `session-rail.tsx` (RF-5/16): `pickerOpen` ensancha el `<aside>` a 360px + oculta lista/pie;
+>   `NewSessionButton` ya no usa `window.prompt`/hardcode — abre el picker y `onCrear`→`create(...)`.
+> - **NUEVO** `new-session-picker.tsx` (RF-6..17, props-puras) + `portafolio-picker-store.ts` (TS-D17,
+>   Zustand envuelve `api.listPortafolio`).
+> - Tests: `new-session-picker.stories.tsx` (7 `play()` — simple·ambiguo·vacío·error·colisión·buscar·
+>   cancelar, a11y axe verde ambos temas) + `portafolio-picker-store.test.ts` (5 unit).
+> - `verify` verde · `build` OK · suite `vitest run` 168/168 · fitness R1/R2/R4 ok.
+> - Capabilities CAP-72 (3 punteros nuevos + scenario) y CAP-74 (2 scenarios) actualizadas — R2
+>   cobertura sigue 100%. `status` NO se tecleó (R4 generado, sigue `vivo·nc`, consistente).
+>
+> **Retomar aquí: gate humano final del paquete 🧑‍⚖️.** Ver checklist en [`PARIDAD.md`](./PARIDAD.md):
+> el operador corre la app instalada, hace el click-through lado a lado contra el mockup en AMBOS
+> temas, y firma. Nada se declara «listo» hasta esa firma (checkbox sin marcar, no simulada). El
+> `.html` queda como referencia de paridad visual; el SSoT del UI es Storybook.

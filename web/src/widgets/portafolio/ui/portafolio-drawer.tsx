@@ -26,6 +26,11 @@ export interface PortafolioDrawerProps {
   desvinculando?: boolean | undefined
   desvincularError?: string | undefined
   onDesvincular: () => void
+  /** Identificar (S1-D28): escribe el sello arnes.l0.json in-situ sobre una presencia sin
+   * manifiesto. undefined ⇒ el arnés ya está sellado (no se ofrece). */
+  onIdentificar?: ((installPath: string, id: string, nombre: string) => void) | undefined
+  identificando?: boolean | undefined
+  identificarError?: string | undefined
 }
 
 const TOOLTIP_UPDATE = "update-check llega en Slice 4"
@@ -50,12 +55,18 @@ export function PortafolioDrawer({
   desvinculando,
   desvincularError,
   onDesvincular,
+  onIdentificar,
+  identificando,
+  identificarError,
 }: PortafolioDrawerProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const cancelarBtnRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const [confirmando, setConfirmando] = useState(false)
+  const [sellando, setSellando] = useState(false)
+  const [idInput, setIdInput] = useState("")
+  const [nombreInput, setNombreInput] = useState("")
 
   // Foco inicial DENTRO del drawer al montar (G8).
   useEffect(() => {
@@ -84,8 +95,19 @@ export function PortafolioDrawer({
   const canonico = entrada.canonico
   const observarHabilitado = onObservar !== undefined
 
+  // Sin sello (S1-D28): ningún manifiesto (arnes.l0.json ni plugin.json) dio un id — la
+  // identidad es puro scope/huella. Es el caso que se observa en modo degradado y que
+  // «Identificar» resuelve. Un arnés ya sellado siempre trae id, así que no se le ofrece.
+  const sinSello = (entrada.identidad.id ?? "") === ""
+  const selloTarget = instalaciones[0]?.install_path ?? canonico?.path ?? ""
+  const puedeIdentificar = sinSello && onIdentificar !== undefined && selloTarget !== ""
+
   function observar(installPath: string) {
     onObservar?.(installPath)
+  }
+
+  function identificar() {
+    if (selloTarget) onIdentificar?.(selloTarget, idInput.trim(), nombreInput.trim())
   }
 
   return (
@@ -123,6 +145,72 @@ export function PortafolioDrawer({
           <>identidad provisional (sin home) · scope: {entrada.identidad.scope ?? "desconocido"}</>
         )}
       </p>
+
+      {sinSello && (
+        <section className="pf-zona pf-sin-sello">
+          <h3 className="pf-zona-titulo">
+            Sin sello de la fábrica <span className="pf-chip-rojo">manifiesto-ausente</span>
+          </h3>
+          <p className="pf-mut">
+            Este arnés no tiene <span className="mono">arnes.l0.json</span> — se observa en modo
+            degradado. Sellalo para identificarlo y poder mejorarlo en ArnesIA.
+          </p>
+          {!sellando && (
+            <button
+              type="button"
+              className="pf-btn-primary"
+              disabled={!puedeIdentificar}
+              title={puedeIdentificar ? undefined : "sin una instalación sellable"}
+              onClick={() => setSellando(true)}
+            >
+              ✦ Identificar
+            </button>
+          )}
+          {sellando && (
+            <div className="pf-sello-form" role="group" aria-label="Identificar arnés">
+              <label className="pf-sello-campo">
+                <span>id</span>
+                <input
+                  className="mono"
+                  value={idInput}
+                  placeholder="(nombre de la carpeta)"
+                  onChange={(e) => setIdInput(e.target.value)}
+                />
+              </label>
+              <label className="pf-sello-campo">
+                <span>nombre</span>
+                <input
+                  value={nombreInput}
+                  placeholder="(= id)"
+                  onChange={(e) => setNombreInput(e.target.value)}
+                />
+              </label>
+              {identificarError && (
+                <p role="alert" className="pf-error">
+                  {identificarError}
+                </p>
+              )}
+              <div className="pf-acciones">
+                <button
+                  type="button"
+                  className="pf-btn-secundario"
+                  onClick={() => setSellando(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="pf-btn-primary"
+                  disabled={identificando || !puedeIdentificar}
+                  onClick={identificar}
+                >
+                  {identificando ? "Sellando…" : "Sellar in-situ"}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="pf-drawer-facetas">
         <div className="pf-faceta">

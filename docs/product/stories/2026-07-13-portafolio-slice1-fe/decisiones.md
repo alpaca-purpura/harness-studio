@@ -489,3 +489,67 @@ binario del árbol): 15/15 candidatos identificables — root = `github.com/alpa
 `referenciada-cc` con id (`claude-md-management`, `commit-commands`) + aviso «record de instalación
 de …/luana-platform (worktree del mismo repo)». Pendiente del operador: verlo en la app instalada
 (el daemon corre el binario viejo hasta reinstalar) y firmar.
+
+## S1-D27 · El sello de la fábrica + Mapa en modo degradado (Opción A) — visión «jalar/extraer» (operador 2026-07-17)
+
+Observación del operador probando en vivo (pre-firma): agregó `~/Proyectos/luana-vitalia/vitalia`
+(proyecto app con `.claude/` suelto, SIN `arnes.l0.json` ni `.claude-plugin/plugin.json`) y «Observar
+en Mapa» devolvió `400 "no resolvió un arnés cargable"`. La entrada se PINTA como arnés (cumple
+`nomenclatura-arnes.md` §1 forma-instalada = `.claude/` poblado) pero el Mapa la rechaza: `ObservarEnMapa`
+(S1-D1) exige `g.Arnes != nil`, y sin manifiesto el loader carga en degradado (`Arnes==nil`,
+manifiesto-ausente C-N-14). **Dos piezas de doctrina en conflicto**: el Portafolio la reconoce, el
+Mapa la niega, y el contrato §2 PROMETE modo degradado («nodos sin fases ni spine, check
+`manifiesto-ausente` rojo — visible, nunca inventado») que `ObservarEnMapa` nunca implementó.
+
+**Visión firmada de palabra (el marco que decide las 3):** `arnes.l0.json` es **EL SELLO de la fábrica
+ArnesIA** — todo arnés lo lleva SÍ o SÍ; es lo que dice de dónde proviene y lo hace reconocible como
+arnés propio. En ESTA etapa la intención NO es crear-de-cero: es **jalar arneses que ya funcionan bien
+y transformarlos en arneses con el check de ArnesIA** para mejorarlos acá. Extensión: si alguien ya
+trabaja bien con sus propios skills/setup, ArnesIA debe poder **clonar/extraer eso y volverlo un plugin
+«nuestro»** — reutilizable por su organización o por cualquier otra que el operador decida. («Nuestro»
+= reutilizable entre orgs a discreción del operador.) Detalle técnico DIFERIDO — acá se fija sólo la
+intencionalidad para alinear el diseño. Cementa la línea de [[hs-repriorizacion-core-ciclo-arnes]]
+(fábrica agnóstica, inicializador universal, inversión de propiedad).
+
+**Decisión 1 = Opción A (modo degradado), SUPERSEDE la recomendación B del CTO:** el Mapa acepta la
+presencia sin manifiesto y muestra el grafo esqueleto con la marca roja `manifiesto-ausente` — honra el
+contrato §2. En este flujo el degradado es el **preview antes de sellar** (ves el arnés jalado tal cual
+está) y «Identificar» (S1-D28) es el **acto de sellar**. Consecuencia técnica que el operador debe
+saber: sin manifiesto NO hay `id`, y el índice del Mapa keyea por `g.Arnes.ID` pelado → **esto
+REACTIVA GAP-2** (deuda del índice bare-id, S0-D6/S1-D2): un degradado necesita una llave sintética
+estable (candidata: la misma huella de path de S1-D29) para no pisar otra presencia. GAP-2 deja de ser
+diferible: el spike de spec de este slice-extensión lo tiene que resolver. NO se codea en este turno
+(disciplina de paquete: esto es feature, no fix — pasa por spec + gate).
+
+## S1-D28 · Acción «Identificar» — el verbo que faltaba (operador 2026-07-17: «arrancalo»)
+
+Hoy el vocabulario de acciones tiene *Reparar* (arregla deriva de algo YA identificado) y *Traer
+canónico* (trae el original editable), pero NO existe el verbo «esto no tiene identidad todavía, dásela»
+— el agujero exacto donde el operador quedó atrapado (tuvo que pedir editar el JSON a mano). «Identificar»
+= genera el `arnes.l0.json` (el sello) sobre una carpeta reconocida-como-arnés pero sin manifiesto:
+convierte una entrada muerta en un arnés real, mapeable y mejorable. Es la primera pieza — la más chica —
+del inicializador universal de [[hs-repriorizacion-core-ciclo-arnes]], y el mecanismo concreto del
+«jalar/extraer/sellar» de S1-D27. Alcance V1 = mínimo (scaffold `id`+`nombre` con defaults sensatos, sin
+asistente elaborado); crece después. Arrancado con go explícito del operador. Feature → pasa por spec +
+gate, NO se codea en este turno.
+
+## S1-D29 · Fix de la llave degenerada `sin-home~~` — desempate por path (Opción A) (operador 2026-07-17)
+
+Bug real de identidad: `IdentidadArnes.Clave()` arma la huella con `slug(home)~slug(id)~slug(scope)`;
+una carpeta sin home, sin id, escaneada en su propia raíz da `scope="."` → `slug(".")=""` → los 3
+segmentos vacíos → clave `sin-home~~` **idéntica para CUALQUIER proyecto no-identificado escaneado en su
+raíz**. Peligro: agregar un 2° proyecto crudo lo hace PISAR al 1° en `~/.arnesia/portafolio.json`
+(`Upsert` por clave) — corrupción silenciosa. Decisión = **Opción A (desempate por path como último
+recurso)**: cuando todo lo demás está vacío, la ruta absoluta canónica discrimina, así dos carpetas
+distintas nunca colisionan; conserva la filosofía «mostrar todo honestamente». La Opción B (negarse a
+persistir sin identificar) se reconsidera si «Identificar» (S1-D28) se vuelve paso obligatorio. NOTA de
+diseño para el spike: `Clave()` hoy sólo ve `Home/ID/Scope` — el discriminador de path debe entrar en la
+resolución de identidad (donde se conoce el install_path) o como campo nuevo de `IdentidadArnes`, no es
+edición de una línea. La misma huella sirve de llave sintética para el degradado de S1-D27 (GAP-2).
+
+**Estado de las 3 (2026-07-17):** decisiones FIRMADAS de palabra por el operador y registradas mismo
+turno (disciplina §10). Son AMENDMENTS pre-firma al Slice 1 — el gate 🧑‍⚖️ del paquete sigue ABIERTO.
+Las tres son FEATURES/fix-no-trivial (no ediciones mecánicas): el siguiente paso legal es un spike de
+spec (resuelve GAP-2 + dónde vive el desempate de path + flujo de «Identificar»), NO codear salteando el
+gate. Orden por costo/impacto propuesto: D29 (seguridad de datos, chico) → D27 (degradado, reabre GAP-2)
+→ D28 (Identificar, la más grande).

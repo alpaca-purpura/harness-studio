@@ -57,6 +57,18 @@
   Verificado en vivo: `pnpm run verify` + `vitest` 127/127+21/21 + screenshot real (Storybook `:6006`).
   Falta: el operador corre la app y firma antes de re-derivar `arnesia-shell-A-galaxia.html`
   (🔒 firmado, HS-03/HS-05) y cerrar el paquete (`paridad.md` sin escribir aún).
+- **Nuevo (2026-07-20): Shell — Topbar sin empresa + selector de arnés — CONSTRUIDO, gate humano
+  final PENDIENTE 🧑‍⚖️.** `docs/product/stories/2026-07-20-shell-topbar-selector-arnes/`: mockup
+  FIRMADO 🧑‍⚖️ (commit `5ca97c2`, TS-D1..D9); `spec.md` (RF-1..17) + `design.md` + deuda TS-D9
+  resuelta (TS-D10..D17). El operador ordenó «Desarrolla» → **IMPLEMENTADO** (FE puro, cero backend):
+  `topbar.tsx` (empresa/`parked` fuera · chip plano · Conversar 2ª línea) + `session-rail.tsx` (el
+  `<aside>` ensancha a 360px con el picker inline, reemplaza `window.prompt`/`arnes:"nuevo-arnes"`)
+  + 2 archivos NUEVOS `new-session-picker.tsx` (props-puras) y `model/portafolio-picker-store.ts`
+  (Zustand envuelve `api.listPortafolio`, TS-D17). Verde: `verify` + `build` + `vitest run` 168/168
+  (7 stories `play()` a11y + 5 unit del store) + fitness R1/R2/R4 (cobertura 100%). CAP-72/CAP-74
+  actualizadas (punteros+scenarios, `status` no tecleado). **Falta:** el operador corre la app y
+  firma el click-through vs mockup ([`PARIDAD.md`](stories/2026-07-20-shell-topbar-selector-arnes/PARIDAD.md),
+  checkbox sin marcar). Ver «Retomar aquí» del paquete.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas
@@ -66,7 +78,7 @@
 - **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-16
 - **arch/:** 18 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 92 — 49 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 93 — 50 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):

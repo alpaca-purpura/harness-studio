@@ -11,7 +11,9 @@ verb: observar
 pointers:
   - "web/src/widgets/topbar/ui/topbar.tsx#Topbar"
 valida: []
-scenarios: []
+scenarios:
+  - "El breadcrumb ya NO pinta empresa (el modelo del Portafolio es N:M arnés↔empresa — no hay «la» empresa de un arnés para una línea fija) ni «quedaste en …» (el campo parked no tiene productor vivo, solo seed hardcodeado); queda arnés / vista (paquete shell-topbar-selector-arnes, 2026-07-20)"
+  - "El arnés pasa a etiqueta de SOLO lectura (borde punteado, sin ▾, sin onClick) — es fijo de por vida de la sesión, no un control; el botón Conversar ⌘K baja a su propia línea, ya no compite por ancho con el breadcrumb (2026-07-20)"
 business_rules: []
 related_capabilities:
   depends_on: []

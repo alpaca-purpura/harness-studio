@@ -452,6 +452,50 @@
   color: var(--muted-foreground);
 }
 
+/* ── Sin sello / Identificar (S1-D28): la presencia sin arnes.l0.json se marca en rojo
+      (manifiesto-ausente) y ofrece sellar in-situ ── */
+.arnesia-portafolio .pf-sin-sello {
+  border-top: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--destructive);
+  background: var(--secondary);
+  padding: 10px 12px;
+}
+.arnesia-portafolio .pf-chip-rojo {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--destructive);
+  color: var(--destructive);
+  padding: 1px 6px;
+}
+.arnesia-portafolio .pf-sello-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.arnesia-portafolio .pf-sello-campo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+.arnesia-portafolio .pf-sello-campo span {
+  width: 56px;
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-sello-campo input {
+  flex: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+}
+
 .arnesia-portafolio .pf-canonico,
 .arnesia-portafolio .pf-canonico-ausente {
   display: flex;

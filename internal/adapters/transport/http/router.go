@@ -77,6 +77,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	// Observar en Mapa (Slice 1, S1-D1, cierra GAP-1): publica una presencia YA
 	// PERSISTIDA al índice del Mapa, read-only — NO registra cwd.
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/mapa", postObservarEnMapa(portafolio))
+	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/identificar", postIdentificar(portafolio))
 
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))

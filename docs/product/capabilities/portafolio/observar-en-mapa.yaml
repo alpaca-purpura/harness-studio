@@ -20,14 +20,18 @@ nature: feature
 pointers:
   - "internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa"
   - "internal/usecase/portafolio.go#instalPathPerteneceA"
+  - "internal/adapters/loader/loader.go#LoadArnesInfo"
+  - "internal/domain/graph.go#Graph"
   - "internal/adapters/transport/http/portafolio.go#postObservarEnMapa"
   - "internal/ports/index.go#IndexPort"
 valida:
   - "TestObservarEnMapaIndexaSinRegistro"
+  - "TestObservarEnMapaDegradadoSintetiza"
   - "TestObservarEnMapaInstallPathAjeno"
   - "TestObservarEnMapaClaveInexistente"
   - "TestObservarEnMapaSinIndice"
   - "TestObservarEnMapaNoCargable"
+  - "TestLoaderSinManifiesto"
   - "TestAgregarProyectoPueblaRegistries"
   - "TestUpsertMergeUneFacetas"
   - "TestPortafolioObservar"
@@ -42,7 +46,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-17
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D1/S1-D2/S1-D3"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -55,6 +59,16 @@ change_log:
       instalación `referenciada-cc` bajo `~/.claude/…`, donde `PUT /arneses/{id}` rechaza
       el path (`checkProtected`). Delta S1-D3: `AgregarProyecto` puebla `Registries` y
       `store.Upsert` mergea `Empresas`/`Registries` por unión (cierra GAP-3).
+    merge_sha: null
+  - story_id: 2026-07-17-portafolio-slice2-sello-identificar
+    date: 2026-07-17
+    type: extend
+    summary: >-
+      T2 (S1-D27, Opción A) — modo degradado: una presencia SIN manifiesto ya NO devuelve
+      400 «no resolvió un arnés cargable». El loader marca `Graph.Degradado`
+      (`manifiesto-ausente`) y ObservarEnMapa sintetiza un arnés mínimo con la huella de path
+      como llave sintética estable (S1-D29) — se indexa el grafo fino (nodos reconocidos), con
+      marca roja en el FE. Honra nomenclatura-arnes §2; jamás un grafo inventado.
     merge_sha: null
 
 scenarios:
@@ -94,6 +108,12 @@ scenarios:
     when: "se invoca ObservarEnMapa"
     then: "el motivo REAL del loader viaja en el error; IndexPort.Upsert nunca se llama"
     verifica: "TestObservarEnMapaNoCargable"
+  - id: observar-degradado-sin-manifiesto
+    name: "Una presencia sin sello se observa en modo degradado (no 400)"
+    given: "install_path pertenece a la entrada pero el loader carga SIN manifiesto (Arnes==nil, Graph.Degradado)"
+    when: "se invoca ObservarEnMapa"
+    then: "se sintetiza un arnés mínimo con la huella de path como id (llave sintética estable, S1-D29), se marca Degradado y se indexa el grafo fino con sus nodos reconocidos; jamás 400 ni grafo inventado (honra nomenclatura-arnes §2, S1-D27)"
+    verifica: "TestObservarEnMapaDegradadoSintetiza · TestLoaderSinManifiesto"
   - id: agregar-puebla-registries
     name: "AgregarProyecto puebla Registries desde el origen resuelto"
     given: "un candidato cuyo origen.registry resolvió (S0-D1)"

@@ -20,10 +20,12 @@ nature: feature
 pointers:
   - "internal/domain/portafolio.go#IdentidadArnes"
   - "internal/domain/portafolio.go#ResolverIdentidad"
+  - "internal/domain/portafolio.go#HuellaPath"
   - "internal/domain/repo_ref.go#CanonicalizarRepo"
   - "internal/adapters/transport/http/portafolio.go#listPortafolio"
 valida:
   - "TestResolverIdentidad"
+  - "TestClaveDesempataPorPath"
   - "TestCanonicalizarRepo"
   - "TestPortafolioListIncluyeCorruptas"
 
@@ -40,7 +42,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice0-cimientos
 created_date: 2026-07-13
-last_modified: 2026-07-13
+last_modified: 2026-07-17
 source_ref: "docs/product/stories/2026-07-10-spike-carga-arneses/spec-funcional.md §3"
 change_log:
   - story_id: 2026-07-13-portafolio-slice0-cimientos
@@ -53,8 +55,19 @@ change_log:
     type: extend
     summary: "T7 — superficie HTTP S0-D9: los 4 endpoints (GET listar, POST escaneos/proyectos, DELETE arneses/{clave}) + subcomando CLI `arnesia portafolio`."
     merge_sha: null
+  - story_id: 2026-07-17-portafolio-slice2-sello-identificar
+    date: 2026-07-17
+    type: extend
+    summary: "T1 (S1-D29) — HuellaPath: desempate de path para la identidad anónima. Una identidad sin home/id/scope colapsaba a la clave degenerada `sin-home~~`, pisando en silencio cualquier otro proyecto crudo; ahora se anexa la huella de la ruta física (sha256[:12]). Las claves ya discriminables no cambian."
+    merge_sha: null
 
-scenarios: []
+scenarios:
+  - id: desempate-huella-path
+    name: "Dos proyectos crudos escaneados en su raíz no colisionan"
+    given: "dos dirs distintos sin home, sin id y con scope raíz (\".\") — la identidad anónima colapsaría a la clave degenerada `sin-home~~`"
+    when: "ResolverIdentidad recibe cada install_path canónico y se calcula Clave()"
+    then: "cada uno recibe la huella de su ruta física (Disc = HuellaPath) y sus claves difieren (`sin-home~~<huella>`); la huella es estable por ruta (re-escaneo idempotente) y una identidad ya discriminable no arrastra Disc ni cambia de clave"
+    verifica: "TestClaveDesempataPorPath"
 business_rules: []
 related_capabilities:
   depends_on: []

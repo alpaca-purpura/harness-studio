@@ -1,8 +1,11 @@
 package domain
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -15,6 +18,11 @@ type IdentidadArnes struct {
 	Home  string `json:"home,omitempty"`
 	ID    string `json:"id"`
 	Scope string `json:"scope,omitempty"`
+	// Disc es el desempate de última instancia (S1-D29): la huella de la ruta física
+	// (HuellaPath) que se puebla SOLO cuando la identidad es totalmente anónima —sin home,
+	// sin id, sin scope discriminante— para que dos proyectos crudos escaneados en su raíz
+	// no colapsen a la misma clave "sin-home~~". Vacío en toda identidad ya discriminable.
+	Disc string `json:"disc,omitempty"`
 }
 
 // Provisional reporta si i carece de home resuelto (RN-IDENT-2): sin marketplace
@@ -32,8 +40,35 @@ func (i IdentidadArnes) Clave() string {
 	if home == "" {
 		home = "sin-home"
 	}
-	return slugPortafolio(home) + "~" + slugPortafolio(i.ID) + "~" + slugPortafolio(i.Scope)
+	base := slugPortafolio(home) + "~" + slugPortafolio(i.ID) + "~" + slugPortafolio(i.Scope)
+	// Desempate por huella de path (S1-D29): una identidad totalmente anónima (sin home, sin
+	// id, sin scope discriminante) colapsa a "sin-home~~" — idéntica para CUALQUIER proyecto
+	// crudo escaneado en su raíz, lo que las pisa en silencio al hacer Upsert por clave.
+	// Cuando hay huella de la ruta física, se anexa para que dos roots distintos nunca
+	// compartan clave. Las claves ya discriminables NO cambian (Disc vacío) → cero migración.
+	if i.Home == "" && slugPortafolio(i.ID) == "" && slugPortafolio(i.Scope) == "" && i.Disc != "" {
+		return base + i.Disc
+	}
+	return base
 }
+
+// HuellaPath es la huella estable de una ruta física (S1-D29): sha256 del path Clean-eado,
+// primeros 12 hex. Sirve de desempate de la clave de una identidad anónima (Clave) y —Slice
+// 2 T2— de llave sintética del índice del Mapa para un arnés degradado sin id. El caller pasa
+// la ruta YA canonicalizada (EvalSymlinks vive en el usecase, domain no hace I/O); acá solo
+// se normaliza con Clean y se hashea. "" → "" (sin dir físico no hay huella).
+func HuellaPath(abs string) string {
+	if abs == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(filepath.Clean(abs)))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+// Slug expone slugPortafolio al usecase (Identificar S1-D28: sluggear el id del sello, sea
+// el dado por el usuario o el basename del install-path) — misma regla de segmento estable
+// que usa Clave, para que un id sellado sea siempre una clave válida.
+func Slug(s string) string { return slugPortafolio(s) }
 
 // slugPortafolio reduce s a un segmento de clave estable: minúsculas, runs de caracteres
 // fuera de [a-z0-9-_] colapsados a un solo '-', sin '-' en los bordes.
@@ -193,7 +228,7 @@ func valorDe(eslabones []EslabonOrigen, campo string) (string, bool) {
 // ambos se anota como aviso, nunca se elige en silencio. Sin home resoluble, la identidad
 // es provisional con scope (RN-IDENT-2): scopeRemote (proyecto-remote canonicalizado)
 // manda sobre scopeLocal (install-path relativo) cuando ambos están disponibles.
-func ResolverIdentidad(a *Arnes, idFallback, scopeLocal, scopeRemote string) (identidad IdentidadArnes, aviso string) {
+func ResolverIdentidad(a *Arnes, idFallback, scopeLocal, scopeRemote, installPath string) (identidad IdentidadArnes, aviso string) {
 	id := idFallback
 	if a != nil && a.ID != "" {
 		id = a.ID
@@ -213,7 +248,14 @@ func ResolverIdentidad(a *Arnes, idFallback, scopeLocal, scopeRemote string) (id
 		if scope == "" {
 			scope = scopeLocal
 		}
-		return IdentidadArnes{ID: id, Scope: scope}, aviso
+		ident := IdentidadArnes{ID: id, Scope: scope}
+		// Anónima total (sin id ni scope que discrimine, p.ej. un proyecto crudo escaneado en
+		// su raíz: scope "." → slug vacío) → huella de la ruta física como desempate (S1-D29),
+		// para no colapsar a la clave degenerada "sin-home~~".
+		if slugPortafolio(id) == "" && slugPortafolio(scope) == "" && installPath != "" {
+			ident.Disc = HuellaPath(installPath)
+		}
+		return ident, aviso
 	}
 	return IdentidadArnes{Home: home, ID: id}, aviso
 }

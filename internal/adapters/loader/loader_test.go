@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -186,8 +187,20 @@ func TestLoaderSinManifiesto(t *testing.T) {
 	if g.Arnes != nil {
 		t.Errorf("sin ningún manifiesto el Arnes debe ser nil, got %+v", g.Arnes)
 	}
+	if !g.Degradado {
+		t.Error("sin manifiesto el grafo debe marcarse Degradado (S1-D27, contrato §2)")
+	}
 	if n, ok := g.NodeByID("hola"); !ok || n.Clase != domain.ClaseSkill || n.Nombre != "saludar" {
 		t.Errorf("la skill debe reconocerse igual en modo degradado, got %+v (ok=%v)", n, ok)
+	}
+
+	// El aviso `manifiesto-ausente` es la señal única del degradado (LoadArnesInfo).
+	_, info, ierr := loader.LoadArnesInfo(dir)
+	if ierr != nil {
+		t.Fatalf("LoadArnesInfo: %v", ierr)
+	}
+	if !strings.Contains(info.Aviso, "manifiesto-ausente") {
+		t.Errorf("aviso = %q, quiero que nombre `manifiesto-ausente`", info.Aviso)
 	}
 }
 

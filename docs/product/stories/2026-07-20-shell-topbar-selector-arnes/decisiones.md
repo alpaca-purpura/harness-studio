@@ -90,6 +90,105 @@ No maquetado a fondo; la spec tiene que decidirlo, no asumirlo:
   arnés nuevo desde la vista Portafolio en la misma sesión de app) o si alcanza con el estado ya
   cargado en el store.
 
+## TS-D10 · Host del picker: el rail se ensancha (no una columna canvas aparte)
+
+El mockup demuestra el picker en una segunda columna «canvas» junto al rail — pero esa
+grilla de 2 columnas es una simplificación de demo. En la app real, esa columna es
+`WorkspaceStage`/`GlobalView`, montada por `pages/shell/ui/shell-page.tsx` — fuera del
+alcance firmado de este paquete (solo `topbar.tsx` + `session-rail.tsx`). Se decide: el
+propio `<aside>` de `SessionRail` (`session-rail.tsx:26-31`) crece de ancho cuando el
+picker está abierto — ya tiene `transition-[width]` (colapsado 52px / normal 224px);
+se agrega un tercer ancho fijo (360px, el mismo valor que `ChatDock` ya usa en
+`shell-page.tsx:37` — no se inventa un número nuevo). Mientras el picker está abierto se
+ocultan la lista de sesiones y el pie del rail (nav global + tema); solo header + picker
+quedan visibles. Sigue siendo 100% inline (cero `position:absolute`, cero backdrop, cero
+popover) — más todavía que el mockup: es la MISMA caja creciendo, no una vecina — y
+mantiene el paquete dentro del alcance firmado.
+
+## TS-D11 · Estado vacío del picker
+
+0 `EntradaPortafolio`: copy + CTA «Ir a Portafolio» (cierra el picker y navega
+`setView("portafolio")`, la misma ruta global que ya usa el pie del rail vía
+`GLOBAL_VIEWS`, `shared/api/types.ts:123`). Mismo espíritu de copy que `VaciaBody` de
+`portafolio-list.tsx:230-237` («Tu portafolio está vacío» + acción), pero apuntando a la
+vista Portafolio en vez de abrir el wizard directamente (el picker no tiene wizard propio).
+
+## TS-D12 · Colisión de `clave`/`id` — chip distintivo, no bloqueo
+
+La fila del picker selecciona por `clave` (única por diseño del wire) — la colisión de
+GAP-2/S1-D2 (`idsColisionados`, `entities/portafolio/model/selectors.ts:134-147`, ya
+construido) no puede duplicar la selección real. Pero si `identificadorDe()` de dos filas
+coincide, se ve texto idéntico — confuso aunque no ambiguo en el dato. Se decide: cuando
+`idsColisionados` marca una fila, se agrega un chip extra con `identidad.home ??
+identidad.scope` (truncado) para diferenciarla a simple vista. A diferencia del diálogo de
+confirmación que `PortafolioView` sí necesita antes de «Observar en Mapa»
+(`portafolio-view.tsx:41-95` — ESE índice del Mapa sí keyea por id pelado, GAP-2 real y
+con efecto real), crear una sesión no toca ese índice — no hace falta bloquear con un
+diálogo, alcanza con el chip.
+
+## TS-D13 · `GET /api/portafolio` falla o tarda al abrir el picker
+
+Mismos 3 estados que ya usa `PortafolioList` (`portafolio-list.tsx` — prop `estado:
+"cargando"|"error"|"datos"`): skeleton compacto mientras carga, mensaje + botón
+«Reintentar» si falla (mismo copy pattern que `ErrorBody`, `portafolio-list.tsx:211-228`).
+No se inventa un estado nuevo — se calca el que ya existe y ya se entiende.
+
+## TS-D14 · Refetch en cada apertura del picker
+
+Se decide re-fetchear `GET /api/portafolio` cada vez que se abre el picker — no cachear
+entre aperturas. Motivo: el operador pudo agregar un arnés desde la vista Portafolio en la
+misma corrida de la app (otra pestaña/ruta global de la misma sesión de escritorio);
+mostrarle una lista vieja al momento de elegir sería deshonesto. Costo aceptable: un GET
+liviano, el mismo endpoint que ya paga la Lista/Drawer del Portafolio.
+
+## TS-D15 · Cómputo de «copias seleccionables»: canónico + instalaciones, casos 0/1/2+
+
+Formaliza TS-D8, que dejó implícito qué cuenta como «copia»: el total de una identidad =
+`(canonico ? 1 : 0) + instalaciones.length`. **0 copias** (entrada agregada sin canónico
+local ni instalaciones vivas — posible, no maquetado) → fila deshabilitada, sin radio,
+tooltip «sin copia local registrada»; no se puede crear sesión desde ahí. **1 copia** →
+caso simple (auto-resuelto), sin cambios sobre lo ya firmado. **2+ copias** → sub-lista con
+TODAS, canónico incluido con tipo rotulado `canónico` — el mockup solo maquetó el caso de
+2 instalaciones sin canónico (`mockups/arnesia-shell-topbar-selector-arnes.html:449-476`);
+esto completa el caso mixto que el propio texto de TS-D8 ya anticipaba («0-1 canónico Y N
+instalaciones») sin dibujarlo.
+
+## TS-D16 · Qué escribe la sesión nueva (payload real, no el hardcode viejo)
+
+El picker reemplaza `arnes: "nuevo-arnes"` (hardcode) por datos reales de la
+`EntradaPortafolio` elegida:
+- `arnes` = `identificadorDe(identidad)` — el MISMO accessor que ya usan Lista/Drawer
+  (`entities/portafolio/model/selectors.ts:11-13`), incluido su fallback honesto
+  `"(sin id)"` para identidades provisionales sin `id` ni `scope`.
+- `empresa` = `empresas.join(" · ")` cuando hay alguna. TS-D1 sigue vigente (no hay «la»
+  empresa de un arnés) — pero mostrar TODAS unidas no es fabricar una, es mostrar el dato
+  N:M real tal cual; distinto de elegir una arbitraria.
+- `puesto` queda SIN escribir. El Portafolio no tiene ese concepto — el `"—"` viejo era
+  relleno, no dato (mismo criterio que mató `quedaste en:` en TS-D4).
+- `salud: "info"` y `view: "Mapa"` se mantienen — siguen siendo ciertos para una sesión
+  recién nacida.
+- `path` = la copia elegida (`canonico.path` o `instalacion.install_path`) — confina el
+  cwd del conductor (S2), mismo campo que ya usa «Observar en Mapa» del Drawer para el
+  mismo arnés (`portafolio-drawer.tsx:272,353`).
+
+**Efecto secundario conocido, fuera del alcance de este paquete:**
+`workspace-stage.tsx:235` pinta `{s.empresa} · {s.puesto}` en el header de una sesión; con
+`puesto` vacío el separador `·` queda colgando para sesiones creadas por el picker nuevo.
+Se documenta acá a propósito — ese archivo no está en el alcance firmado de este paquete,
+no se toca de rebote; queda BACKLOG si molesta en el uso real.
+
+## TS-D17 · El fetch del picker vive en un store propio del widget, no en la página
+
+A diferencia de `PortafolioView` (página = composition-root, dueña del transporte —
+`portafolio-view.tsx:1-25`), `SessionRail` es un widget que hoy solo consume stores
+(`useSessions`/`useAppStore`), nunca `shared/api` directo. Se mantiene el mismo patrón:
+nuevo store `widgets/session-rail/model/portafolio-picker-store.ts` (Zustand, envuelve
+`api.listPortafolio`). Dos razones: (1) `entities/portafolio/model/**` NO puede importar
+`shared/api` — boundary `fe-transporte-independiente`, check `domain-not-transport` es
+ERROR (`web/.dependency-cruiser.js`); (2) evita tocar `shell-page.tsx` para exponer
+transporte desde la página, que ampliaría el alcance firmado (TS-D10 ya lo evitó para el
+layout, esto lo evita para el fetch).
+
 ## Verificación del mockup (no solo lectura de código)
 
 Cada iteración se revisó con Chrome headless real (`google-chrome --headless=new`, screenshots

@@ -152,6 +152,11 @@ type Graph struct {
 	Arnes *Arnes `json:"arnes,omitempty"`
 	Nodes []Box  `json:"nodos"`
 	Edges []Edge `json:"edges,omitempty"`
+	// Degradado marca un grafo cargado SIN manifiesto (S1-D27, honra nomenclatura-arnes.md
+	// §2): el loader reconoció los nodos (rules/skills/hooks) pero no hay `arnes.l0.json` ni
+	// `plugin.json` que selle la identidad. El Mapa lo observa igual con la marca roja
+	// `manifiesto-ausente` — visible, nunca inventado; jamás se finge un arnés sellado.
+	Degradado bool `json:"degradado,omitempty"`
 }
 
 // NodeByID returns the node with the given id and whether it was found.

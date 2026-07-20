@@ -105,6 +105,18 @@ export const api = {
       body: JSON.stringify({ install_path: installPath }),
     }),
 
+  // identificarArnes escribe el sello arnes.l0.json in-situ y re-keya la entrada (S1-D28).
+  // id/nombre opcionales — el backend cae al basename de la carpeta si van vacíos.
+  identificarArnes: <T = unknown>(clave: string, installPath: string, id: string, nombre: string) =>
+    req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}/identificar`, {
+      method: "POST",
+      body: JSON.stringify({
+        install_path: installPath,
+        ...(id ? { id } : {}),
+        ...(nombre ? { nombre } : {}),
+      }),
+    }),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   createSession: (input: NewSession) =>

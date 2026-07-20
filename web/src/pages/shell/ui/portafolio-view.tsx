@@ -139,6 +139,8 @@ export function PortafolioView() {
   const [desvinculando, setDesvinculando] = useState(false)
   const [desvincularError, setDesvincularError] = useState<string>()
   const [observarError, setObservarError] = useState<string>()
+  const [identificando, setIdentificando] = useState(false)
+  const [identificarError, setIdentificarError] = useState<string>()
 
   const seleccionadaEntrada = useMemo(
     () => entradas.find((e) => e.clave === seleccionada),
@@ -150,6 +152,7 @@ export function PortafolioView() {
     setDesvinculando(false)
     setDesvincularError(undefined)
     setObservarError(undefined)
+    setIdentificarError(undefined)
   }, [])
 
   const onCerrarDrawer = useCallback(() => setSeleccionada(undefined), [])
@@ -174,6 +177,33 @@ export function PortafolioView() {
         if (vivo.current) setDesvinculando(false)
       })
   }, [seleccionada, cargar])
+
+  // ── Identificar (S1-D28): sella arnes.l0.json in-situ + re-key ──
+  const onIdentificar = useCallback(
+    (installPath: string, id: string, nombre: string) => {
+      const clave = seleccionada
+      if (!clave) return
+      setIdentificando(true)
+      setIdentificarError(undefined)
+      api
+        .identificarArnes(clave, installPath, id, nombre)
+        .then(() => {
+          if (!vivo.current) return
+          // La entrada re-keyea a una clave nueva; refrescamos y cerramos el drawer (el
+          // usuario reabre la fila ya sellada desde la lista actualizada).
+          setSeleccionada(undefined)
+          cargar()
+        })
+        .catch((e: unknown) => {
+          if (!vivo.current) return
+          setIdentificarError(e instanceof Error ? e.message : String(e))
+        })
+        .finally(() => {
+          if (vivo.current) setIdentificando(false)
+        })
+    },
+    [seleccionada, cargar],
+  )
 
   // ── Abrir/Observar en Mapa (S1-D1/D2/D13) ──
   const activeSession = useSessions(selectActive)
@@ -381,6 +411,9 @@ export function PortafolioView() {
               desvinculando={desvinculando}
               desvincularError={desvincularError}
               onDesvincular={onDesvincular}
+              onIdentificar={onIdentificar}
+              identificando={identificando}
+              identificarError={identificarError}
             />
           </div>
         </div>

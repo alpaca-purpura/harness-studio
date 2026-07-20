@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -66,6 +67,9 @@ var (
 	// ErrObservarSinIndice: PortafolioService no tiene el 5° puerto cableado (subcomando
 	// CLI) — la observación en Mapa requiere el daemon.
 	ErrObservarSinIndice = errors.New("portafolio: observar en Mapa requiere el daemon")
+	// ErrIdentificarYaSellado: el dir ya tiene arnes.l0.json — Identificar NO pisa un sello
+	// existente (S1-D28, guarda 2). Editar un sello ya escrito es otra operación (S2+).
+	ErrIdentificarYaSellado = errors.New("portafolio: identificar: el directorio ya tiene arnes.l0.json (no se pisa)")
 )
 
 // Escanear recorre root y devuelve TODOS los candidatos crudos (collect-all, spec §7.1):
@@ -105,7 +109,7 @@ func (s *PortafolioService) candidatoDe(root string, h domain.HallazgoInstalacio
 		}
 	}
 
-	identidad, avisoID := domain.ResolverIdentidad(a, h.IDConocido, scopeLocalDe(root, h.Dir), scopeRemotoDe(h.Eslabones))
+	identidad, avisoID := domain.ResolverIdentidad(a, h.IDConocido, scopeLocalDe(root, h.Dir), scopeRemotoDe(h.Eslabones), canonicalPathPortafolio(h.Dir))
 	origen := domain.ResolverOrigen(h.Eslabones)
 
 	inst := domain.Instalacion{
@@ -211,38 +215,43 @@ func (s *PortafolioService) AgregarProyecto(ctx context.Context, root string, el
 
 	var out []domain.EntradaPortafolio
 	for _, c := range candidatos {
-		clave := c.Identidad.Clave()
-		if !quiere[clave] {
+		if !quiere[c.Clave] {
 			continue
 		}
-		e := domain.EntradaPortafolio{
-			Identidad:   c.Identidad,
-			Nombre:      c.Nombre,
-			Descripcion: c.Descripcion,
-			Empresas:    c.Empresas,
-			Agregado:    time.Now().UTC().Format(time.RFC3339),
-		}
-		// S1-D3 (cierra GAP-3): el registry de origen resuelto se puebla como facet —
-		// canonicalizado si RutaReferencia lo reconoce, crudo VISIBLE si no (el dato no
-		// se descarta por no parsear).
-		if r := c.Instalacion.Origen.Registry; r != "" {
-			canon, ok := domain.CanonicalizarRepo(r)
-			if !ok {
-				canon = r
-			}
-			e.Registries = []string{canon}
-		}
-		if c.EsCanonico {
-			e.Canonico = &domain.Canonico{Path: c.Instalacion.InstallPath, Version: c.Instalacion.Origen.Version}
-		} else {
-			e.Instalaciones = []domain.Instalacion{c.Instalacion}
-		}
+		e := entradaDeCandidato(c)
 		if uerr := s.store.Upsert(e); uerr != nil {
 			return nil, uerr
 		}
 		out = append(out, e)
 	}
 	return out, nil
+}
+
+// entradaDeCandidato construye la EntradaPortafolio persistible de un candidato: facet
+// Registries canonicalizado o CRUDO visible (S1-D3, cierra GAP-3), y el path clasificado
+// como canónico (RN-IDENT-4) o como instalación. Compartido por AgregarProyecto e
+// Identificar (el re-key tras sellar) — una sola tubería de identidad, sin duplicar.
+func entradaDeCandidato(c Candidato) domain.EntradaPortafolio {
+	e := domain.EntradaPortafolio{
+		Identidad:   c.Identidad,
+		Nombre:      c.Nombre,
+		Descripcion: c.Descripcion,
+		Empresas:    c.Empresas,
+		Agregado:    time.Now().UTC().Format(time.RFC3339),
+	}
+	if r := c.Instalacion.Origen.Registry; r != "" {
+		canon, ok := domain.CanonicalizarRepo(r)
+		if !ok {
+			canon = r
+		}
+		e.Registries = []string{canon}
+	}
+	if c.EsCanonico {
+		e.Canonico = &domain.Canonico{Path: c.Instalacion.InstallPath, Version: c.Instalacion.Origen.Version}
+	} else {
+		e.Instalaciones = []domain.Instalacion{c.Instalacion}
+	}
+	return e
 }
 
 // ObservarEnMapa publica una presencia YA PERSISTIDA del Portafolio al índice del Mapa —
@@ -286,13 +295,124 @@ func (s *PortafolioService) ObservarEnMapa(ctx context.Context, clave, installPa
 		return "", fmt.Errorf("portafolio: observar en Mapa: cargar %q: %w", installPath, lerr)
 	}
 	if g.Arnes == nil {
-		return "", fmt.Errorf("portafolio: observar en Mapa: %q no resolvió un arnés cargable", installPath)
+		// Modo degradado (S1-D27, honra nomenclatura-arnes.md §2): sin sello no hay id, así
+		// que se SINTETIZA un arnés mínimo cuya id es la huella de la ruta física (S1-D29) —
+		// llave sintética estable que unifica la del Portafolio y la del índice del Mapa, y
+		// no colisiona con otra presencia. Los nodos que el loader SÍ reconoció ya están en
+		// g.Nodes: el grafo es fino, jamás inventado. El FE lo pinta con la marca roja
+		// `manifiesto-ausente` (g.Degradado, que el loader ya prendió).
+		nombre := entrada.Nombre
+		if nombre == "" {
+			nombre = filepath.Base(installPath)
+		}
+		g.Arnes = &domain.Arnes{ID: domain.HuellaPath(canonicalPathPortafolio(installPath)), Nombre: nombre}
+		g.Degradado = true
 	}
 
 	if uerr := s.indice.Upsert(ctx, g); uerr != nil {
 		return "", fmt.Errorf("portafolio: observar en Mapa: indexar: %w", uerr)
 	}
 	return g.Arnes.ID, nil
+}
+
+// Identificar escribe el sello `arnes.l0.json` (el manifiesto de la fábrica, S1-D28) en la
+// instalación installPath de la entrada clave, y re-keya la entrada con su identidad ya
+// sellada. V1 = scaffold mínimo (id·nombre·empresas·version), SIN clon: se sella IN-SITU
+// (S1-D27 decisión 2 — git del proyecto es la red de seguridad, no una 2ª copia). Guardas:
+// (1) la entrada existe y installPath le pertenece (misma autoridad que Observar — el store,
+// jamás un dir arbitrario); (2) path no protegido (validarRootPortafolio, así un sello jamás
+// se escribe en ~/.claude/~/.ssh/etc.); (3) NO pisa un sello existente. Sellar un dir sin
+// identidad previa NO viola la ley anti-drift: CREA la identidad, no edita una copia
+// downstream de un canónico. Devuelve la entrada re-keyed.
+func (s *PortafolioService) Identificar(ctx context.Context, clave, installPath, id, nombre string) (domain.EntradaPortafolio, error) {
+	entrada, encontrada := s.buscarPorClave(clave)
+	if !encontrada {
+		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %q", ErrObservarClaveNoEncontrada, clave)
+	}
+	if !instalPathPerteneceA(entrada, installPath) {
+		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %q", ErrObservarInstallPathAjeno, installPath)
+	}
+	if err := validarRootPortafolio(installPath); err != nil {
+		return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: %w", err)
+	}
+	ruta := filepath.Join(installPath, "arnes.l0.json")
+	if _, serr := os.Stat(ruta); serr == nil {
+		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %s", ErrIdentificarYaSellado, ruta)
+	}
+
+	sello := selloDe(installPath, id, nombre, entrada.Empresas)
+	b, merr := json.MarshalIndent(sello, "", "  ")
+	if merr != nil {
+		return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: serializar sello: %w", merr)
+	}
+	if werr := os.WriteFile(ruta, append(b, '\n'), 0o644); werr != nil { //nolint:gosec // G306: el sello es doc pública versionable, no secreto.
+		return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: escribir %s: %w", ruta, werr)
+	}
+
+	// Re-key: re-escanear el proyecto reconstruye la identidad YA sellada por la misma tubería
+	// que AgregarProyecto (cero lógica de identidad duplicada) y migra la entrada; la clave
+	// vieja (anónima/provisional) se desvincula solo si cambió.
+	proyectoPath := proyectoPathDe(entrada, installPath)
+	if proyectoPath == "" {
+		proyectoPath = installPath
+	}
+	cands, serr := s.Escanear(ctx, proyectoPath)
+	if serr != nil {
+		return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: re-escanear: %w", serr)
+	}
+	target := canonicalPathPortafolio(installPath)
+	for _, c := range cands {
+		if canonicalPathPortafolio(c.Instalacion.InstallPath) != target {
+			continue
+		}
+		nueva := entradaDeCandidato(c)
+		if uerr := s.store.Upsert(nueva); uerr != nil {
+			return domain.EntradaPortafolio{}, uerr
+		}
+		if nueva.Identidad.Clave() != clave {
+			if _, derr := s.store.Desvincular(clave); derr != nil {
+				return domain.EntradaPortafolio{}, derr
+			}
+		}
+		return nueva, nil
+	}
+	return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: el sello se escribió en %s pero el re-escaneo no reencontró la instalación", ruta)
+}
+
+// buscarPorClave devuelve la entrada sana cuya clave coincide (solo lo persistido).
+func (s *PortafolioService) buscarPorClave(clave string) (domain.EntradaPortafolio, bool) {
+	sanas, _ := s.store.Listar()
+	for _, e := range sanas {
+		if e.Identidad.Clave() == clave {
+			return e, true
+		}
+	}
+	return domain.EntradaPortafolio{}, false
+}
+
+// selloDe arma el manifiesto mínimo de Identificar V1 (S1-D28): id = el dado o el basename
+// del install-path sluggeado; nombre = el dado o el id; empresas heredadas de la entrada;
+// version semilla "0.1.0". Sin marketplace (identidad provisional honesta hasta que se
+// declare un home) ni fases/spine (opcionales, §2 de nomenclatura-arnes). reporta_a = null.
+func selloDe(installPath, id, nombre string, empresas []string) domain.Arnes {
+	id = domain.Slug(primerNoVacio(id, filepath.Base(installPath)))
+	if nombre == "" {
+		nombre = id
+	}
+	return domain.Arnes{ID: id, Nombre: nombre, Empresas: empresas, Version: "0.1.0", ReportaA: nil}
+}
+
+// proyectoPathDe devuelve el ProyectoPath de la instalación de entrada que coincide con
+// installPath (para re-escanear el proyecto correcto tras sellar); "" si installPath es el
+// canónico u otra forma sin ProyectoPath — el caller cae a installPath como root.
+func proyectoPathDe(entrada domain.EntradaPortafolio, installPath string) string {
+	target := canonicalPathPortafolio(installPath)
+	for _, inst := range entrada.Instalaciones {
+		if canonicalPathPortafolio(inst.InstallPath) == target {
+			return inst.ProyectoPath
+		}
+	}
+	return ""
 }
 
 // instalPathPerteneceA reporta si installPath es una presencia REAL de entrada: alguna de

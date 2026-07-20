@@ -74,7 +74,7 @@ func TestResolverOrigen(t *testing.T) {
 func TestResolverIdentidad(t *testing.T) {
 	t.Run("con marketplace resuelve (home,id)", func(t *testing.T) {
 		a := &domain.Arnes{ID: "harness", Marketplace: "alpacapurpura/prenter-marketplace"}
-		id, aviso := domain.ResolverIdentidad(a, "", "", "")
+		id, aviso := domain.ResolverIdentidad(a, "", "", "", "")
 		if id.Provisional() {
 			t.Fatal("con marketplace resoluble, la identidad NO debe ser provisional")
 		}
@@ -87,7 +87,7 @@ func TestResolverIdentidad(t *testing.T) {
 	})
 
 	t.Run("sin marketplace: provisional con scope (RN-IDENT-2)", func(t *testing.T) {
-		id, _ := domain.ResolverIdentidad(nil, "mi-arnes", "proyectos/x", "")
+		id, _ := domain.ResolverIdentidad(nil, "mi-arnes", "proyectos/x", "", "")
 		if !id.Provisional() {
 			t.Fatal("sin home, la identidad debe ser provisional")
 		}
@@ -97,7 +97,7 @@ func TestResolverIdentidad(t *testing.T) {
 	})
 
 	t.Run("scope remoto manda sobre scope local", func(t *testing.T) {
-		id, _ := domain.ResolverIdentidad(nil, "x", "local/scope", "github.com/usuario/proyecto")
+		id, _ := domain.ResolverIdentidad(nil, "x", "local/scope", "github.com/usuario/proyecto", "")
 		if id.Scope != "github.com/usuario/proyecto" {
 			t.Errorf("scope = %q, quiero el remoto", id.Scope)
 		}
@@ -105,7 +105,7 @@ func TestResolverIdentidad(t *testing.T) {
 
 	t.Run("precedencia id RN-IDENT-3 + aviso en discrepancia", func(t *testing.T) {
 		a := &domain.Arnes{ID: "id-del-manifiesto"}
-		id, aviso := domain.ResolverIdentidad(a, "id-del-plugin-json", "", "")
+		id, aviso := domain.ResolverIdentidad(a, "id-del-plugin-json", "", "", "")
 		if id.ID != "id-del-manifiesto" {
 			t.Errorf("id = %q, arnes.l0.id debe ganar", id.ID)
 		}
@@ -132,6 +132,38 @@ func TestResolverIdentidad(t *testing.T) {
 			t.Errorf("Clave() = %q, quiero prefijo sin-home~ para identidad provisional", clave)
 		}
 	})
+}
+
+// TestClaveDesempataPorPath cubre S1-D29: dos proyectos crudos distintos escaneados en su
+// raíz (sin home, sin id, scope "." → slug vacío) NO deben colapsar a la misma clave
+// degenerada "sin-home~~"; la huella de la ruta física los desempata, es estable por ruta, y
+// no toca las claves ya discriminables.
+func TestClaveDesempataPorPath(t *testing.T) {
+	a, _ := domain.ResolverIdentidad(nil, "", ".", "", "/home/u/proyecto-a")
+	b, _ := domain.ResolverIdentidad(nil, "", ".", "", "/home/u/proyecto-b")
+
+	if a.Clave() == "sin-home~~" || b.Clave() == "sin-home~~" {
+		t.Fatalf("clave degenerada sin desempate: a=%q b=%q", a.Clave(), b.Clave())
+	}
+	if a.Clave() == b.Clave() {
+		t.Fatalf("dos roots crudos distintos colisionan en la misma clave: %q", a.Clave())
+	}
+
+	// Estable por ruta: re-escanear el mismo dir da la misma clave (idempotencia, C-P-8).
+	a2, _ := domain.ResolverIdentidad(nil, "", ".", "", "/home/u/proyecto-a")
+	if a.Clave() != a2.Clave() {
+		t.Fatalf("huella no estable para la misma ruta: %q ≠ %q", a.Clave(), a2.Clave())
+	}
+
+	// El desempate es SOLO para el caso anónimo: una identidad con id no cambia de clave ni
+	// arrastra Disc, aunque su install-path exista.
+	conID, _ := domain.ResolverIdentidad(&domain.Arnes{ID: "vitalia"}, "", ".", "", "/home/u/proyecto-a")
+	if conID.Disc != "" {
+		t.Errorf("identidad con id no debe llevar Disc: %+v", conID)
+	}
+	if conID.Clave() != "sin-home~vitalia~" {
+		t.Errorf("Clave() con id = %q, quiero sin-home~vitalia~", conID.Clave())
+	}
 }
 
 func TestArnesEmpresasTolerante(t *testing.T) {

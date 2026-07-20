@@ -1,0 +1,69 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.identificar
+cap_num: CAP-93
+slug: identificar
+name: "Identificar (sellar arnes.l0.json in-situ)"
+status: vivo           # pointers resuelven + valida real (R4).
+license: brand-local
+
+module: portafolio
+layer: usecase
+
+verb: crear
+functional_area: "portafolio.sello"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/usecase/portafolio.go#PortafolioService.Identificar"
+  - "internal/usecase/portafolio.go#selloDe"
+  - "internal/usecase/portafolio.go#entradaDeCandidato"
+  - "internal/domain/portafolio.go#Slug"
+  - "internal/adapters/transport/http/portafolio.go#postIdentificar"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx"
+valida:
+  - "TestIdentificarSellaYRekey"
+  - "TestIdentificarNoPisaSelloExistente"
+
+dev_preview:
+  route: portafolio
+  how_to_navigate: "Portafolio → fila sin sello → drawer → «✦ Identificar» → Sellar in-situ"
+  main_component: "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  api_endpoints:
+    - "POST /api/portafolio/arneses/{clave}/identificar"
+  e2e_test: null
+
+created_in_story: 2026-07-17-portafolio-slice2-sello-identificar
+created_date: 2026-07-17
+last_modified: 2026-07-17
+source_ref: "docs/product/stories/2026-07-17-portafolio-slice2-sello-identificar/spike-spec.md §4"
+change_log:
+  - story_id: 2026-07-17-portafolio-slice2-sello-identificar
+    date: 2026-07-17
+    type: new
+    summary: "T3 (S1-D28) — Identificar: escribe el sello arnes.l0.json IN-SITU (scaffold mínimo id·nombre·empresas·version) sobre una presencia sin manifiesto y re-keya la entrada por la misma tubería que AgregarProyecto. Guardas: entrada+installPath autoritativos, path no protegido, no pisa un sello existente. Sellar un dir sin identidad CREA la identidad — no viola la ley anti-drift."
+    merge_sha: null
+
+scenarios:
+  - id: sella-in-situ-y-rekey
+    name: "Identificar sella y re-keya la entrada anónima"
+    given: "una entrada persistida SIN manifiesto (identidad anónima por huella de path) cuyo installPath le pertenece"
+    when: "POST /api/portafolio/arneses/{clave}/identificar con id/nombre (o vacíos → defaults)"
+    then: "se escribe arnes.l0.json in-situ (id sluggeado o basename, version 0.1.0, reporta_a null); el re-escaneo reconstruye la identidad sellada y la entrada migra a su clave nueva, desvinculando la vieja"
+    verifica: "TestIdentificarSellaYRekey"
+  - id: no-pisa-sello-existente
+    name: "No se re-sella un dir que ya tiene arnes.l0.json"
+    given: "un installPath que YA contiene arnes.l0.json"
+    when: "se invoca Identificar"
+    then: "ErrIdentificarYaSellado (409) — editar un sello ya escrito es otra operación, jamás se sobrescribe en silencio"
+    verifica: "TestIdentificarNoPisaSelloExistente"
+business_rules:
+  - "El sello se escribe IN-SITU en el dir del proyecto (S1-D27 decisión 2): sin clon, git del proyecto es la red de seguridad — cero duplicidad de información para el usuario."
+  - "Guarda de path protegido (validarRootPortafolio): un sello jamás se escribe bajo ~/.claude, ~/.ssh, ~/.arnesia, etc."
+related_capabilities:
+  depends_on:
+    - arnesia.portafolio.registrar-identidad
+    - arnesia.portafolio.escanear-proyecto
