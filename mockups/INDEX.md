@@ -33,6 +33,7 @@
 
 | mockup | fecha (alta→últ) | rol | spec / paquete | estado |
 |---|---|---|---|---|
+| `arnesia-shell-topbar-selector-arnes.html` | 2026-07-20 | Topbar sin empresa hardcodeada + selector de arnés al abrir sesión (lee el Portafolio real, empresas N:M, canónico/instalaciones, deriva) | `stories/2026-07-20-shell-topbar-selector-arnes/` (Gate 1 firmado 2026-07-20; `decisiones.md` TS-D1..D9) | 🧑‍⚖️ **Gate 1 firmado** — spec/build siguen |
 | `arnesia-mapa-baseline.html` | 2026-07-10 | **BASELINE** del Mapa (superficie completa) | este INDEX + `map-canvas.stories.tsx` | **✅ vigente** |
 | `arnesia-portafolio.html` | 2026-07-13→14 | Portafolio (front-door del ciclo de vida del arnés) — snapshot derivado | `stories/2026-07-13-portafolio-slice1-fe/` (SSoT = stories `portafolio-*` @`dfa82b5`) | ✅ **construido (Slice 1)** — SSoT = Storybook (`widgets/portafolio/ui/{portafolio-list,portafolio-drawer,portafolio-wizard}.stories.tsx` + `entities/portafolio/ui/chips.stories.tsx`, 25 stories con `play()`); snapshot `.html` corregido en sitio 2026-07-14 (T8, G1-G9) — gate humano 🧑‍⚖️ de `paridad.md` PENDIENTE |
 | `arnesia-mapa-mvp.html` | 2026-07-06 | Mapa MVP Hito 1 (canvas bandas/carriles + SVG) | `stories/2026-07-06-mapa-mvp/{00-BRIEF,spec,design}.md` (Gate 1 ✓ `0736d2c`) | ⚠️ **superado** — le faltan franja-artefactos + inspector 3-tabs. NO forkear |
@@ -44,6 +45,15 @@
 | `arnesia-mockup-v2.html` | 2026-07-04 | Shell v2 (superado por it.13/14) | `ux.md` | 🗄️ histórico |
 | `arnesia-arch-inyeccion-knowhow.html` | 2026-07-06→08 | Diagrama de **arquitectura** (inyección know-how HS-07/10) — no es UI de producto | `architecture/` · memoria HS-07/10 | 📎 referencia (arquitectura) |
 
+> **Shell — Topbar sin empresa + selector de arnés (Gate 1 firmado 2026-07-20):**
+> `arnesia-shell-topbar-selector-arnes.html` — quita `active.empresa` fijo del breadcrumb (Topbar),
+> baja Conversar a línea propia, y mueve la elección de arnés al momento de abrir sesión («＋ Nueva
+> sesión»), leyendo el **Portafolio real** (`GET /api/portafolio`, no un catálogo aparte) con buscador
+> y selección en 2 niveles (identidad → copia, cuando hay 2+ instalaciones). Toca CAP-72
+> (`rail-de-sesiones`) y CAP-74 (`topbar-breadcrumb-k-dock`). Ver
+> [`stories/2026-07-20-shell-topbar-selector-arnes/decisiones.md`](../docs/product/stories/2026-07-20-shell-topbar-selector-arnes/decisiones.md)
+> (TS-D1..D9). Spec + build siguen.
+>
 > **Co-diseño en curso (2026-07-10):** «Mapa DESTINO» (sello · llenado/deriva · slots con receta ·
 > conocimiento-del-proyecto) se está diseñando como **superset del baseline vigente**. Mientras no
 > esté firmado NO reemplaza el baseline; vive como propuesta. Al firmar → se funde y se re-estampa aquí.

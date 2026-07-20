@@ -1,0 +1,707 @@
+<!-- Mockup FIRMADO (Gate 1, 2026-07-20) — snapshot derivado de la conversación de diseño.
+     Paquete: docs/product/stories/2026-07-20-shell-topbar-selector-arnes/ (decisiones.md TS-D1..D9).
+     SSoT del UI sigue siendo Storybook una vez construidas las stories — este .html es la referencia
+     de PARIDAD visual mientras tanto. NO forkear sin leer mockups/INDEX.md primero. -->
+<title>Topbar sin empresa + selector de arnés (Portafolio real)</title>
+<style>
+  :root {
+    --background: #f6f8f8; --foreground: #0e1312; --card: #ffffff; --card-foreground: #0e1312;
+    --chrome: #eef1f1; --primary: #00b7aa; --primary-foreground: #000000;
+    --secondary: #eef1f1; --secondary-foreground: #0e1312;
+    --muted-foreground: #4d5555; --accent-soft: rgba(0,183,170,.14); --border: #dfe4e4; --input: #c9d1d1;
+    --ok: #2e8f5e; --ok-soft: rgba(46,143,94,.13); --warn: #c96a2e; --warn-soft: rgba(201,106,46,.13);
+    --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+    --font-display: Jost, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-sans: Mulish, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --shadow-lg: 0 18px 44px rgba(11,15,14,.14), 0 4px 10px rgba(11,15,14,.06);
+    --edge-hi: rgba(255,255,255,.5);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #000000; --foreground: rgba(255,255,255,.92); --card: #121817; --card-foreground: rgba(255,255,255,.92);
+      --chrome: #17201f; --primary: #1fc6b8; --primary-foreground: #000000;
+      --secondary: #17201f; --secondary-foreground: rgba(255,255,255,.92);
+      --muted-foreground: rgba(255,255,255,.58); --accent-soft: rgba(31,198,184,.16); --border: #263030; --input: rgba(31,198,184,.4);
+      --ok: #57b380; --ok-soft: rgba(87,179,128,.14); --warn: #e0904f; --warn-soft: rgba(224,144,79,.16);
+      --shadow-lg: 0 18px 44px rgba(0,0,0,.55), 0 4px 10px rgba(0,0,0,.4);
+      --edge-hi: rgba(255,255,255,.06);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --background: #000000; --foreground: rgba(255,255,255,.92); --card: #121817; --card-foreground: rgba(255,255,255,.92);
+    --chrome: #17201f; --primary: #1fc6b8; --primary-foreground: #000000;
+    --secondary: #17201f; --secondary-foreground: rgba(255,255,255,.92);
+    --muted-foreground: rgba(255,255,255,.58); --accent-soft: rgba(31,198,184,.16); --border: #263030; --input: rgba(31,198,184,.4);
+    --ok: #57b380; --ok-soft: rgba(87,179,128,.14); --warn: #e0904f; --warn-soft: rgba(224,144,79,.16);
+    --shadow-lg: 0 18px 44px rgba(0,0,0,.55), 0 4px 10px rgba(0,0,0,.4);
+    --edge-hi: rgba(255,255,255,.06);
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --background: #f6f8f8; --foreground: #0e1312; --card: #ffffff; --card-foreground: #0e1312;
+    --chrome: #eef1f1; --primary: #00b7aa; --primary-foreground: #000000;
+    --secondary: #eef1f1; --secondary-foreground: #0e1312;
+    --muted-foreground: #4d5555; --accent-soft: rgba(0,183,170,.14); --border: #dfe4e4; --input: #c9d1d1;
+    --ok: #2e8f5e; --ok-soft: rgba(46,143,94,.13); --warn: #c96a2e; --warn-soft: rgba(201,106,46,.13);
+    --shadow-lg: 0 18px 44px rgba(11,15,14,.14), 0 4px 10px rgba(11,15,14,.06);
+    --edge-hi: rgba(255,255,255,.5);
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--background); color: var(--foreground);
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+  }
+  .page { max-width: 760px; margin: 0 auto; padding: 44px 24px 80px; }
+
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--primary); margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 600; font-size: 25px; line-height: 1.22;
+    margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em;
+  }
+  .lede { color: var(--muted-foreground); font-size: 13.5px; max-width: 60ch; margin: 0 0 30px; }
+  .lede b { color: var(--foreground); font-weight: 600; }
+
+  section.block { margin-bottom: 46px; }
+  .block-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
+  .step-num {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--primary);
+    border: 1px solid var(--primary); border-radius: 50%; width: 20px; height: 20px;
+    display: grid; place-items: center; flex: none;
+  }
+  h2 { font-family: var(--font-display); font-weight: 600; font-size: 16.5px; margin: 0; }
+  .block-note { color: var(--muted-foreground); font-size: 12.5px; margin: 4px 0 16px 30px; max-width: 58ch; }
+
+  /* ---- window chrome (ArnesIA es app de escritorio: la maqueta se ve como ventana, no como slide) ---- */
+  .window {
+    border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden;
+    background: var(--card); box-shadow: var(--shadow-lg); position: relative;
+  }
+  .window::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    box-shadow: inset 0 1px 0 var(--edge-hi);
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px;
+    background: var(--chrome); border-bottom: 1px solid var(--border);
+  }
+  .traffic { display: flex; gap: 6px; flex: none; }
+  .traffic span { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+  .titlebar .name {
+    font-size: 11px; font-weight: 700; color: var(--muted-foreground); letter-spacing: .01em;
+  }
+  .switch {
+    margin-left: auto; display: flex; align-items: center; border: 1px solid var(--border);
+    border-radius: var(--radius-md); overflow: hidden; flex: none;
+  }
+  .switch button {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: .01em;
+    padding: 5px 10px; border: none; background: none; color: var(--muted-foreground); cursor: pointer;
+  }
+  .switch button.active { background: var(--primary); color: var(--primary-foreground); }
+  .switch button:not(.active):hover { background: var(--secondary); color: var(--foreground); }
+
+  .stage { position: relative; }
+  .caption {
+    display: flex; align-items: center; gap: 7px; padding: 9px 16px; font-size: 12px;
+    color: var(--muted-foreground); border-top: 1px solid var(--border); background: var(--chrome);
+    min-height: 34px;
+  }
+  .caption b { color: var(--foreground); }
+  .caption .glyph { font-size: 12px; flex: none; }
+  [data-state="hoy"] .caption .glyph { color: var(--warn); }
+  [data-state="propuesta"] .caption .glyph { color: var(--ok); }
+
+  .flash { animation: flashring .6s ease-out; }
+  @keyframes flashring {
+    0% { box-shadow: 0 0 0 3px var(--primary), var(--shadow-lg); }
+    100% { box-shadow: var(--shadow-lg); }
+  }
+
+  /* ---- topbar replica ---- */
+  .topbar { display: flex; min-height: 46px; align-items: center; gap: 10px; padding: 8px 16px; }
+  .topbar.row2 { flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 16px 11px; }
+  .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; min-width: 0; }
+  .crumbs .muted { color: var(--muted-foreground); }
+  .crumbs .empresa { transition: opacity .15s; }
+  .chip-arnes {
+    display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-md);
+    border: 1px solid var(--border); background: var(--secondary); padding: 2px 8px;
+    font-family: var(--font-mono); font-size: 11.5px;
+  }
+  .chip-arnes.plain { border-style: dashed; background: none; }
+  .btn-conversar {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-lg);
+    padding: 6px 12px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--primary);
+    background: var(--accent-soft); color: var(--primary); white-space: nowrap; flex: none;
+  }
+  .row2 .btn-conversar { margin-left: 0; align-self: flex-end; }
+  .btn-conversar kbd {
+    border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; font-family: var(--font-mono);
+    font-size: 10px; opacity: .8;
+  }
+
+  /* ---- session rail replica ---- */
+  .rail-stage { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 360px; position: relative; }
+  .rail { border-right: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column;
+    gap: 10px; }
+  .rail-title { font-size: 11px; font-weight: 700; }
+  .rail-section-label {
+    font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted-foreground);
+  }
+  .session-card { border: 1px solid var(--border); border-radius: 9px; padding: 8px; font-size: 11px; }
+  .session-card .frente { font-weight: 700; font-size: 12px; }
+  .session-card .arnes-id { font-family: var(--font-mono); font-size: 9.5px; color: var(--primary); margin-top: 3px; }
+  .btn-nueva {
+    display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: var(--radius-md);
+    border: 1px dashed var(--input); padding: 8px; font-size: 12px; font-weight: 600; color: var(--muted-foreground);
+    background: none; cursor: pointer; font-family: inherit; width: 100%;
+  }
+  .btn-nueva:hover { border-color: var(--primary); background: var(--accent-soft); color: var(--primary); }
+  .canvas {
+    flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted-foreground);
+    font-size: 12px; padding: 20px; text-align: center;
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+  .canvas b { color: var(--foreground); font-family: var(--font-mono); font-weight: 600; }
+  .canvas span.hint {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 6px 12px; box-shadow: var(--shadow-lg);
+  }
+
+  /* hoy: modal nativo centrado, con backdrop — bloquea TODA la ventana, sin contexto */
+  .backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,.45); display: none;
+    align-items: center; justify-content: center; z-index: 6;
+  }
+  .backdrop.open { display: flex; }
+  .native-dialog {
+    width: 260px; border: 1px solid #8a8a8a; border-radius: 6px; background: #ececec; color: #111;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35); font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .native-dialog .bar { background: #dcdcdc; padding: 6px 10px; font-size: 11px; border-bottom: 1px solid #bbb; }
+  .native-dialog .body { padding: 12px; font-size: 12px; }
+  .native-dialog input { width: 100%; margin-top: 8px; padding: 5px 6px; font-size: 12px; border: 1px solid #999; border-radius: 3px; }
+  .native-dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .native-dialog button { font-size: 12px; padding: 4px 12px; border: 1px solid #999; border-radius: 3px; background: #f5f5f5; }
+
+  /* propuesta: el picker vive DENTRO de la misma ventana (columna canvas), no flota encima de nada */
+  .canvas-slot { position: relative; display: flex; flex-direction: column; }
+  .picker-inline {
+    display: none; flex: 1; flex-direction: column; gap: 10px; padding: 16px; min-width: 0;
+  }
+  .picker-inline.open { display: flex; }
+  .picker-head { font-size: 13px; font-weight: 700; }
+  .picker-sub { font-size: 11px; color: var(--muted-foreground); margin-top: -6px; }
+
+  /* buscador — mismos tokens que .pf-buscar del Portafolio (widgets/portafolio) */
+  .picker-search-wrap { position: relative; flex: none; }
+  .picker-search-wrap .icon {
+    position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+    color: var(--muted-foreground); font-size: 12px; pointer-events: none;
+  }
+  .picker-search {
+    width: 100%; padding: 7px 10px 7px 28px; border-radius: var(--radius-md); border: 1px solid var(--input);
+    background: var(--background); color: var(--foreground); font-size: 12px; font-family: inherit;
+  }
+  .picker-search::placeholder { color: var(--muted-foreground); }
+  .picker-search:focus { outline: 2px solid var(--ring, var(--primary)); outline-offset: 1px; }
+  .picker-count { font-size: 10px; color: var(--muted-foreground); flex: none; }
+
+  .picker-list {
+    list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px;
+    overflow-y: auto; max-height: 230px; flex: none;
+  }
+
+  /* fila = tu Portafolio real: identidad + empresas (N:M) + canónico/instalaciones + deriva + salud */
+  .pf-row { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); min-width: 0; }
+  .pf-row.filtered-out { display: none; }
+  .pf-row-main { display: flex; align-items: flex-start; gap: 9px; padding: 8px 10px; cursor: pointer; border-radius: var(--radius-md); }
+  .pf-row-main:hover { background: var(--secondary); }
+  .pf-row.selected .pf-row-main { background: var(--accent-soft); }
+  .pf-row.selected { border-color: var(--primary); }
+  .pf-row .radio {
+    margin-top: 2px; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--input); flex: none;
+    display: grid; place-items: center;
+  }
+  .pf-row.selected .radio { border-color: var(--primary); }
+  .pf-row.selected .radio::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+  .pf-emblem {
+    flex: none; width: 22px; height: 22px; border-radius: var(--radius-sm); background: var(--secondary);
+    border: 1px solid var(--border); display: grid; place-items: center;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--muted-foreground);
+  }
+  .pf-row.selected .pf-emblem { border-color: var(--primary); color: var(--primary); }
+  .pf-txt { min-width: 0; flex: 1; }
+  .pf-idline { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .pf-idline .id { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; white-space: nowrap; flex: none; }
+  .pf-idline .nombre {
+    font-size: 10.5px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; min-width: 0; flex: 1;
+  }
+  .pf-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 3px; }
+  .pf-empresa-chip, .pf-presencia, .pf-deriva-chip {
+    font-size: 9px; font-family: var(--font-mono); white-space: nowrap; border-radius: var(--radius-sm);
+    padding: 1px 6px; border: 1px solid var(--border); color: var(--muted-foreground);
+  }
+  .pf-presencia { border-style: dashed; }
+  .pf-deriva-chip.en-deriva { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+  .pf-salud { flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: 6px; background: var(--ok); }
+  .pf-salud.warn { background: var(--warn); }
+
+  /* sub-lista: cuando la identidad tiene más de una copia, hay que elegir CUÁL */
+  .pf-copies {
+    display: none; list-style: none; margin: 0; padding: 6px 10px 8px 41px; border-top: 1px dashed var(--border);
+    flex-direction: column; gap: 4px;
+  }
+  .pf-row.ambiguous.selected .pf-copies { display: flex; }
+  .copy-option {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; min-width: 0;
+  }
+  .copy-option:hover { background: var(--secondary); }
+  .copy-option.selected { border-color: var(--primary); background: var(--accent-soft); }
+  .copy-option .radio {
+    width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--input); flex: none;
+    display: grid; place-items: center;
+  }
+  .copy-option.selected .radio { border-color: var(--primary); }
+  .copy-option.selected .radio::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
+  .copy-option .tipo { font-family: var(--font-mono); font-weight: 700; flex: none; }
+  .copy-option .path { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); font-family: var(--font-mono); }
+
+  .picker-empty {
+    display: none; flex: none; padding: 18px 10px; text-align: center; color: var(--muted-foreground); font-size: 11.5px;
+  }
+  .picker-empty.show { display: block; }
+  .picker-empty button {
+    display: block; margin: 6px auto 0; font-size: 11px; color: var(--primary); background: none; border: none;
+    cursor: pointer; font-family: inherit; text-decoration: underline;
+  }
+
+  .picker-resolved {
+    display: none; font-size: 10.5px; color: var(--muted-foreground); flex: none;
+  }
+  .picker-resolved.show { display: block; }
+  .picker-resolved code { font-family: var(--font-mono); color: var(--foreground); background: var(--secondary); padding: 1px 5px; border-radius: 4px; }
+
+  .picker-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; flex: none; padding-top: 6px; }
+  .btn-ghost {
+    font-size: 11.5px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: none; color: var(--muted-foreground); cursor: pointer; font-family: inherit;
+  }
+  .btn-primary {
+    font-size: 11.5px; padding: 6px 13px; border-radius: var(--radius-sm); border: 1px solid var(--primary);
+    background: var(--primary); color: var(--primary-foreground); cursor: pointer; font-weight: 700; font-family: inherit;
+  }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+  footer {
+    margin-top: 54px; padding-top: 18px; border-top: 1px solid var(--border);
+    font-size: 11.5px; color: var(--muted-foreground); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  footer code { font-family: var(--font-mono); background: var(--secondary); padding: 1px 5px; border-radius: 4px; }
+
+  .theme-toggle {
+    position: fixed; top: 16px; right: 16px; font-family: var(--font-mono); font-size: 10.5px;
+    border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground);
+    border-radius: var(--radius-md); padding: 5px 10px; cursor: pointer; box-shadow: var(--shadow-lg);
+  }
+
+  @media (max-width: 560px) {
+    .rail-stage { grid-template-columns: 1fr; }
+    .rail { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+
+<button class="theme-toggle" id="themeToggle" type="button">☾ oscuro</button>
+
+<div class="page">
+  <p class="eyebrow">✦ Propuesta de UI — shell</p>
+  <h1>La empresa fija sale del chrome. Elegir arnés se muda a «nueva sesión».</h1>
+  <p class="lede">
+    Dos maquetas en vivo, tocá el switch <b>Hoy / Propuesta</b> en cada ventana — es la misma barra,
+    mostrando su estado actual y el propuesto.
+  </p>
+
+  <!-- ============ 1 — TOPBAR ============ -->
+  <section class="block" id="sec-topbar" data-state="hoy">
+    <div class="block-head"><span class="step-num">1</span><h2>Topbar</h2></div>
+    <p class="block-note">Empresa fuera. Arnés pasa a etiqueta (ya no simula ser un control). Conversar, en su propia línea.</p>
+
+    <div class="window" id="win-topbar">
+      <div class="titlebar">
+        <div class="traffic"><span></span><span></span><span></span></div>
+        <span class="name">ArnesIA</span>
+        <div class="switch">
+          <button type="button" data-set="hoy" class="active">Hoy</button>
+          <button type="button" data-set="propuesta">Propuesta</button>
+        </div>
+      </div>
+      <div class="stage">
+        <!-- hoy -->
+        <div class="v-hoy">
+          <div class="topbar">
+            <div class="crumbs">
+              <span class="muted empresa">alpacapurpura</span>
+              <span class="muted empresa">/</span>
+              <span class="chip-arnes">dev-full-cycle ▾</span>
+              <span class="muted">/</span>
+              <b>Mapa</b>
+            </div>
+            <button class="btn-conversar" type="button"><span>✦</span> Conversar <kbd>⌘K</kbd></button>
+          </div>
+        </div>
+        <!-- propuesta -->
+        <div class="v-propuesta" style="display:none">
+          <div class="topbar row2">
+            <div class="crumbs">
+              <span class="chip-arnes plain">dev-full-cycle</span>
+              <span class="muted">/</span>
+              <b>Mapa</b>
+            </div>
+            <button class="btn-conversar" type="button"><span>✦</span> Conversar <kbd>⌘K</kbd></button>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <span class="glyph v-caption-hoy">✕</span><span class="v-caption-hoy"><b>alpacapurpura</b> fijo (no es la empresa real de la sesión) · <b>▾</b> sin acción atrás</span>
+        <span class="glyph v-caption-propuesta" style="display:none">✓</span><span class="v-caption-propuesta" style="display:none">arnés es información, no control · Conversar no compite por ancho con el breadcrumb</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 — NUEVA SESIÓN ============ -->
+  <section class="block" id="sec-rail" data-state="hoy">
+    <div class="block-head"><span class="step-num">2</span><h2>Elegir arnés — al abrir sesión</h2></div>
+    <p class="block-note">Se elige de <b>tu Portafolio</b> (lo que ya agregaste ahí) — no un catálogo aparte. Si un arnés tiene más de una copia instalada, elegís cuál; si tiene una sola, listo.</p>
+
+    <div class="window" id="win-rail">
+      <div class="titlebar">
+        <div class="traffic"><span></span><span></span><span></span></div>
+        <span class="name">ArnesIA</span>
+        <div class="switch">
+          <button type="button" data-set="hoy" class="active">Hoy</button>
+          <button type="button" data-set="propuesta">Propuesta</button>
+        </div>
+      </div>
+      <div class="rail-stage">
+        <div class="rail">
+          <div class="rail-title">ArnesIA</div>
+          <div class="rail-section-label">Sesiones</div>
+          <div class="session-card">
+            <div class="frente">spec-writer</div>
+            <div class="arnes-id">dev-full-cycle</div>
+          </div>
+          <div class="session-card">
+            <div class="frente">factura-acme-0912</div>
+            <div class="arnes-id">cobranza-proveedores</div>
+          </div>
+
+          <button class="btn-nueva" type="button" id="openPicker">＋ Nueva sesión</button>
+        </div>
+
+        <div class="canvas-slot">
+          <!-- estado ocioso: nada abierto -->
+          <div class="canvas" id="canvasIdle"><span class="hint" id="canvasMsg">clic en <b>＋ Nueva sesión</b> para probar</span></div>
+
+          <!-- propuesta: el picker vive EN la ventana (columna canvas), no flota encima -->
+          <div class="picker-inline v-propuesta" id="pickerPanel">
+            <div>
+              <div class="picker-head">Elegí el arnés de esta sesión</div>
+              <div class="picker-sub">No se cambia después — otra sesión, para otro arnés.</div>
+            </div>
+
+            <div class="picker-search-wrap">
+              <span class="icon">🔍</span>
+              <input class="picker-search" id="pickerSearch" type="search"
+                aria-label="Buscar arnés" placeholder="Buscar por id, rol o empresa…">
+            </div>
+
+            <ul class="picker-list" id="pickerList">
+              <!-- caso simple: 1 sola copia (canónico) → elegir la fila alcanza -->
+              <li class="pf-row" data-clave="sin-home~dev-full-cycle" data-path="~/proyectos/harness-studio"
+                  data-buscar="dev-full-cycle desarrollo full-cycle alpacapurpura">
+                <div class="pf-row-main">
+                  <span class="radio"></span>
+                  <span class="pf-emblem">D</span>
+                  <div class="pf-txt">
+                    <div class="pf-idline"><span class="id">dev-full-cycle</span><span class="nombre">Desarrollo full-cycle</span></div>
+                    <div class="pf-meta">
+                      <span class="pf-empresa-chip">alpacapurpura</span>
+                      <span class="pf-presencia">◆ canónico v0.2.8</span>
+                    </div>
+                  </div>
+                  <span class="pf-salud"></span>
+                </div>
+              </li>
+
+              <!-- caso ambiguo: 2 empresas (N:M) + 2 instalaciones, una en-deriva → hay que elegir CUÁL copia -->
+              <li class="pf-row ambiguous" data-clave="sin-home~luana-feature-cycle"
+                  data-buscar="luana-feature-cycle ciclo de feature luana alpacapurpura">
+                <div class="pf-row-main">
+                  <span class="radio"></span>
+                  <span class="pf-emblem">L</span>
+                  <div class="pf-txt">
+                    <div class="pf-idline"><span class="id">luana-feature-cycle</span><span class="nombre">Ciclo de feature</span></div>
+                    <div class="pf-meta">
+                      <span class="pf-empresa-chip">luana</span>
+                      <span class="pf-empresa-chip">alpacapurpura</span>
+                      <span class="pf-presencia">▣ 2 instalac.</span>
+                      <span class="pf-deriva-chip en-deriva">en-deriva</span>
+                    </div>
+                  </div>
+                  <span class="pf-salud warn"></span>
+                </div>
+                <ul class="pf-copies">
+                  <li class="copy-option" data-path="~/proy/luana-app/.claude/plugins/luana-feature-cycle">
+                    <span class="radio"></span><span class="tipo">proyecto-instalado</span>
+                    <span class="path">~/proy/luana-app/.claude/plugins/luana-feature-cycle</span>
+                  </li>
+                  <li class="copy-option" data-path="~/.claude/cache/plugins/luana-feature-cycle" data-deriva="en-deriva">
+                    <span class="radio"></span><span class="tipo">referenciada-cc</span>
+                    <span class="path">~/.claude/cache/plugins/luana-feature-cycle</span>
+                    <span class="pf-deriva-chip en-deriva">en-deriva</span>
+                  </li>
+                </ul>
+              </li>
+
+              <li class="pf-row" data-clave="sin-home~cobranza-proveedores" data-path="~/proyectos/acme-cobranza"
+                  data-buscar="cobranza-proveedores pago a proveedores acme">
+                <div class="pf-row-main">
+                  <span class="radio"></span>
+                  <span class="pf-emblem">C</span>
+                  <div class="pf-txt">
+                    <div class="pf-idline"><span class="id">cobranza-proveedores</span><span class="nombre">Pago a proveedores</span></div>
+                    <div class="pf-meta">
+                      <span class="pf-empresa-chip">acme</span>
+                      <span class="pf-presencia">◆ canónico v1.0.0</span>
+                    </div>
+                  </div>
+                  <span class="pf-salud"></span>
+                </div>
+              </li>
+            </ul>
+
+            <div class="picker-empty" id="pickerEmpty">
+              Ningún arnés coincide con la búsqueda.
+              <button type="button" id="pickerClearSearch">Limpiar búsqueda</button>
+            </div>
+
+            <div class="picker-resolved" id="pickerResolved">usará <code id="pickerResolvedPath"></code></div>
+
+            <div class="picker-actions">
+              <button class="btn-ghost" type="button" id="cancelPicker">Cancelar</button>
+              <button class="btn-primary" type="button" id="createPicker" disabled>Crear sesión</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- hoy: modal nativo — bloquea TODA la ventana, no solo el rail -->
+        <div class="backdrop v-hoy" id="nativeBackdrop">
+          <div class="native-dialog">
+            <div class="bar">localhost dice</div>
+            <div class="body">
+              Ruta del arnés (opcional):
+              <input type="text" placeholder="">
+              <div class="actions"><button type="button" id="dlgCancel">Cancelar</button><button type="button" id="dlgOk">Aceptar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <span class="glyph v-caption-hoy">✕</span><span class="v-caption-hoy">único input = ruta · el arnés queda <b>hardcodeado</b> en el código</span>
+        <span class="glyph v-caption-propuesta" style="display:none">✓</span><span class="v-caption-propuesta" style="display:none">tu Portafolio real — empresas, canónico/instalaciones y deriva, no un catálogo aparte</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>ventanas interactivas — probá el switch y «＋ Nueva sesión»</span>
+    <span>tokens: <code>web/tokens/base.tokens.json</code> → <code>theme.css</code></span>
+  </footer>
+</div>
+
+<script>
+  // ---- switches Hoy/Propuesta ----
+  function wireSection(sectionId, winId) {
+    const section = document.getElementById(sectionId);
+    const win = document.getElementById(winId);
+    const buttons = win.querySelectorAll('.switch button');
+    buttons.forEach((b) => b.addEventListener('click', () => setState(section, win, buttons, b.dataset.set)));
+  }
+  function setState(section, win, buttons, state) {
+    section.dataset.state = state;
+    buttons.forEach((b) => b.classList.toggle('active', b.dataset.set === state));
+    win.querySelectorAll('.v-hoy').forEach((el) => { el.style.display = state === 'hoy' ? '' : 'none'; });
+    win.querySelectorAll('.v-propuesta').forEach((el) => { el.style.display = state === 'propuesta' ? '' : 'none'; });
+    win.querySelectorAll('.v-caption-hoy').forEach((el) => { el.style.display = state === 'hoy' ? '' : 'none'; });
+    win.querySelectorAll('.v-caption-propuesta').forEach((el) => { el.style.display = state === 'propuesta' ? '' : 'none'; });
+    win.classList.remove('flash'); void win.offsetWidth; win.classList.add('flash');
+    closeAll();
+  }
+  wireSection('sec-topbar', 'win-topbar');
+  wireSection('sec-rail', 'win-rail');
+
+  // ---- sección 2: nueva sesión ----
+  const backdrop = document.getElementById('nativeBackdrop');
+  const openBtn = document.getElementById('openPicker');
+  const canvasMsg = document.getElementById('canvasMsg');
+  const canvasIdle = document.getElementById('canvasIdle');
+  const panel = document.getElementById('pickerPanel');
+  const cancelBtn = document.getElementById('cancelPicker');
+  const createBtn = document.getElementById('createPicker');
+  const rows = document.querySelectorAll('#pickerList .pf-row');
+  const search = document.getElementById('pickerSearch');
+  const empty = document.getElementById('pickerEmpty');
+  const resolved = document.getElementById('pickerResolved');
+  const resolvedPath = document.getElementById('pickerResolvedPath');
+  let selectedClave = null;
+  let selectedPath = null;
+
+  function currentRailState() { return document.getElementById('sec-rail').dataset.state; }
+
+  function closeAll() {
+    backdrop.classList.remove('open');
+    panel.classList.remove('open');
+    canvasIdle.style.display = '';
+    resetPicker();
+  }
+
+  openBtn.addEventListener('click', () => {
+    if (currentRailState() === 'hoy') { backdrop.classList.add('open'); return; }
+    canvasIdle.style.display = 'none';
+    panel.classList.add('open');
+    search.value = '';
+    filterRows('');
+    search.focus();
+  });
+  document.getElementById('dlgCancel').addEventListener('click', () => { backdrop.classList.remove('open'); });
+  document.getElementById('dlgOk').addEventListener('click', () => {
+    backdrop.classList.remove('open');
+    canvasMsg.innerHTML = 'sesión creada — arnés: <b>nuevo-arnes</b>';
+    setTimeout(() => { canvasMsg.innerHTML = 'clic en <b>＋ Nueva sesión</b> para probar'; }, 2200);
+  });
+
+  cancelBtn.addEventListener('click', () => { panel.classList.remove('open'); canvasIdle.style.display = ''; resetPicker(); });
+
+  // fila: elegir la IDENTIDAD del arnés. Si tiene 1 sola copia, la ruta queda resuelta ya.
+  // si tiene 2+ (ambigua), hay que elegir la copia en la sub-lista antes de habilitar crear.
+  rows.forEach((row) => {
+    row.querySelector('.pf-row-main').addEventListener('click', () => {
+      rows.forEach((r) => r.classList.remove('selected'));
+      row.classList.add('selected');
+      selectedClave = row.dataset.clave;
+      row.querySelectorAll('.copy-option').forEach((c) => c.classList.remove('selected'));
+
+      if (row.classList.contains('ambiguous')) {
+        selectedPath = null;
+        createBtn.disabled = true;
+        resolved.classList.remove('show');
+      } else {
+        selectedPath = row.dataset.path;
+        createBtn.disabled = false;
+        showResolved(selectedPath);
+      }
+    });
+  });
+
+  // sub-fila: elegir CUÁL copia de una identidad ambigua.
+  document.querySelectorAll('.copy-option').forEach((copy) => {
+    copy.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copy.closest('.pf-copies').querySelectorAll('.copy-option').forEach((c) => c.classList.remove('selected'));
+      copy.classList.add('selected');
+      selectedPath = copy.dataset.path;
+      createBtn.disabled = false;
+      showResolved(selectedPath);
+    });
+  });
+
+  function showResolved(path) {
+    resolvedPath.textContent = path;
+    resolved.classList.add('show');
+  }
+
+  createBtn.addEventListener('click', () => {
+    if (!selectedClave || !selectedPath) return;
+    panel.classList.remove('open');
+    canvasIdle.style.display = '';
+    canvasMsg.innerHTML = 'sesión creada — arnés: <b>' + selectedClave.split('~').pop() + '</b>';
+    setTimeout(() => { canvasMsg.innerHTML = 'clic en <b>＋ Nueva sesión</b> para probar'; resetPicker(); }, 2200);
+  });
+  function resetPicker() {
+    rows.forEach((r) => r.classList.remove('selected'));
+    document.querySelectorAll('.copy-option').forEach((c) => c.classList.remove('selected'));
+    selectedClave = null;
+    selectedPath = null;
+    createBtn.disabled = true;
+    resolved.classList.remove('show');
+    search.value = '';
+    filterRows('');
+  }
+
+  // ---- buscador: filtra en vivo por id · nombre · empresas (útil cuando el portafolio crece) ----
+  function filterRows(qraw) {
+    const q = qraw.trim().toLowerCase();
+    let visible = 0;
+    rows.forEach((row) => {
+      const match = !q || row.dataset.buscar.includes(q);
+      row.classList.toggle('filtered-out', !match);
+      if (match) visible++;
+    });
+    empty.classList.toggle('show', visible === 0);
+  }
+  search.addEventListener('input', () => filterRows(search.value));
+  document.getElementById('pickerClearSearch').addEventListener('click', () => {
+    search.value = ''; filterRows(''); search.focus();
+  });
+
+  // ---- theme toggle ----
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function applyLabel() {
+    const dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    toggle.textContent = dark ? '☀ claro' : '☾ oscuro';
+  }
+  toggle.addEventListener('click', () => {
+    const cur = root.getAttribute('data-theme');
+    const isDark = cur === 'dark' || (!cur && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    applyLabel();
+  });
+  applyLabel();
+
+  // ---- bootstrap desde query string, solo para revisión (?tb=propuesta&ns=propuesta&panel=1) ----
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('tb') === 'propuesta') {
+    const win = document.getElementById('win-topbar');
+    setState(document.getElementById('sec-topbar'), win, win.querySelectorAll('.switch button'), 'propuesta');
+  }
+  if (qs.get('ns') === 'propuesta') {
+    const win = document.getElementById('win-rail');
+    setState(document.getElementById('sec-rail'), win, win.querySelectorAll('.switch button'), 'propuesta');
+    if (qs.get('panel') === '1') { canvasIdle.style.display = 'none'; panel.classList.add('open'); }
+    if (qs.get('q')) { search.value = qs.get('q'); filterRows(search.value); }
+    if (qs.get('row')) {
+      const row = document.querySelector('#pickerList .pf-row[data-clave="' + qs.get('row') + '"]');
+      row?.querySelector('.pf-row-main').click();
+    }
+    if (qs.get('copy')) {
+      const copy = document.querySelector('.copy-option[data-path="' + qs.get('copy') + '"]');
+      copy?.click();
+    }
+  }
+  if (qs.get('theme') === 'dark') { root.setAttribute('data-theme', 'dark'); applyLabel(); }
+  if (qs.get('theme') === 'light') { root.setAttribute('data-theme', 'light'); applyLabel(); }
+</script>
