@@ -266,6 +266,36 @@ Verificado: `pnpm run verify` verde, `vitest run` 168/168 sin cambios, 3 estados
 Chrome real + accessibility tree. `PARIDAD.md` sigue pendiente de firma 🧑‍⚖️, ahora sobre esta
 versión.
 
+## TS-D21 · El "ver otro" de TS-D20 también sale — SIN excepción de error
+
+El operador, mirando TS-D20 ya en vivo, objetó el último resto: "el 'ver otro' no debería estar —
+si quiero ver otro abro otra sesión, sacalo de ahí". Correcto — TS-D20 dejó una excepción (el
+`<select>` reaparecía en el caso de error real) que sigue siendo, de fondo, "cambiar de arnés sin
+abrir sesión nueva". "1 sesión = 1 arnés" (TS-D5) no tiene excepción de error: si el arnés de la
+sesión no carga, la solución es la MISMA que siempre — abrir otra sesión para ver otro arnés — no
+un control inline.
+
+Se saca el `<select>` por completo (`map-bar.tsx`): el arnés visto es SIEMPRE texto de solo
+lectura, mismo principio que el Topbar (TS-D2), sin condición. Lo único que sobrevive es el link
+«vista previa · volver» del peek (`viewedId !== arnesId` sin error, "Observar en Mapa" del
+Portafolio, GAP-1) — no es un picker, es "programático" (`setViewedId` ya disparado por el peek) y
+solo ofrece DESHACERLO, nunca elegir un tercer arnés. El mensaje de error deja de decir "elige otro
+arnés en la barra de arriba" (ya no existe) y pasa a "abrí otra sesión para ver un arnés distinto".
+
+`workspace-stage.tsx`: se retira `pickerItems`/`harnesses` como prop de `MapBar` (el estado
+`harnesses` se mantiene — sigue siendo necesario para detectar `loadErr` cuando el arnés no está
+indexado, RF-70, solo dejó de alimentar un picker). `map-bar.tsx`: se retiran `harnesses`/
+`showPicker` de `MapBarProps` y toda la lógica de `options`/`inList`.
+
+Verificado EN VIVO otra vez, no solo lectura de código: camino feliz sin combobox (`dev-full-cycle`,
+solo texto) → error real sin combobox (`nuevo-arnes`, texto + mensaje nuevo, confirmado con
+accessibility tree) → peek intacto (`vitalia` sobre `nuevo-arnes` → "vista previa · volver"
+funciona, restaura el error de `nuevo-arnes` como corresponde). `pnpm run verify` verde, `vitest
+run` 168/168 sin cambios (ninguna story fijaba las props retiradas).
+
+RF-72 (el picker libre) queda formalmente retirado — no hay ya en el repo un lugar donde "ver otro
+arnés" sea un control de UI fuera de abrir sesión nueva.
+
 ## Verificación del mockup (no solo lectura de código)
 
 Cada iteración se revisó con Chrome headless real (`google-chrome --headless=new`, screenshots

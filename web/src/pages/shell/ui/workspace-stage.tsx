@@ -107,7 +107,8 @@ export function WorkspaceStage() {
     }
   }, [viewedId, isMapa, harnesses, harnessesLoaded])
 
-  // Portfolio for the picker (RF-72). Empty until the daemon lists harnesses (Hito 2 backend).
+  // Índice del portafolio — necesario para detectar un arnés no indexado (loadErr, RF-70). No
+  // alimenta más ningún picker (TS-D21 sacó el de MapBar).
   useEffect(() => {
     if (!isMapa) return
     let alive = true
@@ -162,11 +163,6 @@ export function WorkspaceStage() {
       alive = false
     }
   }, [mapaPeek, isMapa, setMapaPeek])
-
-  const pickerItems = useMemo(
-    () => harnesses.map((h) => ({ id: h.id, label: h.rol ?? h.id })),
-    [harnesses],
-  )
 
   // The node the inspector shows (S3), read straight from the loaded graph — real, complete data.
   const selectedBox = useMemo(
@@ -224,19 +220,17 @@ export function WorkspaceStage() {
             note={`El interior de «${s.view}» llega después. El shell, la multisesión y la conversación con Claude Code ya están vivos — abre el dock (⌘K) y pídele algo a este arnés.`}
           />
         ) : (
-          // MapBar stays ABOVE the canvas at all times, including the load-error state. El
-          // picker (RF-72) solo se vuelve interactivo cuando `loadErr` es real (TS-D20) —
-          // en el camino feliz, o al espiar otro arnés vía "Abrir en Mapa" (GAP-1), es texto
-          // de solo lectura (+ link de "volver" en el caso del peek).
+          // MapBar stays ABOVE the canvas at all times, including the load-error state. Texto
+          // de solo lectura siempre (TS-D21: "1 sesión = 1 arnés" no tiene excepción de error —
+          // ni siquiera para recuperarse se cambia de arnés inline, se abre otra sesión), salvo
+          // el link de "volver" al espiar otro arnés vía "Abrir en Mapa" (GAP-1, peek).
           <div className="flex h-full flex-col">
             <MapBar
               arnes={graph?.arnes}
               capa={capa}
               onCapa={setCapa}
-              harnesses={pickerItems}
               activeId={viewedId}
               onPick={setViewedId}
-              showPicker={Boolean(loadErr)}
               ownId={arnesId}
               artefactos={artefactos}
               onArtefactos={setArtefactos}
@@ -246,7 +240,7 @@ export function WorkspaceStage() {
                 <ComingSoon
                   glyph="⚠"
                   title="No se pudo cargar el arnés"
-                  note={`El daemon no devolvió el grafo de «${viewedId}». Elige otro arnés en la barra de arriba. ${loadErr}`}
+                  note={`El daemon no devolvió el grafo de «${viewedId}». Abrí otra sesión para ver un arnés distinto. ${loadErr}`}
                 />
               ) : !graph ? (
                 <ComingSoon

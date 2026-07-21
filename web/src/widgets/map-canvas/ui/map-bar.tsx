@@ -10,29 +10,25 @@ const ARTEFACTOS: readonly { id: ArtefactosMode; label: string; title: string }[
   { id: "todos", label: "todos", title: "Chips de hand-off siempre visibles (D2)" },
 ]
 
-// MapBar is the top bar of the map surface (galaxia `.mapbar`): the META strip (empresa ·
-// reporta a · marketplace) and the layer tablist. It is CHROME the shell mounts ABOVE the pure
-// canvas. The layer switcher lives here (signed doctrine: "conmutador de capas en la barra del
-// mapa").
+// MapBar is the top bar of the map surface (galaxia `.mapbar`): el arnés visto (etiqueta de solo
+// lectura), la META strip (empresa · reporta a · marketplace) y el layer tablist. Es CHROME que el
+// shell monta ARRIBA del canvas puro. El layer switcher vive acá (doctrina firmada: "conmutador de
+// capas en la barra del mapa").
 //
-// TS-D20 — el picker de arnés (RF-72) deja de ser un `<select>` de uso libre: "1 sesión = 1
-// arnés" tiene que ser cierto en la UI, no solo en el modelo. Solo se vuelve interactivo cuando
-// `showPicker` es true — el motivo REAL original de RF-72 ("sigue alcanzable incluso cuando el
-// arnés actual falla al cargar"), no un switcher casual. En cualquier otro caso es texto de solo
-// lectura, igual que el Topbar (TS-D2). Si estás viendo un arnés distinto al de tu sesión sin
-// error (peek de "Abrir en Mapa", GAP-1) se lo indica explícito con un link para volver — nunca un
-// dropdown genérico.
+// TS-D21 — el picker de arnés (RF-72) SE SACA por completo, ni siquiera como escape-hatch de
+// error: "1 sesión = 1 arnés" no tiene excepción — para ver otro arnés se abre otra sesión (TS-D5),
+// también cuando el actual falla al cargar. El arnés visto es SIEMPRE texto de solo lectura, igual
+// que el Topbar (TS-D2). Única excepción real: al espiar otro arnés vía "Abrir en Mapa" del
+// Portafolio (GAP-1, `viewedId` programático, no un dropdown) se ofrece un link para volver al
+// arnés fijo de la sesión — nunca un selector de uso general.
 interface MapBarProps {
   arnes?: Arnes | undefined
   capa: Capa
   onCapa: (c: Capa) => void
-  // Arnés picker (RF-72), SOLO interactivo en el escape-hatch real (arnés no cargó / no indexado).
-  harnesses?: readonly { id: string; label: string }[] | undefined
   activeId?: string | undefined
+  // Vuelve al arnés fijo de la sesión tras un peek (TS-D21) — no es un picker general.
   onPick?: ((id: string) => void) | undefined
-  showPicker?: boolean | undefined
-  // Arnés fijo de la sesión (TS-D20): si difiere de `activeId` sin `showPicker`, estás en un
-  // peek — se ofrece volver.
+  // Arnés fijo de la sesión: si difiere de `activeId`, estás en un peek — se ofrece volver.
   ownId?: string | undefined
   // Toggle de la franja Artefactos (RF-143). Optional: sin callback no se pinta.
   artefactos?: ArtefactosMode | undefined
@@ -52,50 +48,19 @@ export function MapBar({
   arnes,
   capa,
   onCapa,
-  harnesses,
   activeId,
   onPick,
-  showPicker,
   ownId,
   artefactos,
   onArtefactos,
 }: MapBarProps) {
-  // Keep the current arnés selectable even when it is not in the index (a session may point at an
-  // arnés the index has not seeded) — otherwise the <select> value would not match any option.
-  const inList = !activeId || (harnesses?.some((h) => h.id === activeId) ?? false)
-  const options =
-    harnesses && activeId && !inList
-      ? [{ id: activeId, label: `${activeId} · no indexado` }, ...harnesses]
-      : harnesses
-  const isPeek = Boolean(!showPicker && ownId && activeId && ownId !== activeId)
+  const isPeek = Boolean(ownId && activeId && ownId !== activeId)
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2.5">
-      {showPicker && options && options.length > 0 ? (
-        <label
-          className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground"
-          title="Tu arnés no cargó — elegí otro indexado para ver algo mientras lo resolvés"
-        >
-          ver otro
-          <select
-            name="arnes-picker"
-            aria-label="Elegir otro arnés indexado (el tuyo no cargó)"
-            value={activeId ?? ""}
-            onChange={(e) => onPick?.(e.target.value)}
-            className="rounded-md border border-border bg-secondary px-2 py-1 font-mono text-xs normal-case tracking-normal text-foreground"
-          >
-            {options.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <span className="font-mono text-xs text-muted-foreground">
-          {arnes?.id ?? activeId ?? "—"}
-        </span>
-      )}
+      <span className="font-mono text-xs text-muted-foreground">
+        {arnes?.id ?? activeId ?? "—"}
+      </span>
       {isPeek && ownId && (
         <button
           type="button"
