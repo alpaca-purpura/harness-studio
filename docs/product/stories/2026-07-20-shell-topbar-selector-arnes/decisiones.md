@@ -189,6 +189,41 @@ ERROR (`web/.dependency-cruiser.js`); (2) evita tocar `shell-page.tsx` para expo
 transporte desde la página, que ampliaría el alcance firmado (TS-D10 ya lo evitó para el
 layout, esto lo evita para el fetch).
 
+## TS-D18 · Revisión en vivo post-build (operador + Chrome real contra el daemon instalado) — 4 ajustes
+
+El operador instaló el `.deb` v0.2.10 y no vio los cambios: causa raíz ajena a este paquete —
+`~/.local/bin/arnesia` (override local del self-update, HS-11) tenía un binario del 17-jul, previo
+a estos commits; `lib.rs:97` prioriza ese override sobre el sidecar empaquetado. Corregido
+(pisado con el binario fresco). Con el daemon ya al día, el operador revisó la app real (no el
+mockup) y pidió reconciliar 4 puntos — verificados con Chrome real contra `:4200` (mismo patrón que
+«Verificación del mockup» abajo, ahora contra la app corriendo, token inyectado vía
+`window.__ARNESIA_TOKEN__`), no solo lectura de código:
+
+1. **Conversar vuelve a la misma fila que el breadcrumb** (reabre TS-D3). El motivo original de
+   TS-D3 —competía por ancho— se resuelve distinto esta vez: el breadcrumb es `min-w-0` +
+   `overflow-hidden` + `truncate` en `<b>{view}</b>`, y el botón es `flex-none` — no puede volver a
+   empujar. `topbar.tsx`.
+2. **El picker de `MapBar` (RF-72) se relabelea, no se saca.** No contradice TS-D2 en los hechos —
+   `viewedId` es estado local de `WorkspaceStage` (vista previa), nunca muta `session.arnes` — pero
+   sentado justo debajo de un breadcrumb que TS-D2 dejó deliberadamente sin `▾` ni `onClick`, un
+   `<select aria-label="Elegir arnés">` con options reales lee como la contradicción exacta que
+   TS-D2 quiso evitar. Se relabelea: caption visible «vista», `aria-label`/`title` explícitos
+   («vista previa de otro arnés — no cambia el arnés fijo de la sesión»). `map-bar.tsx`.
+3. **Se deduplica el stack de header** (3 lugares repetían arnés/rol/empresa): el banner de
+   `WorkspaceStage` pierde `{s.empresa} · {s.puesto}` (mismo motivo que TS-D1 — `Session.empresa`
+   es fixture hardcodeada, N:M sin «la» empresa — y ya duplicado por los chips reales de `MapBar`);
+   el chip `rol` de `MapBar` se saca (duplica el valor ya visible del `<select>` "vista").
+   `workspace-stage.tsx` + `map-bar.tsx`.
+4. **`MapBar` empresa deja de leer solo `empresas[0]`** — mismo criterio N:M que ya se aplicó en
+   TS-D1/TS-D16 (`new-session-picker.tsx` ya usaba `empresas.join(" · ")`): se une el join en vez
+   de mostrar arbitrariamente la primera y esconder el resto. `map-bar.tsx`.
+
+Verificado: `pnpm run verify` (typecheck+lint+depcruise+fsd+stylelint) verde, `vitest run` 168/168
+sin cambios (ninguna story/test fijaba los strings tocados), y visualmente contra `:4200` real
+(screenshot antes/después, accessibility tree confirmando `combobox` renombrado y banner sin
+`empresa`/`rol`). No cierra el Gate final — `PARIDAD.md` sigue con la firma 🧑‍⚖️ pendiente, ahora
+sobre esta versión ajustada.
+
 ## Verificación del mockup (no solo lectura de código)
 
 Cada iteración se revisó con Chrome headless real (`google-chrome --headless=new`, screenshots

@@ -231,9 +231,10 @@ export function WorkspaceStage() {
           <Pip status={s.status} />
           {STATUS_LABEL[s.status]}
         </span>
+        {/* TS-D18: empresa/puesto salen de acá — mismo motivo de TS-D1 (fixture hardcodeada,
+            N:M sin "la" empresa) y ya duplicado por los chips reales de MapBar (empresa/reporta a) */}
         <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          {s.empresa} · {s.puesto} · <HealthDot salud={s.salud} />{" "}
-          {s.salud ? SALUD_LABEL[s.salud] : ""}
+          <HealthDot salud={s.salud} /> {s.salud ? SALUD_LABEL[s.salud] : ""}
         </span>
       </header>
 

@@ -59,25 +59,33 @@ export function MapBar({
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2.5">
       {options && options.length > 0 ? (
-        <select
-          name="arnes-picker"
-          aria-label="Elegir arnés"
-          value={activeId ?? ""}
-          onChange={(e) => onPick?.(e.target.value)}
-          className="rounded-md border border-border bg-secondary px-2 py-1 font-mono text-xs text-foreground"
+        <label
+          className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+          title="Vista previa de otro arnés en este Mapa — no cambia el arnés fijo de la sesión (esa elección se hace UNA vez, al crear la sesión)"
         >
-          {options.map((h) => (
-            <option key={h.id} value={h.id}>
-              {h.label}
-            </option>
-          ))}
-        </select>
+          vista
+          <select
+            name="arnes-picker"
+            aria-label="Vista previa de otro arnés (no cambia el arnés de la sesión)"
+            value={activeId ?? ""}
+            onChange={(e) => onPick?.(e.target.value)}
+            className="rounded-md border border-border bg-secondary px-2 py-1 font-mono text-xs normal-case tracking-normal text-foreground"
+          >
+            {options.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.label}
+              </option>
+            ))}
+          </select>
+        </label>
       ) : (
         <span className="font-mono text-xs text-muted-foreground">{arnes?.id ?? "—"}</span>
       )}
       <div className="flex flex-wrap gap-1.5">
-        <MetaChip k="empresa" v={arnes?.empresas?.[0] ?? "—"} />
-        <MetaChip k="rol" v={arnes?.rol} />
+        <MetaChip
+          k="empresa"
+          v={arnes?.empresas?.length ? arnes.empresas.join(" · ") : undefined}
+        />
         <MetaChip k="reporta a" v={arnes?.reporta_a ?? "—"} />
         <MetaChip k="⬡" v={arnes?.marketplace} />
       </div>
