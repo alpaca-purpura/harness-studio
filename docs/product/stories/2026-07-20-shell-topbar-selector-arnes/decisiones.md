@@ -224,6 +224,48 @@ sin cambios (ninguna story/test fijaba los strings tocados), y visualmente contr
 `empresa`/`rol`). No cierra el Gate final — `PARIDAD.md` sigue con la firma 🧑‍⚖️ pendiente, ahora
 sobre esta versión ajustada.
 
+## TS-D19 · `Topbar` absorbe el banner suelto de `WorkspaceStage` — un solo header de sesión
+
+TS-D18 dedupó contenido entre 3 bandas apiladas pero dejó 2 headers de sesión compitiendo:
+`Topbar` (arnés/vista + Conversar) y el `<header>` propio de `workspace-stage.tsx` (arnés grande +
+status + salud), ambos permanentes en TODA vista (verificado en vivo: el banner de
+`WorkspaceStage` seguía en `Diag`, sin Mapa de por medio) — el mismo dato de identidad partido en
+dos cajas que nadie diseñó juntas. Se fusionan en una sola fila de `Topbar`: arnés (etiqueta fija,
+TS-D2) · status (`Pip`+`STATUS_LABEL`) · salud (`HealthDot`+`SALUD_LABEL`) · `/` · vista · Conversar.
+El `<header>` de `WorkspaceStage` se elimina — el componente ya no pinta chrome de sesión propio.
+`topbar.tsx` + `workspace-stage.tsx`.
+
+## TS-D20 · El picker de `MapBar` (RF-72) deja de ser un `<select>` de uso libre
+
+El operador, ya con TS-D18 corregido, siguió viendo el dropdown y objetó de fondo (no solo el
+label): "un desplegable que me permite cambiar de arnés dentro de una sesión no tiene sentido" —
+correcto, y el relabel de TS-D18 fue cosmético, no arregló la causa. Se releyó el comentario
+original de RF-72 (`workspace-stage.tsx`, previo a este cambio): el propósito NUNCA fue un switcher
+de uso general — era el escape-hatch para cuando el arnés de la sesión **falla al cargar o no está
+indexado** (`loadErr`, ya existente, es exactamente esa señal). La implementación lo montaba
+siempre que el portafolio cargara, sin condición — el scope se corrió de "recuperación" a "switcher
+casual". Se corrige gateando la interactividad:
+
+- **Camino feliz** (arnés carga bien, `viewedId === arnesId`): texto de solo lectura, mismo
+  principio que el Topbar (TS-D2). Sin `<select>`.
+- **Error real** (`showPicker = Boolean(loadErr)`): el `<select>` reaparece, relabeleado "ver
+  otro" — ahora es honesto, es LA corrección para el caso en que falla.
+- **Peek** (`viewedId !== arnesId` sin error — "Observar en Mapa" del Portafolio, GAP-1): texto de
+  solo lectura + botón «vista previa · volver» (reusa el mismo `onPick`, sin prop nueva de
+  transporte) — nunca un dropdown genérico; el arnés de la sesión (`ownId`) se mantiene visible e
+  intacto en `Topbar` todo el tiempo.
+
+Los 3 estados se probaron EN VIVO contra el daemon real (no solo lectura de código): camino feliz
+(`dev-full-cycle`, sin picker) → error real (`nuevo-arnes`, no indexado, reaparece "ver otro") →
+peek (`Portafolio → Observar en Mapa` de `vitalia` sobre la sesión `nuevo-arnes` → aparece "vista
+previa · volver", `Topbar` sigue mostrando `nuevo-arnes`) → volver restaura el error de
+`nuevo-arnes` (esperado, es su estado real). `map-bar.tsx` + `workspace-stage.tsx` (nuevas props
+`showPicker`/`ownId`).
+
+Verificado: `pnpm run verify` verde, `vitest run` 168/168 sin cambios, 3 estados confirmados con
+Chrome real + accessibility tree. `PARIDAD.md` sigue pendiente de firma 🧑‍⚖️, ahora sobre esta
+versión.
+
 ## Verificación del mockup (no solo lectura de código)
 
 Cada iteración se revisó con Chrome headless real (`google-chrome --headless=new`, screenshots

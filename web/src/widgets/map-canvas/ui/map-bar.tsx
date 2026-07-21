@@ -10,20 +10,30 @@ const ARTEFACTOS: readonly { id: ArtefactosMode; label: string; title: string }[
   { id: "todos", label: "todos", title: "Chips de hand-off siempre visibles (D2)" },
 ]
 
-// MapBar is the top bar of the map surface (galaxia `.mapbar`): the arnés picker (RF-72), the
-// META strip (empresa · rol · reporta a · marketplace) and the layer tablist. It is CHROME the
-// shell mounts ABOVE the pure canvas, so it stays reachable even when the current arnés fails to
-// load (the picker is the escape hatch to a different arnés). The layer switcher lives here
-// (signed doctrine: "conmutador de capas en la barra del mapa").
-
+// MapBar is the top bar of the map surface (galaxia `.mapbar`): the META strip (empresa ·
+// reporta a · marketplace) and the layer tablist. It is CHROME the shell mounts ABOVE the pure
+// canvas. The layer switcher lives here (signed doctrine: "conmutador de capas en la barra del
+// mapa").
+//
+// TS-D20 — el picker de arnés (RF-72) deja de ser un `<select>` de uso libre: "1 sesión = 1
+// arnés" tiene que ser cierto en la UI, no solo en el modelo. Solo se vuelve interactivo cuando
+// `showPicker` es true — el motivo REAL original de RF-72 ("sigue alcanzable incluso cuando el
+// arnés actual falla al cargar"), no un switcher casual. En cualquier otro caso es texto de solo
+// lectura, igual que el Topbar (TS-D2). Si estás viendo un arnés distinto al de tu sesión sin
+// error (peek de "Abrir en Mapa", GAP-1) se lo indica explícito con un link para volver — nunca un
+// dropdown genérico.
 interface MapBarProps {
   arnes?: Arnes | undefined
   capa: Capa
   onCapa: (c: Capa) => void
-  // Arnés picker (RF-72). Optional so stories that only show the bar can omit it.
+  // Arnés picker (RF-72), SOLO interactivo en el escape-hatch real (arnés no cargó / no indexado).
   harnesses?: readonly { id: string; label: string }[] | undefined
   activeId?: string | undefined
   onPick?: ((id: string) => void) | undefined
+  showPicker?: boolean | undefined
+  // Arnés fijo de la sesión (TS-D20): si difiere de `activeId` sin `showPicker`, estás en un
+  // peek — se ofrece volver.
+  ownId?: string | undefined
   // Toggle de la franja Artefactos (RF-143). Optional: sin callback no se pinta.
   artefactos?: ArtefactosMode | undefined
   onArtefactos?: ((m: ArtefactosMode) => void) | undefined
@@ -45,6 +55,8 @@ export function MapBar({
   harnesses,
   activeId,
   onPick,
+  showPicker,
+  ownId,
   artefactos,
   onArtefactos,
 }: MapBarProps) {
@@ -55,18 +67,19 @@ export function MapBar({
     harnesses && activeId && !inList
       ? [{ id: activeId, label: `${activeId} · no indexado` }, ...harnesses]
       : harnesses
+  const isPeek = Boolean(!showPicker && ownId && activeId && ownId !== activeId)
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2.5">
-      {options && options.length > 0 ? (
+      {showPicker && options && options.length > 0 ? (
         <label
           className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground"
-          title="Vista previa de otro arnés en este Mapa — no cambia el arnés fijo de la sesión (esa elección se hace UNA vez, al crear la sesión)"
+          title="Tu arnés no cargó — elegí otro indexado para ver algo mientras lo resolvés"
         >
-          vista
+          ver otro
           <select
             name="arnes-picker"
-            aria-label="Vista previa de otro arnés (no cambia el arnés de la sesión)"
+            aria-label="Elegir otro arnés indexado (el tuyo no cargó)"
             value={activeId ?? ""}
             onChange={(e) => onPick?.(e.target.value)}
             className="rounded-md border border-border bg-secondary px-2 py-1 font-mono text-xs normal-case tracking-normal text-foreground"
@@ -79,7 +92,19 @@ export function MapBar({
           </select>
         </label>
       ) : (
-        <span className="font-mono text-xs text-muted-foreground">{arnes?.id ?? "—"}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {arnes?.id ?? activeId ?? "—"}
+        </span>
+      )}
+      {isPeek && ownId && (
+        <button
+          type="button"
+          onClick={() => onPick?.(ownId)}
+          title="Estás viendo otro arnés en este Mapa — tu sesión sigue en el suyo"
+          className="rounded-md border border-border px-2 py-1 font-mono text-[11px] text-muted-foreground hover:bg-secondary"
+        >
+          vista previa · volver
+        </button>
       )}
       <div className="flex flex-wrap gap-1.5">
         <MetaChip

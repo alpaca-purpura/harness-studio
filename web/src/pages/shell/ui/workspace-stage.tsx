@@ -4,20 +4,18 @@ import {
   api,
   ComingSoon,
   type HarnessSummary,
-  SALUD_LABEL,
-  STATUS_LABEL,
   selectActive,
   useAppStore,
   useSessions,
   VIEWS,
 } from "@/shared"
-import { HealthDot, Pip } from "@/shared/ui/indicators"
 import { type Capa, Inspector, MapBar, MapCanvas } from "@/widgets/map-canvas"
 
 const viewGlyph = (v: string) => VIEWS.find((x) => x[0] === v)?.[1] ?? "◵"
 
 // WorkspaceStage is the near-fullscreen canvas of the active session (a page = composition-root).
-// The session header is real; the «Mapa» view now renders the REAL Map surface — it fetches the
+// El header de sesión vive SOLO en `Topbar` (TS-D19) — este componente ya no pinta uno propio.
+// La «Mapa» view renderiza la REAL Map surface — fetches the
 // arnés graph from the daemon (transport lives here, not in the entity/canvas — fe-transporte-
 // independiente) and hands it to <MapCanvas>. Other views stay «próximamente». Picker = RF-72.
 export function WorkspaceStage() {
@@ -218,26 +216,6 @@ export function WorkspaceStage() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-wrap items-center gap-2.5 border-b border-border bg-card px-4 py-3">
-        <span className="font-mono text-base font-bold">{s.arnes}</span>
-        <span
-          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-          style={{
-            background: s.status === "streaming" ? "var(--c-skill)" : "var(--secondary)",
-            color:
-              s.status === "streaming" ? "var(--primary-foreground)" : "var(--muted-foreground)",
-          }}
-        >
-          <Pip status={s.status} />
-          {STATUS_LABEL[s.status]}
-        </span>
-        {/* TS-D18: empresa/puesto salen de acá — mismo motivo de TS-D1 (fixture hardcodeada,
-            N:M sin "la" empresa) y ya duplicado por los chips reales de MapBar (empresa/reporta a) */}
-        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <HealthDot salud={s.salud} /> {s.salud ? SALUD_LABEL[s.salud] : ""}
-        </span>
-      </header>
-
       <div className="min-h-0 flex-1">
         {!isMapa ? (
           <ComingSoon
@@ -246,9 +224,10 @@ export function WorkspaceStage() {
             note={`El interior de «${s.view}» llega después. El shell, la multisesión y la conversación con Claude Code ya están vivos — abre el dock (⌘K) y pídele algo a este arnés.`}
           />
         ) : (
-          // MapBar (with the arnés picker, RF-72) stays ABOVE the canvas at all times — including
-          // the load-error state — so the picker is always the escape hatch to a different arnés
-          // when the current one is missing from the index.
+          // MapBar stays ABOVE the canvas at all times, including the load-error state. El
+          // picker (RF-72) solo se vuelve interactivo cuando `loadErr` es real (TS-D20) —
+          // en el camino feliz, o al espiar otro arnés vía "Abrir en Mapa" (GAP-1), es texto
+          // de solo lectura (+ link de "volver" en el caso del peek).
           <div className="flex h-full flex-col">
             <MapBar
               arnes={graph?.arnes}
@@ -257,6 +236,8 @@ export function WorkspaceStage() {
               harnesses={pickerItems}
               activeId={viewedId}
               onPick={setViewedId}
+              showPicker={Boolean(loadErr)}
+              ownId={arnesId}
               artefactos={artefactos}
               onArtefactos={setArtefactos}
             />
