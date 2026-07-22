@@ -3,8 +3,11 @@
 > `tipo: paquete-de-trabajo` · abierto 2026-07-22 · nace de una duda del operador en sesión de PM:
 > *"todo está asociado. Si converso con Claude a través del chat, es para modificar/reparar/mejorar
 > el arnés de la sesión en la que me encuentro... conforme voy hablando, tengo que poder ir viendo
-> cómo estos cambios se van dando en el Mapa."* Etapa: **spike de spec** (resolver el fork abierto →
-> firma del enfoque → recién ahí código). El gate 🧑‍⚖️ del enfoque está ABIERTO.
+> cómo estos cambios se van dando en el Mapa."* Ampliado el mismo día con: historial de conversaciones
+> recuperable por arnés + rotación de contexto invisible por umbral de tokens ("debemos seguir
+> conversando de forma infinita sobre un arnés... nunca perdamos el contexto"). Etapa: **spike de spec**
+> (resolver los 3 forks abiertos → firma del enfoque → recién ahí código). El gate 🧑‍⚖️ del enfoque
+> está ABIERTO.
 
 ## Qué resuelve
 
@@ -22,6 +25,14 @@ sesión — eso funciona. Pero está desconectado de todo lo demás:
    bloquea (`ArnesRegistry.validate` solo chequea path absoluto/no-protegido, nunca canónico-vs-
    instalación). Este paquete tiene que RESOLVER esto, no ignorarlo.
 3. **"Mejorar un arnés" no estaba definido.** Ya está — ver decisiones de esta sesión abajo.
+4. **El historial de conversación se BORRA al cerrar una sesión.** `SessionService.Close()` dropea el
+   registro completo (`Conv` incluido) — hoy "obtener el historial" solo funciona mientras la pestaña
+   sigue abierta. El operador lo pidió explícito: "un historial de las conversaciones... que debo poder
+   obtener".
+5. **No hay rotación de contexto — la conversación con un arnés no puede sentirse infinita todavía.**
+   ArnesIA ya calcula el % de contexto usado por turno (`ctxPct`) pero lo tira (solo guarda el último
+   valor) y no dispara nada. El operador quiere que, cerca de 38-45% de uso, el sistema rote a un
+   proceso `claude` fresco por detrás, sin que el usuario note el corte ni pierda continuidad.
 
 ## Prior-art (verificado contra código real esta sesión, no supuesto)
 
@@ -48,6 +59,14 @@ sesión — eso funciona. Pero está desconectado de todo lo demás:
   GUIADO distinto (`init`/`doctor`/`loop-forward`, cero código, PAUSADO desde F-D6). **Este paquete NO
   lo revive** — es más chico y más inmediato: hacer que el chat libre que YA existe se vea reflejado en
   vivo. Si más adelante se quiere el flujo guiado, es una capa aparte sobre esto, no un reemplazo.
+- **`Session.Arnes` ya agrupa sesiones por arnés** ("N sessions may share one", `session.go`) — listar
+  el historial de conversaciones de un arnés es un filtro, no un modelo nuevo. El hueco real es que
+  `Close()` borra en vez de archivar (§4 arriba).
+- **`ctxPct` ya se calcula con datos reales de uso** (`conductor.go`, frame `result.usage`) — la
+  rotación por umbral no necesita instrumentar nada nuevo, solo historizarlo + un disparador.
+- **Franja Artefactos** (firmado, `stories/2026-07-07-franja-artefactos/`): la casa YA resolvió "pasar
+  un digest chico en vez del documento entero" para el hand-off entre cajas (−90% contexto/insumo
+  medido). Es el mismo patrón que sirve para el checkpoint de rotación — no hay que inventarlo.
 
 ## Decisiones ya tomadas esta sesión (con el operador, 2026-07-22)
 
@@ -57,17 +76,24 @@ sesión — eso funciona. Pero está desconectado de todo lo demás:
    alcance acá.
 2. **Frecuencia de refresh del Mapa:** **después de cada turno de Claude.** Validado que el costo es
    despreciable (~0.4ms por carga real).
-3. **Instalación editable (el fork del punto 2 de arriba): QUEDA ABIERTO A PROPÓSITO** — el operador
-   decidió no resolverlo a ciegas en esta conversación; el spike (`spike-spec.md` Fork A) lo deja
-   planteado con una recomendación, a firmar antes de pasar a `spec.md`.
+3. **Instalación editable (Fork A): QUEDA ABIERTO A PROPÓSITO** — el operador decidió no resolverlo a
+   ciegas en esta conversación; el spike (`spike-spec.md` §3) lo deja planteado con recomendación A1
+   (bloquear edición de instalaciones), a firmar antes de pasar a `spec.md`.
+4. **Historial que sobrevive el cierre (Fork B): QUEDA ABIERTO**, recomendación B1 (archivar en
+   `Close()` + endpoint de listado por arnés, `spike-spec.md` §3b).
+5. **Rotación de contexto (Fork C): QUEDA ABIERTO**, mecanismo recomendado en `spike-spec.md` §3c
+   (umbral sobre `ctxPct` → checkpoint chico tipo Franja Artefactos → spawn fresco con
+   `--append-system-prompt-file` → el `Session.ID` del usuario no cambia, solo el `ClaudeSessionID` de
+   abajo) — pero con 4 sub-preguntas todavía sin decidir (umbral exacto, formato del checkpoint, dónde
+   vive, riesgo de rotar a mitad de una edición).
 
 ## Retomar aquí (para una sesión nueva sin este contexto)
 
 Este paquete puede empezar de cero: leé `spike-spec.md` completo (contiene TODO el contexto — no
-asumas que quien lo abre vio esta conversación). Lo único que falta antes de escribir `spec.md` es
-**firmar el Fork A** (instalación editable durante el chat, ver `spike-spec.md` §Fork A) con el
-operador. Una vez firmado ese fork, el resto (reindex-tras-turno + push por `/events` + el Mapa
-consume) es implementación directa, sin decisiones de producto pendientes.
+asumas que quien lo abre vio esta conversación). Faltan **3 forks por firmar** antes de escribir
+`spec.md` (Fork A, B, C — ver `spike-spec.md` §3/§3b/§3c, cada uno con recomendación). Una vez
+firmados, el resto es implementación directa (T1-T9 en `spike-spec.md` §5), sin decisiones de producto
+pendientes.
 
 ## Archivos
 

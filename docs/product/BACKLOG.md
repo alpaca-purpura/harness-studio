@@ -8,15 +8,16 @@
 
 ## Prioridad actual — Mejorar un arnés conversando (spike de spec, 2026-07-22)
 
-- [ ] **Atar chat-cc-funcional + kit ② inyectado + reindex-en-vivo + Mapa en UNA experiencia** — el
-  operador señaló que hoy son piezas separadas: el chat ya edita el árbol real del arnés, pero el Mapa
-  sirve una foto cacheada y nunca se entera. Decidido esta sesión: alcance = chat libre + doctrina de
-  fondo (el kit ② ya inyectado a cada sesión, `kit/doctrine.md`+skills, YA enseña qué es un buen arnés —
-  no hace falta un menú guiado) · Mapa refresca después de cada turno (medido: `loader.LoadArnes`
-  ~0.4ms, sin costo de performance). **Falta firmar el Fork A** antes de pasar a `spec.md`: el picker de
-  `shell-topbar-selector-arnes` (firmado HOY, HS-25) contradice la ley anti-drift firmada 2026-07-13
-  (deja abrir chat de escritura contra una instalación read-only, sin guard) — recomendación A1
-  (bloquear edición de instalaciones en el chat, mismo patrón que Reparar/Backport disabled).
+- [ ] **Atar chat-cc-funcional + kit ② inyectado + reindex-en-vivo + Mapa + historial + rotación de
+  contexto en UNA experiencia continua** — el operador señaló que hoy son piezas separadas: el chat ya
+  edita el árbol real del arnés, pero el Mapa sirve una foto cacheada, el historial se borra al cerrar
+  una sesión, y no hay rotación de contexto para conversaciones largas. Decidido esta sesión: alcance =
+  chat libre + doctrina de fondo · Mapa refresca tras cada turno (medido `loader.LoadArnes` ~0.4ms, sin
+  costo). **Faltan 3 forks por firmar** antes de `spec.md` (cada uno con recomendación en
+  `spike-spec.md`): **A** instalación editable contradice la ley anti-drift (HS-25 sin guard, recom.
+  bloquear) · **B** `Close()` borra el historial en vez de archivarlo (recom. archivar + listado por
+  arnés) · **C** rotación de contexto por umbral de `ctxPct` hacia un proceso `claude` fresco, invisible
+  para el usuario (mecanismo recomendado, 4 sub-preguntas abiertas).
   → [`stories/2026-07-22-mejorar-arnes-conversando/INDEX.md`](stories/2026-07-22-mejorar-arnes-conversando/INDEX.md) · `gate`
 - Nota: NO es lo mismo que el ítem "Fase 1 forja-ciclo-vivo" de más abajo (ese es un flujo GUIADO
   `init`/`doctor`/`loop-forward`, pausado, fuera de alcance de este spike) ni el re-key
