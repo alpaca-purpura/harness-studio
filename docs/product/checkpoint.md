@@ -6,13 +6,14 @@
 ## Fase del gran plan
 
 **Fase 5 (Implementación) EN CURSO.** Fases 1-4 ✓ (Visión · UX · Arquitectura · Specs).
-Última ficha cerrada: **HS-23** (Portafolio Slice 0 «Cimientos» — gate humano 🧑‍⚖️ FIRMADO 2026-07-13,
-8 puntos del goal + 5 desviaciones aceptadas). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
+Última ficha cerrada: **HS-25** (cierre de 4 gates humanos de PARIDAD — rebrand PRENTER · Portafolio
+Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-22). Índice de historia →
+`LEDGER.md` → `ledger/HS-NN.md`.
 
 ## Paquete de trabajo activo
 
 - **Programa «Portafolio · ciclo de vida del arnés» — modelo FIRMADO 🧑‍⚖️ (HS-22); Slice 0
-  CONSTRUIDO + FIRMADO 🧑‍⚖️ (HS-23); Slice 1 «FE» CONSTRUIDO, gate humano 🧑‍⚖️ PENDIENTE (2026-07-14).**
+  FIRMADO 🧑‍⚖️ (HS-23); Slice 1 «FE» FIRMADO 🧑‍⚖️ (HS-25); Slice 2 «sello/Identificar» FIRMADO 🧑‍⚖️ (HS-25).**
   El spike de CARGA se reencuadró en el front-door del ciclo de vida (agregar de marketplace/proyecto · observar · mejorar ·
   publicar · actualizar · reparar). Modelo firmado: identidad **`(home,id)`** · N:M:M · **canónico** (editable) + N **instalaciones**
   (read-only) · ley anti-drift descriptiva · **`deriva`**. Revisión adversaria (4 subagentes) probó que el FE no es construible sin
@@ -31,44 +32,32 @@
   migrará, no revertir). Firmado «docs/terreno absorbe architecture» → bajo revisión (P9 en terreno-conocimiento).
 - **Modelo de TERRENO FIRMADO 🧑‍⚖️ 2026-07-10** ([`stories/2026-07-10-terreno-conocimiento/`](stories/2026-07-10-terreno-conocimiento/INDEX.md):
   D0-D20 + `arnes.yaml` + `estructura-terreno.html` v4). Sigue válido como **schema que el forjador aplica**.
-- **Retomar aquí:** **Slice 1 «FE Portafolio» CONSTRUIDO (T1-T8), gate humano 🧑‍⚖️ PENDIENTE
-  (2026-07-14)** en
-  [`stories/2026-07-13-portafolio-slice1-fe/`](stories/2026-07-13-portafolio-slice1-fe/INDEX.md):
-  3 superficies (Lista/lente-empresa · Wizard-Proyecto/carpeta-local · Drawer READ) cableadas al HTTP
-  real de Slice 0, «Abrir en Mapa» (observación read-only, cierra GAP-1) + Desvincular con
-  confirmación, los 9 fixes G1-G9 de `revision-adversaria.md` aplicados y evidenciados (34 stories
-  `play()` + `selectors.test.ts`, Storybook = SSoT), mockup `arnesia-portafolio.html` corregido en
-  sitio + `mockups/INDEX.md` re-estampado, 4 capabilities `fe-portafolio/*` graduadas a `vivo` (R4).
-  **E2E vivo contra la máquina real** (browser+curl, daemon aislado sin tocar el de producción):
-  escaneo real de `luana-vitalia` → candidatos reales (`harness@0.5.2 en-deriva`) → agregar → Lista
-  con grupo «sin empresa» real → Drawer con trazabilidad de eslabones real → **Abrir en Mapa de una
-  instalación `referenciada-cc` real confirma GAP-1 cerrado** (grafo real, CERO cwd registrado) →
-  corrupción a mano + reboot → banner honesto → Desvincular real + 404 en repetición → recorrido de
-  teclado sin mouse. Ver evidencia completa en
-  [`paridad.md`](stories/2026-07-13-portafolio-slice1-fe/paridad.md) — **firma 🧑‍⚖️ del operador
-  PENDIENTE** (checkbox sin marcar, no simulada). Slice 0 (`stories/2026-07-13-portafolio-slice0-
-  cimientos/`) sigue FIRMADO (`ledger/HS-23.md`), sin cambios.
+  Slice 0/1/2 los 3 FIRMADOS (`ledger/HS-23.md`, `ledger/HS-25.md`). Slice 1 3 superficies (Lista/
+  lente-empresa · Wizard-Proyecto/carpeta-local · Drawer READ) + Observar/Desvincular, E2E vivo (GAP-1
+  cerrado); Slice 2 huella de path + modo degradado del Mapa + acción «Identificar» in-situ, E2E vivo
+  (circuito crudo→degradado→identificar→sellado). Próximo paso del programa (item 2, «Agregar de
+  marketplace → clonar + mejorar») desbloqueado en `BACKLOG.md`.
   Pausadas: **Fase 1 forja** (Slice 1a pendiente firma) · **terreno** (schema firmado). Contexto: memorias
   `hs-forja-fase1-carga-spike` · `hs-terreno-modelo-firmado` · `hs-linea-base-ui-storybook-ssot` · `hs-chat-cc-funcional`.
-- **Nuevo (2026-07-15): Rebrand sistema de diseño PRENTER — IMPLEMENTADO, gate humano PENDIENTE.**
-  `docs/product/stories/2026-07-15-rebrand-prenter-design-system/`: decisiones D1-D9 (paleta funcional
-  del Mapa intacta · dark-first default · fuentes self-hosted · 2 correcciones WCAG reales cazadas por
-  el suite de a11y, D9). Aplicado a `web/`: tokens+`theme.css`+`index.css`+`app-store.ts`+3 `.woff2`.
-  Verificado en vivo: `pnpm run verify` + `vitest` 127/127+21/21 + screenshot real (Storybook `:6006`).
-  Falta: el operador corre la app y firma antes de re-derivar `arnesia-shell-A-galaxia.html`
-  (🔒 firmado, HS-03/HS-05) y cerrar el paquete (`paridad.md` sin escribir aún).
-- **Nuevo (2026-07-20): Shell — Topbar sin empresa + selector de arnés — CONSTRUIDO, gate humano
-  final PENDIENTE 🧑‍⚖️.** `docs/product/stories/2026-07-20-shell-topbar-selector-arnes/`: mockup
-  FIRMADO 🧑‍⚖️ (commit `5ca97c2`, TS-D1..D9); `spec.md` (RF-1..17) + `design.md` + deuda TS-D9
-  resuelta (TS-D10..D17). El operador ordenó «Desarrolla» → **IMPLEMENTADO** (FE puro, cero backend):
-  `topbar.tsx` (empresa/`parked` fuera · chip plano · Conversar 2ª línea) + `session-rail.tsx` (el
-  `<aside>` ensancha a 360px con el picker inline, reemplaza `window.prompt`/`arnes:"nuevo-arnes"`)
-  + 2 archivos NUEVOS `new-session-picker.tsx` (props-puras) y `model/portafolio-picker-store.ts`
-  (Zustand envuelve `api.listPortafolio`, TS-D17). Verde: `verify` + `build` + `vitest run` 168/168
-  (7 stories `play()` a11y + 5 unit del store) + fitness R1/R2/R4 (cobertura 100%). CAP-72/CAP-74
-  actualizadas (punteros+scenarios, `status` no tecleado). **Falta:** el operador corre la app y
-  firma el click-through vs mockup ([`PARIDAD.md`](stories/2026-07-20-shell-topbar-selector-arnes/PARIDAD.md),
-  checkbox sin marcar). Ver «Retomar aquí» del paquete.
+- **Rebrand PRENTER (2026-07-15) — FIRMADO 🧑‍⚖️ (HS-25).** Tokens dark-first en `web/`, paleta
+  funcional del Mapa intacta. Deuda residual (no bloquea): re-derivar `arnesia-shell-A-galaxia.html` +
+  re-estampar `mockups/INDEX.md` → `BACKLOG.md`.
+- **Shell — Topbar sin empresa + selector de arnés (2026-07-20) — FIRMADO 🧑‍⚖️ (HS-25).**
+  `topbar.tsx`/`session-rail.tsx`/`new-session-picker.tsx`/`portafolio-picker-store.ts`, 168/168 verde.
+- **Retomar aquí:** el operador señaló que **el chat (chat-cc-funcional, ya firmado HS-20) no está
+  funcionando bien** y que no ve una historia de usuario para "arreglar un arnés conversando" — la
+  historia SÍ existe (`stories/2026-07-08-chat-cc-funcional/INDEX.md`, "modificación de arneses
+  existentes"), lo que falta es diagnóstico concreto. Investigación de esta sesión: el mecanismo de
+  ALCANCE (con qué arnés/cwd abre el chat) recién se terminó de cerrar HOY (picker de
+  shell-topbar-selector-arnes) y **GAP-1** (instalaciones `referenciada-cc` con CERO cwd registrado,
+  documentado en Slice 1) puede hacer que chatear contra una instalación no escriba donde se espera.
+  Ninguno de los dos ítems que el operador nombró (re-key `(home,id,scope)` · Fase 1 forja-ciclo-vivo
+  item 3 "Chat forja/edita") es el bloqueo directo — re-key es plomería de identidad del Portafolio sin
+  relación directa con el chat, y forja-ciclo-vivo item 3 es un flujo GUIADO distinto (init/doctor/
+  loop-forward) pausado desde F-D6, no lo que hoy está roto. Próximo paso recomendado: diagnóstico en
+  vivo del chat contra un arnés real (confirmar si el bug es GAP-1/cwd, el spike `control_response`
+  pendiente, u otra cosa) antes de invertir en cualquiera de los dos backlogs grandes — ver conversación
+  de esta sesión.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

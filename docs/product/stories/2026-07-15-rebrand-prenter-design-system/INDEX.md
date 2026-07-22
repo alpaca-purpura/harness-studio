@@ -28,7 +28,9 @@ de bajo contraste + `--shadow-brand` teal. Voz de marca: trato de usted, sentenc
 
 ## Retomar aquí
 
-> **Estado (2026-07-15): IMPLEMENTADO en `web/`, gate humano 🧑‍⚖️ PENDIENTE.** Decisiones D1-D9
+> **Estado (2026-07-22): IMPLEMENTADO en `web/`, gate humano 🧑‍⚖️ FIRMADO** — ver
+> [`paridad.md`](./paridad.md). Queda deuda visible (mockup `arnesia-shell-A-galaxia.html` sin
+> re-derivar, botones/CTA en `font.sans`) → `BACKLOG.md`. Decisiones D1-D9
 > resueltas (D1-D3 firmadas por el operador vía preguntas, D4-D5 hallazgos técnicos, D6-D8 resolvieron
 > las 3 preguntas abiertas de `propuesta-tokens.md`, D9 documenta 2 correcciones WCAG reales cazadas
 > por el suite de a11y — ver `decisiones.md`). Aplicado: `web/tokens/base.tokens.json` (colores light+
@@ -45,10 +47,9 @@ de bajo contraste + `--shadow-brand` teal. Voz de marca: trato de usted, sentenc
 > — deuda explícita, sin QA visual por superficie. `mockups/arnesia-shell-A-galaxia.html` (🔒 firmado)
 > y su fila en `mockups/INDEX.md` NO se re-derivaron — ese es el acto de cierre del gate, no se simula.
 >
-> **Siguiente paso: el operador corre la app/Storybook en vivo, mira el resultado real, y firma el gate**
-> (falta escribir `paridad.md` de este paquete con el checklist — pendiente si el operador aprueba lo
-> visto). Al firmar: re-derivar `arnesia-shell-A-galaxia.html`, re-estampar `mockups/INDEX.md`, decidir
-> alcance de botones/CTA (deuda D8), actualizar `checkpoint.md`/`BACKLOG.md`.
+> **Gate FIRMADO 2026-07-22** (ver `paridad.md`). Pendiente como deuda separada, NO bloqueante:
+> re-derivar `arnesia-shell-A-galaxia.html` + re-estampar `mockups/INDEX.md` + decidir alcance de
+> botones/CTA (D8) — ver `BACKLOG.md`.
 
 ## Archivos
 

@@ -26,10 +26,11 @@ manifiesto → `400`). Este slice cierra la tensión con tres piezas coherentes:
 
 ## Retomar aquí
 
-> **Estado (2026-07-17): SLICE 2 CONSTRUIDO Y VERIFICADO PUNTA A PUNTA · sin commitear · gate
-> 🧑‍⚖️ PENDIENTE.** T1-T4 hechos (ver `spike-spec.md` §8): huella de path (D29) · degradado en Mapa
-> (D27, el 400 murió) · Identificar in-situ + re-key (D28) · capabilities + cifras (93 caps, cobertura
-> 100%). Verificación (§9): Go verde · conformance `257·pass 48·fail 0` R1/R2 PASS · FE `pnpm test`
-> **156/156** · **E2E contra el daemon real** (crudo→degradado 200→identificar→sellado→arnés completo)
-> VERDE. **Retomar aquí:** el operador prueba en la app instalada, firma el gate PARIDAD y commitea.
-> El daemon vivo corre el binario viejo — reinstalar 0.2.x del árbol para verlo en la app.
+> **Estado (2026-07-22): SLICE 2 CONSTRUIDO Y VERIFICADO PUNTA A PUNTA · gate 🧑‍⚖️ FIRMADO** — ver
+> [`paridad.md`](./paridad.md). T1-T4 hechos (ver `spike-spec.md` §8): huella de path (D29) · degradado
+> en Mapa (D27, el 400 murió) · Identificar in-situ + re-key (D28) · capabilities + cifras (93 caps,
+> cobertura 100%). Verificación (§9): Go verde · conformance `257·pass 48·fail 0` R1/R2 PASS · FE
+> `pnpm test` **156/156** · **E2E contra el daemon real** (crudo→degradado 200→identificar→sellado→arnés
+> completo) VERDE. Corrección: la nota "sin commitear" quedó stale — el código está en `main` desde
+> `824acd8`, confirmado por `git log` al cerrar (ver `paridad.md`). El operador reinstala el binario
+> nuevo si quiere verlo en la app instalada (el daemon vivo podía correr uno viejo).

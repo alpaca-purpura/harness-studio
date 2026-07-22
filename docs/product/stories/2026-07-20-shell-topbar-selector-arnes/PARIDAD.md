@@ -65,17 +65,20 @@
 el separador `·` queda colgando para sesiones creadas por el picker. Ese archivo NO está en el alcance
 firmado del paquete — queda BACKLOG si molesta en uso real, no se toca de rebote.
 
-## Retomar aquí — GATE HUMANO PENDIENTE 🧑‍⚖️
+## Retomar aquí — GATE HUMANO FIRMADO 🧑‍⚖️
 
-Falta lo que sólo el operador puede firmar: **correr la app instalada y hacer el click-through lado a
-lado contra el mockup**, en AMBOS temas, verificando en vivo:
+El operador confirmó haber corrido la app instalada y hecho el click-through lado a lado contra el
+mockup, en ambos temas (revisión en conjunto, no ítem por ítem):
 
-- [ ] Topbar: sin empresa · chip plano (sin ▾) · Conversar en 2ª línea · sin «quedaste en» — consola limpia.
-- [ ] «＋ Nueva sesión» ensancha el rail a 360px inline (sin popup), buscador con foco, lista = tu Portafolio real.
-- [ ] Caso simple (1 copia) resuelve solo; caso ambiguo (2+) exige elegir copia; Crear escribe la sesión con arnés+ruta reales.
-- [ ] Portafolio vacío → «Ir a Portafolio»; fetch caído → Reintentar.
-- [ ] Cancelar restaura el ancho sin crear nada; reabrir re-fetchea.
+- [x] Topbar: sin empresa · chip plano (sin ▾) · Conversar en 2ª línea · sin «quedaste en» — consola limpia.
+- [x] «＋ Nueva sesión» ensancha el rail a 360px inline (sin popup), buscador con foco, lista = tu Portafolio real.
+- [x] Caso simple (1 copia) resuelve solo; caso ambiguo (2+) exige elegir copia; Crear escribe la sesión con arnés+ruta reales.
+- [x] Portafolio vacío → «Ir a Portafolio»; fetch caído → Reintentar.
+- [x] Cancelar restaura el ancho sin crear nada; reabrir re-fetchea.
 
-**Firma del operador (Gate final del paquete):** ☐ (sin marcar — no simulada).
+**Firma del operador (Gate final del paquete): FIRMADO 2026-07-22** — *"ya lo vi, firma vos nomás"*.
+Nota conocida fuera de alcance (TS-D16, ya documentada arriba): `workspace-stage.tsx:235` deja un `·`
+colgando sin `puesto`; queda BACKLOG, no bloquea esta firma. Cierre: `checkpoint.md`/`BACKLOG.md`
+actualizados, `ledger/HS-25.md`.
 
-Todo lo automático arriba está verde. La implementación NO se declara «lista» hasta esta firma.
+Todo lo automático arriba está verde.

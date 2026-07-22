@@ -230,9 +230,9 @@ ningún punto ya cerrado, solo extiende el paso Fuente descrito en el punto 2.
 
 ## Firma
 
-- [ ] 🧑‍⚖️ **Gate humano** — **PENDIENTE** (operador). Falta revisar: goal §0 del plan (10 puntos, 8 ✅
-  + 2 ⚠ explicados arriba, ninguno es un gap real de construcción) + la tabla G1-G9 + el E2E vivo de
-  esta hoja + las 8 desviaciones listadas arriba. **NO SE SIMULA esta firma.** Al firmar: commitear T8
-  (`feat(portafolio): S1-T8 — as-code + mockup G1-G9 + E2E vivo + PARIDAD + cierre`) +
-  `checkpoint.md` (paquete activo → Slice 1 cerrado) + `BACKLOG.md` (item 1 → construido y firmado) +
-  `ledger/HS-24.md` (o el número que corresponda).
+- [x] 🧑‍⚖️ **Gate humano — FIRMADO 2026-07-22** (operador): *"ya lo vi, firma vos nomás"* — confirma
+  haber revisado en vivo el resultado (click-through previo a esta sesión de cierre). Respaldo: goal §0
+  del plan (8/10 ✅, 2 ⚠ explicados arriba, ninguno es gap real de construcción) + tabla G1-G9 + el E2E
+  vivo de esta hoja + las 8 desviaciones S1-D16..D22 + golangci-lint preexistente — todas aceptadas sin
+  objeción. Nota: T8 ya estaba commiteado (`b35ff6c`) al momento de esta firma, igual que el amendment
+  S1-D23..D26 (`4a35479`). Cierre: `checkpoint.md`/`BACKLOG.md` actualizados, `ledger/HS-25.md`.

@@ -6,18 +6,15 @@
 > (firma humana) · `deuda` · `bloqueo` (depende de otra cosa).
 > SSoT del futuro: reemplaza los `Siguiente`/`Deuda` que vivían enterrados en LEDGER.
 
-## Construido, gate humano PENDIENTE — Rebrand sistema de diseño PRENTER (2026-07-15)
+## Rebrand PRENTER — gate FIRMADO (HS-25), deuda residual de diseño
 
-- [ ] **Chrome de tokens (color/tipografía/radios/sombras) reemplazado por el sistema PRENTER**
-  (dark-first, negro+teal `#00b7aa`) — **IMPLEMENTADO** en `web/` (tokens+build+fuentes self-hosted+
-  dark-default), verificado en vivo (`pnpm run verify` + `vitest` 127/127+21/21 + screenshot real de
-  Storybook). `color.kind`/`health`/`heat` (paleta funcional del Mapa) INTACTOS (D1, verificado en
-  `theme.css`). 2 correcciones WCAG reales cazadas por el suite de a11y (D9). Reemplaza VALORES de una
-  base firmada (HS-03/HS-05/HS-09) — falta el gate humano antes de re-derivar
-  `arnesia-shell-A-galaxia.html` (🔒 firmado) y cerrar el paquete.
-  → [`stories/2026-07-15-rebrand-prenter-design-system/INDEX.md`](stories/2026-07-15-rebrand-prenter-design-system/INDEX.md)
-  · **siguiente paso: el operador corre la app en vivo y firma** (falta `paridad.md`) · deuda registrada:
-  botones/CTA por-módulo siguen en `font.sans`, sin QA visual (D8) · `gate`
+- [x] ✅ **Chrome de tokens (color/tipografía/radios/sombras) reemplazado por el sistema PRENTER**
+  (dark-first, negro+teal `#00b7aa`) — construido + gate humano 🧑‍⚖️ FIRMADO 2026-07-22 (HS-25). `color.kind`/
+  `health`/`heat` (Mapa) INTACTOS. → [`stories/2026-07-15-rebrand-prenter-design-system/paridad.md`](stories/2026-07-15-rebrand-prenter-design-system/paridad.md)
+- [ ] **Re-derivar `mockups/arnesia-shell-A-galaxia.html` (🔒 firmado) a los tokens PRENTER** + re-estampar
+  su fila en `mockups/INDEX.md` — es el acto de cierre real que quedó pendiente de la firma de arriba
+  (trabajo de diseño, no de paperwork); decidir alcance de botones/CTA por-módulo que siguen en
+  `font.sans` sin QA visual (D8) · `deuda`
 
 ## Idea en research — Instalador público + licencias org (2026-07-15)
 
@@ -81,16 +78,11 @@
     calificado sigue diferido a cuando "Abrir en Mapa" de una instalación lo exija (S0-D6, A2 acotada) · política
     definitiva de conservación de entradas corruptas del store más allá de un ciclo save (hoy: sobrevive si es
     JSON sintácticamente válido, se pierde si el archivo entero está roto — ver `paridad.md` desviación #4).
-- [ ] **1. FE Portafolio** — **CONSTRUIDO (Sonnet 5, T1-T8, 2026-07-14), gate humano 🧑‍⚖️ PENDIENTE**
-  (mismo patrón que el item 0 hasta HS-23: no se borra hasta la firma) — 3 superficies (Lista/lente
-  empresa · Wizard-Proyecto/carpeta-local · Drawer READ) + Observar (Abrir en Mapa, cierra GAP-1,
-  reusa CAP-58/61) + Desvincular con confirmación; **defaults honestos** (deriva real ·
-  update no-verificado · marketplace disabled) · los 9 fixes G1-G9 aplicados y evidenciados · 34
-  stories `play()` + `selectors.test.ts` (Storybook = SSoT) · mockup `arnesia-portafolio.html`
-  corregido en sitio · 4 capabilities `fe-portafolio/*` graduadas `vivo` (R4) · E2E vivo real
-  (GAP-1 reproducido: instalación `referenciada-cc` real, CERO cwd registrado).
+- [x] ✅ **1. FE Portafolio** — construido (Sonnet 5, T1-T8, 2026-07-14) + gate humano 🧑‍⚖️ FIRMADO
+  2026-07-22 (HS-25). 3 superficies (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) +
+  Observar (Abrir en Mapa, cierra GAP-1) + Desvincular con confirmación; 34 stories `play()` +
+  `selectors.test.ts` · 4 capabilities `fe-portafolio/*` `vivo` (R4) · E2E vivo real.
   → [`stories/2026-07-13-portafolio-slice1-fe/paridad.md`](stories/2026-07-13-portafolio-slice1-fe/paridad.md)
-  `gate`
 - [ ] **2. Agregar de marketplace → clonar + mejorar** — git url → **validar `marketplace.json`** → listar → elegir → checkout
   `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1)
 - [ ] **3. Publicar** — pull/rebase → conformance-verde → bump semver → changelog obligatorio → push → **tag-tras-push** · `gate` · `bloqueo`(2)
