@@ -6,6 +6,22 @@
 > (firma humana) · `deuda` · `bloqueo` (depende de otra cosa).
 > SSoT del futuro: reemplaza los `Siguiente`/`Deuda` que vivían enterrados en LEDGER.
 
+## Prioridad actual — Mejorar un arnés conversando (spike de spec, 2026-07-22)
+
+- [ ] **Atar chat-cc-funcional + kit ② inyectado + reindex-en-vivo + Mapa en UNA experiencia** — el
+  operador señaló que hoy son piezas separadas: el chat ya edita el árbol real del arnés, pero el Mapa
+  sirve una foto cacheada y nunca se entera. Decidido esta sesión: alcance = chat libre + doctrina de
+  fondo (el kit ② ya inyectado a cada sesión, `kit/doctrine.md`+skills, YA enseña qué es un buen arnés —
+  no hace falta un menú guiado) · Mapa refresca después de cada turno (medido: `loader.LoadArnes`
+  ~0.4ms, sin costo de performance). **Falta firmar el Fork A** antes de pasar a `spec.md`: el picker de
+  `shell-topbar-selector-arnes` (firmado HOY, HS-25) contradice la ley anti-drift firmada 2026-07-13
+  (deja abrir chat de escritura contra una instalación read-only, sin guard) — recomendación A1
+  (bloquear edición de instalaciones en el chat, mismo patrón que Reparar/Backport disabled).
+  → [`stories/2026-07-22-mejorar-arnes-conversando/INDEX.md`](stories/2026-07-22-mejorar-arnes-conversando/INDEX.md) · `gate`
+- Nota: NO es lo mismo que el ítem "Fase 1 forja-ciclo-vivo" de más abajo (ese es un flujo GUIADO
+  `init`/`doctor`/`loop-forward`, pausado, fuera de alcance de este spike) ni el re-key
+  `(home,id,scope)` de la deuda viva (plomería de identidad del Portafolio, sin relación directa).
+
 ## Rebrand PRENTER — gate FIRMADO (HS-25), deuda residual de diseño
 
 - [x] ✅ **Chrome de tokens (color/tipografía/radios/sombras) reemplazado por el sistema PRENTER**

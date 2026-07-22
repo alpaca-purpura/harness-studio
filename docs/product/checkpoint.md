@@ -44,20 +44,17 @@ Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-
   re-estampar `mockups/INDEX.md` → `BACKLOG.md`.
 - **Shell — Topbar sin empresa + selector de arnés (2026-07-20) — FIRMADO 🧑‍⚖️ (HS-25).**
   `topbar.tsx`/`session-rail.tsx`/`new-session-picker.tsx`/`portafolio-picker-store.ts`, 168/168 verde.
-- **Retomar aquí:** el operador señaló que **el chat (chat-cc-funcional, ya firmado HS-20) no está
-  funcionando bien** y que no ve una historia de usuario para "arreglar un arnés conversando" — la
-  historia SÍ existe (`stories/2026-07-08-chat-cc-funcional/INDEX.md`, "modificación de arneses
-  existentes"), lo que falta es diagnóstico concreto. Investigación de esta sesión: el mecanismo de
-  ALCANCE (con qué arnés/cwd abre el chat) recién se terminó de cerrar HOY (picker de
-  shell-topbar-selector-arnes) y **GAP-1** (instalaciones `referenciada-cc` con CERO cwd registrado,
-  documentado en Slice 1) puede hacer que chatear contra una instalación no escriba donde se espera.
-  Ninguno de los dos ítems que el operador nombró (re-key `(home,id,scope)` · Fase 1 forja-ciclo-vivo
-  item 3 "Chat forja/edita") es el bloqueo directo — re-key es plomería de identidad del Portafolio sin
-  relación directa con el chat, y forja-ciclo-vivo item 3 es un flujo GUIADO distinto (init/doctor/
-  loop-forward) pausado desde F-D6, no lo que hoy está roto. Próximo paso recomendado: diagnóstico en
-  vivo del chat contra un arnés real (confirmar si el bug es GAP-1/cwd, el spike `control_response`
-  pendiente, u otra cosa) antes de invertir en cualquiera de los dos backlogs grandes — ver conversación
-  de esta sesión.
+- **Retomar aquí: paquete nuevo `mejorar-arnes-conversando` (spike de spec, ABIERTO).**
+  [`stories/2026-07-22-mejorar-arnes-conversando/INDEX.md`](stories/2026-07-22-mejorar-arnes-conversando/INDEX.md) —
+  ata chat-cc-funcional + kit ② inyectado + reindex-en-vivo + Mapa, que el operador señaló como UNA
+  experiencia, no historias separadas. Ya firmado en esta sesión: alcance = chat libre + doctrina de
+  fondo (kit ② YA enseña anatomía de arnés, no hay que inventarlo) · Mapa refresca después de cada
+  turno (medido: `loader.LoadArnes` ~0.4ms, sin costo). **Hallazgo importante:** el picker de
+  `shell-topbar-selector-arnes` (firmado hoy, HS-25) contradice la ley anti-drift firmada 2026-07-13
+  (`spike-carga-arneses` INV-1) — deja abrir chat de escritura contra una INSTALACIÓN read-only, sin
+  ningún guard. **Fork A** (`spike-spec.md` §3) queda abierto a propósito, recomendación A1 (bloquear
+  edición de instalaciones) — falta firmarlo para pasar a `spec.md`. Ni re-key `(home,id,scope)` ni
+  forja-ciclo-vivo item 3 eran el bloqueo real.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas
