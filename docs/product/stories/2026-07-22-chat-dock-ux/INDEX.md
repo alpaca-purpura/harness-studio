@@ -16,18 +16,18 @@
 
 | etapa | estado |
 |---|---|
-| decisiones | ✅ **firmadas 🧑‍⚖️ 2026-07-22** («firmo, prosigue») — CH-D1..D6 |
-| mockup | 📋 propuesta publicada (`mockups/arnesia-chat-dock-ux.html`, CH-D2/D3/D4) — **Gate 1 PENDIENTE 🧑‍⚖️** |
-| spec | ✅ tramo A (CH-D1/D5/D6) as-built en `spec.md` · tramo B tras Gate 1 |
-| implementar | ✅ tramo A construido + verificado (suite Go + fitness + E2E vivo playwright) · tramo B ⏳ |
-| PARIDAD | ⏳ |
+| decisiones | ✅ **firmadas 🧑‍⚖️ 2026-07-22** («firmo, prosigue») — CH-D1..D6 (+D4b «cariño» mismo día) |
+| mockup | ✅ **Gate 1 firmado 🧑‍⚖️ 2026-07-22** («firmo, implementa») — `mockups/arnesia-chat-dock-ux.html` |
+| spec | ✅ AS-BUILT completo (`spec.md`, tramos A y B) |
+| implementar | ✅ **COMPLETO** — tramo A (CAP-99) + tramo B (CAP-100), suite Go + fitness + verify FE + E2E vivo con claude real |
+| PARIDAD | ⏳ **gate humano 🧑‍⚖️ pendiente** (click-through del operador) |
 
 ## Retomar aquí
 
-**Tramo A (CH-D1 composer 3 líneas · CH-D5 resize+persistencia · CH-D6 gate paquete cerrado
-CAP-99) CONSTRUIDO y verificado** — ver `spec.md` (as-built). **Siguiente: Gate 1 🧑‍⚖️ del
-mockup** `mockups/arnesia-chat-dock-ux.html` (actividad desplegable · burbuja por paso ·
-markdown); firmado → spec del tramo B: daemon deja de descartar thinking/tool_use
-(`conductor.go:515-520`), corte de burbuja por boundary (`session_service.go:428-471` +
-`sessions-store.ts:282-315`), renderer markdown (dependencia nueva, elegir). PARIDAD del
-tramo A se firma junto con el paquete.
+**Los 6 CH-D CONSTRUIDOS y verificados E2E vivo** (ver `spec.md` as-built): composer 3
+líneas · resize+persistencia · gate paquete-cerrado (CAP-99) · actividad desplegable ·
+burbuja por paso · markdown con chips/copiar/sintaxis (CAP-100). Evidencia E2E: turno real
+contra vitalia partido en burbujas + tarjetas, screenshots `chat-dock-tramoB.png` /
+`chat-dock-actividad.png` (raíz, no versionados). Falta SOLO el gate humano de PARIDAD:
+click-through del operador en la app (composer · resize · tarjeta desplegable · chips
+copiar · deny del paquete cerrado). Desviación honesta: tarjeta sin segundos («N pasos»).

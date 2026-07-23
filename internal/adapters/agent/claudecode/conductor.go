@@ -231,6 +231,11 @@ var _ ports.AgentSession = (*ccSession)(nil)
 type contentText struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
+	// tool_use blocks (CH-D2): the tool name + raw input the activity target derives
+	// from. omitempty es OBLIGATORIO: este struct también SE MANDA (userMsg por stdin) y
+	// un campo extra en un bloque text rompe la API con 400 (regresión cazada en vivo).
+	Name  string          `json:"name,omitempty"`
+	Input json.RawMessage `json:"input,omitempty"`
 }
 
 // userMsg is the stdin envelope for one user turn.
@@ -452,7 +457,7 @@ func (s *ccSession) pump(stdout io.Reader) {
 	for {
 		line, err := readLine(r)
 		if len(line) > 0 {
-			if ev, ok := translate(line, &lastUsage); ok {
+			for _, ev := range translate(line, &lastUsage) {
 				s.emit(ev)
 			}
 		}
@@ -487,50 +492,50 @@ func readLine(r *bufio.Reader) ([]byte, error) {
 	return line, err
 }
 
-// translate maps one raw stream-json line to a normalized event. ok is false for
-// frames we deliberately ignore (hooks, rate limits, status, non-text deltas).
-// translate convierte una línea NDJSON en un AgentEvent. lastUsage (estado del pump, un
-// solo goroutine) captura el usage del último frame assistant del turno — el que ctxPct
-// usa en el result (RF-194): el usage del result es acumulado y miente sobre la ventana.
-// nil lastUsage es legal (tests de frames sueltos): ctxPct cae al usage del result.
-func translate(line []byte, lastUsage **usage) (ports.AgentEvent, bool) {
+// translate convierte una línea NDJSON en cero o más AgentEvents (nil = frame que se
+// ignora adrede: hooks, rate limits, status, deltas no-texto). Un frame `assistant` puede
+// producir VARIOS eventos en orden de bloques (CH-D2/CH-D3) — ver assistantEvents.
+// lastUsage (estado del pump, un solo goroutine) captura el usage del último frame
+// assistant del turno — el que ctxPct usa en el result (RF-194): el usage del result es
+// acumulado y miente sobre la ventana. nil lastUsage es legal (tests de frames sueltos).
+func translate(line []byte, lastUsage **usage) []ports.AgentEvent {
 	var f rawFrame
 	if err := json.Unmarshal(line, &f); err != nil {
 		// A malformed line is not fatal; skip it.
-		return ports.AgentEvent{}, false
+		return nil
 	}
 
 	switch f.Type {
 	case "system":
 		if f.Subtype == "init" {
-			return ports.AgentEvent{
+			return []ports.AgentEvent{{
 				Kind:            ports.EventInit,
 				ClaudeSessionID: f.SessionID,
 				Model:           f.Model,
 				Raw:             line,
-			}, true
+			}}
 		}
-		return ports.AgentEvent{}, false
+		return nil
 
 	case "stream_event":
 		if f.Event != nil && f.Event.Type == "content_block_delta" &&
 			f.Event.Delta != nil && f.Event.Delta.Type == "text_delta" {
-			return ports.AgentEvent{Kind: ports.EventDelta, Text: f.Event.Delta.Text, Raw: line}, true
+			return []ports.AgentEvent{{Kind: ports.EventDelta, Text: f.Event.Delta.Text, Raw: line}}
 		}
-		return ports.AgentEvent{}, false
+		return nil
 
 	case "assistant":
 		if lastUsage != nil && f.Message != nil && f.Message.Usage != nil {
 			*lastUsage = f.Message.Usage
 		}
-		return ports.AgentEvent{Kind: ports.EventMessage, Text: assistantText(f.Message), Raw: line}, true
+		return assistantEvents(f.Message, line)
 
 	case "result":
 		var last *usage
 		if lastUsage != nil {
 			last = *lastUsage
 		}
-		return ports.AgentEvent{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f, last), Raw: line}, true
+		return []ports.AgentEvent{{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f, last), Raw: line}}
 
 	case "control_request":
 		// Forward can_use_tool VERBATIM instead of discarding it (Fase E): the daemon —
@@ -538,34 +543,69 @@ func translate(line []byte, lastUsage **usage) (ports.AgentEvent, bool) {
 		// RespondControl. Other control subtypes (hook_callback, mcp_message…) stay
 		// out of scope: not forwarded, honestly ignored.
 		if f.Request != nil && f.Request.Subtype == "can_use_tool" {
-			return ports.AgentEvent{
+			return []ports.AgentEvent{{
 				Kind:      ports.EventControlRequest,
 				RequestID: f.RequestID,
 				Tool:      f.Request.ToolName,
 				Input:     f.Request.Input,
 				ToolUseID: f.Request.ToolUseID,
 				Raw:       line,
-			}, true
+			}}
 		}
-		return ports.AgentEvent{}, false
+		return nil
 
 	default:
-		return ports.AgentEvent{}, false
+		return nil
 	}
 }
 
-// assistantText concatenates the text blocks of a complete assistant message.
-func assistantText(m *assistantMsg) string {
+// assistantEvents desarma un mensaje assistant completo en eventos EN ORDEN de bloques
+// (CH-D2/CH-D3): thinking → actividad «thinking» (jamás su contenido), texto contiguo →
+// UNA burbuja (EventMessage), tool_use → actividad con el blanco legible del input.
+func assistantEvents(m *assistantMsg, raw []byte) []ports.AgentEvent {
 	if m == nil {
-		return ""
+		return nil
 	}
-	var out strings.Builder
-	for _, b := range m.Content {
-		if b.Type == "text" {
-			out.WriteString(b.Text)
+	var out []ports.AgentEvent
+	var sb strings.Builder
+	flush := func() {
+		if sb.Len() > 0 {
+			out = append(out, ports.AgentEvent{Kind: ports.EventMessage, Text: sb.String(), Raw: raw})
+			sb.Reset()
 		}
 	}
-	return out.String()
+	for _, b := range m.Content {
+		switch b.Type {
+		case "text":
+			sb.WriteString(b.Text)
+		case "thinking":
+			flush()
+			out = append(out, ports.AgentEvent{Kind: ports.EventActivity, Tool: "thinking", Raw: raw})
+		case "tool_use":
+			flush()
+			out = append(out, ports.AgentEvent{Kind: ports.EventActivity, Tool: b.Name, Text: blanco(b.Input), Raw: raw})
+		}
+	}
+	flush()
+	return out
+}
+
+// blanco extrae el blanco legible del input de un tool_use — lo que la tarjeta de
+// actividad muestra al lado del tool. Vacío si no hay clave conocida.
+func blanco(input json.RawMessage) string {
+	var m map[string]any
+	if json.Unmarshal(input, &m) != nil {
+		return ""
+	}
+	for _, k := range []string{"file_path", "path", "command", "pattern", "url", "query", "description"} {
+		if v, ok := m[k].(string); ok && v != "" {
+			if r := []rune(v); len(r) > 80 {
+				return string(r[:80]) + "…"
+			}
+			return v
+		}
+	}
+	return ""
 }
 
 // ctxPct estimates context-window usage (0–100). Prefiere el usage del ÚLTIMO API call

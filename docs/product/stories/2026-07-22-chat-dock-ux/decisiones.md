@@ -44,6 +44,15 @@ Hoy el ancho es fijo `w-[360px]` (`web/src/pages/shell/ui/shell-page.tsx:38-45`)
 ningún splitter en `web/src`. Decisión: agarrar el **borde izquierdo** del dock y estirar hasta
 el ancho cómodo, con mín/máx sensatos y **persistencia** del ancho elegido entre sesiones.
 
+## CH-D4b · «Cariño» al renderizado (pedido del operador, 2026-07-22, durante el build)
+
+Textual: «dale cariño a los detalles del renderizado del código markdown, como que si es un
+archivo pueda ser clickeable, o tenga una letra especial, igual si es un pedazo de código…
+que se vea bien». Decisión: (a) inline-code que parece RUTA → chip de archivo con glifo,
+mono, clickeable = **copia la ruta** (feedback ✓); (b) bloque de código → rótulo de lenguaje
++ botón **copiar** + colores de sintaxis derivados de los tokens vigentes (jamás un theme
+externo hardcodeado); (c) tipografía mono/espaciado cuidados en todo el markdown.
+
 ## CH-D6 · GUARDRAIL: el chat de la app instalada NO modifica los arneses de arnesia
 
 Incidente reportado: en la app instalada, el chat confundió los arneses que el operador atendía

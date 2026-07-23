@@ -3,6 +3,7 @@ import type { Session, Turn } from "@/shared"
 import { selectActive, selectPendingPerms, selectScope, useSessions } from "@/shared"
 import { cn } from "@/shared/lib/cn"
 import { Pip } from "@/shared/ui/indicators"
+import { Md } from "./markdown"
 import { PermissionCard } from "./permission-card"
 
 // ChatDock is the invoked, collapsible conversation (mockup it.14): the live Claude
@@ -95,6 +96,7 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
   const pending = useSessions(selectPendingPerms)
   const resolvePermission = useSessions((st) => st.resolvePermission)
   const conv = s.conv ?? []
+  const grupos = agrupar(conv)
   const showLive = s.status === "streaming"
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: these deps are intentional scroll triggers; the body only reads the ref.
@@ -110,14 +112,23 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
           sesión Claude Code del frente «{s.frente}».
         </p>
       )}
-      {conv.map((t, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: conv is append-only and immutable, so the index is a stable identity.
-        <Bubble key={i} turn={t} />
-      ))}
+      {grupos.map((g, i) =>
+        g.kind === "act" ? (
+          <ActivityCard
+            // biome-ignore lint/suspicious/noArrayIndexKey: conv is append-only and immutable, so the index is a stable identity.
+            key={i}
+            pasos={g.pasos}
+            live={showLive && !streaming && i === grupos.length - 1}
+          />
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: conv is append-only and immutable, so the index is a stable identity.
+          <Bubble key={i} turn={g.turn} />
+        ),
+      )}
       {showLive && (
         <div className="max-w-[92%] self-start rounded-[10px] rounded-bl-[3px] border border-border bg-secondary px-2.5 py-2 text-xs leading-relaxed">
           {streaming ? (
-            <span className="whitespace-pre-wrap">{streaming}</span>
+            <Md>{streaming}</Md>
           ) : (
             <span className="typing">
               <i />
@@ -139,6 +150,83 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
   )
 }
 
+// agrupar colapsa los turnos `act` consecutivos en un grupo (la tarjeta de actividad,
+// CH-D2); el resto pasa como turno suelto en su orden real.
+type Grupo = { kind: "turn"; turn: Turn } | { kind: "act"; pasos: string[] }
+
+function agrupar(conv: Turn[]): Grupo[] {
+  const out: Grupo[] = []
+  for (const t of conv) {
+    const last = out[out.length - 1]
+    if (t.rol === "act") {
+      if (last?.kind === "act") last.pasos.push(t.text)
+      else out.push({ kind: "act", pasos: [t.text] })
+    } else {
+      out.push({ kind: "turn", turn: t })
+    }
+  }
+  return out
+}
+
+// paso "<tool> <blanco>" → rótulo legible; «thinking» se muestra como razonamiento,
+// jamás su contenido.
+function rotulo(paso: string) {
+  const [tool = "", ...resto] = paso.split(" ")
+  return { tool: tool === "thinking" ? "pensó" : tool, obj: resto.join(" ") }
+}
+
+// ActivityCard (CH-D2): la fila punteada discreta entre burbujas. Viva = muestra la
+// herramienta en curso y queda abierta; cerrada = resumen de un renglón, chevron despliega.
+function ActivityCard({ pasos, live }: { pasos: string[]; live: boolean }) {
+  const cur = rotulo(pasos[pasos.length - 1] ?? "")
+  return (
+    <details
+      open={live || undefined}
+      className="group max-w-[92%] self-stretch rounded-md border border-dashed border-border text-[11px]"
+    >
+      <summary
+        className={cn(
+          "flex cursor-pointer select-none items-center gap-1.5 px-2.5 py-1 [&::-webkit-details-marker]:hidden",
+          live ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
+        <span className={cn("flex-none", live && "animate-pulse text-skill")} aria-hidden>
+          ⚙
+        </span>
+        {live ? (
+          <span className="min-w-0 truncate">
+            trabajando — <b>{cur.tool}</b>{" "}
+            {cur.obj && <span className="font-mono text-muted-foreground">{cur.obj}</span>}
+          </span>
+        ) : (
+          <span>
+            {pasos.length} {pasos.length === 1 ? "paso" : "pasos"}
+          </span>
+        )}
+        <span className="ml-auto flex-none text-[9px] transition-transform group-open:rotate-90">
+          ▶
+        </span>
+      </summary>
+      <div className="border-t border-dashed border-border px-2.5 py-1 font-mono text-[10px] leading-[1.9] text-muted-foreground">
+        {pasos.map((p, i) => {
+          const { tool, obj } = rotulo(p)
+          const running = live && i === pasos.length - 1
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: pasos is append-only, the index is a stable identity.
+            <div key={i} className="flex items-baseline gap-1.5">
+              <span className={cn("flex-none", running ? "animate-pulse text-skill" : "text-ok")}>
+                {running ? "⟳" : "✓"}
+              </span>
+              <b className="flex-none text-foreground">{tool}</b>
+              <span className="min-w-0 truncate">{obj}</span>
+            </div>
+          )
+        })}
+      </div>
+    </details>
+  )
+}
+
 function Bubble({ turn: t }: { turn: Turn }) {
   if (t.rol === "sys") {
     return (
@@ -150,13 +238,18 @@ function Bubble({ turn: t }: { turn: Turn }) {
   return (
     <div
       className={cn(
-        "max-w-[92%] whitespace-pre-wrap rounded-[10px] border px-2.5 py-2 text-xs leading-relaxed",
+        "max-w-[92%] rounded-[10px] border px-2.5 py-2 text-xs leading-relaxed",
         t.rol === "user"
-          ? "self-end rounded-br-[3px] border-primary bg-accent-soft"
+          ? "self-end whitespace-pre-wrap rounded-br-[3px] border-primary bg-accent-soft"
           : "self-start rounded-bl-[3px] border-border bg-secondary",
       )}
     >
-      {t.text}
+      {t.rol === "assistant" ? (
+        // CH-D4: la respuesta se ve renderizada (markdown), no cruda.
+        <Md>{t.text}</Md>
+      ) : (
+        t.text
+      )}
     </div>
   )
 }

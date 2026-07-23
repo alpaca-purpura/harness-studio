@@ -1,8 +1,8 @@
-# Spec — Chat dock · legibilidad y ergonomía · tramo A (mecánicos)
+# Spec — Chat dock · legibilidad y ergonomía (AS-BUILT completo)
 
-> `tipo: spec` · paquete `2026-07-22-chat-dock-ux`. Tramo A = CH-D1/D5/D6 (sin superficie
-> visual nueva; decisiones firmadas 🧑‍⚖️ 2026-07-22) — **AS-BUILT**. Tramo B (CH-D2/D3/D4) se
-> especifica DESPUÉS de la firma del mockup (Gate 1, `mockups/arnesia-chat-dock-ux.html`).
+> `tipo: spec` · paquete `2026-07-22-chat-dock-ux`. Tramo A = CH-D1/D5/D6 (decisiones
+> firmadas 🧑‍⚖️ 2026-07-22) · Tramo B = CH-D2/D3/D4+D4b (Gate 1 del mockup firmado 🧑‍⚖️
+> «firmo, implementa» mismo día). Ambos AS-BUILT y verificados E2E vivo.
 
 ## CH-D1 — composer auto-grow hasta 3 líneas ✅
 
@@ -42,9 +42,36 @@
 - **Test**: `TestControlRequestSobrePaqueteCerradoSeDeniegaSinTarjeta` (RED→GREEN) — deny
   sin await + un grant vigente de `Edit` NO abre el paquete. Suite Go + fitness verdes.
 
-## Tramo B (pendiente de Gate 1)
+## Tramo B — actividad visible + burbuja por paso + markdown ✅ (CAP-100)
 
-CH-D2 (frames de actividad: el daemon deja de descartar thinking/tool_use en
-`conductor.go:515-520` y el FE pinta tarjeta desplegable) · CH-D3 (cortar burbuja por
-boundary de actividad en `session_service.go` y `sessions-store.ts`) · CH-D4 (renderer
-markdown — dependencia nueva a elegir en esta spec cuando se firme el mockup).
+- **CH-D2 (actividad):** el conductor deja de descartar thinking/tool_use —
+  `assistantEvents` (`conductor.go`) desarma cada mensaje assistant EN ORDEN de bloques:
+  thinking → `EventActivity{Tool:"thinking"}` (jamás su contenido), texto contiguo → UN
+  `EventMessage`, tool_use → `EventActivity{Tool, blanco(input)}` (blanco legible:
+  file_path/command/… recortado a 80 runas). Kind nuevo `EventActivity` en `ports/agent.go`;
+  `translate` pasa a devolver slice (un frame puede emitir varios eventos). En `consume()`
+  cada actividad persiste como `Turn{RolAct}` («`<tool> <blanco>`», rol nuevo en dominio) +
+  frame SSE `act`. El FE agrupa RolAct consecutivos en `ActivityCard` (`<details>` nativo):
+  viva = abierta mostrando «trabajando — <Tool> <blanco>» con pulso; cerrada = «N pasos»,
+  chevron despliega los pasos en mono con ✓/⟳.
+- **CH-D3 (burbuja por paso):** `EventMessage` CIERRA burbuja — appendea
+  `Turn{RolAssistant}` + frame `message`, resetea el buffer; el `result` solo appendea
+  remanente o fallback (`msgFlushed` en runtime y store: un turno sin messages conserva el
+  comportamiento previo). El FE espeja idéntico (`sessions-store.ts` cases message/act/result).
+- **CH-D4/D4b (markdown con cariño):** deps `react-markdown` + `remark-gfm` +
+  `rehype-highlight`; componente `Md` (`chat-dock/ui/markdown.tsx`): inline-code que parece
+  RUTA → **chip de archivo clickeable que copia** (glifo ⧉ → ✓); bloque de código →
+  **rótulo de lenguaje + botón copiar**; sintaxis coloreada SOLO con tokens vigentes
+  (`chat.css`, sin theme externo). Burbujas assistant y stream vivo renderizan igual.
+- **Regresión cazada EN VIVO y reparada:** `contentText` se comparte entre parsear frames y
+  MANDAR el turno user por stdin — los campos nuevos sin `omitempty` viajaron dentro de un
+  bloque text → API 400 «Extra inputs are not permitted». Fix `omitempty` + test de wire
+  (`TestUserTurnWireSinCamposExtra`); el historial CC de vitalia quedó envenenado un turno y
+  se curó a mano (backup `.bak-chdockux`).
+- **Verificación:** TDD RED→GREEN (`TestAssistantSeDesarmaEnBurbujasYActividad` ·
+  `TestTurnoSeParteEnBurbujasPorActividad` · `TestResultSinMensajesConservaFallback`) +
+  suite Go + fitness + verify FE verdes + **E2E vivo con claude real contra vitalia**: turno
+  partido en 2 burbujas + 2 tarjetas (pensó · Bash), tabla/lista/bash renderizados, chips ⧉
+  copiables, ctx 16 % real.
+- **Desviación honesta vs mockup:** la tarjeta no muestra duración en segundos (solo
+  «N pasos») — cosmético; se agrega si el operador lo pide en PARIDAD.

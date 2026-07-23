@@ -47,7 +47,7 @@ type EventPublisher interface {
 type dockFrame struct {
 	SessionID       string          `json:"session_id"`
 	RunID           string          `json:"run_id,omitempty"`
-	Kind            string          `json:"kind"` // status|init|delta|message|result|error|permission|permission_result
+	Kind            string          `json:"kind"` // status|init|delta|message|act|result|error|permission|permission_result
 	Text            string          `json:"text,omitempty"`
 	Status          string          `json:"status,omitempty"`
 	CtxPct          int             `json:"ctx_pct,omitempty"`
@@ -93,6 +93,10 @@ type sessionRuntime struct {
 	// the ephemeral grants already approved (least temporal privilege — they expire).
 	pendingPerm map[string]pendingPermission // request_id → pending ask.
 	grants      map[string]domain.Grant      // tool → live grant.
+
+	// CH-D3: algún EventMessage ya cerró burbuja este turno → el result no re-arma el
+	// texto desde su propio campo (duplicaría lo flusheado).
+	msgFlushed bool
 
 	// cwd real del conductor (resuelto al spawn) — insumo del reindex-tras-turno (RF-184).
 	cwd string
@@ -473,11 +477,16 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 			var reindex Reindexer
 			var reindexArnes, reindexCwd string
 			if r := s.rt[id]; r != nil && r.live == live {
+				// CH-D3: los EventMessage ya cerraron sus burbujas; acá solo cae el
+				// remanente (deltas sin message — p. ej. resume viejo) o el fallback.
 				final := strings.TrimSpace(r.assembling.String())
-				if final == "" {
+				if final == "" && !r.msgFlushed {
 					final = ev.Text
 				}
-				r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAssistant, Text: final})
+				if final != "" {
+					r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAssistant, Text: final})
+				}
+				r.msgFlushed = false
 				r.meta.Status = domain.StatusIdle
 				if ev.CtxPct > 0 {
 					r.meta.CtxPct = ev.CtxPct
@@ -526,8 +535,39 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 			s.onControlRequest(id, live, ev)
 
 		case ports.EventMessage:
-			// Full assistant message: ignored when deltas already assembled the text;
-			// kept for protocol completeness (tool-only turns emit no text deltas).
+			// CH-D3: cada mensaje assistant completo CIERRA su burbuja — el texto (ya
+			// streameado por deltas) se congela como Turn propio y el buffer se resetea;
+			// el result del turno ya no lo re-arma.
+			txt := strings.TrimSpace(ev.Text)
+			s.mu.Lock()
+			runID := ""
+			if r := s.rt[id]; r != nil && r.live == live {
+				runID = r.curRun
+				r.assembling.Reset()
+				if txt != "" {
+					r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAssistant, Text: txt})
+					r.msgFlushed = true
+					s.persistLocked()
+				}
+			}
+			s.mu.Unlock()
+			if txt != "" {
+				s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "message", Text: txt, Status: string(domain.StatusStreaming)})
+			}
+
+		case ports.EventActivity:
+			// CH-D2: paso visible del turno — rastro RolAct persistido (el FE agrupa
+			// consecutivos en la tarjeta desplegable) + frame `act` en vivo.
+			paso := strings.TrimSpace(ev.Tool + " " + ev.Text)
+			s.mu.Lock()
+			runID := ""
+			if r := s.rt[id]; r != nil && r.live == live {
+				runID = r.curRun
+				r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAct, Text: paso})
+				s.persistLocked()
+			}
+			s.mu.Unlock()
+			s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "act", Tool: ev.Tool, Text: ev.Text, Status: string(domain.StatusStreaming)})
 		}
 	}
 

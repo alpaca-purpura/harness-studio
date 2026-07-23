@@ -4,7 +4,9 @@
 
 export type SessionStatus = "streaming" | "await" | "idle"
 export type Salud = "ok" | "warn" | "crit" | "info"
-export type Rol = "user" | "assistant" | "sys"
+// "act" es un paso de actividad del turno (CH-D2/D3): texto "<tool> <blanco>"; el dock
+// agrupa consecutivos en una tarjeta desplegable, jamás como burbuja.
+export type Rol = "user" | "assistant" | "sys" | "act"
 
 export interface Turn {
   rol: Rol
@@ -71,6 +73,7 @@ export interface DockFrame {
     | "init"
     | "delta"
     | "message"
+    | "act"
     | "result"
     | "error"
     | "permission"

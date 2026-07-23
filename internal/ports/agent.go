@@ -25,6 +25,9 @@ const (
 	// EventMessage — a complete assistant message (Text); a fallback when partial
 	// deltas were not requested/emitted.
 	EventMessage AgentEventKind = "message"
+	// EventActivity — un paso visible del turno (CH-D2): Tool es la herramienta en curso
+	// («thinking» = razonamiento, sin contenido) y Text el blanco legible (path/comando).
+	EventActivity AgentEventKind = "activity"
 	// EventResult — the turn finished. CtxPct carries context-window usage (0–100).
 	EventResult AgentEventKind = "result"
 	// EventError — the conductor failed (Text is the reason).

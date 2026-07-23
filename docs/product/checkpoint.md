@@ -12,11 +12,13 @@ Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-
 
 ## Paquete de trabajo activo
 
-- **Chat dock · legibilidad y ergonomía (2026-07-22) — decisiones capturadas, Gate 1 pendiente.**
-  6 quejas del operador sobre el espacio de conversación (composer 3 líneas · actividad visible
-  estilo Cursor · burbuja por paso · markdown renderizado · dock redimensionable · guardrail
-  paquete-cerrado). Paquete [`stories/2026-07-22-chat-dock-ux/`](stories/2026-07-22-chat-dock-ux/INDEX.md)
-  (CH-D1..D6). Ver «Retomar aquí» del paquete.
+- **Chat dock · legibilidad y ergonomía (2026-07-22) — IMPLEMENTADO COMPLETO, PARIDAD 🧑‍⚖️ pendiente.**
+  Las 6 quejas del operador construidas y verificadas E2E vivo (claude real contra vitalia):
+  composer 3 líneas · dock redimensionable · gate paquete-cerrado (CAP-99) · actividad
+  desplegable estilo Cursor · burbuja por paso · markdown con chips/copiar/sintaxis (CAP-100).
+  Gate 1 del mockup firmado mismo día. Paquete
+  [`stories/2026-07-22-chat-dock-ux/`](stories/2026-07-22-chat-dock-ux/INDEX.md) (CH-D1..D6+D4b).
+  Falta SOLO el click-through de PARIDAD. Ver «Retomar aquí» del paquete.
 - **Programa «Portafolio · ciclo de vida del arnés» — modelo FIRMADO 🧑‍⚖️ (HS-22); Slice 0
   FIRMADO 🧑‍⚖️ (HS-23); Slice 1 «FE» FIRMADO 🧑‍⚖️ (HS-25); Slice 2 «sello/Identificar» FIRMADO 🧑‍⚖️ (HS-25).**
   El spike de CARGA se reencuadró en el front-door del ciclo de vida (agregar de marketplace/proyecto · observar · mejorar ·
@@ -72,7 +74,7 @@ Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-
 - **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-22
 - **arch/:** 18 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 99 — 56 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 100 — 57 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):

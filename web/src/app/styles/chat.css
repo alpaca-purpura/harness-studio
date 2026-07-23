@@ -1,0 +1,195 @@
+/* Markdown renderizado dentro de las burbujas assistant del chat (CH-D4, paquete
+   chat-dock-ux). Colores SOLO vía tokens (fe-tokens-contrato); escala contenida al cuerpo
+   del chat (text-xs). El fondo de código usa --card: contrasta con la burbuja
+   (--secondary) en ambos temas. */
+
+.md > :first-child {
+	margin-top: 0;
+}
+.md > :last-child {
+	margin-bottom: 0;
+}
+.md p {
+	margin: 6px 0;
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+	margin: 10px 0 4px;
+	line-height: 1.25;
+}
+.md h1 {
+	font-size: 14px;
+}
+.md h2 {
+	font-size: 13px;
+}
+.md h3,
+.md h4 {
+	font-size: 12px;
+}
+.md ul,
+.md ol {
+	margin: 6px 0;
+	padding-left: 18px;
+}
+.md li {
+	margin: 2px 0;
+}
+.md code {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	background-color: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	padding: 0 4px;
+}
+.md pre {
+	background-color: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	padding: 8px 10px;
+	overflow-x: auto;
+	margin: 8px 0;
+}
+.md pre code {
+	background-color: transparent;
+	border: none;
+	padding: 0;
+	line-height: 1.6;
+}
+.md a {
+	color: var(--primary);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.md table {
+	border-collapse: collapse;
+	margin: 8px 0;
+	display: block;
+	overflow-x: auto;
+}
+.md th,
+.md td {
+	border: 1px solid var(--border);
+	padding: 3px 8px;
+	text-align: left;
+}
+.md th {
+	background-color: var(--card);
+}
+.md blockquote {
+	border-left: 2px solid var(--primary);
+	margin: 6px 0;
+	padding: 0 0 0 10px;
+	color: var(--muted-foreground);
+}
+.md hr {
+	border: none;
+	border-top: 1px dashed var(--border);
+	margin: 10px 0;
+}
+.md img {
+	max-width: 100%;
+}
+
+/* CH-D4b: chip de archivo — inline-code que parece ruta; click = copiar (feedback ✓). */
+.md .md-file {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 4px;
+	max-width: 100%;
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	background-color: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	padding: 0 5px;
+	color: var(--primary);
+	cursor: pointer;
+	overflow-wrap: anywhere;
+	text-align: left;
+}
+.md .md-file:hover {
+	border-color: var(--primary);
+	background-color: var(--accent-soft);
+}
+
+/* CH-D4b: bloque de código con rótulo de lenguaje + botón copiar. */
+.md .md-pre {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	margin: 8px 0;
+	overflow: hidden;
+}
+.md .md-pre-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 2px 8px;
+	background-color: var(--secondary);
+	border-bottom: 1px solid var(--border);
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	color: var(--muted-foreground);
+}
+.md .md-pre-head button {
+	border: none;
+	background-color: transparent;
+	color: var(--muted-foreground);
+	font: inherit;
+	cursor: pointer;
+	padding: 1px 4px;
+	border-radius: var(--radius-sm);
+}
+.md .md-pre-head button:hover {
+	color: var(--foreground);
+	background-color: var(--card);
+}
+.md .md-pre pre {
+	border: none;
+	border-radius: 0;
+	margin: 0;
+}
+
+/* CH-D4b: sintaxis (rehype-highlight) con la paleta vigente — sin theme externo. */
+.md .hljs-comment,
+.md .hljs-quote {
+	color: var(--muted-foreground);
+	font-style: italic;
+}
+.md .hljs-keyword,
+.md .hljs-selector-tag,
+.md .hljs-section {
+	color: var(--c-agent);
+}
+.md .hljs-string,
+.md .hljs-addition {
+	color: var(--ok);
+}
+.md .hljs-number,
+.md .hljs-literal,
+.md .hljs-deletion {
+	color: var(--warn);
+}
+.md .hljs-title,
+.md .hljs-name,
+.md .hljs-function {
+	color: var(--c-skill);
+}
+.md .hljs-attr,
+.md .hljs-attribute,
+.md .hljs-variable,
+.md .hljs-template-variable {
+	color: var(--c-command);
+}
+.md .hljs-built_in,
+.md .hljs-type,
+.md .hljs-class {
+	color: var(--c-knowledge);
+}
+.md .hljs-meta,
+.md .hljs-symbol {
+	color: var(--c-plugin);
+}

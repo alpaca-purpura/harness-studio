@@ -1,0 +1,41 @@
+---
+# Capability nueva (paquete 2026-07-22-chat-dock-ux, CH-D2/D3/D4).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-chat.conversacion-legible
+cap_num: CAP-100
+slug: conversacion-legible
+name: "Conversación legible: actividad visible · burbuja por paso · markdown"
+status: vivo          # GENERADO (R4) — no teclear
+module: fe-chat
+verb: observar
+pointers:
+  - "internal/adapters/agent/claudecode/conductor.go#assistantEvents"
+  - "internal/usecase/session_service.go#consume"
+  - "web/src/widgets/chat-dock/ui/chat-dock.tsx#ActivityCard"
+  - "web/src/widgets/chat-dock/ui/markdown.tsx#Md"
+valida:
+  - "TestAssistantSeDesarmaEnBurbujasYActividad"
+  - "TestTurnoSeParteEnBurbujasPorActividad"
+  - "TestResultSinMensajesConservaFallback"
+  - "TestUserTurnWireSinCamposExtra"
+scenarios: []
+business_rules:
+  - "El thinking aflora solo como paso («pensó»), jamás su contenido."
+  - "Un turno sin EventMessage conserva el fallback previo: el result arma la única burbuja."
+related_capabilities:
+  depends_on:
+    - arnesia.fe-chat.chat-cc
+    - arnesia.usecases.dock-conversacion-en-vivo-multisesion
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-chat-dock-ux/spec.md (CH-D2/D3/D4)"
+---
+
+# Conversación legible: actividad visible · burbuja por paso · markdown
+
+El turno del chat se ve como es: cada mensaje assistant cierra SU burbuja (CH-D3, frames
+`message`), la actividad (thinking/tool_use — antes descartada en el conductor) aflora como
+pasos `RolAct` que el dock agrupa en una tarjeta desplegable estilo Cursor (CH-D2, frames
+`act`: viva muestra la herramienta en curso, cerrada resume «N pasos»), y el texto se
+renderiza como markdown (CH-D4/D4b: GFM, chips de archivo clickeables que copian la ruta,
+bloques de código con rótulo + copiar y sintaxis coloreada con los tokens vigentes).
+Persistido en Conv → el historial rehidrata idéntico. Verificado E2E vivo contra vitalia.

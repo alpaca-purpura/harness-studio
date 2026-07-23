@@ -51,6 +51,9 @@ const (
 	RolUser      Rol = "user"
 	RolAssistant Rol = "assistant"
 	RolSys       Rol = "sys"
+	// RolAct — un paso de actividad del turno (CH-D2/D3), texto "<tool> <blanco>"; el FE
+	// agrupa consecutivos en una tarjeta desplegable, jamás como burbuja de texto.
+	RolAct Rol = "act"
 )
 
 // Turn is one entry of a session's lightweight transcript. It is NOT the source of

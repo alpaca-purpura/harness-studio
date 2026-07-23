@@ -42,6 +42,9 @@ interface SessionsState {
   scope: Record<string, ScopeNode | null>
   // wroteInRun[id] = el turno en vuelo aprobó ≥1 escritura ⇒ al result corre el gate (RF-117).
   wroteInRun: Record<string, boolean>
+  // msgFlushed[id] = algún frame `message` ya cerró burbuja este turno (CH-D3) ⇒ el
+  // result no re-arma el texto desde su propio campo (duplicaría).
+  msgFlushed: Record<string, boolean>
 
   init: () => Promise<void>
   switchTo: (id: string) => void
@@ -76,7 +79,7 @@ function patch(list: Session[], id: string, fn: (s: Session) => Session): Sessio
 function appendConv(
   list: Session[],
   id: string,
-  rol: "user" | "assistant" | "sys",
+  rol: "user" | "assistant" | "sys" | "act",
   text: string,
 ): Session[] {
   return patch(list, id, (s) => ({ ...s, conv: [...(s.conv ?? []), { rol, text }] }))
@@ -90,6 +93,7 @@ export const useSessions = create<SessionsState>((set, get) => ({
   connected: false,
   loaded: false,
   streaming: {},
+  msgFlushed: {},
   finalizedRun: {},
   pendingPerms: {},
   scope: {},
@@ -296,20 +300,28 @@ export const useSessions = create<SessionsState>((set, get) => ({
         const wrote = get().wroteInRun[id] === true
         const arnes = get().sessions.find((s) => s.id === id)?.arnes
         set((st) => {
-          const finalText = (st.streaming[id] ?? "").trim() || (f.text ?? "")
+          // CH-D3: los frames `message` ya cerraron sus burbujas; acá solo cae el
+          // remanente del stream, o el fallback de un turno sin messages.
+          let finalText = (st.streaming[id] ?? "").trim()
+          if (!finalText && !st.msgFlushed[id]) finalText = f.text ?? ""
           const rest = { ...st.streaming }
           delete rest[id]
           const wroteRest = { ...st.wroteInRun }
           delete wroteRest[id]
+          const flushedRest = { ...st.msgFlushed }
+          delete flushedRest[id]
           return {
             streaming: rest,
             wroteInRun: wroteRest,
+            msgFlushed: flushedRest,
             finalizedRun: f.run_id ? { ...st.finalizedRun, [id]: f.run_id } : st.finalizedRun,
             sessions: patch(st.sessions, id, (s) => ({
               ...s,
               status: "idle",
               ctx_pct: f.ctx_pct && f.ctx_pct > 0 ? f.ctx_pct : s.ctx_pct,
-              conv: [...(s.conv ?? []), { rol: "assistant", text: finalText }],
+              conv: finalText
+                ? [...(s.conv ?? []), { rol: "assistant", text: finalText }]
+                : (s.conv ?? []),
             })),
           }
         })
@@ -415,7 +427,32 @@ export const useSessions = create<SessionsState>((set, get) => ({
         break
 
       case "message":
-        // Full assistant message: superseded by delta assembly; ignored here.
+        // CH-D3: el daemon cerró una burbuja — congelarla como turno y vaciar el
+        // stream vivo (los próximos deltas abren burbuja nueva).
+        if (f.text) {
+          set((st) => {
+            const rest = { ...st.streaming }
+            delete rest[id]
+            return {
+              streaming: rest,
+              msgFlushed: { ...st.msgFlushed, [id]: true },
+              sessions: appendConv(st.sessions, id, "assistant", f.text ?? ""),
+            }
+          })
+        }
+        break
+
+      case "act":
+        // CH-D2: paso de actividad — rastro `act` en el transcript; el ChatDock agrupa
+        // consecutivos en la tarjeta desplegable.
+        set((st) => ({
+          sessions: appendConv(
+            patch(st.sessions, id, (s) => ({ ...s, status: f.status ?? "streaming" })),
+            id,
+            "act",
+            `${f.tool ?? ""} ${f.text ?? ""}`.trim(),
+          ),
+        }))
         break
     }
   },
