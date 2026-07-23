@@ -81,7 +81,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))
-	mux.HandleFunc("POST /api/sessions", createSession(sessions, arneses))
+	mux.HandleFunc("POST /api/sessions", createSession(sessions, arneses, onArnesRegistered))
 	mux.HandleFunc("GET /api/sessions/{id}", getSession(sessions))
 	mux.HandleFunc("PATCH /api/sessions/{id}", patchSession(sessions))
 	mux.HandleFunc("DELETE /api/sessions/{id}", deleteSession(sessions))

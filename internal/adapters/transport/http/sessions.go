@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -33,8 +34,13 @@ type createSessionBody struct {
 
 // createSession opens a new work-front. If a path is supplied it registers the arnés's
 // working directory first; a bad path fails the create (400) rather than opening a session
-// that would fall back to a scratch dir.
-func createSession(svc *usecase.SessionService, reg ports.ArnesRegistry) http.HandlerFunc {
+// that would fall back to a scratch dir. onRegistered (el mismo closure del composition
+// root que usa PUT /api/arneses) indexa el árbol registrado ANTES del primer spawn —
+// sin esto, roleFor no resuelve el rol del arnés en el primer turno y la sesión spawnea
+// sin flags de permisos (gap real destapado por el E2E de T4, paquete
+// mejorar-arnes-conversando). Best-effort: un árbol no indexable (carpeta cruda sin sello)
+// degrada honesto con warn — la sesión abre igual, como siempre.
+func createSession(svc *usecase.SessionService, reg ports.ArnesRegistry, onRegistered func(id, path string) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body createSessionBody
 		if err := decodeJSON(w, r, &body); err != nil {
@@ -44,6 +50,11 @@ func createSession(svc *usecase.SessionService, reg ports.ArnesRegistry) http.Ha
 			if err := reg.Register(body.Arnes, body.Path); err != nil {
 				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
 				return
+			}
+			if onRegistered != nil {
+				if err := onRegistered(body.Arnes, body.Path); err != nil {
+					slog.Warn("createSession: árbol registrado no indexable aún", "arnes", body.Arnes, "err", err)
+				}
 			}
 		}
 		sess, err := svc.Create(domain.Session{

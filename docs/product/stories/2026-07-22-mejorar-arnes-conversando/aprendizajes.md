@@ -101,3 +101,35 @@
   binario instalado). El FE dev en `:4200` sirve la SPA embebida del daemon o `pnpm dev`
   (verificar puerto). Sesión contra vitalia YA registrada en `~/.arnesia/arneses.json` (llave
   `vitalia`). Evidencia a `PARIDAD.md`.
+
+## T4 · E2E vivo Vitalia (RF-188) — CERRADO ✅ (evidencia completa en PARIDAD.md)
+
+- **Receta E2E reproducible:** daemon aislado
+  `arnesia serve -addr 127.0.0.1:4213 -sessions <scratch>/sessions.json -arneses <scratch>/arneses.json`;
+  SSE con `curl -sN /events > sse.log`; sesión `POST /api/sessions {arnes, frente, path, view}`;
+  turno `POST /api/sessions/{id}/turn {text}`; tarjetas: frames `kind:permission` en sse.log →
+  `POST /api/sessions/{id}/permission {request_id, decision:"allow"}` (aprobador
+  `scratchpad/e2e/aprobador.py`). Sin token en dev (Host+Origin only) — curl pasa.
+- **3 bugs reales destapados por la corrida** (ninguno visible en tests unitarios):
+  1. **`createSession` no indexaba** el path registrado → `roleFor` (consulta el índice) devolvía
+     "" al primer spawn → SIN flags de permisos → Write denegado SIN tarjeta (Claude termina el
+     turno pidiendo aprobación a nadie). Fix: `onRegistered` (el `loadArnesDir` del composition
+     root) llamado en `createSession`, best-effort. Test `TestCreateSessionIndexaAlRegistrar`.
+  2. **Un arnés sin `rol` en el sello NO puede escribir por chat** (policy deny-by-default) —
+     parte de la reparación de Vitalia fue sellarle
+     `rol: "Ingeniería · Desarrollo full-cycle"` (uno de los 3 roles de la policy spike:
+     backend-dev · Ingeniería · Desarrollo full-cycle · reviewer). Grounding T10 debería DECIR el
+     rol en la tarjeta.
+  3. **`ctxPct` ROTO para Fork C:** suma usage ACUMULADO del turno (cache_read re-contado por
+     tool-call) → 100 % en un turno con ~10 tool-calls. T7 debe leer el usage del ÚLTIMO API call
+     (frames assistant traen `message.usage` — extender `assistantMsg`) y recién ahí armar el
+     umbral. `defaultContextWindow=200k`; el model real fue `claude-opus-4-8[1m]` (ventana 1M) —
+     verificar la resolución de ventana por `modelUsage[f.Model]` (posible mismatch de llave).
+- **Continuidad probada:** daemon reiniciado a mitad de conversación → `--resume` retomó la misma
+  sesión y Claude completó lo que había dejado pendiente («staged» el SKILL.md en su contexto).
+- **Para el siguiente (T10):** la tarjeta de identidad tiene de dónde salir:
+  `PortafolioService.Listar` → match de cwd contra `entrada.Canonico.Path` /
+  `Instalaciones[].InstallPath` (usar `canonicalPathPortafolio` para comparar). Incluir el ROL del
+  sello en la tarjeta (aprendizaje 2). `Injection.SystemPromptFile` hoy apunta al doctrine.md
+  compartido; plan: `ProvisionSession(ctx, sessionID, tarjeta)` en el provisioner que escribe
+  `~/.arnesia/sessions/<id>/system.md` = doctrine + tarjeta.
