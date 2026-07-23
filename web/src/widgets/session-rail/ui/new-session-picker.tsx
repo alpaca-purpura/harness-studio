@@ -12,6 +12,7 @@ import {
   TipoInstalacionChip,
 } from "@/entities/portafolio"
 import { cn } from "@/shared/lib/cn"
+import { useConversaciones } from "../model/conversaciones-store"
 import type { PickerEstado } from "../model/portafolio-picker-store"
 
 // NewSessionPicker — el selector de arnés al abrir sesión (RF-5..17, TS-D6..D16). Props PURAS:
@@ -104,6 +105,8 @@ export function NewSessionPicker({
     setSeleccionada(e.clave)
     // 1 copia → ruta resuelta ya; 2+ → hay que elegir cuál (sub-lista) antes de habilitar Crear.
     setCopiaPath(copias.length === 1 ? (copias[0]?.path ?? null) : null)
+    // Historial B2 (RF-203): las conversaciones pasadas de este arnés, junto al selector.
+    void useConversaciones.getState().cargar(identificadorDe(e.identidad))
   }
 
   const crear = () => {
@@ -224,6 +227,8 @@ export function NewSessionPicker({
             </p>
           )}
 
+          {seleccionada && <ConversacionesDelArnes />}
+
           <div className="mt-auto flex flex-none justify-end gap-2 pt-1.5">
             <button
               type="button"
@@ -243,6 +248,55 @@ export function NewSessionPicker({
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+// ConversacionesDelArnes (RF-203, historial B2): vivas + cerradas del arnés seleccionado.
+// Una cerrada se expande a sus turnos reconstruidos desde la JSONL nativa; las JSONL ya
+// ausentes se DICEN (`faltantes`), jamás se finge un historial completo.
+function ConversacionesDelArnes() {
+  const { vivas, cerradas, error, historialDe, turnos, faltantes, abrirHistorial } =
+    useConversaciones()
+  if (error === undefined && vivas.length === 0 && cerradas.length === 0) return null
+  return (
+    <div className="flex max-h-44 flex-none flex-col gap-1 overflow-y-auto rounded-md border border-border p-2 text-[10px]">
+      <span className="font-bold text-muted-foreground">
+        Conversaciones: {vivas.length} abierta{vivas.length === 1 ? "" : "s"} · {cerradas.length}{" "}
+        cerrada{cerradas.length === 1 ? "" : "s"}
+      </span>
+      {error !== undefined && <span className="text-warn">historial de cerradas: {error}</span>}
+      {cerradas.map((c) => (
+        <div key={c.id} className="flex flex-col">
+          <button
+            type="button"
+            onClick={() => void abrirHistorial(c.id)}
+            className="flex items-center gap-1.5 rounded px-1 py-px text-left font-mono text-muted-foreground hover:bg-secondary"
+          >
+            <span className="truncate">{c.frente}</span>
+            {c.cerrada_en && <span className="flex-none">{c.cerrada_en.slice(0, 10)}</span>}
+            {typeof c.turnos === "number" && c.turnos > 0 && (
+              <span className="flex-none">· {c.turnos} turnos</span>
+            )}
+          </button>
+          {historialDe === c.id && (
+            <div className="ml-2 flex max-h-24 flex-col gap-0.5 overflow-y-auto border-l border-border pl-2">
+              {faltantes.length > 0 && (
+                <span className="text-warn">
+                  {faltantes.length} tramo(s) ya no están en disco — historial parcial
+                </span>
+              )}
+              {turnos.length === 0 && faltantes.length === 0 && <span>cargando…</span>}
+              {turnos.map((t, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: transcript estático, orden estable.
+                <span key={i} className="truncate">
+                  <b>[{t.rol}]</b> {t.text}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }

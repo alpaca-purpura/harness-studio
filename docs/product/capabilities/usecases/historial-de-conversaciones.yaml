@@ -1,0 +1,38 @@
+---
+# Capability nueva (paquete 2026-07-22-mejorar-arnes-conversando, RF-200..RF-203).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.historial-de-conversaciones
+cap_num: CAP-98
+slug: historial-de-conversaciones
+name: "Historial de conversaciones por arnés (B2: JSONL nativa = verdad)"
+status: vivo          # GENERADO (R4) — no teclear
+module: usecases
+verb: observar
+pointers:
+  - "internal/usecase/session_historial.go"
+  - "internal/adapters/history/reader.go"
+  - "web/src/widgets/session-rail/model/conversaciones-store.ts"
+  - "web/src/widgets/session-rail/model/conversaciones-store.test.ts"
+valida:
+  - "TestCloseArchivaMetadata"
+  - "TestHistorialCerradaCoseCadena"
+  - "TestTurnosLeeCorpus"
+  - "TestDirParaCwd"
+  - "conversaciones-store.test.ts"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on:
+    - arnesia.usecases.rotacion-de-contexto
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-200..RF-203)"
+---
+
+# Historial de conversaciones por arnés (B2)
+
+`Close()` archiva la metadata liviana (cadena de `ClaudeSessionID`s, cwd, fechas, cantidad de
+turnos — sin `Conv`: la JSONL nativa es la verdad) en `~/.arnesia/sesiones-cerradas.json`. El
+lector `history.Reader` camina `~/.claude/projects/<dir-del-cwd>/` y reconstruye los turnos de
+una cerrada cosiendo su cadena (rotación ⇒ N JSONLs); las JSONL ausentes viajan en `faltantes`.
+Endpoints: `GET /api/sessions?arnes=&cerradas=1` + `GET /api/sessions/cerradas/{id}/historial`.
+FE: sección «Conversaciones» del picker (vivas + cerradas, con expand del transcript).

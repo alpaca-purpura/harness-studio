@@ -111,6 +111,15 @@ type Session struct {
 	// fresco vía el system-prompt por sesión. Persistido: sobrevive reinicios del daemon.
 	Checkpoint string `json:"checkpoint,omitempty"`
 
+	// Cwd es el directorio real del conductor (estampado al spawn) — el join hacia el
+	// corpus JSONL nativo (~/.claude/projects/<dir-del-cwd>/) que el historial B2 lee.
+	Cwd string `json:"cwd,omitempty"`
+
+	// CerradaEn (RFC3339) + Turnos: metadata de archivo de una sesión CERRADA (RF-200) —
+	// solo pobladas en el registro de cerradas, nunca en una sesión viva.
+	CerradaEn string `json:"cerrada_en,omitempty"`
+	Turnos    int    `json:"turnos,omitempty"`
+
 	// Conv is the lightweight replay transcript (see Turn).
 	Conv []Turn `json:"conv,omitempty"`
 }

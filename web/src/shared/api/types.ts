@@ -29,6 +29,10 @@ export interface Session {
   conv?: Turn[]
   // Sesión de reparación (RF-191, ley A4): abierta contra una instalación del Portafolio.
   reparacion?: boolean
+  // Metadata de archivo (RF-200, historial B2) — solo pobladas en sesiones CERRADAS.
+  cerrada_en?: string
+  turnos?: number
+  cadena_cc?: string[]
 }
 
 // NewSession is the create payload. path, when set, registers the arnés's working directory

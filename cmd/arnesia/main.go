@@ -25,6 +25,7 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/artifact"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
+	"github.com/alpacapurpura/arnesia/internal/adapters/history"
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
@@ -263,6 +264,18 @@ func runServe(args []string) error {
 	})
 	// Rotación de contexto invisible (RF-195): umbral configurable, default 40 %.
 	sessionSvc.SetUmbralRotacion(*rotUmbral)
+	// Historial B2 (RF-200/201): Close archiva metadata (no borra el rastro) y el lector
+	// JSONL nativo reconstruye conversaciones cerradas. Fallos degradan honesto con warn.
+	if cerradasStore, cerr := store.NewRegistry(cerradasPathDefault(*sessionsPath)); cerr != nil {
+		slog.Warn("historial: registro de cerradas no disponible", "err", cerr)
+	} else {
+		sessionSvc.SetArchivoCerradas(cerradasStore)
+	}
+	if hreader, herr := history.New(""); herr != nil {
+		slog.Warn("historial: lector JSONL no disponible", "err", herr)
+	} else {
+		sessionSvc.SetHistoryReader(hreader)
+	}
 	// Reindex-tras-turno (RF-184) + deriva honesta (RF-193): el Mapa refleja lo que el
 	// chat edita y el Portafolio nunca finge `al-hilo` tras una edición.
 	turnReindex := usecase.NewTurnReindexer(idx, loader.LoadArnes, brokerPublisher{broker})
@@ -553,4 +566,17 @@ func imprimirJSON(v any) error {
 	b = append(b, '\n')
 	_, err = os.Stdout.Write(b)
 	return err
+}
+
+// cerradasPathDefault deriva el archivo del registro de cerradas del de sesiones vivas:
+// mismo dir, nombre propio (default ~/.arnesia/sesiones-cerradas.json).
+func cerradasPathDefault(sessionsPath string) string {
+	if sessionsPath == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "" // NewRegistry("") resolverá (y fallará) honesto por su cuenta.
+		}
+		return filepath.Join(home, ".arnesia", "sesiones-cerradas.json")
+	}
+	return filepath.Join(filepath.Dir(sessionsPath), "sesiones-cerradas.json")
 }

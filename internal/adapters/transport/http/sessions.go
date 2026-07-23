@@ -12,10 +12,46 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
-// listSessions (S4) — the multisesión rail.
+// listSessions (S4) — the multisesión rail. Query params (RF-202, historial B2):
+// `?arnes=<id>` filtra por arnés; `?cerradas=1` suma la metadata de las sesiones cerradas
+// (sin Conv — la JSONL nativa es la verdad; el detalle vive en /sessions/cerradas/{id}/historial).
 func listSessions(svc *usecase.SessionService) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, svc.List())
+	return func(w http.ResponseWriter, r *http.Request) {
+		arnes := r.URL.Query().Get("arnes")
+		out := svc.List()
+		if arnes != "" {
+			filtradas := make([]domain.Session, 0, len(out))
+			for _, s := range out {
+				if s.Arnes == arnes {
+					filtradas = append(filtradas, s)
+				}
+			}
+			out = filtradas
+		}
+		if r.URL.Query().Get("cerradas") != "1" {
+			writeJSON(w, http.StatusOK, out)
+			return
+		}
+		cerradas, err := svc.Cerradas(r.Context(), arnes)
+		if err != nil {
+			// Honesto: las vivas viajan igual; el hueco de cerradas se DICE.
+			writeJSON(w, http.StatusOK, map[string]any{"sesiones": out, "cerradas_error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"sesiones": out, "cerradas": cerradas})
+	}
+}
+
+// historialCerrada (RF-202) reconstruye los turnos de una sesión cerrada desde las JSONL
+// nativas de su cadena. Las JSONL ya ausentes viajan en `faltantes` — jamás se inventa.
+func historialCerrada(svc *usecase.SessionService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		turnos, faltantes, err := svc.HistorialCerrada(r.Context(), r.PathValue("id"))
+		if err != nil {
+			writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"turnos": turnos, "faltantes": faltantes})
 	}
 }
 

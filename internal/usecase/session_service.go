@@ -113,6 +113,8 @@ type SessionService struct {
 	reindex   Reindexer                  // reindex del Mapa tras cada turno (RF-184); nil = sin reindex.
 	grounding GroundingSource            // tarjeta de identidad por sesión (RF-189); nil = doctrina compartida.
 	umbralRot int                        // % de contexto que marca rotación pendiente (RF-195); 0 = apagado.
+	cerradas  ports.SessionStore         // registro de sesiones cerradas (RF-200); nil = borrado seco.
+	historial HistoryReader              // lector del corpus JSONL nativo (RF-201); nil = sin historial.
 	baseCtx   context.Context
 	maxTurns  int
 }
@@ -260,6 +262,9 @@ func (s *SessionService) Close(id string) error {
 		return errNotFound(id)
 	}
 	live := r.live
+	// Archivar ANTES de borrar (RF-200): la metadata (cadena de ClaudeSessionIDs, cwd,
+	// fechas) es el join que el historial B2 necesita para leer las JSONL nativas.
+	s.archivarLocked(*r.meta)
 	delete(s.rt, id)
 	for i, oid := range s.order {
 		if oid == id {
@@ -392,6 +397,7 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 	}
 	r.live = live
 	r.cwd = cwd
+	r.meta.Cwd = cwd // persistido: el join del historial B2 (RF-200) sobrevive al cierre.
 	r.wasResume = resume != ""
 	r.sawInit = false
 	go s.consume(id, live)
