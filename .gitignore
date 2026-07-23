@@ -32,3 +32,6 @@ instaladores/
 
 # Config local del editor (vault Obsidian del operador)
 .obsidian/
+
+# Sesiones efímeras del MCP playwright (logs/snapshots de debug)
+.playwright-mcp/

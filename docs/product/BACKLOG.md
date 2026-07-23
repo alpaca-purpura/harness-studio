@@ -101,7 +101,9 @@
   `selectors.test.ts` · 4 capabilities `fe-portafolio/*` `vivo` (R4) · E2E vivo real.
   → [`stories/2026-07-13-portafolio-slice1-fe/paridad.md`](stories/2026-07-13-portafolio-slice1-fe/paridad.md)
 - [ ] **2. Agregar de marketplace → clonar + mejorar** — git url → **validar `marketplace.json`** → listar → elegir → checkout
-  `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1)
+  `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1). Paquete abierto
+  (sin mockup aún, 1 nota PENDIENTE-RESOLVER sobre reconciliación proyecto↔marketplace-de-origen) →
+  [`stories/2026-07-23-portafolio-agregar-marketplace/INDEX.md`](stories/2026-07-23-portafolio-agregar-marketplace/INDEX.md)
 - [ ] **3. Publicar** — pull/rebase → conformance-verde → bump semver → changelog obligatorio → push → **tag-tras-push** · `gate` · `bloqueo`(2)
 - [ ] **4. Update-check + notify** — versión vs último tag de `home` + changelog + **alias de rename** (no cegar el aviso) · `gate` · `bloqueo`(3)
 - [ ] **5. Reparar + Backport** — reparar overwrite SOLO dir privado (superficies compartidas = merge) + bloqueo si lock DevStudio +
