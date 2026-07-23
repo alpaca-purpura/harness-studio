@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -115,6 +117,7 @@ type SessionService struct {
 	umbralRot int                        // % de contexto que marca rotación pendiente (RF-195); 0 = apagado.
 	cerradas  ports.SessionStore         // registro de sesiones cerradas (RF-200); nil = borrado seco.
 	historial HistoryReader              // lector del corpus JSONL nativo (RF-201); nil = sin historial.
+	cerrado   []string                   // marcas del paquete propio (CH-D6); vacío = guardrail apagado.
 	baseCtx   context.Context
 	maxTurns  int
 }
@@ -137,6 +140,35 @@ func (s *SessionService) SetReindexer(r Reindexer) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.reindex = r
+}
+
+// ProtegerPaqueteCerrado cablea el árbol del paquete propio de arnesia (el kit embebido
+// materializado, CH-D6): desde ahí, cualquier control_request cuyo input lo mencione se
+// deniega en el gate — sin tarjeta, por encima de grants y del click humano. Se llama una
+// vez en el composition root; también registra la forma `~/…` para atrapar comandos Bash.
+func (s *SessionService) ProtegerPaqueteCerrado(dir string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.cerrado = []string{dir}
+	if home, err := os.UserHomeDir(); err == nil {
+		if rel, err := filepath.Rel(home, dir); err == nil && !strings.HasPrefix(rel, "..") {
+			s.cerrado = append(s.cerrado, "~/"+rel)
+		}
+	}
+}
+
+// refiereAlguno reporta si el input crudo de un tool_use menciona alguna marca.
+// ponytail: substring sobre el JSON crudo — blunt adrede (deny es el lado seguro y cubre
+// file_path/command/notebook de una); si un falso positivo molesta, el upgrade es parsear
+// el path por tool.
+func refiereAlguno(input []byte, marcas []string) bool {
+	in := string(input)
+	for _, m := range marcas {
+		if m != "" && strings.Contains(in, m) {
+			return true
+		}
+	}
+	return false
 }
 
 // NewSessionService loads the persisted registry and returns a ready service. baseCtx
@@ -567,6 +599,21 @@ func (s *SessionService) onControlRequest(id string, live ports.AgentSession, ev
 		return // stale process: nothing to answer against.
 	}
 	runID := r.curRun
+	// CH-D6: el paquete propio de arnesia es CERRADO — se deniega acá, ANTES del
+	// auto-allow por grant: ni un grant vigente ni el click humano lo abren.
+	if len(s.cerrado) > 0 && refiereAlguno(ev.Input, s.cerrado) {
+		s.mu.Unlock()
+		const motivo = "paquete cerrado: los arneses de arnesia no se modifican desde el chat"
+		if err := live.RespondControl(s.baseCtx, ev.RequestID, ports.ControlDecision{Message: motivo, ToolUseID: ev.ToolUseID}); err != nil {
+			slog.Error("session: denegar tool_use sobre el paquete cerrado", "session", id, "err", err)
+		}
+		s.publish(dockFrame{
+			SessionID: id, RunID: runID, Kind: "permission_result",
+			RequestID: ev.RequestID, Tool: ev.Tool,
+			Decision: string(domain.DecisionDeny), Text: motivo,
+		})
+		return
+	}
 	if g, ok := r.grants[ev.Tool]; ok && g.Vigente(now) {
 		autoAllow = true
 	} else {

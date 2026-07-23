@@ -47,6 +47,10 @@ func New(baseDir string, kitFS, doctrinaFS fs.FS) (*Provisioner, error) {
 	return &Provisioner{baseDir: baseDir, kitFS: kitFS, doctrinaFS: doctrinaFS}, nil
 }
 
+// BaseDir returns the root where the embedded kit materializes — the closed package the
+// permission gate protects (CH-D6).
+func (p *Provisioner) BaseDir() string { return p.baseDir }
+
 // Provision materializes (idempotent) and returns the Injection. La huella de todo el
 // contenido embebido gobierna el refresh: binario nuevo → doctrina nueva en disco.
 func (p *Provisioner) Provision(_ context.Context) (ports.Injection, error) {

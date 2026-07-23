@@ -161,11 +161,34 @@ function Bubble({ turn: t }: { turn: Turn }) {
   )
 }
 
+// fitComposer ajusta la altura al contenido; el tope son 3 líneas (max-h del textarea) y
+// de ahí scroll interno. Vacío NO se dimensiona: el placeholder envuelto inflaría
+// scrollHeight (WebKitGTK no soporta field-sizing:content → JS).
+function fitComposer(ta: HTMLTextAreaElement) {
+  ta.style.height = "auto"
+  if (ta.value) ta.style.height = `${ta.scrollHeight}px`
+}
+
 function Composer() {
   const sendTurn = useSessions((s) => s.sendTurn)
   const interrupt = useSessions((s) => s.interrupt)
   const active = useSessions(selectActive)
   const [value, setValue] = useState("")
+  const taRef = useRef<HTMLTextAreaElement>(null)
+
+  // CH-D1: auto-grow con el contenido (fitComposer); el ResizeObserver recalcula el
+  // wrap cuando el dock cambia de ancho (CH-D5).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: value es el trigger intencional; el body solo lee el ref.
+  useEffect(() => {
+    if (taRef.current) fitComposer(taRef.current)
+  }, [value])
+  useEffect(() => {
+    const ta = taRef.current
+    if (!ta) return
+    const ro = new ResizeObserver(() => fitComposer(ta))
+    ro.observe(ta)
+    return () => ro.disconnect()
+  }, [])
   // El turno está en vuelo mientras streaming O await (parked en un permiso): el server
   // responde 409 a un segundo turno en ambos — el composer lo refleja (RF-116).
   const busy = active?.status === "streaming" || active?.status === "await"
@@ -180,6 +203,7 @@ function Composer() {
   return (
     <div className="flex flex-none items-end gap-2 border-t border-border p-3">
       <textarea
+        ref={taRef}
         value={value}
         rows={1}
         placeholder={
@@ -196,7 +220,7 @@ function Composer() {
             submit()
           }
         }}
-        className="max-h-32 min-h-[36px] flex-1 resize-none rounded-lg border border-border bg-secondary px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+        className="max-h-[66px] min-h-[36px] flex-1 resize-none rounded-lg border border-border bg-secondary px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
       />
       {busy ? (
         <button

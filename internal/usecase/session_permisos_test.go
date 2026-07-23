@@ -174,6 +174,48 @@ func TestResolvePermissionUsesArnesRole(t *testing.T) {
 	}
 }
 
+// CH-D6 (paquete chat-dock-ux): los arneses de arnesia son paquete CERRADO — un
+// tool_use cuyo input referencia ese árbol se deniega en el gate, sin tarjeta, y por
+// encima de cualquier grant vigente.
+func TestControlRequestSobrePaqueteCerradoSeDeniegaSinTarjeta(t *testing.T) {
+	agent := &stubAgent{}
+	svc := newSvc(t, agent, func(context.Context, string) string { return "Ingeniería · Desarrollo full-cycle" })
+	cerrado := t.TempDir()
+	svc.ProtegerPaqueteCerrado(cerrado)
+	id := svc.List()[0].ID
+	if err := svc.Turn(id, "edita el kit"); err != nil {
+		t.Fatalf("turn: %v", err)
+	}
+	sess := agent.sessions[0]
+
+	// Escritura al paquete: deny inmediato, sin await (jamás tarjeta).
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-7", Tool: "Edit", Input: []byte(`{"file_path":"` + cerrado + `/kit/doctrine.md"}`), ToolUseID: "toolu_7"}
+	waitUntil(t, func() bool { _, r := sess.snapshot(); return len(r) == 1 })
+	_, responded := sess.snapshot()
+	if responded[0].Allow || !strings.Contains(responded[0].Message, "cerrado") {
+		t.Errorf("tool_use al paquete cerrado debía denegarse con motivo, got %+v", responded[0])
+	}
+	if s, _ := svc.Get(id); s.Status == domain.StatusAwait {
+		t.Error("el deny del paquete cerrado no debe parkear tarjeta (await)")
+	}
+
+	// Un grant vigente del MISMO tool no abre el paquete: el cierre gana al grant.
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-8", Tool: "Edit", Input: []byte(`{"file_path":"hooks/x.sh"}`), ToolUseID: "toolu_8"}
+	waitUntil(t, func() bool {
+		s, _ := svc.Get(id)
+		return s.Status == domain.StatusAwait
+	})
+	if _, err := svc.ResolvePermission(id, "cr-8", "allow", "", 0); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-9", Tool: "Edit", Input: []byte(`{"file_path":"` + cerrado + `/kit/skills/pm.md"}`), ToolUseID: "toolu_9"}
+	waitUntil(t, func() bool { _, r := sess.snapshot(); return len(r) == 3 })
+	_, responded = sess.snapshot()
+	if last := responded[2]; last.Allow {
+		t.Errorf("un grant vigente no puede abrir el paquete cerrado, got %+v", last)
+	}
+}
+
 // RF-116: Interrupt deniega los asks pendientes (con motivo) y manda el interrupt
 // in-band; la sesión no queda await.
 func TestInterruptDeniesPendingAndSignalsConductor(t *testing.T) {

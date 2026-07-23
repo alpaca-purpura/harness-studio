@@ -33,6 +33,7 @@
 
 | mockup | fecha (alta→últ) | rol | spec / paquete | estado |
 |---|---|---|---|---|
+| `arnesia-chat-dock-ux.html` | 2026-07-22 | Chat dock legible: tarjeta de actividad desplegable + burbuja por paso + markdown renderizado — superset estricto del dock vigente (header/sesión/Alcance/permiso/composer intactos) | `stories/2026-07-22-chat-dock-ux/` (CH-D2..D4; CH-D1/D5 ya construidos) | 🧑‍⚖️ **Gate 1 PENDIENTE** — propuesta |
 | `arnesia-shell-topbar-selector-arnes.html` | 2026-07-20 | Topbar sin empresa hardcodeada + selector de arnés al abrir sesión (lee el Portafolio real, empresas N:M, canónico/instalaciones, deriva) | `stories/2026-07-20-shell-topbar-selector-arnes/` (Gate 1 firmado 2026-07-20; `decisiones.md` TS-D1..D9) | 🧑‍⚖️ **Gate 1 firmado** — spec/build siguen |
 | `arnesia-mapa-baseline.html` | 2026-07-10 | **BASELINE** del Mapa (superficie completa) | este INDEX + `map-canvas.stories.tsx` | **✅ vigente** |
 | `arnesia-portafolio.html` | 2026-07-13→14 | Portafolio (front-door del ciclo de vida del arnés) — snapshot derivado | `stories/2026-07-13-portafolio-slice1-fe/` (SSoT = stories `portafolio-*` @`dfa82b5`) | ✅ **construido (Slice 1)** — SSoT = Storybook (`widgets/portafolio/ui/{portafolio-list,portafolio-drawer,portafolio-wizard}.stories.tsx` + `entities/portafolio/ui/chips.stories.tsx`, 25 stories con `play()`); snapshot `.html` corregido en sitio 2026-07-14 (T8, G1-G9) — gate humano 🧑‍⚖️ de `paridad.md` PENDIENTE |

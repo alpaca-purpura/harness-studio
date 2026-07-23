@@ -1,0 +1,36 @@
+---
+# Capability nueva (paquete 2026-07-22-chat-dock-ux, CH-D6).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.paquete-cerrado-en-el-gate
+cap_num: CAP-99
+slug: paquete-cerrado-en-el-gate
+name: "Paquete cerrado: el gate deniega el árbol propio de arnesia"
+status: vivo          # GENERADO (R4) — no teclear
+module: usecases
+verb: observar
+pointers:
+  - "internal/usecase/session_service.go#ProtegerPaqueteCerrado"
+  - "internal/usecase/session_service.go#refiereAlguno"
+  - "internal/adapters/provision/provisioner.go#BaseDir"
+valida:
+  - "TestControlRequestSobrePaqueteCerradoSeDeniegaSinTarjeta"
+scenarios: []
+business_rules:
+  - "El deny del paquete cerrado corre ANTES del auto-allow por grant y del click humano: nada lo abre desde el chat."
+related_capabilities:
+  depends_on:
+    - arnesia.usecases.gobierno-del-turno
+    - arnesia.provisioning.materializar-doctrina-kit-a-arnesia
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-chat-dock-ux/decisiones.md (CH-D6)"
+---
+
+# Paquete cerrado: el gate deniega el árbol propio de arnesia
+
+Los arneses de arnesia (kit embebido materializado en `~/.arnesia`) son paquete CERRADO: el
+composition root registra ese árbol (`ProtegerPaqueteCerrado(injector.BaseDir())`) y el gate de
+permisos (`onControlRequest`) deniega en el acto cualquier `control_request` cuyo input lo
+mencione — sin tarjeta al operador, por encima de grants vigentes y del click humano. El FE solo
+ve el rastro `permission_result` deny. Los tools read-only nunca pasan por el gate (van
+pre-aprobados), así que LEER el kit sigue posible; escribirlo, jamás. Origen: incidente
+2026-07-22 (el chat confundió arneses del operador con los propios).
