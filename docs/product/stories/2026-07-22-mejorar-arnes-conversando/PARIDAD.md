@@ -37,4 +37,31 @@
 tool-call), no la ocupación real de la ventana. El umbral de rotación (40 %) sobre esa métrica
 rotaría de inmediato. T7 corrige la métrica (usage del ÚLTIMO llamado) ANTES de historizar/disparar.
 
-## E2/E3/E4 — (se completa al cerrar cada etapa)
+## E2 — La sesión sabe qué arnés es
+
+| RF | Evidencia | Estado |
+|---|---|---|
+| RF-189 tarjeta por sesión | `TestTarjeta*` + `TestSpawnUsaTarjetaPorSesion` + `TestProvisionSessionEscribeTarjeta`; **E2E vivo:** `~/.arnesia/sessions/s6ade9dfb/system.md` real con doctrina+tarjeta | ✅ |
+| RF-190 loop A4 en la tarjeta | Solo con copia=instalación (`TestTarjetaInstalacionEsReparacion`); **E2E vivo:** Claude cerró su respuesta con «Causa diagnosticada: instalación (la skill se creó IN SITU…)» — el loop A4 operando SIN pedirlo en el turno | ✅ |
+| RF-191 picker rotula + payload | Hint «→ reparación» + `ArnesElegido.reparacion` → `Session.Reparacion` (verify verde) | ✅ (visual al gate) |
+| RF-192 chip en la card | `SessionCard` pinta chip `reparación` con tooltip A4 | ✅ (visual al gate) |
+| RF-193 deriva re-evaluada | `TestReevaluarDerivaTrasEdicion`; encadenada al reindexer en main | ✅ |
+
+## E3 — Conversación infinita (rotación)
+
+| RF | Evidencia | Estado |
+|---|---|---|
+| RF-194 ctxPct real + histórico | `TestCtxPctUsaUltimoUsage`; **E2E vivo:** turno con tool-calls dio **14 %** donde el código viejo daba 100 % espurio; `ctx_hist=[14,68]` | ✅ |
+| RF-195 umbral configurable | Flag `-rotacion-umbral` (default 40, 0 apaga); `TestCtxHistYUmbralRotacion`; **E2E vivo** con umbral 1 % | ✅ |
+| RF-196 checkpoint mecánico | `CheckpointMecanico` (últimos 6 turnos + instrucción, sin LLM); en `Session.Checkpoint` + `system.md` de la sesión (grep «Checkpoint de rotación» = 1) | ✅ |
+| RF-197 spawn fresco invisible | `TestRotacionInvisible` (spawn 2 SIN resume); **E2E vivo:** `claude_session_id` fd4632f8→3c67bca3, `Session.ID` intacto, y el proceso FRESCO respondió «la rule hipaa-lite respalda esa skill» — continuidad semántica pura por checkpoint | ✅ |
+| RF-198 breadcrumb + cadena | Conv real: `[user,assistant,user,assistant,user,assistant,sys,user,assistant]` + `cadena_cc=[fd4632f8]` | ✅ |
+| RF-199 E2E rotación | Corrida completa 2026-07-22 (arriba) — el usuario ve UNA conversación | ✅ |
+
+**Desviación honesta (RF-196):** el checkpoint mecánico V1 lleva últimos-N-turnos + instrucción;
+el «delta del grafo desde la última rotación» del spike NO viaja aún (el Conv no registra
+tool-calls y el grafo vivo ya está en el Mapa/árbol) — anotado como extensión si la práctica lo
+pide. El checkpoint materializa DENTRO de `system.md` (mismo dir `~/.arnesia/sessions/<id>/` que
+manda MC-D5), no como archivo aparte.
+
+## E4 — (se completa al cerrar T6 + T5)

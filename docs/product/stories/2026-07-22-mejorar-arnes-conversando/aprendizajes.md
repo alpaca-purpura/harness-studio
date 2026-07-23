@@ -177,3 +177,27 @@
   `modelUsage[f.Model].contextWindow` puede no matchear la llave del model `[1m]` — mantener el
   fallback pero loguear. Después: histórico en `Session` (slice de ctxPct por turno) + umbral 40 %
   configurable + marca `rotacion-pendiente`.
+
+## T7+T8+T9 · Rotación de contexto completa (RF-194..199) — CERRADOS ✅
+
+- **Fix ctxPct:** `translate(line, **usage)` — el pump (único goroutine) pasa el puntero;
+  frames `assistant` traen `message.usage` (el API call real); result usa el último no-cero,
+  acumulado solo de fallback. Medido en vivo: 14 % donde antes daba 100 %.
+- **Rotación:** `rotarLocked` en `Turn()` (nunca en consume — el turno en curso jamás se corta):
+  close proceso + `CadenaCC=append(ClaudeSessionID)` + `Checkpoint=CheckpointMecanico(Conv)` +
+  breadcrumb `RolSys` + limpiar resume. El spawn siguiente va por el camino normal (live==nil) y
+  el checkpoint viaja DENTRO del system.md por sesión (concat con la tarjeta — un mecanismo, dos
+  usos, cero archivo nuevo).
+- **E2E vivo:** rotación real contra vitalia con `-rotacion-umbral 1`: cc rotado, cadena
+  registrada, breadcrumb en su lugar, y el proceso fresco contestó una pregunta que dependía del
+  turno pre-rotación («qué rule respalda esa skill» → hipaa-lite). BONUS: cerró con «Causa
+  diagnosticada: instalación» — la tarjeta A4 (T10) opera sola.
+- **Gotchas:** `Session.Checkpoint` persiste (sobrevive restarts y se re-inyecta en cada spawn
+  posterior hasta la próxima rotación — feature, no bug: el fresco siempre sabe dónde venía).
+  Con umbral bajo TODO turno re-marca pendiente — esperable, el default real es 40. En spawn
+  fresco el primer ctx puede saltar (~68 %: cache_creation del harness pesado del worktree
+  luana-vitalia) — el umbral 40 con ese harness rotaría cada 1-2 turnos: si molesta en la
+  práctica, subir umbral o excluir cache_creation del cómputo (decisión de spec futura, anotada).
+- **Para el siguiente (T6):** `CadenaCC` ya llena. `~/.claude/projects/<hash>` — averiguar el
+  algoritmo de hash del path del cwd ANTES de codear el lector (mirar un dir real: los JSONL de
+  las corridas E2E de hoy existen para `/home/chalreme/Proyectos/luana-vitalia/vitalia`).
