@@ -101,6 +101,7 @@ func runServe(args []string) error {
 	arnesRoot := fs.String("arnes-root", "", "root for unregistered-arnés fallback dirs (default ~/.arnesia/arneses)")
 	maxTurns := fs.Int("max-turns", 40, "cap on the agent loop per turn (--max-turns); 0 disables the cap")
 	repairCap := fs.Int("repair-cap", 3, "iteraciones máximas de reparación de una caja T3 (BoxConductor)")
+	rotUmbral := fs.Int("rotacion-umbral", 40, "% de contexto que dispara la rotación invisible de la sesión (RF-195); 0 la apaga")
 	authToken := fs.String("auth-token", os.Getenv("ARNESIA_AUTH_TOKEN"),
 		"capability token required on the API (default $ARNESIA_AUTH_TOKEN; empty = Host+Origin only, dev)")
 	repo := fs.String("repo", os.Getenv("ARNESIA_REPO"),
@@ -260,6 +261,8 @@ func runServe(args []string) error {
 		}
 		return usecase.TarjetaIdentidad(entradas, arnesID, cwd, roleFor(gctx, arnesID))
 	})
+	// Rotación de contexto invisible (RF-195): umbral configurable, default 40 %.
+	sessionSvc.SetUmbralRotacion(*rotUmbral)
 	// Reindex-tras-turno (RF-184) + deriva honesta (RF-193): el Mapa refleja lo que el
 	// chat edita y el Portafolio nunca finge `al-hilo` tras una edición.
 	turnReindex := usecase.NewTurnReindexer(idx, loader.LoadArnes, brokerPublisher{broker})

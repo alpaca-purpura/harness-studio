@@ -112,8 +112,21 @@ type SessionService struct {
 	roleFor   RoleSource                 // rol del arnés (server-side, jamás del FE) — RF-112/RF-114.
 	reindex   Reindexer                  // reindex del Mapa tras cada turno (RF-184); nil = sin reindex.
 	grounding GroundingSource            // tarjeta de identidad por sesión (RF-189); nil = doctrina compartida.
+	umbralRot int                        // % de contexto que marca rotación pendiente (RF-195); 0 = apagado.
 	baseCtx   context.Context
 	maxTurns  int
+}
+
+// maxCtxHist acota el histórico de ctxPct por sesión (RF-194) — suficiente para cualquier
+// conversación real, sin crecer sin techo en el JSON persistido.
+const maxCtxHist = 500
+
+// SetUmbralRotacion cablea el umbral de rotación de contexto (RF-195, default del daemon
+// 40 %). 0 apaga el disparador. Se llama una vez en el composition root.
+func (s *SessionService) SetUmbralRotacion(pct int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.umbralRot = pct
 }
 
 // SetReindexer cablea el reindex-tras-turno (RF-184). Se llama una vez en el composition
@@ -417,6 +430,17 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				r.meta.Status = domain.StatusIdle
 				if ev.CtxPct > 0 {
 					r.meta.CtxPct = ev.CtxPct
+					// Histórico + umbral de rotación (RF-194/195): se marca DESPUÉS de
+					// responder el turno; el próximo Turn rota (T8) — nunca a mitad de nada.
+					r.meta.CtxHist = append(r.meta.CtxHist, ev.CtxPct)
+					if len(r.meta.CtxHist) > maxCtxHist {
+						r.meta.CtxHist = r.meta.CtxHist[len(r.meta.CtxHist)-maxCtxHist:]
+					}
+					if s.umbralRot > 0 && ev.CtxPct >= s.umbralRot && !r.meta.RotacionPendiente {
+						r.meta.RotacionPendiente = true
+						slog.Info("session: umbral de contexto cruzado — rotación pendiente",
+							"session", id, "ctx_pct", ev.CtxPct, "umbral", s.umbralRot)
+					}
 				}
 				r.assembling.Reset()
 				r.pendingTurn = ""

@@ -95,6 +95,18 @@ type Session struct {
 	// CtxPct is the last-known context-window usage (0–100) for the dock's ctx bar.
 	CtxPct int `json:"ctx_pct,omitempty"`
 
+	// CtxHist es el histórico de CtxPct por turno (RF-194, mejorar-arnes-conversando):
+	// insumo del umbral de rotación; acotado (los más viejos se recortan).
+	CtxHist []int `json:"ctx_hist,omitempty"`
+
+	// RotacionPendiente (RF-195): el uso de contexto cruzó el umbral — el PRÓXIMO Turn
+	// spawnea un proceso fresco con checkpoint (T8); jamás se rota a mitad de un turno.
+	RotacionPendiente bool `json:"rotacion_pendiente,omitempty"`
+
+	// CadenaCC son los ClaudeSessionID previos de esta sesión (rotaciones, RF-198): el
+	// join sesión-lógica → N JSONLs nativas que el historial B2 necesita para coser.
+	CadenaCC []string `json:"cadena_cc,omitempty"`
+
 	// Conv is the lightweight replay transcript (see Turn).
 	Conv []Turn `json:"conv,omitempty"`
 }

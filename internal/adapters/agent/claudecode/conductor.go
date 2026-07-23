@@ -414,6 +414,9 @@ type ctrlRequest struct {
 
 type assistantMsg struct {
 	Content []contentText `json:"content"`
+	// Usage del API call que produjo ESTE mensaje: la ocupación real de la ventana en ese
+	// momento (a diferencia del usage acumulado del frame result — ver ctxPct).
+	Usage *usage `json:"usage"`
 }
 
 type innerEvent struct {
@@ -441,10 +444,15 @@ func (s *ccSession) pump(stdout io.Reader) {
 	defer close(s.events)
 	r := bufio.NewReaderSize(stdout, 1<<20)
 
+	// lastUsage: usage del ÚLTIMO API call del turno (frames assistant) — la ocupación
+	// REAL de la ventana. El usage del frame result es ACUMULADO (cache_read re-contado
+	// por cada tool-call) y sobreestima brutalmente (100 % espurio medido en vivo,
+	// paquete mejorar-arnes-conversando T4/T7).
+	var lastUsage *usage
 	for {
 		line, err := readLine(r)
 		if len(line) > 0 {
-			if ev, ok := translate(line); ok {
+			if ev, ok := translate(line, &lastUsage); ok {
 				s.emit(ev)
 			}
 		}
@@ -481,7 +489,11 @@ func readLine(r *bufio.Reader) ([]byte, error) {
 
 // translate maps one raw stream-json line to a normalized event. ok is false for
 // frames we deliberately ignore (hooks, rate limits, status, non-text deltas).
-func translate(line []byte) (ports.AgentEvent, bool) {
+// translate convierte una línea NDJSON en un AgentEvent. lastUsage (estado del pump, un
+// solo goroutine) captura el usage del último frame assistant del turno — el que ctxPct
+// usa en el result (RF-194): el usage del result es acumulado y miente sobre la ventana.
+// nil lastUsage es legal (tests de frames sueltos): ctxPct cae al usage del result.
+func translate(line []byte, lastUsage **usage) (ports.AgentEvent, bool) {
 	var f rawFrame
 	if err := json.Unmarshal(line, &f); err != nil {
 		// A malformed line is not fatal; skip it.
@@ -508,10 +520,17 @@ func translate(line []byte) (ports.AgentEvent, bool) {
 		return ports.AgentEvent{}, false
 
 	case "assistant":
+		if lastUsage != nil && f.Message != nil && f.Message.Usage != nil {
+			*lastUsage = f.Message.Usage
+		}
 		return ports.AgentEvent{Kind: ports.EventMessage, Text: assistantText(f.Message), Raw: line}, true
 
 	case "result":
-		return ports.AgentEvent{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f), Raw: line}, true
+		var last *usage
+		if lastUsage != nil {
+			last = *lastUsage
+		}
+		return ports.AgentEvent{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f, last), Raw: line}, true
 
 	case "control_request":
 		// Forward can_use_tool VERBATIM instead of discarding it (Fase E): the daemon —
@@ -549,13 +568,20 @@ func assistantText(m *assistantMsg) string {
 	return out.String()
 }
 
-// ctxPct estimates context-window usage (0–100) from a result frame: the prompt
-// tokens that will occupy the window next turn over the model's context window.
-func ctxPct(f rawFrame) int {
-	if f.Usage == nil {
+// ctxPct estimates context-window usage (0–100). Prefiere el usage del ÚLTIMO API call
+// del turno (last, capturado de los frames assistant): esa ES la ocupación de la ventana.
+// El usage del frame result es la SUMA de todos los API calls del turno (cache_read
+// re-contado por tool-call) — solo se usa de fallback cuando ningún assistant trajo usage
+// (RF-194; hallazgo del E2E T4: 100 % espurio en un turno con ~10 tool-calls).
+func ctxPct(f rawFrame, last *usage) int {
+	u := f.Usage
+	if last != nil && (last.InputTokens+last.CacheReadInputTokens+last.CacheCreationInputTokens) > 0 {
+		u = last
+	}
+	if u == nil {
 		return 0
 	}
-	used := f.Usage.InputTokens + f.Usage.CacheReadInputTokens + f.Usage.CacheCreationInputTokens
+	used := u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens
 	window := defaultContextWindow
 	if cw, ok := f.ModelUsage[f.Model]; ok && cw.ContextWindow > 0 {
 		window = cw.ContextWindow

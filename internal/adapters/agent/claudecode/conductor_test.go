@@ -14,7 +14,7 @@ func TestTranslateForwardsControlRequest(t *testing.T) {
 	line := []byte(`{"type":"control_request","request_id":"req-7",` +
 		`"request":{"subtype":"can_use_tool","tool_name":"Write",` +
 		`"input":{"file_path":"spec.md","content":"x"}}}`)
-	ev, ok := translate(line)
+	ev, ok := translate(line, nil)
 	if !ok {
 		t.Fatal("un control_request:can_use_tool debe reenviarse, no descartarse (Fase E)")
 	}
@@ -30,7 +30,7 @@ func TestTranslateForwardsControlRequest(t *testing.T) {
 	}
 
 	// Otros subtipos de control quedan honestamente fuera de alcance.
-	if _, ok := translate([]byte(`{"type":"control_request","request_id":"r","request":{"subtype":"hook_callback"}}`)); ok {
+	if _, ok := translate([]byte(`{"type":"control_request","request_id":"r","request":{"subtype":"hook_callback"}}`), nil); ok {
 		t.Error("un control subtype ajeno a can_use_tool no debe reenviarse")
 	}
 }
@@ -156,4 +156,32 @@ func flagValue(args []string, flag string) string {
 		}
 	}
 	return ""
+}
+
+// TestCtxPctUsaUltimoUsage (RF-194): el ctx del result sale del usage del ÚLTIMO API call
+// (frames assistant), no del acumulado del result — que re-cuenta cache_read por tool-call
+// y dio 100 % espurio en vivo (E2E T4 del paquete mejorar-arnes-conversando).
+func TestCtxPctUsaUltimoUsage(t *testing.T) {
+	var last *usage
+	// Dos API calls: el turno ocupa 60k al final (30 % de 200k), no la suma 460k.
+	if _, ok := translate([]byte(`{"type":"assistant","message":{"content":[],"usage":{"input_tokens":500,"cache_read_input_tokens":30000,"cache_creation_input_tokens":9500}}}`), &last); !ok {
+		t.Fatal("assistant frame debe traducirse")
+	}
+	if _, ok := translate([]byte(`{"type":"assistant","message":{"content":[],"usage":{"input_tokens":1000,"cache_read_input_tokens":50000,"cache_creation_input_tokens":9000}}}`), &last); !ok {
+		t.Fatal("assistant frame debe traducirse")
+	}
+	ev, ok := translate([]byte(`{"type":"result","result":"listo","usage":{"input_tokens":10000,"cache_read_input_tokens":420000,"cache_creation_input_tokens":30000}}`), &last)
+	if !ok || ev.Kind != ports.EventResult {
+		t.Fatalf("result no tradujo: %+v", ev)
+	}
+	if ev.CtxPct != 30 {
+		t.Errorf("CtxPct = %d, quiero 30 (60k del último call / 200k default)", ev.CtxPct)
+	}
+
+	// Sin ningún assistant con usage → fallback honesto al usage del result.
+	var vacio *usage
+	ev, _ = translate([]byte(`{"type":"result","result":"x","usage":{"input_tokens":20000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}`), &vacio)
+	if ev.CtxPct != 10 {
+		t.Errorf("fallback CtxPct = %d, quiero 10", ev.CtxPct)
+	}
 }
