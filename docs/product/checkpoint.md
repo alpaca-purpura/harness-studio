@@ -44,31 +44,30 @@ Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-
   re-estampar `mockups/INDEX.md` → `BACKLOG.md`.
 - **Shell — Topbar sin empresa + selector de arnés (2026-07-20) — FIRMADO 🧑‍⚖️ (HS-25).**
   `topbar.tsx`/`session-rail.tsx`/`new-session-picker.tsx`/`portafolio-picker-store.ts`, 168/168 verde.
-- **Retomar aquí: paquete `mejorar-arnes-conversando` (spike CERRADO 2026-07-22 — 4 gates del
-  enfoque FIRMADOS 🧑‍⚖️; próximo paso: `spec.md`).**
+- **Retomar aquí: paquete `mejorar-arnes-conversando` — IMPLEMENTADO COMPLETO 2026-07-22
+  (ejecución autónoma /goal), pendiente SOLO gate humano 🧑‍⚖️ de PARIDAD.**
   [`stories/2026-07-22-mejorar-arnes-conversando/INDEX.md`](stories/2026-07-22-mejorar-arnes-conversando/INDEX.md) —
-  ata chat-cc-funcional + kit ② inyectado + reindex-en-vivo + Mapa + historial de conversación +
-  rotación de contexto como UNA experiencia continua. Refinado contra código real (mapa file:line);
-  decisiones en `decisiones.md` (MC-D1..MC-D8). FIRMADOS 🧑‍⚖️: **Fork B = B2** (indexer JSONL nativo,
-  alcance mínimo: metadata al `Close()` con cadena de `ClaudeSessionID`s + lector del corpus por
-  arnés) · **Fork C** (rotación: umbral 40 % configurable · checkpoint mecánico en
-  `~/.arnesia/sessions/<id>/` · lazy entre turnos · `Session.ID` no cambia) · **grounding MC-D6**
-  (tarjeta de identidad por sesión — hoy el chat no sabe qué arnés edita). Correcciones de
-  arquitectura: reindex en `SessionService.consume` (no en el conductor) · push por `event: map` ya
-  reservado. **Fork A FIRMADO 🧑‍⚖️ = A4 «sesión de reparación»** — sesión sobre instalación =
-  REPARACIÓN legal (instalación = banco de pruebas; causa instalación-mala → fix in situ, causa
-  base-mala → backport al canónico; enmienda la letra de INV-1 hacia «ninguna instalación deriva en
-  silencio»). Sigue: `spec.md` (RF numerados) → T1-T10.
+  spike cerrado (Forks A4/B2/C + grounding firmados, MC-D1..D8) → `spec.md` RF-183..206 → los 11
+  tickets landeados con E2E vivo (evidencia en `PARIDAD.md`): loader reconoce `.claude/rules/`
+  (Vitalia 2→7 nodos) · reindex-tras-turno + `event: map` + refetch FE (Mapa en vivo) · tarjeta de
+  identidad por sesión (el chat SABE qué arnés/copia edita; loop A4 operó solo: «Causa
+  diagnosticada: instalación») · sesión de reparación rotulada + deriva re-evaluada · `ctxPct`
+  REPARADO (medía acumulado: 100 % espurio → 14 % real) + rotación invisible probada
+  (`ClaudeSessionID` rotó, checkpoint mecánico, conversación continua) · historial B2 (Close
+  archiva metadata + lector JSONL nativo cosió 9 turnos de 2 JSONLs, endpoints + picker). Reparación
+  REAL de Vitalia hecha por chat: sello con rol + skill `hipaa-check`. 3 bugs destapados por E2E y
+  reparados (roleFor sin índice al crear sesión · ctxPct acumulado · Cwd sin estampar). 5
+  capabilities nuevas (CAP-94..98), cobertura 100 %. Deuda honesta en `PARIDAD.md` §Estado global.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `257 checks · pass 48 · fail 0 · error 0 · deferred 209 · n/a 0` (medido 2026-07-16, `go run ./cmd/arnesia conformance --todo`)
-- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-16
+- **ruleset `--todo`:** `257 checks · pass 48 · fail 0 · error 0 · deferred 209 · n/a 0` (medido 2026-07-22, `go run ./cmd/arnesia conformance --todo`)
+- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-22
 - **arch/:** 18 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 93 — 50 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 98 — 55 vivo · 39 vivo·nc · 1 parcial · 3 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):

@@ -64,4 +64,36 @@ tool-calls y el grafo vivo ya está en el Mapa/árbol) — anotado como extensi�
 pide. El checkpoint materializa DENTRO de `system.md` (mismo dir `~/.arnesia/sessions/<id>/` que
 manda MC-D5), no como archivo aparte.
 
-## E4 — (se completa al cerrar T6 + T5)
+## E3b — Historial B2
+
+| RF | Evidencia | Estado |
+|---|---|---|
+| RF-200 Close archiva metadata | `TestCloseArchivaMetadata`; **E2E vivo:** DELETE de la sesión real → `sesiones-cerradas.json` con `cadena_cc=[fd4632f8, 3c67bca3]`, cwd, fecha, 9 turnos, sin Conv | ✅ |
+| RF-201 lector JSONL nativo | `TestDirParaCwd` (encoding verificado contra el CLI real) + `TestTurnosLeeCorpus` | ✅ |
+| RF-202 endpoints | `GET /api/sessions?arnes=&cerradas=1` + `/sessions/cerradas/{id}/historial`; **E2E vivo:** conversación cerrada reconstruida COMPLETA (9 turnos) cosiendo las 2 JSONLs de la cadena de rotación, 0 faltantes | ✅ |
+| RF-203 FE conversaciones | `conversaciones-store` (3 tests unit) + sección en el picker (vivas+cerradas+expand) | ✅ (visual al gate) |
+
+Fix colateral: sesiones archivadas sin `Cwd` (pre-T6) → backfill vía resolver en `archivarLocked`.
+
+## E4 — Cierre
+
+| RF | Evidencia | Estado |
+|---|---|---|
+| RF-204 capabilities | 5 nuevas: CAP-94 reindex-tras-turno · CAP-95 fe-mapa/reindex-en-vivo · CAP-96 tarjeta-identidad-por-sesion · CAP-97 rotacion-de-contexto · CAP-98 historial-de-conversaciones; cobertura **100 %** (0 huérfanos) | ✅ |
+| RF-205 cifras sin regresión | `estado.sh` regenerado: `--todo` 257 checks · 48 pass · 0 fail; dogfood `--arnes` 20/21 (warn honesto preexistente); capabilities 93→98 | ✅ |
+| RF-206 PARIDAD | este documento — **gate 🧑‍⚖️ ABIERTO para el operador** | ⏳ |
+
+## Estado global
+
+**T-L, T1, T2, T3, T4, T6, T7, T8, T9, T10 implementados, testeados y con E2E vivo. T5 cerrado
+salvo la firma.** Pendiente ÚNICAMENTE del operador:
+
+1. **Gate 🧑‍⚖️ de PARIDAD** — verificación visual en vivo (chips del picker/rail, Mapa
+   refrescando en pantalla, sección Conversaciones) — todo el circuito de datos ya está probado
+   E2E a nivel API; lo visual se firma viéndolo.
+2. Deuda honesta anotada: story-tests visuales de los chips nuevos (vitest-browser no corre
+   headless en bg) · umbral 40 % puede quedar corto con harnesses pesados (ctx inicial ~68 % en
+   el worktree luana-vitalia — si molesta, subir umbral o excluir `cache_creation`) · delta de
+   grafo no viaja en el checkpoint V1 · Vitalia: rule SUPERSEDED sigue en el árbol (siguiente
+   sesión de reparación) y el overlay no tiene home/canónico en ningún marketplace (candidato a
+   Publicar cuando exista).

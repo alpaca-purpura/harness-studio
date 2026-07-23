@@ -45,6 +45,13 @@ func (s *SessionService) archivarLocked(meta domain.Session) {
 	if cerrada.ClaudeSessionID != "" {
 		cerrada.CadenaCC = append(cerrada.CadenaCC, cerrada.ClaudeSessionID)
 	}
+	// Sesiones nacidas antes del estampado de Cwd (o cerradas sin spawn en esta vida del
+	// daemon): el resolver conoce el dir del arnés — backfill honesto del join del corpus.
+	if cerrada.Cwd == "" && s.resolver != nil {
+		if cwd, _, rerr := s.resolver.Resolve(cerrada.Arnes); rerr == nil {
+			cerrada.Cwd = cwd
+		}
+	}
 	cerrada.Turnos = len(cerrada.Conv)
 	cerrada.Conv = nil
 	cerrada.Checkpoint = ""

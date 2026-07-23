@@ -107,14 +107,21 @@ Nace `decisiones.md` (MC-D1..MC-D8). Resultado:
 
 ## Retomar aquí (para una sesión nueva sin este contexto)
 
-Este paquete puede empezar de cero: leé `spike-spec.md` + `decisiones.md` (MC-D1..MC-D8) — contienen
-TODO el contexto, no asumas que quien los abre vio las conversaciones. Estado: **spike CERRADO, los 4
-gates del enfoque FIRMADOS 🧑‍⚖️** (Fork A = A4 sesión de reparación · Fork B = B2 indexer JSONL ·
-Fork C rotación 40 % · grounding MC-D6). **Próximo paso: escribir `spec.md` con RF numerados** y de
-ahí implementación directa (T1-T10 en `spike-spec.md` §5), sin decisiones de producto pendientes.
+Este paquete puede empezar de cero: leé `spec.md` + `decisiones.md` + `aprendizajes.md` — contienen
+TODO el contexto. Estado 2026-07-22 (ejecución autónoma por /goal del operador): **TODOS los tickets
+IMPLEMENTADOS con E2E vivo** (T-L loader-rules · T2 reindex · T3 event:map+FE · T4 E2E Vitalia · T10
+tarjeta identidad · T1 reparación+deriva · T7 ctxPct-fix+umbral · T8 rotación · T9 E2E rotación · T6
+historial B2 · T5 capabilities/cifras). Evidencia RF→corrida en `PARIDAD.md`. La reparación real de
+Vitalia (validación transversal) quedó hecha: sello con rol + rules visibles + skill `hipaa-check`
+creada VÍA CHAT con el Mapa refrescando en vivo. **Pendiente ÚNICO: gate humano 🧑‍⚖️ de PARIDAD**
+(verificación visual; el circuito de datos ya está probado E2E).
 
 ## Archivos
 
-- [`spike-spec.md`](./spike-spec.md) — el spike completo: contexto, forks (B/C resueltos, A en
-  redacción), plan técnico, plan de tickets T1-T10.
-- [`decisiones.md`](./decisiones.md) — MC-D1..MC-D8 (las firmas y la dirección del Fork A).
+- [`spike-spec.md`](./spike-spec.md) — el spike completo (CERRADO): contexto, forks firmados,
+  plan técnico, plan de tickets.
+- [`decisiones.md`](./decisiones.md) — MC-D1..MC-D8 (las firmas, Fork A = A4 incluida).
+- [`spec.md`](./spec.md) — RF-183..RF-206 + protocolo de ejecución por ticket + caso Vitalia.
+- [`aprendizajes.md`](./aprendizajes.md) — bitácora acumulativa por ticket (diseños finales,
+  gotchas, bugs destapados por el E2E).
+- [`PARIDAD.md`](./PARIDAD.md) — tabla RF→evidencia, corridas E2E, gate 🧑‍⚖️ ABIERTO.

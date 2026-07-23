@@ -201,3 +201,23 @@
 - **Para el siguiente (T6):** `CadenaCC` ya llena. `~/.claude/projects/<hash>` — averiguar el
   algoritmo de hash del path del cwd ANTES de codear el lector (mirar un dir real: los JSONL de
   las corridas E2E de hoy existen para `/home/chalreme/Proyectos/luana-vitalia/vitalia`).
+
+## T6+T5 · Historial B2 + cierre (RF-200..206) — CERRADOS ✅
+
+- **El «hash» del corpus no es hash:** `~/.claude/projects/<dir>` = el cwd con todo carácter
+  no-alfanumérico → `-` (verificado contra el CLI real). `history.Reader` (adapter nuevo, read-only
+  — respeta `indice-desechable-jsonl-es-verdad`) parsea user/assistant, salta bloques sin texto.
+- **Close archiva ANTES de borrar** (`archivarLocked`): metadata sin Conv a
+  `sesiones-cerradas.json` (segundo `store.NewRegistry` — patrón reutilizado). Gotcha real: las
+  sesiones nacidas ANTES del estampado de `Cwd` archivaban sin join → backfill vía
+  `resolver.Resolve(arnes)` en el archivo. E2E: conversación real reconstruida completa (9 turnos,
+  2 JSONLs cosidas por la cadena de rotación, 0 faltantes).
+- **FE:** transporte en `model/conversaciones-store.ts` (patrón portafolio-picker-store, widget
+  props-puro); tipos de metadata (`cerrada_en`/`turnos`/`cadena_cc`) en `Session` del FE.
+- **Cifras:** capabilities 93→98 (CAP-94..98), cobertura 100 %, `--todo` 48 pass/0 fail, dogfood
+  sin regresión. `estado.sh` regeneró el checkpoint solo.
+- **Nota metodológica del paquete completo:** el protocolo investigación→TDD→verificación→
+  aprendizajes CUMPLIÓ su promesa — cada ticket abrió con el archivo al día y no re-descubrió
+  nada; los 3 bugs grandes (roleFor sin índice, ctxPct acumulado, Cwd sin estampar) los destapó
+  la VERIFICACIÓN REAL (E2E vivo), nunca los tests unitarios. La regla «verificar contra el
+  binario/corpus real» va en cada ticket futuro de este circuito.
