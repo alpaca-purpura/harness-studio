@@ -100,19 +100,20 @@ type sessionRuntime struct {
 // conductors (multisesión). It is the daemon's source of truth for open sessions; the
 // conversation content is rehydrated from Claude Code via --resume.
 type SessionService struct {
-	mu       sync.Mutex
-	rt       map[string]*sessionRuntime
-	order    []string // stable creation order for List.
-	agent    ports.AgentPort
-	store    ports.SessionStore
-	pub      EventPublisher
-	resolver ports.WorkdirResolver
-	injector ports.InjectionProvisioner // nil = spawns sin doctrina (degradación honesta).
-	perms    ports.PermissionPort       // resuelve el set del rol al responder un control_request.
-	roleFor  RoleSource                 // rol del arnés (server-side, jamás del FE) — RF-112/RF-114.
-	reindex  Reindexer                  // reindex del Mapa tras cada turno (RF-184); nil = sin reindex.
-	baseCtx  context.Context
-	maxTurns int
+	mu        sync.Mutex
+	rt        map[string]*sessionRuntime
+	order     []string // stable creation order for List.
+	agent     ports.AgentPort
+	store     ports.SessionStore
+	pub       EventPublisher
+	resolver  ports.WorkdirResolver
+	injector  ports.InjectionProvisioner // nil = spawns sin doctrina (degradación honesta).
+	perms     ports.PermissionPort       // resuelve el set del rol al responder un control_request.
+	roleFor   RoleSource                 // rol del arnés (server-side, jamás del FE) — RF-112/RF-114.
+	reindex   Reindexer                  // reindex del Mapa tras cada turno (RF-184); nil = sin reindex.
+	grounding GroundingSource            // tarjeta de identidad por sesión (RF-189); nil = doctrina compartida.
+	baseCtx   context.Context
+	maxTurns  int
 }
 
 // SetReindexer cablea el reindex-tras-turno (RF-184). Se llama una vez en el composition
@@ -325,8 +326,15 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 	// jamás bloquea la sesión (principio 6: guía sin bloqueo).
 	var inj ports.Injection
 	if s.injector != nil {
+		// Tarjeta de identidad por sesión (RF-189): la doctrina compartida + quién es este
+		// arnés y qué copia edita la sesión. Sin grounding cableado (o tarjeta vacía),
+		// ProvisionSession degrada al archivo compartido.
+		tarjeta := ""
+		if s.grounding != nil {
+			tarjeta = s.grounding(s.baseCtx, r.meta.Arnes, cwd)
+		}
 		var ierr error
-		if inj, ierr = s.injector.Provision(s.baseCtx); ierr != nil {
+		if inj, ierr = s.injector.ProvisionSession(s.baseCtx, id, tarjeta); ierr != nil {
 			slog.Warn("session: provisión de doctrina falló — spawn sin inyección", "err", ierr)
 			inj = ports.Injection{}
 		}

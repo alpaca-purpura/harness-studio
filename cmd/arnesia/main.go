@@ -251,8 +251,17 @@ func runServe(args []string) error {
 	// duplicarlo.
 	portafolioSvc, err := newPortafolioService(idx)
 	if err != nil {
-		return err
+		return fmt.Errorf("portafolio service: %w", err)
 	}
+	// Tarjeta de identidad por sesión (RF-189): cada spawn sabe qué arnés es, qué copia
+	// edita (canónico/instalación/suelto) y su rol — cerrada sobre el Portafolio real.
+	sessionSvc.SetGrounding(func(gctx context.Context, arnesID, cwd string) string {
+		entradas, _, lerr := portafolioSvc.Listar(gctx)
+		if lerr != nil {
+			entradas = nil
+		}
+		return usecase.TarjetaIdentidad(entradas, arnesID, cwd, roleFor(gctx, arnesID))
+	})
 
 	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
 

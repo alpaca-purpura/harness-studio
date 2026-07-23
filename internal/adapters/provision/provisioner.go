@@ -80,6 +80,33 @@ func (p *Provisioner) Provision(_ context.Context) (ports.Injection, error) {
 	return inj, nil
 }
 
+// ProvisionSession materializa la base compartida (Provision) y, si extra no es vacío,
+// escribe el system-prompt POR SESIÓN: ~/.arnesia/sessions/<id>/system.md = doctrine ② +
+// extra (tarjeta de identidad RF-189; checkpoint de rotación cuando aplique). La Injection
+// devuelta apunta ahí. Se re-escribe en cada spawn (la tarjeta refleja el estado ACTUAL del
+// Portafolio, no el del primer turno). extra=="" = Provision tal cual.
+func (p *Provisioner) ProvisionSession(ctx context.Context, sessionID, extra string) (ports.Injection, error) {
+	inj, err := p.Provision(ctx)
+	if err != nil || extra == "" {
+		return inj, err
+	}
+	dir := filepath.Join(p.baseDir, "sessions", sessionID)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return ports.Injection{}, fmt.Errorf("provision session %s: %w", sessionID, err)
+	}
+	doctrine, err := os.ReadFile(inj.SystemPromptFile) //nolint:gosec // G304: ruta propia bajo ~/.arnesia.
+	if err != nil {
+		return ports.Injection{}, fmt.Errorf("provision session %s: doctrina base: %w", sessionID, err)
+	}
+	ruta := filepath.Join(dir, "system.md")
+	contenido := append(append([]byte{}, doctrine...), []byte("\n\n---\n\n"+extra+"\n")...)
+	if err := os.WriteFile(ruta, contenido, 0o600); err != nil {
+		return ports.Injection{}, fmt.Errorf("provision session %s: system.md: %w", sessionID, err)
+	}
+	inj.SystemPromptFile = ruta
+	return inj, nil
+}
+
 // materialize writes kit/ (plugin ② completo), doctrine.md (overlay ①) and knowhow/
 // (los nodos del estándar, referencia read-only) under baseDir.
 func (p *Provisioner) materialize() error {

@@ -133,3 +133,24 @@
   sello en la tarjeta (aprendizaje 2). `Injection.SystemPromptFile` hoy apunta al doctrine.md
   compartido; plan: `ProvisionSession(ctx, sessionID, tarjeta)` en el provisioner que escribe
   `~/.arnesia/sessions/<id>/system.md` = doctrine + tarjeta.
+
+## T10 · Tarjeta de identidad por sesión (RF-189/190) — CERRADO ✅
+
+- **Diseño final:** interfaz `InjectionProvisioner` gana `ProvisionSession(ctx, sessionID, extra)`
+  (extra=="" degrada a `Provision` — cero cambio para quien no la usa; `RunService` sigue con
+  `Provision`). El provisioner escribe `~/.arnesia/sessions/<id>/system.md` = doctrina ② + extra,
+  RE-escrito en cada spawn (la tarjeta refleja el Portafolio ACTUAL). `TarjetaIdentidad(entradas,
+  arnesID, cwd, rol)` = función PURA en `session_grounding.go` (canónico / instalación-con-loop-A4
+  / suelto honesto; sin rol lo DICE — aprendizaje T4). `SetGrounding` + closure en main sobre
+  `portafolioSvc.Listar` + `roleFor`.
+- **La sección de reparación A4 vive en la TARJETA, no en doctrine.md compartido** — solo se
+  inyecta cuando la copia es instalación (RF-190 como se especificó). Pide a Claude cerrar cada
+  respuesta declarando la causa (instalación vs base) — insumo barato para el backport futuro.
+- **Gotcha:** un solo implementador real de la interfaz (provision.Provisioner) + stubs de test —
+  extender la interfaz fue barato. `Instalacion.InstallPath` ya viene canonicalizado (C-N-3), pero
+  igual se canonicaliza ambos lados al comparar. CAP-96 nace (próximo libre CAP-97).
+- **Para el siguiente (T1):** el picker FE ya distingue tipos en `copiasDe` (mezcla canónico +
+  instalaciones); falta ROTULAR (chip «instalación → sesión de reparación»), payload de create con
+  marca opcional, y re-evaluar deriva tras turno. La re-evaluación de deriva vive en el
+  Portafolio — buscar qué función la computa (grep `Deriva`/`deriva` en usecase/portafolio.go y
+  adapters/portafolio) antes de inventar nada.

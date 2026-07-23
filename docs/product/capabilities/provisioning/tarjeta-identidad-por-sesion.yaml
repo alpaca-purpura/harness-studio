@@ -1,0 +1,35 @@
+---
+# Capability nueva (paquete 2026-07-22-mejorar-arnes-conversando, RF-189/RF-190).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.provisioning.tarjeta-identidad-por-sesion
+cap_num: CAP-96
+slug: tarjeta-identidad-por-sesion
+name: "Tarjeta de identidad por sesión (grounding del chat)"
+status: vivo          # GENERADO (R4) — no teclear
+module: provisioning
+verb: crear
+pointers:
+  - "internal/usecase/session_grounding.go"
+  - "internal/adapters/provision/provisioner.go#ProvisionSession"
+valida:
+  - "TestTarjetaInstalacionEsReparacion"
+  - "TestTarjetaCanonico"
+  - "TestTarjetaSinRegistro"
+  - "TestSpawnUsaTarjetaPorSesion"
+  - "TestProvisionSessionEscribeTarjeta"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on:
+    - arnesia.provisioning.inyeccion-de-doctrina
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-189/RF-190)"
+---
+
+# Tarjeta de identidad por sesión (grounding del chat)
+
+Cada spawn del chat recibe un system-prompt POR SESIÓN (`~/.arnesia/sessions/<id>/system.md` =
+doctrina ② + tarjeta): qué arnés es, qué copia edita (canónico / instalación / árbol suelto), su
+`deriva` y su rol. Si la copia es una instalación, la tarjeta enseña el loop de REPARACIÓN A4
+(diagnosticar → in situ vs backport → declarar la causa). Misma infra que usará el checkpoint de
+rotación. Todo fuera del árbol del arnés (② ↛ ③).

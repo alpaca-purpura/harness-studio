@@ -28,4 +28,12 @@ type Injection struct {
 // la maquinaria que ven las sesiones.
 type InjectionProvisioner interface {
 	Provision(ctx context.Context) (Injection, error)
+
+	// ProvisionSession is Provision + a PER-SESSION system-prompt file (RF-189, paquete
+	// mejorar-arnes-conversando): doctrine ② + `extra` (la tarjeta de identidad del arnés
+	// y, tras una rotación, el checkpoint) escritos a ~/.arnesia/sessions/<id>/system.md;
+	// la Injection devuelta apunta su SystemPromptFile ahí. extra=="" degrada a Provision
+	// (archivo compartido, comportamiento previo). Todo sigue FUERA del árbol del arnés
+	// (② ↛ ③).
+	ProvisionSession(ctx context.Context, sessionID, extra string) (Injection, error)
 }

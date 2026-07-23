@@ -31,8 +31,8 @@ func (m *memRegistry) Register(id, path string) error {
 	m.regs[id] = path
 	return nil
 }
-func (m *memRegistry) List() []ports.ArnesPath                { return nil }
-func (m *memRegistry) Resolve(string) (string, bool, error)   { return "", false, nil }
+func (m *memRegistry) List() []ports.ArnesPath              { return nil }
+func (m *memRegistry) Resolve(string) (string, bool, error) { return "", false, nil }
 
 // TestCreateSessionIndexaAlRegistrar cubre el gap destapado por el E2E de T4 (paquete
 // mejorar-arnes-conversando): crear una sesión con path debe INDEXAR el árbol en la misma

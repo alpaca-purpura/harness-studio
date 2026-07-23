@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	doctrina "github.com/alpacapurpura/arnesia"
@@ -74,5 +75,59 @@ func TestProvisionMaterializesAndIsIdempotent(t *testing.T) {
 	}
 	if string(before) != string(after) {
 		t.Error("el stamp cambió entre provisiones idénticas")
+	}
+}
+
+// TestProvisionSessionEscribeTarjeta (RF-189, mejorar-arnes-conversando T10): con extra,
+// nace ~/.arnesia/sessions/<id>/system.md = doctrina ② + tarjeta, y la Injection apunta
+// ahí; sin extra, degrada al archivo compartido (comportamiento previo). El archivo se
+// RE-escribe por spawn (la tarjeta refleja el estado actual).
+func TestProvisionSessionEscribeTarjeta(t *testing.T) {
+	base := t.TempDir()
+	p, err := provision.New(base, doctrina.Kit, doctrina.Files)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inj, err := p.ProvisionSession(context.Background(), "s123", "## Tarjeta\n\n- arnés: vitalia")
+	if err != nil {
+		t.Fatalf("provision session: %v", err)
+	}
+	want := filepath.Join(base, "sessions", "s123", "system.md")
+	if inj.SystemPromptFile != want {
+		t.Fatalf("SystemPromptFile = %q, quiero %q", inj.SystemPromptFile, want)
+	}
+	b, err := os.ReadFile(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contenido := string(b)
+	if !strings.Contains(contenido, "arnés: vitalia") {
+		t.Error("la tarjeta no quedó en el system.md por sesión")
+	}
+	base2, err := os.ReadFile(filepath.Join(base, "doctrine.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(contenido, strings.TrimSpace(string(base2))[:40]) {
+		t.Error("el system.md por sesión debe CONTENER la doctrina compartida")
+	}
+
+	// Re-provisión con tarjeta nueva pisa el archivo (estado actual, no el del turno 1).
+	if _, err := p.ProvisionSession(context.Background(), "s123", "tarjeta-v2"); err != nil {
+		t.Fatal(err)
+	}
+	b, _ = os.ReadFile(want)
+	if !strings.Contains(string(b), "tarjeta-v2") {
+		t.Error("re-provisión no actualizó la tarjeta")
+	}
+
+	// Sin extra → el archivo compartido, sin tocar el de la sesión.
+	inj2, err := p.ProvisionSession(context.Background(), "s123", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inj2.SystemPromptFile != filepath.Join(base, "doctrine.md") {
+		t.Errorf("sin tarjeta debe degradar al doctrine.md compartido, got %q", inj2.SystemPromptFile)
 	}
 }
