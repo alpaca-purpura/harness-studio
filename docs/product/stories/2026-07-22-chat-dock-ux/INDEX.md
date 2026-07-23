@@ -20,14 +20,12 @@
 | mockup | ✅ **Gate 1 firmado 🧑‍⚖️ 2026-07-22** («firmo, implementa») — `mockups/arnesia-chat-dock-ux.html` |
 | spec | ✅ AS-BUILT completo (`spec.md`, tramos A y B) |
 | implementar | ✅ **COMPLETO** — tramo A (CAP-99) + tramo B (CAP-100), suite Go + fitness + verify FE + E2E vivo con claude real |
-| PARIDAD | ⏳ **gate humano 🧑‍⚖️ pendiente** (click-through del operador) |
+| PARIDAD | ✅ **FIRMADA 🧑‍⚖️ 2026-07-22** («DE momento todo bien… firmo»; error posterior = bugfix nuevo) |
 
 ## Retomar aquí
 
-**Los 6 CH-D CONSTRUIDOS y verificados E2E vivo** (ver `spec.md` as-built): composer 3
-líneas · resize+persistencia · gate paquete-cerrado (CAP-99) · actividad desplegable ·
-burbuja por paso · markdown con chips/copiar/sintaxis (CAP-100). Evidencia E2E: turno real
-contra vitalia partido en burbujas + tarjetas, screenshots `chat-dock-tramoB.png` /
-`chat-dock-actividad.png` (raíz, no versionados). Falta SOLO el gate humano de PARIDAD:
-click-through del operador en la app (composer · resize · tarjeta desplegable · chips
-copiar · deny del paquete cerrado). Desviación honesta: tarjeta sin segundos («N pasos»).
+**PAQUETE CERRADO (ficha `ledger/HS-26.md`).** Los 6 CH-D + D4b construidos, verificados E2E
+vivo con claude real y FIRMADOS (evidencia y desviaciones aceptadas → `PARIDAD.md`). Deuda
+viva que NO reabre el gate: llevar el build al escritorio (`make installer` + self-update) ·
+segundos en la tarjeta si el operador los pide · parseo por-tool del guardrail CH-D6 —
+registrada en `BACKLOG.md`. Un error que aparezca se trabaja como bugfix en paquete nuevo.

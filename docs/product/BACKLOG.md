@@ -110,6 +110,10 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
+- [HS-26/chat-dock-ux] **llevar el chat legible al escritorio**: la app instalada sigue con el
+  binario pre-HS-26 — corresponde `make installer` (versiona en `instaladores/`, nunca pisa) +
+  self-update. Opcionales si el operador los pide: segundos en la tarjeta de actividad ·
+  parseo por-tool del guardrail paquete-cerrado (hoy substring blunt adrede) · `deuda`
 - [Slice1-FE] **re-key del índice in-memory a `(home,id,scope)` calificado SIGUE abierta** (S0-D6/GAP-2):
   Slice 1 la ACOTÓ visible (colisión de bare-id detectada por `idsColisionados` + confirmación explícita
   antes de observar, S1-D2) pero NO la resolvió — el re-key global (index + MapService + endpoints +

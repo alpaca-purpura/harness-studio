@@ -6,19 +6,16 @@
 ## Fase del gran plan
 
 **Fase 5 (Implementación) EN CURSO.** Fases 1-4 ✓ (Visión · UX · Arquitectura · Specs).
-Última ficha cerrada: **HS-25** (cierre de 4 gates humanos de PARIDAD — rebrand PRENTER · Portafolio
-Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-22). Índice de historia →
-`LEDGER.md` → `ledger/HS-NN.md`.
+Última ficha cerrada: **HS-26** (chat dock legible y ergonómico — 6 quejas + cariño markdown,
+CAP-99/CAP-100, 3 firmas en el día, 2026-07-22). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
 
 ## Paquete de trabajo activo
 
-- **Chat dock · legibilidad y ergonomía (2026-07-22) — IMPLEMENTADO COMPLETO, PARIDAD 🧑‍⚖️ pendiente.**
-  Las 6 quejas del operador construidas y verificadas E2E vivo (claude real contra vitalia):
-  composer 3 líneas · dock redimensionable · gate paquete-cerrado (CAP-99) · actividad
-  desplegable estilo Cursor · burbuja por paso · markdown con chips/copiar/sintaxis (CAP-100).
-  Gate 1 del mockup firmado mismo día. Paquete
-  [`stories/2026-07-22-chat-dock-ux/`](stories/2026-07-22-chat-dock-ux/INDEX.md) (CH-D1..D6+D4b).
-  Falta SOLO el click-through de PARIDAD. Ver «Retomar aquí» del paquete.
+- **Chat dock · legibilidad y ergonomía (2026-07-22) — CERRADO Y FIRMADO 🧑‍⚖️ (HS-26).**
+  Las 6 quejas + cariño markdown, verificadas E2E vivo (claude real contra vitalia); CAP-99 +
+  CAP-100. Paquete [`stories/2026-07-22-chat-dock-ux/`](stories/2026-07-22-chat-dock-ux/INDEX.md).
+  Deuda viva (no reabre): `make installer` para llevarlo al escritorio → `BACKLOG.md`; errores
+  posteriores = bugfix en paquete nuevo.
 - **Programa «Portafolio · ciclo de vida del arnés» — modelo FIRMADO 🧑‍⚖️ (HS-22); Slice 0
   FIRMADO 🧑‍⚖️ (HS-23); Slice 1 «FE» FIRMADO 🧑‍⚖️ (HS-25); Slice 2 «sello/Identificar» FIRMADO 🧑‍⚖️ (HS-25).**
   El spike de CARGA se reencuadró en el front-door del ciclo de vida (agregar de marketplace/proyecto · observar · mejorar ·
