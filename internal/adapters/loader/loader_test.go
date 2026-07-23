@@ -619,3 +619,46 @@ func TestReconocerSettings(t *testing.T) {
 		}
 	})
 }
+
+// TestReconocerReglasDir cubre RF-183 (mejorar-arnes-conversando T-L): el directorio de
+// rules (`.claude/rules/` instalado · `rules/` plugin) es first-class en el runtime
+// (knowledge/elements/rules.md L1.4 — un tema por archivo, recursivo) y el loader lo emite
+// como nodos `rule` de banda Base, README incluido (Claude Code carga TODO .md del dir).
+func TestReconocerReglasDir(t *testing.T) {
+	dir := t.TempDir()
+	escribir(t, filepath.Join(dir, "arnes.l0.json"), `{"id":"overlay","nombre":"Overlay","version":"0.1.0"}`)
+	escribir(t, filepath.Join(dir, ".claude", "rules", "hipaa-lite.md"),
+		"---\nnombre: HIPAA lite\n---\n\n# salvaguardas\n")
+	escribir(t, filepath.Join(dir, ".claude", "rules", "README.md"), "# índice de rules\n")
+	escribir(t, filepath.Join(dir, ".claude", "rules", "sub", "tema.md"), "# tema anidado\n")
+	escribir(t, filepath.Join(dir, ".claude", "rules", "suelto.txt"), "no es una rule")
+
+	g, err := loader.LoadArnes(dir)
+	if err != nil {
+		t.Fatalf("LoadArnes: %v", err)
+	}
+	casos := []struct{ id, nombre string }{
+		{"hipaa-lite", "HIPAA lite"},
+		{"README", "README"},
+		{"sub/tema", "sub/tema"},
+	}
+	for _, c := range casos {
+		n, ok := g.NodeByID(c.id)
+		if !ok {
+			t.Fatalf("falta la rule %q; nodos: %v", c.id, ids(g.Nodes))
+		}
+		if n.Clase != domain.ClaseRule || n.Banda != domain.BandaBase {
+			t.Errorf("%s: clase/banda got %q/%q, quiero rule/base", c.id, n.Clase, n.Banda)
+		}
+		if n.Nombre != c.nombre {
+			t.Errorf("%s: nombre got %q, quiero %q", c.id, n.Nombre, c.nombre)
+		}
+		if n.FuentePath == "" {
+			t.Errorf("%s: fuente_path vacío", c.id)
+		}
+	}
+	// Lo no-.md bajo rules/ es visible como no-reconocido (§4.5), jamás descarte silencioso.
+	if n, ok := g.NodeByID("suelto.txt"); !ok || n.Clase != domain.ClaseNoReconocido {
+		t.Errorf("suelto.txt debe ser no-reconocido visible, got %+v (ok=%v)", n, ok)
+	}
+}

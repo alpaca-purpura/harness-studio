@@ -57,10 +57,11 @@ el historial + rotación funcionan sobre esa misma sesión.
 **T-L · Loader reconoce el directorio de rules** *(nuevo — lo destapó el diagnóstico Vitalia)*
 - **RF-183.** `LoadArnesInfo` reconoce `rules/*.md` bajo el dir de elementos (= `.claude/rules/` en
   forma instalada, `rules/` en forma plugin) como nodos `clase: rule`, un nodo por archivo, además
-  del `CLAUDE.md` raíz ya reconocido. `README.md` del propio dir de rules no es una rule (es
-  índice) — se reconoce como soporte/no-rule para no fabricar nodos falsos. Investigación previa
-  obligatoria: qué dice `docs/architecture/knowledge/elements/rules.md` (L1.4 ya nombra
-  `.claude/rules/` un-tema-por-archivo) y si el estándar as-code necesita bump de versión.
+  del `CLAUDE.md` raíz ya reconocido. **Ajuste de investigación (T-L fase 1):** el runtime carga
+  TODO `.md` del dir — README incluido — así que el grafo lo refleja igual (fidelidad al runtime >
+  suposición de «índice aparte»); lo no-.md es no-reconocido visible (§4.5). El estándar as-code
+  (`docs/architecture/knowledge/elements/rules.md` L1.4) YA cubría el dir de rules — el que estaba
+  atrás era el loader, no el estándar (sin bump).
 - Verificación: `arnesia index` contra Vitalia pasa de 2 nodos a ≥6 (CLAUDE.md + 3 rules + README
   índice + skills/README), test Go con fixture.
 

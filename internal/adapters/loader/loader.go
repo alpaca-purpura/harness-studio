@@ -105,6 +105,14 @@ func LoadArnesInfo(dir string) (domain.Graph, Info, error) {
 		g.Nodes = append(g.Nodes, regla)
 	}
 
+	// El directorio de rules (`.claude/rules/` · `rules/`) también es celda de `rule` —
+	// first-class en el runtime (RF-183, knowledge/elements/rules.md L1.4).
+	reglasDir, err := reconocerReglasDir(elementos)
+	if err != nil {
+		return domain.Graph{}, Info{}, err
+	}
+	g.Nodes = append(g.Nodes, reglasDir...)
+
 	// `command`/`output-style`: archivos sueltos <id>.md bajo su subcarpeta (§3) — mismo
 	// layout en ambas formas físicas (elementos ya resuelve cuál base usar).
 	comandos, err := reconocerArchivosSoporte(elementos, "commands", domain.ClaseCommand)

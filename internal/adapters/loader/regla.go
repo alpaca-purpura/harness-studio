@@ -47,6 +47,63 @@ func reconocerRegla(dir string) (domain.Box, bool, error) {
 	}, true, nil
 }
 
+// reconocerReglasDir escanea el directorio de rules bajo el dir de elementos (`.claude/rules/`
+// en forma instalada, `rules/` en forma plugin — RF-183) y emite un nodo `rule` de banda Base
+// por CADA `.md`, README incluido: el runtime (Claude Code) carga todo .md del dir
+// (knowledge/elements/rules.md L1.4 — un tema por archivo, recursivo), así que el grafo
+// refleja lo que la sesión realmente recibe. El id es la ruta relativa sin `.md` (estable y
+// sin colisiones dentro del dir); el nombre sale del frontmatter si existe (opcional, como
+// commands). Lo no-.md es no-reconocido visible (§4.5). El frontmatter `paths:` (scoping) no
+// se modela en v1 — el nodo existe igual; la carga condicional es semántica de runtime.
+func reconocerReglasDir(elementos string) ([]domain.Box, error) {
+	dirReglas := filepath.Join(elementos, "rules")
+	if fi, err := os.Stat(dirReglas); err != nil || !fi.IsDir() {
+		return nil, nil // un arnés sin rules/ es legal — cero nodos, cero drama.
+	}
+
+	var nodos []domain.Box
+	err := filepath.WalkDir(dirReglas, func(ruta string, d os.DirEntry, werr error) error {
+		if werr != nil {
+			return werr
+		}
+		if strings.HasPrefix(d.Name(), ".") {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, rerr := filepath.Rel(dirReglas, ruta)
+		if rerr != nil {
+			return rerr
+		}
+		rel = filepath.ToSlash(rel)
+		fuente := rutaEstampada(dirReglas, rel)
+		if !strings.HasSuffix(rel, ".md") {
+			nodos = append(nodos, nodoNoReconocido(rel, fuente))
+			return nil
+		}
+		id := strings.TrimSuffix(rel, ".md")
+		nombre := id
+		if b, lerr := os.ReadFile(ruta); lerr == nil { //nolint:gosec // G304: paths bajo el dir del arnés que el caller eligió cargar.
+			if fm, ferr := frontmatter(b); ferr == nil {
+				nombre = nombreDe(fm, id)
+			}
+		}
+		nodos = append(nodos, domain.Box{
+			ID: id, Clase: domain.ClaseRule, Nombre: nombre, Banda: domain.BandaBase,
+			FuentePath: fuente, Procedencia: domain.ProcDeclarado,
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("escanear %s: %w", dirReglas, err)
+	}
+	return nodos, nil
+}
+
 // identidadRegla aplica la convención de identidad del CLAUDE.md (ver reconocerRegla):
 // frontmatter `id:`/`nombre:` primero; heading `# <id> — <nombre>` como segunda vía.
 // Devuelve id vacío si ninguna aplica.
