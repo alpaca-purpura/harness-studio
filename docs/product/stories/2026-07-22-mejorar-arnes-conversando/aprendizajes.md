@@ -53,3 +53,27 @@
   (`loader_test.go:337,347`). `LoadArnes` ≠ `LoadArnesInfo` (el segundo devuelve `Info.Aviso`
   degradado). Posible colisión de id entre reconocedores (rule `hipaa-lite` vs skill homónima) es
   preexistente y tolerada — no resolver acá.
+
+## T2 · Reindex-tras-turno (RF-184/185) — CERRADO ✅
+
+- **Diseño final:** tipo `Reindexer func(ctx, arnesID, cwd)` + builder testeable
+  `NewTurnReindexer(idx ports.IndexPort, load func(dir)(domain.Graph,error))` en
+  `internal/usecase/session_reindex.go` (loader inyectado como func — usecase no importa
+  adapters, patrón `RoleSource`). Cableado vía `SetReindexer` (setter, NO parámetro 10 del
+  constructor — menos churn en tests/main). El disparo vive en `consume`/`EventResult`
+  (`session_service.go`): se capturan `reindex/arnes/cwd` DENTRO del lock, se llama FUERA (hace
+  IO). `sessionRuntime.cwd` nuevo, estampado en `spawnLocked`.
+- **Degradación (3 salidas):** sello OK → tal cual; sin sello → síntesis `HuellaPath(cwd)` +
+  Degradado (idéntico a `ObservarEnMapa`); carga rota → grafo VACÍO Degradado bajo el id del
+  registro. Nunca foto vieja, nunca Upsert con `Arnes` nil.
+- **Gotchas descubiertos:** firmas SIN ctx: `svc.Create(domain.Session)` y `svc.Turn(id, text)`.
+  Stubs de sesión reusables en `session_permisos_test.go` (package `usecase_test`): `stubAgent`
+  (`.sessions[i].events <- ports.AgentEvent{...}`), `stubStore`, `stubResolver{path}`, `stubPub`.
+  **R2 coverage MUERDE en `go test` (`TestCapabilityCoverage`)**: archivo Go nuevo sin capability
+  = suite roja → crear el YAML en el MISMO ticket (nació `CAP-94 usecases/reindex-tras-turno`;
+  próximo libre: CAP-95).
+- **Para el siguiente (T3):** el broker ya tiene `EventMap="map"` (broker.go:18). El publisher
+  del usecase es `EventPublisher.Publish(eventType, data)` (brokerPublisher en main). Extender
+  `NewTurnReindexer` con un `pub EventPublisher` opcional para emitir `map` tras Upsert — un solo
+  lugar. FE: `sse.ts` listener + `workspace-stage.tsx` refetch (`useEffect` L59-108 ya fetchea por
+  `viewedId`).

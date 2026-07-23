@@ -1,0 +1,33 @@
+---
+# Capability nueva (paquete 2026-07-22-mejorar-arnes-conversando, RF-184/RF-185).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.reindex-tras-turno
+cap_num: CAP-94
+slug: reindex-tras-turno
+name: "Reindex del Mapa tras cada turno del chat"
+status: vivo          # GENERADO (R4) — no teclear
+module: usecases
+verb: observar
+pointers:
+  - "internal/usecase/session_reindex.go"
+  - "internal/usecase/session_service.go#SetReindexer"
+valida:
+  - "TestTurnReindexerUpsertaGrafo"
+  - "TestTurnReindexerSinSello"
+  - "TestTurnReindexerCargaRota"
+  - "TestReindexTrasTurno"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on:
+    - arnesia.loader.carga-de-arnes-real
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-184/RF-185)"
+---
+
+# Reindex del Mapa tras cada turno del chat
+
+Después de cada `EventResult` del conductor, el usecase re-corre el loader sobre el cwd real de
+la sesión y upsertea el grafo al índice del Mapa — con degradación honesta (sin sello → síntesis
+HuellaPath; árbol roto → grafo vacío Degradado), jamás la foto vieja. Vive en el usecase, no en
+el conductor (boundary adaptadores-de-agente-intercambiables).

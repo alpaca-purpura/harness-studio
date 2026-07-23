@@ -91,6 +91,9 @@ type sessionRuntime struct {
 	// the ephemeral grants already approved (least temporal privilege — they expire).
 	pendingPerm map[string]pendingPermission // request_id → pending ask.
 	grants      map[string]domain.Grant      // tool → live grant.
+
+	// cwd real del conductor (resuelto al spawn) — insumo del reindex-tras-turno (RF-184).
+	cwd string
 }
 
 // SessionService owns the registry of work-fronts and drives their Claude Code
@@ -107,8 +110,17 @@ type SessionService struct {
 	injector ports.InjectionProvisioner // nil = spawns sin doctrina (degradación honesta).
 	perms    ports.PermissionPort       // resuelve el set del rol al responder un control_request.
 	roleFor  RoleSource                 // rol del arnés (server-side, jamás del FE) — RF-112/RF-114.
+	reindex  Reindexer                  // reindex del Mapa tras cada turno (RF-184); nil = sin reindex.
 	baseCtx  context.Context
 	maxTurns int
+}
+
+// SetReindexer cablea el reindex-tras-turno (RF-184). Se llama una vez en el composition
+// root, antes de servir; nil lo apaga (comportamiento previo).
+func (s *SessionService) SetReindexer(r Reindexer) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.reindex = r
 }
 
 // NewSessionService loads the persisted registry and returns a ready service. baseCtx
@@ -345,6 +357,7 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 		return err
 	}
 	r.live = live
+	r.cwd = cwd
 	r.wasResume = resume != ""
 	r.sawInit = false
 	go s.consume(id, live)
@@ -385,6 +398,8 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 		case ports.EventResult:
 			s.mu.Lock()
 			runID := ""
+			var reindex Reindexer
+			var reindexArnes, reindexCwd string
 			if r := s.rt[id]; r != nil && r.live == live {
 				final := strings.TrimSpace(r.assembling.String())
 				if final == "" {
@@ -398,10 +413,16 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				r.assembling.Reset()
 				r.pendingTurn = ""
 				runID = r.curRun
+				reindex, reindexArnes, reindexCwd = s.reindex, r.meta.Arnes, r.cwd
 				s.persistLocked()
 			}
 			s.mu.Unlock()
 			s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "result", Text: ev.Text, CtxPct: ev.CtxPct, Status: string(domain.StatusIdle)})
+			// Reindex-tras-turno (RF-184): el Mapa refleja lo que el chat acaba de editar.
+			// Fuera del lock (hace IO) y best-effort (RF-185): jamás rompe el turno.
+			if reindex != nil && reindexCwd != "" {
+				reindex(s.baseCtx, reindexArnes, reindexCwd)
+			}
 
 		case ports.EventError:
 			// A resume that never initialized → self-heal by restarting fresh.
