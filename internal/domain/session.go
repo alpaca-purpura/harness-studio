@@ -107,6 +107,10 @@ type Session struct {
 	// join sesión-lógica → N JSONLs nativas que el historial B2 necesita para coser.
 	CadenaCC []string `json:"cadena_cc,omitempty"`
 
+	// Checkpoint es el digest mecánico de la última rotación (RF-196): viaja al proceso
+	// fresco vía el system-prompt por sesión. Persistido: sobrevive reinicios del daemon.
+	Checkpoint string `json:"checkpoint,omitempty"`
+
 	// Conv is the lightweight replay transcript (see Turn).
 	Conv []Turn `json:"conv,omitempty"`
 }

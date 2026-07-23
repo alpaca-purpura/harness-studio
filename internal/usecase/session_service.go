@@ -294,6 +294,13 @@ func (s *SessionService) Turn(id, text string) error {
 		return ErrBusy
 	}
 
+	// Rotación invisible (RF-197): con el umbral cruzado, ESTE turno arranca en un
+	// proceso fresco — checkpoint + cadena + breadcrumb; el Session.ID no cambia y el
+	// Conv sigue sin cortes. Se rota ENTRE turnos por construcción (nunca streaming acá).
+	if r.meta.RotacionPendiente {
+		s.rotarLocked(r)
+	}
+
 	// Auto-derive the front name from the first user message.
 	if r.meta.Frente == "" || r.meta.Frente == "nuevo frente" {
 		r.meta.Frente = deriveFrente(text)
@@ -345,6 +352,12 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 		tarjeta := ""
 		if s.grounding != nil {
 			tarjeta = s.grounding(s.baseCtx, r.meta.Arnes, cwd)
+		}
+		// Checkpoint de rotación (RF-196/197): el proceso fresco arranca sabiendo dónde
+		// quedó la conversación — viaja en el MISMO system-prompt por sesión que la
+		// tarjeta (un mecanismo, dos usos — MC-D6).
+		if r.meta.Checkpoint != "" {
+			tarjeta = strings.TrimSpace(tarjeta + "\n\n## Checkpoint de rotación (la conversación CONTINÚA)\n\n" + r.meta.Checkpoint)
 		}
 		var ierr error
 		if inj, ierr = s.injector.ProvisionSession(s.baseCtx, id, tarjeta); ierr != nil {

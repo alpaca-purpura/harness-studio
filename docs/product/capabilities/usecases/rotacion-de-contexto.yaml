@@ -1,0 +1,34 @@
+---
+# Capability nueva (paquete 2026-07-22-mejorar-arnes-conversando, RF-194..RF-198).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.rotacion-de-contexto
+cap_num: CAP-97
+slug: rotacion-de-contexto
+name: "Rotación de contexto invisible (conversación infinita)"
+status: vivo          # GENERADO (R4) — no teclear
+module: usecases
+verb: observar
+pointers:
+  - "internal/usecase/session_rotacion.go"
+  - "internal/usecase/session_rotacion_test.go"
+valida:
+  - "TestCtxHistYUmbralRotacion"
+  - "TestRotacionInvisible"
+  - "TestCtxPctUsaUltimoUsage"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on:
+    - arnesia.provisioning.tarjeta-identidad-por-sesion
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-194..RF-198)"
+---
+
+# Rotación de contexto invisible (conversación infinita)
+
+`ctxPct` real por turno (usage del último API call, no el acumulado) se historiza; al cruzar el
+umbral (default 40 %, flag `-rotacion-umbral`) la sesión queda `rotacion-pendiente` y el PRÓXIMO
+turno arranca un proceso `claude` fresco: checkpoint mecánico (últimos turnos, espíritu Franja
+Artefactos) inyectado por el system-prompt por sesión, `ClaudeSessionID` viejo encadenado en
+`CadenaCC`, breadcrumb `RolSys` en el `Conv`. `Session.ID` no cambia; el usuario ve UNA
+conversación continua.
