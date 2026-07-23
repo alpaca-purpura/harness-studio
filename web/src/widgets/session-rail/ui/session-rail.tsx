@@ -290,6 +290,14 @@ function SessionCard({
 
       <div className="flex items-center gap-1.5 font-mono text-[9.5px] text-muted-foreground">
         <span className="text-primary/90">{s.arnes}</span>
+        {s.reparacion && (
+          <span
+            title="Sesión de reparación: edita una instalación (ley A4) — deriva visible, backport al canónico según causa"
+            className="rounded-[5px] border border-border bg-secondary px-1 py-px text-[8.5px]"
+          >
+            reparación
+          </span>
+        )}
         {multi && <span title="este arnés tiene 2+ frentes">·2 frentes</span>}
         <HealthDot salud={s.salud} />
       </div>

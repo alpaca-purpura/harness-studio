@@ -22,14 +22,15 @@ func listSessions(svc *usecase.SessionService) http.HandlerFunc {
 // createSessionBody is the POST /api/sessions payload. Path, when present, registers the
 // arnés's working directory in the same call (S2), so a new front is confined from turn one.
 type createSessionBody struct {
-	Arnes   string       `json:"arnes"`
-	Frente  string       `json:"frente"`
-	Empresa string       `json:"empresa"`
-	Puesto  string       `json:"puesto"`
-	Salud   domain.Salud `json:"salud"`
-	View    string       `json:"view"`
-	Parked  string       `json:"parked"`
-	Path    string       `json:"path"`
+	Arnes      string       `json:"arnes"`
+	Frente     string       `json:"frente"`
+	Empresa    string       `json:"empresa"`
+	Puesto     string       `json:"puesto"`
+	Salud      domain.Salud `json:"salud"`
+	View       string       `json:"view"`
+	Parked     string       `json:"parked"`
+	Path       string       `json:"path"`
+	Reparacion bool         `json:"reparacion"`
 }
 
 // createSession opens a new work-front. If a path is supplied it registers the arnés's
@@ -58,13 +59,14 @@ func createSession(svc *usecase.SessionService, reg ports.ArnesRegistry, onRegis
 			}
 		}
 		sess, err := svc.Create(domain.Session{
-			Arnes:   body.Arnes,
-			Frente:  body.Frente,
-			Empresa: body.Empresa,
-			Puesto:  body.Puesto,
-			Salud:   body.Salud,
-			View:    body.View,
-			Parked:  body.Parked,
+			Arnes:      body.Arnes,
+			Frente:     body.Frente,
+			Empresa:    body.Empresa,
+			Puesto:     body.Puesto,
+			Salud:      body.Salud,
+			View:       body.View,
+			Parked:     body.Parked,
+			Reparacion: body.Reparacion,
 		})
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})

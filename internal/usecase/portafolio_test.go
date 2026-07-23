@@ -542,3 +542,47 @@ func TestAgregarProyectoPueblaRegistries(t *testing.T) {
 		t.Errorf("registries crudo = %v, quiero el valor crudo visible (no parsea a host/owner/repo)", crudo.Registries)
 	}
 }
+
+// derivaFija — evaluador configurable para probar re-evaluación (RF-193).
+type derivaFija struct {
+	estado  domain.EstadoDeriva
+	detalle string
+}
+
+func (d derivaFija) Evaluar(string, string, string, string) (domain.EstadoDeriva, string) {
+	return d.estado, d.detalle
+}
+
+// TestReevaluarDerivaTrasEdicion (RF-193): tras una edición por chat, la deriva de la
+// instalación se re-evalúa y persiste si cambió; el Portafolio nunca finge al-hilo.
+func TestReevaluarDerivaTrasEdicion(t *testing.T) {
+	store := newFakePortafolioStore()
+	if err := store.Upsert(domain.EntradaPortafolio{
+		Identidad: domain.IdentidadArnes{ID: "vitalia", Scope: "."},
+		Instalaciones: []domain.Instalacion{{
+			ProyectoPath: "/proj", InstallPath: "/proj/vitalia",
+			Deriva: domain.DerivaNoEvaluable, DerivaDetalle: "sin version",
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{}, derivaFija{domain.DerivaEnDeriva, "hash difiere"}, nil)
+
+	cambio, err := svc.ReevaluarDeriva(context.Background(), "/proj/vitalia")
+	if err != nil || !cambio {
+		t.Fatalf("cambio=%v err=%v", cambio, err)
+	}
+	entradas, _ := store.Listar()
+	if got := entradas[0].Instalaciones[0].Deriva; got != domain.DerivaEnDeriva {
+		t.Errorf("deriva persistida = %q, quiero en-deriva", got)
+	}
+
+	// Segunda pasada sin cambio → false, sin re-persistir.
+	if cambio, err = svc.ReevaluarDeriva(context.Background(), "/proj/vitalia"); err != nil || cambio {
+		t.Errorf("sin cambio: cambio=%v err=%v", cambio, err)
+	}
+	// Path fuera del Portafolio → no-op honesto.
+	if cambio, err = svc.ReevaluarDeriva(context.Background(), "/otro/lado"); err != nil || cambio {
+		t.Errorf("fuera del portafolio: cambio=%v err=%v", cambio, err)
+	}
+}

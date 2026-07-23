@@ -197,8 +197,6 @@ func runServe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("session service: %w", err)
 	}
-	// Reindex-tras-turno (RF-184): el Mapa refleja lo que el chat edita, turno a turno.
-	sessionSvc.SetReindexer(usecase.NewTurnReindexer(idx, loader.LoadArnes, brokerPublisher{broker}))
 
 	// Conductor T3 (Fase E): el loop determinista de una caja, con el lector de
 	// `status:` del artefacto (document-as-cache) confinado al árbol del arnés.
@@ -261,6 +259,15 @@ func runServe(args []string) error {
 			entradas = nil
 		}
 		return usecase.TarjetaIdentidad(entradas, arnesID, cwd, roleFor(gctx, arnesID))
+	})
+	// Reindex-tras-turno (RF-184) + deriva honesta (RF-193): el Mapa refleja lo que el
+	// chat edita y el Portafolio nunca finge `al-hilo` tras una edición.
+	turnReindex := usecase.NewTurnReindexer(idx, loader.LoadArnes, brokerPublisher{broker})
+	sessionSvc.SetReindexer(func(rctx context.Context, arnesID, cwd string) {
+		turnReindex(rctx, arnesID, cwd)
+		if _, derr := portafolioSvc.ReevaluarDeriva(rctx, cwd); derr != nil {
+			slog.Warn("deriva tras turno", "arnes", arnesID, "err", derr)
+		}
 	})
 
 	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))

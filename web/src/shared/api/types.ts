@@ -27,6 +27,8 @@ export interface Session {
   model?: string | undefined
   ctx_pct?: number | undefined
   conv?: Turn[]
+  // Sesión de reparación (RF-191, ley A4): abierta contra una instalación del Portafolio.
+  reparacion?: boolean
 }
 
 // NewSession is the create payload. path, when set, registers the arnés's working directory
@@ -40,6 +42,7 @@ export interface NewSession {
   view?: string
   parked?: string
   path?: string
+  reparacion?: boolean
 }
 
 // HarnessSummary is one entry of GET /api/harnesses (S1 portfolio / the Map picker, RF-72):

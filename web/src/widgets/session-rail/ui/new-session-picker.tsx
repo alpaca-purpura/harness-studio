@@ -29,6 +29,9 @@ export interface ArnesElegido {
   arnes: string
   empresa?: string
   path: string
+  // reparacion (RF-191, ley A4): la copia elegida es una INSTALACIÓN → la sesión abre como
+  // sesión de reparación (edición legal con deriva visible). Ausente para canónico/única.
+  reparacion?: boolean
 }
 
 export interface NewSessionPickerProps {
@@ -108,10 +111,13 @@ export function NewSessionPicker({
     const e = entradas.find((x) => x.clave === seleccionada)
     if (!e) return
     const empresas = e.empresas ?? []
+    // RF-191: elegir una instalación (no el canónico) abre la sesión como REPARACIÓN.
+    const copia = copiasDe(e).find((c) => c.path === copiaPath)
     onCrear({
       arnes: identificadorDe(e.identidad),
       path: copiaPath,
       ...(empresas.length > 0 ? { empresa: empresas.join(" · ") } : {}),
+      ...(copia && !copia.esCanonico ? { reparacion: true } : {}),
     })
   }
 
@@ -388,7 +394,15 @@ function FilaPicker({
               {c.esCanonico ? (
                 <span className="flex-none font-mono font-bold">canónico</span>
               ) : (
-                <TipoInstalacionChip tipo={c.tipoInstalacion ?? ""} />
+                <>
+                  <TipoInstalacionChip tipo={c.tipoInstalacion ?? ""} />
+                  <span
+                    title="Elegir esta copia abre una sesión de REPARACIÓN: edición legal in situ, con la deriva visible en el Portafolio (ley A4)"
+                    className="flex-none text-[9px] text-muted-foreground"
+                  >
+                    → reparación
+                  </span>
+                </>
               )}
               <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
                 {c.path}

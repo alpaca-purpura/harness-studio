@@ -455,6 +455,43 @@ func (s *PortafolioService) Listar(_ context.Context) ([]domain.EntradaPortafoli
 	return sanas, corruptas, nil
 }
 
+// ReevaluarDeriva re-corre el evaluador de deriva de la instalación cuyo InstallPath
+// coincide con installPath (RF-193, mejorar-arnes-conversando T1): tras una edición por
+// chat, el Portafolio nunca finge `al-hilo`. Devuelve si algo cambió (y persiste solo en
+// ese caso). Path fuera del Portafolio o canónico → (false, nil): nada que re-evaluar,
+// no es un error. Misma resolución de home/version que candidatoDe (BR-4).
+func (s *PortafolioService) ReevaluarDeriva(_ context.Context, installPath string) (bool, error) {
+	canon := canonicalPathPortafolio(installPath)
+	if canon == "" || s.deriva == nil {
+		return false, nil
+	}
+	entradas, _ := s.store.Listar()
+	for _, e := range entradas {
+		for i := range e.Instalaciones {
+			inst := &e.Instalaciones[i]
+			if canonicalPathPortafolio(inst.InstallPath) != canon {
+				continue
+			}
+			homeParaDeriva := e.Identidad.Home
+			if homeParaDeriva == "" {
+				if c, ok := domain.CanonicalizarRepo(inst.Origen.Registry); ok {
+					homeParaDeriva = c
+				}
+			}
+			estado, detalle := s.deriva.Evaluar(inst.InstallPath, homeParaDeriva, e.Identidad.ID, inst.Origen.Version)
+			if estado == inst.Deriva && detalle == inst.DerivaDetalle {
+				return false, nil
+			}
+			inst.Deriva, inst.DerivaDetalle = estado, detalle
+			if err := s.store.Upsert(e); err != nil {
+				return false, fmt.Errorf("portafolio: re-evaluar deriva de %s: %w", canon, err)
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // Desvincular quita clave del registro. NO desinstala, no borra ningún clon (C-UNL-3).
 func (s *PortafolioService) Desvincular(_ context.Context, clave string) (bool, error) {
 	return s.store.Desvincular(clave)

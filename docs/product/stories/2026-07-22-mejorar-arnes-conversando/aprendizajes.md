@@ -154,3 +154,26 @@
   marca opcional, y re-evaluar deriva tras turno. La re-evaluación de deriva vive en el
   Portafolio — buscar qué función la computa (grep `Deriva`/`deriva` en usecase/portafolio.go y
   adapters/portafolio) antes de inventar nada.
+
+## T1 · Picker rotula + deriva viva (RF-191/192/193) — CERRADO ✅
+
+- **Diseño final:** `domain.Session.Reparacion` (bool) seteado por el picker al elegir una copia
+  no-canónica (`ArnesElegido.reparacion` → `NewSession` → `createSessionBody` → `Session`); el
+  picker ya tenía chips de tipo — solo se agregó el hint «→ reparación» (con tooltip A4) en la
+  sub-lista y el chip `reparación` en la SessionCard expandida. `PortafolioService.ReevaluarDeriva
+  (ctx, installPath)` re-corre el evaluador (misma resolución home/version que `candidatoDe`:
+  `Identidad.Home` → fallback `CanonicalizarRepo(Origen.Registry)`; version de `Origen.Version`) y
+  persiste SOLO si cambió. Wiring: el closure del reindexer en main.go encadena
+  `turnReindex(...)` + `ReevaluarDeriva(cwd)` — cero plumbing nuevo en SessionService.
+- **Gotchas:** los fakes del Portafolio ya existen en `portafolio_test.go`
+  (fakePortafolioStore/Scanner/Loader + fakeDerivaEvaluator fijo — para probar cambio de estado
+  hace falta un evaluador propio `derivaFija`). El picker calcula `copiasDe` on-the-fly — para
+  saber si la copia elegida es canónica se re-busca por path en `crear()`.
+- **Deuda anotada:** el chip `reparación` y el hint del picker no tienen story-test propio
+  (vitest-browser no corre headless en bg — validación visual va al E2E final / gate humano).
+- **Para el siguiente (T7):** PRIMERO reparar `ctxPct` (hallazgo T4: usa usage ACUMULADO del
+  turno → 100 % espurio). El fix: capturar `message.usage` del ÚLTIMO frame assistant
+  (`assistantMsg` hoy solo parsea Content — extender) y usar ESO en el `EventResult`; el
+  `modelUsage[f.Model].contextWindow` puede no matchear la llave del model `[1m]` — mantener el
+  fallback pero loguear. Después: histórico en `Session` (slice de ctxPct por turno) + umbral 40 %
+  configurable + marca `rotacion-pendiente`.

@@ -83,6 +83,11 @@ type Session struct {
 	View   string        `json:"view"`
 	Parked string        `json:"parked,omitempty"`
 
+	// Reparacion marca la sesión abierta contra una INSTALACIÓN del Portafolio (ley A4,
+	// RF-191 mejorar-arnes-conversando): edición legal con deriva visible + backport según
+	// causa. El picker la setea al elegir la copia; el rail la pinta como chip.
+	Reparacion bool `json:"reparacion,omitempty"`
+
 	// ClaudeSessionID is the Claude Code session id captured from the `system/init`
 	// event; passing it to `--resume` rehydrates the real conversation after a restart.
 	ClaudeSessionID string `json:"claude_session_id,omitempty"`
