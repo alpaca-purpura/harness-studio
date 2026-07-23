@@ -17,6 +17,7 @@ import {
   type ScopeNode,
   type Session,
 } from "@/shared/api"
+import { useMapLive } from "./map-live-store"
 
 // Escrituras directas (mismo set que el conductor filtra de --allowedTools): si el turno
 // aprobó al menos una, al `result` corre el gate de conformance del arnés (RF-117).
@@ -123,6 +124,9 @@ export const useSessions = create<SessionsState>((set, get) => ({
       dockConn = connectDock(
         (f) => get().onDock(f),
         (c) => set({ connected: c }),
+        // Reindex-en-vivo (RF-187): un turno reindexó un arnés → bump de su revisión;
+        // la vista Mapa que lo mire refetchea.
+        (m) => useMapLive.getState().bump(m.harness_id),
       )
     }
   },

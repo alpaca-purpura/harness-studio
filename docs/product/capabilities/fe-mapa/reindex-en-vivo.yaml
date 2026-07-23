@@ -1,0 +1,31 @@
+---
+# Capability nueva (paquete 2026-07-22-mejorar-arnes-conversando, RF-186/RF-187).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-mapa.reindex-en-vivo
+cap_num: CAP-95
+slug: reindex-en-vivo
+name: "Mapa en vivo: refetch al reindexarse el arnés por chat"
+status: vivo          # GENERADO (R4) — no teclear
+module: fe-mapa
+verb: observar
+pointers:
+  - "web/src/shared/store/map-live-store.ts"
+  - "web/src/shared/store/map-live-store.test.ts"
+  - "web/src/shared/api/sse.ts#connectDock"
+  - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
+valida:
+  - "map-live-store.test.ts"
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on:
+    - arnesia.usecases.reindex-tras-turno
+  enables: []
+source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-186/RF-187)"
+---
+
+# Mapa en vivo: refetch al reindexarse el arnés por chat
+
+El daemon publica `event: map` (canal SSE ya reservado) tras el reindex de cada turno; el FE
+bumpea la revisión del arnés en `useMapLive` y la vista Mapa que lo está mirando refetchea su
+grafo sin recargar la página ni resetear la selección.

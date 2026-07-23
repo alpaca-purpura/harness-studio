@@ -6,6 +6,7 @@ import {
   type HarnessSummary,
   selectActive,
   useAppStore,
+  useMapLive,
   useSessions,
   VIEWS,
 } from "@/shared"
@@ -106,6 +107,27 @@ export function WorkspaceStage() {
       alive = false
     }
   }, [viewedId, isMapa, harnesses, harnessesLoaded])
+
+  // Reindex-en-vivo (RF-187): el daemon avisó por `event: map` que el grafo del arnés visto
+  // cambió tras un turno del chat → refetch del grafo SIN resetear selección ni conformance
+  // (a diferencia del efecto de carga de arriba — esto es un refresh, no una navegación).
+  const mapRev = useMapLive((st) => (viewedId ? (st.rev[viewedId] ?? 0) : 0))
+  useEffect(() => {
+    if (!viewedId || !isMapa || mapRev === 0) return
+    let alive = true
+    api
+      .getGraph<Graph>(viewedId)
+      .then((g) => {
+        if (alive) setGraph(g)
+      })
+      .catch(() => {
+        // El grafo viejo queda en pantalla; el efecto de navegación reporta errores — acá
+        // un refetch fallido no borra lo que el usuario está viendo.
+      })
+    return () => {
+      alive = false
+    }
+  }, [mapRev, viewedId, isMapa])
 
   // Índice del portafolio — necesario para detectar un arnés no indexado (loadErr, RF-70). No
   // alimenta más ningún picker (TS-D21 sacó el de MapBar).

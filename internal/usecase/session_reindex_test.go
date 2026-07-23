@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,31 +23,48 @@ func (f *fakeIndex) Upsert(_ context.Context, g domain.Graph) error {
 	return nil
 }
 
-// TestTurnReindexerUpsertaGrafo: carga OK → el grafo entra al índice tal cual (RF-184).
+// grabaPub captura lo publicado por el reindexer (RF-186).
+type grabaPub struct {
+	tipos []string
+	datas []string
+}
+
+func (g *grabaPub) Publish(tipo string, data []byte) {
+	g.tipos = append(g.tipos, tipo)
+	g.datas = append(g.datas, string(data))
+}
+
+// TestTurnReindexerUpsertaGrafo: carga OK → el grafo entra al índice tal cual (RF-184) y
+// se avisa por `event: map` con el harness_id (RF-186).
 func TestTurnReindexerUpsertaGrafo(t *testing.T) {
 	idx := &fakeIndex{}
+	pub := &grabaPub{}
 	re := usecase.NewTurnReindexer(idx, func(string) (domain.Graph, error) {
 		return domain.Graph{Arnes: &domain.Arnes{ID: "vitalia"}, Nodes: []domain.Box{{ID: "r1"}}}, nil
-	})
+	}, pub)
 	re(context.Background(), "vitalia", "/tmp/x")
 	if len(idx.upserts) != 1 || idx.upserts[0].Arnes.ID != "vitalia" || len(idx.upserts[0].Nodes) != 1 {
 		t.Fatalf("upserts = %+v", idx.upserts)
 	}
+	if len(pub.tipos) != 1 || pub.tipos[0] != "map" || !strings.Contains(pub.datas[0], `"harness_id":"vitalia"`) {
+		t.Errorf("evento map: tipos=%v datas=%v", pub.tipos, pub.datas)
+	}
 }
 
-// TestTurnReindexerSinSello: carga OK pero sin manifiesto (Arnes nil) → misma síntesis que
-// ObservarEnMapa (id = HuellaPath del cwd) + Degradado, jamás Upsert con Arnes nil.
+// TestTurnReindexerSinSello: carga OK pero sin manifiesto (Arnes nil) → Degradado bajo el ID
+// DEL REGISTRO (la llave que el Mapa ya mira — una llave sintética nueva duplicaría la
+// entrada y dejaría stale la vigente), jamás Upsert con Arnes nil.
 func TestTurnReindexerSinSello(t *testing.T) {
 	idx := &fakeIndex{}
 	re := usecase.NewTurnReindexer(idx, func(string) (domain.Graph, error) {
 		return domain.Graph{Nodes: []domain.Box{{ID: "r1"}}, Degradado: true}, nil
-	})
+	}, nil)
 	re(context.Background(), "vitalia", "/tmp/x")
 	if len(idx.upserts) != 1 {
 		t.Fatalf("upserts = %+v", idx.upserts)
 	}
 	g := idx.upserts[0]
-	if g.Arnes == nil || g.Arnes.ID != domain.HuellaPath("/tmp/x") || !g.Degradado {
+	if g.Arnes == nil || g.Arnes.ID != "vitalia" || !g.Degradado {
 		t.Errorf("degradado sin sello mal sintetizado: %+v", g.Arnes)
 	}
 	if len(g.Nodes) != 1 {
@@ -55,12 +73,14 @@ func TestTurnReindexerSinSello(t *testing.T) {
 }
 
 // TestTurnReindexerCargaRota: el chat rompió el árbol (LoadArnes error) → el índice refleja
-// estado DEGRADADO real (nodos vacíos + Degradado), nunca la foto vieja ni silencio (RF-184).
+// estado DEGRADADO real (nodos vacíos + Degradado), nunca la foto vieja ni silencio (RF-184);
+// el aviso `map` viaja igual (el FE debe enterarse del degradado, RF-186).
 func TestTurnReindexerCargaRota(t *testing.T) {
 	idx := &fakeIndex{}
+	pub := &grabaPub{}
 	re := usecase.NewTurnReindexer(idx, func(string) (domain.Graph, error) {
 		return domain.Graph{}, errors.New("boom")
-	})
+	}, pub)
 	re(context.Background(), "vitalia", "/tmp/x")
 	if len(idx.upserts) != 1 {
 		t.Fatalf("upserts = %+v", idx.upserts)
@@ -68,6 +88,9 @@ func TestTurnReindexerCargaRota(t *testing.T) {
 	g := idx.upserts[0]
 	if g.Arnes == nil || g.Arnes.ID != "vitalia" || !g.Degradado || len(g.Nodes) != 0 {
 		t.Errorf("carga rota debe indexar degradado honesto: %+v (nodos %d)", g.Arnes, len(g.Nodes))
+	}
+	if len(pub.tipos) != 1 || !strings.Contains(pub.datas[0], `"degradado":true`) {
+		t.Errorf("el degradado debe viajar en el evento: %v", pub.datas)
 	}
 }
 

@@ -79,6 +79,13 @@ export interface DockFrame {
   decision?: "allow" | "deny"
 }
 
+// MapFrame is one SSE `map` event payload (RF-186/RF-187): the daemon reindexed an arnés
+// after a chat turn; a mounted Map viewing that harness refetches its graph live.
+export interface MapFrame {
+  harness_id: string
+  degradado?: boolean
+}
+
 // PermissionAsk is one pending control_request card of a session (RF-113).
 export interface PermissionAsk {
   request_id: string

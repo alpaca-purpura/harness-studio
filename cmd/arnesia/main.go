@@ -198,7 +198,7 @@ func runServe(args []string) error {
 		return fmt.Errorf("session service: %w", err)
 	}
 	// Reindex-tras-turno (RF-184): el Mapa refleja lo que el chat edita, turno a turno.
-	sessionSvc.SetReindexer(usecase.NewTurnReindexer(idx, loader.LoadArnes))
+	sessionSvc.SetReindexer(usecase.NewTurnReindexer(idx, loader.LoadArnes, brokerPublisher{broker}))
 
 	// Conductor T3 (Fase E): el loop determinista de una caja, con el lector de
 	// `status:` del artefacto (document-as-cache) confinado al árbol del arnés.

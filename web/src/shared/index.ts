@@ -26,6 +26,7 @@ export { type TokenName, tokens } from "./config/tokens"
 export { cn } from "./lib/cn"
 export { isTauri } from "./lib/platform"
 export { bindHashState, type Theme, useAppStore } from "./store/app-store"
+export { useMapLive } from "./store/map-live-store"
 export {
   selectActive,
   selectAttention,

@@ -77,3 +77,27 @@
   `NewTurnReindexer` con un `pub EventPublisher` opcional para emitir `map` tras Upsert — un solo
   lugar. FE: `sse.ts` listener + `workspace-stage.tsx` refetch (`useEffect` L59-108 ya fetchea por
   `viewedId`).
+
+## T3 · Push por `event: map` + FE refetch (RF-186/187) — CERRADO ✅
+
+- **Diseño final:** `NewTurnReindexer(idx, load, pub)` publica `mapFrame{harness_id, degradado}`
+  por `event: map` tras CADA Upsert (sano o degradado — el FE debe enterarse del roto). FE:
+  `connectDock(onFrame, onStatus, onMap?)` (mismo EventSource multiplexado, listener `map` solo
+  si hay callback); store nuevo `useMapLive` (`shared/store/map-live-store.ts`: `rev` por arnés +
+  `bump`); `sessions-store` cablea `onMap → bump`; `workspace-stage.tsx` efecto SEPARADO por
+  `mapRev` que refetchea `getGraph` sin resetear selección/conformance (el efecto de navegación
+  queda intacto — refresh ≠ navegación; refetch fallido conserva el grafo visible).
+- **Corrección a T2 destapada acá:** el reindex sin sello upsertea bajo el ID DEL REGISTRO, no
+  `HuellaPath` — una llave sintética duplicaría la entrada del índice y dejaría stale la que el
+  Mapa mira. (La síntesis HuellaPath es del flujo Portafolio/ObservarEnMapa, donde NO hay llave
+  previa.) Edge anotado: si el chat cambia el `id` DEL SELLO, el grafo entra bajo el id nuevo y
+  el Mapa que mira el viejo queda stale — aceptado en V1, es una edición deliberada del sello.
+- **Gotchas:** R2 coverage también cubre `web/src` (map-live-store.ts+test exigieron capability →
+  CAP-95 `fe-mapa/reindex-en-vivo`; próximo libre CAP-96). TS strict `TS4111`: `Record` se accede
+  con corchetes (`rev["vitalia"]`). Biome formatea distinto que a mano — correr
+  `pnpm exec biome format --write` antes de `verify`. Los unit tests FE (proyecto `unit`, Node
+  sin Chromium) SÍ corren en bg: `pnpm vitest run --project unit`.
+- **Para el siguiente (T4 E2E Vitalia):** daemon corre con `go run ./cmd/arnesia serve` (o el
+  binario instalado). El FE dev en `:4200` sirve la SPA embebida del daemon o `pnpm dev`
+  (verificar puerto). Sesión contra vitalia YA registrada en `~/.arnesia/arneses.json` (llave
+  `vitalia`). Evidencia a `PARIDAD.md`.
