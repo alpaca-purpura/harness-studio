@@ -5,9 +5,9 @@
 > el arnés de la sesión en la que me encuentro... conforme voy hablando, tengo que poder ir viendo
 > cómo estos cambios se van dando en el Mapa."* Ampliado el mismo día con: historial de conversaciones
 > recuperable por arnés + rotación de contexto invisible por umbral de tokens ("debemos seguir
-> conversando de forma infinita sobre un arnés... nunca perdamos el contexto"). Etapa: **spike de spec**
-> (resolver los 3 forks abiertos → firma del enfoque → recién ahí código). El gate 🧑‍⚖️ del enfoque
-> está ABIERTO.
+> conversando de forma infinita sobre un arnés... nunca perdamos el contexto"). Etapa: **spike de spec
+> CERRADO** (refinado 2026-07-22 contra código file:line): **los 4 gates del enfoque FIRMADOS 🧑‍⚖️
+> (Forks A4/B2/C + grounding)** — ver `decisiones.md`. Sigue: `spec.md` con RF numerados.
 
 ## Qué resuelve
 
@@ -87,15 +87,34 @@ sesión — eso funciona. Pero está desconectado de todo lo demás:
    abajo) — pero con 4 sub-preguntas todavía sin decidir (umbral exacto, formato del checkpoint, dónde
    vive, riesgo de rotar a mitad de una edición).
 
+## Refinamiento 2026-07-22 (sesión posterior, arquitectura verificada contra código)
+
+Nace `decisiones.md` (MC-D1..MC-D8). Resultado:
+
+- **Fork B FIRMADO 🧑‍⚖️ = B2** (indexer del JSONL nativo, alcance mínimo: metadata al `Close()` con
+  cadena de `ClaudeSessionID`s + lector del corpus por arnés).
+- **Fork C FIRMADO 🧑‍⚖️** (umbral default 40 % configurable · checkpoint mecánico en
+  `~/.arnesia/sessions/<id>/` · rotación lazy entre turnos — las 4 sub-preguntas cerradas, MC-D5).
+- **Grounding FIRMADO 🧑‍⚖️ (MC-D6, gap nuevo):** tarjeta de identidad por sesión — hoy el Claude del
+  chat no sabe qué arnés edita (solo ve el cwd); se inyecta identidad `(home,id)` +
+  canónico-vs-instalación + `deriva` vía system-prompt-file per-session (misma infra que el checkpoint).
+- **Correcciones de arquitectura:** reindex va en `SessionService.consume`, no en el conductor (MC-D3,
+  boundary `adaptadores-de-agente-intercambiables`) · push por `event: map` ya reservado en el broker
+  (MC-D4).
+- **Fork A FIRMADO 🧑‍⚖️ = A4 «sesión de reparación»** (reparación in situ + backport al canónico
+  según causa — instalación mala vs base mala; enmienda la letra de INV-1 → «ninguna instalación
+  deriva en silencio») (MC-D8, `spike-spec.md` §3).
+
 ## Retomar aquí (para una sesión nueva sin este contexto)
 
-Este paquete puede empezar de cero: leé `spike-spec.md` completo (contiene TODO el contexto — no
-asumas que quien lo abre vio esta conversación). Faltan **3 forks por firmar** antes de escribir
-`spec.md` (Fork A, B, C — ver `spike-spec.md` §3/§3b/§3c, cada uno con recomendación). Una vez
-firmados, el resto es implementación directa (T1-T9 en `spike-spec.md` §5), sin decisiones de producto
-pendientes.
+Este paquete puede empezar de cero: leé `spike-spec.md` + `decisiones.md` (MC-D1..MC-D8) — contienen
+TODO el contexto, no asumas que quien los abre vio las conversaciones. Estado: **spike CERRADO, los 4
+gates del enfoque FIRMADOS 🧑‍⚖️** (Fork A = A4 sesión de reparación · Fork B = B2 indexer JSONL ·
+Fork C rotación 40 % · grounding MC-D6). **Próximo paso: escribir `spec.md` con RF numerados** y de
+ahí implementación directa (T1-T10 en `spike-spec.md` §5), sin decisiones de producto pendientes.
 
 ## Archivos
 
-- [`spike-spec.md`](./spike-spec.md) — el spike completo: contexto, el fork abierto con recomendación,
-  plan técnico, plan de tickets.
+- [`spike-spec.md`](./spike-spec.md) — el spike completo: contexto, forks (B/C resueltos, A en
+  redacción), plan técnico, plan de tickets T1-T10.
+- [`decisiones.md`](./decisiones.md) — MC-D1..MC-D8 (las firmas y la dirección del Fork A).

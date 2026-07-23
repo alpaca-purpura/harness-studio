@@ -44,21 +44,21 @@ Slice 1-FE · Slice 2 sello/Identificar · shell-topbar-selector-arnes, 2026-07-
   re-estampar `mockups/INDEX.md` → `BACKLOG.md`.
 - **Shell — Topbar sin empresa + selector de arnés (2026-07-20) — FIRMADO 🧑‍⚖️ (HS-25).**
   `topbar.tsx`/`session-rail.tsx`/`new-session-picker.tsx`/`portafolio-picker-store.ts`, 168/168 verde.
-- **Retomar aquí: paquete nuevo `mejorar-arnes-conversando` (spike de spec, ABIERTO, 3 forks
-  pendientes de firma).**
+- **Retomar aquí: paquete `mejorar-arnes-conversando` (spike CERRADO 2026-07-22 — 4 gates del
+  enfoque FIRMADOS 🧑‍⚖️; próximo paso: `spec.md`).**
   [`stories/2026-07-22-mejorar-arnes-conversando/INDEX.md`](stories/2026-07-22-mejorar-arnes-conversando/INDEX.md) —
   ata chat-cc-funcional + kit ② inyectado + reindex-en-vivo + Mapa + historial de conversación +
-  rotación de contexto, que el operador señaló como UNA experiencia continua, no historias separadas.
-  Ya firmado: alcance = chat libre + doctrina de fondo (kit ② YA enseña anatomía de arnés) · Mapa
-  refresca después de cada turno (medido: `loader.LoadArnes` ~0.4ms, sin costo). **3 forks abiertos a
-  propósito**, cada uno con recomendación en `spike-spec.md`: **A** instalación editable contradice la
-  ley anti-drift firmada 2026-07-13 (picker de `shell-topbar-selector-arnes`, HS-25, sin guard) →
-  recom. A1 bloquear · **B** `SessionService.Close()` borra el historial de conversación en vez de
-  archivarlo → recom. B1 archivar + endpoint de historial por arnés (`Session.Arnes` ya agrupa) ·
-  **C** rotación de contexto invisible por umbral de `ctxPct` (ya calculado, solo no se historiza ni
-  dispara nada) → mecanismo recomendado (checkpoint chico tipo Franja Artefactos + spawn fresco vía
-  `--append-system-prompt-file`, el `Session.ID` no cambia) con 4 sub-preguntas sin decidir. Ni re-key
-  `(home,id,scope)` ni forja-ciclo-vivo item 3 eran el bloqueo real.
+  rotación de contexto como UNA experiencia continua. Refinado contra código real (mapa file:line);
+  decisiones en `decisiones.md` (MC-D1..MC-D8). FIRMADOS 🧑‍⚖️: **Fork B = B2** (indexer JSONL nativo,
+  alcance mínimo: metadata al `Close()` con cadena de `ClaudeSessionID`s + lector del corpus por
+  arnés) · **Fork C** (rotación: umbral 40 % configurable · checkpoint mecánico en
+  `~/.arnesia/sessions/<id>/` · lazy entre turnos · `Session.ID` no cambia) · **grounding MC-D6**
+  (tarjeta de identidad por sesión — hoy el chat no sabe qué arnés edita). Correcciones de
+  arquitectura: reindex en `SessionService.consume` (no en el conductor) · push por `event: map` ya
+  reservado. **Fork A FIRMADO 🧑‍⚖️ = A4 «sesión de reparación»** — sesión sobre instalación =
+  REPARACIÓN legal (instalación = banco de pruebas; causa instalación-mala → fix in situ, causa
+  base-mala → backport al canónico; enmienda la letra de INV-1 hacia «ninguna instalación deriva en
+  silencio»). Sigue: `spec.md` (RF numerados) → T1-T10.
 - Continuaciones abiertas (eje N2: derivación LIVE · validar ~40 `vivo·nc` · homologación 2° orden · deuda viva) → `docs/product/BACKLOG.md`.
 
 ## Cifras vivas

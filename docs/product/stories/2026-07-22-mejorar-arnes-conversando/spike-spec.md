@@ -1,8 +1,9 @@
 # Spike — Mejorar un arnés conversando (chat + Mapa en vivo)
 
 > Paquete `2026-07-22-mejorar-arnes-conversando`. Este documento es autocontenido: no asume que quien
-> lo lee vio la conversación original. Etapa: spike de spec (resolver los Forks A/B/C → firma →
-> `spec.md`).
+> lo lee vio la conversación original. Etapa: spike de spec **CERRADO** — refinado 2026-07-22 contra
+> el código real (mapa file:line); **Forks A/B/C + grounding FIRMADOS 🧑‍⚖️** — ver `decisiones.md`
+> (MC-D3..MC-D8). Sigue: `spec.md` con RF numerados.
 
 ## 0. Norte
 
@@ -146,35 +147,44 @@ punto de la tubería. No hace falta inventar el patrón, hace falta aplicarlo ac
 2. **Frecuencia de refresh del Mapa = después de cada turno de Claude.** Validado en vivo: el costo de
    `loader.LoadArnes` es despreciable (§1.3).
 
-## 3. Fork A — Instalación editable durante el chat (ABIERTO, a firmar antes de `spec.md`)
+## 3. Fork A — Instalación editable durante el chat (RESUELTO 2026-07-22: A4 FIRMADO 🧑‍⚖️, MC-D8)
 
 **El problema:** el picker ya firmado deja abrir sesión de escritura contra una instalación (copia
-read-only por doctrina). No hay guard. Contradice la ley anti-drift firmada.
+read-only por la letra de INV-1). No hay guard.
 
-**Opción A1 (recomendada) — Bloquear edición de instalaciones en el chat.** El chat de escritura solo
-abre contra el CANÓNICO. Si el usuario elige una instalación en el picker, la sesión abre en un modo
-sin escritura real (observar/auditar), o el picker directamente no ofrece instalaciones como destino de
-"nueva sesión de chat" (solo las ofrece "Abrir en Mapa", que ya es observación read-only, cierra GAP-1
-del Portafolio). Mantiene la ley anti-drift tal como se firmó — no la reabre. Costo: hay que decidir qué
-ve el usuario si intenta elegir una instalación (¿la oculta la lista? ¿la muestra deshabilitada con
-tooltip, mismo patrón que Reparar/Backport S1-D11?).
+**Descartadas por el operador (2026-07-22):** A1 (bloquear: chat de escritura solo contra el canónico)
+y A2 (permitir con banner de advertencia). Ninguna de las dos captura el modelo real.
 
-**Opción A2 — Permitir con aviso explícito.** Se deja editar, pero la sesión muestra un banner
-permanente: "estás editando una copia local (`<home>/<id>`), no vas a poder Publicar sin sincronizar
-primero con el canónico". No bloquea, delega la responsabilidad. Riesgo: el usuario edita y el cambio
-queda huérfano — sin Reparar/Backport construido, ese trabajo no tiene cómo volver al canónico ni al
-`home`, se pierde conceptualmente (el `deriva` de esa instalación queda divergiendo para siempre a menos
-que alguien lo note).
+**Dirección del operador (condensada de sus palabras):** al elegir una instalación, ArnesIA detecta
+inmediatamente de qué arnés y de qué marketplace viene. La instalación ES el banco de pruebas — «¿cómo
+pretendes crear un arnés sin probarlo?». Toda instalación fresca pasa por una etapa de MAPEO del
+proyecto (sea de código o una carpeta de trabajo normal): crear los elementos necesarios para que el
+arnés funcione ahí correctamente («recablear»). Un arnés que anda mal en un proyecto tiene dos causas
+posibles: (a) la instalación/mapeo fue mala → se corrige IN SITU, como si se reinstalara y recableara;
+(b) el arnés está mal diseñado de base → el fix se LEVANTA al canónico del marketplace (backport) y
+LUEGO se prueba sobre la instalación ya hecha para ponerlo en claro. En ambos casos se edita sobre el
+arnés del proyecto; lo que cambia es a dónde viaja el aprendizaje — siempre detectando POR QUÉ falló
+para corregir la base para nuevas instalaciones.
 
-**Opción A3 — Descartada por el operador esta sesión** (dejar sin resolver indefinidamente): ya se
-decidió que el fork se resuelve DENTRO de este paquete, antes de `spec.md` — no se pospone otra vez.
+**Síntesis A4 (FIRMADA 🧑‍⚖️ 2026-07-22, MC-D8):** sesión sobre instalación = **sesión de REPARACIÓN**,
+legal. La ley anti-drift se PRECISA, no se tumba: lo prohibido es la deriva **silenciosa/huérfana**, no
+la edición. INV-2 («reconciliación, no prevención» + backport) ya contenía este modelo; lo que se
+enmienda es la frase absoluta de INV-1 «ninguna instalación se edita en sitio desde la app» →
+**«ninguna instalación deriva en silencio»**. Condiciones que hacen legal la edición in situ:
 
-**Recomendación de este spike: A1.** Razón: A2 crea trabajo huérfano real (peor que bloquear) mientras
-Reparar/Backport no exista; construir A1 es más chico (es un filtro en el picker + un chequeo server-side
-en `ArnesRegistry`, reusa el patrón ya existente de "protected paths") que diseñar un banner+flujo de
-recuperación para trabajo que puede perderse.
+1. **La sesión SABE que edita una instalación** (tarjeta de identidad MC-D6): procedencia `(home,id)`,
+   quién es su canónico, estado `deriva`; la doctrina ② enseña el loop diagnosticar → arreglar in situ
+   → identificar la causa (¿instalación mala o base mala?) → backport si es base.
+2. **La deriva queda VISIBLE tras cada turno:** el reindex-tras-turno recalcula (grafo + `deriva` de
+   esa entrada) y el Portafolio muestra `en-deriva` honesto — jamás finge que la copia sigue al-hilo.
+3. **El aprendizaje no queda huérfano:** cuando la causa es de base, el hallazgo queda marcado
+   pendiente-de-backport. V1 de este paquete: deriva visible + grounding de reparación; la cola formal
+   de backport es Reparar/Backport (S5), que este modelo ALIMENTA en vez de contradecir.
 
-## 3b. Fork B — Historial de conversación que sobrevive el cierre (ABIERTO)
+**Fuera de alcance de este paquete:** la etapa de MAPEO completa de una instalación fresca (eso es el
+inicializador universal de la realineación core, paquete propio futuro).
+
+## 3b. Fork B — Historial de conversación que sobrevive el cierre (RESUELTO 2026-07-22: B2 FIRMADO 🧑‍⚖️)
 
 **El problema (§1.5):** `Close()` borra el `Conv` de la sesión del registro. El operador pidió poder
 "obtener el historial de las conversaciones por cada sesión" — hoy eso deja de ser cierto en cuanto
@@ -195,11 +205,15 @@ construir el indexer que hoy es TODO (`internal/adapters/index/store.go`) para l
 verdad completa, con tool-calls y todo) pero es un proyecto mucho más grande (fase 5, ya bloqueado por
 motivos ajenos a este spike) — no es proporcional a lo que este paquete necesita resolver ahora.
 
-**Recomendación: B1.** Chico, reusa el patrón ya validado (`Registry`/JSON atómico), no depende de
-destrabar la fase-5 del indexer. B2 queda anotado como el camino "correcto" de más adelante, sin
-bloquear esto.
+**Resolución (2026-07-22, MC-D7): el operador FIRMÓ B2** — el camino correcto (la JSONL nativa es la
+fuente de verdad completa), sabiendo que es más grande que archivar. Alcance mínimo viable acotado en
+`decisiones.md` MC-D7: metadata liviana al `Close()` (incluida la **cadena de `ClaudeSessionID`s** —
+con la rotación del Fork C una conversación lógica = N JSONLs, sin ese join no hay cosido) + lector del
+corpus `~/.claude/projects/<hash-del-cwd>/*.jsonl` por arnés. El indexer completo fase-5 (SQLite,
+watcher) sigue diferido. ⚠ Los turnos `RolSys` propios de ArnesIA no están en la JSONL — ver el
+constraint en MC-D7.
 
-## 3c. Fork C — Rotación de contexto invisible por umbral de tokens (ABIERTO)
+## 3c. Fork C — Rotación de contexto invisible por umbral de tokens (RESUELTO 2026-07-22: FIRMADO 🧑‍⚖️, MC-D5)
 
 **El pedido del operador:** cuando el uso de contexto de la sesión llega a ~38-45%, el sistema tiene que
 —por detrás, sin que el usuario lo note ni tenga que actuar— dejar un rastro chico, arrancar un proceso
@@ -230,65 +244,79 @@ opaco.
    el usuario mira el historial entienda que pasó algo, sin que sea una interrupción real de la
    conversación.
 
-**Abierto, NO resuelto en este spike (para `spec.md`):**
-- Umbral exacto (¿38%? ¿45%? ¿configurable por el usuario?).
-- Formato exacto del checkpoint (¿mecánico/determinístico como Franja Artefactos, o requiere una
-  pasada de resumen por LLM cuando el digest mecánico no alcanza a capturar intención?).
-- Dónde vive el checkpoint (¿archivo dentro del árbol del arnés — quedaría como historial visible del
-  propio arnés — o en el store de ArnesIA, invisible al arnés?).
-- Qué pasa si la rotación ocurre en medio de una tarea de escritura no atómica (¿hay riesgo de rotar
-  a mitad de una edición de varios archivos? probablemente no, si se rota solo entre turnos — a
-  confirmar).
+**Resolución (2026-07-22, MC-D5) — las 4 sub-preguntas cerradas:**
+- **Umbral: default 40 %, configurable** (centro del rango 38-45 pedido).
+- **Formato: mecánico primero** (últimos N turnos + delta del grafo desde la última rotación + paso
+  pendiente); pasada LLM solo si el mecánico demuestra no alcanzar en la práctica.
+- **Vive en `~/.arnesia/sessions/<id>/`** (lado store): firewall ②↛③ — la inyección jamás escribe en
+  el árbol del arnés; si viviera en el árbol, el reindex-tras-turno lo mostraría como nodo del Mapa,
+  conformance lo evaluaría y Publicar lo arrastraría al marketplace.
+- **«Rotar a mitad de edición» no existe por construcción:** al `EventResult` que cruza el umbral se
+  cierra el proceso y se vacía `ClaudeSessionID` (la sesión ya quedó `idle`); el spawn fresco ocurre
+  recién al próximo `Turn` (`spawnLocked` ya es lazy). Detalle: hoy `spawnLocked` SIEMPRE pasa
+  `Resume=ClaudeSessionID` — rotar es vaciar ese campo + inyectar el checkpoint.
 
-## 4. Plan técnico (una vez firmados los Forks A/B/C)
+## 4. Plan técnico (refinado 2026-07-22 contra el código; decisiones en `decisiones.md`)
 
-1. **Guard de escritura canónico-only** (resuelve Fork A si se firma A1): `ArnesRegistry`/
-   `PortafolioService` exponen si un `path` es canónico o instalación (el dominio YA tiene
-   `EntradaPortafolio`/`IdentidadArnes` con esa distinción, S0-D3/S1-D1); `createSession` rechaza (o
-   redirige) si el path es una instalación. FE: el picker filtra o deshabilita instalaciones como
-   destino de "nueva sesión" con tooltip, mismo patrón visual que Reparar/Backport (S1-D11).
-2. **Reindex-tras-turno:** al final de cada turno del conductor (`internal/adapters/agent/claudecode/
-   conductor.go`, donde hoy se resuelve `control_response`/Stop), disparar `loader.LoadArnes(cwd de la
-   sesión)` → `MapService`/`IndexPort.Upsert(ctx, g)`. Si `LoadArnes` falla (el chat rompió el
-   manifiesto), el Upsert debe reflejar el estado DEGRADADO real (mismo patrón `manifiesto-ausente` de
-   Slice 2), nunca ocultar el error ni servir la foto vieja como si nada.
-3. **Push al FE:** publicar un evento nuevo por `/events` (reusa el broker SSE existente, ver
-   `EventPublisher` en `internal/usecase/run_service.go`) — p.ej. `event: reindexado` con el `harnessId`.
-   El Mapa (si está montado, viendo ese arnés) refetchea `GET /api/harnesses/{id}/graph` al recibirlo.
-4. **Feedback de "mejoró de verdad":** evaluar si conviene correr conformance automáticamente tras el
-   reindex (no fue parte de las 2 decisiones firmadas hoy — el operador eligió chat libre, no el
-   híbrido con auditoría automática) — dejar CHICO en V1: solo reindex+push, sin conformance automático;
-   si el operador lo quiere después, es una extensión, no un rediseño.
-5. **Historial que sobrevive el cierre** (resuelve Fork B si B1): `Close()` archiva antes de borrar +
-   endpoint de listado por arnés (§3b).
-6. **Rotación de contexto** (resuelve Fork C, mecanismo §3c): umbral sobre `ctxPct` → checkpoint chico →
-   spawn fresco con `--append-system-prompt-file` → `Conv` sigue sin cortes → breadcrumb `RolSys`.
+1. **Sesión de reparación sobre instalación** (Fork A/A4 firmado): el picker deja de bloquear y
+   pasa a ROTULAR — elegir una instalación abre la sesión etiquetada «reparación sobre instalación de
+   `<home>`»; la tarjeta de identidad (punto 7) le dice a Claude que edita una instalación, quién es
+   su canónico y su `deriva`; el reindex (punto 2) recalcula la deriva de esa entrada tras cada turno
+   y el Portafolio la muestra honesta. Sin guard server-side bloqueante; la cola formal de backport
+   llega con Reparar/Backport (S5).
+2. **Reindex-tras-turno (MC-D3):** en `SessionService.consume`, rama `EventResult`
+   (`internal/usecase/session_service.go:385-404` — donde ya se guarda `CtxPct` y se appendea `Conv`):
+   `loader.LoadArnes(cwd)` → `IndexPort.Upsert`. NO en el conductor (boundary
+   `adaptadores-de-agente-intercambiables` — el adapter es protocolo puro, no conoce `IndexPort`). Si
+   `LoadArnes` falla (el chat rompió el manifiesto), el Upsert refleja el estado DEGRADADO real
+   (patrón `manifiesto-ausente` de Slice 2 / `ObservarEnMapa`), nunca la foto vieja.
+3. **Push al FE (MC-D4):** publicar por el canal YA reservado `event: map` (`broker.go:18`,
+   `EventMap` sin uso desde el diseño original `map|dock|run`) con el `harnessId`; `sse.ts` agrega el
+   listener (hoy solo escucha `dock`) y el Mapa refetchea `GET /api/harnesses/{id}/graph`.
+4. **Feedback de "mejoró de verdad":** V1 chico — solo reindex+push, sin conformance automático
+   (extensión futura, no rediseño).
+5. **Historial (MC-D7, B2):** `Close()` persiste metadata liviana (sin `Conv`): identidad de la
+   sesión, `Arnes`, cwd, fechas, cadena de `ClaudeSessionID`s. Lector del corpus
+   `~/.claude/projects/<hash-del-cwd>/*.jsonl` por arnés + listado de conversaciones
+   (abiertas+cerradas) filtrando por `Session.Arnes`.
+6. **Rotación de contexto (MC-D5):** historizar `ctxPct` + umbral 40 % configurable → al cruzarlo en
+   `EventResult`: checkpoint mecánico en `~/.arnesia/sessions/<id>/` + cerrar proceso + vaciar
+   `ClaudeSessionID` + breadcrumb `RolSys`; el próximo `Turn` spawnea fresco con el checkpoint vía
+   system-prompt-file.
+7. **Tarjeta de identidad por sesión (MC-D6):** el provisioner materializa un system-prompt-file POR
+   SESIÓN (doctrina ② + identidad `(home,id)` + canónico-vs-instalación + `deriva` + degradado). Hoy
+   `Injection.SystemPromptFile` apunta al `doctrine.md` compartido
+   (`internal/adapters/provision/provisioner.go`). Misma infra que inyecta el checkpoint de rotación —
+   un mecanismo, dos usos.
 
-## 5. Plan de tickets (tentativo, ajustar al firmar los Forks + `spec.md`)
+## 5. Plan de tickets (refinado; a cerrar en `spec.md`)
 
-- **T1** — Guard canónico-only en `ArnesRegistry`/`createSession` + filtro/disabled en el picker
-  (resuelve Fork A si A1).
-- **T2** — Reindex-tras-turno en el conductor (Go, con test que reproduce edición real → grafo
-  actualizado, incl. caso degradado).
-- **T3** — Evento SSE `reindexado` por `/events` + consumo en el Mapa (FE refetch on event).
+- **T1** — Sesión de reparación (Fork A/A4): picker rotula instalaciones (sin bloquear) + etiqueta de
+  sesión «reparación» + deriva recalculada visible en el Portafolio tras editar.
+- **T2** — Reindex-tras-turno en `SessionService.consume` (Go, con test que reproduce edición real →
+  grafo actualizado, incl. caso degradado).
+- **T3** — Evento `map` por `/events` + listener en `sse.ts` + refetch del Mapa.
 - **T4** — E2E vivo: sesión real contra un arnés real, pedirle a Claude un cambio concreto (agregar un
   campo a un manifiesto, por ejemplo), confirmar que el Mapa lo muestra sin recargar la página a mano.
 - **T5** — Capabilities: nueva o extendida (`fe-shell`/`portafolio`, a decidir en `spec.md`) + cifras
   regeneradas.
-- **T6** — Archivar en `Close()` (resuelve Fork B si B1) + endpoint de historial por arnés + FE: lista
-  de conversaciones pasadas del arnés (abiertas+archivadas) desde el picker o el drawer.
-- **T7** — Historización mínima de `ctxPct` (no solo el último valor) + umbral configurable + el
-  disparador de rotación (resuelve Fork C, mecanismo §3c).
-- **T8** — Checkpoint chico (digest mecánico, mismo patrón que Franja Artefactos §1.7) + spawn fresco
-  con `--append-system-prompt-file` + breadcrumb `RolSys` en `Conv`.
+- **T6** — Historial B2 (MC-D7): metadata al `Close()` (cadena de `ClaudeSessionID`s incluida) +
+  lector JSONL por arnés + FE: lista de conversaciones del arnés (abiertas+cerradas) desde el picker o
+  el drawer.
+- **T7** — Historización mínima de `ctxPct` (no solo el último valor) + umbral configurable (default
+  40 %) + el disparador de rotación (MC-D5).
+- **T8** — Checkpoint mecánico en `~/.arnesia/sessions/<id>/` (mismo patrón que Franja Artefactos
+  §1.7) + spawn fresco vía system-prompt-file + breadcrumb `RolSys` en `Conv`.
 - **T9** — E2E vivo de la rotación: sesión real, forzar el umbral (o bajarlo temporalmente para el test),
   confirmar que el usuario sigue viendo UNA conversación continua mientras el `ClaudeSessionID` rotó por
   detrás, y que `Conv` no perdió ningún turno.
+- **T10** — Tarjeta de identidad por sesión (MC-D6): provisioner materializa system-prompt-file
+  per-session (doctrina + identidad + estado portafolio); comparte infra con T8.
 
 ## 6. Lo que sigue
 
-**Faltan 3 forks por firmar** antes de pasar a `spec.md` con RF numerados: **Fork A** (instalación
-editable, recomendación A1), **Fork B** (historial sobrevive el cierre, recomendación B1), **Fork C**
-(rotación de contexto — mecanismo recomendado en §3c, pero con 4 sub-preguntas todavía abiertas que
-necesitan una decisión del operador, no son technical debt). Sin eso, no se escribe código — el
-operador decide en la próxima sesión o ahora mismo si quiere seguir.
+**Spike CERRADO — los 4 gates del enfoque FIRMADOS 🧑‍⚖️ (2026-07-22):** **Fork A = A4** (sesión de
+reparación) · **Fork B = B2** (indexer JSONL nativo, alcance mínimo) · **Fork C** (rotación, mecanismo
+completo + umbral 40 %) · **grounding MC-D6** (tarjeta de identidad por sesión). Sigue: escribir
+`spec.md` con RF numerados y arrancar la implementación (T1-T10, §5) — sin decisiones de producto
+pendientes.
