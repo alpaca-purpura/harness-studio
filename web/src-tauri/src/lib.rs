@@ -50,20 +50,33 @@ pub fn run() {
         // (HS-14 fix ③ — el callback estaba vacío: una 2a instancia se tragaba en silencio sin
         // reenfocar nada).
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            // Alcance decidido HS-14 deuda (2026-07-23): `arnesia://` solo enfoca la app —
+            // no hay router en el FE (App.tsx = 1 store Zustand, sin rutas URL) para rutear
+            // un destino de página; eso queda a un paquete propio si se pide (BACKLOG).
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.unminimize();
                 let _ = win.show();
                 let _ = win.set_focus();
             }
-            // TODO(fase futura): rutear el deep-link `arnesia://` recibido en `_argv`
-            // (ojo bug single-instance+deep-link tauri#12726).
         }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         // Selector nativo de carpeta (bugfix fix-repo-self-update, RF-110): gesto real
         // de OS para configurar el repo del self-update — no scriptable por contenido
         // web/XSS de la SPA (decisión #3 del paquete).
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
+            // Registro runtime del scheme (Linux dev únicamente — bundled deb/rpm/AppImage lo
+            // registran solos vía el .desktop generado desde `plugins.deep-link.desktop.schemes`
+            // en tauri.conf.json; en producción `register_all` es no-op si ya está registrado).
+            #[cfg(target_os = "linux")]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if let Err(e) = app.deep_link().register_all() {
+                    eprintln!("[arnesia] no pude registrar el scheme arnesia://: {e}");
+                }
+            }
+
             // Ventana programática (no en tauri.conf.json): el initialization_script se fija
             // al construir y el token se mintea en runtime. El script corre en CADA documento
             // del WebView — conectando.html y la SPA del daemon lo ven; un browser normal no.

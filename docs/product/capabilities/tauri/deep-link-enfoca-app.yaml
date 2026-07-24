@@ -1,0 +1,28 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.tauri.deep-link-enfoca-app
+cap_num: CAP-101
+slug: deep-link-enfoca-app
+name: "Deep-link arnesia:// enfoca la app instalada"
+status: vivo·nc          # GENERADO (R4) — no teclear
+module: tauri
+verb: infra
+pointers:
+  - "web/src-tauri/src/lib.rs"
+valida: []
+scenarios: []
+business_rules: []
+related_capabilities:
+  depends_on: []
+  enables: []
+source_ref: "docs/product/BACKLOG.md (deuda HS-14, cerrada 2026-07-23) — el FE no tiene router (App.tsx = 1 store Zustand, sin rutas URL); alcance acotado a enfocar la app, no rutear a página. Navegación por deep-link queda para un paquete propio si se pide."
+---
+
+# Deep-link arnesia:// enfoca la app instalada
+
+Registro OS del scheme `arnesia://` (`tauri-plugin-deep-link`, `plugins.deep-link.desktop.schemes`
+en `tauri.conf.json` — deb/rpm/AppImage lo registran solos vía el `.desktop` generado; `tauri dev`
+en Linux necesita `register_all()` en runtime, ya cableado en `setup()`). Al recibir un link, si la
+app ya está corriendo, el callback de `tauri-plugin-single-instance` reenfoca la ventana `main`
+(mismo mecanismo que CAP-79); si no está corriendo, el lanzamiento normal abre la ventana. No hay
+ruteo a una página específica del FE — decisión de alcance 2026-07-23 (no existe router que enganchar).
