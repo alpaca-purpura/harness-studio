@@ -166,7 +166,38 @@
   - **Descartado del alcance:** el swap completo a `@assistant-ui/react` — no cierra ninguna
     brecha funcional que no esté ya cerrada a mano, y el research original (`investigacion.md`)
     señala costos reales (bundle +154kB, lockstep de versiones) sin beneficio claro hoy.
-- [HS-09] 212 checks `deferred` → correr en CI (hoy solo la ruta `--arnes`) · `deuda`
+- [HS-09] **checks `deferred` del ruleset `--todo` — investigado a fondo 2026-07-24, re-scopeado.**
+  Cifra real hoy: `266 checks · pass 54 · deferred 212` (era 215 antes del fix de abajo). Desglose
+  numérico completo (no al ojo): 134 son catálogo de doctrina sobre primitivas de Claude Code en
+  general (`docs/architecture/knowledge/elements/`) — **fuera de alcance real**, ningún target
+  implementado los valida hoy (ni `--arnes` ni `--todo`); requeriría una capability nueva entera
+  (validar el `.claude/` generado de un arnés contra el catálogo), no un enforcer suelto · 44 son
+  `nl-judge` que YA están enforced de verdad en otro job/hook de CI (dependency-cruiser · biome ·
+  stylelint · tsc · golangci-lint · lefthook · vitest/storybook) — el motor Go simplemente no
+  sabe reportarlos como "enforced-elsewhere" en vez de `deferred`; decisión de nomenclatura del
+  motor, no un hueco real, **diferida** · ~24 son deuda de diseño ya admitida en otro lado
+  (`gate-honesto`/`agencia-dentro-del-frame`/6 bloqueados SQLite-fase5-OTel-modo-por-fase, ver
+  ítems HS-16 abajo) · **9 eran genuinamente accionables — 3 YA ARREGLADOS** (bug del adapter
+  `GoArchLint`: probaba `exec.LookPath("go-arch-lint")`, que nunca está en el PATH ni en dev ni en
+  CI — ambos invocan `go run pkg@latest` — así que el motor difería localmente algo que CI corre y
+  hace cumplir de verdad; corregido para invocar exactamente lo mismo que `ci.yml`, saca 3 falsos
+  `deferred` reales) · **5 investigados y descartados como "fix chico"**: `SchemaAdapter`/
+  `StaticScan` son stubs que SIEMPRE difieren sin importar el target (nunca delegan a
+  `SchemaSet`/`firewallScan` reales) — implementarlos de verdad es posible (`SchemaSet.ValidateJSON`
+  ya existe, reusable) pero con un problema real de granularidad: 4 de los 5 checks
+  (`perfil-tipo-declarado`/`arquetipo-declarado`/`skill-caja-contract`/`meta-de-enganche-completa`)
+  apuntan al MISMO schema completo (`box.contract.schema.json`/`graph.l0.schema.json`), no a un
+  campo específico — si el schema falla por CUALQUIER motivo, los 4 mostrarían `fail` aunque el
+  campo que a cada uno le importa esté bien. Deuda de diseño propia (resolver granularidad
+  campo-específico vs schema-completo), no un enforcer de 30 minutos · `deuda`
+  - **Hallazgo colateral (no relacionado a lo de arriba, encontrado investigando):** CI en `main`
+    estaba roto desde 2026-07-23 por 2 causas nuevas, además del bug a11y `.text-warn` ya conocido
+    — un `gosec` G703 falso positivo (`provisioner.go`, `sessionID` es `newID()` interno, nunca
+    input de cliente) y `internal/adapters/history/**` sin registrar en `.go-arch-lint.yml`
+    (`cmd` lo importa directo, componente nunca declarado) — **ambos arreglados**, más 10 issues
+    más de `golangci-lint` completo (gosec/govet/nilerr/noctx/nolintlint/perfsprint) en archivos
+    no relacionados, también arreglados. `golangci-lint run` + `go-arch-lint check` + `go test
+    ./... -race` limpios de punta a punta.
 - [HS-16] loader reconocedores `deferred`: subagent · plugin-nodo-raíz · edges-de-librería (necesitan diseño) · `deuda`
 - [HS-16 Grupo A] 6 checks composición `deferred` (rediseño de motor; bloqueado por SQLite fase5 / OTel / modo-por-fase) · `bloqueo`
 - [HS-16 Grupo C] `gate-honesto`: necesita diseño previo · `deuda`

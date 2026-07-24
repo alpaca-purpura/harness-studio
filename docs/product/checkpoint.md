@@ -67,7 +67,7 @@ CAP-99/CAP-100, 3 firmas en el día, 2026-07-22). Índice de historia → `LEDGE
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `266 checks · pass 51 · fail 0 · error 0 · deferred 215 · n/a 0` (medido 2026-07-24, `go run ./cmd/arnesia conformance --todo`)
+- **ruleset `--todo`:** `266 checks · pass 54 · fail 0 · error 0 · deferred 212 · n/a 0` (medido 2026-07-24, `go run ./cmd/arnesia conformance --todo`)
 - **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-24
 - **arch/:** 21 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
