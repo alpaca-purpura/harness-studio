@@ -112,40 +112,31 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
-- [HS-26/chat-dock-ux] **llevar el chat legible al escritorio**: `make installer` corrido
-  2026-07-23 → v0.2.16 en `instaladores/v0.2.16/` (deb/rpm/AppImage) con HS-26+historial B2
-  embebidos. Falta: commitear el bump de versión (Cargo.toml/tauri.conf.json/package.json,
-  queda en el working tree adrede) + instalar el `.deb` sobre el binario viejo corriendo.
-  Opcionales si el operador los pide: segundos en la tarjeta de actividad · parseo por-tool
-  del guardrail paquete-cerrado (hoy substring blunt adrede) · `deuda`
 - [Slice1-FE] **re-key del índice in-memory a `(home,id,scope)` calificado SIGUE abierta** (S0-D6/GAP-2):
   Slice 1 la ACOTÓ visible (colisión de bare-id detectada por `idsColisionados` + confirmación explícita
   antes de observar, S1-D2) pero NO la resolvió — el re-key global (index + MapService + endpoints +
   picker + sesiones) sigue siendo cirugía de otro paquete · `deuda`
-- [Slice1-FE] lentes `proyecto`/`marketplace` de la toolbar del Portafolio y filtros `estado`/
-  `marketplace` — quedaron disabled+tooltip (S1-D8), sin slice asignado; diferidas si alguien las
-  pide · `deuda`
+- [Slice1-FE] filtros `estado`/`marketplace` de la toolbar del Portafolio — distinta afordancia
+  que una lente (acotan sin reagrupar), quedaron disabled+tooltip (S1-D8); las lentes
+  `proyecto`/`marketplace` YA se construyeron (2026-07-23, mismo patrón N:M que
+  `agruparPorEmpresa`); los filtros siguen sin slice asignado, diferidos si alguien los pide · `deuda`
 - [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`
-- [HS-11] **run async del `/boxes/{id}/run` + gate post-run** — diseño decidido (2026-07-23,
-  conversación operador): 202+run-id inmediato, progreso YA viaja por `/events` (`event: run`,
-  existe hoy) + `GET /runs/{id}` para el desenlace final (cero infra nueva); el gate post-run
-  reusa la tarjeta de permiso/gate del chat (CAP-70/71), no un mecanismo propio. Falta armar el
-  paquete de trabajo (mockup→spec→PARIDAD) para implementarlo · `deuda`
-- [HS-11] 3 boundaries de research → materializar en `arch/` · `deuda`
+- [HS-11] **FE del botón «Correr» de una caja** — el backend YA es async con gate post-run
+  (`POST .../boxes/{id}/run` → 202+run_id · `GET .../runs/{runId}` · construido 2026-07-23);
+  `inspector.tsx` («Corridas donde actuó») solo tiene prosa «al implementar…», sin botón, sin
+  fetch, sin spinner. Falta el paquete de trabajo FE (mockup→spec→PARIDAD) — pollear
+  `GET .../runs/{runId}` o escuchar `event: run` en `/events` · `deuda`
+- [doctrina-una-fuente-dos-targets] `kit/doctrine.md` es prosa mantenida a mano, sin drift-check
+  contra `docs/architecture/knowledge/`/METODOLOGIA — construir el freshness-check (candidato:
+  verificar que las secciones citadas por número siguen existiendo en esa forma) · `deuda`
+- [telemetria-de-nacimiento] mismo trabajo sin construir que «telemetría JSONL → indexer real»
+  (ver ítem `bloqueo` arriba): `scaffold` que materialice el hook `telemetry-emit` + collector
+  OTLP embebido — no duplicar esfuerzo, un solo paquete cierra ambos ángulos · `bloqueo`
 - [chat] fase presentación: assistant-ui + CodeMirror merge + widgets ricos (decisión #5) · `deuda`
 - [HS-09] 212 checks `deferred` → correr en CI (hoy solo la ruta `--arnes`) · `deuda`
-- [HS-12] loader detector 3°: leer lock `.devstudio/arneses.yaml` y resolver multi-arnés · `deuda`
 - [HS-16] loader reconocedores `deferred`: subagent · plugin-nodo-raíz · edges-de-librería (necesitan diseño) · `deuda`
 - [HS-16 Grupo A] 6 checks composición `deferred` (rediseño de motor; bloqueado por SQLite fase5 / OTel / modo-por-fase) · `bloqueo`
 - [HS-16 Grupo C] `gate-honesto`: necesita diseño previo · `deuda`
-- [HS-14] deep-link `arnesia://` en callback single-instance (ojo bug tauri#12726) · `deuda`
-- [auditoría 2026-07-14] **R1 a nivel símbolo:** ningún enforcer resuelve la parte `#Símbolo` de los
-  punteros de capabilities (go test y cap_doctor solo stat-ean el archivo) — un símbolo renombrado
-  pasa en silencio; la doctrina decía «archivo/símbolo real» (overclaim corregido en
-  `codigo-traza-a-capability` v1.4) · `deuda`
-- [Slice1-FE/S1-D16] **`capMetas` no parsea YAML real** (`capability_trace_test.go`): toma como status
-  CUALQUIER línea `status:` sin mirar anidamiento — un scenario BDD con `status:` por-scenario pisa el
-  root y rompe el enforcer; migrar a `yaml` de verdad antes de poblar scenarios con esa forma · `deuda`
 
 ## Capabilities / doctrina (reorg 2026-07-09, FIRMADO)
 
