@@ -33,6 +33,7 @@
 
 | mockup | fecha (alta→últ) | rol | spec / paquete | estado |
 |---|---|---|---|---|
+| `stories/2026-07-23-boton-correr-caja/mockup-boton-correr.html` | 2026-07-23 | Inspector · tab Corridas: botón real que dispara `POST …/boxes/{id}/run` — 6 estados (idle interactivo · corriendo · éxito · éxito+advertencias · error 409 · error 500 · no-caja), superset estricto (prosa placeholder Hito 3 intacta) | `stories/2026-07-23-boton-correr-caja/INDEX.md` (`decisiones.md` D1-D4) | ⏸ **PAUSADO** — operador pidió explicación funcional antes de firmar, dada, eligió pausar sin rechazar |
 | `arnesia-chat-dock-ux.html` | 2026-07-22 | Chat dock legible: tarjeta de actividad desplegable + burbuja por paso + markdown renderizado — superset estricto del dock vigente (header/sesión/Alcance/permiso/composer intactos) | `stories/2026-07-22-chat-dock-ux/` (CH-D1..D6 + D4b) | ✅ **construido + PARIDAD FIRMADA 🧑‍⚖️** (HS-26, 2026-07-22; SSoT = código vivo `chat-dock/ui/`; desviación aceptada: tarjeta sin segundos) |
 | `arnesia-shell-topbar-selector-arnes.html` | 2026-07-20 | Topbar sin empresa hardcodeada + selector de arnés al abrir sesión (lee el Portafolio real, empresas N:M, canónico/instalaciones, deriva) | `stories/2026-07-20-shell-topbar-selector-arnes/` (Gate 1 firmado 2026-07-20; `decisiones.md` TS-D1..D9) | 🧑‍⚖️ **Gate 1 firmado** — spec/build siguen |
 | `arnesia-mapa-baseline.html` | 2026-07-10 | **BASELINE** del Mapa (superficie completa) | este INDEX + `map-canvas.stories.tsx` | **✅ vigente** |
