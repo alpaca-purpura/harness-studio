@@ -3,7 +3,7 @@
 capability_id: arnesia.fe-portafolio.lista-del-portafolio
 cap_num: CAP-89
 slug: lista-del-portafolio
-name: "Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)"
+name: "Lista del Portafolio (lentes empresa/plano/proyecto/marketplace, buscar, corruptas visibles)"
 status: vivo           # T8: graduado — valida: real (R4), 7 stories + selectores unit-tested.
 license: brand-local
 
@@ -20,6 +20,8 @@ nature: feature
 pointers:
   - "web/src/entities/portafolio/model/types.ts#EntradaPortafolio"
   - "web/src/entities/portafolio/model/selectors.ts#agruparPorEmpresa"
+  - "web/src/entities/portafolio/model/selectors.ts#agruparPorProyecto"
+  - "web/src/entities/portafolio/model/selectors.ts#agruparPorMarketplace"
   - "web/src/entities/portafolio/model/selectors.ts#filtrarEntradas"
   - "web/src/entities/portafolio/testing/entradas.ts#entradasDemo"
   - "web/src/entities/portafolio/model/selectors.test.ts#agruparPorEmpresa"
@@ -45,7 +47,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-16
+last_modified: 2026-07-23
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D6/S1-D8"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -114,6 +116,19 @@ change_log:
       id)»` (`identificadorDe`, selector puro de entities/portafolio con unit test): la identidad
       provisional muestra su scope (RN-IDENT-2) en vez de un «(sin id)» indistinguible. Story `ConDatos` extendida (asserta el scope visible y ancla el selector de fila).
     merge_sha: null
+
+  - story_id: 2026-07-23-resolucion-deuda-viva
+    date: 2026-07-23
+    type: extend
+    summary: >-
+      Lentes `proyecto`/`marketplace` cerradas (BACKLOG S1-D8, quedaron disabled+tooltip sin
+      slice): `agruparPorProyecto` (N:M vía instalaciones[].proyecto_path, «sin proyecto
+      instalado» al final) y `agruparPorMarketplace` (N:M vía registriesDe, «origen
+      desconocido» al final) — mismo patrón N:M que `agruparPorEmpresa`, sin cambios de
+      backend. Botones habilitados en la toolbar; 7 tests unit nuevos + 2 stories `play()`
+      (`LenteProyecto`/`LenteMarketplace`). Filtros `estado`/`marketplace` (distinta
+      afordancia) siguen disabled — no se les inventa un slice.
+    merge_sha: null
 scenarios:
   - id: lista-lente-empresa-agrupa-nm
     name: "Lente empresa agrupa N:M con «sin empresa» al final (G4)"
@@ -145,6 +160,12 @@ scenarios:
     when: "click o foco+Enter sobre la fila"
     then: "onAbrir(clave) se dispara con la clave EXACTA — misma superficie por mouse y teclado"
     verifica: "ConDatos (assert onAbrir con clave y Enter)"
+  - id: lista-lente-proyecto-marketplace-agrupan-nm
+    name: "Lentes proyecto/marketplace agrupan N:M, mismo patrón que empresa (BACKLOG S1-D8)"
+    given: "entradas con 0 o más instalaciones/registries"
+    when: "se renderiza PortafolioList con lente proyecto o marketplace"
+    then: "cada entrada aparece en TODOS sus grupos (por proyecto_path o por registriesDe); «sin proyecto instalado»/«origen desconocido» quedan SIEMPRE al final si aplica"
+    verifica: "LenteProyecto · LenteMarketplace (portafolio-list.stories.tsx) · agruparPorProyecto · agruparPorMarketplace (selectors.test.ts)"
 
 business_rules: []
 related_capabilities:
@@ -154,7 +175,7 @@ related_capabilities:
   obsoletes: []
 ---
 
-# Lista del Portafolio (lente empresa/plano, buscar, corruptas visibles)
+# Lista del Portafolio (lentes empresa/plano/proyecto/marketplace, buscar, corruptas visibles)
 
 Superficie 1 del Portafolio (spec §10, `revision-adversaria.md` G1/G2/G4/G5/G6/G8/G9). T2
 construyó el contrato (tipos + selectores + fixtures + cliente HTTP); T3 los chips/dot de

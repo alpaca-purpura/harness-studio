@@ -108,4 +108,4 @@ export interface Candidato {
 // el `Salud` de sesión (shared/api/types.ts: ok/warn/crit/info, otro significado — «no pisar
 // vocabulario»).
 export type SaludPortafolio = "ok" | "atencion" | "sin-senal"
-export type LentePortafolio = "empresa" | "plano"
+export type LentePortafolio = "empresa" | "plano" | "proyecto" | "marketplace"

@@ -117,6 +117,77 @@ export function agruparPorEmpresa(
   return grupos
 }
 
+const SIN_PROYECTO = "sin proyecto instalado"
+
+// agruparPorProyecto — lente `proyecto` (BACKLOG S1-D8, cerrada): N:M vía
+// `instalaciones[].proyecto_path` — una entrada aparece en tantos grupos como proyectos tengan
+// una instalación suya (mismo patrón N:M que agruparPorEmpresa). «sin proyecto instalado» =
+// entradas con 0 instalaciones (solo canónico, nunca instalada en ningún proyecto escaneado).
+export function agruparPorProyecto(
+  es: EntradaPortafolio[],
+): { grupo: string; entradas: EntradaPortafolio[] }[] {
+  const orden: string[] = []
+  const porProyecto = new Map<string, EntradaPortafolio[]>()
+  const sinProyecto: EntradaPortafolio[] = []
+
+  for (const e of es) {
+    const proyectos = new Set(
+      (e.instalaciones ?? []).map((i) => i.proyecto_path).filter((p): p is string => !!p),
+    )
+    if (proyectos.size === 0) {
+      sinProyecto.push(e)
+      continue
+    }
+    for (const p of proyectos) {
+      let grupo = porProyecto.get(p)
+      if (!grupo) {
+        grupo = []
+        porProyecto.set(p, grupo)
+        orden.push(p)
+      }
+      grupo.push(e)
+    }
+  }
+
+  const grupos = orden.map((grupo) => ({ grupo, entradas: porProyecto.get(grupo) ?? [] }))
+  if (sinProyecto.length > 0) grupos.push({ grupo: SIN_PROYECTO, entradas: sinProyecto })
+  return grupos
+}
+
+const SIN_MARKETPLACE = "origen desconocido"
+
+// agruparPorMarketplace — lente `marketplace` (BACKLOG S1-D8, cerrada): N:M vía
+// `registriesDe(e)` (unión de `entry.registries` + cada `instalación.origen.registry`). «origen
+// desconocido» = sin ningún registry resuelto (BR-3: nunca se infiere).
+export function agruparPorMarketplace(
+  es: EntradaPortafolio[],
+): { grupo: string; entradas: EntradaPortafolio[] }[] {
+  const orden: string[] = []
+  const porRegistry = new Map<string, EntradaPortafolio[]>()
+  const sinRegistry: EntradaPortafolio[] = []
+
+  for (const e of es) {
+    const registries = registriesDe(e)
+    if (registries.length === 0) {
+      sinRegistry.push(e)
+      continue
+    }
+    for (const r of registries) {
+      let grupo = porRegistry.get(r)
+      if (!grupo) {
+        grupo = []
+        porRegistry.set(r, grupo)
+        orden.push(r)
+      }
+      grupo.push(e)
+    }
+  }
+
+  const grupos = orden.map((grupo) => ({ grupo, entradas: porRegistry.get(grupo) ?? [] }))
+  if (sinRegistry.length > 0) grupos.push({ grupo: SIN_MARKETPLACE, entradas: sinRegistry })
+  return grupos
+}
+
 // filtrarEntradas — buscar (S1-D8): substring case-insensitive sobre id/nombre/descripción.
 // Query vacía o solo-espacios ⇒ sin filtro (todas las entradas).
 export function filtrarEntradas(es: EntradaPortafolio[], q: string): EntradaPortafolio[] {

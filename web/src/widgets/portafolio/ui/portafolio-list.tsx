@@ -1,6 +1,8 @@
 import {
   AvisoChip,
   agruparPorEmpresa,
+  agruparPorMarketplace,
+  agruparPorProyecto,
   DerivaChip,
   DotSaludPortafolio,
   EmblemaInicial,
@@ -72,7 +74,8 @@ function Topbar({
   )
 }
 
-// ── Toolbar: buscar + lentes empresa/plano (S1-D8) + lentes/filtros diferidos disabled ──
+// ── Toolbar: buscar + 4 lentes empresa/plano/proyecto/marketplace (S1-D8, cerrada 2026-07-23)
+// + filtros estado/marketplace diferidos disabled (distinta afordancia, sin slice aún) ──
 function Toolbar({
   lente,
   onLente,
@@ -111,10 +114,20 @@ function Toolbar({
         >
           Plano
         </button>
-        <button type="button" className="pf-lente-btn" disabled title="próximo">
+        <button
+          type="button"
+          className="pf-lente-btn"
+          aria-pressed={lente === "proyecto"}
+          onClick={() => onLente("proyecto")}
+        >
           Proyecto
         </button>
-        <button type="button" className="pf-lente-btn" disabled title="próximo">
+        <button
+          type="button"
+          className="pf-lente-btn"
+          aria-pressed={lente === "marketplace"}
+          onClick={() => onLente("marketplace")}
+        >
           Marketplace
         </button>
       </div>
@@ -265,16 +278,33 @@ function ListaPlana({
   )
 }
 
+// agrupadorDe — despacha la lente al selector puro correspondiente (mismo patrón N:M para las
+// 3: empresa/proyecto/marketplace agrupan por facetas de la entrada, nunca la parten).
+function agrupadorDe(
+  lente: LentePortafolio,
+): (es: EntradaPortafolio[]) => { grupo: string; entradas: EntradaPortafolio[] }[] {
+  switch (lente) {
+    case "proyecto":
+      return agruparPorProyecto
+    case "marketplace":
+      return agruparPorMarketplace
+    default:
+      return agruparPorEmpresa
+  }
+}
+
 function ListaAgrupada({
   entradas,
+  lente,
   seleccionada,
   onAbrir,
 }: {
   entradas: EntradaPortafolio[]
+  lente: LentePortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
 }) {
-  const grupos = agruparPorEmpresa(entradas)
+  const grupos = agrupadorDe(lente)(entradas)
   return (
     <>
       {grupos.map(({ grupo, entradas: entradasGrupo }) => (
@@ -329,7 +359,14 @@ function Cuerpo({
   if (lente === "plano") {
     return <ListaPlana entradas={filtradas} seleccionada={seleccionada} onAbrir={onAbrir} />
   }
-  return <ListaAgrupada entradas={filtradas} seleccionada={seleccionada} onAbrir={onAbrir} />
+  return (
+    <ListaAgrupada
+      entradas={filtradas}
+      lente={lente}
+      seleccionada={seleccionada}
+      onAbrir={onAbrir}
+    />
+  )
 }
 
 export function PortafolioList({

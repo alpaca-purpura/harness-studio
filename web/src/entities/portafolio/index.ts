@@ -5,6 +5,8 @@
 
 export {
   agruparPorEmpresa,
+  agruparPorMarketplace,
+  agruparPorProyecto,
   filtrarEntradas,
   gruposCandidatosDe,
   identificadorDe,

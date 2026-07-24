@@ -126,10 +126,13 @@ export const ConDatos: Story = {
     await userEvent.keyboard("{Enter}")
     await expect(args.onAbrir).toHaveBeenCalledTimes(2)
 
-    // BR-8/S1-D8 — lentes/filtros diferidos: disabled + tooltip "próximo", jamás simulados.
+    // S1-D8 (cerrada 2026-07-23) — las 4 lentes están vivas; los FILTROS (distinta afordancia,
+    // sin slice aún) siguen disabled + tooltip "próximo", jamás simulados (BR-8).
     const lenteProyecto = c.getByRole("button", { name: "Proyecto" })
-    await expect(lenteProyecto).toBeDisabled()
-    await expect(lenteProyecto).toHaveAttribute("title", "próximo")
+    await expect(lenteProyecto).not.toBeDisabled()
+    await expect(lenteProyecto).toHaveAttribute("aria-pressed", "false")
+    await userEvent.click(lenteProyecto)
+    await expect(args.onLente).toHaveBeenCalledWith("proyecto")
     const filtroEstado = c.getByRole("button", { name: "Estado" })
     await expect(filtroEstado).toBeDisabled()
     await expect(filtroEstado).toHaveAttribute("title", "próximo")
@@ -144,6 +147,33 @@ export const LentePlano: Story = {
     await expect(c.queryByText("alpacapurpura")).toBeNull()
     await expect(c.queryByText("sin empresa")).toBeNull()
     await expect(canvasElement.querySelectorAll(".pf-fila").length).toBe(3)
+  },
+}
+
+// Lente proyecto (S1-D8, cerrada 2026-07-23): N:M vía instalaciones[].proyecto_path — acme-cli
+// (2 instalaciones) aparece en 2 grupos de proyecto distintos.
+export const LenteProyecto: Story = {
+  args: { entradas: entradasDemo, lente: "proyecto" },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("~/Proyectos/luana-vitalia")).toBeInTheDocument()
+    await expect(c.getByText("~/Proyectos/harness-studio")).toBeInTheDocument()
+    await expect(c.getByText("~/Proyectos/acme-app")).toBeInTheDocument()
+    await expect(c.getByText("~/Proyectos/otro-app")).toBeInTheDocument()
+    await expect(c.queryByText("sin proyecto instalado")).toBeNull()
+  },
+}
+
+// Lente marketplace (S1-D8, cerrada 2026-07-23): N:M vía registriesDe — la entrada sin registry
+// (proyecto-instalado provisional) cae en «origen desconocido» al final.
+export const LenteMarketplace: Story = {
+  args: { entradas: entradasDemo, lente: "marketplace" },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("github.com/alpacapurpura/prenter-marketplace")).toBeInTheDocument()
+    await expect(c.getByText("github.com/acme/acme-cli")).toBeInTheDocument()
+    await expect(c.getByText("github.com/acme-fork/acme-cli")).toBeInTheDocument()
+    await expect(c.getByText("origen desconocido")).toBeInTheDocument()
   },
 }
 

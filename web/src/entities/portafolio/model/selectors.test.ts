@@ -10,6 +10,8 @@ import {
 } from "../testing/entradas"
 import {
   agruparPorEmpresa,
+  agruparPorMarketplace,
+  agruparPorProyecto,
   filtrarEntradas,
   gruposCandidatosDe,
   identificadorDe,
@@ -113,6 +115,73 @@ describe("agruparPorEmpresa", () => {
     const grupos = agruparPorEmpresa([entradaProyectoInstaladoProvisional])
     expect(grupos).toEqual([
       { grupo: "sin empresa", entradas: [entradaProyectoInstaladoProvisional] },
+    ])
+  })
+})
+
+describe("agruparPorProyecto", () => {
+  it("N:M — una entrada instalada en 2 proyectos se duplica en los 2 grupos", () => {
+    const e = entrada({
+      clave: "n-m",
+      instalaciones: [
+        instalacion({ proyecto_path: "~/Proyectos/a" }),
+        instalacion({ proyecto_path: "~/Proyectos/b" }),
+      ],
+    })
+    const grupos = agruparPorProyecto([e])
+    expect(grupos.map((g) => g.grupo)).toEqual(["~/Proyectos/a", "~/Proyectos/b"])
+    expect(grupos[0]?.entradas).toEqual([e])
+    expect(grupos[1]?.entradas).toEqual([e])
+  })
+
+  it("misma entrada con 2 instalaciones EN el mismo proyecto no se duplica en el grupo", () => {
+    const e = entrada({
+      clave: "mismo-proyecto",
+      instalaciones: [
+        instalacion({ proyecto_path: "~/Proyectos/a", install_path: "~/Proyectos/a/x" }),
+        instalacion({ proyecto_path: "~/Proyectos/a", install_path: "~/Proyectos/a/y" }),
+      ],
+    })
+    const grupos = agruparPorProyecto([e])
+    expect(grupos).toEqual([{ grupo: "~/Proyectos/a", entradas: [e] }])
+  })
+
+  it("«sin proyecto instalado» va SIEMPRE al final si alguna entrada no tiene instalaciones", () => {
+    const conProyecto = entrada({ clave: "con-proyecto", instalaciones: [instalacion()] })
+    const sinProyecto = entrada({ clave: "sin-proyecto" })
+    const grupos = agruparPorProyecto([sinProyecto, conProyecto])
+    expect(grupos.at(-1)?.grupo).toBe("sin proyecto instalado")
+    expect(grupos.at(-1)?.entradas).toEqual([sinProyecto])
+  })
+
+  it("sin ninguna entrada instalada ⇒ un único grupo «sin proyecto instalado»", () => {
+    const soloCanonico = entrada({ clave: "solo-canonico" })
+    const grupos = agruparPorProyecto([soloCanonico])
+    expect(grupos).toEqual([{ grupo: "sin proyecto instalado", entradas: [soloCanonico] }])
+  })
+})
+
+describe("agruparPorMarketplace", () => {
+  it("N:M — una entrada con 2 registries se duplica en los 2 grupos", () => {
+    const e = entrada({ clave: "n-m", registries: ["github.com/a/a", "github.com/b/b"] })
+    const grupos = agruparPorMarketplace([e])
+    expect(grupos.map((g) => g.grupo)).toEqual(["github.com/a/a", "github.com/b/b"])
+    expect(grupos[0]?.entradas).toEqual([e])
+    expect(grupos[1]?.entradas).toEqual([e])
+  })
+
+  it("«origen desconocido» va SIEMPRE al final si alguna entrada no resuelve registry", () => {
+    const conRegistry = entrada({ clave: "con-registry", registries: ["github.com/a/a"] })
+    const sinRegistry = entrada({ clave: "sin-registry" })
+    const grupos = agruparPorMarketplace([sinRegistry, conRegistry])
+    expect(grupos.at(-1)?.grupo).toBe("origen desconocido")
+    expect(grupos.at(-1)?.entradas).toEqual([sinRegistry])
+  })
+
+  it("sin ningún registry en ninguna entrada ⇒ un único grupo «origen desconocido»", () => {
+    const grupos = agruparPorMarketplace([entradaProyectoInstaladoProvisional])
+    expect(grupos).toEqual([
+      { grupo: "origen desconocido", entradas: [entradaProyectoInstaladoProvisional] },
     ])
   })
 })
