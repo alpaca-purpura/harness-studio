@@ -23,6 +23,9 @@ pointers:
   - "web/src/entities/portafolio/model/selectors.ts#agruparPorProyecto"
   - "web/src/entities/portafolio/model/selectors.ts#agruparPorMarketplace"
   - "web/src/entities/portafolio/model/selectors.ts#filtrarEntradas"
+  - "web/src/entities/portafolio/model/selectors.ts#filtrarPorSalud"
+  - "web/src/entities/portafolio/model/selectors.ts#filtrarPorMarketplace"
+  - "web/src/entities/portafolio/model/selectors.ts#marketplacesDisponibles"
   - "web/src/entities/portafolio/testing/entradas.ts#entradasDemo"
   - "web/src/entities/portafolio/model/selectors.test.ts#agruparPorEmpresa"
   - "web/src/shared/api/client.ts#listPortafolio"
@@ -47,7 +50,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-23
+last_modified: 2026-07-24
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D6/S1-D8"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -129,6 +132,26 @@ change_log:
       (`LenteProyecto`/`LenteMarketplace`). Filtros `estado`/`marketplace` (distinta
       afordancia) siguen disabled — no se les inventa un slice.
     merge_sha: null
+
+  - story_id: 2026-07-23-resolucion-deuda-viva
+    date: 2026-07-24
+    type: extend
+    summary: >-
+      Filtros `Estado`/`Marketplace` cerrados (BACKLOG deuda viva, quedaron disabled+tooltip
+      "próximo" sin slice): disclosure multi-select (`FiltroDisclosure`, mismo patrón
+      sin-portal de `rules-subband.tsx`, aria-expanded) que abre un panel de chips
+      toggleables — Estado = 3 valores fijos (`SaludPortafolio`, reusa `SALUD_LABEL` ya
+      exportado de `chips.tsx`), Marketplace = N valores dinámicos vía
+      `marketplacesDisponibles()` (mismo dato que `registriesDe`, nunca un enum fijo).
+      Selectores puros nuevos `filtrarPorSalud`/`filtrarPorMarketplace` (set vacío = sin
+      filtro, mismo convenio que `filtrarEntradas`) se insertan en el pipeline de `Cuerpo()`
+      ANTES de la lente: buscar → filtro Estado → filtro Marketplace → recién ahí se
+      reagrupa — la lente solo cambia presentación, los filtros acotan. Sin cambio de
+      backend (100% client-side, igual que la búsqueda). 8 tests unit nuevos + 2 stories
+      `play()` nuevas (`FiltroEstadoAcota`/`FiltroMarketplaceAcota`) + `ConDatos` extendida
+      con la interacción real del disclosure. `SinResultados` ahora limpia búsqueda Y ambos
+      filtros con un solo botón ("Limpiar búsqueda y filtros").
+    merge_sha: null
 scenarios:
   - id: lista-lente-empresa-agrupa-nm
     name: "Lente empresa agrupa N:M con «sin empresa» al final (G4)"
@@ -166,6 +189,12 @@ scenarios:
     when: "se renderiza PortafolioList con lente proyecto o marketplace"
     then: "cada entrada aparece en TODOS sus grupos (por proyecto_path o por registriesDe); «sin proyecto instalado»/«origen desconocido» quedan SIEMPRE al final si aplica"
     verifica: "LenteProyecto · LenteMarketplace (portafolio-list.stories.tsx) · agruparPorProyecto · agruparPorMarketplace (selectors.test.ts)"
+  - id: lista-filtros-estado-marketplace-acotan-sin-reagrupar
+    name: "Filtros Estado/Marketplace acotan la lista, nunca la reagrupan (distinta afordancia que la lente)"
+    given: "entradas reales con distinta saludDe()/registriesDe(); 0+ valores elegidos en cada filtro"
+    when: "se aplica filtrarPorSalud y/o filtrarPorMarketplace antes de la lente"
+    then: "set vacío = sin filtro (todas); con valores, SOLO sobreviven las entradas que matchean — ninguna fila se reagrupa por el filtro, eso sigue siendo trabajo exclusivo de la lente"
+    verifica: "FiltroEstadoAcota · FiltroMarketplaceAcota · ConDatos (interacción del disclosure) · filtrarPorSalud · filtrarPorMarketplace · marketplacesDisponibles (selectors.test.ts)"
 
 business_rules: []
 related_capabilities:

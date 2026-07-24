@@ -137,7 +137,8 @@
   cursor: pointer;
 }
 
-/* ── toolbar: buscar + lentes (S1-D8) + lentes/filtros diferidos disabled+tooltip (BR-8) ── */
+/* ── toolbar: buscar + lentes (S1-D8) + filtros Estado/Marketplace (S1-D8, cerrada 2026-07-24,
+   afordancia distinta: acotan la lista, no la reagrupan) ── */
 .arnesia-portafolio .pf-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -180,6 +181,36 @@
 .arnesia-portafolio .pf-filtro-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* pf-filtro: wrapper posicionado del disclosure (mismo patrón sin-portal que rules-subband.tsx,
+   aria-expanded en el botón); el panel flota debajo, nunca empuja el layout de la toolbar. */
+.arnesia-portafolio .pf-filtro {
+  position: relative;
+}
+.arnesia-portafolio .pf-filtro-btn[aria-expanded="true"] {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-filtro-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--popover);
+  box-shadow: var(--shadow-md);
+}
+.arnesia-portafolio .pf-filtro-panel .pf-mut {
+  margin: 0;
+  font-size: var(--text-xs);
 }
 
 /* ── banner de corruptas (BR-11): visible, no modal, siempre tono warn ── */

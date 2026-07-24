@@ -6,6 +6,7 @@ import type {
   EntradaPortafolio,
   LentePortafolio,
   PortafolioListado,
+  SaludPortafolio,
 } from "@/entities/portafolio"
 import { api, isTauri, selectActive, useAppStore, useSessions } from "@/shared"
 import { PortafolioDrawer, PortafolioList, PortafolioWizard } from "@/widgets/portafolio"
@@ -37,6 +38,10 @@ export function PortafolioView() {
   const [corruptas, setCorruptas] = useState<EntradaCorrupta[]>([])
   const [lente, setLente] = useState<LentePortafolio>("empresa")
   const [busqueda, setBusqueda] = useState("")
+  // Filtros Estado/Marketplace de la toolbar (deuda viva S1-D8, cerrada 2026-07-24): acotan la
+  // lista, afordancia distinta de la lente — set vacío = sin filtro (mismo convenio que busqueda).
+  const [filtroSalud, setFiltroSalud] = useState<ReadonlySet<SaludPortafolio>>(new Set())
+  const [filtroMarketplace, setFiltroMarketplace] = useState<ReadonlySet<string>>(new Set())
 
   const cargar = useCallback(() => {
     setEstado("cargando")
@@ -286,6 +291,10 @@ export function PortafolioView() {
           onLente={setLente}
           busqueda={busqueda}
           onBusqueda={setBusqueda}
+          filtroSalud={filtroSalud}
+          onFiltroSalud={setFiltroSalud}
+          filtroMarketplace={filtroMarketplace}
+          onFiltroMarketplace={setFiltroMarketplace}
           seleccionada={seleccionada}
           onAbrir={onAbrirFila}
           onAgregar={onAbrirWizard}

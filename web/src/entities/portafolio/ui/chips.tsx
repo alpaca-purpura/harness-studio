@@ -58,7 +58,7 @@ export function AvisoChip({ aviso }: AvisoChipProps) {
 // "sin-senal" es un hueco/muted que NUNCA comparte el color de "ok" ("no sé" ≠ "sano" — regla
 // dura). `role="img"` + `aria-label`/`title` (a11y G8): el dot es decorativo-con-significado,
 // el texto vive en el atributo, no en el DOM visible. ──
-const SALUD_LABEL: Record<SaludPortafolio, string> = {
+export const SALUD_LABEL: Record<SaludPortafolio, string> = {
   ok: "ok",
   atencion: "atención",
   "sin-senal": "sin señal",

@@ -13,9 +13,12 @@ import {
   agruparPorMarketplace,
   agruparPorProyecto,
   filtrarEntradas,
+  filtrarPorMarketplace,
+  filtrarPorSalud,
   gruposCandidatosDe,
   identificadorDe,
   idsColisionados,
+  marketplacesDisponibles,
   registriesDe,
   saludDe,
 } from "./selectors"
@@ -239,6 +242,65 @@ describe("filtrarEntradas", () => {
   it("query vacía ⇒ todas las entradas", () => {
     expect(filtrarEntradas(es, "")).toEqual(es)
     expect(filtrarEntradas(es, "   ")).toEqual(es)
+  })
+})
+
+describe("filtrarPorSalud", () => {
+  const sana = entrada({
+    clave: "sana",
+    instalaciones: [instalacion({ deriva: "al-hilo" })],
+  })
+  const atencion = entrada({
+    clave: "atencion",
+    instalaciones: [instalacion({ deriva: "en-deriva" })],
+  })
+  const es = [sana, atencion]
+
+  it("set vacío ⇒ sin filtro (todas las entradas)", () => {
+    expect(filtrarPorSalud(es, new Set())).toEqual(es)
+  })
+
+  it("un solo valor seleccionado ⇒ solo esas entradas", () => {
+    expect(filtrarPorSalud(es, new Set(["atencion"]))).toEqual([atencion])
+  })
+
+  it("multi-select: 2 valores ⇒ unión", () => {
+    expect(filtrarPorSalud(es, new Set(["ok", "atencion"]))).toEqual(es)
+  })
+
+  it("sin match ⇒ array vacío", () => {
+    expect(filtrarPorSalud(es, new Set(["sin-senal"]))).toEqual([])
+  })
+})
+
+describe("filtrarPorMarketplace", () => {
+  const a = entrada({ clave: "a", registries: ["github.com/a/a"] })
+  const b = entrada({ clave: "b", registries: ["github.com/b/b"] })
+  const sinRegistry = entrada({ clave: "sin-registry" })
+  const es = [a, b, sinRegistry]
+
+  it("set vacío ⇒ sin filtro (todas las entradas)", () => {
+    expect(filtrarPorMarketplace(es, new Set())).toEqual(es)
+  })
+
+  it("un registry seleccionado ⇒ solo las entradas que lo tienen", () => {
+    expect(filtrarPorMarketplace(es, new Set(["github.com/a/a"]))).toEqual([a])
+  })
+
+  it("multi-select: 2 registries ⇒ unión, sin-registry queda afuera", () => {
+    expect(filtrarPorMarketplace(es, new Set(["github.com/a/a", "github.com/b/b"]))).toEqual([a, b])
+  })
+})
+
+describe("marketplacesDisponibles", () => {
+  it("valores distintos, orden de primera aparición, dedup entre entradas", () => {
+    const a = entrada({ clave: "a", registries: ["github.com/a/a", "github.com/b/b"] })
+    const b = entrada({ clave: "b", registries: ["github.com/b/b"] })
+    expect(marketplacesDisponibles([a, b])).toEqual(["github.com/a/a", "github.com/b/b"])
+  })
+
+  it("sin ningún registry ⇒ array vacío", () => {
+    expect(marketplacesDisponibles([entradaProyectoInstaladoProvisional])).toEqual([])
   })
 })
 

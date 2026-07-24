@@ -199,6 +199,46 @@ export function filtrarEntradas(es: EntradaPortafolio[], q: string): EntradaPort
   })
 }
 
+// filtrarPorSalud — filtro «Estado» de la toolbar (deuda viva S1-D8, cerrada 2026-07-24):
+// afordancia DISTINTA de la lente — acota la lista, nunca la reagrupa. Set vacío ⇒ sin filtro
+// (mismo convenio que filtrarEntradas con query vacía). Multi-select: cualquier entrada cuya
+// saludDe() esté en el set sobrevive.
+export function filtrarPorSalud(
+  es: EntradaPortafolio[],
+  saludes: ReadonlySet<SaludPortafolio>,
+): EntradaPortafolio[] {
+  if (saludes.size === 0) return es
+  return es.filter((e) => saludes.has(saludDe(e)))
+}
+
+// filtrarPorMarketplace — filtro «Marketplace» de la toolbar: acota por intersección entre
+// registriesDe(e) y el set elegido (mismo dato que agruparPorMarketplace, distinta afordancia).
+// Set vacío ⇒ sin filtro.
+export function filtrarPorMarketplace(
+  es: EntradaPortafolio[],
+  registries: ReadonlySet<string>,
+): EntradaPortafolio[] {
+  if (registries.size === 0) return es
+  return es.filter((e) => registriesDe(e).some((r) => registries.has(r)))
+}
+
+// marketplacesDisponibles — valores DISTINTOS de registriesDe presentes en los datos actuales,
+// orden de primera aparición (mismo criterio que agruparPorMarketplace). Alimenta las chips del
+// panel del filtro Marketplace — nunca un enum fijo, `registry` es N-valuado y dinámico (BR-3).
+export function marketplacesDisponibles(es: EntradaPortafolio[]): string[] {
+  const vistos = new Set<string>()
+  const out: string[] = []
+  for (const e of es) {
+    for (const r of registriesDe(e)) {
+      if (!vistos.has(r)) {
+        vistos.add(r)
+        out.push(r)
+      }
+    }
+  }
+  return out
+}
+
 // idsColisionados — GAP-2/S1-D2 (el índice del Mapa keyea por `identidad.id` pelado, deuda
 // viva): dos entradas del Portafolio con el mismo id se pisarían en silencio al observarlas.
 // Devuelve SOLO los ids con ≥2 claves — mapa vacío ⇒ ninguna colisión.

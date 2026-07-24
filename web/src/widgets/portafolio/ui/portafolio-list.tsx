@@ -1,3 +1,4 @@
+import { useState } from "react"
 import {
   AvisoChip,
   agruparPorEmpresa,
@@ -9,12 +10,27 @@ import {
   type EntradaCorrupta,
   type EntradaPortafolio,
   filtrarEntradas,
+  filtrarPorMarketplace,
+  filtrarPorSalud,
   identificadorDe,
   type LentePortafolio,
+  marketplacesDisponibles,
   registriesDe,
+  SALUD_LABEL,
+  type SaludPortafolio,
   saludDe,
 } from "@/entities/portafolio"
 import { cn } from "@/shared/lib/cn"
+
+const SALUDES: readonly SaludPortafolio[] = ["ok", "atencion", "sin-senal"]
+
+// toggleEnSet — helper puro de UI (no dominio): agrega/saca un valor de un Set inmutable.
+function toggleEnSet<T>(set: ReadonlySet<T>, v: T): Set<T> {
+  const next = new Set(set)
+  if (next.has(v)) next.delete(v)
+  else next.add(v)
+  return next
+}
 
 // PortafolioList — superficie 1 del Portafolio (plan §2.6/§3 T4, G1/G2/G4/G5/G6/G8/G9).
 // Props puras: CERO transporte (fe-transporte-independiente) — el fetch/refetch/AbortController
@@ -31,6 +47,13 @@ export interface PortafolioListProps {
   onLente: (l: LentePortafolio) => void
   busqueda: string
   onBusqueda: (q: string) => void
+  // Filtros «Estado»/«Marketplace» de la toolbar (deuda viva S1-D8, cerrada 2026-07-24):
+  // afordancia DISTINTA de la lente — acotan la lista, nunca la reagrupan. Set vacío = sin
+  // filtro (mismo convenio que `busqueda`).
+  filtroSalud: ReadonlySet<SaludPortafolio>
+  onFiltroSalud: (s: ReadonlySet<SaludPortafolio>) => void
+  filtroMarketplace: ReadonlySet<string>
+  onFiltroMarketplace: (s: ReadonlySet<string>) => void
   /** clave de la fila abierta en el drawer (T5) — resalta la fila, no cambia su comportamiento. */
   seleccionada?: string | undefined
   onAbrir: (clave: string) => void
@@ -74,19 +97,95 @@ function Topbar({
   )
 }
 
+// ── FiltroDisclosure: botón que despliega un panel de chips toggleables (multi-select) —
+// mismo patrón de disclosure ya sancionado por `rules-subband.tsx` (aria-expanded, sin portal,
+// sin click-outside): la afordancia es DISTINTA de una lente (acota la lista, no la reagrupa). ──
+function FiltroDisclosure<T extends string>({
+  etiqueta,
+  abierto,
+  onToggleAbierto,
+  panelId,
+  valores,
+  labelDe,
+  seleccion,
+  onCambiar,
+  vacio,
+}: {
+  etiqueta: string
+  abierto: boolean
+  onToggleAbierto: () => void
+  panelId: string
+  valores: readonly T[]
+  labelDe: (v: T) => string
+  seleccion: ReadonlySet<T>
+  onCambiar: (s: ReadonlySet<T>) => void
+  vacio?: string | undefined
+}) {
+  return (
+    <div className="pf-filtro">
+      <button
+        type="button"
+        className="pf-filtro-btn"
+        aria-expanded={abierto}
+        aria-controls={panelId}
+        onClick={onToggleAbierto}
+      >
+        {etiqueta}
+        {seleccion.size > 0 && ` (${seleccion.size})`}
+      </button>
+      {abierto && (
+        <div
+          id={panelId}
+          className="pf-filtro-panel"
+          role="group"
+          aria-label={`Filtrar por ${etiqueta.toLowerCase()}`}
+        >
+          {valores.length === 0 && vacio && <p className="pf-mut">{vacio}</p>}
+          {valores.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="pf-lente-btn"
+              aria-pressed={seleccion.has(v)}
+              onClick={() => onCambiar(toggleEnSet(seleccion, v))}
+            >
+              {labelDe(v)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Toolbar: buscar + 4 lentes empresa/plano/proyecto/marketplace (S1-D8, cerrada 2026-07-23)
-// + filtros estado/marketplace diferidos disabled (distinta afordancia, sin slice aún) ──
+// + filtros Estado/Marketplace (S1-D8, cerrada 2026-07-24) — afordancia DISTINTA de la lente:
+// acotan la lista visible sin reagruparla. ──
 function Toolbar({
   lente,
   onLente,
   busqueda,
   onBusqueda,
+  filtroSalud,
+  onFiltroSalud,
+  filtroMarketplace,
+  onFiltroMarketplace,
+  marketplaces,
 }: {
   lente: LentePortafolio
   onLente: (l: LentePortafolio) => void
   busqueda: string
   onBusqueda: (q: string) => void
+  filtroSalud: ReadonlySet<SaludPortafolio>
+  onFiltroSalud: (s: ReadonlySet<SaludPortafolio>) => void
+  filtroMarketplace: ReadonlySet<string>
+  onFiltroMarketplace: (s: ReadonlySet<string>) => void
+  marketplaces: string[]
 }) {
+  const [abierto, setAbierto] = useState<"estado" | "marketplace" | null>(null)
+  const toggleAbierto = (panel: "estado" | "marketplace") =>
+    setAbierto((a) => (a === panel ? null : panel))
+
   return (
     <div className="pf-toolbar">
       <input
@@ -132,12 +231,27 @@ function Toolbar({
         </button>
       </div>
       <div className="pf-filtros" role="group" aria-label="Filtros del Portafolio">
-        <button type="button" className="pf-filtro-btn" disabled title="próximo">
-          Estado
-        </button>
-        <button type="button" className="pf-filtro-btn" disabled title="próximo">
-          Marketplace
-        </button>
+        <FiltroDisclosure
+          etiqueta="Estado"
+          abierto={abierto === "estado"}
+          onToggleAbierto={() => toggleAbierto("estado")}
+          panelId="pf-filtro-panel-estado"
+          valores={SALUDES}
+          labelDe={(s) => SALUD_LABEL[s]}
+          seleccion={filtroSalud}
+          onCambiar={onFiltroSalud}
+        />
+        <FiltroDisclosure
+          etiqueta="Marketplace"
+          abierto={abierto === "marketplace"}
+          onToggleAbierto={() => toggleAbierto("marketplace")}
+          panelId="pf-filtro-panel-marketplace"
+          valores={marketplaces}
+          labelDe={(m) => m}
+          seleccion={filtroMarketplace}
+          onCambiar={onFiltroMarketplace}
+          vacio="sin marketplaces en los datos actuales"
+        />
       </div>
     </div>
   )
@@ -252,9 +366,9 @@ function VaciaBody() {
 function SinResultadosBody({ onLimpiar }: { onLimpiar: () => void }) {
   return (
     <div className="pf-estado-vacio">
-      <p>Ningún arnés coincide con la búsqueda.</p>
+      <p>Ningún arnés coincide con la búsqueda/filtros aplicados.</p>
       <button type="button" className="pf-btn-secundario" onClick={onLimpiar}>
-        Limpiar búsqueda
+        Limpiar búsqueda y filtros
       </button>
     </div>
   )
@@ -332,20 +446,24 @@ function Cuerpo({
   entradas,
   lente,
   busqueda,
+  filtroSalud,
+  filtroMarketplace,
   seleccionada,
   onAbrir,
   onReintentar,
-  onBusqueda,
+  onLimpiarTodo,
 }: {
   estado: PortafolioListProps["estado"]
   error: string | undefined
   entradas: EntradaPortafolio[]
   lente: LentePortafolio
   busqueda: string
+  filtroSalud: ReadonlySet<SaludPortafolio>
+  filtroMarketplace: ReadonlySet<string>
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
   onReintentar: () => void
-  onBusqueda: (q: string) => void
+  onLimpiarTodo: () => void
 }) {
   if (estado === "cargando") return <Skeleton />
   if (estado === "error") return <ErrorBody error={error} onReintentar={onReintentar} />
@@ -353,8 +471,13 @@ function Cuerpo({
   // estado === "datos"
   if (entradas.length === 0) return <VaciaBody />
 
-  const filtradas = filtrarEntradas(entradas, busqueda)
-  if (filtradas.length === 0) return <SinResultadosBody onLimpiar={() => onBusqueda("")} />
+  // Pipeline (S1-D8): buscar → filtro Estado → filtro Marketplace → recién ahí la lente
+  // reagrupa lo que sobrevivió. Los filtros acotan; la lente solo cambia la presentación.
+  const filtradas = filtrarPorMarketplace(
+    filtrarPorSalud(filtrarEntradas(entradas, busqueda), filtroSalud),
+    filtroMarketplace,
+  )
+  if (filtradas.length === 0) return <SinResultadosBody onLimpiar={onLimpiarTodo} />
 
   if (lente === "plano") {
     return <ListaPlana entradas={filtradas} seleccionada={seleccionada} onAbrir={onAbrir} />
@@ -378,15 +501,35 @@ export function PortafolioList({
   onLente,
   busqueda,
   onBusqueda,
+  filtroSalud,
+  onFiltroSalud,
+  filtroMarketplace,
+  onFiltroMarketplace,
   seleccionada,
   onAbrir,
   onAgregar,
   onReintentar,
 }: PortafolioListProps) {
+  const marketplaces = marketplacesDisponibles(entradas)
+  const onLimpiarTodo = () => {
+    onBusqueda("")
+    onFiltroSalud(new Set())
+    onFiltroMarketplace(new Set())
+  }
   return (
     <div className="pf-list">
       <Topbar estado={estado} entradas={entradas} lente={lente} onAgregar={onAgregar} />
-      <Toolbar lente={lente} onLente={onLente} busqueda={busqueda} onBusqueda={onBusqueda} />
+      <Toolbar
+        lente={lente}
+        onLente={onLente}
+        busqueda={busqueda}
+        onBusqueda={onBusqueda}
+        filtroSalud={filtroSalud}
+        onFiltroSalud={onFiltroSalud}
+        filtroMarketplace={filtroMarketplace}
+        onFiltroMarketplace={onFiltroMarketplace}
+        marketplaces={marketplaces}
+      />
       <BannerCorruptas corruptas={corruptas} />
       <div className="pf-body">
         <Cuerpo
@@ -395,10 +538,12 @@ export function PortafolioList({
           entradas={entradas}
           lente={lente}
           busqueda={busqueda}
+          filtroSalud={filtroSalud}
+          filtroMarketplace={filtroMarketplace}
           seleccionada={seleccionada}
           onAbrir={onAbrir}
           onReintentar={onReintentar}
-          onBusqueda={onBusqueda}
+          onLimpiarTodo={onLimpiarTodo}
         />
       </div>
     </div>

@@ -30,8 +30,12 @@ const meta = {
     corruptas: [],
     lente: "empresa",
     busqueda: "",
+    filtroSalud: new Set(),
+    filtroMarketplace: new Set(),
     onLente: fn(),
     onBusqueda: fn(),
+    onFiltroSalud: fn(),
+    onFiltroMarketplace: fn(),
     onAbrir: fn(),
     onAgregar: fn(),
     onReintentar: fn(),
@@ -82,8 +86,8 @@ export const ErrorDeCarga: Story = {
 
 // El caso central: lente empresa (grupo `alpacapurpura` + «sin empresa» al final, G4) · chip
 // `en-deriva` real (G1) SIN ningún flag de update (G2) · dots con su aria-label (G9) · contadores
-// reales · click/Enter en fila llaman onAbrir(clave) (G6/G8) · lentes/filtros diferidos
-// disabled+tooltip (BR-8/S1-D8).
+// reales · click/Enter en fila llaman onAbrir(clave) (G6/G8) · filtros Estado/Marketplace
+// disclosure (S1-D8, cerrada 2026-07-24).
 export const ConDatos: Story = {
   args: { entradas: entradasDemo },
   play: async ({ canvasElement, args }) => {
@@ -126,16 +130,61 @@ export const ConDatos: Story = {
     await userEvent.keyboard("{Enter}")
     await expect(args.onAbrir).toHaveBeenCalledTimes(2)
 
-    // S1-D8 (cerrada 2026-07-23) — las 4 lentes están vivas; los FILTROS (distinta afordancia,
-    // sin slice aún) siguen disabled + tooltip "próximo", jamás simulados (BR-8).
+    // S1-D8 (cerrada 2026-07-23) — las 4 lentes están vivas.
     const lenteProyecto = c.getByRole("button", { name: "Proyecto" })
     await expect(lenteProyecto).not.toBeDisabled()
     await expect(lenteProyecto).toHaveAttribute("aria-pressed", "false")
     await userEvent.click(lenteProyecto)
     await expect(args.onLente).toHaveBeenCalledWith("proyecto")
-    const filtroEstado = c.getByRole("button", { name: "Estado" })
-    await expect(filtroEstado).toBeDisabled()
-    await expect(filtroEstado).toHaveAttribute("title", "próximo")
+
+    // S1-D8 (cerrada 2026-07-24) — filtros Estado/Marketplace: disclosure cerrado por defecto;
+    // abrir pinta chips reales (Estado = 3 valores fijos, Marketplace = registries presentes en
+    // los datos). Afordancia DISTINTA de la lente: seleccionar una chip ACOTA, no reagrupa.
+    // Scope al grupo "Filtros…" — "Marketplace" es también el nombre de una lente (grupo
+    // distinto), getByRole sin scope sería ambiguo.
+    const filtros = within(c.getByRole("group", { name: "Filtros del Portafolio" }))
+    const filtroEstadoBtn = filtros.getByRole("button", { name: "Estado" })
+    await expect(filtroEstadoBtn).toHaveAttribute("aria-expanded", "false")
+    await userEvent.click(filtroEstadoBtn)
+    await expect(filtroEstadoBtn).toHaveAttribute("aria-expanded", "true")
+    const chipAtencion = c.getByRole("button", { name: "atención" })
+    await userEvent.click(chipAtencion)
+    await expect(args.onFiltroSalud).toHaveBeenCalledWith(new Set(["atencion"]))
+
+    // un solo panel abierto a la vez: abrir Marketplace cierra Estado.
+    const filtroMktBtn = filtros.getByRole("button", { name: "Marketplace" })
+    await userEvent.click(filtroMktBtn)
+    await expect(filtroEstadoBtn).toHaveAttribute("aria-expanded", "false")
+    const chipRegistry = c.getByRole("button", {
+      name: "github.com/alpacapurpura/prenter-marketplace",
+    })
+    await userEvent.click(chipRegistry)
+    await expect(args.onFiltroMarketplace).toHaveBeenCalledWith(
+      new Set(["github.com/alpacapurpura/prenter-marketplace"]),
+    )
+  },
+}
+
+// Filtro Estado acota SIN reagrupar (distinta afordancia de la lente): 1 de las 3 filas queda
+// (la provisional, «sin señal»); "atención" desaparece del DOM entero, no solo se oculta.
+export const FiltroEstadoAcota: Story = {
+  args: { entradas: entradasDemo, filtroSalud: new Set(["sin-senal"]) },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(canvasElement.querySelectorAll(".pf-fila").length).toBe(1)
+    await expect(c.getByRole("img", { name: "salud: sin señal" })).toBeInTheDocument()
+    await expect(c.queryByRole("img", { name: "salud: atención" })).toBeNull()
+  },
+}
+
+// Filtro Marketplace acota por registriesDe(e) — mismo dato que la lente marketplace, distinta
+// afordancia: acá "github.com/acme/acme-cli" aísla la fila de acme-cli sola.
+export const FiltroMarketplaceAcota: Story = {
+  args: { entradas: entradasDemo, filtroMarketplace: new Set(["github.com/acme/acme-cli"]) },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(canvasElement.querySelectorAll(".pf-fila").length).toBe(1)
+    await expect(c.getByText("Acme CLI")).toBeInTheDocument()
   },
 }
 
@@ -191,13 +240,18 @@ export const CorruptasVisibles: Story = {
 }
 
 // G5 — búsqueda sin match sobre datos reales (≠ Vacia: el portafolio SÍ tiene entradas).
+// «Limpiar» borra búsqueda Y ambos filtros a la vez — un solo botón, un solo estado vacío
+// (no distinguimos SI la búsqueda o un filtro causó el cero: cualquiera de los dos disparó lo
+// mismo, así que limpiar todo junto es lo honesto y lo simple).
 export const FiltroSinResultados: Story = {
   args: { entradas: entradasDemo, busqueda: "zzz-no-existe-en-ninguna-fixture" },
   play: async ({ canvasElement, args }) => {
     const c = within(canvasElement)
     await expect(c.getByText(/Ningún arnés coincide/)).toBeInTheDocument()
-    const btn = c.getByRole("button", { name: "Limpiar búsqueda" })
+    const btn = c.getByRole("button", { name: "Limpiar búsqueda y filtros" })
     await userEvent.click(btn)
     await expect(args.onBusqueda).toHaveBeenCalledWith("")
+    await expect(args.onFiltroSalud).toHaveBeenCalledWith(new Set())
+    await expect(args.onFiltroMarketplace).toHaveBeenCalledWith(new Set())
   },
 }

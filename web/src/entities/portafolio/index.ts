@@ -8,9 +8,12 @@ export {
   agruparPorMarketplace,
   agruparPorProyecto,
   filtrarEntradas,
+  filtrarPorMarketplace,
+  filtrarPorSalud,
   gruposCandidatosDe,
   identificadorDe,
   idsColisionados,
+  marketplacesDisponibles,
   registriesDe,
   saludDe,
 } from "./model/selectors"
@@ -41,5 +44,6 @@ export {
   DerivaChip,
   DotSaludPortafolio,
   EmblemaInicial,
+  SALUD_LABEL,
   TipoInstalacionChip,
 } from "./ui/chips"
