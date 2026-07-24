@@ -2,17 +2,35 @@ package index
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
+	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/ports"
 )
+
+// newTestStore opens a Store at a fresh temp path with no reg/load — the shape unit
+// tests below need (Query/List/Upsert directly), matching every caller elsewhere in
+// the repo that constructs a Store without ever calling Rebuild.
+func newTestStore(t *testing.T) *Store {
+	t.Helper()
+	s, err := New(filepath.Join(t.TempDir(), "index.db"), nil, nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	return s
+}
 
 // TestSeedServesDogfood asserts the index seeds the real dogfood arnés (dev-full-cycle)
 // so the Map endpoint serves it (HS-09 Hito 1, architecture §4.1): 5 nodes, 4 edges,
 // the spec-writer box carries its contract (caja + estado).
 func TestSeedServesDogfood(t *testing.T) {
-	s := New()
+	s := newTestStore(t)
 
 	g, err := s.Query(context.Background(), "dev-full-cycle")
 	if err != nil {
@@ -48,7 +66,7 @@ func TestSeedServesDogfood(t *testing.T) {
 // TestSeedFases asserts the dogfood declares its four phases in order (the lane order the
 // Map renders, RF-12) and that the base-band rule is present.
 func TestSeedFases(t *testing.T) {
-	g, err := New().Query(context.Background(), "dev-full-cycle")
+	g, err := newTestStore(t).Query(context.Background(), "dev-full-cycle")
 	if err != nil {
 		t.Fatalf("Query(dev-full-cycle) = %v", err)
 	}
@@ -70,7 +88,7 @@ func TestSeedFases(t *testing.T) {
 // HS-09 Hito 2): a maximal graph whose rol is Editorial (agnostic-to-rubro proof) and that
 // exercises all 10 clases so the Map can render every casuistic. Conformance-valid.
 func TestSeedServesShowcase(t *testing.T) {
-	g, err := New().Query(context.Background(), "content-studio-full")
+	g, err := newTestStore(t).Query(context.Background(), "content-studio-full")
 	if err != nil {
 		t.Fatalf("Query(content-studio-full) = %v, want nil", err)
 	}
@@ -95,7 +113,7 @@ func TestSeedServesShowcase(t *testing.T) {
 // TestQueryUnknown asserts an unknown harness id is a clean ErrNotFound (the endpoint
 // maps it to 404), not a panic or empty graph.
 func TestQueryUnknown(t *testing.T) {
-	s := New()
+	s := newTestStore(t)
 	if _, err := s.Query(context.Background(), "nope"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Query(nope) err = %v, want ErrNotFound", err)
 	}
@@ -107,7 +125,7 @@ func TestQueryUnknown(t *testing.T) {
 // consultable SOLO por la clave — así se cierra el hueco que hacía colisionar dos arneses
 // distintos con el mismo id pelado.
 func TestUpsertIndexaBajoLaClaveNoElArnesID(t *testing.T) {
-	s := New()
+	s := newTestStore(t)
 	g := domain.Graph{Arnes: &domain.Arnes{ID: "harness", Marketplace: "acme/repo"}}
 	if err := s.Upsert(context.Background(), "acme-repo~harness~", g); err != nil {
 		t.Fatalf("Upsert: %v", err)
@@ -129,7 +147,7 @@ func TestUpsertIndexaBajoLaClaveNoElArnesID(t *testing.T) {
 // re-key, el segundo Upsert pisaba en silencio al primero (mismo key = g.Arnes.ID); ahora
 // cada uno vive bajo su propia clave calificada.
 func TestUpsertDosArnesesMismoIDNoColisionan(t *testing.T) {
-	s := New()
+	s := newTestStore(t)
 	a := domain.Graph{Arnes: &domain.Arnes{ID: "harness", Marketplace: "acme/repo", Nombre: "Acme"}}
 	b := domain.Graph{Arnes: &domain.Arnes{ID: "harness", Marketplace: "otro/repo", Nombre: "Otro"}}
 	if err := s.Upsert(context.Background(), "acme-repo~harness~", a); err != nil {
@@ -151,7 +169,7 @@ func TestUpsertDosArnesesMismoIDNoColisionan(t *testing.T) {
 // TestUpsertClaveVaciaError / TestUpsertSinManifiestoError — ambos guardas honestos: ni una
 // llave vacía ni un grafo sin manifiesto son indexables (nada inventado).
 func TestUpsertClaveVaciaError(t *testing.T) {
-	s := New()
+	s := newTestStore(t)
 	err := s.Upsert(context.Background(), "", domain.Graph{Arnes: &domain.Arnes{ID: "x"}})
 	if err == nil {
 		t.Fatal("Upsert con clave vacía = nil, want error")
@@ -159,7 +177,7 @@ func TestUpsertClaveVaciaError(t *testing.T) {
 }
 
 func TestUpsertSinManifiestoError(t *testing.T) {
-	s := New()
+	s := newTestStore(t)
 	err := s.Upsert(context.Background(), "alguna-clave", domain.Graph{})
 	if err == nil {
 		t.Fatal("Upsert sin Arnes = nil, want error")
@@ -169,7 +187,7 @@ func TestUpsertSinManifiestoError(t *testing.T) {
 // TestListPortfolio asserts List returns every seeded harness ordered by id (the picker's
 // stable portfolio, RF-72) and includes the real dogfood arnés.
 func TestListPortfolio(t *testing.T) {
-	gs, err := New().List(context.Background())
+	gs, err := newTestStore(t).List(context.Background())
 	if err != nil {
 		t.Fatalf("List() = %v", err)
 	}
@@ -188,6 +206,185 @@ func TestListPortfolio(t *testing.T) {
 		if ids[i] != w {
 			t.Errorf("List ids = %v, want %v", ids, want)
 			break
+		}
+	}
+}
+
+// regFija is a minimal ports.ArnesRegistry fake for Rebuild tests: a fixed set of
+// arnés→path entries, Register/Resolve unused (Rebuild only calls List).
+type regFija []ports.ArnesPath
+
+func (r regFija) Resolve(string) (string, bool, error) {
+	return "", false, errors.New("regFija: Resolve no implementado")
+}
+
+func (r regFija) Register(string, string) error {
+	return errors.New("regFija: Register no implementado")
+}
+
+func (r regFija) List() []ports.ArnesPath { return r }
+
+// TestRebuildDesdeArnesRegistry cubre RF-207 escenario 1: N arneses registrados y sanos —
+// Rebuild reconstruye el índice exactamente desde ArnesRegistry+loader, y ningún dato
+// demo/seed hardcodeado sobrevive.
+func TestRebuildDesdeArnesRegistry(t *testing.T) {
+	s, err := New(filepath.Join(t.TempDir(), "index.db"), regFija{
+		{Arnes: "uno", Path: "/arneses/uno"},
+		{Arnes: "dos", Path: "/arneses/dos"},
+	}, func(dir string) (domain.Graph, error) {
+		id := filepath.Base(dir)
+		return domain.Graph{Arnes: &domain.Arnes{ID: id, Nombre: "cargado: " + dir}}, nil
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	if err = s.Rebuild(context.Background()); err != nil {
+		t.Fatalf("Rebuild: %v", err)
+	}
+
+	gs, err := s.List(context.Background())
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(gs) != 2 {
+		t.Fatalf("List() tras Rebuild = %d grafos, want 2 (ningún seed/demo debe sobrevivir): %+v", len(gs), gs)
+	}
+	g, err := s.Query(context.Background(), "uno")
+	if err != nil {
+		t.Fatalf("Query(uno): %v", err)
+	}
+	if g.Arnes.Nombre != "cargado: /arneses/uno" {
+		t.Errorf("Query(uno).Arnes.Nombre = %q, want el grafo real de loader.LoadArnes", g.Arnes.Nombre)
+	}
+	if _, err := s.Query(context.Background(), "demo"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("Query(demo) tras Rebuild = %v, want ErrNotFound (seed data no debe sobrevivir)", err)
+	}
+}
+
+// TestRebuildEntradaDegradada cubre RF-207 escenario 2: un árbol roto (loader falla) queda
+// indexado Degradado:true — nunca ausente, nunca con pass fabricado.
+func TestRebuildEntradaDegradada(t *testing.T) {
+	s, err := New(filepath.Join(t.TempDir(), "index.db"), regFija{
+		{Arnes: "roto", Path: "/arneses/roto"},
+	}, func(dir string) (domain.Graph, error) {
+		return domain.Graph{}, fmt.Errorf("manifiesto ausente en %s", dir)
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	if err = s.Rebuild(context.Background()); err != nil {
+		t.Fatalf("Rebuild: %v", err)
+	}
+	g, err := s.Query(context.Background(), "roto")
+	if err != nil {
+		t.Fatalf("Query(roto) = %v, want nil (degradado pero presente)", err)
+	}
+	if !g.Degradado {
+		t.Error("Query(roto).Degradado = false, want true")
+	}
+	if g.Arnes == nil || g.Arnes.ID != "roto" {
+		t.Errorf("Query(roto).Arnes = %+v, want ID=roto (sintetizado desde el registro)", g.Arnes)
+	}
+}
+
+// TestRebuildRegistroVacio cubre RF-207 escenario 3: ArnesRegistry vacío → List() vacío, sin
+// error — y ningún dato de seed queda atrás.
+func TestRebuildRegistroVacio(t *testing.T) {
+	s, err := New(filepath.Join(t.TempDir(), "index.db"), regFija{}, func(string) (domain.Graph, error) {
+		t.Fatal("load no debería llamarse con ArnesRegistry vacío")
+		return domain.Graph{}, nil
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	if err = s.Rebuild(context.Background()); err != nil {
+		t.Fatalf("Rebuild: %v", err)
+	}
+	gs, err := s.List(context.Background())
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(gs) != 0 {
+		t.Errorf("List() tras Rebuild con registro vacío = %d grafos, want 0", len(gs))
+	}
+}
+
+// TestSchemaVersionMismatchWipesFile cubre RF-208 a nivel unitario: un .db existente con una
+// schema_version distinta se borra entero (no ALTER TABLE) y New() arranca de un estado
+// idéntico al de un path que nunca existió.
+func TestSchemaVersionMismatchWipesFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "index.db")
+
+	// Simula un .db viejo: schema_meta con una versión que ya no es la actual, más una fila
+	// "old-junk" que NO debe sobrevivir al wipe.
+	raw, err := sql.Open(driverName, "file:"+path)
+	if err != nil {
+		t.Fatalf("abrir .db crudo: %v", err)
+	}
+	for _, stmt := range []string{
+		createMetaTable,
+		createGraphsTable,
+		`INSERT INTO schema_meta (version) VALUES (-1)`,
+		`INSERT INTO graphs (clave, graph_json, updated_at) VALUES ('old-junk', '{"arnes":{"id":"old"}}', 'x')`,
+	} {
+		if _, eerr := raw.ExecContext(context.Background(), stmt); eerr != nil {
+			t.Fatalf("seed .db viejo (%s): %v", stmt, eerr)
+		}
+	}
+	if cerr := raw.Close(); cerr != nil {
+		t.Fatalf("close raw: %v", cerr)
+	}
+
+	s, err := New(path, regFija{{Arnes: "nuevo", Path: "/arneses/nuevo"}}, func(string) (domain.Graph, error) {
+		return domain.Graph{Arnes: &domain.Arnes{ID: "nuevo"}}, nil
+	})
+	if err != nil {
+		t.Fatalf("New tras schema_version vieja: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	if _, qerr := s.Query(context.Background(), "old-junk"); !errors.Is(qerr, ErrNotFound) {
+		t.Errorf("Query(old-junk) tras el wipe = %v, want ErrNotFound (la fila vieja no debe sobrevivir)", qerr)
+	}
+	if rerr := s.Rebuild(context.Background()); rerr != nil {
+		t.Fatalf("Rebuild tras wipe: %v", rerr)
+	}
+	if _, qerr := s.Query(context.Background(), "nuevo"); qerr != nil {
+		t.Errorf("Query(nuevo) tras Rebuild post-wipe = %v, want nil", qerr)
+	}
+}
+
+// TestWriterSerializedConcurrentUpsertsSucceed cubre RF-209 escenario 2: Upserts
+// concurrentes contra el mismo Store nunca devuelven SQLITE_BUSY/error de lock, y el
+// estado final refleja todos (el writer de una sola conexión los serializa).
+func TestWriterSerializedConcurrentUpsertsSucceed(t *testing.T) {
+	s := newTestStore(t)
+	const n = 16
+	var wg sync.WaitGroup
+	errs := make([]error, n)
+	for i := range n {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			g := domain.Graph{Arnes: &domain.Arnes{ID: fmt.Sprintf("concurrente-%d", i)}}
+			errs[i] = s.Upsert(context.Background(), fmt.Sprintf("clave-%d", i), g)
+		}(i)
+	}
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Errorf("Upsert(clave-%d) concurrente = %v, want nil (writer serializado, sin busy)", i, err)
+		}
+	}
+	for i := range n {
+		if _, err := s.Query(context.Background(), fmt.Sprintf("clave-%d", i)); err != nil {
+			t.Errorf("Query(clave-%d) tras concurrencia = %v, want nil", i, err)
 		}
 	}
 }

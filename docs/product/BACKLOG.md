@@ -194,7 +194,9 @@
   bloqueados tal cual (sin cambios desde HS-16, 2026-07-08).** `index-reconstruible` ·
   `sin-migracion-incremental` · `writer-serializado` (`indice-desechable-jsonl-es-verdad.md`)
   esperan SQLite fase 5 real (hoy: `internal/adapters/index/store.go` sigue
-  `// TODO(fase 5)`, CAP-21/22/23 siguen vivo·in-memory/parcial/stub) · `modo-por-fase`
+  `// TODO(fase 5)`, CAP-21/22/23 siguen vivo·in-memory/parcial/stub — plan de ataque en
+  [`stories/2026-07-24-indice-sqlite-watcher-fase5/INDEX.md`](stories/2026-07-24-indice-sqlite-watcher-fase5/INDEX.md))
+  · `modo-por-fase`
   (`permisos-gui-human-in-the-loop.md`) espera permission-mode por fase (hoy:
   `--permission-mode` hardcodeado a `"default"` en `conductor.go`) · `hooks-desde-otel`
   espera el canal OTel de Desempeño — **confirmado explícitamente fuera de alcance** de la
@@ -225,7 +227,10 @@
   Cierre en `ledger/HS-21.md`; PARIDAD 10 filas firmada
 - [capabilities] validar los ~40 `vivo·nc` (sin-check): construir el test que falta por-cap; parte de FE sin tests (solo stories) — es un paquete propio · `deuda`
 - [capabilities] `toggleTheme` seed-futuro: cablear el toggle a la vista Ajustes (RF-100) o cortar · `deuda`
-- [capabilities] índice SQLite real (CAP-21) + watcher fsnotify (CAP-23) + seed→JSONL corpus (CAP-22) — sale la fase-5 del stack · `bloqueo`
+- [capabilities] **índice SQLite real (CAP-21) + watcher fsnotify (CAP-23) + Rebuild real
+  (CAP-22)** — sale la fase-5 del stack. Investigado a fondo + plan de ataque 2026-07-24 (diseño
+  ya firmado en `indice-desechable-jsonl-es-verdad.md`, solo falta construir) →
+  [`stories/2026-07-24-indice-sqlite-watcher-fase5/INDEX.md`](stories/2026-07-24-indice-sqlite-watcher-fase5/INDEX.md) · `bloqueo`
 
 ## Homologación de metodología — continuaciones (HS-19 cerrada, estos son los siguientes)
 

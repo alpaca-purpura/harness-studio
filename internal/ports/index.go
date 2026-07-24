@@ -6,10 +6,13 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/domain"
 )
 
-// IndexPort is the disposable index over the JSONL source of truth: it can always be
-// rebuilt from scratch (see docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md).
+// IndexPort is the disposable index over the arnés-tree source of truth (the harness
+// directories the Portafolio knows about, ports.PortafolioStore/PortafolioScanner +
+// ports.ArnesLoader — NOT the ~/.claude conversation JSONL, a separate corpus read by
+// internal/adapters/history): it can always be rebuilt from scratch (see
+// docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md v1.2).
 type IndexPort interface {
-	// Rebuild reconstructs the whole index from the JSONL corpus.
+	// Rebuild reconstructs the whole index from the known arnés tree (Portafolio).
 	Rebuild(ctx context.Context) error
 	// Query returns the agnostic graph of one harness.
 	Query(ctx context.Context, harnessID string) (domain.Graph, error)

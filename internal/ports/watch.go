@@ -6,21 +6,22 @@ import "context"
 type WatchOp string
 
 // The three change kinds the watcher reports: an appended/updated file, a new file,
-// and a removed file (the JSONL corpus only ever sees these).
+// and a removed file under the watched arnés tree.
 const (
 	WatchWrite  WatchOp = "write"
 	WatchCreate WatchOp = "create"
 	WatchRemove WatchOp = "remove"
 )
 
-// WatchEvent is a single filesystem change under the watched tree (~/.claude JSONL).
+// WatchEvent is a single filesystem change under the watched arnés tree (the harness
+// directories the Portafolio knows about — see IndexPort, not ~/.claude JSONL).
 type WatchEvent struct {
 	Path string
 	Op   WatchOp
 }
 
-// WatchPort observes the JSONL corpus and streams change events that trigger an
-// incremental reindex.
+// WatchPort observes the arnés tree (the same corpus IndexPort.Rebuild reads) and
+// streams change events that trigger an incremental reindex.
 type WatchPort interface {
 	// Watch starts observing and returns a channel that closes when ctx is done.
 	Watch(ctx context.Context) (<-chan WatchEvent, error)

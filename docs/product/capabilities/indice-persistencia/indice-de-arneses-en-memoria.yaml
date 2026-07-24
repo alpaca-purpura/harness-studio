@@ -35,3 +35,12 @@ explícito — la llave del índice YA NO se re-deriva del propio `g.Arnes.ID` d
 arneses distintos podían compartir, pisándose en silencio). El caller decide la llave
 autoritativa; ver `docs/product/capabilities/portafolio/observar-en-mapa.yaml` para el flujo
 completo Portafolio→Mapa→sesión.
+
+**Fase 5 (2026-07-24, RF-207/209):** el nombre de esta capability quedó desactualizado por el
+paquete `2026-07-24-indice-sqlite-watcher-fase5` — el store dejó de ser un `map[string]domain.Graph`
+puro y pasó a `modernc.org/sqlite` (WAL, 2 handles), aunque `Query`/`List`/`Upsert` conservan
+exactamente la misma firma e invariantes que este capability ya documentaba (sin cambio funcional
+acá; ver `reconstruccion-del-indice.yaml`/CAP-22 para lo que sí cambió — `Rebuild()` — y
+`observar-cambios-del-corpus.yaml`/CAP-23 para el watcher). No se renombra el `slug`/`capability_id`
+(costo de migrar referencias por beneficio cosmético, mismo criterio que
+`docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md` D3).

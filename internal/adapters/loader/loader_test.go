@@ -43,14 +43,7 @@ func repoRoot(t *testing.T) string {
 func chdirRepoRoot(t *testing.T) string {
 	t.Helper()
 	root := repoRoot(t)
-	prev, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(root); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chdir(prev) })
+	t.Chdir(root) // restaura el cwd original en cleanup — sin Getwd/Cleanup manual.
 	return root
 }
 

@@ -31,6 +31,10 @@ vendors:
     in: github.com/google/jsonschema-go/**
   yaml:
     in: gopkg.in/yaml.v3
+  sqlite:
+    in: modernc.org/sqlite   # índice desechable (indice-desechable-jsonl-es-verdad.md), pure Go sin CGO
+  fsnotify:
+    in: github.com/fsnotify/fsnotify   # watcher del árbol de arneses (RF-210)
 
 components:
   # --- el core: dominio + casos de uso. No conoce nada de afuera. ---
@@ -109,9 +113,11 @@ deps:
   artifact:
     mayDependOn: [domain, ports]   # lector de `status:` frontmatter (document-as-cache, Fase E)
   index:
-    mayDependOn: [domain, ports, dogfood]   # seed de fixtures embebidos (HS-09; sale con el loader real)
+    mayDependOn: [domain, ports, dogfood]   # seed de fixtures embebidos (HS-09) + el árbol vía ArnesRegistry (RF-207)
+    canUse: [sqlite]                        # índice SQLite desechable (fase 5, indice-desechable-jsonl-es-verdad.md)
   watch:
     mayDependOn: [domain, ports]
+    canUse: [fsnotify]                      # observa el árbol de arneses registrado (RF-210)
   publish:
     mayDependOn: [domain, ports]
   conformance:

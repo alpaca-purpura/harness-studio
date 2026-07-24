@@ -4,24 +4,39 @@
 capability_id: arnesia.indice-persistencia.reconstruccion-del-indice
 cap_num: CAP-22
 slug: reconstruccion-del-indice
-name: "Reconstrucción del índice (seed)"
-status: parcial          # GENERADO (R4) — no teclear
+name: "Reconstrucción del índice (ArnesRegistry)"
+status: vivo          # GENERADO (R4) — no teclear
 module: indice-persistencia
 verb: crear
 pointers:
-  - "internal/adapters/index/store.go#Rebuild"
+  - "internal/adapters/index/store.go#Store.Rebuild"
+  - "internal/adapters/index/store.go#New"
   - "internal/adapters/index/store.go#seed"
 valida:
-  - "TestSeedServesDogfood"
-  - "~/.claude"
+  - "TestRebuildDesdeArnesRegistry"
+  - "TestRebuildEntradaDegradada"
+  - "TestRebuildRegistroVacio"
+  - "TestSchemaVersionMismatchWipesFile"
+  - "TestIndexRebuildsFromJSONL"
+  - "TestSchemaVersionTriggersRebuild"
 scenarios: []
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-22)"
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-22); RF-207/208 (paquete 2026-07-24-indice-sqlite-watcher-fase5)"
 ---
 
-# Reconstrucción del índice (seed)
+# Reconstrucción del índice (ArnesRegistry)
 
 Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+
+**Fase 5 (2026-07-24, RF-207/208):** `Rebuild()` dejó de ser un alias de `seed()` (dato demo
+hardcodeado) — ahora reconstruye de verdad iterando `ports.ArnesRegistry.List()` →
+`loader.LoadArnes(path)` → `Upsert`, dentro de una única transacción que primero vacía la tabla
+(ningún dato demo/seed sobrevive a un `Rebuild()`). Un árbol roto se indexa `Degradado:true`, nunca
+desaparece en silencio. `New()` además detecta un `schema_meta.version` que no coincide y borra el
+`.db` entero antes de recrearlo (nunca migra una fila) — ver
+`docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md` v1.3. `status` sube de `parcial`
+a `vivo`: ya no hay gap entre lo que el nombre de la capability promete y lo que el código hace. La
+entrada `~/.claude` de `valida:` (placeholder heredado, no un nombre de test Go) se retira.

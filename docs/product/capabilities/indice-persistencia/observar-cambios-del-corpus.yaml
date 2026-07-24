@@ -5,20 +5,34 @@ capability_id: arnesia.indice-persistencia.observar-cambios-del-corpus
 cap_num: CAP-23
 slug: observar-cambios-del-corpus
 name: "Observar cambios del corpus (watcher)"
-status: stub          # GENERADO (R4) — no teclear
+status: parcial          # GENERADO (R4) — no teclear
 module: indice-persistencia
 verb: observar
 pointers:
-  - "internal/adapters/watch/watcher.go#Watch"
-valida: []
+  - "internal/adapters/watch/watcher.go#Watcher"
+  - "internal/adapters/watch/watcher.go#New"
+  - "internal/adapters/watch/watcher.go#Watcher.Watch"
+valida:
+  - "TestWatchEmitsEventUnderRegisteredPath"
+  - "TestWatchObservesNestedSubdirCreatedAfterStart"
+  - "TestWatchIgnoresUnregisteredTree"
+  - "TestWatchClosesWhenContextDone"
 scenarios: []
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-23)"
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-23); RF-210 (paquete 2026-07-24-indice-sqlite-watcher-fase5)"
 ---
 
 # Observar cambios del corpus (watcher)
 
 Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+
+**Fase 5 (2026-07-24, RF-210):** el watcher dejó de ser un stub de 27 líneas cuyo channel jamás
+emitía — ahora es `fsnotify` real, observando (recursivamente) el working-dir de cada entrada de
+`ports.ArnesRegistry` conocida al arrancar `Watch(ctx)`. Un evento dispara reindex incremental de
+SOLO el arnés dueño del path (reusa `usecase.NewTurnReindexer`), nunca un `Rebuild()` completo por
+evento. `status` sube de `stub` a `parcial`, no `vivo`: queda un gap honesto — un arnés registrado
+DESPUÉS de que el daemon ya arrancó no se suma al watch-set en caliente (documentado explícito en
+`PARIDAD.md` del paquete, no silenciado).

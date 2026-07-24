@@ -100,6 +100,7 @@ func runServe(args []string) error {
 	sessionsPath := fs.String("sessions", "", "session registry file (default ~/.arnesia/sessions.json)")
 	arnesesPath := fs.String("arneses", "", "arnés→path registry file (default ~/.arnesia/arneses.json)")
 	arnesRoot := fs.String("arnes-root", "", "root for unregistered-arnés fallback dirs (default ~/.arnesia/arneses)")
+	indexPath := fs.String("index", "", "índice SQLite del Mapa (default ~/.arnesia/index.db)")
 	maxTurns := fs.Int("max-turns", 40, "cap on the agent loop per turn (--max-turns); 0 disables the cap")
 	repairCap := fs.Int("repair-cap", 3, "iteraciones máximas de reparación de una caja T3 (BoxConductor)")
 	rotUmbral := fs.Int("rotacion-umbral", 40, "% de contexto que dispara la rotación invisible de la sesión (RF-195); 0 la apaga")
@@ -114,22 +115,38 @@ func runServe(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Arnés→path registry: resolves each session's cwd so a conductor is confined to its
+	// arnés's tree, never a shared global cwd (boundary permisos-gui `sesion-aislada-por-cwd`).
+	// Se construye ANTES del índice: Rebuild (abajo) reconstruye desde ella (RF-207).
+	arnesReg, err := store.NewArnesRegistry(*arnesesPath, *arnesRoot)
+	if err != nil {
+		return fmt.Errorf("arnes registry: %w", err)
+	}
+
 	// Outbound adapters (concrete — wired only here, the composition root).
-	idx := index.New()
-	if err := idx.Rebuild(ctx); err != nil {
+	idx, err := index.New(*indexPath, arnesReg, loader.LoadArnes)
+	if err != nil {
+		return fmt.Errorf("index: %w", err)
+	}
+	defer func() { _ = idx.Close() }()
+	// Rebuild reconstruye TODO el índice desde arnesReg (RF-207) — reemplaza el loop
+	// que antes vivía acá suelto; el directorio de cada arnés registrado es la verdad,
+	// el índice es desechable.
+	if err = idx.Rebuild(ctx); err != nil {
 		return fmt.Errorf("index rebuild: %w", err)
 	}
 	// loadArnesDir: la vía viva del loader real (HS-11) — un directorio registrado se
 	// reconoce archivo-por-archivo (nomenclatura v1) y entra al índice. Falla honesto
-	// (el registro queda; el índice no inventa).
+	// (el registro queda; el índice no inventa). Usada por PUT /api/arneses/{id} (el
+	// botón "Cargar" del FE), no por el boot (eso ya lo hace Rebuild arriba).
 	loadArnesDir := func(id, path string) error {
-		g, err := loader.LoadArnes(path)
-		if err != nil {
-			return fmt.Errorf("cargar arnés %s desde %s: %w", id, path, err)
+		g, lerr := loader.LoadArnes(path)
+		if lerr != nil {
+			return fmt.Errorf("cargar arnés %s desde %s: %w", id, path, lerr)
 		}
-		// `id` es la llave que el caller ya eligió (PUT /api/arneses/{id}, o el re-load al
-		// boot desde arnesReg.List()) — se indexa bajo ESA, jamás re-derivada del propio
-		// g.Arnes.ID del grafo cargado (deuda BACKLOG «re-key (home,id,scope)», 2026-07-23).
+		// `id` es la llave que el caller ya eligió (PUT /api/arneses/{id}) — se indexa
+		// bajo ESA, jamás re-derivada del propio g.Arnes.ID del grafo cargado (deuda
+		// BACKLOG «re-key (home,id,scope)», 2026-07-23).
 		return idx.Upsert(ctx, id, g)
 	}
 	agent := claudecode.New(resolveClaudeBin(*claudeBin)) // the Dock conductor.
@@ -139,21 +156,9 @@ func runServe(args []string) error {
 		return fmt.Errorf("session store: %w", err)
 	}
 
-	// Arnés→path registry: resolves each session's cwd so a conductor is confined to its
-	// arnés's tree, never a shared global cwd (boundary permisos-gui `sesion-aislada-por-cwd`).
-	arnesReg, err := store.NewArnesRegistry(*arnesesPath, *arnesRoot)
-	if err != nil {
-		return fmt.Errorf("arnes registry: %w", err)
-	}
-	// Al boot, los arneses ya registrados se re-cargan del disco al índice (el índice
-	// es desechable; el directorio es la verdad).
-	for _, ap := range arnesReg.List() {
-		if lerr := loadArnesDir(ap.Arnes, ap.Path); lerr != nil {
-			slog.Warn("boot: arnés registrado no indexable aún", "arnes", ap.Arnes, "err", lerr)
-		}
-	}
-
-	watcher := watch.New()
+	// Watcher fsnotify (RF-210): observa el mismo árbol que Rebuild leyó — arnesReg —
+	// para disparar reindex incremental cuando algo cambia en caliente.
+	watcher := watch.New(arnesReg)
 	events, err := watcher.Watch(ctx)
 	if err != nil {
 		return fmt.Errorf("watch: %w", err)
@@ -297,10 +302,18 @@ func runServe(args []string) error {
 
 	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
 
-	// Filesystem changes drive incremental reindex + a map delta on the SSE bus.
+	// Filesystem changes drive incremental reindex + a map delta on the SSE bus
+	// (RF-210, decisiones.md D5): SOLO el arnés dueño del path que cambió se recarga —
+	// nunca idx.Rebuild(ctx) completo por evento, que recargaría TODOS los arneses
+	// registrados por cada archivo tocado de uno solo. Reusa turnReindex (mismo patrón
+	// que session_reindex.go ya prueba en producción para el chat).
 	go func() {
-		for range events {
-			// TODO(fase 5): idx.Rebuild(ctx) then broker.Publish(sse.EventMap, delta).
+		for ev := range events {
+			ap, ok := ownerOf(arnesReg, ev.Path)
+			if !ok {
+				continue // evento huérfano: no cae bajo ningún arnés registrado.
+			}
+			turnReindex(ctx, ap.Arnes, ap.Path)
 		}
 	}()
 
@@ -341,6 +354,19 @@ func (p brokerPublisher) Publish(eventType string, data []byte) { p.b.Publish(ev
 type arnesLoaderFunc func(dir string) (domain.Graph, error)
 
 func (f arnesLoaderFunc) Load(dir string) (domain.Graph, error) { return f(dir) }
+
+// ownerOf resuelve qué entrada de reg es dueña de path (RF-210): la entrada cuyo Path
+// ES path, o del cual path cuelga (prefijo + separador, para no confundir
+// "/a/arnes-2" con "/a/arnes"). Un path que no cae bajo ningún arnés registrado
+// devuelve ok=false — el caller lo ignora, nunca reindexa a ciegas.
+func ownerOf(reg ports.ArnesRegistry, path string) (ports.ArnesPath, bool) {
+	for _, ap := range reg.List() {
+		if ap.Path == path || strings.HasPrefix(path, ap.Path+string(filepath.Separator)) {
+			return ap, true
+		}
+	}
+	return ports.ArnesPath{}, false
+}
 
 // embeddedUI returns the SPA handler when this build carries web/dist (scripts/
 // bundle.sh la compila antes del daemon), or nil for an honest dev build without UI.
@@ -410,7 +436,10 @@ func runOpen(_ []string) error {
 
 // runIndex loads an arnés DIRECTORY into its graph.l0 via the nomenclatura loader
 // (HS-11, puente 1: archivo-por-archivo → grafo, nomenclatura-arnes.md v1) and emits
-// the graph. Sin argumento, re-seedea el índice in-memory (comportamiento previo).
+// the graph. Sin argumento, es un smoke test: abre un índice SQLite descartable en un
+// dir temporal y confirma que los grafos demo/dogfood embebidos decodifican — NO llama
+// Rebuild (eso ahora reconstruye desde ArnesRegistry, RF-207; este subcomando no tiene
+// uno que ofrecer, así que Rebuild solo vaciaría el índice de vuelta).
 func runIndex(args []string) error {
 	fs := flag.NewFlagSet("index", flag.ExitOnError)
 	out := fs.String("o", "", "write the graph.l0 JSON to this file (default: stdout)")
@@ -420,7 +449,8 @@ func runIndex(args []string) error {
   <dir>   raíz de un arnés (plugin CC con .claude-plugin/, o proyecto con .claude/):
           se reconoce archivo-por-archivo según docs/architecture/contracts/nomenclatura-arnes.md
           y se emite su graph.l0 (fuente_path ESTAMPADOS; no-reconocido VISIBLE).
-  sin dir: re-seedea el índice in-memory embebido (fixtures dogfood).
+  sin dir: smoke test — confirma que los grafos demo/dogfood embebidos decodifican
+           contra un índice SQLite descartable (no persiste, no toca ~/.arnesia).
 `)
 	}
 	if err := fs.Parse(args); err != nil {
@@ -428,11 +458,17 @@ func runIndex(args []string) error {
 	}
 	dir := fs.Arg(0)
 	if dir == "" {
-		idx := index.New()
-		if err := idx.Rebuild(context.Background()); err != nil {
-			return err
+		tmp, terr := os.MkdirTemp("", "arnesia-index-smoke-")
+		if terr != nil {
+			return terr
 		}
-		fmt.Println("arnesia index: rebuilt (in-memory; el índice SQLite llega con el indexer JSONL)")
+		defer func() { _ = os.RemoveAll(tmp) }()
+		idx, ierr := index.New(filepath.Join(tmp, "index.db"), nil, nil)
+		if ierr != nil {
+			return ierr
+		}
+		defer func() { _ = idx.Close() }()
+		fmt.Println("arnesia index: seed demo/dogfood decodifica OK (SQLite descartable, no persiste)")
 		return nil
 	}
 

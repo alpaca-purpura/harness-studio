@@ -10,7 +10,8 @@ import (
 )
 
 // MapService assembles the agnostic graph that the Map (S2) renders. It reads through
-// the index port; the JSONL corpus remains the source of truth.
+// the index port; the arnés tree on disk (via ports.ArnesRegistry) remains the source
+// of truth, not ~/.claude conversation JSONL — see ports.IndexPort.
 type MapService struct {
 	index ports.IndexPort
 }
@@ -41,7 +42,9 @@ func (s *MapService) Node(ctx context.Context, harnessID, nodeID string) (domain
 	return b, ok, nil
 }
 
-// Rebuild reconstructs the disposable index from the JSONL corpus.
+// Rebuild reconstructs the disposable index from the known arnés tree (ArnesRegistry;
+// decisiones.md D6, paquete 2026-07-24-indice-sqlite-watcher-fase5 — NOT the Portafolio,
+// whose N:M:M model has no unambiguous single path per entry to pick automatically).
 func (s *MapService) Rebuild(ctx context.Context) error {
 	return s.index.Rebuild(ctx)
 }

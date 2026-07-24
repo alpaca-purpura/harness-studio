@@ -32,7 +32,11 @@ func (r resolverFijo) Resolve(arnesID string) (string, bool, error) {
 // taxonomy: a node with a relative fuente_path, one without, and one that escapes.
 func arnesConFuente(t *testing.T, id, dir string) *index.Store {
 	t.Helper()
-	idx := index.New()
+	idx, err := index.New(filepath.Join(t.TempDir(), "index.db"), nil, nil)
+	if err != nil {
+		t.Fatalf("index.New: %v", err)
+	}
+	t.Cleanup(func() { _ = idx.Close() })
 	g := domain.Graph{
 		Arnes: &domain.Arnes{ID: id, ReportaA: nil},
 		Nodes: []domain.Box{

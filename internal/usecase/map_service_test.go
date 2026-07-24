@@ -2,16 +2,30 @@ package usecase_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
+// newTestIndex opens a disposable SQLite index (Store) for these usecase-level tests:
+// no ArnesRegistry/loader wired since none call Rebuild — they exercise Query/List
+// straight off the seeded demo/dogfood graphs, same as index.New always provides.
+func newTestIndex(t *testing.T) *index.Store {
+	t.Helper()
+	idx, err := index.New(filepath.Join(t.TempDir(), "index.db"), nil, nil)
+	if err != nil {
+		t.Fatalf("index.New: %v", err)
+	}
+	t.Cleanup(func() { _ = idx.Close() })
+	return idx
+}
+
 // TestMapServiceNode covers the inspector read (S3, RF-71): a found node carries its fused
 // contract; a missing node of a known harness is (false, nil); an unknown harness is an error.
 func TestMapServiceNode(t *testing.T) {
-	svc := usecase.NewMapService(index.New())
+	svc := usecase.NewMapService(newTestIndex(t))
 	ctx := context.Background()
 
 	box, ok, err := svc.Node(ctx, "dev-full-cycle", "spec-writer")
@@ -35,7 +49,7 @@ func TestMapServiceNode(t *testing.T) {
 
 // TestMapServiceHarnesses covers the portfolio read (S1, RF-72).
 func TestMapServiceHarnesses(t *testing.T) {
-	gs, err := usecase.NewMapService(index.New()).Harnesses(context.Background())
+	gs, err := usecase.NewMapService(newTestIndex(t)).Harnesses(context.Background())
 	if err != nil {
 		t.Fatalf("Harnesses() = %v", err)
 	}

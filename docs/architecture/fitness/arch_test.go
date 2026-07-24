@@ -16,6 +16,7 @@ package fitness
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -37,12 +39,15 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
+	"github.com/alpacapurpura/arnesia/internal/adapters/index"
+	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 	"github.com/google/jsonschema-go/jsonschema"
+	_ "modernc.org/sqlite" // driver "sqlite", solo para el .db crudo de TestSchemaVersionTriggersRebuild
 )
 
 // repoRoot walks up from the test's cwd until it finds a go.mod (the future module root).
@@ -341,12 +346,139 @@ func TestLiveEventsFromStreamJSON(t *testing.T) {
 
 // --- indice-desechable-jsonl-es-verdad.md (comportamiento) ---
 
-func TestIndexRebuildsFromJSONL(t *testing.T) {
-	t.Skip("TODO(fase 5): borrar el .db y re-indexar produce el mismo estado consultable (índice desechable).")
+// regDogfood is a minimal ports.ArnesRegistry fake pointing at the fábrica's own real
+// dogfood arnés on disk (dogfood/dev-full-cycle) — these boundary-level tests exercise
+// the REAL production chain (index.New + loader.LoadArnes) over real fixture data, not
+// a synthetic stub; the exhaustive Rebuild scenario coverage with fakes lives next to
+// the code in internal/adapters/index/store_test.go.
+type regDogfood []ports.ArnesPath
+
+func (r regDogfood) Resolve(string) (string, bool, error) {
+	return "", false, errors.New("regDogfood: Resolve no implementado")
 }
 
+func (r regDogfood) Register(string, string) error {
+	return errors.New("regDogfood: Register no implementado")
+}
+
+func (r regDogfood) List() []ports.ArnesPath { return r }
+
+// TestIndexRebuildsFromJSONL enforces index-reconstruible (RF-207/RF-211): deleting the
+// .db file entirely and re-indexing from ArnesRegistry reproduces the exact same
+// queryable state — the index is a disposable projection, never a second original.
+func TestIndexRebuildsFromJSONL(t *testing.T) {
+	root := repoRoot()
+	if root == "" {
+		return
+	}
+	reg := regDogfood{{Arnes: "dev-full-cycle", Path: filepath.Join(root, "dogfood", "dev-full-cycle")}}
+	dbPath := filepath.Join(t.TempDir(), "index.db")
+
+	idx, err := index.New(dbPath, reg, loader.LoadArnes)
+	if err != nil {
+		t.Fatalf("index.New: %v", err)
+	}
+	if err = idx.Rebuild(context.Background()); err != nil {
+		t.Fatalf("Rebuild: %v", err)
+	}
+	before, err := idx.Query(context.Background(), "dev-full-cycle")
+	if err != nil {
+		t.Fatalf("Query antes de borrar el .db: %v", err)
+	}
+	if err = idx.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// El corazón del check: borrar el .db entero (no un truncate, no una migración) y
+	// re-indexar desde la fuente reproduce el MISMO estado consultable.
+	if err = os.Remove(dbPath); err != nil {
+		t.Fatalf("borrar .db: %v", err)
+	}
+	idx2, err := index.New(dbPath, reg, loader.LoadArnes)
+	if err != nil {
+		t.Fatalf("index.New tras borrar el .db: %v", err)
+	}
+	defer func() { _ = idx2.Close() }()
+	if err = idx2.Rebuild(context.Background()); err != nil {
+		t.Fatalf("Rebuild tras borrar el .db: %v", err)
+	}
+	after, err := idx2.Query(context.Background(), "dev-full-cycle")
+	if err != nil {
+		t.Fatalf("Query tras re-indexar: %v", err)
+	}
+	if !reflect.DeepEqual(before, after) {
+		t.Errorf("el estado consultable cambió tras borrar+re-indexar el .db:\n antes:   %+v\n después: %+v", before, after)
+	}
+}
+
+// TestSchemaVersionTriggersRebuild enforces sin-migracion-incremental (RF-208): a .db
+// whose schema_meta.version disagrees with the binary's is discarded WHOLE (no ALTER
+// TABLE, no row migration) and recreated fresh — proven against the real production
+// chain, same as TestIndexRebuildsFromJSONL above.
 func TestSchemaVersionTriggersRebuild(t *testing.T) {
-	t.Skip("TODO(fase 5): mismatch de schema_version borra y reconstruye; no hay migración incremental.")
+	root := repoRoot()
+	if root == "" {
+		return
+	}
+	dbPath := filepath.Join(t.TempDir(), "index.db")
+
+	// Simula un .db "viejo": schema_meta con una versión que el binario actual ya no
+	// reconoce, más una fila fantasma que NO debe sobrevivir (nunca se migra una fila).
+	raw, err := sql.Open("sqlite", "file:"+dbPath)
+	if err != nil {
+		t.Fatalf("abrir .db crudo: %v", err)
+	}
+	for _, stmt := range []string{
+		`CREATE TABLE IF NOT EXISTS schema_meta (version INTEGER NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS graphs (clave TEXT PRIMARY KEY, graph_json TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+		`INSERT INTO schema_meta (version) VALUES (-1)`, // -1: nunca es una schema_version real del binario.
+		`INSERT INTO graphs (clave, graph_json, updated_at) VALUES ('fantasma', '{"arnes":{"id":"fantasma"}}', 'x')`,
+	} {
+		if _, eerr := raw.ExecContext(context.Background(), stmt); eerr != nil {
+			t.Fatalf("seed .db viejo (%s): %v", stmt, eerr)
+		}
+	}
+	if cerr := raw.Close(); cerr != nil {
+		t.Fatalf("close raw: %v", cerr)
+	}
+
+	reg := regDogfood{{Arnes: "dev-full-cycle", Path: filepath.Join(root, "dogfood", "dev-full-cycle")}}
+	idx, err := index.New(dbPath, reg, loader.LoadArnes)
+	if err != nil {
+		t.Fatalf("index.New sobre .db con schema_version vieja: %v", err)
+	}
+	defer func() { _ = idx.Close() }()
+
+	if _, qerr := idx.Query(context.Background(), "fantasma"); !errors.Is(qerr, index.ErrNotFound) {
+		t.Errorf("Query(fantasma) tras el mismatch = %v, want ErrNotFound (nunca migra, borra entero)", qerr)
+	}
+	if rerr := idx.Rebuild(context.Background()); rerr != nil {
+		t.Fatalf("Rebuild sobre el .db recreado: %v", rerr)
+	}
+	if _, qerr := idx.Query(context.Background(), "dev-full-cycle"); qerr != nil {
+		t.Errorf("Query(dev-full-cycle) tras Rebuild post-wipe = %v, want nil", qerr)
+	}
+}
+
+// TestWriterSerializedSingleConn enforces writer-serializado (RF-209): el handle de
+// escritura configura SetMaxOpenConns(1) + WAL + busy_timeout=5000 — chequeo
+// estructural; la prueba COMPORTAMENTAL (Upserts concurrentes que nunca devuelven
+// SQLITE_BUSY) vive junto al código en
+// internal/adapters/index/store_test.go:TestWriterSerializedConcurrentUpsertsSucceed.
+func TestWriterSerializedSingleConn(t *testing.T) {
+	src := readSourceFile(t, filepath.Join("internal", "adapters", "index", "store.go"))
+	if src == "" {
+		return
+	}
+	for _, must := range []string{
+		"writer.SetMaxOpenConns(1)",
+		"journal_mode(WAL)",
+		"busy_timeout(5000)",
+	} {
+		if !strings.Contains(src, must) {
+			t.Errorf("internal/adapters/index/store.go no configura %q — writer sin serializar (RF-209)", must)
+		}
+	}
 }
 
 // --- permisos-gui-human-in-the-loop.md ---
