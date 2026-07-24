@@ -112,10 +112,12 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
-- [HS-26/chat-dock-ux] **llevar el chat legible al escritorio**: la app instalada sigue con el
-  binario pre-HS-26 — corresponde `make installer` (versiona en `instaladores/`, nunca pisa) +
-  self-update. Opcionales si el operador los pide: segundos en la tarjeta de actividad ·
-  parseo por-tool del guardrail paquete-cerrado (hoy substring blunt adrede) · `deuda`
+- [HS-26/chat-dock-ux] **llevar el chat legible al escritorio**: `make installer` corrido
+  2026-07-23 → v0.2.16 en `instaladores/v0.2.16/` (deb/rpm/AppImage) con HS-26+historial B2
+  embebidos. Falta: commitear el bump de versión (Cargo.toml/tauri.conf.json/package.json,
+  queda en el working tree adrede) + instalar el `.deb` sobre el binario viejo corriendo.
+  Opcionales si el operador los pide: segundos en la tarjeta de actividad · parseo por-tool
+  del guardrail paquete-cerrado (hoy substring blunt adrede) · `deuda`
 - [Slice1-FE] **re-key del índice in-memory a `(home,id,scope)` calificado SIGUE abierta** (S0-D6/GAP-2):
   Slice 1 la ACOTÓ visible (colisión de bare-id detectada por `idsColisionados` + confirmación explícita
   antes de observar, S1-D2) pero NO la resolvió — el re-key global (index + MapService + endpoints +
@@ -124,8 +126,11 @@
   `marketplace` — quedaron disabled+tooltip (S1-D8), sin slice asignado; diferidas si alguien las
   pide · `deuda`
 - [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`
-- [HS-11/chat] spike `control_response` vs claude real (confirmar en papel/e2e) · `deuda`
-- [HS-11] run async del `/boxes/{id}/run` + gate post-run · `deuda`
+- [HS-11] **run async del `/boxes/{id}/run` + gate post-run** — diseño decidido (2026-07-23,
+  conversación operador): 202+run-id inmediato, progreso YA viaja por `/events` (`event: run`,
+  existe hoy) + `GET /runs/{id}` para el desenlace final (cero infra nueva); el gate post-run
+  reusa la tarjeta de permiso/gate del chat (CAP-70/71), no un mecanismo propio. Falta armar el
+  paquete de trabajo (mockup→spec→PARIDAD) para implementarlo · `deuda`
 - [HS-11] 3 boundaries de research → materializar en `arch/` · `deuda`
 - [chat] fase presentación: assistant-ui + CodeMirror merge + widgets ricos (decisión #5) · `deuda`
 - [HS-09] 212 checks `deferred` → correr en CI (hoy solo la ruta `--arnes`) · `deuda`

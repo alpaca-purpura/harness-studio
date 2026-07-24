@@ -6,10 +6,10 @@
 > el operador — todavía NO es una decisión tomada, es el punto de partida de la próxima
 > conversación.
 
-## PENDIENTE-01 · Reconciliación proyecto-cargado ↔ marketplace de origen — ABIERTA (2026-07-23)
+## PENDIENTE-01 · Reconciliación proyecto-cargado ↔ marketplace de origen — FIRMADA (2026-07-23)
 
-**Estado: PENDIENTE-RESOLVER.** Nota textual del operador, a retomar en conversación nueva ANTES
-de arrancar el mockup del paquete.
+**Estado: FIRMADA.** Resuelta en conversación nueva (Sonnet 5 propuso, operador confirmó las 4
+sub-preguntas sin ajustes). Ya puede arrancar el mockup del paquete.
 
 Cuando se agrega un **proyecto** a ArnesIA (no un arnés suelto — una carpeta con Claude Code
 instalado), hay que resolver cómo se accionan los arneses que ya están instalados ahí dentro:
@@ -35,13 +35,23 @@ instalado), hay que resolver cómo se accionan los arneses que ya están instala
 entidad propia dentro de ArnesIA — necesita su propia conversación de diseño antes de tocar el
 mockup de este paquete, no una resolución apurada en el medio de otra cosa.
 
-**Sub-preguntas que la próxima conversación tiene que cerrar** (según quedaron planteadas, sin
-resolver todavía):
-1. ¿Dónde vive el registro de "marketplaces mapeados" dentro de ArnesIA — extiende el modelo de
-   Portafolio (Slice 0) o es una entidad nueva?
-2. Mecanismo de matching arnés-instalado ↔ marketplace: ¿por manifiesto (`plugin.json`/`id`), por
-   hash (`deriva`), o ambos?
-3. Caso "sin match": ¿el operador elige el marketplace destino manualmente siempre, o hay
-   sugerencia automática?
-4. El flujo de "reparar sin pasar código" — ¿es una extensión del outcome 5 (Reparar + Backport)
-   ya en `BACKLOG.md`, o es un flujo nuevo?
+**Las 4 sub-preguntas, resueltas:**
+
+1. **Dónde vive el registro** — extiende Portafolio/Slice 0: nueva lista `marketplaces_conocidos`
+   en el store del Portafolio (junto a `portafolio.json`). NO entidad top-level nueva. `Registries[]`
+   (S0-D3) ya modela el lado "detectado por provenance"; esto agrega el lado "operador" (marketplaces
+   que ArnesIA conoce/administra explícitamente).
+2. **Matching** — ambos, en orden: manifiesto (`(home,id)` de `plugin.json`) primero (barato,
+   determinista); si no hay `home`, cae a comparar `deriva` (hash) contra `home/plugins/<id>/<v>/`
+   de los marketplaces conocidos. Reusa el mecanismo collect-all ya construido (S0-D14:
+   lock>git-plugin>manifiesto) — no inventa uno nuevo.
+3. **Sin match** — manual con sugerencia: se listan marketplaces conocidos ordenados por señales
+   blandas (nombre/autor de `plugin.json`), el operador SIEMPRE confirma el destino explícitamente
+   — mismo principio anti-drift que el resto del Portafolio (nunca auto-decide, ver S1-D2 colisión
+   bare-id).
+4. **Flujo "reparar sin pasar código"** — extiende el outcome 5 (Reparar + Backport) ya en
+   `BACKLOG.md`, no un 6to outcome. Este PENDIENTE-01 es lo que le faltaba al item 2 (Agregar) para
+   que el item 5 (Reparar) tenga con qué reconciliar — cierra ese bloqueo.
+
+**Próximo paso:** arrancar el mockup (punto 1 del flujo del paquete, `INDEX.md`) con este modelo
+como insumo.

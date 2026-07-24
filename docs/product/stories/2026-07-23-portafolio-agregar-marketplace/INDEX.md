@@ -20,7 +20,8 @@
 ## Estado
 
 - [ ] Mockup — no arrancado.
-- [x] `decisiones.md` abierto con la primera nota del operador (pendiente de resolver, NO firmada).
+- [x] `decisiones.md` — PENDIENTE-01 **FIRMADA** (2026-07-23): registro extiende Portafolio ·
+  matching manifiesto+hash · sin-match manual con sugerencia · extiende outcome 5.
 - [ ] `spec.md` / `design.md` — no arrancados.
 - [ ] Implementación — no arrancada (código NO se toca hasta specs firmados).
 - [ ] `PARIDAD.md` — no arrancado.
@@ -29,13 +30,11 @@
 
 > Se actualiza al cierre de cada turno de trabajo (METODOLOGIA §10).
 
-- **2026-07-23 — paquete creado, sin resolver nada todavía.** El operador dejó UNA nota abierta
-  en `decisiones.md` (entrada «PENDIENTE-01») para retomarla en una conversación nueva, antes de
-  tocar mockup: cómo ArnesIA reconcilia un arnés YA instalado dentro de un **proyecto** cargado
-  (no un arnés suelto) contra su origen real de marketplace — matching, versión/desactualización,
-  y el caso sin match (crear slot de mapeo a un marketplace elegido por el operador). Esto
-  encadena con el objetivo de «reparar» sin pasar código a mano: el operador solo entrega
-  acceso a plugin+marketplace y el usuario final instala/repara solo.
-- **Próximo paso concreto:** abrir esa conversación, resolver PENDIENTE-01 (puede tocar el
-  modelo de datos de Slice 0/`domain.Arnes` — evaluar si es scope de ESTE paquete o si destapa
-  deuda propia de Portafolio), recién después arrancar el mockup del punto 1 del flujo.
+- **2026-07-23 — PENDIENTE-01 resuelta, desbloqueado el mockup.** Las 4 sub-preguntas (dónde vive
+  el registro de marketplaces · mecanismo de matching · caso sin-match · relación con outcome 5)
+  quedaron firmadas en `decisiones.md`. Modelo: registro extiende Portafolio/Slice 0 (lista
+  `marketplaces_conocidos`, no entidad nueva) · matching manifiesto-primero+hash-fallback (reusa
+  S0-D14) · sin-match siempre confirma el operador (anti-drift) · el flujo de reparar-sin-código
+  extiende el outcome 5 ya en `BACKLOG.md`, no es un outcome nuevo.
+- **Próximo paso concreto:** arrancar el mockup (punto 1 del flujo) forkeando el wizard de
+  Slice 1 (`portafolio-wizard.stories.tsx`), rama «Marketplace», con este modelo como insumo.
