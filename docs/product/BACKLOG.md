@@ -127,8 +127,11 @@
 - [HS-11] **FE del botón «Correr» de una caja** — el backend YA es async con gate post-run
   (`POST .../boxes/{id}/run` → 202+run_id · `GET .../runs/{runId}` · construido 2026-07-23);
   `inspector.tsx` («Corridas donde actuó») solo tiene prosa «al implementar…», sin botón, sin
-  fetch, sin spinner. Falta el paquete de trabajo FE (mockup→spec→PARIDAD) — pollear
-  `GET .../runs/{runId}` o escuchar `event: run` en `/events` · `deuda`
+  fetch, sin spinner. **Paquete completo abierto y PAUSADO 2026-07-23** (mockup publicado +
+  decisiones D1-D4 firmes: mecanismo SSE `event: run` no polling, error 409 inline sin toast) —
+  el operador pidió la explicación funcional del botón antes de firmar el mockup, se le dio
+  (grounded en vision.md A1-A3 + `run_service.go` T3 real), y eligió pausar sin rechazar ni
+  pedir cambios → [`stories/2026-07-23-boton-correr-caja/INDEX.md`](stories/2026-07-23-boton-correr-caja/INDEX.md) · `deuda`
 - [doctrina-una-fuente-dos-targets] `kit/doctrine.md` es prosa mantenida a mano, sin drift-check
   contra `docs/architecture/knowledge/`/METODOLOGIA — construir el freshness-check (candidato:
   verificar que las secciones citadas por número siguen existiendo en esa forma) · `deuda`
