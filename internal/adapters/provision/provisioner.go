@@ -95,16 +95,16 @@ func (p *Provisioner) ProvisionSession(ctx context.Context, sessionID, extra str
 		return inj, err
 	}
 	dir := filepath.Join(p.baseDir, "sessions", sessionID)
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return ports.Injection{}, fmt.Errorf("provision session %s: %w", sessionID, err)
+	if mkdirErr := os.MkdirAll(dir, 0o750); mkdirErr != nil {
+		return ports.Injection{}, fmt.Errorf("provision session %s: %w", sessionID, mkdirErr)
 	}
-	doctrine, err := os.ReadFile(inj.SystemPromptFile) //nolint:gosec // G304: ruta propia bajo ~/.arnesia.
+	doctrine, err := os.ReadFile(inj.SystemPromptFile)
 	if err != nil {
 		return ports.Injection{}, fmt.Errorf("provision session %s: doctrina base: %w", sessionID, err)
 	}
 	ruta := filepath.Join(dir, "system.md")
 	contenido := append(append([]byte{}, doctrine...), []byte("\n\n---\n\n"+extra+"\n")...)
-	if err := os.WriteFile(ruta, contenido, 0o600); err != nil {
+	if err := os.WriteFile(ruta, contenido, 0o600); err != nil { //nolint:gosec // G703: sessionID es newID() (hex de 4 bytes random, session_service.go), nunca input de cliente; ruta propia bajo ~/.arnesia.
 		return ports.Injection{}, fmt.Errorf("provision session %s: system.md: %w", sessionID, err)
 	}
 	inj.SystemPromptFile = ruta

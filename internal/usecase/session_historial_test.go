@@ -48,8 +48,8 @@ func TestCloseArchivaMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.Turn(s.ID, "hola"); err != nil {
-		t.Fatal(err)
+	if turnErr := svc.Turn(s.ID, "hola"); turnErr != nil {
+		t.Fatal(turnErr)
 	}
 	agent.sessions[0].events <- ports.AgentEvent{Kind: ports.EventInit, ClaudeSessionID: "cc-vivo"}
 	agent.sessions[0].events <- ports.AgentEvent{Kind: ports.EventResult, Text: "listo", CtxPct: 5}
@@ -58,8 +58,8 @@ func TestCloseArchivaMetadata(t *testing.T) {
 		return m.Status == domain.StatusIdle && m.ClaudeSessionID == "cc-vivo"
 	})
 
-	if err := svc.Close(s.ID); err != nil {
-		t.Fatal(err)
+	if closeErr := svc.Close(s.ID); closeErr != nil {
+		t.Fatal(closeErr)
 	}
 	lista, err := svc.Cerradas(context.Background(), "vitalia")
 	if err != nil || len(lista) != 1 {

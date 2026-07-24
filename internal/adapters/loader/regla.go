@@ -57,12 +57,16 @@ func reconocerRegla(dir string) (domain.Box, bool, error) {
 // se modela en v1 — el nodo existe igual; la carga condicional es semántica de runtime.
 func reconocerReglasDir(elementos string) ([]domain.Box, error) {
 	dirReglas := filepath.Join(elementos, "rules")
-	if fi, err := os.Stat(dirReglas); err != nil || !fi.IsDir() {
+	fi, err := os.Stat(dirReglas)
+	if errors.Is(err, os.ErrNotExist) || (err == nil && !fi.IsDir()) {
 		return nil, nil // un arnés sin rules/ es legal — cero nodos, cero drama.
+	}
+	if err != nil {
+		return nil, fmt.Errorf("stat %s: %w", dirReglas, err)
 	}
 
 	var nodos []domain.Box
-	err := filepath.WalkDir(dirReglas, func(ruta string, d os.DirEntry, werr error) error {
+	err = filepath.WalkDir(dirReglas, func(ruta string, d os.DirEntry, werr error) error {
 		if werr != nil {
 			return werr
 		}

@@ -97,7 +97,7 @@ func TestProvisionSessionEscribeTarjeta(t *testing.T) {
 	if inj.SystemPromptFile != want {
 		t.Fatalf("SystemPromptFile = %q, quiero %q", inj.SystemPromptFile, want)
 	}
-	b, err := os.ReadFile(want)
+	b, err := os.ReadFile(want) //nolint:gosec // G304: ruta de fixture del test (t.TempDir()), no input externo.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestProvisionSessionEscribeTarjeta(t *testing.T) {
 	if !strings.Contains(contenido, "arnés: vitalia") {
 		t.Error("la tarjeta no quedó en el system.md por sesión")
 	}
-	base2, err := os.ReadFile(filepath.Join(base, "doctrine.md"))
+	base2, err := os.ReadFile(filepath.Join(base, "doctrine.md")) //nolint:gosec // G304: ruta de fixture del test.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,10 +114,10 @@ func TestProvisionSessionEscribeTarjeta(t *testing.T) {
 	}
 
 	// Re-provisión con tarjeta nueva pisa el archivo (estado actual, no el del turno 1).
-	if _, err := p.ProvisionSession(context.Background(), "s123", "tarjeta-v2"); err != nil {
-		t.Fatal(err)
+	if _, provisionErr := p.ProvisionSession(context.Background(), "s123", "tarjeta-v2"); provisionErr != nil {
+		t.Fatal(provisionErr)
 	}
-	b, _ = os.ReadFile(want)
+	b, _ = os.ReadFile(want) //nolint:gosec // G304: ruta de fixture del test.
 	if !strings.Contains(string(b), "tarjeta-v2") {
 		t.Error("re-provisión no actualizó la tarjeta")
 	}

@@ -51,7 +51,7 @@ func TestCreateSessionIndexaAlRegistrar(t *testing.T) {
 		return nil
 	})
 
-	req := httptest.NewRequest(http.MethodPost, "/api/sessions",
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/api/sessions",
 		strings.NewReader(`{"arnes":"vitalia","frente":"reparación","path":"/tmp/x"}`))
 	rec := httptest.NewRecorder()
 	h(rec, req)

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -72,7 +73,7 @@ func (s *SessionService) Cerradas(ctx context.Context, arnesID string) ([]domain
 	store := s.cerradas
 	s.mu.Unlock()
 	if store == nil {
-		return nil, fmt.Errorf("historial de cerradas no cableado")
+		return nil, errors.New("historial de cerradas no cableado")
 	}
 	todas, err := store.Load(ctx)
 	if err != nil {
@@ -98,7 +99,7 @@ func (s *SessionService) HistorialCerrada(ctx context.Context, id string) (turno
 	reader := s.historial
 	s.mu.Unlock()
 	if reader == nil {
-		return nil, nil, fmt.Errorf("lector de historial no cableado")
+		return nil, nil, errors.New("lector de historial no cableado")
 	}
 	cerradasTodas, err := s.Cerradas(ctx, "")
 	if err != nil {

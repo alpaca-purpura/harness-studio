@@ -360,7 +360,7 @@ func TestIdentificarSellaYRekey(t *testing.T) {
 	}
 
 	// 1. El sello se escribió con el scaffold mínimo (id · version · reporta_a null).
-	b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json"))
+	b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json")) //nolint:gosec // G304: ruta de fixture del test.
 	if rerr != nil {
 		t.Fatalf("el sello no se escribió: %v", rerr)
 	}

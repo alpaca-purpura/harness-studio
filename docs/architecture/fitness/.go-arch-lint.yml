@@ -72,6 +72,8 @@ components:
     in: internal/adapters/selfupdate/**
   portafolio:
     in: internal/adapters/portafolio/**
+  history:
+    in: internal/adapters/history/**
 
   # --- datos embebidos (go:embed) ---
   dogfood:
@@ -132,6 +134,11 @@ deps:
   store:
     mayDependOn: [domain, ports]
 
+  # Lector de replay del JSONL de ~/.claude (historial B2) — enumera/reconstruye turnos,
+  # nunca parsea su schema como contrato (conductor-no-parsea-jsonl.md).
+  history:
+    mayDependOn: [domain]
+
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, dogfood, doctrina]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, history, dogfood, doctrina]
