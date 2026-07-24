@@ -4,21 +4,45 @@
 capability_id: arnesia.usecases.ejecutar-caja-t3-desde-daemon
 cap_num: CAP-55
 slug: ejecutar-caja-t3-desde-daemon
-name: "Ejecutar caja T3 desde daemon"
+name: "Ejecutar caja T3 desde daemon (async + gate post-run)"
 status: vivo·nc          # GENERADO (R4) — no teclear
 module: usecases
 verb: mejorar
 pointers:
-  - "internal/usecase/run_service.go#RunBox"
+  - "internal/usecase/run_service.go#RunService.StartRun"
+  - "internal/usecase/run_service.go#RunService.GetRun"
+  - "internal/usecase/run_service.go#RunService.runAsync"
+  - "internal/usecase/box_conductor.go#awaitResult"
 valida: []
 scenarios: []
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-55)"
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-55); reescrito async 2026-07-23 (deuda BACKLOG «run async + gate post-run»)"
+change_log:
+  - story_id: 2026-07-23-resolucion-deuda-viva
+    date: 2026-07-23
+    type: fix
+    summary: >-
+      Async: `RunBox` (síncrono, bloqueaba la respuesta HTTP hasta el desenlace) se
+      reemplaza por `StartRun` (valida síncrono — 404/422/409 siguen inmediatos — y
+      devuelve run_id de un `202`) + `runAsync` (goroutine, el loop lento) + `GetRun`
+      (poll del desenlace). Bug real cazado y cerrado en el mismo cierre: `awaitResult`
+      descartaba `EventControlRequest` en silencio — cualquier rol con permiso de
+      escritura habría colgado el subproceso para siempre (nadie respondía el
+      control_request; `--permission-prompt-tool stdio` rutea TODO write tool ahí sin
+      excepción). Fix: auto-resuelve contra el `PermissionSet` del rol (Allow→allow,
+      Deny/Ask→deny — sin humano en el loop, T3 es autónomo por diseño). Gate post-run
+      (CAP-70/71, mismo patrón que el chat corre conformance tras un turno con
+      escrituras): si el run auto-permitió ≥1 escritura, corre `ConformancePort.RunGraph`
+      y adjunta el veredicto a `RunResult.Conformance`. Nuevo endpoint `GET
+      /api/harnesses/{id}/boxes/{boxId}/runs/{runId}`. Tests: `TestConductorAutoResuelveControlRequest`
+      (3 casos) + `TestRunAsync*` (3), race-clean.
+    merge_sha: null
 ---
 
-# Ejecutar caja T3 desde daemon
+# Ejecutar caja T3 desde daemon (async + gate post-run)
 
-Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18). Reescrita
+async 2026-07-23 — ver `change_log`.

@@ -109,27 +109,49 @@ paths:
     post:
       operationId: runBox
       summary: >-
-        Conductor T3 (Fase E, D2 gate-0): corre el loop determinista de UNA caja — recurso propio,
-        separado del turno conversacional del Dock (docs/architecture/boundaries/orquestacion-determinista-entre-
-        cajas.md). El daemon resuelve el rol del arnés (META `arnes.rol` del grafo indexado) →
-        permission-set del rol (permisos-derivan-del-rol) → spawnea `claude` confinado al árbol del
-        arnés con `--max-turns` SIEMPRE + flags de permisos CC-native + inyección de doctrina; el
-        loop lee `result.subtype` + el `status:` del artefacto (document-as-cache, jamás el texto del
-        chat) y rutea por `contract.ruta`. SÍNCRONO: el loop está acotado (repair-cap × --max-turns)
-        y el desenlace ES la respuesta (un fallo de spawn llega al caller, no se pierde en un 202);
-        el progreso vivo viaja en paralelo por /events (event: run).
+        Conductor T3 (Fase E, D2 gate-0): arranca el loop determinista de UNA caja — recurso
+        propio, separado del turno conversacional del Dock (docs/architecture/boundaries/
+        orquestacion-determinista-entre-cajas.md). ASÍNCRONO (deuda BACKLOG «run async + gate
+        post-run», 2026-07-23): valida SÍNCRONO (arnés indexado · nodo existe · es caja ·
+        permisos del rol · workdir resoluble — barato, cero tokens) y devuelve `202`+`run_id`
+        de inmediato; el loop (spawn confinado al árbol del arnés con `--max-turns` SIEMPRE +
+        flags de permisos CC-native + inyección de doctrina — lee `result.subtype` + el
+        `status:` del artefacto, jamás el texto del chat, y rutea por `contract.ruta`) corre en
+        background. Todo `control_request` (p.ej. una escritura) se auto-resuelve contra el
+        `PermissionSet` del rol — un run T3 es headless, no hay humano en el loop para el click
+        de permisos-gui (Allow→allow, Deny/Ask→deny). El desenlace se consulta con `GET
+        .../runs/{runId}`; el progreso vivo sigue viajando en paralelo por /events (event: run,
+        sin cambio de contrato).
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
         - { name: boxId, in: path, required: true, schema: { type: string } }
       responses:
-        "200":
-          description: Desenlace terminal del loop (estado interno + ruteo decidido por CÓDIGO).
+        "202":
+          description: Run arrancado — el run_id para pollear el desenlace o escuchar /events.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/RunResult" }
+              schema: { $ref: "#/components/schemas/StartRunResult" }
         "404": { description: Arnés no indexado, o el nodo no existe en su grafo. }
         "422": { description: El nodo no es una caja con contrato (solo una caja de proceso corre T3), o el arnés no declara rol (META de enganche incompleta — el permission-set deriva del rol). }
-        "500": { description: Fallo del spawn/conductor — el error REAL, nunca un 501 genérico. }
+        "500": { description: Fallo al resolver permisos/workdir — el error REAL, nunca un 501 genérico. }
+  /harnesses/{id}/boxes/{boxId}/runs/{runId}:
+    get:
+      operationId: getRun
+      summary: >-
+        Desenlace de un run arrancado por `POST .../run` (deuda BACKLOG «run async»,
+        2026-07-23). El registro es in-memory (no persiste a través de un reinicio del
+        daemon).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: boxId, in: path, required: true, schema: { type: string } }
+        - { name: runId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Estado del run — `corriendo` (aún sin `result`), `terminado` (`result` poblado, incl. el gate post-run en `result.conformance` si aplica) o `error` (`error` poblado).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunStatus" }
+        "404": { description: "run_id inexistente — nunca arrancó, o el daemon reinició desde entonces." }
 
   /version:
     get:
@@ -551,6 +573,19 @@ components:
         tool: { type: string, description: "el tool que Claude Code pide correr." }
         input: { type: object, description: "input crudo del tool (file_path/old_string/new_string…) — el GUI pinta el diff de aquí." }
         decision: { type: string, enum: [allow, deny], description: "decisión efectiva (kind=permission_result)." }
+    StartRunResult:
+      type: object
+      required: [run_id]
+      properties:
+        run_id: { type: string }
+    RunStatus:
+      type: object
+      required: [run_id, estado]
+      properties:
+        run_id: { type: string }
+        estado: { type: string, enum: [corriendo, terminado, error] }
+        result: { $ref: "#/components/schemas/RunResult" }
+        error: { type: string, description: "solo si estado=error." }
     RunResult:
       type: object
       required: [run_id, box, estado, iteraciones, handoff]
@@ -562,6 +597,9 @@ components:
         iteraciones: { type: integer }
         siguiente: { type: string, description: "a dónde ruteó CÓDIGO leyendo contract.ruta (o el handoff)." }
         handoff: { type: boolean, description: "true = blocked → escalación humana." }
+        advertencias: { type: array, items: { type: string }, description: "lecturas no fatales (RF-111) — p.ej. un error al leer el status del artefacto. Visibles, jamás descartadas en silencio." }
+        conformance:
+          description: "gate post-run (CAP-70/71, deuda BACKLOG «run async», 2026-07-23) — SOLO presente si el run auto-permitió ≥1 escritura. Mismo shape que GET .../conformance: target + results[] {check{id,severidad,que,mecanismo,enforced_by}, veredicto pass|fail|error|deferred|n/a, detalle}."
     PermissionResolution:
       type: object
       required: [request_id, tool, efectiva]

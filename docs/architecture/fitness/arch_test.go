@@ -923,6 +923,316 @@ func TestConductorEncadenaPorFilesystem(t *testing.T) {
 	})
 }
 
+// controlRequestSession emite un control_request seguido de un result por cada Send —
+// dirige TestConductorAutoResuelveControlRequest sin subproceso real. Guarda cada
+// ControlDecision que recibió para asertar cómo el conductor respondió.
+type controlRequestSession struct {
+	events    chan ports.AgentEvent
+	tool      string
+	mu        sync.Mutex
+	responded []ports.ControlDecision
+}
+
+func (s *controlRequestSession) Send(_ context.Context, _ string) error {
+	s.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "req-1", Tool: s.tool, ToolUseID: "tu-1"}
+	s.events <- ports.AgentEvent{Kind: ports.EventResult, Subtype: "success"}
+	return nil
+}
+func (s *controlRequestSession) Events() <-chan ports.AgentEvent { return s.events }
+func (s *controlRequestSession) Interrupt(context.Context) error { return nil }
+func (s *controlRequestSession) Close() error                    { return nil }
+func (s *controlRequestSession) RespondControl(_ context.Context, _ string, d ports.ControlDecision) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.responded = append(s.responded, d)
+	return nil
+}
+
+// singleSessionAgent spawnea siempre la MISMA sesión ya construida — helper genérico para
+// probar `RunWith` con una sesión custom (a diferencia de scriptedAgent, atado a *scriptedSession).
+type singleSessionAgent struct{ sess ports.AgentSession }
+
+func (a *singleSessionAgent) Spawn(context.Context, ports.SpawnOpts) (ports.AgentSession, error) {
+	return a.sess, nil
+}
+
+// TestConductorAutoResuelveControlRequest — deuda BACKLOG «run async + gate post-run»
+// (2026-07-23): un box run es headless (sin humano en el loop), así que `awaitResult` DEBE
+// resolver todo `control_request` contra el PermissionSet del rol en vez de colgarse
+// esperando un click que nunca llega (bug real que este ticket cazó y cerró: antes de este
+// fix, `awaitResult` descartaba EventControlRequest en silencio — cualquier rol con
+// permiso de escritura habría colgado el subproceso para siempre, porque `--permission-
+// prompt-tool stdio` rutea TODO write tool por acá sin excepción, `escrituraDirecta` en
+// claudecode/conductor.go).
+func TestConductorAutoResuelveControlRequest(t *testing.T) {
+	t.Run("Allow del rol -> auto-allow, EscribioAlgo=true", func(t *testing.T) {
+		sess := &controlRequestSession{events: make(chan ports.AgentEvent, 4), tool: "Write"}
+		arts := &scriptedArtifacts{statuses: []string{"done"}}
+		c := usecase.NewBoxConductor(&singleSessionAgent{sess: sess}, arts, 1, 40)
+		ps := domain.PermissionSet{Rol: "dev", Allow: []string{"Write"}}
+
+		out, err := c.RunWith(context.Background(), boxWithRuta([]domain.Route{{A: "reviewer"}}, nil), nil,
+			ports.SpawnOpts{Cwd: "/arnes", Permisos: ps})
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if !out.EscribioAlgo {
+			t.Error("EscribioAlgo = false, want true (Write auto-permitido por el rol)")
+		}
+		if len(sess.responded) != 1 || !sess.responded[0].Allow {
+			t.Fatalf("RespondControl no auto-permitió: %+v", sess.responded)
+		}
+	})
+
+	t.Run("Ask/no-listado -> auto-deny (deny-by-default, sin humano a quien preguntarle), jamás cuelga", func(t *testing.T) {
+		sess := &controlRequestSession{events: make(chan ports.AgentEvent, 4), tool: "Bash"}
+		arts := &scriptedArtifacts{statuses: []string{"done"}}
+		c := usecase.NewBoxConductor(&singleSessionAgent{sess: sess}, arts, 1, 40)
+		ps := domain.PermissionSet{Rol: "dev"} // "Bash" no listado ⇒ Decide()==Ask.
+
+		out, err := c.RunWith(context.Background(), boxWithRuta([]domain.Route{{A: "reviewer"}}, nil), nil,
+			ports.SpawnOpts{Cwd: "/arnes", Permisos: ps})
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.EscribioAlgo {
+			t.Error("EscribioAlgo = true, want false (Bash autodenegado, nada se escribió)")
+		}
+		if len(sess.responded) != 1 || sess.responded[0].Allow {
+			t.Fatalf("RespondControl no denegó: %+v", sess.responded)
+		}
+		if sess.responded[0].Message == "" {
+			t.Error("deny sin motivo visible — el operador no vería por qué el run se frenó ahí")
+		}
+	})
+
+	t.Run("Deny explícito del rol -> auto-deny", func(t *testing.T) {
+		sess := &controlRequestSession{events: make(chan ports.AgentEvent, 4), tool: "Edit"}
+		arts := &scriptedArtifacts{statuses: []string{"done"}}
+		c := usecase.NewBoxConductor(&singleSessionAgent{sess: sess}, arts, 1, 40)
+		ps := domain.PermissionSet{Rol: "reader", Deny: []string{"Edit"}}
+
+		out, err := c.RunWith(context.Background(), boxWithRuta([]domain.Route{{A: "reviewer"}}, nil), nil,
+			ports.SpawnOpts{Cwd: "/arnes", Permisos: ps})
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.EscribioAlgo {
+			t.Error("EscribioAlgo = true, want false (Edit denegado por el rol)")
+		}
+		if len(sess.responded) != 1 || sess.responded[0].Allow {
+			t.Fatalf("RespondControl no denegó: %+v", sess.responded)
+		}
+	})
+}
+
+// --- RunService async (deuda BACKLOG «run async + gate post-run», 2026-07-23) ---
+
+type fakeIndexPort struct{ g domain.Graph }
+
+func (f *fakeIndexPort) Rebuild(context.Context) error                       { return nil }
+func (f *fakeIndexPort) Query(context.Context, string) (domain.Graph, error) { return f.g, nil }
+func (f *fakeIndexPort) List(context.Context) ([]domain.Graph, error)        { return nil, nil }
+func (f *fakeIndexPort) Upsert(context.Context, domain.Graph) error          { return nil }
+
+type fakePermissionPort struct{ ps domain.PermissionSet }
+
+func (f *fakePermissionPort) ResolveForRole(context.Context, string) (domain.PermissionSet, error) {
+	return f.ps, nil
+}
+
+type fakeWorkdirResolver struct{ path string }
+
+func (f *fakeWorkdirResolver) Resolve(string) (string, bool, error) { return f.path, true, nil }
+
+type fakeRunPublisher struct {
+	mu     sync.Mutex
+	frames [][]byte
+}
+
+func (f *fakeRunPublisher) Publish(_ string, data []byte) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.frames = append(f.frames, data)
+}
+
+func (f *fakeRunPublisher) count() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.frames)
+}
+
+// blockingConfPort — el gate post-run: cuenta cuántas veces se llamó RunGraph (asserta que
+// SOLO corre cuando el run escribió algo).
+type countingConfPort struct {
+	mu    sync.Mutex
+	calls int
+}
+
+func (c *countingConfPort) Run(context.Context, ports.Target) (domain.ConformanceReport, error) {
+	return domain.ConformanceReport{}, nil
+}
+
+func (c *countingConfPort) RunGraph(context.Context, []byte, string) (domain.ConformanceReport, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.calls++
+	return domain.ConformanceReport{Target: "arnes"}, nil
+}
+
+func (c *countingConfPort) count() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.calls
+}
+
+func waitForRunTerminal(t *testing.T, runs *usecase.RunService, runID string) usecase.RunStatus {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		st, ok := runs.GetRun(runID)
+		if !ok {
+			t.Fatalf("GetRun(%q): no encontrado", runID)
+		}
+		if st.Estado != "corriendo" {
+			return st
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	t.Fatalf("run %q no terminó en 2s (¿colgado?)", runID)
+	return usecase.RunStatus{}
+}
+
+// TestRunAsyncDevuelveRunIDInmediato — StartRun (POST /boxes/{id}/run) devuelve el run_id
+// SIN esperar a que el conductor termine (el punto entero de la deuda: antes bloqueaba la
+// respuesta HTTP hasta el desenlace). El estado pasa corriendo→terminado vía GetRun.
+func TestRunAsyncDevuelveRunIDInmediato(t *testing.T) {
+	g := domain.Graph{
+		Arnes: &domain.Arnes{Rol: "dev"},
+		Nodes: []domain.Box{boxWithRuta([]domain.Route{{A: "reviewer"}}, nil)},
+	}
+	sess := &scriptedSession{
+		events:  make(chan ports.AgentEvent, 3),
+		results: []ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success"}},
+	}
+	conductor := usecase.NewBoxConductor(&scriptedAgent{sess: sess}, &scriptedArtifacts{statuses: []string{"done"}}, 3, 40)
+	pub := &fakeRunPublisher{}
+	runs := usecase.NewRunService(
+		&fakeIndexPort{g: g}, conductor, &fakePermissionPort{ps: domain.PermissionSet{Rol: "dev"}},
+		&fakeWorkdirResolver{path: "/arnes"}, nil, pub, nil, nil,
+	)
+
+	runID, err := runs.StartRun(context.Background(), "arnes-x", "caja-x")
+	if err != nil {
+		t.Fatalf("StartRun: %v", err)
+	}
+	if runID == "" {
+		t.Fatal("StartRun devolvió run_id vacío")
+	}
+	// El registro YA existe apenas vuelve StartRun (antes de que el goroutine termine) —
+	// eso es lo que hace posible el 202 inmediato.
+	st0, ok := runs.GetRun(runID)
+	if !ok {
+		t.Fatalf("GetRun(%q) inmediatamente después de StartRun: no encontrado", runID)
+	}
+	if st0.Estado != "corriendo" && st0.Estado != "terminado" {
+		t.Errorf("estado inicial = %q, want corriendo (o terminado si la goroutine ya corrió)", st0.Estado)
+	}
+
+	final := waitForRunTerminal(t, runs, runID)
+	if final.Estado != "terminado" {
+		t.Fatalf("estado final = %q, want terminado (result=%+v err=%q)", final.Estado, final.Result, final.Error)
+	}
+	if final.Result == nil || final.Result.RunID != runID {
+		t.Fatalf("Result = %+v, want RunID=%q", final.Result, runID)
+	}
+	// event: run sigue viajando por SSE en paralelo (started + finished) — sin cambio de
+	// contrato para quien ya escuchaba /events antes de esta deuda.
+	if got := pub.count(); got != 2 {
+		t.Errorf("frames publicados = %d, want 2 (started + finished)", got)
+	}
+
+	if _, ok := runs.GetRun("run-inexistente"); ok {
+		t.Error("GetRun de un run_id inexistente devolvió ok=true")
+	}
+}
+
+// TestRunAsyncValidacionSigueSincrona — 404/422 (arnés/nodo inexistente, nodo sin
+// contrato) le llegan al caller EN StartRun, nunca escondidos detrás de un 202 que
+// después falla en silencio (la validación es barata — cero tokens quemados).
+func TestRunAsyncValidacionSigueSincrona(t *testing.T) {
+	runs := usecase.NewRunService(
+		&fakeIndexPort{g: domain.Graph{Nodes: []domain.Box{{ID: "no-es-caja"}}}},
+		usecase.NewBoxConductor(&scriptedAgent{sess: &scriptedSession{events: make(chan ports.AgentEvent, 1)}}, &scriptedArtifacts{}, 1, 40),
+		&fakePermissionPort{}, &fakeWorkdirResolver{path: "/arnes"}, nil, &fakeRunPublisher{}, nil, nil,
+	)
+
+	if _, err := runs.StartRun(context.Background(), "arnes-x", "no-existe"); !errors.Is(err, usecase.ErrNodoNoExiste) {
+		t.Errorf("nodo inexistente: err = %v, want ErrNodoNoExiste", err)
+	}
+	if _, err := runs.StartRun(context.Background(), "arnes-x", "no-es-caja"); !errors.Is(err, usecase.ErrNoEsCaja) {
+		t.Errorf("nodo sin contrato: err = %v, want ErrNoEsCaja", err)
+	}
+}
+
+// TestRunAsyncGatePostRunSoloSiEscribio — el gate post-run (CAP-70/71: mismo patrón que
+// el chat corre conformance tras un turno con escrituras) SOLO llama RunGraph cuando el
+// run auto-permitió ≥1 escritura — un run 100% lectura no paga ese costo.
+func TestRunAsyncGatePostRunSoloSiEscribio(t *testing.T) {
+	g := domain.Graph{
+		Arnes: &domain.Arnes{Rol: "dev"},
+		Nodes: []domain.Box{boxWithRuta([]domain.Route{{A: "reviewer"}}, nil)},
+	}
+
+	t.Run("con escritura -> gate corre", func(t *testing.T) {
+		sess := &controlRequestSession{events: make(chan ports.AgentEvent, 4), tool: "Write"}
+		conductor := usecase.NewBoxConductor(&singleSessionAgent{sess: sess}, &scriptedArtifacts{statuses: []string{"done"}}, 1, 40)
+		conf := &countingConfPort{}
+		runs := usecase.NewRunService(
+			&fakeIndexPort{g: g}, conductor, &fakePermissionPort{ps: domain.PermissionSet{Rol: "dev", Allow: []string{"Write"}}},
+			&fakeWorkdirResolver{path: "/arnes"}, nil, &fakeRunPublisher{}, conf, func(string) string { return "/arnes" },
+		)
+		runID, err := runs.StartRun(context.Background(), "arnes-x", "caja-x")
+		if err != nil {
+			t.Fatalf("StartRun: %v", err)
+		}
+		final := waitForRunTerminal(t, runs, runID)
+		if final.Result == nil || final.Result.Conformance == nil {
+			t.Fatalf("Conformance = nil, want el reporte del gate post-run (result=%+v)", final.Result)
+		}
+		if conf.count() != 1 {
+			t.Errorf("RunGraph llamado %d veces, want 1", conf.count())
+		}
+	})
+
+	t.Run("sin escritura -> gate NO corre", func(t *testing.T) {
+		sess := &scriptedSession{
+			events:  make(chan ports.AgentEvent, 3),
+			results: []ports.AgentEvent{{Kind: ports.EventResult, Subtype: "success"}},
+		}
+		conductor := usecase.NewBoxConductor(&scriptedAgent{sess: sess}, &scriptedArtifacts{statuses: []string{"done"}}, 3, 40)
+		conf := &countingConfPort{}
+		runs := usecase.NewRunService(
+			&fakeIndexPort{g: g}, conductor, &fakePermissionPort{ps: domain.PermissionSet{Rol: "dev"}},
+			&fakeWorkdirResolver{path: "/arnes"}, nil, &fakeRunPublisher{}, conf, func(string) string { return "/arnes" },
+		)
+		runID, err := runs.StartRun(context.Background(), "arnes-x", "caja-x")
+		if err != nil {
+			t.Fatalf("StartRun: %v", err)
+		}
+		final := waitForRunTerminal(t, runs, runID)
+		if final.Result == nil {
+			t.Fatalf("Result = nil")
+		}
+		if final.Result.Conformance != nil {
+			t.Errorf("Conformance = %+v, want nil (run 100%% lectura, gate no debía correr)", final.Result.Conformance)
+		}
+		if conf.count() != 0 {
+			t.Errorf("RunGraph llamado %d veces, want 0", conf.count())
+		}
+	})
+}
+
 // --- permisos-derivan-del-rol.md (enforced) ---
 
 // TestPermissionSetParametrizedByRole enforces permisos-derivan-del-rol: the permission-set
@@ -1108,6 +1418,31 @@ func TestMaxTurnsAlways(t *testing.T) {
 	}
 	if !strings.Contains(cond, "--max-turns") {
 		t.Errorf("conductor does not pass --max-turns — violates permisos-gui max-turns-siempre")
+	}
+}
+
+// TestMaquinariaNoContaminaArnes — boundary maquinaria-no-contamina-arnes (research
+// 2026-07-05-arquitectura-inyeccion-knowhow.md §9, materializado 2026-07-23): la doctrina ①②
+// entra SOLO por flags de sesión — nunca `--bare` (rompe el auth de suscripción) y nunca un
+// archivo escrito dentro del árbol del arnés. `SpawnArgs` es la superficie de enforcement real
+// (se exporta para esto, ver su doc comment).
+func TestMaquinariaNoContaminaArnes(t *testing.T) {
+	args := claudecode.SpawnArgs(ports.SpawnOpts{
+		Injection: ports.Injection{
+			PluginDirs:       []string{"/app-owned/kit-a", "/app-owned/kit-b"},
+			SystemPromptFile: "/app-owned/doctrine.md",
+			AddDirs:          []string{"/app-owned/knowhow"},
+			MCPConfigFile:    "/app-owned/mcp.json",
+		},
+	})
+	joined := strings.Join(args, " ")
+	if strings.Contains(joined, "--bare") {
+		t.Fatalf("SpawnArgs incluye --bare: rompe el auth de suscripción del operador (headless-sdk)")
+	}
+	for _, want := range []string{"--plugin-dir", "--append-system-prompt-file", "--add-dir", "--mcp-config"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("SpawnArgs con Injection poblada no emite %s — la doctrina no entraría por flag", want)
+		}
 	}
 }
 

@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,10 @@ type BoxOutcome struct {
 	// Advertencias — non-fatal reads that used to be silent (RF-111): an artifact
 	// status error does not break the loop (empty status stays valid) but is VISIBLE.
 	Advertencias []string
+	// EscribioAlgo — ≥1 control_request se auto-resolvió Allow durante el run (deuda
+	// BACKLOG «run async + gate post-run», 2026-07-23): drives el gate post-run (RunService
+	// corre `conformance --arnes` solo si esto es true — un run 100% de lectura no lo necesita).
+	EscribioAlgo bool
 }
 
 // defaultMaxTurns is the last-resort turn cap: a T3 run NEVER spawns uncapped
@@ -97,12 +102,16 @@ func (c *BoxConductor) RunWith(ctx context.Context, box domain.Box, insumos []do
 	artifact := artifactRef(box)
 
 	iters := 0
+	escribioAlgo := false
 	for iters < c.repairCap && !estado.EsTerminal() {
 		if err := sess.Send(ctx, c.tarea(ctx, box, insumos, opts.Cwd, iters)); err != nil {
 			return BoxOutcome{}, fmt.Errorf("conductor: send: %w", err)
 		}
 		iters++
-		res, ok := awaitResult(ctx, sess.Events())
+		res, escribio, ok := awaitResult(ctx, sess, opts.Permisos, sess.Events())
+		if escribio {
+			escribioAlgo = true
+		}
 		if !ok {
 			estado = domain.CajaBlocked // stream died mid-turn: stop, do not spin.
 			break
@@ -127,6 +136,7 @@ func (c *BoxConductor) RunWith(ctx context.Context, box domain.Box, insumos []do
 
 	return BoxOutcome{
 		Box:          box.ID,
+		EscribioAlgo: escribioAlgo,
 		Estado:       estado,
 		Iteraciones:  iters,
 		Siguiente:    domain.RutaSiguiente(box.Contract, estado, senal),
@@ -215,17 +225,42 @@ func artifactRef(box domain.Box) string {
 
 // awaitResult reads events until the turn's `result` (or an error/closed stream). It
 // consumes the machine signal, never the chat text.
-func awaitResult(ctx context.Context, ch <-chan ports.AgentEvent) (ports.AgentEvent, bool) {
+// awaitResult drena eventos hasta uno terminal (result/error), auto-resolviendo cualquier
+// control_request contra el PermissionSet del rol — deuda BACKLOG «run async + gate
+// post-run» (2026-07-23): un box run es autónomo (agencia-dentro-del-frame,
+// orquestacion-determinista-entre-cajas), no hay humano en el loop para el click de
+// permisos-gui. Allow del rol ⇒ auto-allow; Deny/Ask ⇒ auto-deny (Ask no tiene a quién
+// preguntarle en un run headless — deny-by-default: nunca cuelga en silencio esperando un
+// control_response que nadie manda, nunca auto-aprueba lo que el rol no listó explícito).
+// escribio reporta si ≥1 control_request se auto-permitió (proxy honesto de "el run tocó
+// algo" — permissionArgs rutea TODO tool de escritura por acá sin excepción, y todo tool de
+// lectura pre-aprobado nunca llega a esta función).
+func awaitResult(
+	ctx context.Context, sess ports.AgentSession, ps domain.PermissionSet, ch <-chan ports.AgentEvent,
+) (ev ports.AgentEvent, escribio bool, ok bool) {
 	for {
 		select {
 		case <-ctx.Done():
-			return ports.AgentEvent{}, false
-		case ev, ok := <-ch:
-			if !ok {
-				return ports.AgentEvent{}, false
+			return ports.AgentEvent{}, escribio, false
+		case e, chOK := <-ch:
+			if !chOK {
+				return ports.AgentEvent{}, escribio, false
 			}
-			if ev.Kind == ports.EventResult || ev.Kind == ports.EventError {
-				return ev, true
+			if e.Kind == ports.EventResult || e.Kind == ports.EventError {
+				return e, escribio, true
+			}
+			if e.Kind == ports.EventControlRequest {
+				allow := ps.Decide(e.Tool) == domain.DecisionAllow
+				if allow {
+					escribio = true
+				}
+				cd := ports.ControlDecision{Allow: allow, UpdatedInput: e.Input, ToolUseID: e.ToolUseID}
+				if !allow {
+					cd.Message = "run autónomo (T3): sin humano en el loop — denegado por el permission-set del rol"
+				}
+				if respErr := sess.RespondControl(ctx, e.RequestID, cd); respErr != nil {
+					slog.Error("conductor: responder control_request en run autónomo", "err", respErr)
+				}
 			}
 		}
 	}

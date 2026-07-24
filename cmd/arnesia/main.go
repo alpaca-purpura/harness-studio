@@ -203,10 +203,6 @@ func runServe(args []string) error {
 	// tool_use que lo toque, sin tarjeta.
 	sessionSvc.ProtegerPaqueteCerrado(injector.BaseDir())
 
-	// Conductor T3 (Fase E): el loop determinista de una caja, con el lector de
-	// `status:` del artefacto (document-as-cache) confinado al árbol del arnés.
-	conductor := usecase.NewBoxConductor(agent, artifact.NewReader(), *repairCap, *maxTurns)
-	runSvc := usecase.NewRunService(idx, conductor, perms, arnesReg, injector, brokerPublisher{broker})
 	// Fuente del nodo (RF-93, tab Contenido del inspector): lectura confinada al dir
 	// registrado del arnés (S2) — el drawer muestra el archivo REAL, jamás reconstruye.
 	fuenteSvc := usecase.NewFuenteService(idx, arnesReg, artifact.NewFuenteReader())
@@ -223,6 +219,13 @@ func runServe(args []string) error {
 		}
 		return ""
 	}
+
+	// Conductor T3 (Fase E): el loop determinista de una caja, con el lector de
+	// `status:` del artefacto (document-as-cache) confinado al árbol del arnés. El gate
+	// post-run (deuda BACKLOG «run async», 2026-07-23) reusa confSvc/confBase — mismo
+	// ConformancePort que GET /api/harnesses/{id}/conformance.
+	conductor := usecase.NewBoxConductor(agent, artifact.NewReader(), *repairCap, *maxTurns)
+	runSvc := usecase.NewRunService(idx, conductor, perms, arnesReg, injector, brokerPublisher{broker}, confSvc, confBase)
 
 	// Self-update sin sudo (paquete boton-actualizar): el repo llega por flag/env —
 	// JAMÁS del request (RF-106); sin repo la tarjeta lo dice y el botón queda disabled.

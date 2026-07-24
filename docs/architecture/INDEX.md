@@ -63,11 +63,18 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌳 enforced | 1.1 | 5 | vitest.config.ts + Storybook 10 (story=test; conteo crece con cada story — ≥45 verdes HS-11) |
 | [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
-| [`boundaries/codigo-traza-a-capability.md`](./boundaries/codigo-traza-a-capability.md) | Todo código fuente traza a un capability (`CAPABILITIES.md` = SSoT funcional) | 🌳 enforced | 1.1 | 5 | arch_test.go:TestCapabilityPointersResolve · TestCapabilityCoverage |
+| [`boundaries/codigo-traza-a-capability.md`](./boundaries/codigo-traza-a-capability.md) | Todo código fuente traza a un capability (`docs/product/capabilities/` = SSoT funcional), incl. el `#Símbolo` del puntero | 🌳 enforced | 1.5 | 6 | capability_trace_test.go:TestCapabilityPointersResolve · TestCapabilityPointerSymbolsResolve · TestCapabilityCoverage · TestCapabilityStatusConsistent · TestCapabilityPointersStable |
 | [`boundaries/portafolio-identidad-y-deriva-honesta.md`](./boundaries/portafolio-identidad-y-deriva-honesta.md) | Identidad `(home,id)` calificada (nunca fusión por coincidencia) + deriva por hash de contenido (nunca semver-string) | 🌳 enforced | 1.0 | 4 | portafolio/store_test.go · portafolio/deriva_test.go · domain/portafolio_test.go |
+| [`boundaries/maquinaria-no-contamina-arnes.md`](./boundaries/maquinaria-no-contamina-arnes.md) | La doctrina ①② entra por flags de sesión, jamás escrita en el árbol del arnés (③) | 🌳 enforced | 1.0 | 2 | arch_test.go:TestMaquinariaNoContaminaArnes |
+| [`boundaries/doctrina-una-fuente-dos-targets.md`](./boundaries/doctrina-una-fuente-dos-targets.md) | El ruleset ejecutable y `kit/doctrine.md` no deben divergir | 🌱 vivo | 1.0 | 2 | (pendiente — `kit/doctrine.md` es prosa a mano, sin drift-check) |
+| [`boundaries/telemetria-de-nacimiento.md`](./boundaries/telemetria-de-nacimiento.md) | Todo arnés nace observable (VISION p9) | 🌱 vivo | 1.0 | 2 | (pendiente — sin `scaffold` ni collector OTLP, ver BACKLOG) |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 18 · 85 checks** — fundacional HS-04
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 21 · 92 checks** (+3 boundaries ·
++7 checks en HS-11 2026-07-23: los 3 boundaries que el research de inyección de know-how había
+dejado como draft — `maquinaria-no-contamina-arnes` **enforced** de una, `doctrina-una-fuente-dos-targets`
+y `telemetria-de-nacimiento` nacen `proposed` honesto, sin código detrás todavía — + 1 check nuevo
+en `codigo-traza-a-capability` v1.5, R1 a nivel símbolo) — fundacional HS-04
 (backend, 7 boundaries · 29 checks; **+3 en franja-artefactos Fase 1** (2026-07-08): `dead-end` ·
 `ruta-a-existe` · `refina-coherente` en `contrato-de-caja-es-fitness-function` v1.3, y `sin-huerfanos`
 pasó de promesa a enforcer vivo `domain.VerificarSinHuerfanos` — los 5 verificadores de composición
@@ -85,7 +92,7 @@ HS-22** (2026-07-14, Portafolio Slice 0 «Cimientos»): 1 boundary · 4 checks �
 semver · store degrada honesto · procedencia anotada; los 4 con test Go real ya verde). **+
 [`conventions/`](./conventions/INDEX.md): 9 convention nodes · 30 checks** (HS-05 + nodo
 `versionado.md` 2026-07-15). **Gran total `arch/`:
-115 checks** (85 boundary + 30 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
+122 checks** (92 boundary + 30 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
 arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, cifra viva en `checkpoint.md`).
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,
@@ -102,9 +109,10 @@ arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor
 > `pnpm depcruise` verde: 76 módulos/0 violaciones), `fe-tokens-contrato` (stylelint strict-value verde +
 > tokens 6→10 regenerados) y `fe-visual-fitness` (`pnpm test` = story-tests verdes en Playwright — el conteo crece con cada story; ≥45 al corte HS-11
 > Chromium; migrado `vitest.workspace.ts`→`vitest.config.ts`) — **sin sumar checks** (solo cambio de
-> `status`). → **9 boundaries enforced en total** (2 HS-06 + 3 HS-08 + 3 HS-09 + 1 HS-18
-> [`codigo-traza-a-capability`: `TestCapabilityPointersResolve` + `TestCapabilityCoverage`]). El resto sigue
-> `proposed`; `fe-topologia-fsd` y `fe-transporte-independiente` quedan proposed (el 2º hasta que exista
+> `status`). → **11 boundaries enforced en total** (2 HS-06 + 3 HS-08 + 3 HS-09 + 1 HS-18
+> [`codigo-traza-a-capability`: 5 checks incl. R1 símbolo v1.5] + 1 HS-22 [`portafolio-identidad-y-deriva-honesta`]
+> + 1 HS-11 2026-07-23 [`maquinaria-no-contamina-arnes`, `TestMaquinariaNoContaminaArnes`]). El resto
+> sigue `proposed`; `fe-topologia-fsd` y `fe-transporte-independiente` quedan proposed (el 2º hasta que exista
 > `app/realtime/` SSE en Hito 3). El `go-arch-lint check` **corre en CI desde HS-10**
 > (`go-arch-lint check --project-path . --arch-file docs/architecture/fitness/.go-arch-lint.yml`, deepScan off —
 > el linter de imports es el enforcement). Estado del enforcer por nodo en su frontmatter.

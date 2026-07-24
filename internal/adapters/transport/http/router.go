@@ -63,7 +63,10 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	mux.HandleFunc("GET /api/harnesses/{id}/conformance", getConformance(maps, conf, confBase))
 
 	// Conductor T3 (Fase E, D2): correr una caja = recurso propio, NO un turno del Dock.
+	// Async (deuda BACKLOG «run async», 2026-07-23): 202+run_id inmediato; el desenlace
+	// se consulta en runs/{runId} (progreso vivo sigue en /events, event: run).
 	mux.HandleFunc("POST /api/harnesses/{id}/boxes/{boxId}/run", runBox(runs))
+	mux.HandleFunc("GET /api/harnesses/{id}/boxes/{boxId}/runs/{runId}", getRun(runs))
 
 	// Arnés registry (S2) — maps an arnés to the working dir its sessions run claude in.
 	mux.HandleFunc("GET /api/arneses", listArneses(arneses))
