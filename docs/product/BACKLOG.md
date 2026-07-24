@@ -150,22 +150,13 @@
 - [chat] **fase presentación (decisión #5) re-scopeada 2026-07-24** — la nota original
   ("assistant-ui + CodeMirror merge + widgets ricos") agrupaba 6 cosas bajo un rótulo de 2026-07-08;
   HS-26 (2026-07-22) ya resolvió 2 a mano sin librerías (markdown rico, tarjetas de tool-use vía
-  `ActivityCard`) — validando la premisa de la propia decisión #5 ("la librería no cambia qué
-  funciona, cambia cómo se pinta") sin siquiera necesitar la librería. Quedan 4 sub-ítems reales,
-  independientes entre sí:
-  - [chat] **widgets ricos para turnos `sys`** (permiso resuelto/gate) — hoy texto plano en un pill
-    punteado (`chat-dock.tsx`, rama `t.rol === "sys"`); mismo patrón hand-rolled que `ActivityCard`,
-    sin dependencias nuevas · `deuda`
-  - [chat] **slash-menu funcional** en el composer — no existe hoy · `deuda`
-  - [chat] **cola de turnos** — un 2º turno durante streaming/await sigue devolviendo 409 en vez de
-    encolarse; toca FE + backend · `deuda`
-  - [chat] **diff editable accept/reject por chunk** (`@codemirror/merge`) — único sub-ítem que
-    genuinamente pediría una librería nueva, y SOLO si se quiere editar el diff antes de aprobar
-    (hoy alcanza con aceptar/rechazar en bloque, que ya funciona — `DiffLines` en
-    `permission-card.tsx`) · `deuda`
-  - **Descartado del alcance:** el swap completo a `@assistant-ui/react` — no cierra ninguna
-    brecha funcional que no esté ya cerrada a mano, y el research original (`investigacion.md`)
-    señala costos reales (bundle +154kB, lockstep de versiones) sin beneficio claro hoy.
+  `ActivityCard`), y el swap completo a `@assistant-ui/react` queda **descartado** (no cierra
+  ninguna brecha ya cerrada a mano, costo real de bundle sin beneficio claro). Quedan 4 sub-ítems
+  reales e independientes, cada uno con su investigación ya hecha (file:line reales, tamaño
+  estimado, qué falta decidir antes de codear) →
+  [`stories/2026-07-24-chat-siguientes-fase-presentacion/INDEX.md`](stories/2026-07-24-chat-siguientes-fase-presentacion/INDEX.md):
+  widgets ricos para turnos `sys` · slash-menu del composer · cola de turnos (reemplazar el 409) ·
+  diff editable accept/reject por chunk (`@codemirror/merge`, el único que pediría librería nueva) · `deuda`
 - [HS-09] **checks `deferred` del ruleset `--todo` — investigado a fondo 2026-07-24, re-scopeado.**
   Cifra real hoy: `266 checks · pass 54 · deferred 212` (era 215 antes del fix de abajo). Desglose
   numérico completo (no al ojo): 134 son catálogo de doctrina sobre primitivas de Claude Code en
@@ -212,12 +203,13 @@
 - [HS-16 Grupo C] `gate-honesto` — **re-verificado 2026-07-24, sin cambios**:
   `domain.VerificarGateHonesto` sigue sin existir (grep confirma), deuda de diseño pura (definir
   la semántica de "gate honesto" vs fantasma), sin dependencia de SQLite/OTel · `deuda`
-- [conductor-no-parsea-jsonl] **posible hallazgo stale, sin verificar a fondo — `ctx-derivado-etiquetado`**:
+- [conductor-no-parsea-jsonl] **bugfix candidato — `ctx-derivado-etiquetado` probablemente stale**:
   HS-16 lo agrupó junto a `hooks-desde-otel` como "esperan OTel", pero `ctxPct`
-  (`conductor.go:616`, commit `b91a061`, 2026-07-22 — POSTERIOR a HS-16) ya calcula
-  `% contexto` desde stream-json puro, sin OTel. Puede ser el mismo patrón que el Grupo B de
-  HS-16 (enforcer real ya vive, solo falta el wrapper `arch_test.go` nombrado) — no verificado
-  a fondo ni construido en esta sesión · `deuda`
+  (`conductor.go:611-639`, ya con test `TestCtxPctUsaUltimoUsage`, commit `b91a061` —
+  POSTERIOR a HS-16) calcula `% contexto` desde stream-json puro, sin OTel. Mismo patrón que el
+  Grupo B de HS-16 (enforcer real ya vive, solo falta citarlo en el `.md` + confirmar que cubre
+  el "etiquetado como derivada", no solo el cálculo) — investigación completa + pasos exactos en
+  [`stories/2026-07-24-ctx-derivado-etiquetado/INDEX.md`](stories/2026-07-24-ctx-derivado-etiquetado/INDEX.md) · `deuda`
 
 ## Capabilities / doctrina (reorg 2026-07-09, FIRMADO)
 
