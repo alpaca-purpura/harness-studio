@@ -159,8 +159,11 @@ function FilePathRow({ path, note }: { path: string | undefined; note?: string }
   )
 }
 
-// DiffLines — diff mínimo de líneas cambiadas (patrón transcript: sin syntax highlight;
-// el diff rico CodeMirror llega con la fase de presentación, decisión #5).
+// DiffLines — diff mínimo de líneas cambiadas (patrón transcript: sin syntax highlight). Es el
+// patrón correcto para aceptar/rechazar en bloque (investigacion.md del paquete original ya
+// concluía esto); un editor CodeMirror merge solo aportaría algo si el producto pidiera editar
+// el diff chunk-a-chunk ANTES de aprobar — no pedido hoy, BACKLOG.md lo separa como sub-ítem
+// propio en vez de bloquear detrás de "fase de presentación".
 function DiffLines({ minus, plus }: { minus: string | undefined; plus: string | undefined }) {
   return (
     <div className="max-h-40 overflow-auto font-mono text-[10px] leading-snug">

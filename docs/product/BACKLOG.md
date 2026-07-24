@@ -147,7 +147,25 @@
 - [doctrina-una-fuente-dos-targets] `kit/doctrine.md` es prosa mantenida a mano, sin drift-check
   contra `docs/architecture/knowledge/`/METODOLOGIA — construir el freshness-check (candidato:
   verificar que las secciones citadas por número siguen existiendo en esa forma) · `deuda`
-- [chat] fase presentación: assistant-ui + CodeMirror merge + widgets ricos (decisión #5) · `deuda`
+- [chat] **fase presentación (decisión #5) re-scopeada 2026-07-24** — la nota original
+  ("assistant-ui + CodeMirror merge + widgets ricos") agrupaba 6 cosas bajo un rótulo de 2026-07-08;
+  HS-26 (2026-07-22) ya resolvió 2 a mano sin librerías (markdown rico, tarjetas de tool-use vía
+  `ActivityCard`) — validando la premisa de la propia decisión #5 ("la librería no cambia qué
+  funciona, cambia cómo se pinta") sin siquiera necesitar la librería. Quedan 4 sub-ítems reales,
+  independientes entre sí:
+  - [chat] **widgets ricos para turnos `sys`** (permiso resuelto/gate) — hoy texto plano en un pill
+    punteado (`chat-dock.tsx`, rama `t.rol === "sys"`); mismo patrón hand-rolled que `ActivityCard`,
+    sin dependencias nuevas · `deuda`
+  - [chat] **slash-menu funcional** en el composer — no existe hoy · `deuda`
+  - [chat] **cola de turnos** — un 2º turno durante streaming/await sigue devolviendo 409 en vez de
+    encolarse; toca FE + backend · `deuda`
+  - [chat] **diff editable accept/reject por chunk** (`@codemirror/merge`) — único sub-ítem que
+    genuinamente pediría una librería nueva, y SOLO si se quiere editar el diff antes de aprobar
+    (hoy alcanza con aceptar/rechazar en bloque, que ya funciona — `DiffLines` en
+    `permission-card.tsx`) · `deuda`
+  - **Descartado del alcance:** el swap completo a `@assistant-ui/react` — no cierra ninguna
+    brecha funcional que no esté ya cerrada a mano, y el research original (`investigacion.md`)
+    señala costos reales (bundle +154kB, lockstep de versiones) sin beneficio claro hoy.
 - [HS-09] 212 checks `deferred` → correr en CI (hoy solo la ruta `--arnes`) · `deuda`
 - [HS-16] loader reconocedores `deferred`: subagent · plugin-nodo-raíz · edges-de-librería (necesitan diseño) · `deuda`
 - [HS-16 Grupo A] 6 checks composición `deferred` (rediseño de motor; bloqueado por SQLite fase5 / OTel / modo-por-fase) · `bloqueo`
