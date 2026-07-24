@@ -114,10 +114,6 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
-- [Slice1-FE] filtros `estado`/`marketplace` de la toolbar del Portafolio — distinta afordancia
-  que una lente (acotan sin reagrupar), quedaron disabled+tooltip (S1-D8); las lentes
-  `proyecto`/`marketplace` YA se construyeron (2026-07-23, mismo patrón N:M que
-  `agruparPorEmpresa`); los filtros siguen sin slice asignado, diferidos si alguien los pide · `deuda`
 - [a11y] **`.text-warn` no cumple contraste mínimo** (axe `color-contrast`, ratio 3.76 vs 4.5
   requerido — `#c96a2e` sobre `#ffffff`): destapado 2026-07-23 corriendo
   `new-session-picker.stories.tsx` (4 stories fallan en la a11y gate cuando
