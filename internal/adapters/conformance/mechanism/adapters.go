@@ -126,7 +126,13 @@ func firstFail(out string) string {
 
 // ── go-arch-lint ────────────────────────────────────────────────────────────
 
-// GoArchLint runs go-arch-lint if the binary is present, else defers honestly.
+// GoArchLint runs `go run github.com/fe3dback/go-arch-lint@latest check` — the EXACT
+// invocation `ci.yml` uses (job `go`, step "go-arch-lint") — via the local `go` toolchain,
+// never a preinstalled `go-arch-lint` binary. Bug fixed 2026-07-24 (HS-27, barrido de deuda
+// viva): the adapter used to probe `exec.LookPath("go-arch-lint")` first, which is never on
+// PATH in dev/CI (both invoke it through `go run`) — so this check deferred locally even
+// though CI runs+enforces it for real, a false "no enforcer" reading of a mechanism that
+// was actually already live.
 type GoArchLint struct {
 	repoRoot string
 	once     bool
@@ -140,8 +146,8 @@ func NewGoArchLint(repoRoot string) *GoArchLint { return &GoArchLint{repoRoot: r
 // Mecanismo reports the mechanism this adapter executes (go-arch-lint).
 func (*GoArchLint) Mecanismo() domain.Mecanismo { return domain.MecGoArchLint }
 
-// Run invokes `go-arch-lint check` once, caches the verdict, and reuses it for every
-// check routed here; a missing binary defers honestly, never a fabricated pass.
+// Run invokes go-arch-lint once (via `go run`, network/module-cache required — same
+// requirement `ci.yml` has), caches the verdict, and reuses it for every check routed here.
 func (g *GoArchLint) Run(ctx context.Context, c domain.Check, _ ports.Target) domain.CheckResult {
 	if g.repoRoot == "" {
 		// Scope `fabrica` (HS-10): igual que arch-test, el grafo de imports solo existe
@@ -149,20 +155,32 @@ func (g *GoArchLint) Run(ctx context.Context, c domain.Check, _ ports.Target) do
 		return result(c, domain.VeredictoDiferido,
 			"scope fabrica: requiere el repo fuente (no viaja en el binario instalado)")
 	}
-	if _, err := exec.LookPath("go-arch-lint"); err != nil {
-		return result(c, domain.VeredictoDiferido, "go-arch-lint no instalado — enforcer externo no corrido aquí")
-	}
 	if !g.once {
 		g.once = true
-		cmd := exec.CommandContext(ctx, "go-arch-lint", "check")
+		cmd := exec.CommandContext(ctx, "go", "run", "github.com/fe3dback/go-arch-lint@latest",
+			"check", "--project-path", ".", "--arch-file", "docs/architecture/fitness/.go-arch-lint.yml", "--output-color=false")
 		cmd.Dir = g.repoRoot
-		if out, err := cmd.CombinedOutput(); err != nil {
-			g.cached, g.detalle = domain.VeredictoFail, firstFail(string(out))
-		} else {
+		out, err := cmd.CombinedOutput()
+		if err == nil {
 			g.cached, g.detalle = domain.VeredictoPass, "go-arch-lint check verde"
+		} else {
+			g.cached, g.detalle = domain.VeredictoFail, firstArchLintNotice(string(out))
 		}
 	}
 	return result(c, g.cached, g.detalle)
+}
+
+// firstArchLintNotice returns the first violation line of go-arch-lint's plain-text
+// output ("Component X shouldn't depend on Y" / "File Z not attached to any component"),
+// falling back to the trimmed full output if the shape doesn't match (format change).
+func firstArchLintNotice(out string) string {
+	for _, line := range strings.Split(out, "\n") {
+		l := strings.TrimSpace(line)
+		if strings.Contains(l, "shouldn't depend") || strings.Contains(l, "not attached to any component") {
+			return l
+		}
+	}
+	return strings.TrimSpace(out)
 }
 
 // ── nl-judge ────────────────────────────────────────────────────────────────

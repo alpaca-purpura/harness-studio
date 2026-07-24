@@ -15,6 +15,7 @@ pointers:
 valida:
   - "TestPkgOf"
   - "TestTestNameOf"
+  - "docs/architecture/fitness/arch_test.go:TestGoArchLintAdapterCorreDeVerdad"
 scenarios: []
 business_rules: []
 related_capabilities:
@@ -26,6 +27,20 @@ change_log:
     date: 2026-07-14
     type: extend
     summary: "ArchTest.Run deriva el paquete del enforced_by (pkgOf): alias `arch_test.go:TestX` = fitness; ruta repo-relativa = el paquete de ese archivo; archivo inexistente = VeredictoError (colgante visible). Graduado vivo con adapters_test.go."
+    merge_sha: null
+  - story_id: 2026-07-23-resolucion-deuda-viva
+    date: 2026-07-24
+    type: fix
+    summary: >-
+      Bug real en GoArchLint.Run (HS-27, investigando el ítem "212 checks deferred"): probaba
+      `exec.LookPath("go-arch-lint")`, un binario que nunca está en el PATH ni en dev ni en CI
+      (ambos invocan `go run github.com/fe3dback/go-arch-lint@latest`, mismo comando que
+      ci.yml) — el motor difería localmente 3 checks (agent-port-existe · adapter-solo-en-root
+      · domain-no-http) que CI corre y hace cumplir de verdad. Corregido para invocar
+      exactamente el mismo comando; `TestGoArchLintAdapterCorreDeVerdad` prueba los 3 pass
+      contra el árbol real bajo `Target{Kind: TargetTodo}` (no `TargetArnes` — esos 3 checks
+      son scope `fabrica`, auditan el propio grafo de imports de ArnesIA, no un arnés target).
+      `--todo` pasa de 215 a 212 deferred (51→54 pass).
     merge_sha: null
 ---
 

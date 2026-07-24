@@ -614,6 +614,61 @@ func TestDogfoodComposicionFabricaConforma(t *testing.T) {
 	}
 }
 
+// TestGoArchLintAdapterCorreDeVerdad (HS-27, barrido de deuda viva 2026-07-24): el adapter
+// GoArchLint probaba `exec.LookPath("go-arch-lint")` antes de correr — un binario que NUNCA
+// está en el PATH ni en dev ni en CI (ambos invocan `go run github.com/fe3dback/go-arch-lint@
+// latest`, ver ci.yml step "go-arch-lint") — así que el motor difería localmente 3 checks que
+// CI corre y hace cumplir de verdad (agent-port-existe · adapter-solo-en-root ·
+// domain-no-http, los únicos 3 checks del ruleset cuyo enforcer resuelve al mecanismo
+// go-arch-lint puro, sin cita `arch_test.go` que los desvíe a ArchTest primero). Corregido el
+// adapter para invocar EXACTAMENTE el mismo comando que ci.yml.
+//
+// Scope `fabrica` (no `arnes`): estos 3 checks auditan el grafo de imports de ArnesIA MISMA
+// (`internal/domain` no importa `net/http`, etc.) — no tienen nada que ver con un arnés
+// target, así que corren bajo `Target{Kind: TargetTodo}` (el sweep que usa `--todo`), no
+// `TargetArnes` (ese va por `RunGraph`, el set hardcodeado de 21 checks — ver runArnes — que
+// NUNCA pasa por el ruteo por-mecanismo del ruleset; sin-huerfanos/dead-end/etc de
+// TestDogfoodComposicionFabricaConforma pasan ahí porque RunGraph los construye a mano con el
+// MISMO id, no porque el ruteo los alcance).
+func TestGoArchLintAdapterCorreDeVerdad(t *testing.T) {
+	root := repoRoot()
+	if root == "" {
+		return
+	}
+	adapters := []ports.MechanismAdapter{
+		mechanism.NewArchTest(root), mechanism.NewGoArchLint(root),
+		mechanism.NLJudge{},
+		mechanism.StaticScan{},
+		mechanism.SchemaAdapter{},
+	}
+	schemas := mechanism.NewSchemaSet(filepath.Join(root, "docs", "architecture", "contracts", "schema"))
+	svc := usecase.NewConformanceService(root, ruleset.New(root), schemas, adapters)
+	rep, err := svc.Run(context.Background(), ports.Target{Kind: ports.TargetTodo})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	want := []string{"agent-port-existe", "adapter-solo-en-root", "domain-no-http"}
+	found := map[string]bool{}
+	for _, r := range rep.Results {
+		if !slices.Contains(want, r.Check.ID) {
+			continue
+		}
+		found[r.Check.ID] = true
+		if r.Check.Mecanismo != domain.MecGoArchLint {
+			t.Errorf("%s: mecanismo = %s, quiero go-arch-lint (¿cambió el enforcer del .md?)", r.Check.ID, r.Check.Mecanismo)
+		}
+		if r.Veredicto != domain.VeredictoPass {
+			t.Errorf("%s: %s — %s (el propio árbol de ArnesIA debe cumplir su grafo de imports)",
+				r.Check.ID, r.Veredicto, r.Detalle)
+		}
+	}
+	for _, id := range want {
+		if !found[id] {
+			t.Errorf("check %q ausente del reporte --todo", id)
+		}
+	}
+}
+
 // ============================================================================
 // HS-07/HS-08 · doctrina v1 boundaries (enforced). The conductor loop and the
 // permission spike landed: the enforcer named in each boundary's `enforced_by:`
