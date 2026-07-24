@@ -263,10 +263,9 @@ func entradaDeCandidato(c Candidato) domain.EntradaPortafolio {
 // comparación canónica EvalSymlinks+Clean — así un checkout clasificado CANÓNICO por
 // RN-IDENT-4/C-N-12 también es observable); (3) el 5° puerto debe estar cableado (nil en
 // el subcomando CLI); (4) el loader debe resolver un *domain.Arnes real — un dir no
-// cargable jamás produce un grafo inventado. OK → indice.Upsert(ctx, g) y devuelve
-// g.Arnes.ID: el bare id EFECTIVO que quedó indexado (S1-D2 — el FE lo usa para apuntar
-// el Mapa incluso cuando colisiona con otra clave; el re-key del índice sigue siendo
-// deuda de GAP-2, fuera de este slice).
+// cargable jamás produce un grafo inventado. OK → indice.Upsert(ctx, clave, g) y devuelve
+// `clave`: el índice se indexa por la identidad CALIFICADA, no por `g.Arnes.ID` a secas —
+// cierra GAP-2/S0-D6 (deuda BACKLOG «re-key (home,id,scope)», 2026-07-23).
 func (s *PortafolioService) ObservarEnMapa(ctx context.Context, clave, installPath string) (string, error) {
 	sanas, _ := s.store.Listar()
 	var entrada domain.EntradaPortafolio
@@ -309,10 +308,15 @@ func (s *PortafolioService) ObservarEnMapa(ctx context.Context, clave, installPa
 		g.Degradado = true
 	}
 
-	if uerr := s.indice.Upsert(ctx, g); uerr != nil {
+	// Se indexa bajo `clave` (calificada home,id,scope) — jamás bajo `g.Arnes.ID` a secas,
+	// que dos arneses de homes distintos pueden compartir (deuda BACKLOG «re-key», cerrada
+	// 2026-07-23: antes el índice colisionaba en silencio y solo un aviso de la UI lo
+	// mitigaba; ahora cada clave tiene su propio slot, la colisión es estructuralmente
+	// imposible). El FE usa este `id` de vuelta como el harnessID de TODO fetch del Mapa.
+	if uerr := s.indice.Upsert(ctx, clave, g); uerr != nil {
 		return "", fmt.Errorf("portafolio: observar en Mapa: indexar: %w", uerr)
 	}
-	return g.Arnes.ID, nil
+	return clave, nil
 }
 
 // Identificar escribe el sello `arnes.l0.json` (el manifiesto de la fábrica, S1-D28) en la

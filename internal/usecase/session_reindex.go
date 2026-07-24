@@ -50,12 +50,16 @@ func NewTurnReindexer(idx ports.IndexPort, load func(dir string) (domain.Graph, 
 			g.Arnes = &domain.Arnes{ID: arnesID, Nombre: arnesID}
 			g.Degradado = true
 		}
-		if uerr := idx.Upsert(ctx, g); uerr != nil {
+		// `arnesID` es la llave del REGISTRO (la que la sesión y el Mapa ya usan — ahora la
+		// clave calificada si la sesión se abrió vía el picker del Portafolio, deuda BACKLOG
+		// «re-key», cerrada 2026-07-23) — jamás re-derivada de `g.Arnes.ID`, que puede
+		// diferir del registro (p.ej. si el árbol declara un id propio distinto).
+		if uerr := idx.Upsert(ctx, arnesID, g); uerr != nil {
 			slog.Warn("reindex tras turno: upsert falló", "arnes", arnesID, "err", uerr)
 			return
 		}
 		if pub != nil {
-			if b, merr := json.Marshal(mapFrame{HarnessID: g.Arnes.ID, Degradado: g.Degradado}); merr == nil {
+			if b, merr := json.Marshal(mapFrame{HarnessID: arnesID, Degradado: g.Degradado}); merr == nil {
 				pub.Publish(mapEventType, b)
 			}
 		}

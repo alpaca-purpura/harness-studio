@@ -13,13 +13,17 @@ import (
 )
 
 // fakeIndex registra los Upsert que recibe (RF-184).
-type fakeIndex struct{ upserts []domain.Graph }
+type fakeIndex struct {
+	upserts []domain.Graph
+	claves  []string
+}
 
 func (f *fakeIndex) Rebuild(context.Context) error                       { return nil }
 func (f *fakeIndex) Query(context.Context, string) (domain.Graph, error) { return domain.Graph{}, nil }
 func (f *fakeIndex) List(context.Context) ([]domain.Graph, error)        { return nil, nil }
-func (f *fakeIndex) Upsert(_ context.Context, g domain.Graph) error {
+func (f *fakeIndex) Upsert(_ context.Context, clave string, g domain.Graph) error {
 	f.upserts = append(f.upserts, g)
+	f.claves = append(f.claves, clave)
 	return nil
 }
 
@@ -46,6 +50,11 @@ func TestTurnReindexerUpsertaGrafo(t *testing.T) {
 	if len(idx.upserts) != 1 || idx.upserts[0].Arnes.ID != "vitalia" || len(idx.upserts[0].Nodes) != 1 {
 		t.Fatalf("upserts = %+v", idx.upserts)
 	}
+	// deuda BACKLOG «re-key (home,id,scope)», cerrada 2026-07-23: se indexa bajo el arnesID
+	// del REGISTRO (llave autoritativa), nunca re-derivado del g.Arnes.ID del grafo cargado.
+	if idx.claves[0] != "vitalia" {
+		t.Errorf("Upsert indexó bajo %q, want %q (arnesID del registro)", idx.claves[0], "vitalia")
+	}
 	if len(pub.tipos) != 1 || pub.tipos[0] != "map" || !strings.Contains(pub.datas[0], `"harness_id":"vitalia"`) {
 		t.Errorf("evento map: tipos=%v datas=%v", pub.tipos, pub.datas)
 	}
@@ -66,6 +75,9 @@ func TestTurnReindexerSinSello(t *testing.T) {
 	g := idx.upserts[0]
 	if g.Arnes == nil || g.Arnes.ID != "vitalia" || !g.Degradado {
 		t.Errorf("degradado sin sello mal sintetizado: %+v", g.Arnes)
+	}
+	if idx.claves[0] != "vitalia" {
+		t.Errorf("Upsert indexó bajo %q, want %q (arnesID del registro)", idx.claves[0], "vitalia")
 	}
 	if len(g.Nodes) != 1 {
 		t.Errorf("los nodos reconocidos deben sobrevivir: %+v", g.Nodes)

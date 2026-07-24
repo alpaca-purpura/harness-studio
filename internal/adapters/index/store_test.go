@@ -101,6 +101,71 @@ func TestQueryUnknown(t *testing.T) {
 	}
 }
 
+// TestUpsertIndexaBajoLaClaveNoElArnesID — deuda BACKLOG «re-key (home,id,scope)», cerrada
+// 2026-07-23: la llave del índice es la que el caller pasa explícito, NUNCA re-derivada del
+// propio g.Arnes.ID del grafo. Un grafo cuyo Arnes.ID difiere de la clave sigue siendo
+// consultable SOLO por la clave — así se cierra el hueco que hacía colisionar dos arneses
+// distintos con el mismo id pelado.
+func TestUpsertIndexaBajoLaClaveNoElArnesID(t *testing.T) {
+	s := New()
+	g := domain.Graph{Arnes: &domain.Arnes{ID: "harness", Marketplace: "acme/repo"}}
+	if err := s.Upsert(context.Background(), "acme-repo~harness~", g); err != nil {
+		t.Fatalf("Upsert: %v", err)
+	}
+	if _, err := s.Query(context.Background(), "harness"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("Query(harness) [el bare ID, NO la clave] = %v, want ErrNotFound", err)
+	}
+	got, err := s.Query(context.Background(), "acme-repo~harness~")
+	if err != nil {
+		t.Fatalf("Query(clave) = %v, want nil", err)
+	}
+	if got.Arnes.ID != "harness" {
+		t.Errorf("Arnes.ID = %q, want %q (el grafo viaja intacto, solo cambia la llave)", got.Arnes.ID, "harness")
+	}
+}
+
+// TestUpsertDosArnesesMismoIDNoColisionan — el caso REAL que motivó la deuda: dos arneses de
+// homes distintos comparten el mismo `id` pelado ("harness" de dos marketplaces). Antes del
+// re-key, el segundo Upsert pisaba en silencio al primero (mismo key = g.Arnes.ID); ahora
+// cada uno vive bajo su propia clave calificada.
+func TestUpsertDosArnesesMismoIDNoColisionan(t *testing.T) {
+	s := New()
+	a := domain.Graph{Arnes: &domain.Arnes{ID: "harness", Marketplace: "acme/repo", Nombre: "Acme"}}
+	b := domain.Graph{Arnes: &domain.Arnes{ID: "harness", Marketplace: "otro/repo", Nombre: "Otro"}}
+	if err := s.Upsert(context.Background(), "acme-repo~harness~", a); err != nil {
+		t.Fatalf("Upsert a: %v", err)
+	}
+	if err := s.Upsert(context.Background(), "otro-repo~harness~", b); err != nil {
+		t.Fatalf("Upsert b: %v", err)
+	}
+	gotA, err := s.Query(context.Background(), "acme-repo~harness~")
+	if err != nil || gotA.Arnes.Nombre != "Acme" {
+		t.Errorf("Query(clave-a) = %+v, %v — quiero Acme sobreviviente", gotA.Arnes, err)
+	}
+	gotB, err := s.Query(context.Background(), "otro-repo~harness~")
+	if err != nil || gotB.Arnes.Nombre != "Otro" {
+		t.Errorf("Query(clave-b) = %+v, %v — quiero Otro sobreviviente, NO pisado por a", gotB.Arnes, err)
+	}
+}
+
+// TestUpsertClaveVaciaError / TestUpsertSinManifiestoError — ambos guardas honestos: ni una
+// llave vacía ni un grafo sin manifiesto son indexables (nada inventado).
+func TestUpsertClaveVaciaError(t *testing.T) {
+	s := New()
+	err := s.Upsert(context.Background(), "", domain.Graph{Arnes: &domain.Arnes{ID: "x"}})
+	if err == nil {
+		t.Fatal("Upsert con clave vacía = nil, want error")
+	}
+}
+
+func TestUpsertSinManifiestoError(t *testing.T) {
+	s := New()
+	err := s.Upsert(context.Background(), "alguna-clave", domain.Graph{})
+	if err == nil {
+		t.Fatal("Upsert sin Arnes = nil, want error")
+	}
+}
+
 // TestListPortfolio asserts List returns every seeded harness ordered by id (the picker's
 // stable portfolio, RF-72) and includes the real dogfood arnés.
 func TestListPortfolio(t *testing.T) {

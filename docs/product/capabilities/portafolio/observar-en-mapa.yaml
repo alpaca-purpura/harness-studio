@@ -24,6 +24,7 @@ pointers:
   - "internal/domain/graph.go#Graph"
   - "internal/adapters/transport/http/portafolio.go#postObservarEnMapa"
   - "internal/ports/index.go#IndexPort"
+  - "internal/adapters/index/store.go#Store.Upsert"
 valida:
   - "TestObservarEnMapaIndexaSinRegistro"
   - "TestObservarEnMapaDegradadoSintetiza"
@@ -35,6 +36,8 @@ valida:
   - "TestAgregarProyectoPueblaRegistries"
   - "TestUpsertMergeUneFacetas"
   - "TestPortafolioObservar"
+  - "TestUpsertIndexaBajoLaClaveNoElArnesID"
+  - "TestUpsertDosArnesesMismoIDNoColisionan"
 
 dev_preview:
   route: null
@@ -46,9 +49,27 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-17
+last_modified: 2026-07-23
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D1/S1-D2/S1-D3"
 change_log:
+  - story_id: 2026-07-23-resolucion-deuda-viva
+    date: 2026-07-23
+    type: fix
+    summary: >-
+      Re-key (GAP-2/S0-D6, deuda BACKLOG): `IndexPort.Upsert` gana el parámetro `clave`
+      explícito — el índice del Mapa ya NO se re-deriva de `g.Arnes.ID` (que dos arneses
+      distintos podían compartir, pisándose en silencio). `ObservarEnMapa` indexa y
+      devuelve la CLAVE calificada, no el bare id. El mismo fix se propagó a
+      `loadArnesDir` (PUT /api/arneses/{id}) y `NewTurnReindexer` (reindex-tras-turno):
+      los 3 callers de `Upsert` en el árbol pasan su llave autoritativa explícita. FE:
+      `new-session-picker.tsx` crea sesiones con `arnes: e.clave` (antes el id pelado) —
+      cierra el círculo Register→loadArnesDir→Upsert→Session.Arnes bajo la misma llave.
+      La `ColisionConfirmDialog` de `portafolio-view.tsx` (S1-D2) se retiró: ya no protege
+      nada real, la colisión es estructuralmente imposible. Tests nuevos:
+      `TestUpsertIndexaBajoLaClaveNoElArnesID` · `TestUpsertDosArnesesMismoIDNoColisionan`
+      (la prueba central: dos arneses del mismo id pelado, ambos sobreviven) ·
+      `TestUpsertClaveVaciaError` · `TestUpsertSinManifiestoError`.
+    merge_sha: null
   - story_id: 2026-07-13-portafolio-slice1-fe
     date: 2026-07-13
     type: new
@@ -76,7 +97,7 @@ scenarios:
     name: "Observar una instalación ya persistida indexa su grafo"
     given: "una entrada del Portafolio con una instalación cuyo install_path coincide (S1-D1)"
     when: "POST /api/portafolio/arneses/{clave}/mapa con ese install_path"
-    then: "el loader carga el dir y el grafo se publica al índice del Mapa vía IndexPort.Upsert; responde {id, indexed:true} con el bare id EFECTIVO (S1-D2); arneses.json NO se toca"
+    then: "el loader carga el dir y el grafo se publica al índice del Mapa vía IndexPort.Upsert(ctx, clave, g); responde {id, indexed:true} con la CLAVE calificada (cierra GAP-2, 2026-07-23); arneses.json NO se toca"
     verifica: "TestObservarEnMapaIndexaSinRegistro · TestPortafolioObservar"
   - id: observar-canonico-checkout
     name: "El canónico de un checkout detectado (C-N-12) también es observable"
@@ -126,6 +147,12 @@ scenarios:
     when: "un nuevo Upsert de la misma identidad trae una faceta distinta, o directamente vacía"
     then: "el resultado es la unión (orden estable, sin duplicados); una faceta vacía NUNCA borra lo existente"
     verifica: "TestUpsertMergeUneFacetas"
+  - id: indice-mapa-no-colisiona-por-id-pelado
+    name: "Dos arneses del mismo id pelado no se pisan en el índice del Mapa (cierra GAP-2)"
+    given: "dos identidades del Portafolio con el mismo `id` pero `home` distinto (p.ej. dos plugins \"harness\" de marketplaces distintos)"
+    when: "ambos se observan en el Mapa"
+    then: "cada uno se indexa bajo su propia clave calificada — el segundo Upsert NO pisa al primero, ambos quedan consultables"
+    verifica: "TestUpsertDosArnesesMismoIDNoColisionan (internal/adapters/index)"
 
 business_rules:
   - id: observar-no-registra-cwd
@@ -150,7 +177,7 @@ Cierra GAP-1 (`decisiones.md` Slice 1): la única vía previa de indexar un arn�
 `~/.claude` — exactamente donde vive el cache CC (`referenciada-cc`, la forma de
 instalación MÁS COMÚN real, S0-D1). `PortafolioService` gana un 5° puerto
 `ports.IndexPort`; `ObservarEnMapa` valida clave+install_path contra el store persistido
-y publica el grafo cargado al índice, sin tocar el registro de sesión. La colisión de
-bare-id en el índice (dos identidades del Portafolio con el mismo `id`) sigue siendo
-deuda de GAP-2 — el endpoint devuelve el id EFECTIVO indexado para que el FE (Slice 1,
-T7) pueda decidir con esa información (S1-D2).
+y publica el grafo cargado al índice, sin tocar el registro de sesión. **GAP-2 cerrado
+(2026-07-23):** el índice ya no indexa por `g.Arnes.ID` a secas — `Upsert` recibe la clave
+calificada explícita, así que dos identidades del Portafolio con el mismo `id` pelado ya
+no se pisan. El endpoint devuelve esa clave como `id` de vuelta al FE.

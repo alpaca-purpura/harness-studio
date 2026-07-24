@@ -91,10 +91,12 @@
   - [x] ✅ **eslabón CC investigado** (Fable 5, 2026-07-13, S0-D1) + **corregido con evidencia real** (Sonnet 5,
     S0-D14): `~/.claude/plugins/installed_plugins.json` (v2) anida las entradas bajo una clave `plugins` —
     `{"version":2,"plugins":{"id@marketplace":[...]}}`, no en el nivel raíz como se había asumido en S0-D1.
-  - **Deuda** (registrada en `paridad.md`, no bloquea la firma): re-key del índice in-memory a `(home,id,scope)`
-    calificado sigue diferido a cuando "Abrir en Mapa" de una instalación lo exija (S0-D6, A2 acotada) · política
-    definitiva de conservación de entradas corruptas del store más allá de un ciclo save (hoy: sobrevive si es
-    JSON sintácticamente válido, se pierde si el archivo entero está roto — ver `paridad.md` desviación #4).
+  - **Deuda** (registrada en `paridad.md`, no bloquea la firma): ~~re-key del índice in-memory a
+    `(home,id,scope)` calificado~~ **CERRADA 2026-07-23** — `IndexPort.Upsert` gana la clave explícita,
+    dos arneses del mismo id pelado ya no se pisan (ver `docs/product/capabilities/portafolio/
+    observar-en-mapa.yaml`). Sigue abierta: política definitiva de conservación de entradas corruptas
+    del store más allá de un ciclo save (hoy: sobrevive si es JSON sintácticamente válido, se pierde
+    si el archivo entero está roto — ver `paridad.md` desviación #4).
 - [x] ✅ **1. FE Portafolio** — construido (Sonnet 5, T1-T8, 2026-07-14) + gate humano 🧑‍⚖️ FIRMADO
   2026-07-22 (HS-25). 3 superficies (Lista/lente empresa · Wizard-Proyecto/carpeta-local · Drawer READ) +
   Observar (Abrir en Mapa, cierra GAP-1) + Desvincular con confirmación; 34 stories `play()` +
@@ -112,14 +114,15 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
-- [Slice1-FE] **re-key del índice in-memory a `(home,id,scope)` calificado SIGUE abierta** (S0-D6/GAP-2):
-  Slice 1 la ACOTÓ visible (colisión de bare-id detectada por `idsColisionados` + confirmación explícita
-  antes de observar, S1-D2) pero NO la resolvió — el re-key global (index + MapService + endpoints +
-  picker + sesiones) sigue siendo cirugía de otro paquete · `deuda`
 - [Slice1-FE] filtros `estado`/`marketplace` de la toolbar del Portafolio — distinta afordancia
   que una lente (acotan sin reagrupar), quedaron disabled+tooltip (S1-D8); las lentes
   `proyecto`/`marketplace` YA se construyeron (2026-07-23, mismo patrón N:M que
   `agruparPorEmpresa`); los filtros siguen sin slice asignado, diferidos si alguien los pide · `deuda`
+- [a11y] **`.text-warn` no cumple contraste mínimo** (axe `color-contrast`, ratio 3.76 vs 4.5
+  requerido — `#c96a2e` sobre `#ffffff`): destapado 2026-07-23 corriendo
+  `new-session-picker.stories.tsx` (4 stories fallan en la a11y gate cuando
+  `ConversacionesDelArnes` renderiza su error de fetch, `.text-warn`). Preexistente, sin
+  relación con el re-key — fix de token de color, no tocado en este cierre · `deuda`
 - [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`
 - [HS-11] **FE del botón «Correr» de una caja** — el backend YA es async con gate post-run
   (`POST .../boxes/{id}/run` → 202+run_id · `GET .../runs/{runId}` · construido 2026-07-23);

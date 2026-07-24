@@ -127,7 +127,10 @@ func runServe(args []string) error {
 		if err != nil {
 			return fmt.Errorf("cargar arnés %s desde %s: %w", id, path, err)
 		}
-		return idx.Upsert(ctx, g)
+		// `id` es la llave que el caller ya eligió (PUT /api/arneses/{id}, o el re-load al
+		// boot desde arnesReg.List()) — se indexa bajo ESA, jamás re-derivada del propio
+		// g.Arnes.ID del grafo cargado (deuda BACKLOG «re-key (home,id,scope)», 2026-07-23).
+		return idx.Upsert(ctx, id, g)
 	}
 	agent := claudecode.New(resolveClaudeBin(*claudeBin)) // the Dock conductor.
 

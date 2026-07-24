@@ -56,40 +56,37 @@ func (s *Store) Query(_ context.Context, harnessID string) (domain.Graph, error)
 	return g, nil
 }
 
-// List returns every indexed harness graph, ordered by id for a stable portfolio (S1).
+// List returns every indexed harness graph, ordered by clave for a stable portfolio (S1).
 func (s *Store) List(_ context.Context) ([]domain.Graph, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	out := make([]domain.Graph, 0, len(s.graphs))
-	for _, g := range s.graphs {
-		out = append(out, g)
+	claves := make([]string, 0, len(s.graphs))
+	for k := range s.graphs {
+		claves = append(claves, k)
 	}
-	sort.Slice(out, func(i, j int) bool {
-		return graphID(out[i]) < graphID(out[j])
-	})
+	sort.Strings(claves)
+	out := make([]domain.Graph, 0, len(claves))
+	for _, k := range claves {
+		out = append(out, s.graphs[k])
+	}
 	return out, nil
 }
 
-// Upsert inserts or replaces one harness graph by its manifiesto id. A graph without
-// manifiesto no es indexable (no hay clave honesta) — error explícito, jamás una clave
-// inventada.
-func (s *Store) Upsert(_ context.Context, g domain.Graph) error {
-	id := graphID(g)
-	if id == "" {
+// Upsert inserts or replaces one harness graph bajo `clave` — la llave AUTORITATIVA que el
+// caller decide (deuda BACKLOG «re-key (home,id,scope)», 2026-07-23: nunca se re-deriva del
+// propio `g.Arnes.ID`, que dos arneses distintos pueden compartir). Un grafo sin manifiesto
+// no es indexable (no hay nada que mostrar) — error explícito, jamás un grafo inventado.
+func (s *Store) Upsert(_ context.Context, clave string, g domain.Graph) error {
+	if clave == "" {
+		return errors.New("index: clave vacía — no indexable")
+	}
+	if g.Arnes == nil {
 		return errors.New("index: grafo sin manifiesto (arnes.id) — no indexable")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.graphs[id] = g
+	s.graphs[clave] = g
 	return nil
-}
-
-// graphID is the harness id of a graph ("" if it carries no manifiesto).
-func graphID(g domain.Graph) string {
-	if g.Arnes == nil {
-		return ""
-	}
-	return g.Arnes.ID
 }
 
 // seed loads a minimal demo harness so the wiring is observable.

@@ -35,15 +35,19 @@ func (fakeDeriva) Evaluar(string, string, string, string) (domain.EstadoDeriva, 
 
 // fakeIndex satisface ports.IndexPort — el único método que el endpoint de observar
 // ejercita es Upsert (S1-D1).
-type fakeIndex struct{ upserted []domain.Graph }
+type fakeIndex struct {
+	upserted []domain.Graph
+	claves   []string
+}
 
 func (f *fakeIndex) Rebuild(context.Context) error { return nil }
 func (f *fakeIndex) Query(context.Context, string) (domain.Graph, error) {
 	return domain.Graph{}, nil
 }
 func (f *fakeIndex) List(context.Context) ([]domain.Graph, error) { return nil, nil }
-func (f *fakeIndex) Upsert(_ context.Context, g domain.Graph) error {
+func (f *fakeIndex) Upsert(_ context.Context, clave string, g domain.Graph) error {
 	f.upserted = append(f.upserted, g)
+	f.claves = append(f.claves, clave)
 	return nil
 }
 
@@ -175,11 +179,16 @@ func TestPortafolioObservar(t *testing.T) {
 		if derr := json.Unmarshal(w.Body.Bytes(), &body); derr != nil {
 			t.Fatal(derr)
 		}
-		if body["id"] != "harness-x" || body["indexed"] != true {
-			t.Fatalf("wire infiel: %+v", body)
+		// El "id" devuelto ES la clave calificada (deuda BACKLOG «re-key», cerrada
+		// 2026-07-23) — nunca el g.Arnes.ID pelado, que otro arnés distinto podría compartir.
+		if body["id"] != clave || body["indexed"] != true {
+			t.Fatalf("wire infiel: %+v (want id=%q)", body, clave)
 		}
 		if len(idx.upserted) != 1 {
 			t.Fatalf("indice.Upsert llamado %d veces, quiero 1", len(idx.upserted))
+		}
+		if idx.claves[0] != clave {
+			t.Errorf("Upsert indexó bajo %q, want la clave calificada %q", idx.claves[0], clave)
 		}
 	})
 

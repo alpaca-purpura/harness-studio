@@ -106,7 +106,9 @@ export function NewSessionPicker({
     // 1 copia → ruta resuelta ya; 2+ → hay que elegir cuál (sub-lista) antes de habilitar Crear.
     setCopiaPath(copias.length === 1 ? (copias[0]?.path ?? null) : null)
     // Historial B2 (RF-203): las conversaciones pasadas de este arnés, junto al selector.
-    void useConversaciones.getState().cargar(identificadorDe(e.identidad))
+    // Clave calificada (deuda BACKLOG «re-key», cerrada 2026-07-23) — las sesiones NUEVAS se
+    // crean bajo `e.clave` (ver crear()), así que buscar por ahí es lo que las encuentra.
+    void useConversaciones.getState().cargar(e.clave)
   }
 
   const crear = () => {
@@ -117,7 +119,10 @@ export function NewSessionPicker({
     // RF-191: elegir una instalación (no el canónico) abre la sesión como REPARACIÓN.
     const copia = copiasDe(e).find((c) => c.path === copiaPath)
     onCrear({
-      arnes: identificadorDe(e.identidad),
+      // clave calificada (home,id,scope), NUNCA el id pelado — deuda BACKLOG «re-key»,
+      // cerrada 2026-07-23: cierra el círculo Register→loadArnesDir→Upsert→Session.Arnes
+      // bajo la MISMA llave sin colisión, dos arneses del mismo id ya no se pisan.
+      arnes: e.clave,
       path: copiaPath,
       ...(empresas.length > 0 ? { empresa: empresas.join(" · ") } : {}),
       ...(copia && !copia.esCanonico ? { reparacion: true } : {}),

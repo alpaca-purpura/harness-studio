@@ -42,7 +42,7 @@ func arnesConFuente(t *testing.T, id, dir string) *index.Store {
 			{ID: "absoluta", Clase: domain.ClaseRule, Nombre: "abs", FuentePath: filepath.Join(dir, "CLAUDE.md")},
 		},
 	}
-	if err := idx.Upsert(context.Background(), g); err != nil {
+	if err := idx.Upsert(context.Background(), id, g); err != nil {
 		t.Fatalf("Upsert: %v", err)
 	}
 	return idx

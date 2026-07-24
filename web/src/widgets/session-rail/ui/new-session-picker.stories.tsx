@@ -51,7 +51,13 @@ export const CasoSimple: Story = {
     await expect(crear).toBeEnabled()
 
     await userEvent.click(crear)
-    await expect(args.onCrear).toHaveBeenCalledWith({ arnes: "harness", path: HARNESS_PATH })
+    // `arnes` es la clave calificada (deuda BACKLOG «re-key», cerrada 2026-07-23), no el id
+    // pelado — cierra Register→loadArnesDir→Upsert bajo la MISMA llave sin colisión.
+    await expect(args.onCrear).toHaveBeenCalledWith({
+      arnes: "sin-home~harness~github-com-alpacapurpura-luana-vitalia",
+      path: HARNESS_PATH,
+      reparacion: true,
+    })
   },
 }
 
@@ -72,7 +78,7 @@ export const CasoAmbiguo: Story = {
 
     await userEvent.click(crear)
     await expect(args.onCrear).toHaveBeenCalledWith({
-      arnes: "acme-cli",
+      arnes: "github-com-acme-acme-cli~acme-cli~",
       empresa: "alpacapurpura",
       path: "~/dev/acme-cli",
     })

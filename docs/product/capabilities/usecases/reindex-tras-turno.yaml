@@ -31,3 +31,7 @@ Después de cada `EventResult` del conductor, el usecase re-corre el loader sobr
 la sesión y upsertea el grafo al índice del Mapa — con degradación honesta (sin sello → síntesis
 HuellaPath; árbol roto → grafo vacío Degradado), jamás la foto vieja. Vive en el usecase, no en
 el conductor (boundary adaptadores-de-agente-intercambiables).
+
+**Re-key (2026-07-23, GAP-2):** `idx.Upsert(ctx, arnesID, g)` indexa bajo el `arnesID` del
+REGISTRO (la llave de la sesión, ahora la clave calificada si se abrió vía el picker del
+Portafolio) — nunca re-derivado del `g.Arnes.ID` del grafo recién cargado.

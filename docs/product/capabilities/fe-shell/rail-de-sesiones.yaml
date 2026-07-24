@@ -11,6 +11,7 @@ verb: crear
 pointers:
   - "web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail"
   - "web/src/widgets/session-rail/ui/new-session-picker.tsx#NewSessionPicker"
+  - "web/src/entities/portafolio/model/selectors.ts#idsColisionados"
   - "web/src/widgets/session-rail/model/portafolio-picker-store.ts#usePortafolioPicker"
   - "web/src/widgets/session-rail/model/portafolio-picker-store.test.ts#usePortafolioPicker"
   - "web/src/shared/store/app-store.ts#toggleTheme"
@@ -28,3 +29,9 @@ source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-72)"
 # Rail de sesiones (crear/renombrar/cerrar/switch)
 
 Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+
+**Re-key (2026-07-23, GAP-2/S0-D6):** `new-session-picker.tsx#crear` manda `arnes: e.clave`
+(la clave calificada del Portafolio), no el id pelado — cierra el círculo
+Register→loadArnesDir→Upsert→Session.Arnes bajo la misma llave sin colisión (ver
+`docs/product/capabilities/portafolio/observar-en-mapa.yaml`). El historial previo
+(`useConversaciones.cargar`) sigue la misma clave.

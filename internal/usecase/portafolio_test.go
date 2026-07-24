@@ -79,6 +79,7 @@ func (f *fakePortafolioStore) Checkouts() []string { return f.checkouts }
 // llamados desde este service (el 5° puerto es de solo-escritura acá).
 type fakeIndexPort struct {
 	upserted []domain.Graph
+	claves   []string
 	err      error
 }
 
@@ -87,8 +88,9 @@ func (f *fakeIndexPort) Query(context.Context, string) (domain.Graph, error) {
 	return domain.Graph{}, nil
 }
 func (f *fakeIndexPort) List(context.Context) ([]domain.Graph, error) { return nil, nil }
-func (f *fakeIndexPort) Upsert(_ context.Context, g domain.Graph) error {
+func (f *fakeIndexPort) Upsert(_ context.Context, clave string, g domain.Graph) error {
 	f.upserted = append(f.upserted, g)
+	f.claves = append(f.claves, clave)
 	return f.err
 }
 
@@ -231,9 +233,11 @@ func TestServiceRootProtegido(t *testing.T) {
 
 // TestObservarEnMapaIndexaSinRegistro cubre el camino feliz: una entrada YA PERSISTIDA con
 // una instalación cuyo install_path coincide se publica al índice del Mapa — el fake index
-// recibe exactamente el grafo cargado por el loader, y devuelve el bare id EFECTIVO
-// (S1-D2). "cero interacción con ArnesRegistry" es estructural: PortafolioService no
-// recibe ese puerto en su constructor en absoluto — observar NO registra cwd.
+// recibe exactamente el grafo cargado por el loader, indexado bajo la CLAVE calificada
+// (deuda BACKLOG «re-key (home,id,scope)», cerrada 2026-07-23 — antes era el bare
+// g.Arnes.ID, colisionable). "cero interacción con ArnesRegistry" es estructural:
+// PortafolioService no recibe ese puerto en su constructor en absoluto — observar NO
+// registra cwd.
 func TestObservarEnMapaIndexaSinRegistro(t *testing.T) {
 	store := newFakePortafolioStore()
 	installPath := filepath.Join(t.TempDir(), "instalacion")
@@ -256,11 +260,14 @@ func TestObservarEnMapaIndexaSinRegistro(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ObservarEnMapa: %v", err)
 	}
-	if id != "harness-x" {
-		t.Errorf("id = %q, quiero %q (el bare id EFECTIVO indexado, S1-D2)", id, "harness-x")
+	if id != clave {
+		t.Errorf("id = %q, quiero la clave calificada %q", id, clave)
 	}
 	if len(idx.upserted) != 1 {
 		t.Fatalf("indice.Upsert llamado %d veces, quiero 1", len(idx.upserted))
+	}
+	if idx.claves[0] != clave {
+		t.Errorf("Upsert indexó bajo %q, want la clave calificada %q", idx.claves[0], clave)
 	}
 	if idx.upserted[0].Arnes == nil || idx.upserted[0].Arnes.ID != "harness-x" {
 		t.Errorf("grafo indexado = %+v, no es el que cargó el loader", idx.upserted[0])
@@ -294,15 +301,22 @@ func TestObservarEnMapaDegradadoSintetiza(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ObservarEnMapa degradado NO debe fallar (S1-D27): %v", err)
 	}
-	if id == "" {
-		t.Fatal("el degradado debe indexar con una llave sintética no vacía (huella de path)")
+	// El id devuelto (y la llave del índice) es la CLAVE calificada de la entrada persistida
+	// (deuda BACKLOG «re-key», cerrada 2026-07-23) — no la huella de path recién sintetizada
+	// para el `g.Arnes.ID` interno del grafo (esa sigue siendo un fallback de DISPLAY, ya no
+	// la llave del índice).
+	if id != clave {
+		t.Errorf("id = %q, quiero la clave calificada %q", id, clave)
 	}
 	if len(idx.upserted) != 1 {
 		t.Fatalf("indice.Upsert llamado %d veces, quiero 1", len(idx.upserted))
 	}
+	if idx.claves[0] != clave {
+		t.Errorf("Upsert indexó bajo %q, want la clave calificada %q", idx.claves[0], clave)
+	}
 	g := idx.upserted[0]
-	if g.Arnes == nil || g.Arnes.ID != id {
-		t.Errorf("grafo indexado sin arnés sintético estable: %+v (id=%q)", g.Arnes, id)
+	if g.Arnes == nil || g.Arnes.ID == "" {
+		t.Errorf("grafo indexado sin arnés sintético estable: %+v", g.Arnes)
 	}
 	if !g.Degradado {
 		t.Error("el grafo indexado debe seguir marcado Degradado")
