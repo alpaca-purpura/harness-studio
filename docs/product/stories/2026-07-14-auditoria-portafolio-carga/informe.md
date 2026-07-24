@@ -31,6 +31,20 @@ Los 10 capabilities: punteros 100 % resolubles, 0 huérfanos R2, R4 consistente.
 | H9 | baja | `cap_doctor.py` GROUP_ORDER sin `portafolio`/`fe-portafolio` (caían al fallback alfabético). | Agregados. |
 | H10 | baja | CAP-90 decía «10 stories» — el archivo tiene 11 (todas con `play()`; 2 las reclama CAP-92). `checkpoint.md` decía «T8 sin commitear» — ya está en main (`b35ff6c`). | Ambos textos corregidos. |
 
+## Cierre de deuda H3 (2026-07-23)
+
+`TestCapabilityPointerSymbolsResolve` construido (`capability_symbol_resolve_test.go`): Go exacto
+vía `go/parser`, TS/TSX/Rust por regex de declaración+miembro+import (sin parser TS/Rust en la
+stdlib de Go). Corrida contra las 101 hojas reales: 17 fallos iniciales — 15 eran símbolos reales
+que la primera versión del regex TS (solo top-level) no reconocía (propiedades de store Zustand,
+miembros de interface, imports re-usados; regex ampliado) y **2 eran los bugs de datos genuinos
+que H3 predijo podían colarse**: `fe-shell/rail-de-sesiones.yaml` tenía un puntero
+`#portafolio-picker-store` (nombre del archivo, no un identificador — corregido a
+`#usePortafolioPicker`, el símbolo real que ese test importa y ejercita) y un puntero
+`sessions-store.ts#create` sin relación con el widget (eliminado). Doctrina actualizada
+(`codigo-traza-a-capability` v1.5). `go build ./...`, `go vet`, suite `fitness` completa y
+`cap_doctor.py` verdes.
+
 ## Lo que NO se tocó (y por qué)
 
 - **`paridad.md` de ambos slices**: son evidencia de las sesiones de build, pendiente/objeto de

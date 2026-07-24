@@ -139,6 +139,78 @@ func TestCapabilityPointersResolve(t *testing.T) {
 	}
 }
 
+// capPointerTokens recorre las hojas capability (+ _coverage.yaml) y devuelve los tokens CRUDOS
+// del bloque `pointers:`/`support_files:` (sin recortar en `#`) — insumo de la resolución de
+// símbolo, que necesita la parte `#Símbolo` que `capClaims` descarta.
+func capPointerTokens(t *testing.T) (root string, tokens []string) {
+	t.Helper()
+	root = repoRoot()
+	capDir := filepath.Join(root, "docs", "product", "capabilities")
+	var files []string
+	werr := filepath.WalkDir(capDir, func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !de.IsDir() && strings.HasSuffix(path, ".yaml") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if werr != nil {
+		t.Fatalf("no se pudo recorrer docs/product/capabilities: %v", werr)
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f) //nolint:gosec // rutas del propio árbol del repo
+		if err != nil {
+			t.Fatalf("no se pudo leer %s: %v", f, err)
+		}
+		inBlock := false
+		for _, ln := range strings.Split(string(b), "\n") {
+			trimmed := strings.TrimSpace(ln)
+			if trimmed == "pointers:" || trimmed == "support_files:" {
+				inBlock = true
+				continue
+			}
+			if !inBlock {
+				continue
+			}
+			if strings.HasPrefix(trimmed, "- ") {
+				if m := capQuoted.FindStringSubmatch(ln); m != nil {
+					tokens = append(tokens, m[1])
+				}
+				continue
+			}
+			inBlock = false
+		}
+	}
+	return root, tokens
+}
+
+// TestCapabilityPointerSymbolsResolve — R1 a nivel símbolo (BACKLOG, auditoría 2026-07-14): la
+// parte `#Símbolo` de un puntero `file#Símbolo` debe existir DECLARADA en el archivo — no solo
+// que el archivo exista (eso ya lo cubre TestCapabilityPointersResolve). Un símbolo renombrado o
+// borrado sin actualizar el capability ahora rompe el enforcer en vez de pasar en silencio.
+func TestCapabilityPointerSymbolsResolve(t *testing.T) {
+	root, tokens := capPointerTokens(t)
+	var bad []string
+	for _, tok := range tokens {
+		file, symbol, ok := capPointerParts(tok)
+		if !ok || symbol == "" {
+			continue // sin extensión de código fuente, o puntero legítimo sin símbolo (archivo/paquete)
+		}
+		abs := filepath.Join(root, filepath.FromSlash(file))
+		if _, err := os.Stat(abs); err != nil {
+			continue // archivo inexistente: ya lo reporta TestCapabilityPointersResolve, no duplicar
+		}
+		if resolves, why := capSymbolResolves(abs, symbol); !resolves {
+			bad = append(bad, fmt.Sprintf("%s#%s (%s)", file, symbol, why))
+		}
+	}
+	if len(bad) > 0 {
+		t.Fatalf("R1 símbolo: %d puntero(s) cuyo #Símbolo no resuelve en el archivo:\n  %s", len(bad), strings.Join(bad, "\n  "))
+	}
+}
+
 // capMeta = frontmatter de una hoja capability, lo mínimo para R4 (estado ⟺ evidencia · puntero estable).
 type capMeta struct {
 	file        string
@@ -176,34 +248,66 @@ func capMetas(t *testing.T) (metas []capMeta) {
 			t.Fatalf("no se pudo leer %s: %v", f, err)
 		}
 		rel, _ := filepath.Rel(root, f)
-		m := capMeta{file: filepath.ToSlash(rel)}
-		inValida, inPointers := false, false
-		for _, ln := range strings.Split(string(b), "\n") {
-			trimmed := strings.TrimSpace(ln)
-			switch {
-			case strings.HasPrefix(trimmed, "status:"):
-				v := strings.TrimSpace(strings.TrimPrefix(trimmed, "status:"))
-				if i := strings.Index(v, "#"); i >= 0 { // corta el comentario inline
-					v = strings.TrimSpace(v[:i])
-				}
-				m.status = v
-			case trimmed == "valida:":
-				inValida, inPointers = true, false
-			case trimmed == "pointers:":
-				inPointers, inValida = true, false
-			case inValida && strings.HasPrefix(trimmed, "- "):
-				m.validaCount++
-			case inPointers && strings.HasPrefix(trimmed, "- "):
-				if mm := capQuoted.FindStringSubmatch(ln); mm != nil {
-					m.pointers = append(m.pointers, mm[1])
-				}
-			default:
-				inValida, inPointers = false, false
-			}
-		}
-		metas = append(metas, m)
+		metas = append(metas, parseCapMeta(filepath.ToSlash(rel), string(b)))
 	}
 	return metas
+}
+
+// parseCapMeta parsea el frontmatter de UNA hoja capability (línea a línea, sin dep de YAML en
+// Go). `status:` solo cuenta a columna 0 (clave top-level) — el `status:` anidado bajo
+// `scenarios[]` (live/wip/deprecated, otro enum) va indentado y NO debe pisar el status real.
+func parseCapMeta(rel, content string) capMeta {
+	m := capMeta{file: rel}
+	inValida, inPointers := false, false
+	for _, ln := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(ln)
+		switch {
+		case strings.HasPrefix(ln, "status:"): // col 0 = clave top-level; nested (scenarios[].status) va indentado
+			v := strings.TrimSpace(strings.TrimPrefix(trimmed, "status:"))
+			if i := strings.Index(v, "#"); i >= 0 { // corta el comentario inline
+				v = strings.TrimSpace(v[:i])
+			}
+			m.status = v
+		case trimmed == "valida:":
+			inValida, inPointers = true, false
+		case trimmed == "pointers:":
+			inPointers, inValida = true, false
+		case inValida && strings.HasPrefix(trimmed, "- "):
+			m.validaCount++
+		case inPointers && strings.HasPrefix(trimmed, "- "):
+			if mm := capQuoted.FindStringSubmatch(ln); mm != nil {
+				m.pointers = append(m.pointers, mm[1])
+			}
+		default:
+			inValida, inPointers = false, false
+		}
+	}
+	return m
+}
+
+// TestParseCapMetaIgnoraStatusAnidadoDeEscenario — regresión (BACKLOG «capMetas no parsea YAML
+// real», S1-D16): un scenario BDD con su propio `status: live` (indentado, enum live/wip/deprecated)
+// no debe pisar el `status:` root de la capability (enum vivo/vivo·nc/parcial/stub).
+func TestParseCapMetaIgnoraStatusAnidadoDeEscenario(t *testing.T) {
+	fixture := `---
+status: vivo
+valida:
+  - TestAlgo
+pointers:
+  - "internal/algo.go#Algo"
+scenarios:
+  - id: caso-1
+    name: "Caso 1"
+    status: live
+    given: "x"
+    when: "y"
+    then: "z"
+---
+`
+	m := parseCapMeta("fixture.yaml", fixture)
+	if m.status != "vivo" {
+		t.Fatalf("status root pisado por scenarios[].status: got %q, want %q", m.status, "vivo")
+	}
 }
 
 // TestCapabilityStatusConsistent — R4 `cap-estado-generado` (forma determinista): el estado no puede

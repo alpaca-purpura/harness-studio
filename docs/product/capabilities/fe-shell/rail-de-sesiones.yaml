@@ -12,8 +12,7 @@ pointers:
   - "web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail"
   - "web/src/widgets/session-rail/ui/new-session-picker.tsx#NewSessionPicker"
   - "web/src/widgets/session-rail/model/portafolio-picker-store.ts#usePortafolioPicker"
-  - "web/src/widgets/session-rail/model/portafolio-picker-store.test.ts#portafolio-picker-store"
-  - "web/src/shared/store/sessions-store.ts#create"
+  - "web/src/widgets/session-rail/model/portafolio-picker-store.test.ts#usePortafolioPicker"
   - "web/src/shared/store/app-store.ts#toggleTheme"
 valida: []
 scenarios:

@@ -1,7 +1,7 @@
 ---
 regla: codigo-traza-a-capability
-version: 1.4
-updated: 2026-07-14
+version: 1.5
+updated: 2026-07-23
 status: enforced
 ledger: HS-20
 sources:
@@ -13,6 +13,7 @@ sources:
     revisado: 2026-07-09
 enforced_by:
   - docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersResolve
+  - docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointerSymbolsResolve
   - docs/architecture/fitness/capability_trace_test.go:TestCapabilityCoverage
   - docs/architecture/fitness/capability_trace_test.go:TestCapabilityStatusConsistent
   - docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersStable
@@ -44,9 +45,12 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
 - `docs/product/capabilities/{module}/{slug}.yaml` (una hoja por capability) lista cada capability
   con `punteros:` al código autoritativo (`file#Símbolo`) y `valida:` su check. Estado
   (`vivo`/`sin-check`/`stub`) derivado del check. `INDEX.md` = índice generado (`cap_doctor.py --index`).
-- **Integridad (R1):** cada puntero resuelve a un ARCHIVO real → no hay doc colgante. Honestidad
-  del alcance: la parte `#Símbolo` del puntero HOY no se verifica (el enforcer hace stat del path
-  recortado en `#`) — un símbolo renombrado pasa en silencio. Resolución de símbolo = deuda BACKLOG.
+- **Integridad (R1):** cada puntero resuelve a un ARCHIVO real → no hay doc colgante
+  (`TestCapabilityPointersResolve`). **Desde v1.5, además resuelve el `#Símbolo`**
+  (`TestCapabilityPointerSymbolsResolve`): Go vía `go/parser` (funcs top-level, métodos
+  `Tipo.Método`, types, consts, vars) — exacto; TS/TSX/Rust vía regex de declaración (no hay
+  parser en la stdlib de Go) — declaración top-level + miembro de interface/object-literal +
+  especificador de `import`. Un símbolo renombrado o borrado ahora rompe el enforcer.
 - **Cobertura (R2):** todo archivo fuente bajo `cmd/`, `internal/`, `web/src/`, `web/src-tauri/src/`
   está reclamado por ≥1 capability → no hay código huérfano. Allowlist explícito y con razón para
   generados, `*_test.go`, `embed_*.go`, boilerplate.
@@ -66,7 +70,8 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| cap-ptr-resuelve | cada `punteros:` de `docs/product/capabilities/` resuelve a un ARCHIVO real del árbol (el `#Símbolo` aún no se verifica — deuda) | error | «capability apunta a código inexistente (doc colgante)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersResolve |
+| cap-ptr-resuelve | cada `punteros:` de `docs/product/capabilities/` resuelve a un ARCHIVO real del árbol | error | «capability apunta a código inexistente (doc colgante)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointersResolve |
+| cap-ptr-simbolo-resuelve | la parte `#Símbolo` del puntero está DECLARADA en el archivo (Go: `go/parser` exacto · TS/TSX/Rust: regex de declaración/miembro/import) | error | «capability apunta a un símbolo que no existe (renombrado o borrado)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityPointerSymbolsResolve |
 | cap-sin-huerfano | todo archivo fuente (`cmd`/`internal`/`web/src`/`src-tauri/src`) está reclamado por ≥1 capability, salvo allowlist con razón | error | «archivo de código sin capability (huérfano)» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityCoverage |
 | cap-commit-toca-registro | un commit que modifica código fuente también construye o modifica un capability en `docs/product/capabilities/` | warn | «código cambiado sin actualizar el SSoT funcional» | lefthook pre-commit (capabilities) — feedback local, no bloquea CI |
 | cap-estado-consistente | el `estado` no contradice su evidencia (`vivo`/`parcial`⟹tiene `valida:` · `vivo·nc`/`stub`⟹sin `valida:`); nunca fabricado a mano | warn | «estado de capability incoherente con su check» | docs/architecture/fitness/capability_trace_test.go:TestCapabilityStatusConsistent |
@@ -74,6 +79,16 @@ registro.** La historia de usuario es el *delta*; el capability es el *saldo*.
 
 ## Changelog
 
+- 2026-07-23 · v1.5 · **R1 a nivel símbolo cerrado** (deuda registrada en v1.4): nuevo enforcer
+  `TestCapabilityPointerSymbolsResolve` (`capability_symbol_resolve_test.go`) resuelve el
+  `#Símbolo` de cada puntero — Go exacto (`go/parser`: funcs, métodos `Tipo.Método`, types,
+  consts, vars), TS/TSX/Rust por regex de declaración top-level + miembro (interface/object-literal/
+  método shorthand) + especificador de `import`. Corrida contra las 101 hojas reales: 17 falsos-
+  negativos iniciales, 15 eran símbolos reales (regex TS demasiado angosta, ampliada) y 2 eran
+  bugs de datos genuinos en `fe-shell/rail-de-sesiones.yaml` (un puntero `#portafolio-picker-store`
+  con el nombre del archivo en vez de un identificador real, corregido a `#usePortafolioPicker`; un
+  puntero `sessions-store.ts#create` sin relación con el widget, eliminado). 0 falsos-positivos tras
+  el fix — el enforcer no fabrica pass.
 - 2026-07-14 · v1.4 · Auditoría Portafolio: (a) los `enforced_by` apuntaban a
   `fitness/arch_test.go` pero los 4 tests viven en `fitness/capability_trace_test.go` —
   refs corregidas a la ruta real (el motor ahora resuelve rutas repo-relativas, cf.
