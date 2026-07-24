@@ -119,7 +119,23 @@
   `new-session-picker.stories.tsx` (4 stories fallan en la a11y gate cuando
   `ConversacionesDelArnes` renderiza su error de fetch, `.text-warn`). Preexistente, sin
   relación con el re-key — fix de token de color, no tocado en este cierre · `deuda`
-- [HS-09/11] telemetría JSONL → indexer real ⇒ desbloquea capas Tokens/Desempeño/Proceso del Mapa · `bloqueo`
+- [HS-09/11/telemetria-de-nacimiento] **telemetría embebida vía OTel nativo ⇒ desbloquea la capa
+  Tokens del Mapa** — **arquitectura RESUELTA 2026-07-24** (ya NO es "bloqueo" de diseño; era 2
+  ítems del BACKLOG que resultaron ser el mismo trabajo). Verificado con doc oficial de Claude
+  Code: `CLAUDE_CODE_ENABLE_TELEMETRY` + OTel nativo YA emite `claude_code.token.usage`/
+  `claude_code.cost.usage` con atribución `skill.name`/`tool_name` limpia — sin hook custom, sin
+  Langfuse, sin parsear JSONL (coherente con `conductor-no-parsea-jsonl.md`). Diseño: receptor
+  OTLP embebido loopback-only en el daemon + scaffold inyecta env vars (nunca infraestructura
+  externa — orden del operador: el instalador jamás depende de Langfuse/Docker). Detalle en
+  [`docs/architecture/boundaries/telemetria-de-nacimiento.md`](../architecture/boundaries/telemetria-de-nacimiento.md)
+  v2.0 → [`stories/2026-07-24-telemetria-embebida-otel/INDEX.md`](stories/2026-07-24-telemetria-embebida-otel/INDEX.md).
+  Falta: mockup de la capa Tokens (ni el mockup "destino" la dibuja) → spec → build → PARIDAD ·
+  `deuda` (ya no `bloqueo` — el diseño está resuelto, falta construir)
+- [HS-09/11] **capas Desempeño/Proceso del Mapa** — estas SÍ siguen genuinamente bloqueadas (no
+  recortables como Tokens): Desempeño necesita latencia/reintentos que solo OTel `hook_*`/
+  `api_retry` ve + diseño de qué es "desempeño" a nivel Mapa; Proceso necesita mapear eventos a
+  fases del arnés (diseño no trivial). Mismo receptor OTLP embebido del ítem de arriba las
+  alimentaría, pero necesitan su propio diseño de datos primero · `bloqueo`
 - [HS-11] **FE del botón «Correr» de una caja** — el backend YA es async con gate post-run
   (`POST .../boxes/{id}/run` → 202+run_id · `GET .../runs/{runId}` · construido 2026-07-23);
   `inspector.tsx` («Corridas donde actuó») solo tiene prosa «al implementar…», sin botón, sin
@@ -131,9 +147,6 @@
 - [doctrina-una-fuente-dos-targets] `kit/doctrine.md` es prosa mantenida a mano, sin drift-check
   contra `docs/architecture/knowledge/`/METODOLOGIA — construir el freshness-check (candidato:
   verificar que las secciones citadas por número siguen existiendo en esa forma) · `deuda`
-- [telemetria-de-nacimiento] mismo trabajo sin construir que «telemetría JSONL → indexer real»
-  (ver ítem `bloqueo` arriba): `scaffold` que materialice el hook `telemetry-emit` + collector
-  OTLP embebido — no duplicar esfuerzo, un solo paquete cierra ambos ángulos · `bloqueo`
 - [chat] fase presentación: assistant-ui + CodeMirror merge + widgets ricos (decisión #5) · `deuda`
 - [HS-09] 212 checks `deferred` → correr en CI (hoy solo la ruta `--arnes`) · `deuda`
 - [HS-16] loader reconocedores `deferred`: subagent · plugin-nodo-raíz · edges-de-librería (necesitan diseño) · `deuda`
