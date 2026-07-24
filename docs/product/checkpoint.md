@@ -6,11 +6,19 @@
 ## Fase del gran plan
 
 **Fase 5 (Implementación) EN CURSO.** Fases 1-4 ✓ (Visión · UX · Arquitectura · Specs).
-Última ficha cerrada: **HS-26** (chat dock legible y ergonómico — 6 quejas + cariño markdown,
-CAP-99/CAP-100, 3 firmas en el día, 2026-07-22). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
+Última ficha cerrada: **HS-27** (barrido de deuda viva, 6 ítems — filtros Portafolio construidos ·
+arquitectura de telemetría OTel resuelta · CI reparado [gosec + go-arch-lint + 10 lint] ·
+botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → `LEDGER.md` → `ledger/HS-NN.md`.
 
 ## Paquete de trabajo activo
 
+- **Botón «Correr» de una caja — mockup publicado, PAUSADO por el operador (2026-07-24, HS-27).**
+  Tras la explicación funcional del botón, el operador prefirió seguir con el resto del barrido
+  antes de firmar. Retomar en [`stories/2026-07-23-boton-correr-caja/INDEX.md`](stories/2026-07-23-boton-correr-caja/INDEX.md).
+- **Telemetría embebida vía OTel nativo — arquitectura RESUELTA, sin construir (HS-27).** Capa
+  Tokens del Mapa: receptor OTLP embebido loopback-only + scaffold env vars, Langfuse 100%
+  opcional. Falta mockup (ninguno existe hoy) → spec → build. Ver
+  [`stories/2026-07-24-telemetria-embebida-otel/INDEX.md`](stories/2026-07-24-telemetria-embebida-otel/INDEX.md).
 - **Chat dock · legibilidad y ergonomía (2026-07-22) — CERRADO Y FIRMADO 🧑‍⚖️ (HS-26).**
   Las 6 quejas + cariño markdown, verificadas E2E vivo (claude real contra vitalia); CAP-99 +
   CAP-100. Paquete [`stories/2026-07-22-chat-dock-ux/`](stories/2026-07-22-chat-dock-ux/INDEX.md).

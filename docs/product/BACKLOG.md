@@ -199,8 +199,25 @@
     no relacionados, también arreglados. `golangci-lint run` + `go-arch-lint check` + `go test
     ./... -race` limpios de punta a punta.
 - [HS-16] loader reconocedores `deferred`: subagent · plugin-nodo-raíz · edges-de-librería (necesitan diseño) · `deuda`
-- [HS-16 Grupo A] 6 checks composición `deferred` (rediseño de motor; bloqueado por SQLite fase5 / OTel / modo-por-fase) · `bloqueo`
-- [HS-16 Grupo C] `gate-honesto`: necesita diseño previo · `deuda`
+- [HS-16 Grupo A] **6 checks composición `deferred` — re-verificado 2026-07-24, SIGUEN
+  bloqueados tal cual (sin cambios desde HS-16, 2026-07-08).** `index-reconstruible` ·
+  `sin-migracion-incremental` · `writer-serializado` (`indice-desechable-jsonl-es-verdad.md`)
+  esperan SQLite fase 5 real (hoy: `internal/adapters/index/store.go` sigue
+  `// TODO(fase 5)`, CAP-21/22/23 siguen vivo·in-memory/parcial/stub) · `modo-por-fase`
+  (`permisos-gui-human-in-the-loop.md`) espera permission-mode por fase (hoy:
+  `--permission-mode` hardcodeado a `"default"` en `conductor.go`) · `hooks-desde-otel`
+  espera el canal OTel de Desempeño — **confirmado explícitamente fuera de alcance** de la
+  arquitectura de telemetría resuelta hoy (ítem de arriba: esa cubre SOLO la capa Tokens).
+  Ninguno recortable hoy · `bloqueo`
+- [HS-16 Grupo C] `gate-honesto` — **re-verificado 2026-07-24, sin cambios**:
+  `domain.VerificarGateHonesto` sigue sin existir (grep confirma), deuda de diseño pura (definir
+  la semántica de "gate honesto" vs fantasma), sin dependencia de SQLite/OTel · `deuda`
+- [conductor-no-parsea-jsonl] **posible hallazgo stale, sin verificar a fondo — `ctx-derivado-etiquetado`**:
+  HS-16 lo agrupó junto a `hooks-desde-otel` como "esperan OTel", pero `ctxPct`
+  (`conductor.go:616`, commit `b91a061`, 2026-07-22 — POSTERIOR a HS-16) ya calcula
+  `% contexto` desde stream-json puro, sin OTel. Puede ser el mismo patrón que el Grupo B de
+  HS-16 (enforcer real ya vive, solo falta el wrapper `arch_test.go` nombrado) — no verificado
+  a fondo ni construido en esta sesión · `deuda`
 
 ## Capabilities / doctrina (reorg 2026-07-09, FIRMADO)
 
