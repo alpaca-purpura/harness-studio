@@ -258,7 +258,12 @@ function PasoCandidatos({
   if (candidatos.length === 0) {
     return (
       <div className="pf-wizard-vacio">
-        <p>No encontré arneses instalados aquí.</p>
+        <p>
+          No encontré arneses instalados aquí. Busco proyectos con <code>.claude/</code> poblado,
+          plugins materializados en <code>.claude/plugins/</code> o habilitados por Claude Code — si
+          esta carpeta es la fuente de un arnés/plugin en sí misma (no un proyecto que lo instaló),
+          este asistente no la reconoce.
+        </p>
         <PasoFuente
           path={path}
           onPathChange={onPathChange}

@@ -365,7 +365,7 @@ export const SinHallazgos: Story = {
   args: { estado: "candidatos", candidatos: [] },
   play: async ({ canvasElement, args }) => {
     const c = within(canvasElement)
-    await expect(c.getByText("No encontré arneses instalados aquí.")).toBeInTheDocument()
+    await expect(c.getByText(/No encontré arneses instalados aquí/)).toBeInTheDocument()
     await expect(canvasElement.querySelectorAll(".pf-wizard-candidato")).toHaveLength(0)
 
     const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
