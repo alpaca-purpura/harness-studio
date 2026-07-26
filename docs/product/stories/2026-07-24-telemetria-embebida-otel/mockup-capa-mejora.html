@@ -1,0 +1,673 @@
+<!--
+  ArnesIA — capa «Mejora» del Mapa · MOCKUP (propuesta, iteración 1) · 2026-07-26
+  Paquete: docs/product/stories/2026-07-24-telemetria-embebida-otel/
+
+  FORK del baseline vigente `mockups/arnesia-mapa-baseline.html` (derivado de las stories
+  @a01d845). SSoT del UI = Storybook (map-bar.tsx · map-canvas.tsx · inspector.tsx).
+
+  DOS DESVIACIONES DECLARADAS, ninguna silenciosa:
+  1. TOKENS: el baseline del Mapa quedó en la paleta ÁMBAR pre-rebrand. Acá se usan los tokens
+     PRENTER vigentes, copiados literal de web/src/app/styles/theme.css (mismo criterio que los
+     mockups de voz-dictado y marketplace). Las familias tipográficas se copian con su cadena de
+     respaldo completa: la CSP bloquea CDNs de fuentes, así que se ve con el fallback del sistema,
+     igual que la app cuando la fuente no cargó.
+  2. El slot `Tokens` del conmutador de capas pasa a llamarse «Mejora» (D17.1) — cambia una
+     etiqueta de un baseline firmado. Va al gate como desviación, no colada.
+
+  CIFRAS: la FORMA es real; los montos son ilustrativos, anclados en la medición propia del
+  2026-07-26 (USD 0,0185 y USD 0,0126 por turno con claude-haiku-4-5, ver
+  verificacion-2026-07-26/INFORME.md). El grafo es el dogfood `dev-full-cycle` de las stories.
+-->
+<style>
+  /* ═══ tokens — copia literal de web/src/app/styles/theme.css (PRENTER) ═══ */
+  :root{
+    --background:#f6f8f8;--foreground:#0e1312;--card:#ffffff;--card-foreground:#0e1312;
+    --popover:#ffffff;--primary:#00b7aa;--primary-foreground:#000000;
+    --secondary:#eef1f1;--muted:#eef1f1;--muted-foreground:#4d5555;
+    --accent-soft:rgba(0,183,170,.14);--border:#e1e6e6;--input:#c9d1d1;--ring:#1fc6b8;
+    --c-skill:#2f74b5;--c-agent:#7455c2;--c-hook:#bb4c85;--c-knowledge:#20826f;--c-mcp:#586c80;
+    --c-rule:#7a7a24;--c-command:#0f7f96;--c-plugin:#9c7b1a;--c-settings:#766753;
+    --ok:#2e8f5e;--warn:#c96a2e;--crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13);--warn-soft:rgba(201,106,46,.13);--crit-soft:rgba(201,69,69,.12);
+    --heat-1:rgba(205,105,55,.10);--heat-2:rgba(205,105,55,.22);--heat-3:rgba(205,105,55,.36);--heat-4:rgba(205,105,55,.50);
+    --radius-sm:4px;--radius-md:8px;--radius-lg:14px;--radius-full:9999px;
+    --text-xs:11px;--text-sm:12.5px;--text-base:14px;--text-lg:16px;--text-xl:20px;--text-2xl:26px;
+    --font-display:Jost,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-sans:Mulish,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --shadow-sm:0 1px 3px rgba(11,15,14,.07),0 1px 2px rgba(11,15,14,.04);
+    --shadow-md:0 4px 14px rgba(11,15,14,.08),0 2px 4px rgba(11,15,14,.04);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --background:#000000;--foreground:rgba(255,255,255,.92);--card:#0c1110;--popover:#141a19;
+    --primary:#1fc6b8;--secondary:#141a19;--muted:#141a19;--muted-foreground:rgba(255,255,255,.58);
+    --border:#1f2826;--input:rgba(0,183,170,.35);
+    --c-skill:#5b9dd9;--c-agent:#9b7fd4;--c-hook:#d46a9e;--c-knowledge:#4fb3a1;--c-mcp:#8195a9;
+    --c-rule:#b5b558;--c-command:#49aec7;--c-plugin:#cdae54;--c-settings:#a4917c;
+    --ok:#57b380;--warn:#e0904f;--crit:#e25b5b;
+    --ok-soft:rgba(87,179,128,.14);--warn-soft:rgba(224,144,79,.14);--crit-soft:rgba(226,91,91,.13);
+    --heat-1:rgba(224,144,79,.10);--heat-2:rgba(224,144,79,.20);--heat-3:rgba(224,144,79,.32);--heat-4:rgba(224,144,79,.46);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.5);--shadow-md:0 4px 14px rgba(0,0,0,.55);
+  }}
+  :root[data-theme="dark"]{
+    --background:#000000;--foreground:rgba(255,255,255,.92);--card:#0c1110;--popover:#141a19;
+    --primary:#1fc6b8;--secondary:#141a19;--muted:#141a19;--muted-foreground:rgba(255,255,255,.58);
+    --border:#1f2826;--input:rgba(0,183,170,.35);
+    --c-skill:#5b9dd9;--c-agent:#9b7fd4;--c-hook:#d46a9e;--c-knowledge:#4fb3a1;--c-mcp:#8195a9;
+    --c-rule:#b5b558;--c-command:#49aec7;--c-plugin:#cdae54;--c-settings:#a4917c;
+    --ok:#57b380;--warn:#e0904f;--crit:#e25b5b;
+    --ok-soft:rgba(87,179,128,.14);--warn-soft:rgba(224,144,79,.14);--crit-soft:rgba(226,91,91,.13);
+    --heat-1:rgba(224,144,79,.10);--heat-2:rgba(224,144,79,.20);--heat-3:rgba(224,144,79,.32);--heat-4:rgba(224,144,79,.46);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.5);--shadow-md:0 4px 14px rgba(0,0,0,.55);
+  }
+  :root[data-theme="light"]{
+    --background:#f6f8f8;--foreground:#0e1312;--card:#ffffff;--popover:#ffffff;
+    --primary:#00b7aa;--secondary:#eef1f1;--muted:#eef1f1;--muted-foreground:#4d5555;
+    --border:#e1e6e6;--input:#c9d1d1;
+    --c-skill:#2f74b5;--c-agent:#7455c2;--c-hook:#bb4c85;--c-knowledge:#20826f;--c-mcp:#586c80;
+    --c-rule:#7a7a24;--c-command:#0f7f96;--c-plugin:#9c7b1a;--c-settings:#766753;
+    --ok:#2e8f5e;--warn:#c96a2e;--crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13);--warn-soft:rgba(201,106,46,.13);--crit-soft:rgba(201,69,69,.12);
+    --heat-1:rgba(205,105,55,.10);--heat-2:rgba(205,105,55,.22);--heat-3:rgba(205,105,55,.36);--heat-4:rgba(205,105,55,.50);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--background);color:var(--foreground);
+       font-family:var(--font-sans);font-size:var(--text-base);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ═══ chrome del documento (solo del mockup, no del producto) ═══ */
+  .doc{max-width:1180px;margin:0 auto;padding:32px 20px 96px;display:flex;flex-direction:column;gap:14px}
+  .doc-hd h1{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:600;margin:0 0 6px;text-wrap:balance;letter-spacing:-.01em}
+  .doc-hd p{margin:0;color:var(--muted-foreground);font-size:var(--text-sm);max-width:68ch}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);overflow:hidden;margin-top:18px}
+  .panel-hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--secondary) 55%,transparent)}
+  .panel-hd h2{font-family:var(--font-display);margin:0;font-size:var(--text-lg);font-weight:600;letter-spacing:-.005em}
+  .panel-hd .why{flex:1 1 100%;margin:0;color:var(--muted-foreground);font-size:var(--text-sm);max-width:74ch}
+  .panel-bd{padding:16px}
+  .badge{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+         border-radius:var(--radius-full);padding:2px 8px;white-space:nowrap;border:1px solid}
+  .badge.vig{color:var(--muted-foreground);border-color:var(--border);background:var(--secondary)}
+  .badge.prop{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 45%,transparent);background:var(--accent-soft)}
+  .badge.desv{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft)}
+
+  /* ═══ MapBar — calcado de map-bar.tsx ═══ */
+  .mapbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);padding:10px 14px}
+  .picker{border:1px solid var(--border);background:var(--secondary);color:var(--foreground);border-radius:var(--radius-md);padding:4px 8px;font-family:var(--font-mono);font-size:var(--text-xs)}
+  .mchip{border:1px solid var(--border);background:var(--secondary);color:var(--muted-foreground);border-radius:6px;padding:2px 6px;font-family:var(--font-mono);font-size:var(--text-xs)}
+  .mchip b{color:var(--foreground);font-weight:600}
+  .seg{display:flex;align-items:center;gap:2px;border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-lg);padding:2px}
+  .seg .lbl{padding:0 6px;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-foreground)}
+  .seg button{font:inherit;font-size:var(--text-xs);cursor:pointer;border:0;background:transparent;color:var(--muted-foreground);border-radius:6px;padding:4px 10px}
+  .seg button[aria-selected="true"],.seg button[aria-pressed="true"]{background:var(--card);color:var(--foreground);font-weight:600;box-shadow:var(--shadow-sm)}
+  .seg button:disabled{opacity:.4;cursor:not-allowed}
+  .seg button:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+
+  /* ═══ franja de contexto de la capa (NUEVO) ═══ */
+  .ctxbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;border:1px solid var(--border);border-top:0;
+          border-radius:0 0 var(--radius-md) var(--radius-md);background:color-mix(in srgb,var(--primary) 4%,var(--card));padding:10px 14px}
+  .ctx-total{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:700;letter-spacing:-.01em}
+  .ctx-total .u{font-size:var(--text-xs);font-weight:600;color:var(--muted-foreground);margin-right:3px}
+  .ctx-sub{font-size:var(--text-xs);color:var(--muted-foreground)}
+  .ctx-note{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);color:var(--warn);
+            border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);background:var(--warn-soft);border-radius:var(--radius-full);padding:2px 9px}
+  .cov{display:flex;align-items:center;gap:7px;font-size:var(--text-xs);color:var(--muted-foreground);margin-left:auto}
+  .covbar{display:flex;width:132px;height:7px;border-radius:var(--radius-full);overflow:hidden;border:1px solid var(--border)}
+  .covbar i{display:block;height:100%}
+
+  /* ═══ Canvas — calcado de map-canvas.tsx ═══ */
+  .procrow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:6px}
+  .lane{flex:none;width:232px;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+  .lane-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--border);padding:9px 12px}
+  .lane-hd h3{margin:0;font-size:var(--text-sm);font-weight:600}
+  .lane-body{display:flex;flex-direction:column;gap:10px;padding:12px}
+  .gutter{flex:none;width:76px;display:flex;flex-direction:column;gap:6px;padding:46px 8px 0}
+  .artchip{display:flex;flex-direction:column;gap:1px;border:1px solid color-mix(in srgb,var(--c-knowledge) 40%,var(--border));
+           border-left:3px solid var(--c-knowledge);background:color-mix(in srgb,var(--c-knowledge) 8%,var(--card));border-radius:var(--radius-md);padding:5px 7px}
+  .artchip .a-nm{font-family:var(--font-mono);font-size:9px;font-weight:600;line-height:1.2}
+
+  .node{position:relative;display:flex;flex-direction:column;gap:5px;width:100%;text-align:left;
+        border:1px solid var(--border);border-left:3px solid var(--tc,var(--border));border-radius:var(--radius-md);
+        background:var(--secondary);padding:10px 12px;font:inherit;color:var(--foreground)}
+  .node.caja{border-left-width:5px;background:color-mix(in srgb,var(--tc) 9%,var(--secondary));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc) 22%,transparent)}
+  .node-top{display:flex;align-items:flex-start;gap:7px;padding-right:38px}
+  .node-nm{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:600;line-height:1.3}
+  .node-trans{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:9px;color:var(--tc);
+              background:color-mix(in srgb,var(--tc) 8%,transparent);border:1px solid color-mix(in srgb,var(--tc) 30%,var(--border));border-radius:var(--radius-full);padding:0 7px}
+  .node-trans::before{content:"\25C7";font-size:8px;opacity:.8}
+  .caja-badge{position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;
+              color:var(--tc);border:1px solid var(--tc);border-radius:var(--radius-full);padding:0 6px;opacity:.9}
+  .glyph{flex:none;display:grid;place-items:center;width:17px;height:17px;background:var(--tc);color:var(--card);
+         font-family:var(--font-mono);font-weight:700;font-size:10px;line-height:1}
+  .glyph.square{border-radius:3px}.glyph.circle{border-radius:50%}.glyph.shield{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)}
+  .glyph.hexagon{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+
+  /* ═══ marcas de la capa Mejora (NUEVO) ═══ */
+  .node.mej{padding-bottom:16px}
+  .mej-cifra{display:flex;align-items:baseline;gap:6px;font-family:var(--font-mono);font-size:var(--text-sm);font-weight:700}
+  .mej-cifra .pct{font-size:var(--text-xs);font-weight:600;color:var(--muted-foreground)}
+  .mej-cifra.inexacta{border-bottom:1px dotted currentColor;align-self:flex-start;cursor:help}
+  .share{position:absolute;left:0;right:0;bottom:0;height:5px;background:color-mix(in srgb,var(--border) 55%,transparent);border-radius:0 0 4px 4px;overflow:hidden}
+  .share i{display:block;height:100%;background:var(--warn);opacity:.85}
+  .fuga{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;font-family:var(--font-mono);font-size:9px;font-weight:700;
+        color:var(--crit);border:1px solid color-mix(in srgb,var(--crit) 45%,transparent);background:var(--crit-soft);border-radius:var(--radius-full);padding:1px 7px}
+  .fuga.leve{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft)}
+  .node.sindato{opacity:.62;border-left-style:dotted}
+  .sindato-lbl{font-size:9px;font-style:italic;color:var(--muted-foreground)}
+  .heat1{background:var(--heat-1)}.heat2{background:var(--heat-2)}.heat3{background:var(--heat-3)}.heat4{background:var(--heat-4)}
+
+  /* ═══ tarjeta de punto de mejora (NUEVO) ═══ */
+  .mejora{border:1px solid color-mix(in srgb,var(--warn) 42%,transparent);border-left:4px solid var(--warn);
+          border-radius:var(--radius-md);background:color-mix(in srgb,var(--warn) 5%,var(--card));padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .mejora h3{margin:0;font-size:var(--text-base);font-weight:700;line-height:1.35;text-wrap:balance}
+  .mejora h3 .ic{color:var(--warn);margin-right:6px}
+  .mejora .lede{margin:0;font-size:var(--text-sm);color:var(--foreground);max-width:72ch}
+  .mejora dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:var(--text-sm)}
+  .mejora dt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted-foreground);padding-top:3px}
+  .mejora dd{margin:0}
+  .mejora .calc{font-family:var(--font-mono);font-size:var(--text-xs)}
+  .mejora .sesgo{color:var(--muted-foreground);font-style:italic}
+  .fixrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:10px}
+  .fixrow .fix{flex:1 1 260px;font-size:var(--text-sm)}
+  .fixrow code{font-family:var(--font-mono);font-size:var(--text-xs);background:var(--secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1px 5px}
+  .btn{font:inherit;font-size:var(--text-sm);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);border-radius:var(--radius-md);padding:6px 12px}
+  .btn.primary{border-color:var(--primary);color:var(--primary);background:var(--accent-soft);font-weight:600}
+  .btn:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+  .scorev{font-family:var(--font-mono);font-size:9px;color:var(--muted-foreground)}
+
+  /* ═══ Inspector — calcado de inspector.tsx ═══ */
+  .drawer{width:380px;max-width:100%;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);
+          box-shadow:var(--shadow-md);display:flex;flex-direction:column;overflow:hidden}
+  .dw-head{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border)}
+  .dw-head .glyph{width:22px;height:22px;font-size:12px}
+  .dw-nombre{font-family:var(--font-mono);font-size:var(--text-base);font-weight:700;line-height:1.25}
+  .dw-handle{font-size:var(--text-xs);color:var(--muted-foreground)}
+  .dw-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--border);overflow-x:auto}
+  .dw-tab{font:inherit;font-size:var(--text-sm);cursor:pointer;border:0;border-bottom:2px solid transparent;background:transparent;
+          color:var(--muted-foreground);padding:6px 10px;white-space:nowrap}
+  .dw-tab[aria-selected="true"]{color:var(--foreground);font-weight:600;border-bottom-color:var(--primary)}
+  .dw-body{padding:14px 15px;display:flex;flex-direction:column;gap:15px}
+  .sec>h4{margin:0 0 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-foreground)}
+  .tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+  .tbl th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:0 0 5px;font-weight:700}
+  .tbl td{padding:3px 0;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
+  .tbl td.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  .tbl td.na{color:var(--muted-foreground);font-style:italic}
+  .paridad{display:flex;justify-content:space-between;gap:10px;font-size:var(--text-sm);
+           border:1px solid color-mix(in srgb,var(--ok) 35%,transparent);background:var(--ok-soft);border-radius:var(--radius-md);padding:7px 10px}
+  .paridad .ok{color:var(--ok);font-weight:600}
+  .det{display:flex;gap:8px;font-size:var(--text-sm);padding:4px 0;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
+  .det .dot{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px}
+  .det .dot.on{background:var(--warn)}.det .dot.off{background:var(--border)}.det .dot.clean{background:var(--ok)}
+  .det .txt{flex:1}
+  .det .na{color:var(--muted-foreground);font-size:var(--text-xs);display:block}
+
+  /* ═══ Portafolio (NUEVO) ═══ */
+  .pf{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+  .pf th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:0 10px 7px 0}
+  .pf td{padding:9px 10px 9px 0;border-top:1px solid var(--border);vertical-align:middle}
+  .pf .arn{font-family:var(--font-mono);font-weight:600}
+  .pf .puesto{color:var(--muted-foreground);font-size:var(--text-xs)}
+  .pf .n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .spark{display:inline-flex;align-items:flex-end;gap:2px;height:20px}
+  .spark i{display:block;width:5px;background:color-mix(in srgb,var(--primary) 55%,transparent);border-radius:1px}
+  .spark i.last{background:var(--primary)}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);border-radius:var(--radius-full);padding:2px 9px;border:1px solid}
+  .tag.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:var(--warn-soft)}
+  .tag.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:var(--ok-soft)}
+  .tag.none{color:var(--muted-foreground);border-color:var(--border);background:var(--secondary)}
+
+  /* ═══ estados honestos ═══ */
+  .states{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+  .state{border:1px solid var(--border);border-radius:var(--radius-md);background:color-mix(in srgb,var(--secondary) 40%,transparent);padding:12px 13px;display:flex;flex-direction:column;gap:6px}
+  .state h4{margin:0;font-size:var(--text-sm);font-weight:700}
+  .state .demo{border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--card);padding:8px 10px;font-size:var(--text-xs)}
+  .state .demo .big{font-family:var(--font-mono);font-size:var(--text-base);font-weight:700}
+  .state p{margin:0;font-size:var(--text-xs);color:var(--muted-foreground)}
+
+  /* ═══ traza ═══ */
+  .traza{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+  .traza th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:0 10px 6px 0}
+  .traza td{padding:6px 10px 6px 0;border-top:1px solid var(--border);vertical-align:top}
+  .traza td:first-child{font-family:var(--font-mono);font-size:var(--text-xs);white-space:nowrap;color:var(--primary)}
+  .scroll{overflow-x:auto}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="doc">
+  <header class="doc-hd">
+    <h1>Capa «Mejora» del Mapa — propuesta de mockup</h1>
+    <p>El entregable no es un contador de tokens: es la frase <em>«este arnés, en este puesto, quema
+    $X — y el 60&nbsp;% se va en la caja Y, que falla el gate 3 de cada 4 veces»</em>. Todo lo que sigue
+    existe para poder decirla, o para admitir con precisión cuándo no se puede.</p>
+    <div class="legend">
+      <span class="badge vig">vigente · calcado del baseline</span>
+      <span class="badge prop">propuesta</span>
+      <span class="badge desv">desviación declarada</span>
+    </div>
+  </header>
+
+  <!-- 1 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>1 · Lo vigente</h2><span class="badge vig">vigente</span>
+      <p class="why">La barra tal como está hoy en <code>map-bar.tsx</code>. Tres capas
+      deshabilitadas desde el MVP, con el tooltip «Necesita telemetría». Es el punto de partida:
+      la propuesta es superset de esto, no un rediseño.</p>
+    </div>
+    <div class="panel-bd">
+      <div class="mapbar">
+        <select class="picker" aria-label="Arnés"><option>dev-full-cycle</option></select>
+        <div class="mchip">empresa <b>alpacapurpura</b></div>
+        <div class="mchip">rol <b>Ingeniería · Desarrollo full-cycle</b></div>
+        <div class="seg" role="group" aria-label="Artefactos">
+          <span class="lbl">artefactos</span>
+          <button type="button" aria-pressed="false">off</button>
+          <button type="button" aria-pressed="true">auto</button>
+          <button type="button" aria-pressed="false">todos</button>
+        </div>
+        <div class="seg" role="tablist" aria-label="Capas del mapa">
+          <button type="button" role="tab" aria-selected="true">Estructura</button>
+          <button type="button" role="tab" disabled title="Necesita telemetría (indexer JSONL)">Tokens</button>
+          <button type="button" role="tab" disabled title="Necesita telemetría (indexer JSONL)">Desempeño</button>
+          <button type="button" role="tab" disabled title="Necesita telemetría (indexer JSONL)">Proceso</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>2 · La barra con la capa activa</h2>
+      <span class="badge desv">renombra un slot firmado</span><span class="badge prop">propuesta</span>
+      <p class="why">El slot <code>Tokens</code> pasa a llamarse <strong>Mejora</strong> y se enciende
+      (D17.1). Los cuatro slots siguen existiendo: no se quita nada, cambia una etiqueta —&nbsp;y por eso
+      va al gate declarada. <code>Desempeño</code> y <code>Proceso</code> siguen apagados, pero el
+      tooltip ya no puede decir «necesita telemetría»: <strong>la señal llega</strong>, lo que falta es
+      el diseño.</p>
+    </div>
+    <div class="panel-bd">
+      <div class="mapbar" style="border-radius:var(--radius-md) var(--radius-md) 0 0">
+        <select class="picker" aria-label="Arnés"><option>dev-full-cycle</option></select>
+        <div class="mchip">empresa <b>alpacapurpura</b></div>
+        <div class="seg" role="group" aria-label="Artefactos">
+          <span class="lbl">artefactos</span>
+          <button type="button" aria-pressed="false">off</button>
+          <button type="button" aria-pressed="true">auto</button>
+          <button type="button" aria-pressed="false">todos</button>
+        </div>
+        <div class="seg" role="tablist" aria-label="Capas del mapa">
+          <button type="button" role="tab" aria-selected="false">Estructura</button>
+          <button type="button" role="tab" aria-selected="true">Mejora</button>
+          <button type="button" role="tab" disabled title="La señal ya llega (duration_ms). Falta el diseño de qué es «desempeño» a nivel Mapa">Desempeño</button>
+          <button type="button" role="tab" disabled title="Entra parcialmente por la capa Mejora. Falta el mapeo completo de eventos a fases">Proceso</button>
+        </div>
+      </div>
+      <div class="ctxbar">
+        <label class="picker" style="display:inline-flex;gap:6px;align-items:center">
+          ventana <select style="font:inherit;background:transparent;color:inherit;border:0"><option>7 días</option><option>30 días</option><option>todo</option></select>
+        </label>
+        <div>
+          <div class="ctx-total num"><span class="u">USD</span>4,82</div>
+          <div class="ctx-sub num">61 corridas · 12 sesiones · 4 cajas</div>
+        </div>
+        <span class="ctx-note">estimado por el runtime, no es facturación</span>
+        <div class="cov">
+          <div class="covbar" role="img" aria-label="Cobertura: 12 exactas, 3 por huella, 2 sin dato">
+            <i class="heat4" style="flex:12"></i><i class="heat2" style="flex:3"></i><i style="flex:2;background:var(--border)"></i>
+          </div>
+          <span class="num">12 exactas · 3 por huella · 2 sin dato</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>3 · El canvas — misma geografía, tres marcas nuevas</h2><span class="badge prop">propuesta</span>
+      <p class="why">Nada se mueve de sitio. Solo <strong>las cajas</strong> llevan cifra: la
+      granularidad que la telemetría permite de verdad es <code>arnés × caja × sesión × turno</code>.
+      Un número sobre un nodo de conocimiento o una regla sería inventado —&nbsp;esos van
+      <strong>«sin dato atribuible»</strong>, nunca en cero.</p>
+    </div>
+    <div class="panel-bd scroll">
+      <div class="procrow">
+        <div class="lane">
+          <div class="lane-hd"><h3>spec</h3><span class="mchip num">USD 1,92</span></div>
+          <div class="lane-body">
+            <div class="node caja mej" style="--tc:var(--c-skill)">
+              <span class="caja-badge">caja</span>
+              <div class="node-top"><span class="glyph square">S</span><span class="node-nm">escribir el spec</span></div>
+              <span class="node-trans">idea → spec</span>
+              <div class="mej-cifra num">USD 1,92 <span class="pct">40 %</span></div>
+              <span class="fuga">re-warm TTL</span>
+              <div class="share"><i style="width:40%"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="gutter"><div class="artchip"><span class="a-nm">spec.md</span></div></div>
+        <div class="lane">
+          <div class="lane-hd"><h3>build</h3><span class="mchip num">USD 1,54</span></div>
+          <div class="lane-body">
+            <div class="node caja mej" style="--tc:var(--c-skill)">
+              <span class="caja-badge">caja</span>
+              <div class="node-top"><span class="glyph square">S</span><span class="node-nm">construir contra el spec</span></div>
+              <span class="node-trans">spec → construido</span>
+              <div class="mej-cifra num">USD 1,54 <span class="pct">32 %</span></div>
+              <div class="share"><i style="width:32%"></i></div>
+            </div>
+            <div class="node sindato" style="--tc:var(--c-agent)">
+              <div class="node-top"><span class="glyph circle">A</span><span class="node-nm">escribir pruebas</span></div>
+              <span class="sindato-lbl">sin dato atribuible — el subagente no se distingue en el turno</span>
+            </div>
+          </div>
+        </div>
+        <div class="gutter"><div class="artchip"><span class="a-nm">código+tests</span></div></div>
+        <div class="lane">
+          <div class="lane-hd"><h3>review</h3><span class="mchip num">USD 0,89</span></div>
+          <div class="lane-body">
+            <div class="node caja mej" style="--tc:var(--c-skill)">
+              <span class="caja-badge">caja</span>
+              <div class="node-top"><span class="glyph square">S</span><span class="node-nm">revisar el build</span></div>
+              <span class="node-trans">construido → revisado</span>
+              <div class="mej-cifra num">USD 0,89 <span class="pct">18 %</span></div>
+              <span class="fuga">3 de 4 rechazos en gate</span>
+              <div class="share"><i style="width:18%"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="gutter"><div class="artchip"><span class="a-nm">veredicto</span></div></div>
+        <div class="lane">
+          <div class="lane-hd"><h3>release</h3><span class="mchip num">USD 0,47</span></div>
+          <div class="lane-body">
+            <div class="node caja mej" style="--tc:var(--c-skill)">
+              <span class="caja-badge">caja</span>
+              <div class="node-top"><span class="glyph square">S</span><span class="node-nm">promover a prod</span></div>
+              <span class="node-trans">revisado → liberado</span>
+              <div class="mej-cifra inexacta num" title="Atribuido por huella del arnés (plugin_id_hash): corrió fuera de ArnesIA">USD 0,47 <span class="pct">10 %</span></div>
+              <span class="fuga leve">por huella</span>
+              <div class="share"><i style="width:10%"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px">
+        <div class="node sindato" style="--tc:var(--c-rule);width:222px">
+          <div class="node-top"><span class="glyph shield">R</span><span class="node-nm">estándar de spec</span></div>
+          <span class="sindato-lbl">sin dato atribuible — una regla no consume por sí misma</span>
+        </div>
+        <div class="node sindato" style="--tc:var(--c-mcp);width:222px">
+          <div class="node-top"><span class="glyph hexagon">M</span><span class="node-nm">acceso a la API</span></div>
+          <span class="sindato-lbl">sin dato atribuible — el costo del MCP va en la caja que lo llama</span>
+        </div>
+      </div>
+      <p class="ctx-sub" style="margin-top:12px">
+        La cifra de <strong>release</strong> va con subrayado punteado: su
+        <code>atribucion_confianza</code> no es <code>exacta</code>. Cada número carga cómo se
+        atribuyó —&nbsp;esa es la diferencia entre un tablero y un tablero honesto.
+      </p>
+    </div>
+  </section>
+
+  <!-- 4 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>4 · La tarjeta de punto de mejora</h2><span class="badge prop">propuesta</span>
+      <p class="why">El corazón del entregable. Regla A4: una cifra entra solo si sale de dato propio,
+      está cotizada en dinero y viene con <strong>un</strong> fix. Y A3: el sesgo se declara, y va
+      <strong>en contra</strong> de la recomendación —&nbsp;si igual conviene, conviene de verdad.</p>
+    </div>
+    <div class="panel-bd" style="display:flex;flex-direction:column;gap:12px">
+      <div class="mejora">
+        <h3><span class="ic">⚠</span>La caja «escribir el spec» reescribe el cache en cada corrida</h3>
+        <p class="lede">Gasta <strong class="num">USD 0,84</strong> de los <span class="num">1,92</span> de la caja
+        (<span class="num">44 %</span>) escribiendo cache que se vence antes de volver a leerse.</p>
+        <dl>
+          <dt>Contrafactual</dt>
+          <dd class="num">con TTL de 1 h, las mismas 14 corridas costaban <strong>USD 0,31</strong> → diferencia <strong>USD 0,53</strong> por corrida</dd>
+          <dt>Umbral</dt>
+          <dd class="calc">relectura 61 % &gt; break-even (2−1,25)/(2−0,1) = 39,47 % &nbsp;<button type="button" class="btn" style="padding:1px 8px;font-size:var(--text-xs)">ver el cálculo</button></dd>
+          <dt>Confianza</dt>
+          <dd class="num">exacta · 14 de 14 corridas con atribución</dd>
+          <dt>Sesgo</dt>
+          <dd class="sesgo">asume 0 lecturas fuera de la ventana de 7 días → <strong>subestima</strong> el ahorro</dd>
+        </dl>
+        <div class="fixrow">
+          <span class="fix">Fijar <code>cache_ttl: 1h</code> en esta caja</span>
+          <span class="scorev">score v1</span>
+          <button type="button" class="btn">Descartar</button>
+          <button type="button" class="btn primary">Proponerlo en el chat</button>
+        </div>
+      </div>
+
+      <div class="mejora" style="border-left-color:var(--crit);border-color:color-mix(in srgb,var(--crit) 42%,transparent);background:color-mix(in srgb,var(--crit) 5%,var(--card))">
+        <h3><span class="ic" style="color:var(--crit)">⚠</span>La caja «revisar el build» se rechaza en el gate 3 de cada 4 veces</h3>
+        <p class="lede">Las corridas rechazadas costaron <strong class="num">USD 0,67</strong> de los
+        <span class="num">0,89</span> de la caja (<span class="num">75 %</span>): se paga el trabajo, se descarta el resultado.
+        <strong>Este es el join</strong> —&nbsp;el dinero sale de la telemetría, el rechazo sale del gate.</p>
+        <dl>
+          <dt>Contrafactual</dt>
+          <dd class="num">si el gate pasara a la primera, el ciclo costaba <strong>USD 0,22</strong> en vez de 0,89</dd>
+          <dt>Patrón</dt>
+          <dd>los 3 rechazos citan el mismo motivo: <em>«el veredicto no lista hallazgos»</em></dd>
+          <dt>Confianza</dt>
+          <dd class="num">exacta · 4 de 4 corridas</dd>
+          <dt>Sesgo</dt>
+          <dd class="sesgo">no descuenta lo que la revisión aporta aunque rechace → <strong>sobreestima</strong> el desperdicio</dd>
+        </dl>
+        <div class="fixrow">
+          <span class="fix">El contrato de la caja no exige <code>hallazgos[]</code> en el entregable</span>
+          <span class="scorev">score v1</span>
+          <button type="button" class="btn">Descartar</button>
+          <button type="button" class="btn primary">Proponerlo en el chat</button>
+        </div>
+      </div>
+      <p class="ctx-sub" style="margin:0">
+        <strong>«Proponerlo en el chat»</strong> (D17.3) no escribe archivos: abre el chat con el cambio
+        propuesto y lo aplica el camino ya firmado, con sus permisos y su gate. Nada de una segunda vía
+        de escritura hacia el paquete de un tercero.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>5 · Inspector — cuarta tab «Mejora»</h2><span class="badge prop">propuesta</span>
+      <p class="why">Las tres tabs vigentes (Resumen · Contenido · Corridas) no se tocan. La cuarta
+      muestra, para la caja seleccionada, las cuatro cosas que no caben en el canvas.</p>
+    </div>
+    <div class="panel-bd" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <div class="drawer">
+        <div class="dw-head">
+          <span class="glyph square" style="--tc:var(--c-skill)">S</span>
+          <div>
+            <div class="dw-nombre">escribir el spec</div>
+            <div class="dw-handle">caja · idea → spec · fase spec</div>
+          </div>
+        </div>
+        <div class="dw-tabs" role="tablist" aria-label="Vistas del nodo">
+          <button type="button" class="dw-tab" role="tab" aria-selected="false">Resumen</button>
+          <button type="button" class="dw-tab" role="tab" aria-selected="false">Contenido</button>
+          <button type="button" class="dw-tab" role="tab" aria-selected="false">Corridas</button>
+          <button type="button" class="dw-tab" role="tab" aria-selected="true">Mejora</button>
+        </div>
+        <div class="dw-body">
+          <div class="sec">
+            <h4>Tokens · últimas 14 corridas</h4>
+            <table class="tbl">
+              <thead><tr><th>bucket</th><th style="text-align:right">tokens</th><th style="text-align:right">USD</th></tr></thead>
+              <tbody>
+                <tr><td>entrada</td><td class="n">1 204</td><td class="n">0,04</td></tr>
+                <tr><td>salida</td><td class="n">18 330</td><td class="n">0,92</td></tr>
+                <tr><td>cache · lectura</td><td class="n">241 500</td><td class="n">0,12</td></tr>
+                <tr><td>cache · escritura 5 m</td><td class="n">96 700</td><td class="n">0,84</td></tr>
+                <tr><td>cache · escritura 1 h</td><td class="n">0</td><td class="n">0,00</td></tr>
+                <tr><td>razonamiento</td><td class="n na" colspan="2">no aplica en este runtime</td></tr>
+              </tbody>
+            </table>
+            <p class="ctx-sub" style="margin-top:6px">«no aplica» ≠ 0. Un cero donde el concepto no
+            existe sería mentira.</p>
+          </div>
+          <div class="sec">
+            <h4>Costo — reportado vs. calculado</h4>
+            <div class="paridad">
+              <span>runtime <strong class="num">USD 1,92</strong></span>
+              <span>nuestro catálogo <strong class="num">USD 1,92</strong></span>
+              <span class="ok">✓ coinciden</span>
+            </div>
+            <p class="ctx-sub" style="margin-top:6px">Guardamos los dos: si divergen, o el catálogo
+            está viejo o el runtime cambió su tarifa. Es el test de paridad corriendo a la vista.</p>
+          </div>
+          <div class="sec">
+            <h4>El join — corridas de esta caja</h4>
+            <table class="tbl">
+              <tbody>
+                <tr><td>corridas</td><td class="n">14</td></tr>
+                <tr><td>rechazadas en el gate</td><td class="n">2</td></tr>
+                <tr><td>costo de las rechazadas</td><td class="n">USD 0,27</td></tr>
+                <tr><td>rotaciones de contexto</td><td class="n">3</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="sec">
+            <h4>Detectores</h4>
+            <div class="det"><span class="dot on"></span><span class="txt">re-warm por TTL vencido <strong>· activo</strong></span></div>
+            <div class="det"><span class="dot clean"></span><span class="txt">cambio de modelo · sin hallazgos</span></div>
+            <div class="det"><span class="dot clean"></span><span class="txt">sesión abandonada · sin hallazgos</span></div>
+            <div class="det"><span class="dot off"></span><span class="txt">costo de la rotación
+              <span class="na">no disponible: 2 de 3 rotaciones ocurrieron fuera de ArnesIA</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1 1 300px;min-width:280px">
+        <p style="margin:0 0 10px;font-size:var(--text-sm)">Las cuatro secciones, y por qué cada una:</p>
+        <ol style="margin:0;padding-left:20px;font-size:var(--text-sm);display:flex;flex-direction:column;gap:8px">
+          <li><strong>Desglose por bucket</strong> — sin él, «USD 1,92» no se puede auditar ni discutir.</li>
+          <li><strong>Reportado vs. calculado</strong> — el oracle independiente que la doctrina pide
+          (A6), sin construir un segundo sistema: ya guardamos ambos números.</li>
+          <li><strong>El join, a nivel nodo</strong> — esta tabla sola es la mitad de la frase objetivo.
+          Dinero y proceso en las mismas cuatro filas.</li>
+          <li><strong>Detectores, con los que NO aplican</strong> — y el motivo. Un detector ausente
+          sin explicación se lee como «todo bien».</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>6 · La tarjeta del Portafolio</h2><span class="badge prop">propuesta · amplía el alcance (D17.2)</span>
+      <p class="why">El Mapa mira un arnés. «En este puesto» es comparación <em>entre</em> arneses, y eso
+      vive en el Portafolio. Sin esta superficie el MVP no puede decir la frase objetivo completa. Es
+      además el eje que nadie más cubre: ccusage, tokscale y Dynatrace agregan por herramienta, modelo,
+      proyecto y día —&nbsp;ninguno por unidad de trabajo.</p>
+    </div>
+    <div class="panel-bd scroll">
+      <table class="pf">
+        <thead><tr><th>arnés · puesto</th><th class="n">USD/corrida</th><th>tendencia</th><th>punto de mejora</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="arn">vitalia</span><br><span class="puesto">Producto · Product Owner</span></td>
+            <td class="n">0,31</td>
+            <td><span class="spark" role="img" aria-label="tendencia en alza"><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i><i style="height:18px"></i><i class="last" style="height:15px"></i></span></td>
+            <td><span class="tag warn">⚠ re-warm de cache · USD 0,53/corrida</span></td>
+          </tr>
+          <tr>
+            <td><span class="arn">dev-full-cycle</span><br><span class="puesto">Ingeniería · Desarrollo full-cycle</span></td>
+            <td class="n">0,12</td>
+            <td><span class="spark" role="img" aria-label="tendencia estable"><i style="height:7px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:7px"></i><i class="last" style="height:7px"></i></span></td>
+            <td><span class="tag ok">✓ sin fugas detectadas</span></td>
+          </tr>
+          <tr>
+            <td><span class="arn">luana-feature-cycle</span><br><span class="puesto">Producto · Ciclo de feature</span></td>
+            <td class="n" style="color:var(--muted-foreground)">sin dato</td>
+            <td><span class="puesto">—</span></td>
+            <td><span class="tag none">nunca corrió con telemetría</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="ctx-sub" style="margin-top:12px">La tercera fila es deliberada: un arnés sin datos
+      <strong>dice que no tiene datos</strong>. No aparece en cero, ni desaparece de la tabla.</p>
+    </div>
+  </section>
+
+  <!-- 7 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>7 · Los siete estados honestos</h2><span class="badge prop">propuesta</span>
+      <p class="why">Un mockup que solo dibuja el caso feliz no alcanza para firmar. Estos siete son
+      los que van a pasar de verdad, y cada uno tiene que verse antes de que exista el código.</p>
+    </div>
+    <div class="panel-bd">
+      <div class="states">
+        <div class="state">
+          <h4>1 · Sin datos todavía</h4>
+          <div class="demo"><span class="big">— —</span><br>Este arnés nunca corrió con telemetría.</div>
+          <p>Qué hacer, no un tablero en cero. El cero es una afirmación, y sería falsa.</p>
+        </div>
+        <div class="state">
+          <h4>2 · Cobertura parcial</h4>
+          <div class="demo"><span class="big num">USD 3,10</span> <span style="color:var(--warn)">de 5 corridas, 3</span><br>2 corridas sin atribución.</div>
+          <p>El total dice sobre cuántas corridas se calculó, o se lee como completo.</p>
+        </div>
+        <div class="state">
+          <h4>3 · Corrió fuera de ArnesIA (S2)</h4>
+          <div class="demo">re-warm por TTL<br><span style="color:var(--muted-foreground)">no disponible — sin el <code>result</code> del stream-json</span></div>
+          <p>El detector se muestra apagado <em>con el motivo</em>, no se esconde.</p>
+        </div>
+        <div class="state">
+          <h4>4 · Otro runtime</h4>
+          <div class="demo"><span class="big num">USD 0,74</span><br><span style="color:var(--muted-foreground)">calculado con catálogo <code>v2026-07-20</code> — este runtime no reporta costo</span></div>
+          <p>Cuando el precio lo ponemos nosotros, se dice.</p>
+        </div>
+        <div class="state">
+          <h4>5 · Catálogo viejo</h4>
+          <div class="demo" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent)">⚠ Precios del release, sin refrescar desde el 20/07.</div>
+          <p>Funciona sin internet —&nbsp;y avisa que está funcionando así.</p>
+        </div>
+        <div class="state">
+          <h4>6 · Atribución por huella</h4>
+          <div class="demo">vitalia <span style="border-bottom:1px dotted currentColor">USD 0,47</span><br><span style="color:var(--muted-foreground)">identificado por huella del arnés, no por nombre</span></div>
+          <p>El runtime redacta el nombre del plugin; la huella es estable. Se dice cuál de las dos se usó.</p>
+        </div>
+        <div class="state">
+          <h4>7 · Qué guardamos</h4>
+          <div class="demo">Nada de tu cuenta. Nada del contenido.<br><span style="color:var(--muted-foreground)">Retención 90 días · <span style="color:var(--primary)">borrar la telemetría de este arnés</span></span></div>
+          <p>La telemetría llega con email e ids de cuenta: los descartamos en la puerta. Se dice, y hay botón.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>8 · Traza — de dónde sale cada cosa</h2><span class="badge vig">verificado en vivo</span>
+      <p class="why">Cada elemento del dibujo contra la señal real que lo alimenta, medida el
+      2026-07-26 contra <code>claude 2.1.220</code>. Lo que no tiene señal, no está dibujado.</p>
+    </div>
+    <div class="panel-bd scroll">
+      <table class="traza">
+        <thead><tr><th>superficie</th><th>señal</th><th>estado</th></tr></thead>
+        <tbody>
+          <tr><td>§2 total y cobertura</td><td><code>api_request.cost_usd_micros</code> + <code>arnesia.*</code> en cada log record</td><td>verificado</td></tr>
+          <tr><td>§3 cifra por caja</td><td><code>OTEL_RESOURCE_ATTRIBUTES</code> → copiado a cada punto</td><td>verificado</td></tr>
+          <tr><td>§3 «por huella»</td><td><code>plugin_loaded.plugin_id_hash</code> — estable entre sesiones, distinto por plugin</td><td>verificado</td></tr>
+          <tr><td>§3 «sin dato atribuible»</td><td><code>skill_activated</code> no trae hash ⇒ por-skill no se recupera</td><td>verificado (por ausencia)</td></tr>
+          <tr><td>§4 re-warm por TTL</td><td><code>result.usage.cache_creation.ephemeral_5m/1h</code> del stream-json</td><td>verificado</td></tr>
+          <tr><td>§4 rechazo en el gate</td><td>eventos del daemon + <code>hook_execution_complete</code></td><td>parcial — el hook de gate no existe todavía</td></tr>
+          <tr><td>§5 desglose por bucket</td><td>los 4 buckets de <code>api_request</code></td><td>verificado</td></tr>
+          <tr><td>§5 reportado vs. calculado</td><td><code>cost_usd_micros</code> + catálogo LiteLLM embebido</td><td>señal sí, catálogo sin construir</td></tr>
+          <tr><td>§7 estado 3 (S2)</td><td>el hook no ve el stream-json ⇒ B1 no aplica</td><td>verificado (por diseño)</td></tr>
+          <tr><td>§7 estado 7 (PII)</td><td><code>user.email</code>, <code>user.account_uuid</code>, <code>organization.id</code> en cada punto</td><td>verificado — hallazgo nuevo</td></tr>
+          <tr><td>capa Desempeño</td><td><code>duration_ms</code> ya llega</td><td><strong>no dibujada</strong> — falta el diseño, no la señal</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

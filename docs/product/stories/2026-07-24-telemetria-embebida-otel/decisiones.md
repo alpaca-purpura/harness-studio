@@ -585,6 +585,31 @@ D12.3 lo pidió y nadie lo hizo. El entregable junta dinero + proceso y propone 
 describe el insumo, no el producto. **«Mejora»** ya es vocabulario firmado (`vision.md`, mejora
 continua) y no pisa el vocabulario L0 (`procedencia`/`origen`/`canal`/`insumos`/`banda`).
 
+## D17 — Las tres elecciones que desbloquean el mockup (2026-07-26) · ✅ FIRMADAS (elección del operador)
+
+Preguntadas en [`propuesta-mockup.md`](propuesta-mockup.md) §«las tres decisiones», respondidas en
+el mismo turno.
+
+### D17.1 — El slot `tokens` del conmutador pasa a llamarse **«Mejora»** y se enciende
+
+Los 4 slots se conservan (`Estructura` · **`Mejora`** · `Desempeño` · `Proceso`); cambia una
+etiqueta. **Es una desviación de un baseline firmado** (`mockups/INDEX.md` regla 3) y va al gate
+del mockup declarada como tal, no colada. Toca `web/src/widgets/map-canvas/model/layers.ts`.
+
+### D17.2 — La tarjeta del Portafolio ENTRA, en versión mínima
+
+Una fila por **arnés × puesto**: costo por corrida · tendencia · punto de mejora principal · «sin
+dato» honesto para el que nunca corrió. Sin esta superficie el MVP no puede decir «en este puesto»,
+que es justo el eje diferencial (D9.8/H2). **Confirma la expansión de alcance de D12.3**: el
+paquete ya no es «una capa del Mapa», son dos superficies.
+
+### D17.3 — `[Aplicar]` abre el chat con el cambio propuesto
+
+No escribe archivos por su cuenta. Reusa el camino ya construido y firmado (permisos · gate ·
+alcance) en vez de abrir una segunda vía de escritura hacia archivos de un paquete de terceros.
+Coherente con A8 (nunca escribir settings ajenos sin backup + confirmación) y con el guardrail
+vigente de que el alcance del chat embebido excluye el paquete propio.
+
 ## Estado del paquete
 
 **Diseño de arquitectura RESUELTO y documentado** (boundary v2.0 + esta ficha). **CERO código

@@ -59,7 +59,9 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 - [~] **propuesta de mockup escrita** → [`propuesta-mockup.md`](propuesta-mockup.md) — 2 superficies
       (capa Mejora del Mapa + tarjeta del Portafolio), tarjeta de punto de mejora con contrafactual,
       4ª tab del inspector, **7 estados honestos**. 3 decisiones pendientes del operador antes de dibujar
-- [ ] mockup dibujado (`.html`, forkeado del baseline) → 🧑‍⚖️ firma del mockup
+- [~] **mockup dibujado** → [`mockup-capa-mejora.html`](mockup-capa-mejora.html) · publicado en
+      https://claude.ai/code/artifact/c161bc8b-c612-4a0a-aaac-ffd6ff65b5e2 — 8 secciones, 2 desviaciones
+      declaradas (renombre del slot · tokens PRENTER vs. baseline ámbar). **Iteración 1: falta iterar y firmar 🧑‍⚖️**
 - [ ] `spec.md` + `design.md` → 🧑‍⚖️ firma del par
 - [ ] implementación
 - [ ] PARIDAD
