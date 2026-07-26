@@ -1,0 +1,108 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A1 + A12).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.receptor-otlp-embebido
+cap_num: CAP-118
+slug: receptor-otlp-embebido
+name: "Receptor OTLP embebido (nunca bloquea al emisor, nunca finge haber guardado)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: observar
+functional_area: "telemetria.ingesta"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/otlp/receptor.go#Receptor"
+  - "internal/adapters/telemetria/otlp/receptor.go#NewReceptor"
+  - "internal/adapters/telemetria/otlp/receptor.go#Receptor.ServeHTTP"
+  - "internal/adapters/telemetria/otlp/receptor.go#Contadores"
+  - "internal/adapters/telemetria/otlp/receptor.go#MaxBodyDefault"
+valida:
+  - "TestProtobufSeRechazaConMotivo"
+  - "TestPayloadGiganteSeRechazaSinLeerlo"
+  - "TestLoteMalformadoSeRechazaEntero"
+  - "TestReceptorNoBloqueaAlEmisor"
+  - "TestMetodoYRutaSeAcotan"
+  - "TestMetricasEntranPorSuRuta"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /v1/logs"
+    - "POST /v1/metrics"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §4.1"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El daemon recibe telemetría en el puerto que ya tiene, sin instalar ni operar nada externo, y sin hacer esperar jamás a quien la emite: la cola es acotada, el exceso se descarta contándolo, y el emisor se entera en la propia respuesta."
+    merge_sha: null
+scenarios:
+  - id: la-cola-llena-no-bloquea
+    name: "Llega más telemetría de la que se puede escribir"
+    status: live
+    given: "el receptor con la cola saturada"
+    when: "llega otro lote"
+    then: "responde enseguida diciendo cuántos descartó, y el descarte queda contado; no bloquea ni devuelve un error que haga reintentar"
+    verifica: "TestReceptorNoBloqueaAlEmisor"
+  - id: formato-equivocado-se-explica
+    name: "El emisor manda el formato binario en vez del de texto"
+    status: live
+    given: "un envío con el tipo de contenido equivocado"
+    when: "llega al receptor"
+    then: "se rechaza nombrando la causa y el ajuste que lo arregla; nunca se responde éxito fingiendo haber guardado"
+    verifica: "TestProtobufSeRechazaConMotivo"
+  - id: lote-malo-entero
+    name: "Un lote llega corrupto a mitad"
+    status: live
+    given: "un cuerpo que se rompe después del primer registro"
+    when: "se procesa"
+    then: "se rechaza completo; no queda medio lote adentro"
+    verifica: "TestLoteMalformadoSeRechazaEntero"
+business_rules:
+  - id: la-instrumentacion-nunca-espera
+    rule: "El receptor nunca hace esperar a quien emite. Un receptor que bloquea degrada el trabajo que está midiendo, que es la peor forma posible de instrumentar."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: nunca-un-error-de-servidor-por-un-evento-malo
+    rule: "Un lote inválido se responde como error del cliente, no del servidor: un error de servidor haría reintentar al emisor y multiplicaría el daño."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: nunca-fingir-que-se-guardo
+    rule: "Un formato que no entendemos se rechaza explicando el arreglo. Responder éxito sin guardar es perder telemetría sin que nadie se entere."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: el-descarte-se-cuenta
+    rule: "Todo lo que el receptor tira se cuenta y se reporta. Un descarte silencioso es una señal perdida sin rastro."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.decodificador-otlp-json
+    - arnesia.telemetria.allowlist-de-ingesta
+  enables:
+    - arnesia.telemetria.almacen-de-telemetria
+  similar: []
+  obsoletes: []
+---
+
+# Receptor OTLP embebido
+
+El daemon recibe la telemetría **en el puerto que ya tiene**. Nada externo que instalar, ningún
+contenedor que operar, un solo diálogo de firewall, un solo confinamiento y un solo apagado.
+
+**Nunca hace esperar a quien emite.** La cola es acotada; cuando se llena, descarta, **lo cuenta** y
+se lo dice al emisor en la propia respuesta. Un receptor que bloquea degrada el trabajo que está
+midiendo — y un error de servidor haría reintentar al emisor, multiplicando el daño en vez de
+contenerlo.
+
+**Nunca finge haber guardado.** Un formato que no entendemos se rechaza nombrando la causa **y el
+ajuste que lo arregla**. Responder éxito sin guardar es la forma más limpia de perder telemetría sin
+que nadie se entere nunca.
