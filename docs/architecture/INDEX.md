@@ -50,27 +50,71 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/core-no-importa-shell.md`](./boundaries/core-no-importa-shell.md) | El daemon-core no depende del shell (Tauri) | 🌱 vivo | 1.2 | 5 | go-arch-lint · arch_test.go · lib.rs (revisión) |
 | [`boundaries/dominio-independiente-de-transporte.md`](./boundaries/dominio-independiente-de-transporte.md) | El dominio no depende de HTTP/SSE/store | 🌱 vivo | 1.1 | 4 | go-arch-lint · depguard |
 | [`boundaries/adaptadores-de-agente-intercambiables.md`](./boundaries/adaptadores-de-agente-intercambiables.md) | Claude Code = un adaptador tras `AgentPort` | 🌱 vivo | 1.0 | 4 | go-arch-lint · arch_test.go |
-| [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | Árbol de arneses = verdad; el índice (in-memory, sin persistencia hoy) es reconstruible | 🌱 vivo | 1.2 | 4 | arch_test.go · schema |
+| [`boundaries/indice-desechable-jsonl-es-verdad.md`](./boundaries/indice-desechable-jsonl-es-verdad.md) | Árbol de arneses = verdad; el índice (SQLite real desde fase 5) es reconstruible, nunca migrado | 🌱 vivo | 1.3 | 4 | arch_test.go · schema |
 | [`boundaries/conductor-no-parsea-jsonl.md`](./boundaries/conductor-no-parsea-jsonl.md) | El conductor consume stream-json/OTel, no parsea JSONL | 🌱 vivo | 1.0 | 4 | depguard · arch_test.go |
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
-| [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) | 🌳 enforced | 1.2 | 7 | arch_test.go · auth_test.go |
+| [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) · + eje config-source del spawn | 🌳 enforced | 1.3 | 9 | arch_test.go · auth_test.go |
 | [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema + composición del cableado (huérfanos·dead-ends·rutas·refina) | 🌳 enforced | 1.3 | 7 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema · domain.Verificar{SinHuerfanos,DeadEnds,RutaExiste,RefinaCoherente} (ruta `--arnes`) |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
-| [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome) | 🌳 enforced | 1.1 | 4 | dependency-cruiser (verde sobre el Mapa) |
+| [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome · widget⊥widget) | 🌳 enforced | 1.2 | 5 | dependency-cruiser (verde: 122 módulos / 0 violaciones) |
 | [`boundaries/fe-transporte-independiente.md`](./boundaries/fe-transporte-independiente.md) | Dominio FE ⊥ transporte; SSE singleton en `app` | 🌱 vivo | 1.1 | 4 | dependency-cruiser |
 | [`boundaries/fe-tokens-contrato.md`](./boundaries/fe-tokens-contrato.md) | Tokens DTCG = contrato mockup↔código, cero magic-value | 🌳 enforced | 1.1 | 4 | stylelint · tokens-sync |
 | [`boundaries/fe-visual-fitness.md`](./boundaries/fe-visual-fitness.md) | Story = test que rompe CI (fitness visual local) | 🌳 enforced | 1.1 | 5 | vitest.config.ts + Storybook 10 (story=test; conteo crece con cada story — ≥45 verdes HS-11) |
 | [`boundaries/orquestacion-determinista-entre-cajas.md`](./boundaries/orquestacion-determinista-entre-cajas.md) | La secuencia entre cajas es código; la agencia vive dentro (framed autonomy) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestConductorOwnsBoxRouting |
 | [`boundaries/permisos-derivan-del-rol.md`](./boundaries/permisos-derivan-del-rol.md) | El permission-set se parametriza por el rol que hidrata (autoridad externa) | 🌳 enforced | 1.1 | 4 | arch_test.go:TestPermissionSetParametrizedByRole |
 | [`boundaries/codigo-traza-a-capability.md`](./boundaries/codigo-traza-a-capability.md) | Todo código fuente traza a un capability (`docs/product/capabilities/` = SSoT funcional), incl. el `#Símbolo` del puntero | 🌳 enforced | 1.5 | 6 | capability_trace_test.go:TestCapabilityPointersResolve · TestCapabilityPointerSymbolsResolve · TestCapabilityCoverage · TestCapabilityStatusConsistent · TestCapabilityPointersStable |
-| [`boundaries/portafolio-identidad-y-deriva-honesta.md`](./boundaries/portafolio-identidad-y-deriva-honesta.md) | Identidad `(home,id)` calificada (nunca fusión por coincidencia) + deriva por hash de contenido (nunca semver-string) | 🌳 enforced | 1.0 | 4 | portafolio/store_test.go · portafolio/deriva_test.go · domain/portafolio_test.go |
+| [`boundaries/portafolio-identidad-y-deriva-honesta.md`](./boundaries/portafolio-identidad-y-deriva-honesta.md) | Identidad `(home,id)` calificada (nunca fusión por coincidencia) + deriva por hash de contenido (nunca semver-string) + el estante no miente (`null`≠`[]`, `no-comparable` de 1ª clase) | 🌳 enforced | 1.2 | 8 | portafolio/store_test.go · portafolio/deriva_test.go · domain/portafolio_test.go · domain/marketplace_test.go · domain/marketplace_situacion_test.go · usecase/marketplace_test.go |
+| [`boundaries/marketplace-referencia-es-solo-procedencia.md`](./boundaries/marketplace-referencia-es-solo-procedencia.md) | Un marketplace de referencia es dato read-only en el DOMINIO, no un `disabled` de la UI (bounded context + anti-corruption layer) | 🌳 enforced | 1.2 | 5 | domain/marketplace_situacion_test.go:TestReferenciaNuncaHabilitaAccion · domain/traer_test.go:TestPlanificarTraerRechazaReferencia · fitness/marketplace_shape_test.go:TestDominioNoAdoptaShapeAjeno |
 | [`boundaries/maquinaria-no-contamina-arnes.md`](./boundaries/maquinaria-no-contamina-arnes.md) | La doctrina ①② entra por flags de sesión, jamás escrita en el árbol del arnés (③) | 🌳 enforced | 1.0 | 2 | arch_test.go:TestMaquinariaNoContaminaArnes |
 | [`boundaries/doctrina-una-fuente-dos-targets.md`](./boundaries/doctrina-una-fuente-dos-targets.md) | El ruleset ejecutable y `kit/doctrine.md` no deben divergir | 🌱 vivo | 1.0 | 2 | (pendiente — `kit/doctrine.md` es prosa a mano, sin drift-check) |
-| [`boundaries/telemetria-de-nacimiento.md`](./boundaries/telemetria-de-nacimiento.md) | Todo arnés nace observable (VISION p9) | 🌱 vivo | 1.0 | 2 | (pendiente — sin `scaffold` ni collector OTLP, ver BACKLOG) |
+| [`boundaries/telemetria-de-nacimiento.md`](./boundaries/telemetria-de-nacimiento.md) | Todo arnés nace observable (VISION p9) · S2 en dos modos (instrumentado/degradado) · hook fail-open que proyecta campos | 🌱 vivo | 2.3 | 10 | (pendiente — el módulo `telemetria/` no existe; diseño en `stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md`) |
+| [`boundaries/ingesta-por-allowlist-declarada.md`](./boundaries/ingesta-por-allowlist-declarada.md) | Lo que entra de afuera se persiste por allowlist declarada, nunca por denylist (ni identidad de cuenta ni contenido ni rutas del usuario) | 🌱 vivo | 1.0 | 7 | (pendiente — nace con el módulo `telemetria/`) |
+| [`boundaries/no-aplica-no-es-cero.md`](./boundaries/no-aplica-no-es-cero.md) | «No aplica» y «no lo sé» son valores; `0` y `[]` son afirmaciones | 🌱 vivo | 1.0 | 6 | 3/6 REALES ya verdes: usecase/marketplace_test.go:TestCatalogoIlegibleNoFabricaVacio · domain/marketplace_situacion_test.go:TestSituacionNoComparableSinVersionEstante · portafolio/deriva_test.go:TestEvaluarDerivaNoEvaluable |
+| [`boundaries/cifra-viaja-con-su-confianza.md`](./boundaries/cifra-viaja-con-su-confianza.md) | Ninguna cifra viaja sola: lleva cómo se atribuyó y, si hay dos fuentes del mismo número, las dos | 🌱 vivo | 1.0 | 6 | (pendiente — nace con el módulo `telemetria/`) |
+| [`boundaries/peso-del-binario-es-presupuesto.md`](./boundaries/peso-del-binario-es-presupuesto.md) | El peso del binario es un presupuesto; una dependencia se MIDE antes de adoptarse y un formato ajeno se decodifica con subconjunto propio | 🌱 vivo | 1.0 | 5 | (pendiente — job de CI + tests del decodificador) |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 21 · 92 checks** (+3 boundaries ·
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 26 · 136 checks**
+
+> **+4 boundaries · +24 checks el 2026-07-26** (paquete
+> [`stories/2026-07-24-telemetria-embebida-otel/`](../product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md),
+> etapa de arquitectura del módulo `telemetria/`): nacen `ingesta-por-allowlist-declarada` (7),
+> `no-aplica-no-es-cero` (6), `cifra-viaja-con-su-confianza` (6) y
+> `peso-del-binario-es-presupuesto` (5). **Los cuatro nacen `proposed`, y tres de ellos con los
+> checks difiriendo honesto** — el módulo no existe: declararlos `enforced` sería el pass
+> fabricado. La excepción es `no-aplica-no-es-cero`, que **no inventa doctrina sino que consolida
+> la que ya estaba resuelta suelta en tres lugares del árbol** y por eso nace con **3 de 6 checks
+> con enforcer real y verde** (corridos antes de escribir la fila). Dos candidatos evaluados se
+> **descartaron como nodo propio, con razón escrita**: «fail-open de la instrumentación» se
+> absorbió en `telemetria-de-nacimiento` v2.3 (su único sujeto es el hook que ese nodo gobierna, y
+> generalizado sin contexto se leería como «tragarse los errores»), y «doble costo como oracle» se
+> **fusionó** en `cifra-viaja-con-su-confianza` (son las dos mitades de la misma oración y
+> comparten superficie de enforcement). En la misma pasada, `telemetria-de-nacimiento` sube
+> **v1.0→v2.3** (la fila decía 1.0/2 checks y el archivo iba por 2.2/7: drift de índice, corregido)
+> y se corrigen dos filas más que estaban stale respecto de su propio archivo —
+> `superficie-local-confinada` 1.2/7 → **1.3/9** e `indice-desechable-jsonl-es-verdad` 1.2 →
+> **1.3** — sin tocar el contenido de esos nodos.
+
+**Historia del conteo (pasadas anteriores).**
+(+1 boundary · +10 checks el 2026-07-25, paquete `docs/product/stories/2026-07-23-portafolio-agregar-marketplace/`
+etapa 3 «diseño técnico»: nace `marketplace-referencia-es-solo-procedencia` **`proposed`** con 5
+checks — L1 bounded context + anti-corruption layer, fuentes verificadas en vivo ese día; el 5º
+(`traer-referencia-rechazado`) se sumó el mismo día al firmarse `AG-D17`, que habilita
+`↧ Traer canónico` completo: con una acción que **materializa en disco** en juego, el invariante
+tiene que vivir en el dominio y no en un `disabled` de la UI — un `POST` puede llegar sin pasar
+nunca por el botón. Ese es el nodo entero en una línea: el plano Marketplaces necesitaba una regla
+que la UI no puede sostener, la clase `referencia` es read-only **en el dominio**, no de render.
+`portafolio-identidad-y-deriva-honesta` v1.1→v1.2 suma 4 checks aplicando su mismo L1 al estante
+(registro collect-all · catálogo ilegible viaja `null` y no `[]` · versión nunca inventada ·
+`no-comparable` de primera clase) y **sigue `enforced`** por sus 4 originales;
+`fe-taxonomia-componentes` v1.1→v1.2 suma `no-sibling-widget-imports`, el único cross-import de
+capa que quedaba sin gate, **verificado verde antes de agregarlo**. **Los 10 corren**: la etapa 4
+(implementación) llegó el MISMO día y cableó los 9 que habían nacido declarados —
+`marketplace-referencia-es-solo-procedencia` pasó `proposed → enforced` (v1.2) con sus 5 enforcers
+(4 tests colocados + 1 source-scan en `fitness/` para la forma del dominio) y
+`portafolio-identidad-y-deriva-honesta` cableó sus 4 nuevos. NUNCA pass fabricado: ninguno se
+declaró verde antes de existir.) (+3 boundaries ·
 +7 checks en HS-11 2026-07-23: los 3 boundaries que el research de inyección de know-how había
 dejado como draft — `maquinaria-no-contamina-arnes` **enforced** de una, `doctrina-una-fuente-dos-targets`
 y `telemetria-de-nacimiento` nacen `proposed` honesto, sin código detrás todavía — + 1 check nuevo
@@ -90,9 +134,10 @@ mismo día del fix ②, no mejora cosmética; ver su changelog) **= 13 checks)**
 HS-22** (2026-07-14, Portafolio Slice 0 «Cimientos»): 1 boundary · 4 checks —
 `portafolio-identidad-y-deriva-honesta` **enforced** (identidad calificada única · deriva nunca
 semver · store degrada honesto · procedencia anotada; los 4 con test Go real ya verde). **+
-[`conventions/`](./conventions/INDEX.md): 9 convention nodes · 30 checks** (HS-05 + nodo
-`versionado.md` 2026-07-15). **Gran total `arch/`:
-122 checks** (92 boundary + 30 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
+[`conventions/`](./conventions/INDEX.md): 9 convention nodes · 31 checks** (HS-05 + nodo
+`versionado.md` 2026-07-15, +1 check `dev-daemon-sincronizado` 2026-07-25 — installer vs.
+self-update). **Gran total `arch/`:
+123 checks** (92 boundary + 31 convention; nota: el ruleset `--todo` cuenta un total propio a partir de
 arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor, cifra viva en `checkpoint.md`).
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** la mayoría de los checks están **declarados,

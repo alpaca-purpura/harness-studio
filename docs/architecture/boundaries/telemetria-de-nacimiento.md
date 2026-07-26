@@ -1,6 +1,6 @@
 ---
 regla: telemetria-de-nacimiento
-version: 2.2
+version: 2.3
 updated: 2026-07-26
 status: proposed
 ledger: HS-27
@@ -15,6 +15,9 @@ sources:
     autoridad: oficial
     revisado: 2026-07-24
   - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/INFORME.md
+    autoridad: medicion-propia
+    revisado: 2026-07-26
+  - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/ANEXO-hooks.md
     autoridad: medicion-propia
     revisado: 2026-07-26
 enforced_by: []
@@ -147,19 +150,95 @@ cruda: `docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-20
    *(Dato a favor del canal: prompts y respuestas llegan `<REDACTED>` por default. La telemetría es
    menos invasiva que el transcript.)*
 
+## ⚡ v2.3 — Segunda tanda en vivo: los hooks, y la premisa de S2 que era falsa (2026-07-26)
+
+Misma jornada, segunda corrida: un hook que vuelca su stdin sobre los 6 eventos, más una prueba
+dirigida sobre el bloque `env` de settings. Informe:
+`…/verificacion-2026-07-26/ANEXO-hooks.md`. **Cuatro cosas cambian, y una de ellas es de fondo.**
+
+1. **La llave del join es `(session_id, prompt_id)`, no `session.id` solo.** El mismo turno lleva
+   el mismo identificador en los dos canales: OTel lo manda como `api_request.prompt.id`, el
+   payload del hook como `prompt_id`. **El join es una igualdad de dos campos** — sin heurística
+   de tiempo ni de orden — y es a nivel **turno**, que es la granularidad que v2.2 fijó. Con
+   `session.id` solo, el join sería a nivel sesión y no alcanza para decir «el 60 % se va en la
+   caja Y».
+2. 🔴 **El payload del hook trae CONTENIDO en claro**, a diferencia del canal OTel donde llega
+   `<REDACTED>`: `UserPromptSubmit.prompt` es el prompt completo, `Stop.last_assistant_message` la
+   respuesta del asistente, `PostToolUse.tool_response` lo que la herramienta leyó o escribió.
+   ⇒ **la allowlist de v2.2 deja de ser una regla del receptor OTLP y pasa a regir los dos
+   caminos de ingesta.** El hook **proyecta a campos declarados y descarta el resto ANTES de
+   escribir a ningún lado** — y `telemetria-no-egresa` necesita un hermano que verifique **qué
+   campos** escribe, no solo a dónde: un hook que postea su stdin entero a `127.0.0.1` cumple «no
+   egresa» y aun así filtra la conversación al almacén local.
+3. **Confirmado que los hooks NO traen dinero.** Ninguno de los 6 payloads trae tokens, costo ni
+   cache. La separación **hook = proceso · OTel = dinero · daemon = decisión** queda verificada,
+   no supuesta. Matiz del mismo día: `tool_decision` y `tool_result` **sí** llegan por OTel, con
+   `success`, `duration_ms`, `tool_input_size_bytes` y `tool_result_size_bytes` y **sin
+   contenido** ⇒ parte de la señal de proceso también vive en OTel, y el detector B11 («tool
+   results obesos») deja de estar bloqueado por falta de dato.
+4. 🎯 **La premisa de S2 era falsa: el bloque `env` de un `settings.json` ENCIENDE la telemetría.**
+   Probado con marcador distinto por variante, un solo receptor y las env vars del shell
+   desarmadas, en tres formas (`--settings <archivo>` · `.claude/settings.json` del proyecto sin
+   flags · lo mismo con `--setting-sources project,local`). ⇒ **S2 se parte en dos escenarios que
+   son dos niveles de dato distintos**, y la UI los distingue:
+   - **`s2-instrumentado`** — el arnés lleva el bloque `env` ⇒ llega **la misma señal que en S1,
+     dinero incluido**. (B1 sigue sin aplicar, pero por otra razón: falta el `result` del
+     stream-json, no falta la telemetría.)
+   - **`s2-degradado`** — solo el hook ⇒ proceso, jamás dinero. Los detectores de dinero se
+     apagan **con motivo**.
+
+   ⚠️ **Dónde vive ese bloque `env` es decisión de PRODUCTO, abierta**: en el repo del propio
+   arnés (nuestro archivo, sin fricción, cobertura parcial) o en el proyecto del usuario (escribe
+   settings de un tercero ⇒ choca con A8 y con el guardrail vigente ⇒ **exige consentimiento
+   explícito**). Las dos opciones con sus consecuencias, en
+   `…/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md` §7.5.
+
+   ⚠️ **No verificado, y sería el mejor mecanismo de obligación que existe:** si un **plugin**
+   puede aportar un bloque `env`. Lo probado es el settings del **proyecto**. Si pudiera, el arnés
+   se instrumentaría solo al instalarse sin tocar nada del usuario. La prueba que lo cierra está
+   escrita (§7.5), y **necesita control positivo**: los tres primeros intentos de la prueba del
+   bloque `env` dieron negativo y el negativo era **falso** — un receptor de una prueba anterior
+   seguía ocupando el puerto. **Un negativo sin control no es un resultado.**
+
+**Fail-open, que se evaluó como boundary propio y se resuelve acá.** «La instrumentación jamás
+degrada al sistema instrumentado» es doctrina real, pero su único sujeto en este árbol es el hook
+que este nodo gobierna: sacarla a un nodo aparte partiría una regla en dos y, generalizada sin
+contexto, se leería como «tragarse los errores», que es lo contrario de la honestidad de la casa.
+Queda acá, con su matiz explícito: **silencioso hacia el usuario, nunca invisible en el registro.**
+El hook no rompe ni demora el trabajo; el hueco aparece después como «sin dato» y en la
+conciliación de cobertura, **jamás como 0**.
+
 ## Checklist evaluable
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
-| scaffold-emite-env-otel | `scaffold` inyecta `CLAUDE_CODE_ENABLE_TELEMETRY`+`OTEL_EXPORTER_OTLP_ENDPOINT` (loopback) en todo arnés creado — NO un hook custom | error | «arnés nuevo nace sin telemetría» | (pendiente — no existe `scaffold`, ver BACKLOG) |
+| scaffold-emite-env-otel | `scaffold` inyecta `CLAUDE_CODE_ENABLE_TELEMETRY`+`OTEL_EXPORTER_OTLP_ENDPOINT`+`OTEL_EXPORTER_OTLP_PROTOCOL=http/json` (loopback) en todo arnés creado — NO un hook custom | error | «arnés nuevo nace sin telemetría» | (pendiente — no existe `scaffold`, ver BACKLOG) |
 | collector-otlp-embebido-local | el daemon embebe un receptor OTLP mínimo (HTTP, **`/v1/logs` + `/v1/metrics`**) que recibe SOLO tráfico loopback — ningún proceso/contenedor externo | error | «telemetría emitida pero nadie la recibe» | (pendiente — no existe receptor) |
 | jsonl-nunca-fuente-de-tokens | el índice de tokens/costo/atribución NUNCA lee del JSONL (coherencia con `conductor-no-parsea-jsonl.md`) | error | «tokens leídos parseando el JSONL» | (pendiente) |
 | langfuse-jamas-dependencia-dura | ningún flujo de instalación/scaffold requiere Langfuse ni infraestructura Docker externa | error | «instalador o scaffold dependen de Langfuse» | (pendiente) |
 | telemetria-por-adaptador | la regla de acumulación y la aritmética de tokens (`disjoint`/`inclusive`) son propiedad del ADAPTADOR de runtime, nunca del agregador central | error | «tokens sumados con la regla de otro runtime» | (pendiente — v2.1) |
-| telemetria-sin-pii | la ingesta persiste por **allowlist**; `user.email`/`user.account_*`/`organization.id` nunca llegan al almacén ni al forward opcional | error | «la telemetría guardó o exportó datos de cuenta» | (pendiente — v2.2) |
+| telemetria-sin-pii | la ingesta persiste por **allowlist en los DOS caminos** (OTLP y hook); `user.email`/`user.account_*`/`organization.id` y el contenido de la conversación nunca llegan al almacén ni al forward opcional | error | «la telemetría guardó o exportó datos de cuenta o contenido» | (pendiente — v2.3; doctrina en `ingesta-por-allowlist-declarada.md`) |
 | cero-post-install | ninguna pieza de telemetría se descarga en post-install: todo compilado en el binario (A) o shipeado como sidecar (B) | error | «el instalador baja algo de internet» | (pendiente — v2.1) |
+| hook-es-fail-open | el hook del arnés jamás rompe ni demora el trabajo: exit 0 siempre, stdout vacío, tope de tiempo declarado, sin reintentos | error | «la instrumentación bloqueó un turno del usuario» | (pendiente — v2.3, TestHookNoTardaNiFalla) |
+| hook-proyecta-campos | el hook **no reenvía su stdin**: emite solo los campos declarados. No alcanza con verificar el destino, hay que verificar el contenido | error | «el hook filtró la conversación al almacén local» | (pendiente — v2.3, TestHookNoReenviaContenido) |
+| escenario-se-deriva | el nivel de instrumentación (`s1`/`s2-instrumentado`/`s2-degradado`) lo DERIVA el receptor de la señal que llegó; un arnés no puede declararlo | error | «un arnés se declara mejor medido de lo que está» | (pendiente — v2.3, TestEscenarioSeDerivaDeLaSenal) |
 
 ## Changelog
+
+- 2026-07-26 · v2.3 · **Segunda tanda de verificación en vivo (ANEXO-hooks.md), mismo día.**
+  (1) La llave del join pasa a ser **`(session_id, prompt_id)`** — está en los dos canales, el
+  join es una igualdad de dos campos y es a nivel turno. (2) 🔴 El payload del hook trae la
+  conversación **en claro** ⇒ la allowlist rige los dos caminos de ingesta, y `telemetria-no-egresa`
+  gana el check hermano `hook-proyecta-campos`. (3) Confirmado que los hooks no traen dinero;
+  `tool_decision`/`tool_result` sí llegan por OTel con tamaños en bytes y sin contenido
+  (desbloquea B11, que no entra al MVP). (4) 🎯 **La premisa de S2 era falsa**: el bloque `env`
+  de un `settings.json` enciende la telemetría ⇒ S2 se parte en `s2-instrumentado` (misma señal
+  que S1, dinero incluido) y `s2-degradado` (solo hook). Dónde vive ese bloque queda **abierto
+  como decisión de producto**; si un *plugin* pudiera aportarlo —sin verificar— sería el mecanismo
+  de obligación ideal. Se absorbe además la doctrina de **fail-open** que se había evaluado como
+  boundary propio (justificación en L2 §v2.3). 3 checks nuevos (**10 en total**) y dos
+  reformulados. Sigue `proposed`: cero código. Diseño completo del módulo en
+  `docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md`.
 
 - 2026-07-26 · v2.2 · **Verificación en vivo** (paquete `stories/2026-07-24-telemetria-embebida-otel/`,
   decisiones D14-D16). 5 correcciones medidas contra `claude 2.1.220`: canal primario `/v1/logs`;

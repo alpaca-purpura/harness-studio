@@ -62,6 +62,25 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 - [~] **mockup dibujado** → [`mockup-capa-mejora.html`](mockup-capa-mejora.html) · publicado en
       https://claude.ai/code/artifact/c161bc8b-c612-4a0a-aaac-ffd6ff65b5e2 — 8 secciones, 2 desviaciones
       declaradas (renombre del slot · tokens PRENTER vs. baseline ámbar). **Iteración 1: falta iterar y firmar 🧑‍⚖️**
+- [x] **2ª tanda de verificación en vivo (hooks + bloque `env`)** →
+      [`verificacion-2026-07-26/ANEXO-hooks.md`](verificacion-2026-07-26/ANEXO-hooks.md): 9 hallazgos.
+      Los dos que cambian el diseño: la llave del join es **`(session_id, prompt_id)`** y **la premisa
+      de S2 era falsa** — el bloque `env` de un `settings.json` enciende OTel ⇒ S2 se parte en
+      `s2-instrumentado` y `s2-degradado`
+- [x] **arquitectura del módulo** → [`arquitectura-modulo.md`](arquitectura-modulo.md): mapa de
+      componentes · firmas Go de puertos/dominio · DDL completo · decodificador OTLP/JSON ·
+      allowlist campo por campo · contrato del spawn · S2 en dos modos · catálogo · motor de
+      detectores · API HTTP · presupuestos no funcionales. **21 decisiones de arquitectura nuevas
+      (A1..A21) y 12 contradicciones registradas.** 3 preguntas quedan `ABIERTO` para el operador
+- [x] **matriz de escenarios** → [`escenarios.md`](escenarios.md): 10 familias, ~70 escenarios, con
+      qué hace el sistema · qué ve el usuario · cómo se verifica
+- [x] **doctrina persistida** → 4 boundaries nuevos en `docs/architecture/boundaries/`
+      (`ingesta-por-allowlist-declarada` · `no-aplica-no-es-cero` · `cifra-viaja-con-su-confianza` ·
+      `peso-del-binario-es-presupuesto`) + `telemetria-de-nacimiento` **v2.3** + `INDEX.md` de
+      arquitectura al día (22 → **26 boundaries · 136 checks**)
+- [x] **capabilities planificadas** → [`capabilities-a-crear.md`](capabilities-a-crear.md):
+      22 hojas (CAP-118…CAP-139), con puntero y check. **No se crean todavía**: R1 exige que el
+      símbolo exista
 - [ ] `spec.md` + `design.md` → 🧑‍⚖️ firma del par
 - [ ] implementación
 - [ ] PARIDAD
@@ -75,7 +94,29 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 | **G4** | cert de firma de código (USD 150-300/año + HSM) | no para Linux; **sí** para Windows/macOS |
 | — | ~~**D8**~~ | **cerrada por inexistencia del dilema** (V2) |
 
-## Retomar aquí
+## Retomar aquí (2026-07-26, tras la etapa de arquitectura)
+
+**La arquitectura del módulo está resuelta a detalle** →
+[`arquitectura-modulo.md`](arquitectura-modulo.md) + [`escenarios.md`](escenarios.md) +
+[`capabilities-a-crear.md`](capabilities-a-crear.md). La doctrina reusable ya está persistida como
+boundaries. **Lo que falta para poder construir son tres cosas, en este orden:**
+
+1. **Decidir A20 — dónde vive el bloque `env`** (opción A: repo del propio arnés · opción B:
+   proyecto del usuario, con consentimiento explícito). Es del operador porque B escribe archivos
+   de un tercero. Detalle y recomendación en `arquitectura-modulo.md` §7.5. ⚡ **Ya no hay
+   verificación que la evite:** H10.1 probó que un **plugin no puede aportar el bloque `env`**
+   (0 payloads vs 2 del control positivo) ⇒ no existe auto-instrumentación al instalar.
+2. ~~Cerrar tres verificaciones~~ ✅ **HECHAS** (ANEXO §H10, con control positivo en cada corrida):
+   plugin `env` **no** · `${VAR}` **no se expande** en el bloque `env` (sí en los comandos de hook)
+   · comando de hook inexistente = **fail-open confirmado por el runtime**. Las dos primeras
+   cambiaron el diseño → **A22** (el token de ingesta no viaja en el bloque `env`: `/v1/*` acepta
+   sin token bajo Host loopback) y A20 confirmada necesaria.
+3. **Iterar y firmar el mockup**, que ahora tiene que dibujar un panel más: el estado 3 se parte en
+   `s2-instrumentado` (con dinero) y `s2-degradado` (sin dinero, con motivo).
+
+Después: `spec.md` + `design.md` → firma del par → implementación.
+
+## Contexto previo (pre-arquitectura)
 
 **Investigación CERRADA y VERIFICADA EN VIVO.** El refinamiento pre-mockup está hecho: la lista
 corta de detectores (D16.1), los campos del evento canónico (D16.2) y el renombre (D16.3).
