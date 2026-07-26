@@ -1,7 +1,7 @@
 ---
 regla: telemetria-de-nacimiento
-version: 2.0
-updated: 2026-07-24
+version: 2.1
+updated: 2026-07-26
 status: proposed
 ledger: HS-27
 sources:
@@ -55,9 +55,10 @@ para este árbol.
 Claude Code emite telemetría OTel **nativa** (sin hook custom, sin script Python) con
 `CLAUDE_CODE_ENABLE_TELEMETRY=1` + `OTEL_EXPORTER_OTLP_ENDPOINT`. Métricas confirmadas:
 `claude_code.token.usage` + `claude_code.cost.usage` (USD), con atributos `skill.name` /
-`plugin.name` / `tool_name` / `agent.name` / `session.id` que dan atribución por-componente
-LIMPIA (`OTEL_LOG_TOOL_DETAILS=1` evita la redacción de terceros) — exactamente el dato que
-necesita la capa Tokens del Mapa, sin tocar el JSONL para nada. OTLP es protocolo abierto
+`plugin.name` / `tool_name` / `agent.name` / `session.id` — **v2.1 CORRIGE lo que v2.0 afirmaba acá**
+(ver ⚠️ abajo): esa atribución **NO es limpia para plugins de terceros**, y nuestros arneses cuentan
+como tales. Sigue siendo el dato que necesita la capa Tokens del Mapa, sin tocar el JSONL para nada.
+OTLP es protocolo abierto
 (HTTP/JSON, HTTP/protobuf o gRPC): *"any backend that accepts OTLP... or a self-hosted
 collector"* — un receptor OTLP mínimo casero (no el OpenTelemetry Collector completo, no
 Langfuse) es un backend válido.
@@ -89,6 +90,29 @@ Mapa, necesita mockup→spec→PARIDAD como cualquier feature). Escribir `status
 construirlo sería el «pass fabricado» que la doctrina de honestidad prohíbe. Paquete de arranque
 → `docs/product/stories/2026-07-24-telemetria-embebida-otel/INDEX.md`.
 
+## ⚠️ v2.1 — Corrección: la atribución por-componente NO es limpia (2026-07-26)
+
+v2.0 afirmaba que `OTEL_LOG_TOOL_DETAILS=1` *«evita la redacción de terceros»*. **Falso para
+tokens/costo.** Doc oficial, textual: *"Third-party plugin skill names are replaced with
+`"third-party"`"*, e ídem `plugin.name`, **sin gate documentado** — a diferencia de `workflow.name`,
+que sí dice *"unless the gate is set"*.
+
+**Los arneses de ArnesIA se instalan como plugins de un marketplace propio ⇒ caen en «third-party» y
+se colapsan a una sola etiqueta.** Amenaza la atribución por-componente incluso en Claude Code.
+
+**Mitigación disponible, no equivalente:** `OTEL_RESOURCE_ATTRIBUTES` es respetado por Claude Code,
+Copilot CLI, Codex, Goose y OpenCode — permite inyectar **nuestro** identificador de unidad de
+trabajo al spawnear. Pero se fija **por proceso** ⇒ da granularidad de proceso spawneado, **no**
+por-skill dentro de una sesión. Resolver en el mockup/spec del paquete.
+
+**Dato hermano:** `claude_code.cost.usage` está documentado como **"Estimated cost"**, no facturación
+real. La UI no puede presentarlo como plata gastada sin decirlo.
+
+**Y el estándar tampoco ayuda:** `gen_ai.token.type` de la semconv GenAI admite **solo `input` y
+`output`** — cache y reasoning existen únicamente como atributos de *span*, y **no hay convención de
+costo en dinero**. Tampoco hay vocabulario para «skill»/«plugin»/«sub-agente». Todo eso es namespace
+propio, legítimamente.
+
 ## Checklist evaluable
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
@@ -97,9 +121,20 @@ construirlo sería el «pass fabricado» que la doctrina de honestidad prohíbe.
 | collector-otlp-embebido-local | el daemon embebe un receptor OTLP mínimo (HTTP, `/v1/metrics`) que recibe SOLO tráfico loopback — ningún proceso/contenedor externo | error | «telemetría emitida pero nadie la recibe» | (pendiente — no existe receptor) |
 | jsonl-nunca-fuente-de-tokens | el índice de tokens/costo/atribución NUNCA lee del JSONL (coherencia con `conductor-no-parsea-jsonl.md`) | error | «tokens leídos parseando el JSONL» | (pendiente) |
 | langfuse-jamas-dependencia-dura | ningún flujo de instalación/scaffold requiere Langfuse ni infraestructura Docker externa | error | «instalador o scaffold dependen de Langfuse» | (pendiente) |
+| telemetria-por-adaptador | la regla de acumulación y la aritmética de tokens (`disjoint`/`inclusive`) son propiedad del ADAPTADOR de runtime, nunca del agregador central | error | «tokens sumados con la regla de otro runtime» | (pendiente — v2.1) |
+| cero-post-install | ninguna pieza de telemetría se descarga en post-install: todo compilado en el binario (A) o shipeado como sidecar (B) | error | «el instalador baja algo de internet» | (pendiente — v2.1) |
 
 ## Changelog
 
+- 2026-07-26 · v2.1 · **Corrección + multi-runtime** (investigación SOTA, 3 carriles — paquete
+  `stories/2026-07-24-telemetria-embebida-otel/`, decisiones D9-D11). (1) **Corregida una afirmación
+  falsa de v2.0**: `OTEL_LOG_TOOL_DETAILS` NO evita la redacción `"third-party"` de
+  `skill.name`/`plugin.name`, y nuestros arneses caen ahí ⇒ la atribución por-componente está
+  amenazada; mitigación parcial vía `OTEL_RESOURCE_ATTRIBUTES`. (2) **OTel no es el canal universal**:
+  de 6 runtimes medidos solo 3 dan OTel útil en headless, contra 5 que dan `stream-json` por turno
+  (Codex `exec` no emite métricas; Amp y Cursor no tienen OTel) ⇒ el adaptador base es stream-json,
+  OTel es enriquecedor. (3) La semconv GenAI **no modela cache ni reasoning en métricas** ni define
+  costo en dinero. 2 checks nuevos (6 en total). Sigue `proposed`: cero código.
 - 2026-07-24 · v2.0 · **Arquitectura resuelta** (orden del operador, barrido de deuda viva
   HS-27): hallazgo del emisor legacy `emit.py`/KIT-03 (probado, pero canal JSONL+Langfuse
   incompatible con "instalable" + `conductor-no-parsea-jsonl.md`) + verificación oficial de la
