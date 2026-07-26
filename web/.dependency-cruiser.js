@@ -54,6 +54,14 @@ export default {
 			to: { path: "^src/features/([^/]+)/.+", pathNot: "^src/features/$1/.+" },
 		},
 		{
+			name: "no-sibling-widget-imports",
+			comment:
+				"un widget no importa otro widget (cross-slice de chrome prohibido): la página los compone. Espejo de no-sibling-feature-imports para la capa widgets — nace del paquete 2026-07-23-portafolio-agregar-marketplace, donde widgets/marketplace y widgets/portafolio se tocan en la misma vista y el acoplamiento entre los dos sería invisible sin este gate (hoy: 0 imports cruzados entre widgets, la regla nace verde).",
+			severity: "error",
+			from: { path: "^src/widgets/([^/]+)/.+" },
+			to: { path: "^src/widgets/([^/]+)/.+", pathNot: "^src/widgets/$1/.+" },
+		},
+		{
 			name: "no-deep-import",
 			comment:
 				"importa OTRA slice por su public API (index.ts), no por deep-import a sus internos; los imports dentro de la MISMA slice (hermanos ui/model) son válidos",
