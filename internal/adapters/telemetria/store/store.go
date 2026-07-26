@@ -173,6 +173,11 @@ func New(ruta string, o Opciones) (*Store, error) {
 	return s, nil
 }
 
+// ReaderParaTest expone el handle de lectura para los tests de fitness, que necesitan
+// verificar la FORMA de las filas —no solo lo que las consultas devuelven—. Un test que solo
+// mira la salida de la consulta no puede distinguir «el dato no suma» de «el dato no está».
+func (s *Store) ReaderParaTest() *sql.DB { return s.reader }
+
 // Ruta devuelve el archivo que este store abrió. Lo usan el reporte de salud y el test que
 // verifica que jamás es `index.db`.
 func (s *Store) Ruta() string { return s.ruta }

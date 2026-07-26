@@ -868,3 +868,88 @@ func TestB1NoDetectaReWarmSobreUnTierFabricado(t *testing.T) {
 	}
 	t.Logf("B1 no aplica, y lo dice: %q", motivo)
 }
+
+// TestElDineroSeCuentaUnaSolaVez es **el test del defecto más grave que la auditoría encontró**
+// (C1, 2026-07-26), reproducido tal cual lo reprodujo el auditor.
+//
+// El defecto: `claude_code.cost.usage` (canal `/v1/metrics`) y `api_request.cost_usd_micros`
+// (canal `/v1/logs`) son **el mismo gasto de la misma llamada**. Los dos entraban como
+// `api_request` y `SUM()` los sumaba: el mismo turno reportaba **18 473 con un exportador y
+// 36 946 con los dos**. Y no era un caso de laboratorio — `SpawnEnv` enciende los DOS
+// exportadores en todo spawn de S1, así que la configuración que el propio módulo prescribe
+// era la que producía el doble conteo.
+//
+// Para un producto cuya única promesa es decir cuánto cuesta algo, sobre-reportar el doble es
+// el peor defecto posible: dispara decisiones de gasto sobre un número inventado hacia arriba.
+//
+// La regla que este test enforcea: **una unidad de gasto se cuenta UNA sola vez.**
+func TestElDineroSeCuentaUnaSolaVez(t *testing.T) {
+	svc, st := servicioFitness(t)
+	ctx := context.Background()
+	srv := httptest.NewServer(otlp.NewReceptor(svc, otlp.Opciones{}))
+	defer srv.Close()
+
+	logs, err := os.ReadFile(evidencia(t, "logs-run1.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	metricas, err := os.ReadFile(evidencia(t, "metrics-run1.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// PASO 1 · solo el canal primario.
+	postearFitness(t, srv.URL+"/v1/logs", logs)
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+	soloLogs, err := svc.Resumen(ctx, ports.ConsultaTelemetria{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if soloLogs.CostoReportadoMicros == nil {
+		t.Fatal("control positivo: el canal primario tiene que traer el costo")
+	}
+	primario := *soloLogs.CostoReportadoMicros
+	if primario != 18473 {
+		t.Fatalf("el costo del golden es 18473 micros, llegó %d", primario)
+	}
+
+	// PASO 2 · la MISMA corrida, ahora también por el canal secundario. Es exactamente lo
+	// que pasa en producción: `SpawnEnv` enciende los dos exportadores.
+	postearFitness(t, srv.URL+"/v1/metrics", metricas)
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+	conAmbos, err := svc.Resumen(ctx, ports.ConsultaTelemetria{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conAmbos.CostoReportadoMicros == nil {
+		t.Fatal("con los dos canales el costo tiene que seguir estando")
+	}
+	if got := *conAmbos.CostoReportadoMicros; got != primario {
+		t.Fatalf("EL DINERO SE CONTÓ DOS VECES: con un canal %d micros, con los dos %d. "+
+			"`claude_code.cost.usage` y `api_request.cost_usd_micros` son EL MISMO gasto — "+
+			"una unidad de gasto se cuenta una sola vez", primario, got)
+	}
+	// Y tampoco se duplican los tokens ni los turnos.
+	if conAmbos.Turnos != soloLogs.Turnos {
+		t.Errorf("los turnos se duplicaron: %d → %d", soloLogs.Turnos, conAmbos.Turnos)
+	}
+
+	// ── control positivo: el dato del canal secundario NO se tiró, está guardado ──
+	// Se guarda porque tirarlo sería perder señal; simplemente no suma.
+	var metricasGuardadas int
+	if qerr := st.ReaderParaTest().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM evento WHERE tipo_evento = ?`, string(domain.EventoMetrica)).
+		Scan(&metricasGuardadas); qerr != nil {
+		t.Fatal(qerr)
+	}
+	if metricasGuardadas == 0 {
+		t.Fatal("control positivo: el canal secundario se GUARDA (no se tira), solo que no suma — " +
+			"si no hay filas, el test de arriba pasaría porque el dato desapareció, que es otro bug")
+	}
+	t.Logf("un canal: %d micros · dos canales: %d micros · filas del canal secundario guardadas: %d",
+		primario, *conAmbos.CostoReportadoMicros, metricasGuardadas)
+}

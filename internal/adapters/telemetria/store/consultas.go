@@ -52,6 +52,14 @@ func filtro(q ports.ConsultaTelemetria) (string, []any) {
 	return " WHERE " + strings.Join(cond, " AND "), args
 }
 
+// conjuntar agrega una condición a un WHERE que puede estar vacío.
+func conjuntar(where, cond string) string {
+	if where == "" {
+		return " WHERE " + cond
+	}
+	return where + " AND " + cond
+}
+
 // Resumen agrega el gasto de la ventana.
 //
 // **Solo suma lo atribuido** (A15): las filas `sin-dato` cuentan en `Cobertura.SinDato` y no
@@ -68,7 +76,13 @@ func (s *Store) Resumen(ctx context.Context, q ports.ConsultaTelemetria) (domain
 	where, args := filtro(q)
 	// Los agregados de dinero excluyen `sin-dato`; los conteos de sesiones/turnos NO,
 	// porque un turno no atribuido igual ocurrió.
-	sinDato := " atribucion <> 'sin-dato'"
+	//
+	// 🔴 Y excluyen el CANAL SECUNDARIO: `claude_code.cost.usage` (métricas) y
+	// `api_request.cost_usd_micros` (logs) son EL MISMO gasto de la misma llamada. Sumar los
+	// dos reporta el doble de lo que el operador gastó — y con los dos exportadores
+	// encendidos, que es lo que este mismo módulo prescribe para S1, pasa siempre.
+	// **Una unidad de gasto se cuenta una sola vez.**
+	sinDato := " atribucion <> 'sin-dato' AND tipo_evento <> '" + string(domain.EventoMetrica) + "'"
 	whereAtrib := where
 	if whereAtrib == "" {
 		whereAtrib = " WHERE" + sinDato
@@ -274,6 +288,9 @@ func (s sqlNullInt) Scan(v any) error {
 // por qué faltan, y un `0` diría que corrieron gratis.
 func (s *Store) PorCaja(ctx context.Context, q ports.ConsultaTelemetria) ([]domain.GastoCaja, error) {
 	where, args := filtro(q)
+	// El canal secundario queda afuera del desglose por la misma razón que del resumen: su
+	// costo es el mismo del primario y sumarlo lo contaría dos veces.
+	where = conjuntar(where, "tipo_evento <> '"+string(domain.EventoMetrica)+"'")
 	rows, err := s.reader.QueryContext(ctx,
 		`SELECT COALESCE(caja_id,''), SUM(costo_reportado_micros), SUM(costo_calculado_micros),
 		        COUNT(DISTINCT corrida_id), atribucion
@@ -357,6 +374,9 @@ func (s *Store) PorCaja(ctx context.Context, q ports.ConsultaTelemetria) ([]doma
 // no el rollup.
 func (s *Store) Turnos(ctx context.Context, q ports.ConsultaTelemetria) ([]domain.TurnoUnido, error) {
 	where, args := filtro(q)
+	// El canal secundario no participa del join: no trae identificador de turno (así que no
+	// se puede unir) y su dinero es el mismo del primario (así que sumarlo duplicaría).
+	where = conjuntar(where, "tipo_evento <> '"+string(domain.EventoMetrica)+"'")
 	limite := q.Limite
 	if limite <= 0 {
 		limite = 500 // el default del adaptador; jamás «sin límite».

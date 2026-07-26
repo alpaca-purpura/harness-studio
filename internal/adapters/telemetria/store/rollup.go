@@ -90,7 +90,7 @@ func sumaPreservandoNULL(col string) string {
 
 var columnasSumables = []string{
 	"tok_entrada", "tok_salida", "tok_cache_lectura", "tok_cache_5m", "tok_cache_1h",
-	"tok_razonamiento", "costo_reportado_micros", "costo_calculado_micros",
+	"tok_razonamiento", "tok_cache_sin_tier", "costo_reportado_micros", "costo_calculado_micros",
 	"duracion_ms_suma", "duracion_ms_cuenta",
 }
 
@@ -121,7 +121,7 @@ func insertRollup(colapsar bool) string {
 INSERT INTO rollup_hora (
   hora, arnes_id, instalacion_id, caja_id, runtime, modelo_canonico, emisor, atribucion,
   eventos, turnos, tok_entrada, tok_salida, tok_cache_lectura, tok_cache_5m, tok_cache_1h,
-  tok_razonamiento, costo_reportado_micros, costo_calculado_micros,
+  tok_razonamiento, tok_cache_sin_tier, costo_reportado_micros, costo_calculado_micros,
   duracion_ms_suma, duracion_ms_cuenta, rechazados, cardinalidad_colapsada)
 SELECT
   substr(ts_recibido, 1, 13),
@@ -135,12 +135,14 @@ SELECT
   -- se puede eliminar.
   COUNT(DISTINCT turno_id),
   SUM(tok_entrada), SUM(tok_salida), SUM(tok_cache_lectura), SUM(tok_cache_5m),
-  SUM(tok_cache_1h), SUM(tok_razonamiento),
+  SUM(tok_cache_1h), SUM(tok_razonamiento), SUM(tok_cache_sin_tier),
   SUM(costo_reportado_micros), SUM(costo_calculado_micros),
   SUM(duracion_ms), SUM(CASE WHEN duracion_ms IS NOT NULL THEN 1 ELSE 0 END),
   0, ` + boolSQL(colapsar) + `
 FROM evento
-WHERE id > ? AND id <= ?
+-- El canal SECUNDARIO queda afuera del agregado: su costo es el mismo del primario y
+-- sumarlo contaría el gasto dos veces (ver domain.EventoMetrica).
+WHERE id > ? AND id <= ? AND tipo_evento <> 'metrica'
 GROUP BY 1,2,3,4,5,6,7,8
 ON CONFLICT (hora, arnes_id, instalacion_id, caja_id, runtime, modelo_canonico, emisor, atribucion)
 DO UPDATE SET
@@ -278,19 +280,19 @@ func insertRollupPorHora() string {
 INSERT INTO rollup_hora (
   hora, arnes_id, instalacion_id, caja_id, runtime, modelo_canonico, emisor, atribucion,
   eventos, turnos, tok_entrada, tok_salida, tok_cache_lectura, tok_cache_5m, tok_cache_1h,
-  tok_razonamiento, costo_reportado_micros, costo_calculado_micros,
+  tok_razonamiento, tok_cache_sin_tier, costo_reportado_micros, costo_calculado_micros,
   duracion_ms_suma, duracion_ms_cuenta, rechazados, cardinalidad_colapsada)
 SELECT
   substr(ts_recibido,1,13), COALESCE(arnes_id,''), COALESCE(instalacion_id,''), COALESCE(caja_id,''),
   runtime, COALESCE(modelo_canonico, modelo, ''), emisor, atribucion,
   COUNT(*), COUNT(DISTINCT turno_id),
   SUM(tok_entrada), SUM(tok_salida), SUM(tok_cache_lectura), SUM(tok_cache_5m),
-  SUM(tok_cache_1h), SUM(tok_razonamiento),
+  SUM(tok_cache_1h), SUM(tok_razonamiento), SUM(tok_cache_sin_tier),
   SUM(costo_reportado_micros), SUM(costo_calculado_micros),
   SUM(duracion_ms), SUM(CASE WHEN duracion_ms IS NOT NULL THEN 1 ELSE 0 END),
   0, 0
 FROM evento
-WHERE substr(ts_recibido,1,13) = ?
+WHERE substr(ts_recibido,1,13) = ? AND tipo_evento <> 'metrica'
 GROUP BY 1,2,3,4,5,6,7,8`
 }
 

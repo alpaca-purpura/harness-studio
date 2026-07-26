@@ -110,7 +110,20 @@ const (
 	EventoSesionFin   TipoEvento = "sesion_fin"   // hook SessionEnd.
 	EventoRotacion    TipoEvento = "rotacion"     // daemon: rotación de contexto (B2).
 	EventoCorrida     TipoEvento = "corrida"      // daemon: run T3 de una caja.
-	EventoGate        TipoEvento = "gate"         // daemon: veredicto del gate (P1).
+	EventoGate        TipoEvento = "gate"         // daemon: veredicto del gate (P1)
+	// EventoMetrica — punto del canal SECUNDARIO (`/v1/metrics`).
+	//
+	// 🔴 Existe como tipo PROPIO por una sola razón, y es la más importante del módulo:
+	// `claude_code.cost.usage` y `api_request.cost_usd_micros` son **el mismo gasto de la
+	// misma llamada**. Si los dos entraran como `api_request`, `SUM(costo)` los sumaría y el
+	// tablero reportaría **el doble de lo que el operador gastó** — y el dedupe no los cruza,
+	// porque el punto de métrica no trae `prompt.id` y su `ts_emisor` difiere en ~490 ms.
+	//
+	// La regla, y no se negocia: **una unidad de gasto se cuenta UNA sola vez.** D14.1 ya
+	// había declarado que el canal primario es `/v1/logs`; esto lo IMPLEMENTA. El dato del
+	// canal secundario **se guarda** —no se tira— y es visible en el detalle y en la salud,
+	// pero **ninguna agregación de dinero ni de tokens lo toca**.
+	EventoMetrica TipoEvento = "metrica"
 )
 
 // Resultado es el desenlace de un evento de proceso; vacío en los de dinero.

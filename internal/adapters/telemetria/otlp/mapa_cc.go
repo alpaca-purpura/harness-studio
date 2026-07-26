@@ -270,10 +270,14 @@ func MapearPuntoMetrica(p PuntoMetrica, perfil domain.PerfilRuntime, ahora time.
 		AdaptadorVersion: perfil.AdaptadorVersion,
 		TSRecibido:       ahora.UTC(),
 		TSEmisor:         p.TS,
-		TipoEvento:       domain.EventoAPIRequest,
-		Modelo:           p.Attrs.Texto("model"),
-		Aritmetica:       perfil.Aritmetica,
-		Acumulacion:      perfil.Acumulacion,
+		// 🔴 NO es `api_request`: es el canal SECUNDARIO, y su costo es EL MISMO que el del
+		// canal primario. Marcarlo `api_request` haría que `SUM(costo)` contara el gasto dos
+		// veces — con los dos exportadores encendidos, que es la configuración que este
+		// mismo módulo prescribe para S1.
+		TipoEvento:  domain.EventoMetrica,
+		Modelo:      p.Attrs.Texto("model"),
+		Aritmetica:  perfil.Aritmetica,
+		Acumulacion: perfil.Acumulacion,
 	}
 	if ev.ArnesID != "" {
 		ev.Atribucion = domain.ConfianzaExacta
