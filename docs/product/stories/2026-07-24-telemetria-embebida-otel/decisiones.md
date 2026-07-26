@@ -632,6 +632,41 @@ vigente de que el alcance del chat embebido excluye el paquete propio.
 > Con esta firma queda **autorizado el spec** (`spec.md` + `design.md`) y, tras la firma del par,
 > la implementación. El mockup sigue en iteración 1 y su gate propio no está firmado.
 
+## 🧑‍⚖️ GATE DEL MOCKUP — **FIRMADO** (2026-07-26, iteración 2)
+
+> **Firma del operador, textual:** *«Ok, firmo el mockup, al momento de desarrollar esto debería
+> estar en el storybook, o sea, el componente para ser entendido y respetado en toda la plataforma»*
+>
+> Firma la **iteración 2** de [`mockup-capa-mejora.html`](mockup-capa-mejora.html), con sus **tres
+> desviaciones declaradas** en la cabecera (tokens PRENTER sobre el baseline ámbar · el slot
+> `Tokens` → `Mejora` · `[Proponerlo en el chat]` en vez de `[Aplicar]`) y con el TTL de 90 días
+> rotulado como valor propuesto, no firmado.
+>
+> **Desbloquea el Tramo B** (T28-T37, 125 stories). La parada **P0** del `plan-desarrollo.md`
+> queda satisfecha.
+
+### D23 — El componente vive en Storybook para ser reusado, no solo para ser testeado · ✅ FIRMADA
+
+La firma vino con una condición que **cambia el criterio de construcción**, no solo lo confirma:
+
+> *«el componente para ser entendido y respetado en toda la plataforma»*
+
+`story = test` ya era ley acá, pero como **gate de verificación**. D23 le agrega el otro propósito:
+el Storybook es el **catálogo** desde el que el resto de la plataforma entiende y reusa estas
+piezas. Consecuencias vinculantes para el Tramo B:
+
+1. **Las piezas nuevas nacen en `entities/telemetria/ui/` y `shared/ui/`, no dentro del widget.**
+   Una cifra de dinero, una marca de confianza, una barra de cobertura y un sparkline son
+   vocabulario de la plataforma; enterrarlas en `map-canvas` obligaría a la próxima superficie a
+   reinventarlas. Refuerza D18 (props primitivas) y la taxonomía de `fe-taxonomia-componentes.md`.
+2. **Cada pieza reusable lleva stories de su CONTRATO, no solo del caso que el Mapa usa** — todos
+   sus estados, incluidos los que hoy nadie consume. Es lo que la vuelve entendible sin leer su
+   código.
+3. **El copy canónico se exporta y se asserta contra una sola fuente** (los dos candados de D18):
+   si dos superficies muestran la misma confianza con palabras distintas, el vocabulario se rompe.
+4. **La misma pieza sirve al Mapa y al Portafolio.** La tarjeta del Portafolio (D17.2) no dibuja su
+   propia versión de la cifra ni de la marca de duda: consume las mismas.
+
 ## Estado del paquete
 
 **Diseño de arquitectura RESUELTO y documentado** (boundary v2.0 + esta ficha). **CERO código
