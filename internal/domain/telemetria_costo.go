@@ -38,6 +38,17 @@ type CostoCalculado struct {
 	// SinNingunaTarifa distingue «no pude cotizar NADA» (el modelo no está en el catálogo)
 	// de «cotizé 0 porque no hubo tokens». El primero debe viajar como null al wire.
 	SinNingunaTarifa bool `json:"sin_ninguna_tarifa,omitempty"`
+	// SinTokensQueCotizar marca que NO HABÍA NADA que cotizar: ningún bucket traía tokens.
+	//
+	// 🔴 No es lo mismo que «costó cero». Un evento que llega sin desglose de tokens —el
+	// caso real del canal de métricas— no gastó 0: **no sabemos cuánto gastó**. Sin este
+	// flag, `Micros: 0, Completo: true` viajaba como una cotización válida de cero pesos, y
+	// entraba al `SUM()` y al `MIN(costo_completo)` como un voto de «completo».
+	//
+	// Es el primo hermano exacto del defecto del tier, en la misma función: el guardia de
+	// `SinNingunaTarifa` no disparaba porque exige `len(SinTarifa) > 0`, y sin tokens no hay
+	// ningún bucket que nombrar.
+	SinTokensQueCotizar bool `json:"sin_tokens_que_cotizar,omitempty"`
 }
 
 // CalcularCosto cotiza un uso con un precio. Es **pura**: no toca red, ni disco, ni reloj.
@@ -76,6 +87,11 @@ func CalcularCosto(t Tokens, p PrecioModelo, a Aritmetica) CostoCalculado {
 			entrada = 0
 		}
 	}
+
+	// ¿Había ALGO que cotizar? Si ningún bucket trae tokens no hay cotización posible, y el
+	// resultado tiene que decir «no sé», no «cero».
+	hayTokens := valor(t.Entrada)+valor(t.Salida)+valor(t.CacheLectura)+valor(t.CacheEscritura5m)+
+		valor(t.CacheEscritura1h)+valor(t.Razonamiento)+valor(t.CacheEscrituraSinTier) > 0
 
 	var usd float64
 	var sinTarifa []string
@@ -118,9 +134,11 @@ func CalcularCosto(t Tokens, p PrecioModelo, a Aritmetica) CostoCalculado {
 	}
 
 	return CostoCalculado{
-		Micros:    int64(math.Round(usd * 1e6)),
-		Completo:  len(sinTarifa) == 0,
-		SinTarifa: sinTarifa,
+		Micros: int64(math.Round(usd * 1e6)),
+		// Sin tokens no hay cotización COMPLETA: no hay cotización en absoluto.
+		Completo:            len(sinTarifa) == 0 && hayTokens,
+		SinTarifa:           sinTarifa,
+		SinTokensQueCotizar: !hayTokens,
 		// SinNingunaTarifa: había tokens que cobrar y no se pudo cobrar NINGUNO. El caller
 		// debe mandar `null` al wire, no un 0 — un 0 se lee como «salió gratis».
 		SinNingunaTarifa: cobrados == 0 && len(sinTarifa) > 0,

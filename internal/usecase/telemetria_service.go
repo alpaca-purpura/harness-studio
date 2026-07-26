@@ -182,8 +182,12 @@ func (s *TelemetriaService) costear(e *domain.EventoTelemetria) {
 		arit = s.perfil.Aritmetica
 	}
 	c := domain.CalcularCosto(e.Tokens, precio, arit)
-	if c.SinNingunaTarifa {
-		return // no se pudo cotizar NADA: null, no 0.
+	if c.SinNingunaTarifa || c.SinTokensQueCotizar {
+		// No se pudo cotizar NADA —ni por falta de tarifas ni por falta de tokens—: el costo
+		// calculado viaja **nil**, y `CostoCompleto` queda nil también. Un 0 acá se leería
+		// como «este turno salió gratis», y además entraría al total y al veredicto de
+		// completitud como un voto a favor.
+		return
 	}
 	micros := c.Micros
 	e.CostoCalculadoMicros = &micros

@@ -953,3 +953,61 @@ func TestElDineroSeCuentaUnaSolaVez(t *testing.T) {
 	t.Logf("un canal: %d micros · dos canales: %d micros · filas del canal secundario guardadas: %d",
 		primario, *conAmbos.CostoReportadoMicros, metricasGuardadas)
 }
+
+// TestUnCostoQueNoSePudoCotizarNoViajaComoCero — **C2 de la auditoría, en el wire**.
+//
+// Un `api_request` sin desglose de tokens —el caso real del canal de métricas— salía con
+// `costo_calculado_micros: 0` y `costo_completo: true`. Un turno que costó USD 0,018473
+// reportados se mostraba como **USD 0,000000 calculado**, sin ninguna marca. Y el 0 no se
+// quedaba quieto: entraba al `SUM()` del resumen y al veredicto de completitud como un voto a
+// favor.
+//
+// Cero tokens no es cero pesos: es «no sé cuánto».
+func TestUnCostoQueNoSePudoCotizarNoViajaComoCero(t *testing.T) {
+	svc, st := servicioFitness(t)
+	ctx := context.Background()
+	micros := int64(18473)
+	if _, err := svc.Ingerir(ctx, []domain.EventoTelemetria{{
+		LlaveJoin:  domain.LlaveJoin{SesionID: "s-1", TurnoID: "t-1", ArnesID: "vitalia", CajaID: "paso-3"},
+		Emisor:     domain.EmisorOTLP,
+		Runtime:    "claude-code",
+		TSRecibido: time.Now().UTC(),
+		TipoEvento: domain.EventoAPIRequest,
+		Escenario:  domain.EscenarioS2Instrumentado,
+		Modelo:     "claude-haiku-4-5",
+		// Sin ningún bucket con tokens: exactamente lo que trae el canal de métricas.
+		CostoReportadoMicros: &micros,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+
+	// En la FILA: `costo_calculado_micros` tiene que ser NULL, no 0.
+	var calc, completo interface{}
+	if qerr := st.ReaderParaTest().QueryRowContext(ctx,
+		`SELECT costo_calculado_micros, costo_completo FROM evento LIMIT 1`).Scan(&calc, &completo); qerr != nil {
+		t.Fatal(qerr)
+	}
+	if calc != nil {
+		t.Errorf("sin tokens no hay nada que cotizar: costo_calculado_micros = %v, tiene que ser NULL", calc)
+	}
+	if completo != nil {
+		t.Errorf("un costo que no existe no puede declararse completo: costo_completo = %v", completo)
+	}
+
+	// En el RESUMEN: el 0 no puede entrar al total ni votar «completo».
+	r, err := svc.Resumen(ctx, ports.ConsultaTelemetria{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.CostoCalculadoMicros != nil {
+		t.Errorf("el resumen no puede reportar un calculado de %d cuando no se cotizó nada",
+			*r.CostoCalculadoMicros)
+	}
+	// ── control positivo: lo que SÍ se pudo medir sigue viajando ──
+	if r.CostoReportadoMicros == nil || *r.CostoReportadoMicros != 18473 {
+		t.Fatalf("control positivo: el costo REPORTADO tiene que seguir estando: %v", r.CostoReportadoMicros)
+	}
+}

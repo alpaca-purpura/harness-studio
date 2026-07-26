@@ -154,17 +154,32 @@ func TestSinNingunCosto(t *testing.T) {
 	}
 }
 
-// TestCosteoCeroTokensEsCompleto — el contraste que el test anterior necesita para no ser
-// ambiguo: un uso sin tokens cuesta 0 y ESO SÍ es un dato completo. `Micros: 0` con
-// `Completo: true` significa «costó cero»; con `SinNingunaTarifa: true` significa «no se
-// pudo cotizar». Son cosas distintas y el wire las distingue.
-func TestCosteoCeroTokensEsCompleto(t *testing.T) {
+// TestSinTokensNoEsCostoCero — **el defecto C2 de la auditoría**, y el primo hermano exacto del
+// defecto del tier, en la misma función.
+//
+// Un uso sin ningún bucket con tokens devolvía `{Micros: 0, Completo: true}`: una cotización
+// válida de cero pesos. Es el caso REAL del canal de métricas, que trae el costo del turno sin
+// desglose de tokens — y ese 0 no se quedaba quieto: entraba al `SUM(costo_calculado)` del
+// resumen y al `MIN(costo_completo)` **como un voto de «completo»**.
+//
+// Cero tokens no es cero pesos: es «no sé cuánto». Es exactamente la distinción que el boundary
+// `no-aplica-no-es-cero` existe para proteger, rota en el campo de dinero.
+func TestSinTokensNoEsCostoCero(t *testing.T) {
 	c := CalcularCosto(Tokens{}, precioHaiku45(), AritmeticaDisjunta)
-	if c.Micros != 0 {
-		t.Errorf("sin tokens el costo es 0: %d", c.Micros)
+	if !c.SinTokensQueCotizar {
+		t.Fatal("sin ningún bucket con tokens no hay nada que cotizar, y eso tiene que decirse")
 	}
-	if !c.Completo || c.SinNingunaTarifa {
-		t.Errorf("un uso vacío cotiza COMPLETO en 0, no «sin tarifa»: %+v", c)
+	if c.Completo {
+		t.Error("un uso que no se pudo cotizar NO es una cotización completa — así entraba " +
+			"al veredicto de completitud como un voto a favor")
+	}
+	// ── control positivo: con tokens, la cotización SÍ es completa y no marca el flag ──
+	con := CalcularCosto(Tokens{Entrada: i64(1_000)}, precioHaiku45(), AritmeticaDisjunta)
+	if con.SinTokensQueCotizar {
+		t.Error("con tokens hay algo que cotizar")
+	}
+	if !con.Completo || con.Micros != 1_000 {
+		t.Errorf("control positivo: %+v", con)
 	}
 }
 
