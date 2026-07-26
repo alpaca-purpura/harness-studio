@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import type { ArtefactosMode, Box, ConformanceResult, Graph } from "@/entities/arnes"
 import { isCaja } from "@/entities/arnes"
 import type {
+  BucketToken,
   CifraCaja,
   EstadoDetector,
+  ParidadCosto,
   PuntoMejora,
   ResumenTelemetria,
   Ventana,
@@ -23,6 +25,7 @@ import {
   type Capa,
   FranjaMejora,
   Inspector,
+  InspectorMejora,
   MapBar,
   MapCanvas,
   PoliticaDatosDialog,
@@ -30,6 +33,45 @@ import {
 } from "@/widgets/map-canvas"
 
 const viewGlyph = (v: string) => VIEWS.find((x) => x[0] === v)?.[1] ?? "◵"
+
+const ETIQUETA_VENTANA: Readonly<Record<Ventana, string>> = {
+  "7d": "7 días",
+  "30d": "30 días",
+  todo: "todo",
+}
+
+/** `domain.DetalleCaja` recortado a lo que la 4ª tab necesita. Los buckets llegan como punteros:
+ *  un campo AUSENTE en el JSON es «no aplica», y eso se conserva como `null` (RF-260). */
+interface DetalleCajaWire {
+  turnos_totales: number
+  tokens?: Partial<Record<string, number>> | undefined
+  paridad?: ParidadCosto | undefined
+  detectores?: EstadoDetector[] | undefined
+}
+
+/** Los seis buckets, en orden fijo. **Un bucket ausente en el wire viaja `null`, no 0**: el
+ *  `omitempty` de Go significa «este runtime no tiene el concepto», y un 0 sería mentira. */
+const BUCKETS: readonly { id: BucketToken["id"]; etiqueta: string; campo: string }[] = [
+  { id: "entrada", etiqueta: "entrada", campo: "entrada" },
+  { id: "salida", etiqueta: "salida", campo: "salida" },
+  { id: "cache_lectura", etiqueta: "cache · lectura", campo: "cache_lectura" },
+  { id: "cache_escritura_5m", etiqueta: "cache · escritura 5 m", campo: "cache_escritura_5m" },
+  { id: "cache_escritura_1h", etiqueta: "cache · escritura 1 h", campo: "cache_escritura_1h" },
+  { id: "razonamiento", etiqueta: "razonamiento", campo: "razonamiento" },
+]
+
+function bucketsDe(d: DetalleCajaWire | null): BucketToken[] {
+  return BUCKETS.map((b) => ({
+    id: b.id,
+    etiqueta: b.etiqueta,
+    tokens: d?.tokens?.[b.campo] ?? null,
+    // ⚠️ El wire NO manda el costo por bucket: `domain.DetalleCaja` trae `Tokens` y `Paridad`,
+    // no un desglose de dinero por bucket. La columna USD queda `null` —«no aplica»— hasta que
+    // el backend lo mande. Inventarla acá sería costear en el FE, que es justo lo que
+    // `design.md` §1.3 prohíbe («entities presenta; no calcula»).
+    costo_micros: null,
+  }))
+}
 
 // WorkspaceStage is the near-fullscreen canvas of the active session (a page = composition-root).
 // El header de sesión vive SOLO en `Topbar` (TS-D19) — este componente ya no pinta uno propio.
@@ -69,8 +111,11 @@ export function WorkspaceStage() {
   const [resumen, setResumen] = useState<ResumenTelemetria | null>(null)
   const [cajas, setCajas] = useState<CifraCaja[]>([])
   const [puntos, setPuntos] = useState<PuntoMejora[]>([])
+  // Los 7 de fuera del MVP. Alimentan la 4ª tab del inspector (RF-263), **no** el vacío de la
+  // lista: ahí dirían «sin hallazgos», que es exactamente lo que RF-263 prohíbe.
   const [noMedidos, setNoMedidos] = useState<EstadoDetector[]>([])
   const [politicaAbierta, setPoliticaAbierta] = useState(false)
+  const [detalle, setDetalle] = useState<DetalleCajaWire | null>(null)
   const [nonce, setNonce] = useState(0)
   // Franja Artefactos (RF-143): default auto — reposo idéntico al mapa actual, chips al
   // seleccionar. Mismo patrón de estado que `capa` (sin persistencia dura, como el resto).
@@ -259,6 +304,31 @@ export function WorkspaceStage() {
     }
   }, [viewedId, isMapa, capa, ventana, rangoDeVentana, nonce])
 
+  // El detalle de la caja seleccionada — el cuerpo de la 4ª tab. Se pide SOLO cuando hay caja
+  // seleccionada y la capa está encendida: es un drill-down, no parte de la carga del Mapa.
+  useEffect(() => {
+    if (!viewedId || !isMapa || capa !== "mejora" || !selectedId) {
+      setDetalle(null)
+      return
+    }
+    let alive = true
+    api
+      .telemetriaDetalleCaja<DetalleCajaWire>(viewedId, selectedId, {
+        ...rangoDeVentana(ventana),
+      })
+      .then((d) => {
+        if (alive) setDetalle(d)
+      })
+      .catch(() => {
+        // El detalle es opcional: sin él la tab dice que no hay desglose de esta caja, y las
+        // otras tres tabs siguen intactas.
+        if (alive) setDetalle(null)
+      })
+    return () => {
+      alive = false
+    }
+  }, [viewedId, isMapa, capa, selectedId, ventana, rangoDeVentana])
+
   // `CifraCaja` por nodo + el motivo de «sin dato atribuible» para todo lo que NO es caja.
   // El motivo sale de `MOTIVO_SIN_DATO` (entities/telemetria), que es la única fuente — el
   // nodo lo recibe por prop porque `entities/arnes` no puede importar la otra entity (D18).
@@ -412,6 +482,38 @@ export function WorkspaceStage() {
                       onSelect={setSelectedId}
                       conformance={conformance}
                       loadFuente={loadFuente}
+                      mejora={
+                        capa === "mejora" ? (
+                          <InspectorMejora
+                            esCaja={isCaja(selectedBox)}
+                            motivoNoCaja={motivoSinDato(selectedBox.clase)}
+                            ventanaLabel={ETIQUETA_VENTANA[ventana]}
+                            corridas={detalle?.turnos_totales ?? 0}
+                            buckets={bucketsDe(detalle)}
+                            totalMicros={detalle?.paridad?.reportado_micros ?? null}
+                            paridad={
+                              detalle?.paridad ?? {
+                                reportado_micros: null,
+                                calculado_micros: null,
+                                divergencia_pct: null,
+                                completo: false,
+                                catalogo_sin_construir: true,
+                              }
+                            }
+                            join={{
+                              corridas: detalle?.turnos_totales ?? 0,
+                              // `null`, no 0: sin señal de gate, «ninguna se rechazó» sería una
+                              // afirmación sobre el proceso que nadie midió (T22 sigue abierto).
+                              rechazadas: null,
+                              costo_rechazadas_micros: null,
+                              rotaciones: null,
+                            }}
+                            detectores={detalle?.detectores ?? []}
+                            noMedidos={noMedidos}
+                            onReintentar={() => setNonce((n) => n + 1)}
+                          />
+                        ) : undefined
+                      }
                     />
                   )}
                 </>
@@ -424,7 +526,13 @@ export function WorkspaceStage() {
               <PuntosMejoraList
                 estado={mejEstado}
                 puntos={puntos}
-                detectores={noMedidos.length > 0 ? noMedidos : undefined}
+                // ⚠️ HUECO DEL WIRE, declarado: `RespuestaMejoras` trae `no_aplican` (los que
+                // NO pudieron correr) y `no_medidos` (los de fuera del MVP), pero **ninguna
+                // lista de los que corrieron y no encontraron nada**. H-2 necesita justamente
+                // esa. Pasarle `no_medidos` los pintaría como «sin hallazgos», que es la mentira
+                // que RF-263 prohíbe explícitamente. Hasta que el wire la mande, el vacío
+                // muestra su copy sin enumerar a nadie.
+                detectores={undefined}
                 corridas={resumen?.corridas ?? 0}
                 cajaSeleccionada={selectedId}
                 onDescartar={() => setNonce((n) => n + 1)}
