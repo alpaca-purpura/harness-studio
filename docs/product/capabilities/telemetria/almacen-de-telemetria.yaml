@@ -1,0 +1,152 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A2 + A3 + A10).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.almacen-de-telemetria
+cap_num: CAP-122
+slug: almacen-de-telemetria
+name: "Almacén de telemetría (base propia, migración aditiva, archivado que nunca borra)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: crear
+functional_area: "telemetria.persistencia"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/store/store.go#Store"
+  - "internal/adapters/telemetria/store/store.go#New"
+  - "internal/adapters/telemetria/store/store.go#Store.Ingerir"
+  - "internal/adapters/telemetria/store/store.go#Store.EsperarTurno"
+  - "internal/adapters/telemetria/store/store.go#Store.Salud"
+  - "internal/adapters/telemetria/store/store.go#Store.Purgar"
+  - "internal/adapters/telemetria/store/migracion.go#Migracion"
+  - "internal/adapters/telemetria/store/migracion.go#Aplicar"
+  - "internal/adapters/telemetria/store/migracion.go#EsAditiva"
+  - "internal/adapters/telemetria/store/consultas.go#Store.Resumen"
+  - "internal/adapters/telemetria/store/consultas.go#Store.PorCaja"
+  - "internal/adapters/telemetria/store/consultas.go#Store.Turnos"
+valida:
+  - "TestRutasPorHome"
+  - "TestTelemetriaDBNoEsElIndice"
+  - "TestMigracionesSonAditivas"
+  - "TestGeneracionArchivaNoBorra"
+  - "TestDBCorruptaSeArchiva"
+  - "TestDosEscritoresSobreElMismoDB"
+  - "TestDiscoLlenoNoTumbaElDaemon"
+  - "TestColaLlenaDescartaYCuenta"
+  - "TestRelojHaciaAtrasNoRompeLaVentana"
+  - "TestEventoDuplicadoNoSeCuentaDosVeces"
+  - "TestEventoSinSesionSeRechazaEnElStore"
+  - "TestNoAplicaSeGuardaComoNULL"
+  - "TestSinDatoNoSumaAlTotalEnElStore"
+  - "TestPorCajaIncluyeLasCajasSinDato"
+  - "TestJoinPorSesionYTurnoEnElStore"
+  - "TestTurnoSoloConProcesoOSoloConDinero"
+  - "TestCoberturaSinDenominadorEnS2"
+  - "TestConciliacionCuentaLosNoLlegadosEnElStore"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria resumen"
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/resumen"
+    - "GET /api/telemetria/salud"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §5"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "La telemetría vive en su propia base, separada del índice del Mapa: el índice se puede reconstruir del árbol y por eso se borra entero cuando cambia de forma; esto no se puede reconstruir de ningún lado. Un cambio de forma que no se pueda expresar sumando ARCHIVA el archivo viejo, nunca lo borra."
+    merge_sha: null
+scenarios:
+  - id: wipe-del-indice-no-toca-la-telemetria
+    name: "El índice del Mapa se borra por un cambio de esquema"
+    status: live
+    given: "una base de telemetría con eventos y un índice al lado"
+    when: "el índice se borra entero, que es su doctrina"
+    then: "la telemetría sigue existiendo con los mismos eventos"
+    verifica: "TestTelemetriaDBNoEsElIndice"
+  - id: ruptura-archiva
+    name: "Un binario nuevo abre una base de forma vieja"
+    status: live
+    given: "una base escrita por una generación anterior"
+    when: "se abre con el binario nuevo"
+    then: "el archivo viejo sigue en disco renombrado, la base nueva arranca vacía, y el reporte de salud nombra el archivo archivado"
+    verifica: "TestGeneracionArchivaNoBorra"
+  - id: base-ilegible-no-tumba
+    name: "El archivo de la base está corrupto"
+    status: live
+    given: "un archivo que no es una base de datos"
+    when: "el daemon arranca"
+    then: "se archiva, se arranca vacío y el daemon sigue vivo"
+    verifica: "TestDBCorruptaSeArchiva"
+  - id: emisor-que-reintenta-no-infla
+    name: "El emisor se reinicia y reenvía el mismo lote"
+    status: live
+    given: "un evento que ya se guardó"
+    when: "llega otra vez"
+    then: "no se duplica y el total no se infla; un evento distinto del mismo turno sí entra"
+    verifica: "TestEventoDuplicadoNoSeCuentaDosVeces"
+  - id: reloj-del-emisor-absurdo
+    name: "Un emisor reporta una hora imposible"
+    status: live
+    given: "un evento fechado tres días atrás por su emisor"
+    when: "se guarda"
+    then: "el evento entra marcado como reloj sospechoso, y la ventana usa el reloj del daemon"
+    verifica: "TestRelojHaciaAtrasNoRompeLaVentana"
+business_rules:
+  - id: base-propia
+    rule: "La telemetría vive en su propio archivo. Compartirlo con el índice significaría que un cambio de forma del índice borra la historia de telemetría, que no se puede reconstruir de ningún lado."
+    enforcement: ["docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md"]
+    severity: critical
+  - id: migracion-aditiva
+    rule: "El esquema crece sumando. Una migración que borra o renombra no pasa el enforcer, para que nadie la escriba apurado."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: archivar-nunca-borrar
+    rule: "Una ruptura que no se puede expresar sumando archiva el archivo y arranca vacío, y lo dice. Borrar en silencio para simplificar una migración es destruir el único registro que existe."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: la-instrumentacion-no-degrada
+    rule: "Guardar telemetría nunca hace esperar a quien la emite ni tumba al daemon: la cola es acotada, el exceso se descarta y se cuenta, y un almacén roto pierde telemetría, no la sesión del usuario."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: nulo-sobrevive-al-almacen
+    rule: "Un bucket que el runtime no reportó se guarda vacío, no en cero. Las columnas no tienen valor por defecto."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+    - arnesia.telemetria.allowlist-de-ingesta
+  enables:
+    - arnesia.telemetria.rollup-horario-incremental
+    - arnesia.telemetria.retencion-y-borrado
+  similar:
+    - arnesia.indice-persistencia.persistencia
+  obsoletes: []
+---
+
+# Almacén de telemetría
+
+**Base propia, no una tabla más del índice.** El índice del Mapa es desechable por doctrina: cuando
+cambia de forma se borra entero y se reconstruye del árbol de arneses. La telemetría no se puede
+reconstruir de ningún lado — si se pierde, se perdió. Compartir archivo significaría que un cambio
+de forma del índice borra la historia.
+
+**El esquema crece sumando.** Y cuando una ruptura no se puede expresar sumando, el archivo viejo
+**se archiva**: queda en disco renombrado, la base nueva arranca vacía, y el reporte de salud dice
+cuál es el archivo. Cuesta un renombre y conserva la posibilidad de recuperar la historia a mano.
+Lo mismo con una base corrupta: se archiva, no se borra.
+
+**Dos relojes.** El del daemon manda para ventanas y agregados; el del emisor se guarda al lado y,
+si es absurdo, la fila queda marcada. Así, una ventana rara se puede explicar después en vez de
+adivinar.
+
+**La instrumentación nunca degrada lo instrumentado.** La cola es acotada; el exceso se descarta y
+se cuenta. Un almacén roto pierde telemetría, no la sesión del usuario.
