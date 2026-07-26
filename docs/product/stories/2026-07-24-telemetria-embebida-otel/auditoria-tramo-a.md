@@ -1,3 +1,71 @@
+
+---
+
+# ✅ Respuesta del constructor (2026-07-26)
+
+**Los 4 críticos, la sospecha S1 y tres de los altos/medios están corregidos, cada uno con su test
+de regresión.** La auditoría encontró cosas que ningún test mío veía; el resumen de por qué es el
+propio patrón de los defectos.
+
+| id | estado | commit | test que lo ata |
+|---|---|---|---|
+| **C1** dinero contado dos veces | **corregido** | `6f8f996` | `TestElDineroSeCuentaUnaSolaVez` |
+| **C2** cero de dinero fabricado | **corregido** | `6d5073d` | `TestSinTokensNoEsCostoCero` · `TestUnCostoQueNoSePudoCotizarNoViajaComoCero` |
+| **C3** veredictos contradictorios | **corregido** | `1e311e6` | (dentro de `TestElTotalDeLaCajaEsElTotal` + E2E) |
+| **C4** truncado silencioso | **corregido** | `1e311e6` | `TestElTotalDeLaCajaEsElTotal` |
+| **S1** ruta cruda en `instalacion_id` | **CONFIRMADA y corregida** | `6b5042b` | `TestNingunIdentificadorEsUnaRutaDelUsuario` |
+| **A1** confianza clavada | **corregido** | `1e311e6` | verificado E2E |
+| **A2** rollup que miente | **mentira retirada** | `1ed38c7` | `TestElAgregadoNoConservaLoQueNadiePuedeLeer` |
+| **A3** bucket invisible | **corregido** | `1e311e6` | visible en el detalle (E2E) |
+| **M8** presupuesto no verificado | **corregido** | `6bcbe3c` | `TestPresupuestoDeBinario` (delta real, build determinista) |
+| **M9** oráculo saturado | **corregido** | `6bcbe3c` | `TestElOraculoApuntaALoInexplicado` |
+
+## Las decisiones que tomé, y por qué
+
+**C1 — el canal secundario no aporta dinero ni tokens. Nunca.** Sobre la alternativa (aflojar la
+llave de dedupe) porque una exclusión por tipo se lee de un vistazo y una llave de dedupe
+condicional hay que reconstruirla mentalmente cada vez que alguien la toca. El dato **se guarda**:
+tirarlo sería perder señal. El exportador de métricas se deja encendido en el spawn porque es el
+contrato MEDIDO, y no se cambia lo verificado por comodidad — el invariante lo sostiene la
+exclusión, que es donde tiene que estar.
+
+**A2 — saqué la mentira en vez de cablear el rollup.** Cablearlo exige resolver antes qué pasa con
+`sesiones` y `corridas`, que el agregado **no modela** (solo tiene `turnos`, y su `COUNT DISTINCT`
+por grupo sobrecuenta al sumar grupos). Hacerlo apurado cambiaría la semántica de dos cifras del
+resumen para arreglar una promesa de retención. La purga se lleva el agregado, CAP-123 pasa a
+`parcial` con `api_endpoints: []`, y la deuda queda en el BACKLOG con lo que hace falta.
+
+**M9 — sospechosa es la divergencia SIN explicación.** Con el motivo declarado, la alarma no suena.
+Una alarma que suena en todas las corridas entrena a ignorarla, y entonces no sirve para lo único
+que existe.
+
+## Lo que el patrón de los defectos enseña, y me llevo
+
+Tres de los cuatro críticos son **la misma falla de método**: un test mío que afirmaba lo contrario
+del invariante. `TestCosteoCeroTokensEsCompleto` decía textual *«un uso vacío cotiza COMPLETO en
+0»* — estaba **cementando** C2. Por eso ningún test lo cazó: el test era el defecto.
+
+Y S1 es la clase que ninguna barrera existente podía ver: **campo permitido, contenido prohibido**.
+La allowlist protege por nombre; hacía falta una que proteja por FORMA del valor. Ahora existe.
+
+## Encontrado al corregir, no en la auditoría
+
+- **`Sincronizar` no era una barrera, era un sleep** (`LoteEspera + 50 ms`). Con 600 filas bajo
+  `-race` la apuesta se pierde: el test fallaba por el reloj, no por el código. Ahora compara
+  encolados contra escritos. Commit `bd3b5a1`.
+- **El Host gate se derivaba del flag `--addr`, no del listener real**: con `--addr 127.0.0.1:0`
+  —el puerto efímero que todo E2E de telemetría debe usar— el daemon respondía **403 a su propio
+  endpoint**. Corregido en `3144db9`.
+
+## Lo que NO corregí
+
+`A4` (el hook lee stdin sin tope propio), `A5` (el guardarraíl de tamaño ignora el `-wal`), `A6`
+(contadores de pérdida que no se muestran), `A7` (la re-validación de A13 con `postProceso(svc, nil)`),
+`M1`-`M7`, `M10` y los bajos. Ninguno falsea una cifra; quedan para la próxima pasada, con la
+auditoría como lista de trabajo.
+
+---
+
 # Auditoría independiente — Tramo A (backend de `telemetria/`)
 
 > **Veredicto:** el módulo está bien construido en su esqueleto y en su privacidad —la allowlist
