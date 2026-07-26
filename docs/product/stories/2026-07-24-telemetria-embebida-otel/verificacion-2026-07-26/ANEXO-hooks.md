@@ -189,6 +189,23 @@ control: el hook válido SÍ se ejecutó (1 payload)
 que puede no estar si ArnesIA se desinstaló) **está garantizada por el runtime**, no hay que
 construirla. Igual el hook debe salir 0 por su cuenta: esto cubre que *falte*, no que *falle*.
 
+### H10.4 — ✅ `OTEL_LOGS_EXPORTER=otlp` es OBLIGATORIO (cierra P3 del plan)
+
+`plan-desarrollo.md` §8 lo marcaba como parada obligatoria **P3**: si la variable no existiera y
+quedara en el env, el spawn podría fallar en silencio —el peor modo de falla del módulo—. Se corrió
+con las dos ramas contra el **mismo** receptor y marcadores distintos:
+
+| rama | `arnesia.via` | payloads |
+|---|---|---:|
+| **sin** `OTEL_LOGS_EXPORTER` (solo `ENABLE` + `ENDPOINT` + `PROTOCOL`) | `P3-sin-logs-exporter` | **0** |
+| **con** `OTEL_LOGS_EXPORTER=otlp` (control positivo) | `P3-con-logs-exporter` | **2** (`resourceLogs`) |
+
+⇒ **La variable existe, se respeta, y sin ella no llega ni un log event.** Como el canal primario es
+`/v1/logs` (`api_request`), omitirla **apaga la señal de dinero entera** sin ningún error visible.
+Va en el contrato del spawn como obligatoria, y `TestSpawnInyectaTelemetria` debe assertarla por
+nombre y valor. `OTEL_LOGS_EXPORT_INTERVAL` no se probó por separado: es afinado de latencia, y su
+ausencia solo cambia cuándo llega, no si llega.
+
 ---
 
 ## Qué cambia en el diseño
