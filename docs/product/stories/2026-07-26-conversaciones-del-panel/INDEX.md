@@ -10,10 +10,18 @@
 | Etapa | Estado |
 |---|---|
 | decisiones | ✅ **completas** — CV-D1..D15, cero puntos abiertos |
-| mockup | ⏳ **iteración 2, esperando firma 🧑‍⚖️** — [`mockup-conversaciones-panel.html`](./mockup-conversaciones-panel.html), 7 secciones / 16 paneles, registrado en [`mockups/INDEX.md`](../../../../mockups/INDEX.md) |
-| spec | ⬜ |
+| mockup | 🧑‍⚖️ **FIRMADO 2026-07-26** (iteración 2) — [`mockup-conversaciones-panel.html`](./mockup-conversaciones-panel.html), 7 secciones / 16 paneles, registrado en [`mockups/INDEX.md`](../../../../mockups/INDEX.md) |
+| spec + diseño | 🟡 en curso |
+| arquitectura + plan de tickets | 🟡 en curso |
 | implementar | ⬜ |
 | PARIDAD | ⬜ |
+
+## GATE 1 🧑‍⚖️ — FIRMADO 2026-07-26
+
+El operador firmó el mockup en su iteración 2 (la que baja el cromo a 2 filas, CV-D14/D15).
+Transcripción de la firma, no auto-verificación: la firma es del operador, el ejecutor solo la
+registra tras confirmar que el artefacto existe en el repo. Desbloquea spec + diseño +
+arquitectura + build.
 
 ## Lo firmado hasta acá
 

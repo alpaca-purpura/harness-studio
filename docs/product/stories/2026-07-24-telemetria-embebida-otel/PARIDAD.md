@@ -7,16 +7,22 @@
 > [`design.md`](design.md) y [`plan-storybook.md`](plan-storybook.md).
 >
 > **Esta hoja NO firma nada.** Es la matriz que el gate humano recorre.
+>
+> 🔴 **Leé §9 antes que la matriz.** La auditoría independiente del Tramo B
+> ([`auditoria-tramo-b.md`](auditoria-tramo-b.md)) encontró **4 críticos** de la misma clase que
+> D24 y una objeción de proceso a esta hoja: *«nueve filas acreditan “story verde” y el gate
+> humano las lee como “la superficie hace esto”»*. Los cuatro críticos están corregidos; la
+> objeción está atendida con la **columna «¿alcanzable?»** que ahora lleva cada fila de §1.
 
 ## 0 · Cifras, generadas
 
 | | |
 |---|---|
 | Tickets cerrados | **10 de 10** (T28…T37), un commit por ticket, cada uno verde antes de abrir el siguiente |
-| Stories nuevas | **138** en **18 archivos** (12 nuevos · 6 supersets de archivos firmados) — el plan pedía 125; las 13 de más están declaradas en §3 y §8 |
-| Story-tests totales | `376` (antes del paquete: `238`) |
-| Tests de tabla (`unit`) | `107` (antes: `85`) — 22 nuevos en `entities/telemetria/model/selectors.test.ts` |
-| Suite completa | **479 / 483 pasando.** Los **4 rojos son preexistentes y ajenos**: el bug de contraste de `.text-warn` en `new-session-picker.stories.tsx`, que ya estaba en el `BACKLOG.md` |
+| Stories nuevas | **142** en **18 archivos** (12 nuevos · 6 supersets de archivos firmados) — el plan pedía 125; las 13 de más están declaradas en §3 y §8 |
+| Story-tests totales | `380` (antes del paquete: `238`) |
+| Tests de tabla (`unit`) | `125` (antes: `85`) — 22 en `entities/telemetria` + 18 en `widgets/map-canvas/model/capa-mejora.test.ts` |
+| Suite completa | **501 / 505 pasando.** Los **4 rojos son preexistentes y ajenos**: el bug de contraste de `.text-warn` en `new-session-picker.stories.tsx`, que ya estaba en el `BACKLOG.md` |
 | `npm run verify` | verde (tsc · biome · depcruise · steiger · stylelint) |
 | `go test ./docs/architecture/fitness/...` | verde (incluye R1 · R1-símbolo · R2 · R4) |
 
@@ -28,108 +34,115 @@
 
 ## 1 · Matriz mockup ↔ componente ↔ story = test ↔ RF
 
+> **Cómo leer la columna «¿alcanzable?»** — la objeción de proceso de la auditoría. Una story
+> verde prueba que **el componente hace lo que dice con esas props**; NO prueba que la app llegue
+> a pasárselas. Los valores son:
+> **`sí`** = un composition-root la alimenta con dato real ·
+> **`no`** = la prop existe, está storiada y **ningún composition-root la pasa** (estado muerto) ·
+> **`n/a`** = pieza interna que no depende del transporte.
+
 ### §2 del mockup — La barra con la capa activa y la franja de contexto
 
-| qué dibuja el mockup | componente real | story = test | RF |
-|---|---|---|---|
-| slot `Mejora` encendido, 4 tabs | `widgets/map-canvas/model/layers.ts#LAYERS` · `ui/map-bar.tsx` | `CapaMejoraDisponible` · `CapaMejoraActiva` | RF-232 |
-| tooltips honestos de los slots apagados | `layers.ts#LayerDef.motivo` | `MotivosHonestos` · `MotivoAccesible` | RF-233 · RF-276 |
-| `select` de ventana, primero en la línea | `ui/franja-mejora.tsx` | `Reposo` · `VentanaCambia` | RF-234 |
-| total + denominador que cierra (61/58/12/4) | ídem | `TotalConDenominador` | RF-235 |
-| disclaimer «estimado…», pegado al total | ídem | `DisclaimerEnSuperficie` · `ReposoDark` | RF-236 |
-| barra de cobertura de 4 niveles + rótulo | `entities/telemetria/ui/barra-cobertura.tsx#BarraCobertura` | `CuatroSegmentos` · `CategoriaEnCeroNoOcupaLugar` · `CoberturaCompleta` · `SinCorridas` · `RotuloVisibleSiempre` · `CoberturaCuatroNiveles` | RF-237 · RF-279 · H-8 · H-11 |
-| chip de reenvío externo encendido | `franja-mejora.tsx` | `ReenvioEncendido` · `ReenvioApagadoNoSeDibuja` | H-7 · D13 |
-| «Nada de tu cuenta…» + enlace | ídem | `ResumenQueGuardamos` | RF-275 · H-5 |
+| qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| slot `Mejora` encendido, 4 tabs | `widgets/map-canvas/model/layers.ts#LAYERS` · `ui/map-bar.tsx` | `CapaMejoraDisponible` · `CapaMejoraActiva` | RF-232 | sí |
+| tooltips honestos de los slots apagados | `layers.ts#LayerDef.motivo` | `MotivosHonestos` · `MotivoAccesible` | RF-233 · RF-276 | sí |
+| `select` de ventana, primero en la línea | `ui/franja-mejora.tsx` | `Reposo` · `VentanaCambia` | RF-234 | sí |
+| total + denominador que cierra (61/58/12/4) | ídem | `TotalConDenominador` | RF-235 | sí |
+| disclaimer «estimado…», pegado al total | ídem | `DisclaimerEnSuperficie` · `ReposoDark` | RF-236 | sí |
+| barra de cobertura de 4 niveles + rótulo | `entities/telemetria/ui/barra-cobertura.tsx#BarraCobertura` | `CuatroSegmentos` · `CategoriaEnCeroNoOcupaLugar` · `CoberturaCompleta` · `SinCorridas` · `RotuloVisibleSiempre` · `CoberturaCuatroNiveles` | RF-237 · RF-279 · H-8 · H-11 | sí |
+| chip de reenvío externo encendido | `franja-mejora.tsx` | `ReenvioEncendido` · `ReenvioApagadoNoSeDibuja` | H-7 · D13 | sí · **desde este paquete** (A-2) |
+| «Nada de tu cuenta…» + enlace | ídem | `ResumenQueGuardamos` | RF-275 · H-5 | sí |
 
 ### §3 del mockup — El canvas: misma geografía, marcas nuevas en el flujo
 
-| qué dibuja el mockup | componente real | story = test | RF |
-|---|---|---|---|
-| cifra + % + barra en la caja | `entities/arnes/ui/arnes-node.tsx` (props primitivas, D18) | `MejoraCifraExacta` | RF-238 · RF-239 · RF-240 |
-| marca de confianza en el nodo | ídem, alimentado desde `entities/telemetria` por el widget | `MejoraPorHuella` · `MejoraPorProceso` · **`CopyConfianzaEsUnaSola`** | RF-242 · RF-274 · H-13 |
-| los 4 casos de confianza, standalone | `entities/telemetria/ui/marca-confianza.tsx` | `Exacta` · `PorHash` · `PorProceso` · `SinDato` · `LosCuatroJuntos` | RF-242 · RF-280 |
-| marca de fuga nombrada | `arnes-node.tsx` `.mej-fuga` | `MejoraConMarcaDeFuga` · `MejoraDosDetectores` | RF-241 |
-| «sin dato atribuible» por clase (5 motivos) | `entities/telemetria/model/selectors.ts#MOTIVO_SIN_DATO` | `SinDatoSubagente` · `SinDatoRegla` · `SinDatoMcp` · `SinDatoHook` · `SinDatoResto` | RF-243 · D19 · H-10 |
-| caja sin corridas en la ventana | `arnes-node.tsx` | `MejoraCajaSinCorridas` | RF-240 · RF-243 |
-| total de la fase en el encabezado | `widgets/map-canvas/ui/lane.tsx` | `LaneConTotalMejora` · `LaneSinDato` | RF-244 · J-8 |
-| la geografía NO se mueve | `ui/map-canvas.tsx` | `CapaMejoraSupersetGeografia` · `CapaMejoraSoloCajasLlevanCifra` · `ConmutarNoPierdeSeleccion` · `EstructuraIntacta` | RF-245 · T-16 · T-17 · BR-M16 |
-| el dinero, formateado en un solo lugar | `entities/telemetria/ui/cifra-usd.tsx#CifraUsd` | `Estandar` · `SeparadorDosDecimales` · `MenorAlCentavo` · `Ausente` | RF-281 |
+| qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| cifra + % + barra en la caja | `entities/arnes/ui/arnes-node.tsx` (props primitivas, D18) | `MejoraCifraExacta` | RF-238 · RF-239 · RF-240 | sí |
+| marca de confianza en el nodo | ídem, alimentado desde `entities/telemetria` por el widget | `MejoraPorHuella` · `MejoraPorProceso` · **`CopyConfianzaEsUnaSola`** | RF-242 · RF-274 · H-13 | sí |
+| los 4 casos de confianza, standalone | `entities/telemetria/ui/marca-confianza.tsx` | `Exacta` · `PorHash` · `PorProceso` · `SinDato` · `LosCuatroJuntos` | RF-242 · RF-280 | n/a |
+| marca de fuga nombrada | `arnes-node.tsx` `.mej-fuga` | `MejoraConMarcaDeFuga` · `MejoraDosDetectores` | RF-241 | sí |
+| «sin dato atribuible» por clase (5 motivos) | `entities/telemetria/model/selectors.ts#MOTIVO_SIN_DATO` | `SinDatoSubagente` · `SinDatoRegla` · `SinDatoMcp` · `SinDatoHook` · `SinDatoResto` | RF-243 · D19 · H-10 | sí |
+| caja sin corridas en la ventana | `arnes-node.tsx` | `MejoraCajaSinCorridas` | RF-240 · RF-243 | sí |
+| total de la fase en el encabezado | `widgets/map-canvas/ui/lane.tsx` | `LaneConTotalMejora` · `LaneSinDato` | RF-244 · J-8 | sí |
+| la geografía NO se mueve | `ui/map-canvas.tsx` | `CapaMejoraSupersetGeografia` · `CapaMejoraSoloCajasLlevanCifra` · `ConmutarNoPierdeSeleccion` · `EstructuraIntacta` | RF-245 · T-16 · T-17 · BR-M16 | sí |
+| el dinero, formateado en un solo lugar | `entities/telemetria/ui/cifra-usd.tsx#CifraUsd` | `Estandar` · `SeparadorDosDecimales` · `MenorAlCentavo` · `Ausente` | RF-281 | n/a |
 
 ### §4 del mockup — La lista de puntos de mejora, debajo del canvas
 
-| qué dibuja el mockup | componente real | story = test | RF |
-|---|---|---|---|
-| la lista con su encabezado y contador | `ui/puntos-mejora-list.tsx#PuntosMejoraList` | `DosTarjetasOrdenadas` | H-1 · RF-246 |
-| la tarjeta insignia B1, completa | `ui/punto-mejora-card.tsx#PuntoMejoraCard` | `CompletaB1Atencion` · `CompletaB1AtencionDark` | RF-247…254 |
-| P1 crítica, con `Patrón` en vez de `Umbral` | ídem | `CriticaP1SinUmbral` | RF-250 · RF-257 |
-| la fila `Sesgo`, con su dirección | ídem | `SesgoSubestima` · `SesgoSobreestima` · `SinSesgoIdentificado` | RF-252 |
-| chip S1-only | ídem | `S1Only` | J-2 |
-| «ver el cálculo» desplegado en línea | ídem | `CalculoCerrado` · `CalculoAbierto` | H-4 |
-| tarjeta resaltada por su caja | ídem | `Resaltada` | design §5.4 · RF-280 |
-| `Descartar` con vuelta atrás | ídem | `DescartarLlamaHandler` | RF-256 |
-| `Proponerlo en el chat` **no escribe** | ídem | `ProponerAbreChatNoEscribe` · `ProponerDeshabilitadoFueraDeAlcance` · `NotaAlPie` | RF-255 · BR-M12 · D17.3 |
-| severidad legible sin color | ídem | `SeveridadSinColor` · `TitularSinJerga` | RF-247 · RF-257 · RF-280 |
-| estado vacío con los 6 detectores | `puntos-mejora-list.tsx` | `VaciaConDatos` | H-2 |
-| sin contrafactual no hay tarjeta | ídem | `DescartaSinContrafactual` | RF-246 · A4 |
-| carga y error de la lista | ídem | `Cargando` · `ErrorDeConsulta` · `MuchasTarjetas` | design §5.4 · §6 |
+| qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| la lista con su encabezado y contador | `ui/puntos-mejora-list.tsx#PuntosMejoraList` | `DosTarjetasOrdenadas` | H-1 · RF-246 | sí |
+| la tarjeta insignia B1, completa | `ui/punto-mejora-card.tsx#PuntoMejoraCard` | `CompletaB1Atencion` · `CompletaB1AtencionDark` | RF-247…254 | sí |
+| P1 crítica, con `Patrón` en vez de `Umbral` | ídem | `CriticaP1SinUmbral` | RF-250 · RF-257 | sí |
+| la fila `Sesgo`, con su dirección | ídem | `SesgoSubestima` · `SesgoSobreestima` · `SinSesgoIdentificado` | RF-252 | sí |
+| chip S1-only | ídem | `S1Only` | J-2 | sí |
+| «ver el cálculo» desplegado en línea | ídem | `CalculoCerrado` · `CalculoAbierto` | H-4 | sí |
+| tarjeta resaltada por su caja | ídem | `Resaltada` | design §5.4 · RF-280 | sí |
+| `Descartar` con vuelta atrás | ídem | `DescartarLlamaHandler` | RF-256 | **no** · A-1: sin endpoint, el botón nace disabled y lo dice |
+| `Proponerlo en el chat` **no escribe** | ídem | `ProponerAbreChatNoEscribe` · `ProponerDeshabilitadoFueraDeAlcance` · `NotaAlPie` | RF-255 · BR-M12 · D17.3 | **no** · A-1: no abre chat desde acá; disabled + motivo |
+| severidad legible sin color | ídem | `SeveridadSinColor` · `TitularSinJerga` | RF-247 · RF-257 · RF-280 | sí |
+| estado vacío con los 6 detectores | `puntos-mejora-list.tsx` | `VaciaConDatos` | H-2 | sí |
+| sin contrafactual no hay tarjeta | ídem | `DescartaSinContrafactual` | RF-246 · A4 | sí |
+| carga y error de la lista | ídem | `Cargando` · `ErrorDeConsulta` · `MuchasTarjetas` | design §5.4 · §6 | sí |
 
 ### §5 del mockup — Inspector, cuarta tab «Mejora»
 
-| qué dibuja el mockup | componente real | story = test | RF |
-|---|---|---|---|
-| la 4ª tab con su contrato ARIA | `ui/inspector.tsx` (superset) | `CuatroTabs` · `TabMejoraContratoAria` · `CambioDeNodoVuelveAlResumen` · **`Tabs`** (ver §3) | RF-258 · RF-277 |
-| tabla de 6 buckets, la suma cierra | `ui/inspector-mejora.tsx#InspectorMejora` | `Completo` · `CorridaRealMedida` | RF-259 |
-| «no aplica» ≠ «midió 0» | ídem | `NoAplicaNoEsCero` · `CeroLegitimo` | RF-260 · RF-286 |
-| paridad reportado vs. calculado | ídem | `ParidadCoinciden` · `ParidadDivergen` · `SinCostoDelRuntime` · `CatalogoSinConstruir` | RF-261 · RF-272 |
-| el join de la caja | ídem | `JoinCompleto` · `SinSenalDeGate` | RF-262 |
-| los 6 detectores + los 7 no medidos | ídem | `SeisDetectoresConEstado` · `DetectorB1ApagadoEnS2` · `DetectorB2Parcial` · `SieteNoMedidos` · `DetectorSinFixPropuesto` | RF-263 · RF-271 · T-09 |
-| la ventana es la de la capa | ídem | `VentanaHeredada` | RF-264 · J-3 |
-| nodo que no es caja | ídem | `NodoNoCaja` | RF-258 |
-| carga y error dentro de la tab | ídem | `Cargando` · `ErrorDeConsulta` | design §5.5 |
+| qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| la 4ª tab con su contrato ARIA | `ui/inspector.tsx` (superset) | `CuatroTabs` · `TabMejoraContratoAria` · `CambioDeNodoVuelveAlResumen` · **`Tabs`** (ver §3) | RF-258 · RF-277 | sí |
+| tabla de 6 buckets, la suma cierra | `ui/inspector-mejora.tsx#InspectorMejora` | `Completo` · `CorridaRealMedida` | RF-259 | sí |
+| «no aplica» ≠ «midió 0» | ídem | `NoAplicaNoEsCero` · `CeroLegitimo` | RF-260 · RF-286 | sí |
+| paridad reportado vs. calculado | ídem | `ParidadCoinciden` · `ParidadDivergen` · `SinCostoDelRuntime` · `CatalogoSinConstruir` | RF-261 · RF-272 | sí |
+| el join de la caja | ídem | `JoinCompleto` · `SinSenalDeGate` | RF-262 | parcial · las 3 filas de proceso llegan `null` (T22 abierto) |
+| los 6 detectores + los 7 no medidos | ídem | `SeisDetectoresConEstado` · `DetectorB1ApagadoEnS2` · `DetectorB2Parcial` · `SieteNoMedidos` · `DetectorSinFixPropuesto` | RF-263 · RF-271 · T-09 | sí |
+| la ventana es la de la capa | ídem | `VentanaHeredada` | RF-264 · J-3 | sí |
+| nodo que no es caja | ídem | `NodoNoCaja` | RF-258 | sí |
+| carga y error dentro de la tab | ídem | `Cargando` · `ErrorDeConsulta` | design §5.5 | sí · **desde C-3** |
 
 ### §6 del mockup — La tarjeta del Portafolio
 
-| qué dibuja el mockup | componente real | story = test | RF |
-|---|---|---|---|
-| `USD/corrida` · `tendencia` · `punto de mejora` | `widgets/portafolio/ui/tabla-mejora-portafolio.tsx` | `ConDato` · `ConDatoDark` | RF-265 · D21 |
-| un arnés en dos instalaciones | ídem | `UnArnesDosPuestos` | RF-265 · D20 |
-| «puesto sin declarar» | ídem | `SinPuestoDeclarado` | RF-265 · D20 |
-| sparkline + texto equivalente | `entities/telemetria/ui/sparkline.tsx` | `EnAlza` · `Estable` · `HaciaLaBaja` · `PocasCorridas` (×2: entity y tabla) | RF-266 · RF-279 |
-| «✓ sin fugas» ≠ «sin dato» | `tabla-mejora-portafolio.tsx` | `SinFugas` · `SinDato` | RF-267 · RF-268 · RF-280 |
-| orden por costo, sin-dato al final | ídem | `OrdenadaSinDatoAlFinal` | RF-268 |
-| pie de tabla + confianza por fila | ídem | `PieConDisclaimerDeEstimacion` | H-12 |
-| desbordamiento y scroll accesible | ídem | `NombresLargosNumerosGrandes` | design §6.3 |
-| H-3 · el puente al Mapa | ídem + `portafolio-view.tsx` | `AbreElMapaDeEsaInstalacion` | H-3 |
-| las 3 celdas en la fila de la lista | `ui/portafolio-list.tsx` (superset) | `ConMejora` · `SinMejoraDomIntacto` | RF-265 · BR-M16 |
+| qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| `USD/corrida` · `tendencia` · `punto de mejora` | `widgets/portafolio/ui/tabla-mejora-portafolio.tsx` | `ConDato` · `ConDatoDark` | RF-265 · D21 | sí |
+| un arnés en dos instalaciones | ídem | `UnArnesDosPuestos` | RF-265 · D20 | **no** · la lista agrupa por entrada; se toma la 1ª fila |
+| «puesto sin declarar» | ídem | `SinPuestoDeclarado` | RF-265 · D20 | sí |
+| sparkline + texto equivalente | `entities/telemetria/ui/sparkline.tsx` | `EnAlza` · `Estable` · `HaciaLaBaja` · `PocasCorridas` (×2: entity y tabla) | RF-266 · RF-279 | sí (siempre el copy de ausencia: el wire no manda serie) |
+| «✓ sin fugas» ≠ «sin dato» | `tabla-mejora-portafolio.tsx` | `SinFugas` · `SinDato` | RF-267 · RF-268 · RF-280 | sí · **desde C-4** |
+| orden por costo, sin-dato al final | ídem | `OrdenadaSinDatoAlFinal` | RF-268 | **no** · era de la tabla borrada (C-4) |
+| pie de tabla + confianza por fila | ídem | `PieConDisclaimerDeEstimacion` | H-12 | sí · **desde C-4** |
+| desbordamiento y scroll accesible | ídem | `NombresLargosNumerosGrandes` | design §6.3 | parcial · M-5 abierto |
+| H-3 · el puente al Mapa | ídem + `portafolio-view.tsx` | `AbreElMapaDeEsaInstalacion` | H-3 | **no** · era de la tabla borrada (C-4) |
+| las 3 celdas en la fila de la lista | `ui/portafolio-list.tsx` (superset) | `ConMejora` · `SinMejoraDomIntacto` | RF-265 · BR-M16 | sí |
 
 ### §7 del mockup — Los estados honestos
 
-| # | estado | story = test | RF |
-|---|---|---|---|
-| 1 | nunca corrió | `Estado1SinDatos` | RF-269 |
-| 1b | sin corridas en la ventana | `Estado1bSinCorridasEnVentana` | H-9 · T-15 |
-| 2 | cobertura parcial | `Estado2CoberturaParcial` | RF-270 |
-| 3 | S2 sin instrumentar | `Estado3S2SinInstrumentar` | RF-271 · J-10 |
-| 3b | S2 instrumentado | `Estado3bS2Instrumentado` | RF-271 · ANEXO H9 |
-| 4 | otro runtime | `Estado4OtroRuntime` | RF-272 |
-| 5 | catálogo viejo | `Estado5CatalogoViejo` | RF-273 |
-| 6 | por huella | `PorHash` · `MejoraPorHuella` | RF-274 |
-| — | runtime no soportado | `RuntimeNoSoportado` | escenarios A5 |
-| B1 | cargando | `Cargando` (franja · lista · inspector) | H-6 |
-| B2 | error de consulta | `ErrorDeConsulta` | H-6 |
-| B3 | daemon caído, cifras viejas | `DaemonCaido` | H-6 |
-| — | promoción de los estados a `shared/ui` | `SkeletonHonesto` · `SkeletonConMedidaPropia` · `ErrorConMotivoReintentable` | H-6 |
+| # | estado | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| 1 | nunca corrió | `Estado1SinDatos` | RF-269 | sí |
+| 1b | sin corridas en la ventana | `Estado1bSinCorridasEnVentana` | H-9 · T-15 | **no** · A-3: `ultimaCorridaFuera` no la pasa nadie, así que dice «nunca corrió» sobre un arnés con historial fuera de la ventana |
+| 2 | cobertura parcial | `Estado2CoberturaParcial` | RF-270 | sí |
+| 3 | S2 sin instrumentar | `Estado3S2SinInstrumentar` | RF-271 · J-10 | sí · **desde C-2** |
+| 3b | S2 instrumentado | `Estado3bS2Instrumentado` | RF-271 · ANEXO H9 | sí · **desde C-2** (era inalcanzable) |
+| 4 | otro runtime | `Estado4OtroRuntime` | RF-272 | **no** · `costoDelCatalogo` no la pasa nadie |
+| 5 | catálogo viejo | `Estado5CatalogoViejo` | RF-273 | **no** · `catalogoSinRefrescar` no la pasa nadie (el dato está en `/salud`) |
+| 6 | por huella | `PorHash` · `MejoraPorHuella` | RF-274 | sí |
+| — | runtime no soportado | `RuntimeNoSoportado` | escenarios A5 | **no** · `runtimeNoSoportado` no la pasa nadie |
+| B1 | cargando | `Cargando` (franja · lista · inspector) | H-6 | sí |
+| B2 | error de consulta | `ErrorDeConsulta` | H-6 | sí |
+| B3 | daemon caído, cifras viejas | `DaemonCaido` | H-6 | **no** · el estado de la página ni siquiera tipa `"daemon-caido"`; ver M-2 |
+| — | promoción de los estados a `shared/ui` | `SkeletonHonesto` · `SkeletonConMedidaPropia` · `ErrorConMotivoReintentable` | H-6 | n/a |
 
 ### §8 del mockup — Qué guardamos y cómo se borra
 
-| qué dibuja el mockup | componente real | story = test | RF |
-|---|---|---|---|
-| los 3 bloques del diálogo | `ui/politica-datos-dialog.tsx` | `Reposo` | RF-275 · H-5 · H-14 |
-| la lista de campos, **por prop** | ídem | `CamposDesplegados` | RF-275 · RF-282 |
-| retención desde la config | ídem | `RetencionDesdeConfig` | RF-283 · J-6 |
-| confirmación con alcance | ídem | `Confirmacion` | RF-275 |
-| borrando / error / éxito | ídem | `Borrando` · `ErrorDeBorrado` · `Exito` | design §5.7 |
-| focus trap y teclado | ídem | `FocoAtrapado` | RF-278 |
+| qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
+|---|---|---|---|---|
+| los 3 bloques del diálogo | `ui/politica-datos-dialog.tsx` | `Reposo` | RF-275 · H-5 · H-14 | sí |
+| la lista de campos, **por prop** | ídem | `CamposDesplegados` | RF-275 · RF-282 | sí (allowlist fija del hook, no del wire) |
+| retención desde la config | ídem | `RetencionDesdeConfig` | RF-283 · J-6 | sí · **desde A-2** |
+| confirmación con alcance | ídem | `Confirmacion` | RF-275 | parcial · A-4: el conteo es de la ventana, el borrado es de todo |
+| borrando / error / éxito | ídem | `Borrando` · `ErrorDeBorrado` · `Exito` | design §5.7 | sí |
+| focus trap y teclado | ídem | `FocoAtrapado` | RF-278 | sí |
 
 ---
 
@@ -224,14 +237,21 @@ go test ./docs/architecture/fitness/...  # verde (R1 · R1-símbolo · R2 · R4)
 
 ## 7 · 🧑‍⚖️ Gate humano — PENDIENTE
 
-Este tramo **no está firmado**. Para firmarlo hay que mirar, como mínimo:
+Este tramo **no está firmado**, y la auditoría independiente del Tramo B dijo **no firmar** (§9).
+Los 4 críticos están corregidos; lo que queda abierto está en §9 y en §4-§5.
+Para firmarlo hay que mirar, como mínimo:
 
 1. **D-1 y D-2**, las dos desviaciones marcadas 🔴 sobre superficie firmada.
 2. **§4 completo**: siete huecos del backend que la UI declara en pantalla. Si alguno no es
    aceptable como estado visible, cambia el diseño, no el código.
 3. **V-5**: el contrato de `PuntoDeMejora` entre Go y el FE. Bloquea el E2E real de la tarjeta.
-4. **El TTL de 90 días** sigue **PROPUESTO** (J-6 · parada P2). La UI lo lee de la config y lo
-   rotula como tal; el número lo pone el operador.
+4. **El TTL de retención** sigue **PROPUESTO** (J-6 · parada P2). La UI **ahora sí** lo lee de
+   `GET /api/telemetria/salud` (antes estaba hardcodeado en 90 — la afirmación anterior de esta
+   hoja era falsa, A-2) y lo rotula según `retencion_propuesta`; el número lo pone el operador.
+5. **La columna «¿alcanzable?» de §1**: 10 filas dicen `no`. Son superficies construidas y
+   testeadas que la app no alcanza — hay que decidir si se cablean o se declaran fuera de alcance.
+6. **A-4**, la única acción irreversible: el conteo que la confirmación declara es de la ventana y
+   el borrado es de todo el historial. Es decisión de producto.
 
 ---
 
@@ -295,3 +315,72 @@ pasa el candado.
 Queda como deuda declarada: **`pages/` sigue sin cobertura**. El candado cubre esta composición
 concreta porque la story la reproduce; una composición futura que nadie espeje vuelve a quedar
 ciega.
+
+---
+
+## 9 · 🔴 Auditoría independiente del Tramo B — 4 críticos, corregidos
+
+[`auditoria-tramo-b.md`](auditoria-tramo-b.md), 2026-07-26. **Veredicto: no firmar.** Los cuatro
+son de la misma clase que D24 —bloques defendibles por separado que juntos afirman algo falso— y
+**el candado de D24 no cubría ninguno**: montaba `FranjaMejora` + `PuntosMejoraList`, y los
+bloques que hablan del mismo hecho en esta capa son **cinco** (franja · carril · nodo · tarjeta ·
+inspector) más la fila del Portafolio.
+
+### La causa común, y el refactor que la ataca
+
+Los cuatro vivían en **`pages/shell/ui/workspace-stage.tsx`**: el único lugar del repo donde se
+componen las cinco superficies, y el único **sin stories**. La conclusión de la auditoría es la
+correcta y la adopto: *«`pages/` con 0 stories no es deuda de cobertura — es el único lugar donde
+vive esta clase de defecto»*.
+
+**La composición sale de `pages/`.** Nace `widgets/map-canvas/ui/capa-mejora-stage.tsx`, un widget
+con stories que recibe el wire crudo y deriva **todo** con `vistaCapaMejora()` — pura,
+unit-testeada, único consumidor. La página quedó con transporte y estado, y ya no puede
+contradecirse a sí misma porque no toma ninguna de estas decisiones.
+
+| # | qué | fix | test que falla si vuelve |
+|---|---|---|---|
+| **C-1** | Encender la capa **destruía el Mapa**: canvas 739 px → 257 con una tarjeta → **0 px con cuatro**; 0 px con UNA a 200 % de zoom | el canvas lleva piso, la lista techo con scroll adentro. En una vista que se llama «Mapa», el mapa gana el reparto | `CapaEncendidaConservaElMapa` · `CuatroTarjetasNoAplastanElMapa` · `ZoomAltoConservaElMapa` — **miden el alto real** |
+| **C-2** | En `s2-instrumentado` (el escenario que esta hoja declara **mayoritario**) la franja decía «nunca corrió» con USD 1,08 en el carril, la rama de s2 era **inalcanzable** y **el candado de D24 escondía el entregable** | `corridas` no es proxy de «hay datos»: es 0 fuera de S1 por construcción. La condición es la cobertura atribuida | 15 tests de tabla + `S2InstrumentadoNoDiceNuncaCorrio` |
+| **C-3** | Un `GET` de detalle fallido **se pintaba como dato**: ocho afirmaciones falsas, con la nota «"No aplica" no es 0» **defendiendo la mentira** | el cuerpo de la 4ª tab lo arma el widget, no la página | `DetalleRotoNoAfirmaSobreElRuntime` + control positivo |
+| **C-4** | `TablaMejoraPortafolio` era **código muerto**; la superficie real era una **segunda implementación sin el guard**, y el ✓ mentía con 3 hallazgos | se borra la tabla (175 líneas); una sola implementación en el widget; la página pasa wire crudo | `ConHallazgosNoPintaElTilde` + `SinFugasPintaElTilde` |
+
+**Los cuatro fixes se verificaron revirtiéndolos**, no asumiéndolos: cada lock se pone rojo sin su
+fix y los controles positivos quedan verdes.
+
+### Dos lecciones que me llevo, y una que duele
+
+1. **Un componente con su rama de error y su story puede tener el defecto igual.** C-3 lo prueba:
+   `InspectorMejora` tenía las dos, y el bug estaba en quién decidía. Lo verifiqué revirtiendo el
+   cableado — **la story del componente siguió verde**. El test tiene que vivir donde vive la
+   decisión.
+2. **Un fix aplicado a un componente que nadie monta no es un fix.** C-4: D24.4 estaba escrito,
+   testeado e inalcanzable. Antes de declarar un fix hay que verificar que la superficie lo usa.
+3. La que duele: **mi candado de D24 se convirtió en la causa de C-2.** Escribí una condición
+   para tapar un agujero y la basé en el campo equivocado, así que escondió el entregable central
+   en el caso normal. Un candado mal fundado es peor que ninguno.
+
+### Altas atendidas en esta pasada
+
+| # | qué | estado |
+|---|---|---|
+| **A-1** | `Descartar` y `Proponerlo en el chat` no hacían nada y lo disimulaban con un refetch | **corregido**: sin handler nacen `disabled` con su motivo en texto (patrón `BotoneraStaged`). El anuncio ya no promete una afordancia que no existe |
+| **A-2** | `GET /api/telemetria/salud` construido y **nunca consumido**: retención hardcodeada en 90 y **el chip de reenvío externo no se dibujaba nunca** | **corregido**: la página lo consume; retención y reenvío salen de ahí |
+| **A-5** | «nunca corrió con telemetría» sobre un arnés con 47 corridas | **corregido**: sale de `corridas`, no de `costo_por_corrida === null` |
+| **A-6** | La superficie real había perdido el pie H-12, la `MarcaConfianza` y la unidad de la celda | **corregido** con C-4 |
+| **A-7** | El denominador mezclaba dos magnitudes (`corridas` vs turnos) prometiendo que cerraban | **corregido**: nombra las dos unidades. Desviación del literal de design §7.2, declarada |
+| **M-7** | `catálogo v` colgante | **corregido** |
+| — | la caja de paridad se pintaba ámbar «difieren» con `divergencia === null`, sin veredicto | **corregido**: sin veredicto no hay tono |
+
+### Lo que sigue ABIERTO de la auditoría
+
+| # | qué | por qué no se hizo acá |
+|---|---|---|
+| **A-3** | Estado 1b inalcanzable: «nunca corrió» sobre un arnés con historial fuera de la ventana | Necesita la fecha de la última corrida, que el resumen no trae. **Es un hueco de wire**, no de UI |
+| **A-4** | «Se borran 61 corridas» — el conteo es de la ventana, el `DELETE` es de todo | Se arregla en el wire (que el `DELETE` acepte ventana) o en el copy (que diga «todo el historial»). **Es decisión de producto sobre la única acción irreversible** |
+| **M-1** | Nueve estados storiados e inalcanzables | Atendido **como transparencia** (la columna «¿alcanzable?» de §1), no como implementación: 10 filas dicen `no` |
+| **M-2** | Un error de consulta deja el dinero viejo en el canvas | Relacionado con B3, que la página no tipa |
+| **M-3** | «pocas corridas para una tendencia» nombra una causa que no es la causa | El wire no manda serie (§4 ítem 1); el copy honesto sería «todavía no calculamos la serie» |
+| **M-4** | `por-proceso` avisa de la mezcla **solo por `title`** | Cambia copy firmado de `design.md` §7.3 |
+| **M-5** | El Portafolio desborda 21 px en horizontal y recorta chips a 900 px | No medido tras C-4, que cambió el marcado de las celdas |
+| **M-6** | Tipografía de 9 px en los rótulos que hacen el argumento | Cambia `design.md` §2.5 |
