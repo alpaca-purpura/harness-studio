@@ -1,0 +1,112 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A8 · D6.5/D6.7).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.ficha-de-descubrimiento-del-daemon
+cap_num: CAP-132
+slug: ficha-de-descubrimiento-del-daemon
+name: "Ficha de descubrimiento del daemon (publicada solo cuando ya escucha)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: crear
+functional_area: "telemetria.descubrimiento"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/descubrimiento/ficha.go#Ficha"
+  - "internal/adapters/telemetria/descubrimiento/ficha.go#New"
+  - "internal/adapters/telemetria/descubrimiento/ficha.go#Ficha.Publicar"
+  - "internal/adapters/telemetria/descubrimiento/ficha.go#Ficha.Leer"
+  - "internal/adapters/telemetria/descubrimiento/ficha.go#Ficha.Retirar"
+  - "internal/adapters/telemetria/descubrimiento/ficha.go#Resolver"
+  - "internal/domain/telemetria.go#FichaDaemon"
+valida:
+  - "TestFichaSoloTrasEscuchar"
+  - "TestFichaPermisos0600"
+  - "TestFichaSeRelePorInvocacion"
+  - "TestFichaNoEscribibleDegradaHonesto"
+  - "TestFichaIlegibleEsComoNoTenerla"
+  - "TestFichaEsAtomica"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §7.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El daemon publica dónde está, en la ruta que el sistema operativo reserva para eso, para que un proceso que no conoce nuestras convenciones lo encuentre. Se publica DESPUÉS de aceptar conexiones y se retira al salir."
+    merge_sha: null
+scenarios:
+  - id: nunca-antes-de-escuchar
+    name: "El daemon está arrancando"
+    status: live
+    given: "el daemon todavía sin aceptar conexiones"
+    when: "un proceso busca la ficha"
+    then: "no la encuentra; recién existe cuando el endpoint que nombra responde de verdad, y desaparece al cerrar"
+    verifica: "TestFichaSoloTrasEscuchar"
+  - id: el-daemon-se-mudo-de-puerto
+    name: "El daemon se reinicia en otro puerto entre dos turnos"
+    status: live
+    given: "una ficha publicada y luego reemplazada"
+    when: "se la vuelve a leer"
+    then: "trae el puerto nuevo; no se cachea"
+    verifica: "TestFichaSeRelePorInvocacion"
+  - id: sin-lugar-donde-publicarla
+    name: "El directorio de configuración no es escribible"
+    status: live
+    given: "un directorio de solo lectura"
+    when: "el daemon intenta publicar"
+    then: "falla y lo dice; no finge éxito, y el daemon arranca igual"
+    verifica: "TestFichaNoEscribibleDegradaHonesto"
+business_rules:
+  - id: nunca-una-ficha-que-miente
+    rule: "La ficha se publica después de que el listener acepta. Una ficha que nombra un puerto donde no escucha nadie es una mentira que el hook paga en esperas, y el hook tiene un cuarto de segundo de presupuesto total."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: se-relee-siempre
+    rule: "El hook relee la ficha en cada invocación. Cachearla apuntaría al puerto viejo para siempre después de un reinicio."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+  - id: lleva-un-permiso-adentro
+    rule: "El archivo contiene un permiso: se escribe con acceso solo del dueño, y de forma atómica. Una escritura a medias dejaría una ficha ilegible justo cuando el hook la necesita."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: ilegible-es-igual-a-ausente
+    rule: "Una ficha corrupta se trata como ausencia. El hook sale sin hacer nada, en vez de explotar dentro del turno de un usuario."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables:
+    - arnesia.telemetria.hook-de-proceso-fail-open
+  similar: []
+  obsoletes: []
+---
+
+# Ficha de descubrimiento del daemon
+
+Un hook que viaja dentro de un arnés no conoce nuestras convenciones ni sabe en qué puerto quedó el
+daemon. La ficha se lo dice, y vive en la ruta que **el sistema operativo** reserva para eso —no en
+nuestro directorio propio— precisamente porque el que la lee es un proceso ajeno, en cualquiera de
+las tres plataformas.
+
+**Se publica después de que el daemon acepta conexiones, nunca antes.** Una ficha que nombra un
+puerto donde no escucha nadie es una mentira que el hook paga en esperas, y el hook tiene un cuarto
+de segundo de presupuesto total. El test no se conforma con que el archivo exista: comprueba que el
+endpoint que nombra **responde**.
+
+**Se relee en cada invocación.** El daemon puede haberse reiniciado en otro puerto entre dos turnos;
+una ficha cacheada apuntaría al viejo para siempre.
+
+Y una ficha huérfana —daemon muerto sin cerrar— **no se detecta mirando el proceso**: el hook
+simplemente falla dentro de su presupuesto y sale sin hacer nada. Es más simple y más robusto que
+comprobar si el proceso vive, que además daría un falso positivo si el identificador se reusó.
