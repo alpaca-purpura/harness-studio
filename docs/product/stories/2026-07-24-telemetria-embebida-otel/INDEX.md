@@ -56,7 +56,10 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
       versionada (PII redactada), USD 0,044 de costo
 - [x] refinamiento pre-mockup: detectores del MVP · evento canónico · renombre (D16)
 - [ ] **🧑‍⚖️ firma del bloque D9 + D11 + D13 + D14 + D15 + D16** ← *acá estamos*
-- [ ] mockup de la capa Mejora
+- [~] **propuesta de mockup escrita** → [`propuesta-mockup.md`](propuesta-mockup.md) — 2 superficies
+      (capa Mejora del Mapa + tarjeta del Portafolio), tarjeta de punto de mejora con contrafactual,
+      4ª tab del inspector, **7 estados honestos**. 3 decisiones pendientes del operador antes de dibujar
+- [ ] mockup dibujado (`.html`, forkeado del baseline) → 🧑‍⚖️ firma del mockup
 - [ ] `spec.md` + `design.md` → 🧑‍⚖️ firma del par
 - [ ] implementación
 - [ ] PARIDAD
