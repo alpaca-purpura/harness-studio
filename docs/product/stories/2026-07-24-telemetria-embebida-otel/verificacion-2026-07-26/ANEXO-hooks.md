@@ -79,6 +79,59 @@ En esta corrida apuntó al **directorio** del proyecto
 —&nbsp;el JSONL no es fuente de nada acá—&nbsp;pero **cualquier diseño que asuma que
 `transcript_path` es un archivo está equivocado**. Queda anotado para que nadie lo asuma después.
 
+## H8 · OTel emite eventos POR HERRAMIENTA, y sin contenido
+
+Una corrida con uso real de `Read` trajo dos eventos que no se habían visto:
+
+```
+tool_decision : prompt.id · decision=accept · source=config · tool_name=Read
+                tool_use_id · tool_source=builtin
+tool_result   : prompt.id · tool_name=Read · success=true · duration_ms=1
+                tool_input_size_bytes=143 · tool_result_size_bytes=9
+```
+
+Dos consecuencias:
+
+1. **El detector B11 («tool results obesos») queda desbloqueado** y es barato:
+   `tool_result_size_bytes` es exactamente la señal, y llega **sin el contenido**. No entra al MVP
+   (no pasó la regla A4 en D16.1), pero ya no está bloqueado por falta de dato.
+2. **Parte de la señal de proceso existe también en OTel**, no solo en los hooks: decisión de
+   permiso, éxito/fracaso y duración por herramienta. Los hooks siguen haciendo falta para lo que
+   OTel no da (gate humano, rotación, corrida de caja), pero la dependencia es menor de lo asumido.
+
+## H9 · 🎯 El bloque `env` de settings ENCIENDE la telemetría — S2 puede medirse completo
+
+Probado con marcador distinto por variante, un solo receptor, y **con las env vars del shell
+explícitamente desarmadas** (`env -u`):
+
+| variante | ¿llegó telemetría? |
+|---|---|
+| **A** — `--settings <archivo>` con bloque `env` | ✅ sí |
+| **B** — `.claude/settings.json` del proyecto, sin ningún flag | ✅ sí |
+| **C** — ídem + `--setting-sources project,local` | ✅ sí |
+
+**Esto cambia el diseño de S2.** La arquitectura asumía que fuera de ArnesIA no controlamos el
+spawn ⇒ solo quedaba el hook, con señal de proceso y **sin dinero**. Falso: si el arnés lleva un
+bloque `env` en los settings de su proyecto, en S2 llega **exactamente la misma señal que en S1**,
+dinero incluido. Corolario: **B1 (re-warm por TTL) deja de ser «no aplica en S2»** siempre que el
+canal esté encendido por esta vía.
+
+⚠️ **Dónde vive ese bloque es una decisión de producto, no técnica**, y hay que tomarla:
+
+- En el repo **del propio arnés** (nuestro) — sin fricción, es nuestro archivo.
+- En el proyecto **del usuario** donde corre el arnés — es escribir settings de un tercero, y eso
+  choca de frente con A8 (nunca sin backup + confirmación) y con el guardrail vigente. **Requiere
+  consentimiento explícito, no puede hacerse en silencio.**
+
+⚠️ **No verificado:** si un **plugin** puede aportar un bloque `env` (lo probado es el settings del
+**proyecto**). Si pudiera, el arnés se instrumentaría solo al instalarse, sin tocar nada del usuario
+— vale la pena verificarlo antes de diseñar el mecanismo de obligación.
+
+> **Nota de método, para que no se repita:** los tres primeros intentos de esta prueba dieron
+> negativo y el negativo era **falso** — un receptor de una prueba anterior seguía ocupando el
+> puerto 4318 y se quedaba con el tráfico. Se detectó con un control (`pgrep` + una corrida de
+> referencia) antes de escribir ninguna conclusión. **Un negativo sin control no es un resultado.**
+
 ---
 
 ## Qué cambia en el diseño
@@ -89,3 +142,7 @@ En esta corrida apuntó al **directorio** del proyecto
 3. **`telemetria-no-egresa` se acompaña de un check hermano** que verifique la proyección de campos
    del hook, no solo su destino.
 4. **`cwd` entra al evento** (normalizado, sin ruta de usuario) como vía de atribución de respaldo.
+5. **S2 se rediseña con dos modos, no uno** (H9): *instrumentado* (el arnés lleva el bloque `env` ⇒
+   misma señal que S1, dinero incluido, B1 aplica) y *degradado* (solo hook ⇒ proceso sin dinero).
+   La UI tiene que distinguirlos: son dos niveles de dato distintos, no el mismo con otro nombre.
+6. **`tool_result_size_bytes` se persiste** (H8): habilita B11 más adelante y no cuesta nada ahora.
