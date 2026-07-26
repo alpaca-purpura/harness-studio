@@ -610,6 +610,28 @@ alcance) en vez de abrir una segunda vía de escritura hacia archivos de un paqu
 Coherente con A8 (nunca escribir settings ajenos sin backup + confirmación) y con el guardrail
 vigente de que el alcance del chat embebido excluye el paquete propio.
 
+## 🧑‍⚖️ GATE — bloque D9 · D11 · D13 · D14 · D15 · D16 **FIRMADO** (2026-07-26)
+
+> **Firma del operador, textual:** *«Ok, firmo»* — en respuesta al informe de la verificación en
+> vivo y al pedido explícito de firma de este bloque.
+>
+> **Qué queda firmado y con qué consecuencia:**
+>
+> | decisión | de PROPUESTA a | consecuencia inmediata |
+> |---|---|---|
+> | **D9** (arquitectura consolidada tras el SOTA) | **FIRMADA** | los grupos A-H y las 8 capas L0→L7 pasan a ser el diseño vigente |
+> | **D11** (empaquetado A o B, nunca C) | **FIRMADA** | cero post-install en las tres plataformas es requisito, no preferencia |
+> | **D13** (dos niveles de egreso) | **FIRMADA** | `telemetria-no-egresa` ata al ARNÉS; el forward del daemon es del operador y va apagado |
+> | **D14** (verificación en vivo, 5 correcciones) | **FIRMADA** | **supersede D4.1**: canal primario `/v1/logs`; OTLP/JSON + stdlib; `http/json` en el spawn |
+> | **D15** (privacidad, PII) | **FIRMADA** | allowlist en la ingesta + retención con borrado + filtrado en el borde del forward |
+> | **D16** (refinamiento pre-mockup) | **FIRMADA** | 6 detectores en el MVP · el evento canónico · la capa se llama «Mejora» |
+>
+> **D17** (las tres elecciones del mockup) ya estaba firmada en el mismo hilo.
+> **Sigue ABIERTA D9.9** (¿parser propio o shell-out a `ccusage`?) — posterior al MVP, no bloquea.
+>
+> Con esta firma queda **autorizado el spec** (`spec.md` + `design.md`) y, tras la firma del par,
+> la implementación. El mockup sigue en iteración 1 y su gate propio no está firmado.
+
 ## Estado del paquete
 
 **Diseño de arquitectura RESUELTO y documentado** (boundary v2.0 + esta ficha). **CERO código
