@@ -40,6 +40,13 @@ type TelemetriaService struct {
 	rolResolver func(ctx context.Context, arnesID string) string
 	// instalaciones lista (arnesID, instalacionID, clave, nombre, empresas) del Portafolio.
 	instalaciones func(ctx context.Context) []FilaInstalacion
+
+	// Retención (T14). El TTL en días es un valor PROPUESTO, no firmado (J-6): viaja por
+	// flag y se muestra rotulado como tal.
+	purga         purgador
+	recomputa     recomputador
+	retencionDias int
+	rollupMeses   int
 }
 
 // FilaInstalacion es lo mínimo que el servicio necesita del Portafolio para armar la tabla.
@@ -355,6 +362,10 @@ func (s *TelemetriaService) Salud(ctx context.Context) (domain.SaludTelemetria, 
 	if s.catalogo != nil {
 		sal.Catalogo = s.catalogo.Version()
 	}
+	// El TTL que se muestra es el de la CONFIG, no un número escrito en la UI (J-6).
+	sal.RetencionDias = s.RetencionDias()
+	sal.RollupMeses = s.RollupMeses()
+	sal.RetencionPropuesta = true
 	if s.forward != nil {
 		sal.Forward = s.forward.Activo()
 		if sal.Forward {

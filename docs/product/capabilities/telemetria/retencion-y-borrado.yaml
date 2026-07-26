@@ -1,0 +1,101 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D15.3 · RF-283).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.retencion-y-borrado
+cap_num: CAP-124
+slug: retencion-y-borrado
+name: "Retención y borrado (el botón borra también el agregado)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: usecase
+verb: mejorar
+functional_area: "telemetria.retencion"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/telemetria_retencion.go#TelemetriaService.Purgar"
+  - "internal/usecase/telemetria_retencion.go#TelemetriaService.BorrarArnes"
+  - "internal/usecase/telemetria_retencion.go#TelemetriaService.SetRetencion"
+  - "internal/usecase/telemetria_retencion.go#TelemetriaService.RetencionDias"
+  - "internal/usecase/telemetria_retencion.go#RetencionDefaultDias"
+valida:
+  - "TestPurgaRespetaTTL"
+  - "TestRetencionNoEsUnaConstante"
+  - "TestBorradoPorArnesTambienLimpiaRollup"
+  - "TestBorrarSinArnesNoEsUnBorrado"
+  - "TestAvisoDeTamano"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria purgar [--arnes X]"
+  main_component: null
+  api_endpoints:
+    - "DELETE /api/telemetria/arneses/{clave}"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §5.5 · §11"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "La telemetría caduca sola, y el botón «borrar la telemetría de este arnés» borra también el agregado — si no, quedaría una cifra huérfana en el tablero alimentándose de filas que ya no existen, y sobreviviría justo a la operación que el usuario pidió para hacerla desaparecer."
+    merge_sha: null
+scenarios:
+  - id: borrar-borra-tambien-el-agregado
+    name: "El usuario borra la telemetría de un arnés"
+    status: live
+    given: "dos arneses con historia y con tablero calculado"
+    when: "se borra la del primero"
+    then: "no quedan ni sus eventos ni su agregado, su resumen vuelve a estar vacío, y el segundo sigue intacto"
+    verifica: "TestBorradoPorArnesTambienLimpiaRollup"
+  - id: el-plazo-sale-de-la-config
+    name: "El operador cambia el plazo de retención"
+    status: live
+    given: "un plazo configurado distinto del default"
+    when: "se consulta el estado del módulo"
+    then: "reporta el plazo configurado, y lo rotula como propuesto mientras el número no esté firmado"
+    verifica: "TestRetencionNoEsUnaConstante"
+  - id: borrar-todo-no-es-borrar-uno
+    name: "Se pide borrar «un arnés» sin decir cuál"
+    status: live
+    given: "una petición de borrado sin arnés"
+    when: "se ejecuta"
+    then: "se rechaza; borrar sin acotar no es la operación que se pidió"
+    verifica: "TestBorrarSinArnesNoEsUnBorrado"
+business_rules:
+  - id: el-borrado-alcanza-al-agregado
+    rule: "Borrar la historia de un arnés borra su detalle y su agregado en la misma operación, y rehace las horas afectadas. Un agregado huérfano seguiría mostrando la cifra que el usuario pidió borrar."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: el-plazo-no-se-hardcodea
+    rule: "El plazo de retención sale de la configuración. La pantalla lo lee, nunca lo escribe."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+  - id: el-numero-no-esta-firmado
+    rule: "El plazo por default viaja ROTULADO como propuesto mientras el operador no fije el número. Presentar un valor sin firmar como política sería fabricar una decisión."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.almacen-de-telemetria
+    - arnesia.telemetria.rollup-horario-incremental
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Retención y borrado
+
+La telemetría **caduca sola** y el usuario puede borrar la de un arnés cuando quiera.
+
+Lo que hace a este capability y no a un `DELETE`: **el borrado alcanza al agregado**. Borrar solo el
+detalle dejaría una cifra en el tablero alimentándose de filas que ya no existen — y esa cifra
+sobreviviría justo a la operación que el usuario pidió para hacerla desaparecer. Por eso el detalle,
+el agregado y los turnos declarados se van en la misma transacción, y las horas afectadas se rehacen
+después.
+
+⚠️ **El plazo por default no está firmado.** El operador todavía no fijó el número, así que viaja
+por configuración y **rotulado como propuesto** en el estado del módulo. La pantalla lo lee; nunca
+lo escribe. Presentarlo como política sería fabricar una decisión que nadie tomó.
