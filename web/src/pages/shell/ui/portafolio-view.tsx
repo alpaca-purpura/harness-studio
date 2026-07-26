@@ -21,9 +21,11 @@ import type {
   PortafolioListado,
   SaludPortafolio,
 } from "@/entities/portafolio"
-import { ApiError, api, isTauri, selectActive, useAppStore, useSessions } from "@/shared"
+import { type FilaPortafolio, Sparkline, usd } from "@/entities/telemetria"
+import { ApiError, api, cn, isTauri, selectActive, useAppStore, useSessions } from "@/shared"
 import { MarketplaceCatalogo, MarketplaceList } from "@/widgets/marketplace"
 import {
+  type MejoraDeFila,
   PortafolioDrawer,
   PortafolioList,
   PortafolioWizard,
@@ -129,6 +131,66 @@ export function PortafolioView() {
   useEffect(() => {
     cargar()
   }, [cargar])
+
+  // ── Telemetría del Portafolio (T36) ──
+  //
+  // Carga LAZY y **no bloqueante**, mismo patrón que `GET /api/marketplaces`: el Portafolio
+  // tiene que listar aunque la telemetría no conteste. Un fallo acá **no** degrada la lista —
+  // simplemente no hay columnas de mejora, que es la verdad.
+  const [telemetria, setTelemetria] = useState<FilaPortafolio[]>([])
+
+  useEffect(() => {
+    let vivoLocal = true
+    api
+      .telemetriaPortafolio<{ filas?: FilaPortafolio[] }>()
+      .then((data) => {
+        if (vivoLocal && vivo.current) setTelemetria(data.filas ?? [])
+      })
+      .catch(() => {
+        // Silencio deliberado: sin telemetría, las 3 columnas no se dibujan. El error de la
+        // capa Mejora se reporta en su propia superficie (la franja del Mapa), no acá — un
+        // banner de telemetría rota arriba del inventario de arneses es ruido en el lugar
+        // equivocado.
+        if (vivoLocal && vivo.current) setTelemetria([])
+      })
+    return () => {
+      vivoLocal = false
+    }
+  }, [])
+
+  /**
+   * Las 3 celdas por fila, YA compuestas: el widget recibe primitivos y nodos listos, no el
+   * dominio de telemetría (mismo criterio que D18 para el nodo del canvas).
+   *
+   * ⚠️ Se keyea por `clave`, que es lo que la lista tiene. El wire manda una fila por
+   * `(arnés, instalación)` y acá se toma **la primera** de cada clave: la lista del Portafolio
+   * agrupa por entrada, no por instalación. La tabla por instalación es
+   * `TablaMejoraPortafolio`, que sí las muestra todas.
+   */
+  const mejoraPorClave = useMemo(() => {
+    const m = new Map<string, MejoraDeFila>()
+    for (const f of telemetria) {
+      if (m.has(f.clave)) continue
+      m.set(f.clave, {
+        costoPorCorrida: usd(f.costo_por_corrida),
+        tendencia: <Sparkline puntos={f.serie} />,
+        punto:
+          f.costo_por_corrida === null ? (
+            <span className="pf-mej-chip pf-mej-chip-neutro">nunca corrió con telemetría</span>
+          ) : f.punto ? (
+            <span className={cn("pf-mej-chip", f.punto.grave && "grave")}>
+              <span aria-hidden="true">⚠</span> {f.punto.nombre} · USD {usd(f.punto.monto_micros)}
+              {f.punto.unidad === "corrida" ? "/corrida" : " en la ventana"}
+            </span>
+          ) : (
+            <span className="pf-mej-chip pf-mej-chip-ok">
+              <span aria-hidden="true">✓</span> sin fugas detectadas
+            </span>
+          ),
+      })
+    }
+    return m
+  }, [telemetria])
 
   // ── Plano Marketplaces (S2) ──
   const [marketplaces, setMarketplaces] = useState<MarketplaceConocido[]>([])
@@ -796,6 +858,7 @@ export function PortafolioView() {
             onAbrir={onAbrirFila}
             onAgregar={onAbrirWizard}
             onReintentar={cargar}
+            mejora={mejoraPorClave.size > 0 ? mejoraPorClave : undefined}
           />
         )}
 

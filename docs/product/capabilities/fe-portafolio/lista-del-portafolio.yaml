@@ -41,6 +41,8 @@ pointers:
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   - "web/src/shared/ui/estado-carga.tsx#Skeleton"
   - "web/src/shared/ui/estado-carga.tsx#ErrorBody"
+  - "web/src/widgets/portafolio/ui/tabla-mejora-portafolio.tsx#TablaMejoraPortafolio"
+  - "web/src/widgets/portafolio/ui/portafolio-list.tsx#MejoraDeFila"
 valida:
   - "web/src/widgets/portafolio/ui/portafolio-list.stories.tsx"
   - "web/src/entities/portafolio/ui/chips.stories.tsx"
@@ -48,6 +50,7 @@ valida:
   - "web/src/shared/ui/grupo-control.stories.tsx"
   - "web/src/shared/ui/filtro-disclosure.stories.tsx"
   - "web/src/shared/ui/estado-carga.stories.tsx"
+  - "web/src/widgets/portafolio/ui/tabla-mejora-portafolio.stories.tsx"
 
 dev_preview:
   route: "#/portafolio"
@@ -184,6 +187,31 @@ change_log:
       CONTRATO completo de las dos piezas, no solo el caso que el Portafolio usa (D23).
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T36 (Tramo B) — las tres columnas de la capa «Mejora» (`USD/corrida` · `tendencia` ·
+      `punto de mejora`). **No es hoja nueva: es una columna nueva de un capability que ya
+      existe.** Se insertan ENTRE chips y dot de salud, para que el dot siga CERRANDO la fila —
+      el ancla visual que la PARIDAD del Slice 1 firmó — y son OPCIONALES, así que las 13 stories
+      firmadas pasan sin tocarlas (`SinMejoraDomIntacto` es el guardián: sin las props, 5 celdas
+      exactas y cero clases `.pf-mej-*`).
+      **D20 — el puesto no se fabrica.** Sale del `rol` del arnés resuelto server-side; `null` ⇒
+      «puesto sin declarar», que es **el caso normal de hoy** (ningún arnés del dogfood declara
+      `rol`). La fila se agrupa por `(identidad, instalación)`: dos instalaciones dan dos filas.
+      **Al ordenar por costo, los «sin dato» van al final con separador rotulado** — nunca
+      intercalados como si valieran 0: un arnés que nunca corrió no es el más barato.
+      D21: el chip de fuga grave usa `--crit` sobre `--card`. **Acá el gate axe corre en `error`,
+      así que es donde el fix es load-bearing**: sobre `--crit-soft` daría 4,04:1 en claro y
+      rompería el build. `ConDatoDark` es el espejo en oscuro.
+      La tabla consume las MISMAS piezas que el Mapa (`CifraUsd`, `MarcaConfianza`, `Sparkline`
+      de `entities/telemetria`) — no dibuja su propia cifra ni su propia marca de duda (D23).
+      Transporte lazy y NO bloqueante en `portafolio-view.tsx`, mismo patrón que
+      `GET /api/marketplaces`: el Portafolio lista aunque la telemetría no conteste.
+      11 + 2 stories nuevas.
+    merge_sha: null
+
 scenarios:
   - id: lista-lente-empresa-agrupa-nm
     name: "Lente empresa agrupa N:M con «sin empresa» al final (G4)"
@@ -227,6 +255,26 @@ scenarios:
     when: "se aplica filtrarPorSalud y/o filtrarPorMarketplace antes de la lente"
     then: "set vacío = sin filtro (todas); con valores, SOLO sobreviven las entradas que matchean — ninguna fila se reagrupa por el filtro, eso sigue siendo trabajo exclusivo de la lente"
     verifica: "FiltroEstadoAcota · FiltroMarketplaceAcota · ConDatos (interacción del disclosure) · filtrarPorSalud · filtrarPorMarketplace · marketplacesDisponibles (selectors.test.ts)"
+
+  - id: lista-mejora-no-fabrica-puesto-ni-cero
+    name: "La columna de mejora no fabrica un puesto ni un cero (RF-265 · RF-268 · D20)"
+    given: "instalaciones cuyo arnés no declara `rol`, y arneses que nunca corrieron"
+    when: "se renderiza la tabla de mejora del Portafolio"
+    then: >-
+      la celda de puesto dice «puesto sin declarar» y no aparece ningún nombre inventado; la fila
+      del que nunca corrió SIGUE en la tabla, con «sin dato» en costo y «nunca corrió con
+      telemetría» en el punto — nunca «0,00»; al ordenar por costo, los sin-dato se agrupan al
+      final tras un separador rotulado
+    verifica: "SinPuestoDeclarado · SinDato · OrdenadaSinDatoAlFinal · UnArnesDosPuestos (tabla-mejora-portafolio.stories.tsx)"
+  - id: lista-mejora-superset-estricto
+    name: "Las 3 celdas nuevas no cambian la fila firmada del Slice 1 (BR-M16)"
+    given: "la lista con y sin datos de telemetría"
+    when: "se renderiza una fila"
+    then: >-
+      con datos, las celdas se insertan entre chips y dot y el dot sigue CERRANDO la fila; sin
+      datos, la fila vuelve a sus 5 celdas exactas y no queda ninguna clase `.pf-mej-*` en el DOM.
+      El comportamiento de la fila no cambia: sigue llamando `onAbrir(clave)`
+    verifica: "ConMejora · SinMejoraDomIntacto (portafolio-list.stories.tsx)"
 
 business_rules: []
 related_capabilities:

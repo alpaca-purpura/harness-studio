@@ -299,3 +299,55 @@ export const FiltroSinOrigenSeDeclara: Story = {
     await expect(args.onFiltroSinOrigen).toHaveBeenCalledWith(false)
   },
 }
+
+// ══ Capa «Mejora» en la fila (paquete 2026-07-24, T36) ════════════════════════════════════
+//
+// Las 3 celdas son OPCIONALES: las 13 stories firmadas del Slice 1 pasan sin tocarlas, y
+// `SinMejoraDOMIntacto` es el guardián de que sigan pasando.
+
+const mejoraDemo = new Map(
+  entradasDemo.map((e, i) => [
+    e.clave,
+    {
+      costoPorCorrida: i === 0 ? "0,31" : null,
+      tendencia: <span className="spark-vacio">pocas corridas para una tendencia</span>,
+      punto: <span className="pf-mej-chip pf-mej-chip-neutro">nunca corrió con telemetría</span>,
+    },
+  ]),
+)
+
+// RF-265 · BR-M16 — las 3 celdas se insertan **entre chips y dot de salud**: el dot sigue
+// CERRANDO la fila, que es el ancla visual que la PARIDAD del Slice 1 firmó. Y el
+// comportamiento de la fila no cambia: sigue siendo un `<button>` que llama `onAbrir(clave)`.
+export const ConMejora: Story = {
+  args: { entradas: entradasDemo, lente: "plano", mejora: mejoraDemo },
+  play: async ({ canvasElement, args }) => {
+    const fila = canvasElement.querySelector(".pf-fila") as HTMLElement
+    const hijos = [...fila.children]
+    const iChips = hijos.findIndex((h) => h.classList.contains("pf-fila-chips"))
+    const iUsd = hijos.findIndex((h) => h.classList.contains("pf-mej-usd"))
+    const iDot = hijos.findIndex((h) => h.classList.contains("pf-dot-salud"))
+    await expect(iChips).toBeGreaterThanOrEqual(0)
+    await expect(iUsd).toBeGreaterThan(iChips)
+    await expect(iDot).toBeGreaterThan(iUsd)
+    // El dot CIERRA la fila.
+    await expect(iDot).toBe(hijos.length - 1)
+    // El comportamiento de la fila no cambia.
+    await userEvent.click(fila)
+    await expect(args.onAbrir).toHaveBeenCalledWith(entradasDemo[0]?.clave)
+  },
+}
+
+// BR-M16 — **el guardián del superset**: sin las props nuevas la fila vuelve a sus 5 celdas
+// exactas y no queda ni una clase `.pf-mej-*` en el DOM.
+export const SinMejoraDomIntacto: Story = {
+  args: { entradas: entradasDemo, lente: "plano" },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector(".pf-mej-usd")).toBeNull()
+    await expect(canvasElement.querySelector(".pf-mej-tend")).toBeNull()
+    await expect(canvasElement.querySelector(".pf-mej-punto")).toBeNull()
+    const fila = canvasElement.querySelector(".pf-fila") as HTMLElement
+    await expect(fila.children).toHaveLength(5)
+    await expect(fila).not.toHaveClass("con-mejora")
+  },
+}

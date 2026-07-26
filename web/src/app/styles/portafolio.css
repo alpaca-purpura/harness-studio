@@ -1419,3 +1419,151 @@
 
 /* G8 a11y — reduced-motion apaga las animaciones nuevas (el spinner de la validación reusa el
    glifo ya cubierto arriba; acá no se agrega ninguna animación nueva). */
+
+/* ══ Capa «Mejora» en el Portafolio (paquete 2026-07-24, T36) ══════════════════════════════
+   design.md §2.7 · §3.5 · §5.6 · §7.6 · D20 · D21 · H-12. */
+
+.arnesia-portafolio .pf-mej {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* El scroll vive acá. El `<body>` JAMÁS scrollea horizontal (design §6.3). */
+.arnesia-portafolio .pf-mej-scroll {
+  overflow-x: auto;
+}
+.arnesia-portafolio .pf-mej-scroll:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.arnesia-portafolio .pf-mej-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .pf-mej-tbl th,
+.arnesia-portafolio .pf-mej-tbl td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+.arnesia-portafolio .pf-mej-tbl thead th {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+/* `USD/corrida`: derecha y `tabular-nums` — el prefijo vive en el encabezado, no en cada fila. */
+.arnesia-portafolio .pf-mej-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.arnesia-portafolio .pf-mej-id {
+  font-weight: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.arnesia-portafolio .pf-mej-puesto {
+  font-size: 9px;
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-mej-link {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.arnesia-portafolio .pf-mej-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.arnesia-portafolio .pf-mej-tend {
+  width: 40px;
+}
+/* La celda sin tendencia lleva su rótulo accesible: un guion pelado no distingue «falta el
+   dato» de «la tendencia es plana». */
+.arnesia-portafolio .pf-mej-vacia {
+  color: var(--muted-foreground);
+}
+/* `punto de mejora` es la columna elástica: se encoge primero al angostar. */
+.arnesia-portafolio .pf-mej-punto {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.arnesia-portafolio .pf-mej-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  background: var(--warn-soft);
+  color: var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* D21 — la marca de fuga GRAVE: texto `--crit` sobre `--card` (4,75:1 claro / 5,33:1 oscuro).
+   **Acá el gate axe corre en `error`**, así que este archivo es donde el fix es load-bearing:
+   sobre `--crit-soft` daría 4,04:1 en claro y rompería el build. */
+.arnesia-portafolio .pf-mej-chip.grave {
+  border-color: color-mix(in srgb, var(--crit) 45%, transparent);
+  background: var(--card);
+  color: var(--crit);
+}
+/* «Sin fugas» ≠ «sin dato»: clases distintas, no solo tono (RF-267 · RF-280). El ✓ es
+   decorativo y el verde queda para el glifo y el borde (D21). */
+.arnesia-portafolio .pf-mej-chip-ok {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  background: var(--ok-soft);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-mej-chip-neutro {
+  border-color: var(--border);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+/* El separador de los «sin dato» al ordenar por costo: rotulado, nunca implícito. */
+.arnesia-portafolio .pf-mej-sep th {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  background: var(--secondary);
+}
+/* H-12 — sin este pie, un USD pelado en una tabla se lee como facturación. */
+.arnesia-portafolio .pf-mej-pie {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* ── Las tres celdas nuevas de la fila de la lista (superset, BR-M16) ────────────────────────
+   Se insertan ENTRE chips y dot de salud: el dot sigue cerrando la fila, que es el ancla visual
+   que la PARIDAD del Slice 1 firmó. Sin las props nuevas la grilla vuelve a sus 5 columnas. */
+.arnesia-portafolio .pf-fila.con-mejora {
+  grid-template-columns: auto minmax(0, 2fr) auto minmax(0, 1.4fr) auto 40px minmax(0, 1fr) auto;
+}
+.arnesia-portafolio .pf-fila .pf-mej-usd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.arnesia-portafolio .pf-fila .pf-mej-tend {
+  display: flex;
+  align-items: center;
+}

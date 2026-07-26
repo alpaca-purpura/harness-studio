@@ -60,6 +60,8 @@ export interface PortafolioListProps {
   onAbrir: (clave: string) => void
   onAgregar: () => void
   onReintentar: () => void
+  /** Capa «Mejora» por fila, keyeada por `clave` (T36). Opcional ⇒ superset estricto (BR-M16). */
+  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
 }
 
 // ── Topbar: título + contadores REALES + Agregar (SIEMPRE presente — plan §2.6) ──
@@ -221,15 +223,33 @@ function BannerCorruptas({ corruptas }: { corruptas: EntradaCorrupta[] }) {
   )
 }
 
-// ── Fila: emblema · id+nombre/descr · presencia · chips honestos · dot de salud (plan §2.6) ──
+/**
+ * Las tres celdas de la capa «Mejora» para UNA fila (T36). Llegan YA compuestas por la página:
+ * el widget del Portafolio no importa `entities/telemetria` para armarlas — recibe primitivos,
+ * igual que el nodo del canvas (D18).
+ *
+ * **Opcionales ⇒ las 13 stories firmadas del Slice 1 no cambian**, y `SinMejoraDOMIntacto` es el
+ * guardián: sin estas props la fila vuelve a sus 5 celdas exactas.
+ */
+export interface MejoraDeFila {
+  /** El costo por corrida YA formateado, o `null` para «sin dato». Nunca `0,00` de relleno. */
+  costoPorCorrida: string | null
+  /** El sparkline y el chip llegan armados: la fila los ubica, no los calcula. */
+  tendencia?: React.ReactNode | undefined
+  punto?: React.ReactNode | undefined
+}
+
+// ── Fila: emblema · id+nombre/descr · presencia · chips honestos · [mejora] · dot de salud ──
 function Fila({
   entrada,
   seleccionada,
   onAbrir,
+  mejora,
 }: {
   entrada: EntradaPortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
+  mejora?: MejoraDeFila | undefined
 }) {
   const salud = saludDe(entrada)
   const registries = registriesDe(entrada)
@@ -242,7 +262,11 @@ function Fila({
     <li className="pf-fila-wrap">
       <button
         type="button"
-        className={cn("pf-fila", seleccionada === entrada.clave && "seleccionada")}
+        className={cn(
+          "pf-fila",
+          seleccionada === entrada.clave && "seleccionada",
+          mejora !== undefined && "con-mejora",
+        )}
         aria-current={seleccionada === entrada.clave ? "true" : undefined}
         onClick={() => onAbrir(entrada.clave)}
       >
@@ -271,6 +295,15 @@ function Fila({
           )}
           {instalacionConAviso?.aviso && <AvisoChip aviso={instalacionConAviso.aviso} />}
         </span>
+        {/* Las 3 celdas nuevas van ENTRE chips y dot: el dot de salud sigue CERRANDO la fila,
+            que es el ancla visual que la PARIDAD del Slice 1 firmó. */}
+        {mejora !== undefined && (
+          <>
+            <span className="pf-mej-usd">{mejora.costoPorCorrida ?? "sin dato"}</span>
+            <span className="pf-mej-tend">{mejora.tendencia}</span>
+            <span className="pf-mej-punto">{mejora.punto}</span>
+          </>
+        )}
         <DotSaludPortafolio salud={salud} />
       </button>
     </li>
@@ -306,15 +339,23 @@ function ListaPlana({
   entradas,
   seleccionada,
   onAbrir,
+  mejora,
 }: {
   entradas: EntradaPortafolio[]
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
+  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
 }) {
   return (
     <ul className="pf-lista">
       {entradas.map((e) => (
-        <Fila key={e.clave} entrada={e} seleccionada={seleccionada} onAbrir={onAbrir} />
+        <Fila
+          key={e.clave}
+          entrada={e}
+          seleccionada={seleccionada}
+          onAbrir={onAbrir}
+          mejora={mejora?.get(e.clave)}
+        />
       ))}
     </ul>
   )
@@ -340,11 +381,13 @@ function ListaAgrupada({
   lente,
   seleccionada,
   onAbrir,
+  mejora,
 }: {
   entradas: EntradaPortafolio[]
   lente: LentePortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
+  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
 }) {
   const grupos = agrupadorDe(lente)(entradas)
   return (
@@ -359,6 +402,7 @@ function ListaAgrupada({
                 entrada={e}
                 seleccionada={seleccionada}
                 onAbrir={onAbrir}
+                mejora={mejora?.get(e.clave)}
               />
             ))}
           </ul>
@@ -381,6 +425,7 @@ function Cuerpo({
   onAbrir,
   onReintentar,
   onLimpiarTodo,
+  mejora,
 }: {
   estado: PortafolioListProps["estado"]
   error: string | undefined
@@ -394,6 +439,7 @@ function Cuerpo({
   onAbrir: (clave: string) => void
   onReintentar: () => void
   onLimpiarTodo: () => void
+  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
 }) {
   if (estado === "cargando") return <Skeleton label="Cargando portafolio" />
   if (estado === "error")
@@ -418,7 +464,14 @@ function Cuerpo({
   if (filtradas.length === 0) return <SinResultadosBody onLimpiar={onLimpiarTodo} />
 
   if (lente === "plano") {
-    return <ListaPlana entradas={filtradas} seleccionada={seleccionada} onAbrir={onAbrir} />
+    return (
+      <ListaPlana
+        entradas={filtradas}
+        seleccionada={seleccionada}
+        onAbrir={onAbrir}
+        mejora={mejora}
+      />
+    )
   }
   return (
     <ListaAgrupada
@@ -426,6 +479,7 @@ function Cuerpo({
       lente={lente}
       seleccionada={seleccionada}
       onAbrir={onAbrir}
+      mejora={mejora}
     />
   )
 }
@@ -449,6 +503,7 @@ export function PortafolioList({
   onAbrir,
   onAgregar,
   onReintentar,
+  mejora,
 }: PortafolioListProps) {
   const marketplaces = marketplacesDisponibles(entradas)
   const sinOrigenActivo = filtroSinOrigen ?? false
@@ -502,6 +557,7 @@ export function PortafolioList({
           onAbrir={onAbrir}
           onReintentar={onReintentar}
           onLimpiarTodo={onLimpiarTodo}
+          mejora={mejora}
         />
       </div>
     </div>
