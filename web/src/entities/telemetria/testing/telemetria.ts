@@ -196,6 +196,32 @@ export const CAJAS_ILUSTRATIVAS: readonly CifraCaja[] = [
   },
 ]
 
+/**
+ * Los buckets de la tarjeta insignia: **la FORMA sale del bloque MEDIDO** (el `0` real de
+ * `ephemeral_5m` y la ausencia real de `razonamiento`), **los MONTOS son ilustrativos** y suman
+ * exactamente los `USD 1,92` que design.md §7.5 fija como copy de la caja.
+ *
+ * Los dos fixtures existen a propósito y no se pueden fundir: `BUCKETS_MEDIDOS` trae 18 473
+ * micros repartidos en centésimas de centavo, y a dos decimales —que es como se muestra el
+ * dinero (RF-281)— ninguna fila suma nada. Un assert aritmético sobre esos valores no puede
+ * cerrar, y bajar la precisión del formateador para que cierre sería arreglar el termómetro.
+ */
+export const BUCKETS_ILUSTRATIVOS: readonly BucketToken[] = [
+  { id: "entrada", etiqueta: "entrada", tokens: 12_400, costo_micros: 50_000 },
+  { id: "salida", etiqueta: "salida", tokens: 8_900, costo_micros: 310_000 },
+  { id: "cache_lectura", etiqueta: "cache · lectura", tokens: 214_800, costo_micros: 220_000 },
+  // El CERO REAL medido: el runtime tiene el concepto y midió cero (RF-260).
+  { id: "cache_escritura_5m", etiqueta: "cache · escritura 5 m", tokens: 0, costo_micros: 0 },
+  {
+    id: "cache_escritura_1h",
+    etiqueta: "cache · escritura 1 h",
+    tokens: 96_300,
+    costo_micros: 1_340_000,
+  },
+  // La AUSENCIA REAL: `razonamiento` nunca apareció en ninguno de los 57 log records.
+  { id: "razonamiento", etiqueta: "razonamiento", tokens: null, costo_micros: null },
+]
+
 export const PARIDAD_COINCIDEN: ParidadCosto = {
   reportado_micros: 1_920_000,
   calculado_micros: 1_920_000,

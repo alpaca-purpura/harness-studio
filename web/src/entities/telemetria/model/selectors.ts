@@ -192,3 +192,29 @@ export function marcaPrincipal<T>(marcas: readonly T[] | undefined): T | null {
   if (!marcas || marcas.length === 0) return null
   return marcas[0] as T
 }
+
+/**
+ * El copy de «sin dato atribuible» por clase de nodo (design §7.3), en UNA sola fuente.
+ *
+ * Son **CINCO**, no seis: **D19** borró el de «conocimiento» porque en este árbol el
+ * conocimiento es una BANDA (`selectBase`) y un token (`--c-knowledge`), no una clase de nodo —
+ * `Clase` tiene diez primitivas y ninguna es `knowledge` (box.go:27; el valor legacy pliega a
+ * `rule`). Un nodo de la Base es `rule` y su copy es el de `rule`.
+ *
+ * ⚠️ `entities/arnes` **no puede importar esto** (D18: cross-import prohibido), así que sus
+ * stories repiten el literal. El widget `map-canvas` —que sí puede importar las dos entities—
+ * es el que alimenta el nodo desde acá, y por eso un drift entre las dos superficies se cae en
+ * las stories del widget.
+ */
+export const MOTIVO_SIN_DATO: Readonly<Record<string, string>> = {
+  subagent: "sin dato atribuible — el subagente no se distingue en el turno",
+  rule: "sin dato atribuible — una regla no consume por sí misma",
+  mcp: "sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa",
+  hook: "sin dato atribuible — un hook informa, no consume",
+  resto: "sin dato atribuible — esta capa mide cajas",
+}
+
+/** El motivo de la clase, con el genérico como red: nunca una cadena vacía. */
+export function motivoSinDato(clase: string): string {
+  return MOTIVO_SIN_DATO[clase] ?? (MOTIVO_SIN_DATO["resto"] as string)
+}

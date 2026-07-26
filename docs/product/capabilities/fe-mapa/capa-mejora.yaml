@@ -50,6 +50,8 @@ pointers:
   - "web/src/widgets/map-canvas/ui/franja-mejora.tsx#FranjaMejora"
   - "web/src/widgets/map-canvas/ui/punto-mejora-card.tsx#PuntoMejoraCard"
   - "web/src/widgets/map-canvas/ui/puntos-mejora-list.tsx#PuntosMejoraList"
+  - "web/src/widgets/map-canvas/ui/inspector-mejora.tsx#InspectorMejora"
+  - "web/src/widgets/map-canvas/ui/inspector.tsx#Inspector"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
@@ -61,6 +63,8 @@ valida:
   - "web/src/widgets/map-canvas/ui/franja-mejora.stories.tsx"
   - "web/src/widgets/map-canvas/ui/punto-mejora-card.stories.tsx"
   - "web/src/widgets/map-canvas/ui/puntos-mejora-list.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/inspector-mejora.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/inspector.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -187,6 +191,31 @@ change_log:
       buscamos» son conclusiones opuestas). **Una tarjeta sin contrafactual no existe** (A4): la
       lista la filtra, no la pinta degradada. 15 + 7 stories, gate a11y en `error`, con
       `CompletaB1AtencionDark` obligatoria (D21 ítem 3).
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T34 — `InspectorMejora` + la cuarta tab. El número se puede AUDITAR: bucket por bucket
+      (con la suma cerrando contra el total, assert aritmético), contra el catálogo, contra el
+      proceso y contra los detectores que no corrieron. Orden de secciones de lo auditable a lo
+      accionable. Las tres tabs vigentes no se tocan; la cuarta reusa `<Section>` y hereda el
+      mismo contrato ARIA (`hidden` en los paneles inactivos, no `display:none`).
+      **«No aplica» ocupa las dos columnas numéricas con `colspan=2`**, no un guion en cada celda
+      —que se leería como cero— y **`0` es un dato válido** cuando el runtime tiene el concepto:
+      las dos filas se distinguen por ESTRUCTURA, no solo por texto. La paridad muestra los dos
+      números y NO elige; el veredicto es texto. Detector `off` = `--border`, nunca `--ok`: «no
+      sé» ≠ «sano». Los 7 de fuera del MVP dicen `no medido todavía`, jamás `sin hallazgos`.
+      El ancho es el REAL del drawer (340 px), no los 380 del mockup.
+      🔴 **Única modificación permitida a una story firmada en este paquete**: `Tabs`
+      (`inspector.stories.tsx`) pasa de `toHaveLength(3)` a `4` en este mismo commit. Declarada
+      en `PARIDAD.md`.
+      Fixture nuevo `BUCKETS_ILUSTRATIVOS`: la FORMA sale del bloque MEDIDO (el 0 real de
+      `ephemeral_5m`, la ausencia real de `razonamiento`) y los montos suman exactamente los
+      1,92 del copy. Los dos fixtures no se pueden fundir — a dos decimales, los 18 473 micros
+      reales no suman nada, y bajar la precisión del formateador para que el assert cierre sería
+      arreglar el termómetro.
     merge_sha: null
 
 scenarios:
@@ -322,6 +351,43 @@ scenarios:
       no es una sección vacía: dice que los seis detectores corrieron, sobre cuántas corridas, y
       los lista uno por uno con «sin hallazgos»
     verifica: "VaciaConDatos (puntos-mejora-list.stories.tsx)"
+
+  - id: mejora-inspector-no-aplica-no-es-cero
+    name: "«No aplica» y «midió 0» se distinguen por estructura, no solo por texto (RF-260 · RF-286)"
+    given: "un bucket que el runtime no tiene y otro que tiene y midió cero"
+    when: "se renderiza la tabla de buckets"
+    then: >-
+      la fila de «no aplica» ocupa las dos columnas numéricas con `colspan=2` en itálica y no
+      contiene ningún `0`; la del cero real muestra `0` y `0,00` en celdas separadas, sin
+      `colspan`. La nota lo dice: «No aplica» no es 0
+    verifica: "NoAplicaNoEsCero · CeroLegitimo · CorridaRealMedida (inspector-mejora.stories.tsx)"
+  - id: mejora-inspector-paridad-no-elige
+    name: "Con dos costos que difieren, la UI muestra los dos y NO elige (RF-261)"
+    given: "costo reportado por el runtime y costo calculado con el catálogo"
+    when: "coinciden, difieren, falta uno, o el catálogo no está construido"
+    then: >-
+      el veredicto es TEXTO (`✓ coinciden` / `⚠ difieren en USD 0,18`), los dos números siguen
+      visibles, y el DOM nombra las dos causas posibles sin marcar ninguna como «la correcta»
+    verifica: "ParidadCoinciden · ParidadDivergen · SinCostoDelRuntime · CatalogoSinConstruir (inspector-mejora.stories.tsx)"
+  - id: mejora-inspector-detector-apagado-no-se-esconde
+    name: "Un detector que no puede correr se lista con su motivo (RF-263 · RF-271 · T-09)"
+    given: "detectores del MVP, alguno inaplicable o parcial, y los 7 de fuera del MVP"
+    when: "se renderiza la sección Detectores"
+    then: >-
+      cada uno tiene su estado EN TEXTO (el punto de color es `aria-hidden`); el que no aplica
+      NO se esconde: aparece con su segunda línea `no disponible: {motivo}`; el punto de un
+      detector apagado usa `--border`, nunca `--ok`; y los de fuera del MVP dicen `no medido
+      todavía`, jamás `sin hallazgos`
+    verifica: "SeisDetectoresConEstado · DetectorB1ApagadoEnS2 · DetectorB2Parcial · SieteNoMedidos · DetectorSinFixPropuesto (inspector-mejora.stories.tsx)"
+  - id: mejora-inspector-cuarta-tab-mismo-contrato
+    name: "La cuarta tab hereda el contrato ARIA de las tres firmadas (RF-258 · RF-277)"
+    given: "el inspector de una caja"
+    when: "se conmuta a la tab Mejora"
+    then: >-
+      hay 4 tabs en orden Resumen · Contenido · Corridas · Mejora; el panel de la cuarta tiene
+      `role=tabpanel` y `aria-labelledby` de vuelta a su tab; los 3 paneles inactivos llevan el
+      atributo `hidden`, no `display:none` por CSS
+    verifica: "CuatroTabs · TabMejoraContratoAria · CambioDeNodoVuelveAResumen · Tabs (inspector.stories.tsx)"
 
 business_rules: []
 related_capabilities:

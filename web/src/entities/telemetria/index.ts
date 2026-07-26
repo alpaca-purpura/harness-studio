@@ -13,7 +13,9 @@ export {
   entero,
   etiquetaConfianza,
   etiquetaDetector,
+  MOTIVO_SIN_DATO,
   marcaPrincipal,
+  motivoSinDato,
   NOMBRE_DETECTOR,
   pct,
   type SegmentoCobertura,
@@ -47,6 +49,7 @@ export type {
 // (steiger `fsd/no-public-api-sidestep` prohíbe el deep-import a `testing/`). Van en dos bloques
 // rotulados MEDIDO / ILUSTRATIVO: cuando un número no lo midió nadie, el archivo lo dice.
 export {
+  BUCKETS_ILUSTRATIVOS,
   BUCKETS_MEDIDOS,
   CAJAS_ILUSTRATIVAS,
   CAMPOS_PERSISTIDOS_HOOK,

@@ -169,6 +169,9 @@ export interface EstadoDetector {
   motivo?: string | undefined
   cobertura_parcial?: boolean | undefined
   hallazgos: number
+  /** Encontró algo cotizable pero NO tiene fix propuesto: la contraparte de A4. No se esconde
+   *  —el inspector lo lista—, pero tampoco genera tarjeta. */
+  sin_fix?: boolean | undefined
 }
 
 /** `domain.ResumenTelemetria` — lo que alimenta la franja del Mapa. */

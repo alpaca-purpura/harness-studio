@@ -153,6 +153,12 @@
   .scope { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); padding: 5px var(--space-3); font-size: 10px; color: var(--muted-foreground); }
   .chip-arnes { display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--border); border-radius: var(--radius-full); padding: 1px 8px; color: var(--foreground); }
   .chip-arnes b { font-family: var(--font-mono); font-weight: 700; }
+  /* chip del nodo — literal del vigente (chat-dock.tsx L55-70), ahora en su propia fila condicional */
+  .chip-nodo { display: inline-flex; min-width: 0; align-items: center; gap: 5px; border: 1px solid var(--border); background: var(--secondary); border-radius: var(--radius-full); padding: 1px 8px; color: var(--foreground); }
+  .chip-nodo .sq { width: 6px; height: 6px; border-radius: 2px; background: var(--c-skill); flex: none; }
+  .chip-nodo b { font-family: var(--font-mono); font-weight: 700; }
+  .chip-nodo .path { font-family: var(--font-mono); color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip-nodo .x { color: var(--muted-foreground); flex: none; cursor: pointer; }
 
   /* Messages: flex-1 gap-2 p-3 */
   .msgs { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); min-height: 96px; }
@@ -169,6 +175,21 @@
   .convrow .title .chev { flex: none; font-size: 8px; color: var(--muted-foreground); }
   .convrow .title .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .convrow .acts { margin-left: auto; display: flex; align-items: center; gap: 2px; flex: none; }
+
+  /* ctx como CHIP-DISCLOSURE (CV-D14): la única cifra accionable queda a la vista; la identidad
+     técnica (cc-id · arnés · modelo · cwd) vive detrás de un clic, no ocupando una fila fija. */
+  .ctxchip { display: inline-flex; align-items: center; gap: 5px; flex: none; font: inherit; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); background: transparent; border: 1px solid transparent; border-radius: var(--radius-full); padding: 2px 6px; cursor: pointer; margin-left: auto; }
+  .ctxchip:hover { background: var(--secondary); border-color: var(--border); color: var(--foreground); }
+  .ctxchip.open { background: var(--secondary); border-color: var(--border); color: var(--foreground); }
+  .ctxchip.hot { color: var(--warn); }
+  .ctxchip.hot .ctxbar i { background: var(--warn); }
+  .convrow .acts { margin-left: 0; }
+
+  /* detalle desplegado — mismas cifras que la SessionLine vigente, sin fila permanente */
+  .detalle { border-bottom: 1px solid var(--border); background: var(--secondary); padding: 6px var(--space-3); font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); display: flex; flex-direction: column; gap: 2px; }
+  .detalle .l { display: flex; flex-wrap: wrap; gap: 6px; }
+  .detalle .cc { color: var(--primary); }
+  .detalle .k { color: var(--foreground); }
   .iconbtn { font: inherit; font-size: var(--text-xs); width: 24px; height: 24px; display: grid; place-items: center; background: transparent; border: 0; border-radius: var(--radius-sm); color: var(--muted-foreground); cursor: pointer; }
   .iconbtn:hover { background: var(--secondary); color: var(--foreground); }
   /* ＋ en --foreground, NO en --primary: medido, #00b7aa sobre --card da 2,51:1 en tema claro y
@@ -272,7 +293,7 @@
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">⟩ colapsar</button>
         </div>
         <div class="sline">
           <span class="cc">◍ 4b046945</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
@@ -295,39 +316,82 @@
         </div>
       </div>
       <p class="note">
-        El header muestra el <b>frente de la sesión</b>, no un título de conversación — hoy son la
-        misma cosa. <code>SessionLine</code>, <code>ScopeRow</code> y el composer quedan
-        <b>intactos</b> en toda la propuesta.
+        <b>Cuatro filas de cromo antes del primer mensaje</b>, en un dock de 360 px. Y
+        <code>vitalia</code> aparece <b>tres veces</b> (SessionLine · chip de Alcance · placeholder
+        del composer), más el rail y el breadcrumb del topbar que ya lo dicen. Eso es lo que corrige
+        CV-D14.
       </p>
     </section>
   </div>
 
   <!-- ═══════════ 2 · LA FILA DE CONVERSACIÓN ═══════════ -->
-  <h2>2 · La fila de conversación <span class="rf">CV-D2 · CV-D7 · CV-D9</span></h2>
+  <h2>2 · La fila de conversación <span class="rf">CV-D2 · CV-D7 · CV-D9 · CV-D14 · CV-D15</span></h2>
   <p class="lead">
-    Una fila nueva, debajo del header vigente. Trae las tres acciones que faltaban: el título de la
-    conversación activa (que despliega la lista), el buscador y «＋ nueva». El header de arriba no se
-    toca — sigue diciendo de qué <b>sesión</b> es este dock.
+    La propuesta <b>no agrega una quinta fila: baja de cuatro a dos</b>. La fila de conversación
+    absorbe lo único accionable de la <code>SessionLine</code> (el ctx) como <b>chip-disclosure</b>;
+    la identidad técnica (cc-id · arnés · modelo · cwd) queda a un clic. El <code>ScopeRow</code>
+    deja de ocupar una fila fija y <b>solo aparece cuando hay un nodo elegido</b> — su estado vacío
+    era una fila entera gastada en un hint.
   </p>
 
   <div class="grid">
     <section class="panel">
-      <div class="head"><span class="name">2A · Cerrada (reposo)</span><span class="badge propuesta">propuesta</span></div>
+      <div class="head"><span class="name">2A · Reposo — 2 filas</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D14</span></div>
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip" title="ctx 68 % — ver identidad de la conversación">
+            <span class="ctxbar"><i style="width:68%"></i></span>68%
+          </button>
           <span class="acts">
             <button type="button" class="iconbtn" title="Buscar en las conversaciones de esta sesión">🔍</button>
             <button type="button" class="iconbtn nueva" title="Nueva conversación — desactiva la actual">＋</button>
           </span>
         </div>
-        <div class="sline">
-          <span class="cc">◍ 4b046945</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
-          <span>· ctx</span><span class="ctxbar"><i style="width:68%"></i></span><span>68%</span>
+        <div class="msgs">
+          <div class="bubble user">no veo nada en el mapa, ¿podés repararlo?</div>
+          <div class="act"><div class="sum"><span>⚙</span><span>7 pasos</span><span class="chev">▶</span></div></div>
+          <div class="bubble">El manifiesto declara <b>0 elementos</b>: el arnés no tiene <code>arnes.l0.json</code> sellado.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        Mismo alto de panel que §1 y <b>un mensaje más a la vista</b>. <b>No hay botón de cerrar</b>
+        — a propósito (CV-D7): si el operador pudiera cerrar sin abrir nada, la sesión quedaría sin
+        conversación activa y el composer no tendría a quién hablarle. <b>«⟩» pasa a «»»</b>
+        (CV-D15): el corchete se leía como paréntesis; «»» es el glifo que el rail ya usa para
+        colapsar (<code>session-rail.tsx</code> L96).
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">2B · El ctx desplegado</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D14</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip open" title="ctx 68 %">
+            <span class="ctxbar"><i style="width:68%"></i></span>68%
+          </button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="detalle">
+          <div class="l"><span class="cc">◍ 4b046945</span><span>·</span><span class="k">vitalia</span><span>·</span><span>claude-opus-5[1m]</span></div>
+          <div class="l"><span>cwd</span><span>~/Proyectos/luana-vitalia/vitalia</span></div>
         </div>
         <div class="msgs">
           <div class="bubble user">no veo nada en el mapa, ¿podés repararlo?</div>
@@ -340,25 +404,62 @@
         </div>
       </div>
       <p class="note">
-        <b>No hay botón de cerrar</b> — a propósito (CV-D7): el único cierre es implícito, al crear o
-        retomar otra. Si el operador pudiera cerrar sin abrir nada, la sesión quedaría sin
-        conversación activa y el composer no tendría a quién hablarle.
+        <b>Nada se pierde</b>: las cuatro cifras de la <code>SessionLine</code> vigente siguen ahí,
+        más el <code>cwd</code> que hoy no se ve en ningún lado y es el confinamiento real del
+        conductor. Dejan de costar una fila permanente. Al retomar (§4A) se abre solo, para que el
+        cambio de <code>cc-id</code> sea visible.
       </p>
     </section>
 
     <section class="panel">
-      <div class="head"><span class="name">2B · Renombrar en línea</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D9</span></div>
+      <div class="head"><span class="name">2C · Con nodo en el alcance</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D14 · RF-110/111</span></div>
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:68%"></i></span>68%</button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="scope">
+          <span class="chip-nodo">
+            <i class="sq"></i>caja <b>hipaa-check</b>
+            <span class="path">/hipaa-check</span>
+            <span class="x">✕</span>
+          </span>
+        </div>
+        <div class="msgs">
+          <div class="bubble user">¿por qué esta caja no corre?</div>
+          <div class="bubble">Le falta el insumo <code>cambio-propuesto</code>.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        La fila aparece <b>solo con un nodo elegido</b>, y entonces se gana el lugar: cambia qué le
+        estás pidiendo. Se cae el rótulo «Alcance:» y el chip punteado del arnés — el arnés ya está
+        en el rail, en el topbar y en el placeholder del composer. El <b>✕ para quitarlo</b> se
+        conserva literal (<code>chat-dock.tsx</code> L62-69).
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">2D · Renombrar en línea</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D9</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
         </div>
         <div class="convrow">
           <span class="titlein">por qué el mapa sale vacío</span>
-        </div>
-        <div class="sline">
-          <span class="cc">◍ 4b046945</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
-          <span>· ctx</span><span class="ctxbar"><i style="width:68%"></i></span><span>68%</span>
         </div>
         <div class="msgs">
           <div class="bubble user">no veo nada en el mapa, ¿podés repararlo?</div>
@@ -373,7 +474,8 @@
       <p class="note">
         Mismo gesto que renombrar el frente en el rail (<code>session-rail.tsx</code> L256-273):
         <b>✎ → input → Enter confirma, Escape descarta</b>. El título nace auto-derivado del primer
-        mensaje; editarlo no lo vuelve a derivar nunca más.
+        mensaje; editarlo no lo vuelve a derivar nunca más. Mientras se edita, el input <b>toma la
+        fila entera</b> — el ctx y las acciones no compiten con el cursor.
       </p>
     </section>
   </div>
@@ -392,10 +494,11 @@
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:68%"></i></span>68%</button>
           <span class="acts">
             <button type="button" class="iconbtn" title="Buscar">🔍</button>
             <button type="button" class="iconbtn nueva" title="Nueva conversación">＋</button>
@@ -458,10 +561,11 @@
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:68%"></i></span>68%</button>
           <span class="acts">
             <button type="button" class="iconbtn" title="Buscar">🔍</button>
             <button type="button" class="iconbtn nueva" title="Nueva conversación">＋</button>
@@ -586,7 +690,7 @@
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip streaming"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev">▶</span><span class="t">sellar el arnés con arnes.l0.json</span></button>
@@ -625,7 +729,7 @@
       <div class="dock">
         <div class="dhead">
           <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
-          <button type="button" class="colapsar">⟩ colapsar</button>
+          <button type="button" class="colapsar" title="Colapsar el dock (⌘K para reabrir)">» colapsar</button>
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev">▶</span><span class="t">nueva conversación</span></button>

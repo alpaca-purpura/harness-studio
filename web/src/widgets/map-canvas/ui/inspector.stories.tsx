@@ -84,12 +84,16 @@ export const ExpandeColapsaCierra: Story = {
   },
 }
 
-// RF-82 — tres tabs con roles ARIA; conmutan panes sin perder el header.
+// RF-82 — las tabs con roles ARIA; conmutan panes sin perder el header.
+//
+// 🔴 **ÚNICA modificación permitida a una story firmada en este paquete** (plan-desarrollo T34):
+// el `toHaveLength(3)` pasa a `4` en el mismo commit que agrega la 4ª tab, o CI se pone roja.
+// Va declarada en `PARIDAD.md`. Nada más de esta story cambia.
 export const Tabs: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     const tabs = c.getAllByRole("tab")
-    await expect(tabs).toHaveLength(3)
+    await expect(tabs).toHaveLength(4)
     await expect(c.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true")
     await c.getByRole("tab", { name: "Contenido" }).click()
     await expect(c.getByText("versiona con el arnés")).toBeInTheDocument()
@@ -353,5 +357,57 @@ export const NoReconocido: Story = {
     await expect(c.getByText(/reconocedor no entendió/)).toBeInTheDocument()
     // fuente_path aparece en Resumen y en la tab Contenido (pane oculto) → getAll.
     await expect(c.getAllByText("dogfood/dev-full-cycle/skills/misterio")[0]).toBeInTheDocument()
+  },
+}
+
+// ══ 4ª tab «Mejora» (paquete 2026-07-24, T34) ═════════════════════════════════════════════
+
+// RF-258 — cuatro tabs, en orden, y las tres vigentes no cambian de comportamiento.
+export const CuatroTabs: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const tabs = c.getAllByRole("tab")
+    await expect(tabs).toHaveLength(4)
+    await expect(tabs.map((t) => t.textContent)).toEqual([
+      "Resumen",
+      "Contenido",
+      "Corridas",
+      "Mejora",
+    ])
+    await expect(c.getByRole("tab", { name: "Resumen" })).toHaveAttribute("aria-selected", "true")
+    // Las tres vigentes conmutan igual que hoy.
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    await expect(c.getByText("versiona con el arnés")).toBeInTheDocument()
+    await c.getByRole("tab", { name: "Corridas" }).click()
+    await expect(c.getByText(/Sin corridas indexadas/)).toBeInTheDocument()
+  },
+}
+
+// RF-277 — la 4ª tab hereda el MISMO contrato ARIA que las tres firmadas, y los paneles
+// inactivos llevan el atributo `hidden` — no `display:none` por CSS, que un lector de pantalla
+// puede seguir anunciando.
+export const TabMejoraContratoAria: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const tab = c.getByRole("tab", { name: "Mejora" })
+    await tab.click()
+    const panelId = tab.getAttribute("aria-controls") as string
+    const panel = canvasElement.querySelector(`#${panelId}`) as HTMLElement
+    await expect(panel).not.toBeNull()
+    await expect(panel).toHaveAttribute("role", "tabpanel")
+    await expect(panel).toHaveAttribute("aria-labelledby", tab.id)
+    await expect(canvasElement.querySelectorAll("[role=tabpanel][hidden]")).toHaveLength(3)
+  },
+}
+
+// RF-277 — cambiar de nodo vuelve a Resumen, igual que hoy: cada drawer abre en su resumen.
+export const CambioDeNodoVuelveAlResumen: Story = {
+  play: async ({ canvasElement, args, step }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Mejora" }).click()
+    await expect(c.getByRole("tab", { name: "Mejora" })).toHaveAttribute("aria-selected", "true")
+    await step("rerender con otro box", async () => {
+      args.box = { id: "builder", clase: "skill", nombre: "construir", banda: "fase" }
+    })
   },
 }

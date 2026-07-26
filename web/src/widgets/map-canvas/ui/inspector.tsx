@@ -106,12 +106,16 @@ function Field({ k, v }: { k: string; v?: string | undefined }) {
   )
 }
 
-type Tab = "resumen" | "contenido" | "corridas"
+type Tab = "resumen" | "contenido" | "corridas" | "mejora"
 
+// La cuarta entrada (T34, RF-258). Las tres vigentes NO se tocan: mismo id, mismo orden, mismo
+// contrato ARIA. A 340 px las cuatro etiquetas entran (`.dw-tabs` ya tiene `overflow-x: auto`);
+// si apareciera scroll horizontal en la tira, se corrige LA ETIQUETA, no el contenedor.
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: "resumen", label: "Resumen" },
   { id: "contenido", label: "Contenido" },
   { id: "corridas", label: "Corridas" },
+  { id: "mejora", label: "Mejora" },
 ]
 
 export interface InspectorProps {
@@ -125,6 +129,16 @@ export interface InspectorProps {
   onSelect?: ((id: string) => void) | undefined
   // Resultados de GET …/conformance (los inyecta la página); undefined = no disponible (se dice).
   conformance?: readonly ConformanceResult[] | undefined
+  /**
+   * El cuerpo de la 4ª tab (T34). Lo inyecta la página YA compuesto: el inspector es chrome y
+   * no fetchea (`fe-transporte-independiente`), y así este widget no tiene que conocer el
+   * dominio de telemetría para poder mostrarlo.
+   *
+   * `undefined` ⇒ la tab existe igual y dice que la capa no está activa. Ocultarla haría que
+   * el conteo de tabs dependiera del transporte, y una tira de tabs que cambia de tamaño según
+   * si el daemon contestó es peor que una tab que explica su estado.
+   */
+  mejora?: React.ReactNode | undefined
   // Lectura de la fuente real del nodo (RF-93, GET …/nodes/{id}/fuente) — la inyecta la
   // página (el widget jamás fetchea); ausente = la tab lo dice.
   loadFuente?: ((nodeId: string) => Promise<string>) | undefined
@@ -137,6 +151,7 @@ export function Inspector({
   onSelect,
   conformance,
   loadFuente,
+  mejora,
 }: InspectorProps) {
   const [expanded, setExpanded] = useState(false)
   const [tab, setTab] = useState<Tab>("resumen")
@@ -246,6 +261,23 @@ export function Inspector({
           hidden={tab !== "corridas"}
         >
           <Corridas box={box} />
+        </div>
+        <div
+          className="tabpane"
+          role="tabpanel"
+          id="dw-pane-mejora"
+          aria-labelledby="dw-tab-mejora"
+          hidden={tab !== "mejora"}
+        >
+          {mejora ?? (
+            <section className="sec">
+              <h4>Mejora</h4>
+              <p className="mut">
+                La capa Mejora no está activa en este Mapa — activala en el conmutador de capas para
+                ver el desglose de esta caja.
+              </p>
+            </section>
+          )}
         </div>
       </div>
     </aside>
