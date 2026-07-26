@@ -65,39 +65,79 @@ de solo sacarle las muletillas?
 - [x] `decisiones.md` con V-D0..V-D8 — **las 7 decisiones FIRMADAS 🧑‍⚖️**
 - [x] `spec.md` — **RF-215…RF-228** con Gherkin
 - [x] Paquete versionado en `main` (estaba untracked entero)
-- [ ] 🎨 **Mockup** forkeado del baseline (`mockups/INDEX.md`) — bloquea los RF de superficie
-- [ ] Capabilities (doctrina R2: `fe-chat/` · `http-sse/` · motor STT)
-- [ ] Implementación (RF-215 primero, siempre)
-- [ ] `PARIDAD.md` + 🧑‍⚖️ gate final
+- [x] 🎨 **Mockup** `mockups/arnesia-voz-dictado.html` forkeado del baseline + registrado en `mockups/INDEX.md`
+- [x] Capabilities — **4** (CAP-112 tauri · CAP-113 usecases · CAP-114 http-sse · CAP-115 fe-chat), las 4 `vivo` por R4
+- [x] **RF-215 puente Rust** — `webkit2gtk` `permission-request`, solo audio · 4/4 tests
+- [x] **Backend Go** — `TranscriptionPort` + adaptador por PATH + endpoint + limpieza endurecida
+- [x] **FE** — botón, franja de etapas con nombre, composer poblado sin auto-envío · 13 stories
+- [x] **Test de fitness del spawn endurecido** (RF-225) · 5/5
+- [x] `PARIDAD.md` — RF-215…RF-228 fila por fila, con los comandos y sus salidas
+- [x] **CADENA COMPLETA probada con VOZ REAL** por el daemon real (2026-07-26): el STT erró
+      «warming»/«danon» y la limpieza con contexto los reparó + resolvió «la tarjeta esa de
+      permisos» → `PermissionCard`. Destapó **4 bugs reales** del adaptador + **1 que habría
+      matado T6 en la app instalada** (PATH del launcher gráfico)
+- [x] **Instalador v0.2.20** en `instaladores/v0.2.20/` (.deb/.rpm/.AppImage) + `make dev-sync`
+- [x] **Ronda 3 (2026-07-26) — el bug del micrófono, CAZADO y REPARADO.** El operador probó el dictado
+      en su instalación v0.2.20: `«Falló escuchando: No se grabó nada»`. **No era el mic ni el permiso
+      ni el motor STT** — es `MediaRecorder` de WebKitGTK, que dice soportar `audio/mp4`, arranca y
+      entrega **0 bytes sin emitir `error`** (perfil de encoding con `rate=0` → `encodebin` nunca
+      linkea el pad de audio). ⇒ **RF-229** (captura por WebAudio + WAV armado en el FE; de paso
+      desaparece la dependencia de `ffmpeg`) + **RF-230** (log del daemon a archivo + endpoint de
+      diagnóstico del FE, porque **no había ningún log que mirar**). V-D9..V-D12 en `decisiones.md`
+- [ ] 🧑‍⚖️ **Gate final de PARIDAD** — falta SOLO el tramo del **micrófono** contra el binario instalado
+      (ahora incluye RF-229/RF-230)
 
 ## Retomar aquí
 
-**Investigación CERRADA · decisiones FIRMADAS · construcción DESBLOQUEADA.** El spec está redactado
-contra `TranscriptionPort`, así que la elección de motor no lo toca. Lo que falta, en orden:
+**CONSTRUIDO · CADENA COMPLETA PROBADA CON VOZ REAL · falta el tramo del micrófono.** Rust 4/4 ·
+Go entero verde · fitness verde · `npm run verify` verde · 13 stories del dictado · conformance
+`279 checks · pass 66 · fail 0` · capabilities 111 → 115. Y sobre todo: el pipeline
+`audio → STT → limpieza → endpoint` corrió con voz real por el daemon real y **reparó los errores
+del STT** como el spike prometía. Detalle y evidencia literal en [`PARIDAD.md`](./PARIDAD.md).
 
-1. **Mockup** del botón + estados, forkeado del baseline vigente, antes de construir los RF 🎨.
-2. **Capabilities** — tres (`fe-chat/`, `http-sse/`, motor STT). Sin ellas el gate-commit R3 bloquea.
-3. **Construir empezando por RF-215** (puente Rust). Nunca al revés: sin él, el resto "anda" en dev y se
-   cuelga mudo instalado.
-4. **Test de fitness** del spawn endurecido (RF-225) — un enforcement sin test es una promesa.
+**Lo único que queda para firmar el gate — y no lo puede cerrar un test:** el tramo
+`micrófono real → MediaRecorder → POST` contra el **binario instalado**.
 
-**Lo que sigue abierto y no se puede cerrar solo:**
+Todo está preparado: instalador en **`instaladores/v0.2.20/`**, `~/.local/bin/arnesia`
+sincronizado, y el motor STT instalado en esta máquina (venv en `~/.local/share/arnesia-stt`, sin
+sudo). Pasos: instalar el `.deb` → abrir la app → abrir un frente → botón de mic → hablar → cortar
+→ confirmar que el composer se puebla y **no se auto-envía**.
 
-- **T6** — dictado con la **voz real del operador** por el **micrófono real**, contra el **binario
-  instalado**. Lo medido usa voz sintética y entrada WAV.
-- **T7** — qué motor STT se **empaqueta** en `.deb`/`.AppImage`/`.rpm`. Necesita medir `whisper.cpp`
-  (pide `cmake`/sudo) y medir ambos sobre el `audio/mp4` real, no sobre WAV.
+**Tiene que ser contra lo instalado**: RF-215 existe porque `getUserMedia` no rechaza —queda
+pendiente para siempre— sin el puente, y eso *solo* se reproduce ahí; el dev server concede por su
+cuenta, así que un pass en `pnpm dev` no probaría nada.
+
+**Lo demás abierto:**
+
+- **T7** — qué motor STT se **empaqueta** en `.deb`/`.AppImage`/`.rpm`. Ya hay medición propia de
+  `whisper-ctranslate2` corrido por el adaptador de este repo (1.5–3.7 s para ~14 s, `base`, CPU
+  int8) y quedó documentado que **exige `--device cpu`** o explota sin CUDA. Falta medir
+  `whisper.cpp` (necesita `cmake`/sudo) y medir ambos sobre el **`audio/mp4` real**.
+- **El `audio/mp4` real nunca se transcribió** — todo lo medido usó WAV. Sub-gap del tramo del
+  micrófono, no verificado.
+- **Hallazgo ajeno destapado de paso:** 4 stories de `session-rail` fallan por contraste a11y de
+  `--warn` sobre `--card` en tema claro (3.76:1 < 4.5). **No es de este paquete** — se registró en el
+  BACKLOG en vez de arreglarse al voleo. Ver `PARIDAD.md` §Hallazgos.
 
 ## Archivos
 
 - `spike-spec.md` — el documento completo: evidencia, comandos+outputs reales, forks, plan técnico.
-- `decisiones.md` — V-D0..V-D8; lo que espera firma 🧑‍⚖️.
-- `spec.md` — **RF-215…RF-228** con Gherkin; escrito contra `TranscriptionPort` para no depender del
+- `decisiones.md` — V-D0..V-D8 (firmadas) + **V-D9..V-D12** (ronda 3: captura sin `MediaRecorder`,
+  log del daemon, diagnóstico del FE, los dos motivos de «sin audio»); estas últimas esperan firma 🧑‍⚖️.
+- `spec.md` — **RF-215…RF-230** con Gherkin; escrito contra `TranscriptionPort` para no depender del
   motor. Marca qué RF necesitan mockup (🎨) y qué decisiones asume como default.
 - `medir_stt.py` — banco de medición del Fork A2 (§1.8): venv aislado, sin `sudo`, voz sintetizada con
   `piper`. Re-correr si cambia la máquina o se quiere comparar otro motor.
 - `webkit_speech_test.py` — probe de `SpeechRecognition` (Fork A3): re-correr tras un upgrade del
   paquete WebKitGTK del sistema.
+- `webkit_grabacion_test.py` — **la sonda de la ronda 3: ¿el motor GRABA, o solo dice que puede?**
+  Mide bytes reales en tres caminos (MediaRecorder sin timeslice · con timeslice · WebAudio) en una
+  sola corrida. Corrida 2026-07-26: `0 bytes · 0 bytes · 176128 muestras (pico 0.0777)`.
+  **Re-correr tras un upgrade de WebKitGTK:** si el primer camino vuelve con bytes > 0, el bug del
+  motor se arregló y RF-229 puede revisarse.
+- ⚠️ **`webkit_captura_test.py` NO alcanza** y por eso existe el de arriba: prueba que
+  `MediaRecorder` EXISTE y qué mimes DICE soportar, no que grabe. Pasó en verde mientras el dictado
+  estaba roto toda la v0.2.20 — misma lección que V-D8, una vuelta más abajo.
 - `webkit_captura_test.py` — probe de **captura real** (§1.6): `getUserMedia` + `MediaRecorder` + mimes
   + el cuelgue sin permiso. Re-correr tras un upgrade de WebKitGTK **o de wry** — si wry llega a manejar
   `permission-request` en `webkitgtk`, **T0 se borra**. Abre el mic y lo cierra en el acto; no graba nada.

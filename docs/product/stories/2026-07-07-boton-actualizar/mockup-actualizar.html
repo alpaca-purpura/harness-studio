@@ -1,9 +1,21 @@
+<!doctype html>
+<!-- charset ANTES del comentario de cabecera: la declaración solo cuenta si cae en los primeros
+     1024 bytes del documento, y este bloque pasa de 2 KB (si va después, el navegador cae al
+     fallback del locale y todo el copy en español sale mojibake: "versiÃ³n"). Reparado en la
+     re-derivación v3 (2026-07-26): este archivo nunca la tuvo — se veía bien por file:// y roto
+     servido por HTTP. Convención tomada de mockups/arnesia-voz-dictado.html. -->
+<meta charset="utf-8" />
 <!--
   mockup-actualizar.html — vista Ajustes · sección «Versión y actualización» (paquete boton-actualizar)
   Tokens: copia VERBATIM de web/src/app/styles/theme.css (generado de web/tokens/base.tokens.json)
   Datos REALES: binario instalado hoy = /usr/bin/arnesia (dueño root, vía .deb — ESE es el sudo) ·
-  huella del repo al corte = 1c7443f (2026-07-07) · el binario aún NO embebe versión (pendiente -ldflags).
+  huella del repo al corte = 1c7443f (2026-07-07) · identidad de build embebida por -ldflags DESDE
+  2026-07-26 (RF-231, paquete 2026-07-26-identidad-de-build — cierra el «pendiente -ldflags» de v1/v2).
   Nada inventado en silencio: lo que hoy no existe va rotulado.
+
+  ⚠ DRIFT DECLARADO (no lo arregla este paquete): la paleta de abajo es la ÁMBAR PRE-REBRAND.
+  El vigente es PRENTER (negro + teal #00b7aa, web/src/app/styles/theme.css). Deuda registrada en
+  BACKLOG §Rebrand. El SSoT del UI sigue siendo Storybook (update-card.stories.tsx), no este archivo.
 
   CHANGELOG DE ITERACIONES (una línea por versión; METODOLOGIA §10)
   v1 · 2026-07-07 · primera propuesta: tarjeta «Versión y actualización» dentro de Ajustes, 5 casuísticas
@@ -13,6 +25,12 @@
        real (rail de sesiones + pie ⌂/⟳/⚙) con la vista global AJUSTES abierta — la tarjeta la ESTRENA
        (hoy esa vista es ComingSoon «Ajustes · Marketplaces», global-view.tsx:14); las demás tarjetas de
        Ajustes (marketplaces · daemon) van punteadas como futuras, jamás fingiendo existir. Decisión #5.
+  v3 · 2026-07-26 · RE-DERIVACIÓN del bloque de versión (paquete 2026-07-26-identidad-de-build, RF-231,
+       B-D5): la fila «daemon» encabeza con el identificador COMPLETO del build (semver + sello
+       AAMMDDHHMM) y el commit baja a la fila «compilado» — la huella no distingue dos compilaciones del
+       mismo árbol, que es justo la pregunta del operador. Caso 06 nuevo: el AVISO de build viejo en la
+       superficie (caja warn), con las dos variantes reales (dev-sync con la app abierta · build sin
+       instalar). El resto del archivo NO se tocó, incluida su paleta pre-rebrand (drift declarado arriba).
 -->
 <title>Mockup — Ajustes · botón Actualizar (self-update sin sudo)</title>
 <style>
@@ -127,7 +145,7 @@
     <p>Rumbo firmado: self-update del binario · <span class="src">~/.local/bin</span> (espacio de usuario,
        cero sudo) · origen = build local del repo. La tarjeta vive en la vista <b>Ajustes</b> (rail ⚙,
        hoy «próximamente»). Casuística 01 es interactiva: pruébala.</p>
-    <p class="src">datos reales: instalado hoy /usr/bin/arnesia (root, .deb) · repo 1c7443f · binario sin versión embebida (pendiente -ldflags)</p>
+    <p class="src">datos reales: instalado hoy /usr/bin/arnesia (root, .deb) · repo 1c7443f · identidad de build embebida por -ldflags desde el 2026-07-26 (RF-231): 0.2.21.2607260225</p>
   </div>
 
   <div class="gallery" id="g"></div>
@@ -136,6 +154,18 @@
 <script>
 const REPO = "/home/chalreme/Proyectos/harness-studio";
 const HUELLA = "1c7443f · 2026-07-07";
+
+// v3 · RF-231 — identidad del BUILD: semver (Cargo.toml) + sello de compilación AAMMDDHHMM,
+// inyectados por -ldflags en scripts/bundle.sh. Valores REALES del bundle del 2026-07-26 02:25.
+const IDENT = "0.2.21.2607260225";
+const COMPILADO = "2026-07-26 02:25";
+
+// Las dos filas de identidad, en el orden que decide B-D3: el BUILD arriba (es lo que contesta
+// «¿corro lo último que compilé?»), el COMMIT debajo (es otro dato, y no desaparece).
+function filasIdentidad() {
+  return kv("daemon", `<b>arnesia v${IDENT}</b>`) +
+         kv("compilado", `${COMPILADO} · <span class="mut">commit</span> ${HUELLA}`);
+}
 
 // Paso a paso REAL del self-update (spec candidato): cada uno puede fallar y se DICE.
 const PASOS = [
@@ -159,7 +189,7 @@ function steps(hasta, fallo) {
 function cardIdle(interactivo) {
   return `<div class="card" data-card="idle">
     <h3>Versión y actualización</h3>
-    ${kv("daemon", `arnesia · <span class="mut">huella</span> ${HUELLA}`)}
+    ${filasIdentidad()}
     ${kv("instalado en", `~/.local/bin/arnesia <span class="pill ok">espacio de usuario · sin sudo</span>`)}
     ${kv("origen", `${REPO} <span class="mut">(build local — configurado por flag, jamás del request)</span>`)}
     <button type="button" class="btn" data-act="update">Actualizar desde el repo</button>
@@ -173,7 +203,7 @@ function cardIdle(interactivo) {
 function cardBusy(hasta) {
   return `<div class="card">
     <h3>Versión y actualización</h3>
-    ${kv("daemon", `arnesia · <span class="mut">huella</span> ${HUELLA}`)}
+    ${filasIdentidad()}
     ${steps(hasta)}
     <button type="button" class="btn" disabled>Actualizando…</button>
     <p class="note">Cada paso puede fallar y se muestra — jamás un spinner mudo.</p>
@@ -217,6 +247,24 @@ function cardHoy() {
   </div>`;
 }
 
+// v3 · 06 — RF-231: el AVISO de build viejo. Va en la SUPERFICIE (caja warn), no en un title:
+// un número que el operador tiene que comparar de memoria contra su último build no sirve de nada.
+// Las dos variantes son las dos reales de esta casa (B-D4): (a) `make dev-sync` reemplazó el binario
+// con la app abierta — el archivo ya es nuevo, el proceso sigue viejo; (b) compilaste y no instalaste.
+// Estando al día NO se dibuja nada: un aviso que aparece siempre no se lee nunca (caso 01).
+function cardBuildViejo(variante) {
+  const aviso = variante === "instalado"
+    ? `el binario instalado es más nuevo (2026-07-26 12:07) que el que está corriendo — cerrá y reabrí la app`
+    : `hay un build más nuevo sin instalar (2026-07-26 11:06 en ${REPO}/bin/arnesia) — corré <span class="src">make dev-sync</span>`;
+  return `<div class="card">
+    <h3>Versión y actualización</h3>
+    ${filasIdentidad()}
+    <p class="warnbox">▲ ${aviso}</p>
+    ${kv("instalado en", `~/.local/bin/arnesia <span class="pill ok">espacio de usuario · sin sudo</span>`)}
+    <button type="button" class="btn">Actualizar desde el repo</button>
+  </div>`;
+}
+
 // v2 · 00 — DÓNDE VIVE EL BOTÓN: rail (pie ⌂/⟳/⚙, Ajustes ACTIVO) → vista global
 // Ajustes; nuestra tarjeta la estrena. Las futuras (marketplaces · daemon, de la nota
 // real del ComingSoon actual) van punteadas — existen como plan, no como UI.
@@ -253,6 +301,8 @@ const CASES = [
   ["03", "éxito — binario nuevo + reinicio + reconexión", cardOk()],
   ["04", "error de build — stderr visible, binario viejo intacto", cardFail()],
   ["05", "estado ACTUAL real (/usr/bin, root) + sin repo — migración explicada", cardHoy()],
+  ["06a", "v3 · RF-231 — corre un build viejo: el instalado es más nuevo (dev-sync con la app abierta)", cardBuildViejo("instalado")],
+  ["06b", "v3 · RF-231 — compilaste y no instalaste: build más nuevo en el repo", cardBuildViejo("repo")],
 ];
 
 document.getElementById("g").innerHTML = CASES.map(([n, t, html, wide]) =>

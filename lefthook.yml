@@ -31,6 +31,13 @@ pre-commit:
       # falla acá (feedback local; el gate DURO es CI vía `arnesia conformance`). ~4ms.
       glob: "*.{go,ts,tsx,rs}"
       run: go test ./docs/architecture/fitness/ -run 'TestCapability(PointersResolve|Coverage)'
+    changelog:
+      # El bump de versión exige changelog (VC-D2, paquete versionado-y-changelog-metodologicos).
+      # `scripts/bump.sh` ya lo bloquea, pero solo a quien pasa por `make bump-*`: este job agarra
+      # el bump A MANO (editor, sed, merge) que dejaría una versión publicada sin decir qué trajo.
+      # Corre SOLO al tocar los 3 manifiestos de versión — en cualquier otro commit no molesta. ~30ms.
+      glob: "{web/src-tauri/Cargo.toml,web/src-tauri/tauri.conf.json,web/package.json}"
+      run: go test ./docs/architecture/fitness/ -run 'TestChangelog(ExisteYTieneForma|CubreLaVersionDeLosManifiestos)'
     estado-cifras:
       # AUTO-CURA las cifras vivas del checkpoint EN EL COMMIT (resuelve Δ1 de HS-21: «que se
       # regeneren solas»). Decide con `--check` (date-insensitive): si driftaron, REGENERA y

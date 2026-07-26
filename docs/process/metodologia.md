@@ -444,6 +444,12 @@ El código NO se toca hasta que el paquete lo autorice (specs firmados).
 
 1. **La conversación jamás es el único registro.** Toda decisión, hallazgo u orden del
    operador se escribe en el archivo del paquete que corresponde EN EL MISMO TURNO.
+   *(Extensión 2026-07-26, misma lógica:* lo que el usuario del binario va a notar —agregado,
+   cambiado, corregido, eliminado— se escribe **en el mismo turno** en
+   [`CHANGELOG.md`](../../CHANGELOG.md) con `python3 scripts/changelog.py add <categoría> "…"`.
+   No es un paso de release: al llegar el release ya nadie se acuerda. El bump
+   (`make bump-patch|bump-minor|bump-major`) lo promueve y **falla si no hay nada escrito** —
+   [`versionado.md`](../architecture/conventions/versionado.md) §changelog-y-bump.*)
 2. **«Retomar aquí» siempre al día.** Si el operador dice «seguimos en otra conversación»,
    el INDEX.md ya lo contiene todo; la actualización es continua, no un ritual de cierre.
 3. **Cada iteración firmada se commitea a main** (trunk-based) — git es la memoria durable.

@@ -1,0 +1,567 @@
+<!doctype html>
+<!-- charset ANTES del comentario de cabecera: la declaración solo cuenta si cae en los primeros
+     1024 bytes del documento, y el bloque de abajo pasa de 2 KB (si va después, el navegador
+     cae al fallback del locale y todo el copy en español sale mojibake: "arnÃ©s"). -->
+<meta charset="utf-8" />
+<!--
+  ArnesIA — DICTADO POR VOZ en el composer del chat dock. Paquete
+  docs/product/stories/2026-07-25-spike-voz-dictado/ (V-D1..V-D8 FIRMADAS 🧑‍⚖️ 2026-07-25).
+  Desbloquea los RF marcados 🎨 en spec.md: RF-216 (botón), RF-219 (cancelar), RF-226 (composer
+  poblado). Los demás estados dibujados son la escalera de RF-227/RF-228.
+
+  SUPERSET ESTRICTO del composer vigente. El baseline NO es un .html: es
+  `web/src/widgets/chat-dock/ui/chat-dock.tsx#Composer` (SSoT del UI = Storybook, regla dura 1-2 de
+  mockups/INDEX.md). Lo vigente se calca literal y se dibuja aparte, etiquetado, para que se vea qué
+  se agrega y qué NO se toca:
+    · textarea 1 fila, auto-grow con tope 3 líneas (max-h 66px / min-h 36px), resize-none
+    · botón ↑ enviar (size-9, bg-primary, disabled:opacity-40 con el campo vacío)
+    · botón ■ interrumpir (bg-destructive) cuando el turno está en vuelo (streaming | await)
+    · placeholders exactos: «Pídele un cambio a {arnés}» · «generando… (■ para interrumpir)» ·
+      «esperando tu decisión de permiso…»
+  NADA de eso se quita ni se re-ordena. El mic entra COMO UN BOTÓN MÁS a la izquierda del enviar.
+
+  Tokens = copia LITERAL de web/src/app/styles/theme.css (bloque :root[data-theme="dark"], que a su
+  vez lo genera `npm run tokens:build` desde web/tokens/base.tokens.json). Dark-first porque el shell
+  es dark-first post-rebrand PRENTER. NO forkear colores del snapshot ámbar `arnesia-portafolio.html`
+  (marcado STALE ahí mismo desde 2026-07-15).
+
+  VOCABULARIO — no pisa L0 (regla dura 4 de mockups/INDEX.md). Términos nuevos de esta superficie:
+  «dictado» (la grabación), «crudo» (transcripto sin ordenar), «limpieza» (el paso texto→texto con
+  contexto). Verificado que NO chocan con procedencia · origen · canal · insumos · banda.
+
+  DECISIONES QUE ESTE DIBUJO MATERIALIZA:
+    V-D3  toggle (no push-to-talk) + tope duro 3 min → contador visible que se pone en warn al final
+    V-D4  limpieza por defecto, con escape a crudo → estado «crudo» marcado, nunca pasado por limpio
+    V-D5  el audio no se persiste → no hay reproductor, ni waveform guardada, ni «volver a escuchar»
+    V-D1  adaptador por PATH → estado deshabilitado «no hay motor de transcripción» con qué instalar
+    RF-228 nada tapa un cuelgue → cada estado de carga dice QUÉ etapa está corriendo, y el fallo
+           nombra la etapa que falló. Ningún spinner anónimo.
+-->
+<title>ArnesIA · Dictado por voz en el composer</title>
+<style>
+  /* ——— tokens: copia literal de web/src/app/styles/theme.css ——— */
+  :root {
+    --background: #f6f8f8; --foreground: #0e1312; --card: #ffffff; --card-foreground: #0e1312;
+    --primary: #00b7aa; --primary-foreground: #000000; --secondary: #eef1f1;
+    --muted: #eef1f1; --muted-foreground: #4d5555; --accent-soft: rgba(0,183,170,.14);
+    --destructive: #bd3a2e; --destructive-foreground: #ffffff;
+    --border: #e1e6e6; --input: #c9d1d1; --ring: #1fc6b8;
+    --ok: #2e8f5e; --warn: #c96a2e; --crit: #c94545;
+    --ok-soft: rgba(46,143,94,.13); --warn-soft: rgba(201,106,46,.13); --crit-soft: rgba(201,69,69,.12);
+    --radius-sm: 4px; --radius-md: 8px; --radius-lg: 14px; --radius-full: 9999px;
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px;
+    --text-xs: 11px; --text-sm: 12.5px; --text-base: 14px; --text-lg: 16px; --text-xl: 20px;
+    --font-display: Jost, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-sans: Mulish, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
+    --shadow-md: 0 4px 14px rgba(11,15,14,.08), 0 2px 4px rgba(11,15,14,.04);
+  }
+  :root[data-theme="dark"] {
+    --background: #000000; --foreground: rgba(255,255,255,.92); --card: #0c1110;
+    --card-foreground: rgba(255,255,255,.92); --primary: #1fc6b8; --primary-foreground: #000000;
+    --secondary: #141a19; --muted: #141a19; --muted-foreground: rgba(255,255,255,.58);
+    --accent-soft: rgba(0,183,170,.14); --destructive: #bd3a2e; --destructive-foreground: #ffffff;
+    --border: #1f2826; --input: rgba(0,183,170,.35); --ring: #1fc6b8;
+    --ok: #57b380; --warn: #e0904f; --crit: #e25b5b;
+    --ok-soft: rgba(87,179,128,.14); --warn-soft: rgba(224,144,79,.14); --crit-soft: rgba(226,91,91,.13);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--background); color: var(--foreground);
+    font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4) 72px; }
+
+  /* ——— cabecera ——— */
+  header.top { border-bottom: 1px solid var(--border); padding-bottom: var(--space-4); margin-bottom: var(--space-6); }
+  h1 { font-family: var(--font-display); font-size: var(--text-xl); margin: 0 0 var(--space-2); font-weight: 600; }
+  .sub { color: var(--muted-foreground); font-size: var(--text-xs); max-width: 78ch; margin: 0; }
+  .toolbar { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-3); flex-wrap: wrap; }
+  .toolbar button {
+    font: inherit; font-size: var(--text-xs); color: var(--muted-foreground); cursor: pointer;
+    background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 5px 10px;
+  }
+  .toolbar button:hover { background: var(--secondary); color: var(--foreground); }
+
+  /* ——— secciones ——— */
+  h2 {
+    font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600;
+    margin: var(--space-6) 0 var(--space-1); display: flex; align-items: center; gap: var(--space-2);
+  }
+  h2 .rf { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground); font-weight: 400; }
+  .lead { color: var(--muted-foreground); font-size: var(--text-xs); margin: 0 0 var(--space-4); max-width: 82ch; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; border-radius: var(--radius-full);
+    padding: 1px 8px; font-size: 10px; font-weight: 600; letter-spacing: .02em;
+    border: 1px solid var(--border); color: var(--muted-foreground); white-space: nowrap;
+  }
+  .badge.vigente { color: var(--muted-foreground); border-style: dashed; }
+  .badge.propuesta { color: var(--primary); border-color: var(--input); background: var(--accent-soft); }
+
+  /* ——— grilla de estados ——— */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-4); }
+  .panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .panel > .head {
+    display: flex; align-items: center; gap: var(--space-2); padding: 9px var(--space-3);
+    border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .panel > .head .name { font-size: var(--text-xs); font-weight: 700; }
+  .panel > .head .ref { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); margin-left: auto; }
+  .panel > .note {
+    padding: var(--space-2) var(--space-3); font-size: 10.5px; color: var(--muted-foreground);
+    border-top: 1px dashed var(--border); background: var(--background);
+  }
+  .panel > .note b { color: var(--foreground); font-weight: 600; }
+
+  /* ——— el dock (calca chat-dock.tsx) ——— */
+  .dock { display: flex; flex-direction: column; }
+  .dock .msgs { padding: var(--space-3); display: flex; flex-direction: column; gap: 6px; min-height: 54px; justify-content: flex-end; }
+  .bubble {
+    align-self: flex-end; max-width: 85%; background: var(--secondary); border-radius: var(--radius-md);
+    padding: 6px 9px; font-size: var(--text-xs);
+  }
+
+  /* franja de estado del dictado: SOLO existe mientras hay un dictado en curso */
+  .voicebar {
+    display: flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-3);
+    border-top: 1px solid var(--border); font-size: 10.5px;
+  }
+  .voicebar .etapa { font-weight: 600; }
+  .voicebar .right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .voicebar.rec { background: var(--crit-soft); }
+  .voicebar.work { background: var(--accent-soft); }
+  .voicebar.warn { background: var(--warn-soft); }
+  .voicebar.bad { background: var(--crit-soft); }
+
+  .dot { width: 7px; height: 7px; border-radius: var(--radius-full); flex: none; }
+  .dot.rec { background: var(--crit); animation: pulse 1.15s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+  /* medidor de nivel — señal de que el mic REALMENTE entra audio (no un spinner que miente) */
+  .level { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .level i { width: 2.5px; background: var(--crit); border-radius: 1px; display: block; animation: lv .9s ease-in-out infinite; }
+  .level i:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .level i:nth-child(2) { height: 85%; animation-delay: .12s; }
+  .level i:nth-child(3) { height: 60%; animation-delay: .24s; }
+  .level i:nth-child(4) { height: 100%; animation-delay: .36s; }
+  .level i:nth-child(5) { height: 45%; animation-delay: .48s; }
+  @keyframes lv { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+
+  .cronos { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
+  .cronos.warn { color: var(--warn); font-weight: 700; }
+
+  .linkbtn {
+    font: inherit; font-size: 10.5px; background: transparent; border: 0; padding: 0;
+    color: var(--muted-foreground); text-decoration: underline; cursor: pointer;
+  }
+  .linkbtn:hover { color: var(--foreground); }
+
+  /* fila del composer — calca: flex items-end gap-2 border-t border-border p-3 */
+  .composer { display: flex; align-items: flex-end; gap: var(--space-2); border-top: 1px solid var(--border); padding: var(--space-3); }
+  .ta {
+    flex: 1; min-height: 36px; max-height: 66px; overflow-y: auto; resize: none;
+    border: 1px solid var(--border); background: var(--secondary); color: var(--foreground);
+    border-radius: var(--radius-md); padding: 8px 10px; font: inherit; font-size: var(--text-xs);
+  }
+  .ta.ph { color: var(--muted-foreground); }
+  .ta.focus { border-color: var(--primary); }
+  .ta.crudo { border-color: var(--warn); }
+  .caret { border-left: 1.5px solid var(--primary); margin-left: 1px; animation: pulse 1.05s steps(1) infinite; }
+
+  .btn {
+    width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+    border-radius: var(--radius-md); border: 0; cursor: pointer; font-size: var(--text-base);
+    background: var(--primary); color: var(--primary-foreground);
+  }
+  .btn.stop { background: var(--destructive); color: var(--destructive-foreground); }
+  .btn.ghost { background: var(--secondary); color: var(--muted-foreground); border: 1px solid var(--border); }
+  .btn.rec { background: var(--destructive); color: var(--destructive-foreground); }
+  .btn.off { opacity: .4; cursor: not-allowed; }
+  .btn svg { width: 16px; height: 16px; display: block; }
+
+  /* aviso bajo el composer — motivo SIEMPRE visible, no solo en tooltip */
+  .motivo {
+    display: flex; align-items: flex-start; gap: 6px; padding: 0 var(--space-3) var(--space-3);
+    font-size: 10.5px; color: var(--muted-foreground); margin-top: -6px;
+  }
+  .motivo .ico { flex: none; line-height: 1.35; }
+  .motivo.bad { color: var(--crit); }
+  .motivo.warn { color: var(--warn); }
+  .motivo code { font-family: var(--font-mono); font-size: 10px; background: var(--secondary); padding: 0 4px; border-radius: var(--radius-sm); }
+
+  /* ——— tabla de trazabilidad ——— */
+  .tblwrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: var(--text-xs); }
+  th, td { text-align: left; padding: 8px var(--space-3); border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td code, th code { font-family: var(--font-mono); font-size: 10px; }
+
+  .callout {
+    border: 1px solid var(--border); border-left: 3px solid var(--warn); background: var(--card);
+    border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--text-xs);
+    color: var(--muted-foreground); margin-top: var(--space-4);
+  }
+  .callout b { color: var(--foreground); }
+  .callout.ok { border-left-color: var(--ok); }
+</style>
+
+<div class="page">
+  <header class="top">
+    <h1>Dictado por voz en el composer</h1>
+    <p class="sub">
+      Superset estricto de <code>chat-dock.tsx#Composer</code>. El baseline se dibuja aparte y
+      etiquetado <span class="badge vigente">vigente</span> — nada de eso se quita ni se re-ordena.
+      Lo nuevo va <span class="badge propuesta">propuesta</span>. Tokens copiados literal de
+      <code>theme.css</code>; el SSoT del UI sigue siendo Storybook.
+    </p>
+    <div class="toolbar">
+      <button type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+        ◐ alternar tema
+      </button>
+      <span class="badge">paquete <code>2026-07-25-spike-voz-dictado</code></span>
+      <span class="badge">V-D1…V-D8 firmadas 🧑‍⚖️</span>
+    </div>
+  </header>
+
+  <!-- ═══════════ 1. VIGENTE ═══════════ -->
+  <h2>1 · Lo vigente <span class="rf">chat-dock.tsx#Composer</span></h2>
+  <p class="lead">
+    Se calca para que el superset sea explícito. Si algo de acá desaparece en la implementación, es un
+    fallo de PARIDAD, no una mejora.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">Reposo</span><span class="badge vigente">vigente</span><span class="ref">L298-341</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia-api</div>
+          <button type="button" class="btn off" title="Enviar (Claude Code headless detrás)">↑</button>
+        </div>
+      </div>
+      <div class="note">Enviar arranca <b>deshabilitado</b> con el campo vacío (<code>disabled:opacity-40</code>).</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Turno en vuelo</span><span class="badge vigente">vigente</span><span class="ref">L320-328</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="composer">
+          <div class="ta ph">generando… (■ para interrumpir)</div>
+          <button type="button" class="btn stop" title="Interrumpir el turno (in-band, la sesión sigue viva)">■</button>
+        </div>
+      </div>
+      <div class="note"><code>streaming</code> o <code>await</code>: el enviar se reemplaza por interrumpir.</div>
+    </section>
+  </div>
+
+  <!-- ═══════════ 2. EL BOTÓN ═══════════ -->
+  <h2>2 · El botón de micrófono <span class="rf">RF-216 · RF-217 · RF-218 · RF-219</span></h2>
+  <p class="lead">
+    El mic entra como <b>un botón más</b>, a la izquierda del enviar — no como una barra nueva ni un
+    modo aparte. Variante <code>ghost</code> en reposo para que no compita con el primario: el enviar
+    sigue siendo la acción principal del composer.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">Reposo · con mic</span><span class="badge propuesta">propuesta</span><span class="ref">RF-216</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia-api</div>
+          <button type="button" class="btn ghost" title="Dictar (toggle: click para empezar, click para cortar)" aria-label="Dictar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" />
+            </svg>
+          </button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="note">Un botón nuevo. Cero cambios de layout: la fila sigue siendo <code>flex items-end gap-2</code>.</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Escuchando</span><span class="badge propuesta">propuesta</span><span class="ref">RF-216 · V-D3</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="voicebar rec">
+          <span class="dot rec"></span>
+          <span class="etapa">Escuchando…</span>
+          <span class="level"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="right">
+            <span class="cronos">0:24 / 3:00</span>
+            <button type="button" class="linkbtn">cancelar</button>
+          </span>
+        </div>
+        <div class="composer">
+          <div class="ta ph">te escucho — click en ■ para cortar</div>
+          <button type="button" class="btn rec" title="Cortar el dictado"><span style="font-size:12px">■</span></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="note">
+        <b>Toggle</b> (V-D3): el mismo botón corta. El <b>medidor de nivel</b> se mueve con la voz real —
+        sin él, un mic mudo se ve igual que uno vivo. <b>«cancelar»</b> = RF-219, distinto de cortar.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Cerca del tope</span><span class="badge propuesta">propuesta</span><span class="ref">RF-218</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="voicebar warn">
+          <span class="dot rec"></span>
+          <span class="etapa">Escuchando…</span>
+          <span class="level"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="right">
+            <span class="cronos warn">2:47 / 3:00</span>
+            <button type="button" class="linkbtn">cancelar</button>
+          </span>
+        </div>
+        <div class="composer">
+          <div class="ta ph">te escucho — click en ■ para cortar</div>
+          <button type="button" class="btn rec"><span style="font-size:12px">■</span></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="note">El contador se pone <b>warn</b> en el último tramo: el corte por tope no debe sorprender.</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Cortado por el tope</span><span class="badge propuesta">propuesta</span><span class="ref">RF-218</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="voicebar work">
+          <span class="etapa">Transcribiendo…</span>
+          <span class="right"><span class="cronos">3:00 grabados</span></span>
+        </div>
+        <div class="composer">
+          <div class="ta ph">…</div>
+          <button type="button" class="btn ghost off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="motivo warn"><span class="ico">▲</span><span>Se cortó por el tope de 3 min. <b>Sigue el flujo con lo grabado</b> — no se descarta nada.</span></div>
+      <div class="note">RF-218 exige las tres cosas: para solo, <b>conserva</b> lo grabado, y <b>avisa</b>.</div>
+    </section>
+  </div>
+
+  <!-- ═══════════ 3. LAS ETAPAS ═══════════ -->
+  <h2>3 · Las etapas, con nombre <span class="rf">RF-222 · RF-224 · RF-228</span></h2>
+  <p class="lead">
+    Cada estado de carga <b>dice qué etapa está corriendo</b>. Ningún spinner anónimo: el peor modo de
+    falla encontrado en el spike (§1.6 b) fue una promesa que nunca resuelve, y un spinner sin nombre
+    es exactamente lo que la haría invisible. La limpieza es el 87 % del tiempo (13-17 s contra 2.2 s
+    del STT) — por eso tiene su propio escalón visible en vez de esconderse en «procesando».
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">Transcribiendo</span><span class="badge propuesta">propuesta</span><span class="ref">RF-223 · ~2 s</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="voicebar work"><span class="etapa">Transcribiendo…</span><span class="right"><button type="button" class="linkbtn">cancelar</button></span></div>
+        <div class="composer">
+          <div class="ta ph">…</div>
+          <button type="button" class="btn ghost off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="note">Medido: <b>2.2 s</b> para 47 s de voz con <code>base</code>. Corto, pero nombrado igual.</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Ordenando</span><span class="badge propuesta">propuesta</span><span class="ref">RF-224 · 13-17 s</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="voicebar work"><span class="etapa">Ordenando lo dictado…</span><span class="right"><button type="button" class="linkbtn">usar el crudo</button></span></div>
+        <div class="composer">
+          <div class="ta ph">…</div>
+          <button type="button" class="btn ghost off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="note">
+        <b>«usar el crudo»</b> es el escape de V-D4 <i>en vivo</i>: a los 15 s uno ya sabe si quiere
+        esperar. Mismo camino de código que el fallback de RF-227.
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══════════ 4. RESULTADO ═══════════ -->
+  <h2>4 · El resultado <span class="rf">RF-226 · RF-227</span></h2>
+  <p class="lead">
+    El composer se puebla <b>editable</b> y <b>nunca se auto-envía</b>. La diferencia entre limpio y
+    crudo tiene que verse: pasar un crudo por limpio sería exactamente el «pass fabricado» que la
+    doctrina de la casa prohíbe.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">Limpio</span><span class="badge propuesta">propuesta</span><span class="ref">RF-226</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="composer">
+          <div class="ta focus">Cambiá el color del pip de la PermissionCard a <code>--warn</code><span class="caret"></span></div>
+          <button type="button" class="btn ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg></button>
+          <button type="button" class="btn">↑</button>
+        </div>
+      </div>
+      <div class="note">
+        Foco <b>al final</b> del texto, listo para corregir. El enviar se habilita — pero lo aprieta el
+        operador. Sin barra de estado: el dictado terminó, la franja se va.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Crudo (la limpieza falló)</span><span class="badge propuesta">propuesta</span><span class="ref">RF-227 · V-D4</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="composer">
+          <div class="ta crudo">este eh… el pip de la tarjeta esa de permisos ponele el color de warning</div>
+          <button type="button" class="btn ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg></button>
+          <button type="button" class="btn">↑</button>
+        </div>
+      </div>
+      <div class="motivo warn"><span class="ico">▲</span><span>Quedó <b>sin ordenar</b> — falló el paso de limpieza. El dictado no se perdió. <button type="button" class="linkbtn">reintentar</button></span></div>
+      <div class="note">Borde <b>warn</b> + motivo escrito. El dictado sobrevive a la falla de un paso opcional.</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Falló una etapa</span><span class="badge propuesta">propuesta</span><span class="ref">RF-227 · RF-228</span></div>
+      <div class="dock">
+        <div class="msgs"><div class="bubble">dale, cambiá el color del pip</div></div>
+        <div class="composer">
+          <div class="ta">lo que ya tenía tecleado, intacto</div>
+          <button type="button" class="btn ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /></svg></button>
+          <button type="button" class="btn">↑</button>
+        </div>
+      </div>
+      <div class="motivo bad"><span class="ico">✕</span><span>Falló <b>la transcripción</b>: el motor no respondió. El composer <b>no se tocó</b>.</span></div>
+      <div class="note">
+        Nombra <b>la etapa</b> (RF-228), y no pisa lo tecleado (RF-227). El mic vuelve a quedar usable —
+        salir del estado de carga es parte del requisito.
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══════════ 5. DESHABILITADO ═══════════ -->
+  <h2>5 · Deshabilitado, siempre con motivo <span class="rf">RF-220 · RF-223 · RF-227</span></h2>
+  <p class="lead">
+    Cuatro razones distintas por las que no se puede dictar. Las cuatro se ven <b>en la superficie</b>,
+    no solo en un <code>title</code>: un botón gris sin explicación es un gap escondido. Nunca se acepta
+    un dictado que después no se va a poder transcribir.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">Permiso denegado</span><span class="badge propuesta">propuesta</span><span class="ref">RF-227</span></div>
+      <div class="dock">
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia-api</div>
+          <button type="button" class="btn ghost off" title="Micrófono denegado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /><path d="M3 3l18 18" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="motivo"><span class="ico">✕</span><span>Micrófono <b>denegado</b>. Habilitalo en el sistema y reabrí la app.</span></div>
+      <div class="note">Jamás «pensando» para siempre — ese era el bug real de <code>wry</code> (RF-215).</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Sin dispositivo</span><span class="badge propuesta">propuesta</span><span class="ref">RF-227</span></div>
+      <div class="dock">
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia-api</div>
+          <button type="button" class="btn ghost off" title="No hay micrófono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /><path d="M3 3l18 18" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="motivo"><span class="ico">✕</span><span>No hay <b>ningún micrófono</b> conectado.</span></div>
+      <div class="note">Distinto de «denegado»: se arregla enchufando algo, no cambiando un permiso.</div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Sin motor de STT</span><span class="badge propuesta">propuesta</span><span class="ref">RF-223 · V-D1</span></div>
+      <div class="dock">
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia-api</div>
+          <button type="button" class="btn ghost off" title="Falta el motor de transcripción"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /><path d="M3 3l18 18" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="motivo"><span class="ico">✕</span><span>Falta el <b>motor de transcripción</b>. Instalá <code>whisper-cli</code> o <code>faster-whisper</code> y reabrí la app.</span></div>
+      <div class="note">
+        La cara visible de la firma V-D1: el adaptador busca en <code>$PATH</code> y, si no hay nada,
+        <b>lo dice y dice qué instalar</b>. La deuda <b>T7</b> (qué se empaqueta) queda a la vista, no
+        tapada con un instalador que promete STT y no lo trae.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">Formato no soportado</span><span class="badge propuesta">propuesta</span><span class="ref">RF-220</span></div>
+      <div class="dock">
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia-api</div>
+          <button type="button" class="btn ghost off" title="El motor no puede grabar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4" /><path d="M3 3l18 18" /></svg></button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <div class="motivo"><span class="ico">✕</span><span>Este motor no puede grabar en ningún formato soportado (<code>audio/mp4</code>).</span></div>
+      <div class="note">WebKitGTK 2.52.3 solo soporta <code>audio/mp4</code>, y su mime por defecto viene <b>vacío</b>.</div>
+    </section>
+  </div>
+
+  <!-- ═══════════ 6. TRAZA ═══════════ -->
+  <h2>6 · Traza RF → superficie</h2>
+  <p class="lead">Cada RF 🎨 del <code>spec.md</code> apunta acá. Lo que no está dibujado, no está decidido.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>RF</th><th>Qué exige</th><th>Dónde se ve</th></tr></thead>
+      <tbody>
+        <tr><td><code>RF-216</code> 🎨</td><td>botón de mic en el composer + estado «escuchando» visible</td><td>§2 «Reposo · con mic», «Escuchando»</td></tr>
+        <tr><td><code>RF-217</code></td><td>toggle: el mismo botón corta; el mic se libera</td><td>§2 «Escuchando» (botón ■)</td></tr>
+        <tr><td><code>RF-218</code></td><td>tope duro; para solo, conserva lo grabado, avisa</td><td>§2 «Cerca del tope», «Cortado por el tope»</td></tr>
+        <tr><td><code>RF-219</code> 🎨</td><td>cancelar sin mandar; composer queda como estaba</td><td>§2 «Escuchando» → «cancelar»</td></tr>
+        <tr><td><code>RF-220</code></td><td>mime explícito; si no hay soporte, deshabilitado con motivo</td><td>§5 «Formato no soportado»</td></tr>
+        <tr><td><code>RF-221</code></td><td>audio no persistido</td><td>ausencia deliberada: sin reproductor ni «volver a escuchar»</td></tr>
+        <tr><td><code>RF-223</code></td><td>sin motor en <code>$PATH</code> → no disponible, con qué instalar</td><td>§5 «Sin motor de STT»</td></tr>
+        <tr><td><code>RF-224</code></td><td>la limpieza es su propia etapa (87 % del tiempo)</td><td>§3 «Ordenando lo dictado…»</td></tr>
+        <tr><td><code>RF-226</code> 🎨</td><td>composer poblado, editable, foco al final, NO auto-envía</td><td>§4 «Limpio»</td></tr>
+        <tr><td><code>RF-227</code></td><td>escalera: denegado · sin device · falla · crudo marcado</td><td>§4 «Crudo», «Falló una etapa» · §5 completa</td></tr>
+        <tr><td><code>RF-228</code></td><td>sale del estado de carga y nombra la etapa que falló</td><td>§3 (etapas nombradas) · §4 «Falló una etapa»</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout ok">
+    <b>Qué NO cambia.</b> El textarea (auto-grow, tope 3 líneas), el botón ↑, el botón ■ de
+    interrupción, los tres placeholders y el layout de la fila quedan <b>idénticos</b>. El dictado no
+    reemplaza el tecleo: lo alimenta. Si el operador ya tenía texto escrito, un fallo de dictado
+    <b>no lo pisa</b> (§4 «Falló una etapa»).
+  </div>
+
+  <div class="callout">
+    <b>Fuera de alcance de este dibujo — gaps visibles, no omisiones.</b>
+    <b>T6</b>: el loop con la voz real del operador por el mic real contra el binario instalado sigue
+    sin probarse; lo medido usa voz sintética y entrada WAV. <b>T7</b>: qué motor STT se empaqueta en
+    <code>.deb</code>/<code>.AppImage</code>/<code>.rpm</code> — hasta cerrarlo, el instalador no
+    promete STT y §5 «Sin motor» es el estado honesto por defecto en una máquina limpia.
+    <b>RF-215</b> (puente Rust) no tiene superficie: es invisible y va primero — sin él, §2 entero
+    funciona en <code>pnpm dev</code> y se cuelga mudo en la app instalada.
+  </div>
+</div>
+
+<script>
+  // Dark-first: el shell es dark. El toggle de arriba existe solo para revisar contraste en ambos.
+  document.documentElement.dataset.theme = "dark"
+</script>

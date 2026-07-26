@@ -22,6 +22,7 @@ import {
   saludDe,
 } from "@/entities/portafolio"
 import { cn } from "@/shared/lib/cn"
+import { ErrorBody, Skeleton } from "@/shared/ui/estado-carga"
 import { FiltroDisclosure } from "@/shared/ui/filtro-disclosure"
 import { GrupoControl } from "@/shared/ui/grupo-control"
 
@@ -277,34 +278,9 @@ function Fila({
 }
 
 // ── Cuerpo: los estados honestos (G5) — cargando/error/vacío/sin-resultados/agrupado/plano ──
-function Skeleton() {
-  return (
-    <div className="pf-skeleton" role="status" aria-live="polite" aria-label="Cargando portafolio">
-      <span className="pf-skeleton-fila" aria-hidden="true" />
-      <span className="pf-skeleton-fila" aria-hidden="true" />
-      <span className="pf-skeleton-fila" aria-hidden="true" />
-    </div>
-  )
-}
-
-function ErrorBody({
-  error,
-  onReintentar,
-}: {
-  error: string | undefined
-  onReintentar: () => void
-}) {
-  return (
-    <div className="pf-estado-vacio">
-      <p className="pf-mut" role="alert">
-        No se pudo cargar el portafolio — {error ?? "motivo desconocido"}
-      </p>
-      <button type="button" className="pf-btn-primary" onClick={onReintentar}>
-        Reintentar
-      </button>
-    </div>
-  )
-}
+// `Skeleton` y `ErrorBody` viven ahora en `shared/ui/estado-carga.tsx` (T28, H-6): el Mapa los
+// necesita idénticos y copiarlos habría dejado dos verdades. El texto de dominio —qué se está
+// cargando, qué falló— lo sigue poniendo esta superficie, no la molécula.
 
 function VaciaBody() {
   return (
@@ -419,8 +395,14 @@ function Cuerpo({
   onReintentar: () => void
   onLimpiarTodo: () => void
 }) {
-  if (estado === "cargando") return <Skeleton />
-  if (estado === "error") return <ErrorBody error={error} onReintentar={onReintentar} />
+  if (estado === "cargando") return <Skeleton label="Cargando portafolio" />
+  if (estado === "error")
+    return (
+      <ErrorBody
+        motivo={`No se pudo cargar el portafolio — ${error ?? "motivo desconocido"}`}
+        onReintentar={onReintentar}
+      />
+    )
 
   // estado === "datos"
   if (entradas.length === 0) return <VaciaBody />

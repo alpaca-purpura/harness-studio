@@ -1,4 +1,8 @@
 <!doctype html>
+<!-- charset ANTES del comentario de cabecera: la declaración solo cuenta si cae en los primeros
+     1024 bytes del documento, y el bloque de abajo pasa de 2 KB (si va después, el navegador
+     cae al fallback del locale y todo el copy en español sale mojibake: "arnÃ©s"). -->
+<meta charset="utf-8" />
 <!--
   ArnesIA — PORTAFOLIO v2 · front-door del ciclo de vida del arnés. NAVEGABLE (3 superficies):
   (1) Lista compacta · (2) Wizard Agregar · (3) Drawer Detalle. Modelo cerrado S-D8:
@@ -22,6 +26,11 @@
   desnudo, G6) · checkbox "…y borrar clon local" ahora disabled+tooltip (G7). Snapshot DERIVADO —
   la implementación real y sus 25 stories con play() viven en Storybook (SSoT), ver
   `docs/product/stories/2026-07-13-portafolio-slice1-fe/paridad.md`.
+  ⚠ STALE DESDE 2026-07-15 (rebrand PRENTER): la paleta de acá es la PRE-rebrand (`--primary`
+  ámbar #d9a35b/#a8742c). El token real hoy es `color.semantic.primary` = `brand-teal-500`
+  (web/tokens/base.tokens.json) y el shell es dark-first. NO forkear los colores de este archivo
+  — re-derivar del Storybook. Auditado 2026-07-24, ver
+  `docs/product/stories/2026-07-23-portafolio-agregar-marketplace/auditoria-storybook-vs-app.md`.
 -->
 <title>ArnesIA · Portafolio v2</title>
 <style>

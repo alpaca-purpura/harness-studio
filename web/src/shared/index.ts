@@ -54,3 +54,9 @@ export {
 export { Button, type ButtonProps, buttonVariants } from "./ui/button"
 export { ComingSoon } from "./ui/coming-soon"
 export { ErrorBoundary } from "./ui/error-boundary"
+export {
+  ErrorBody,
+  type ErrorBodyProps,
+  Skeleton,
+  type SkeletonProps,
+} from "./ui/estado-carga"

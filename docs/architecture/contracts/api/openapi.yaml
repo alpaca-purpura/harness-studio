@@ -13,7 +13,18 @@ info:
   # 0.6.0-portafolio-slice1: + POST /portafolio/arneses/{clave}/mapa (Slice 1, T1, S1-D1
   # — cierra GAP-1): publica una presencia YA PERSISTIDA del Portafolio al índice del Mapa,
   # read-only — NO registra cwd, NO toca /arneses.
-  version: 0.6.0-portafolio-slice1
+  # 0.7.0-marketplaces: + el plano Marketplaces y el catálogo (paquete
+  # 2026-07-23-portafolio-agregar-marketplace, AG-D8/AG-D17): GET/POST /marketplaces ·
+  # POST /marketplaces/validaciones · DELETE /marketplaces/{nombre} ·
+  # GET /marketplaces/{nombre}/catalogo · POST /marketplaces/{nombre}/lecturas ·
+  # POST /marketplaces/{nombre}/traidos · GET|POST /portafolio/arneses/{clave}/origen(/candidatos).
+  # DOS puntos del contrato que un implementador «prolijo» rompería sin darse cuenta:
+  #   (a) `entradas` es NULLABLE a propósito — `null` = «no pude leer» y `[]` = «leí y no declara
+  #       ninguno». Convertir el null en [] es el pass fabricado que BR-4 mata.
+  #   (b) un 200 de …/traidos puede traer `deriva: "en-deriva"` o `"deriva-no-evaluable"`: BR-17
+  #       dice que la deriva se muestra TAL CUAL salga, y un veredicto incómodo no es un fallo de
+  #       la operación. Agregar una validación que exija `al-hilo` rompe BR-17.
+  version: 0.7.0-marketplaces
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -157,7 +168,9 @@ paths:
     get:
       operationId: getVersion
       summary: >-
-        Identidad honesta del binario corriendo (RF-107): huella VCS del buildinfo de Go
+        Identidad honesta del binario corriendo (RF-107 + RF-231): el identificador del BUILD
+        (semver + sello de compilación, `0.2.21.2607260225`) y, si en disco hay uno más nuevo, el
+        aviso accionable. Además, la huella VCS del buildinfo de Go
         (vcs.revision[:7], sufijo «+sucio» si vcs.modified; sin VCS → «dev»), ruta REAL del
         ejecutable, si el proceso puede reemplazarlo (escritura en su directorio — RF-102) y el
         repo configurado al daemon (--repo / ARNESIA_REPO; vacío = RF-103). Fuente de la tarjeta
@@ -335,6 +348,260 @@ paths:
         "400": { description: "`install_path` ajeno a la entrada, o no cargable (motivo real del loader — jamás un grafo inventado)." }
         "500": { description: PortafolioService sin el 5° puerto cableado (subcomando CLI, no el daemon). }
 
+  /portafolio/arneses/{clave}/origen/candidatos:
+    get:
+      operationId: getCandidatosOrigenPortafolio
+      summary: >-
+        Candidatos de origen para un arnés con identidad provisional (S7). El orden lo arma el
+        BACKEND por señales BLANDAS (el registry de la copia ya apunta ahí > coincidencia de autor
+        > clase `propio` > nombre) y NADA viene premarcado: el orden es sugerencia, la elección es
+        del operador (BR-11). `actual` es el home ya declarado ("" si sigue provisional).
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Candidatos ordenados. `candidatos` es SIEMPRE un array (nunca null).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidatos, actual]
+                properties:
+                  candidatos:
+                    type: array
+                    items:
+                      type: object
+                      required: [nombre, clase]
+                      properties:
+                        nombre: { type: string }
+                        repo: { type: string }
+                        clase: { type: string, enum: [propio, referencia] }
+                        senal: { type: string, description: "texto que la fila muestra debajo del nombre; se ARMA en el backend para que sea testeable." }
+                  actual: { type: string }
+        "404": { description: Clave desconocida en el Portafolio. }
+  /portafolio/arneses/{clave}/origen:
+    post:
+      operationId: postAsignarOrigenPortafolio
+      summary: >-
+        Asigna el `home` DECLARADO de un arnés y lo re-keyea (S7, BR-11). **No clona, no instala y
+        no escribe ningún archivo fuera de `~/.arnesia/`** — el home va al STORE, no a un sello,
+        porque el dir de una instalación `referenciada-cc` vive bajo `~/.claude`, que
+        `validarRootPortafolio` PROHÍBE escribir (C3 del design.md). `sin_origen: true` es la opción
+        «ninguno — dejarlo sin origen»: NO toca la identidad, solo estampa
+        `origen_sin_resolver_desde` para que la fila deje de reclamar atención — jamás se inventa
+        un home. El único efecto secundario es la re-evaluación de deriva, que es una LECTURA.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                home: { type: string, description: "referencia git; se canonicaliza a host/owner/repo (RN-IDENT-1)." }
+                sin_origen: { type: boolean, description: "elección EXPLÍCITA de «ninguno»; no hay default." }
+      responses:
+        "200":
+          description: La EntradaPortafolio re-keyed (su `identidad`/`clave` nuevas → el FE re-apunta la fila y el drawer).
+          content:
+            application/json:
+              schema: { type: object }
+        "400": { description: "`home` no canonicalizable, o el body no trae ni `home` ni `sin_origen`." }
+        "404": { description: Clave desconocida en el Portafolio. }
+        "409": { description: "Re-keyear daría una clave que YA existe: fusionar dos identidades es otra operación (C-ID-2), el sistema no las junta solo." }
+
+  /marketplaces:
+    get:
+      operationId: listMarketplaces
+      summary: >-
+        Plano Marketplaces (S2): collect-all de `~/.claude/plugins/known_marketplaces.json`
+        (eslabón `cc-known-marketplaces`, que da `install_location` gratis) + el registro propio
+        del operador, mergeado por `nombre`. La `lectura` de cada fila se hidrata del CACHÉ, sin
+        parsear ningún catálogo (uno de los reales son 273 entradas / 159 KB). Responde **200
+        incluso con la metadata de CC ilegible o el registro corrupto**: van en `aviso_detector` y
+        `corruptas` — nunca un 500, nunca una lista vacía muda.
+      responses:
+        "200":
+          description: El plano. `marketplaces` es SIEMPRE un array — «no conozco ninguno» es una afirmación verdadera y verificable.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [marketplaces, sin_origen_resuelto]
+                properties:
+                  marketplaces: { type: array, items: { $ref: "#/components/schemas/MarketplaceConocido" } }
+                  corruptas: { type: array, items: { type: object, properties: { motivo: { type: string } } } }
+                  aviso_detector: { type: string, description: "metadata de Claude Code ilegible: VISIBLE, jamás una lista vacía silenciosa." }
+                  sin_origen_resuelto: { type: integer, description: "contador cruzado: identidades provisionales que el operador todavía no resolvió ni confirmó dejar sin origen." }
+        "500": { description: El servicio de marketplaces no está cableado (fallo de I/O real al abrir el registro). }
+    post:
+      operationId: postRegistrarMarketplace
+      summary: >-
+        Registra el lado DECLARADO de un marketplace (S6 paso 4). Re-valida (TOCTOU-safe) antes de
+        persistir. **Conocer no es adquirir**: escribe UNA fila en `~/.arnesia/marketplaces.json` y
+        nada más — cero clone, cero instalación, cero escritura fuera de `~/.arnesia/`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, clase]
+              properties:
+                url: { type: string }
+                clase: { type: string, enum: [propio, referencia] }
+      responses:
+        "200":
+          description: Registrado; devuelve la fila YA MERGEADA (con el eslabón de CC si lo hay) para aterrizar en el catálogo sin un GET extra.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MarketplaceConocido" }
+        "400": { description: "url no canonicalizable · clase fuera del enum · el repo no expone `.claude-plugin/marketplace.json` legible." }
+        "409":
+          description: "BR-7 — ya registrado: **no duplica, NO PISA**. El body trae `nombre` para que la UI ofrezca «ir a él» sin parsear texto."
+          content:
+            application/json:
+              schema: { type: object, properties: { error: { type: string }, nombre: { type: string } } }
+        "503": { description: "Sin vía de lectura (ni checkout local ni `gh`/PAT). **No es 400**: la url no está mal, no PODEMOS MIRAR." }
+  /marketplaces/validaciones:
+    post:
+      operationId: postValidarMarketplace
+      summary: >-
+        Prueba una url SIN persistir nada (S6 paso 1). **Solo un 200 pinta ✓**: la validación exige
+        un `.claude-plugin/marketplace.json` REAL leído, y el body del 200 trae lo que se LEYÓ
+        (`nombre`, `owner`, nº de entradas, `fuente`) — es el criterio G3 hecho contrato de
+        transporte, no hay forma de fabricar un ✓ sin archivo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [url], properties: { url: { type: string } } }
+      responses:
+        "200":
+          description: Se leyó un marketplace.json real.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url_canonica, nombre, entradas, fuente, ya_registrado]
+                properties:
+                  url_canonica: { type: string }
+                  nombre: { type: string }
+                  owner_nombre: { type: string }
+                  owner_email: { type: string }
+                  owner_url: { type: string, description: "3 de los 5 marketplaces reales usan `url` en vez de `email` (AG-D15)." }
+                  descripcion: { type: string }
+                  entradas: { type: integer }
+                  fuente: { type: string, enum: [local, remoto] }
+                  ya_registrado: { type: boolean }
+                  clase_actual: { type: string, enum: [propio, referencia] }
+        "400": { description: "«tu url no sirve»: no canonicaliza, o el repo existe pero no expone el catálogo (motivos DISTINGUIBLES entre sí)." }
+        "503": { description: "«no puedo mirar»: sin checkout local ni `gh`/PAT. Jamás insinúa que la url esté mal." }
+  /marketplaces/{nombre}:
+    delete:
+      operationId: deleteOlvidarMarketplace
+      summary: >-
+        Quita el lado DECLARADO del registro. `sigue_detectado: true` es honestidad: **no podemos
+        hacer que Claude Code deje de conocerlo** — la fila va a seguir apareciendo con eslabón
+        `cc-known-marketplaces` y clase degradada a `referencia` (fail-safe).
+      parameters:
+        - { name: nombre, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Se quitó la declaración.
+          content:
+            application/json:
+              schema: { type: object, properties: { olvidado: { type: boolean }, sigue_detectado: { type: boolean } } }
+        "404": { description: El operador nunca lo declaró (CC puede conocerlo igual). }
+  /marketplaces/{nombre}/catalogo:
+    get:
+      operationId: getCatalogoMarketplace
+      summary: >-
+        Catálogo de un marketplace con la SITUACIÓN ya calculada por fila (el cruce catálogo ×
+        Portafolio vive en el dominio Go, nunca en el widget). Caché primero: la primera visita hace
+        UNA lectura y la persiste (idempotente). **No hay 5xx por «no pude leer el catálogo»**: se
+        responde 200 con `entradas: null` + `lectura.motivo` — un 500 no le da al FE nada que
+        renderizar y lo empujaría a mostrar una lista vacía.
+      parameters:
+        - { name: nombre, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: El marketplace es conocido — incluso si NO se pudo leer su catálogo.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Catalogo" }
+        "404": { description: Nombre no conocido (ni detectado por CC ni declarado). }
+        "500": { description: El servicio de marketplaces no está cableado. }
+  /marketplaces/{nombre}/lecturas:
+    post:
+      operationId: postLeerCatalogoMarketplace
+      summary: >-
+        REFRESCO EXPLÍCITO del catálogo (AG-D8 decisión 3): fuerza una lectura fresca y la cachea.
+        Es lo que pegan `Refrescar`, `Reintentar` y `Leer catálogo` del plano. Body vacío; misma
+        respuesta que el GET. Si la lectura falla y HAY caché, se devuelve el caché con la
+        degradación visible y el `cuando` VIEJO — la UI dice «leído hace 2 días · ahora sin
+        acceso», nunca «al día» (BR-3).
+      parameters:
+        - { name: nombre, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Idem GET.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Catalogo" }
+        "404": { description: Nombre no conocido. }
+        "500": { description: El servicio de marketplaces no está cableado. }
+  /marketplaces/{nombre}/traidos:
+    post:
+      operationId: postTraerCanonicoMarketplace
+      summary: >-
+        `↧ Traer canónico` (AG-D17): materializa la fila `entrada` del catálogo como **canónico
+        editable** en `~/.arnesia/checkouts/<slug(marketplace)>/<slug(entrada)>/`. Se pide la FILA,
+        no el `source`: el cliente NO elige el mecanismo — lo decide el dominio (camino A = copia
+        del checkout que Claude Code ya mantiene, sin red; camino B = fetch shallow pineado por el
+        `sha` del catálogo). **Nada se escribe fuera de `~/.arnesia/`, y jamás dentro de
+        `~/.claude`** (BR-13). La materialización es ATÓMICA (staging bajo `~/.arnesia/tmp` →
+        rename): un Traer interrumpido no deja canónico parcial ni entrada registrada (BR-15).
+      parameters:
+        - { name: nombre, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [entrada], properties: { entrada: { type: string } } }
+      responses:
+        "200":
+          description: >-
+            Traído y registrado. **`deriva` puede ser `en-deriva` o `deriva-no-evaluable` y sigue
+            siendo un 200**: BR-17 dice que la deriva se evalúa de inmediato y se muestra TAL CUAL
+            SALGA — un veredicto incómodo no es un fallo de la operación. No agregar una validación
+            que exija `al-hilo`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entrada, clave, destino, camino, deriva]
+                properties:
+                  entrada: { type: object, description: "la EntradaPortafolio registrada." }
+                  clave: { type: string }
+                  destino: { type: string }
+                  camino: { type: string, enum: [local, externo] }
+                  sha_efectivo: { type: string, description: "vacío en el camino local: no hay commit que reportar, y fabricar uno sería inventar procedencia." }
+                  deriva: { type: string, enum: [al-hilo, en-deriva, deriva-no-evaluable] }
+                  deriva_detalle: { type: string }
+                  avisos: { type: array, items: { type: string }, description: "problemas del DATO que no impiden traer (commit≠sha, ref divergente, source \"./\", symlink que escapa): se MUESTRAN (BR-8)." }
+        "400": { description: "Precondiciones del pedido, nada se intentó: clase `referencia` (BR-1, re-chequeada en el DOMINIO porque un POST puede llegar sin pasar por la UI) · `entrada` ajena al catálogo · `source` que no sé materializar (con el crudo visible) · destino que escapa de checkouts." }
+        "404": { description: Nombre de marketplace no conocido. }
+        "409":
+          description: "BR-14 — el destino YA tiene contenido: se aborta **sin tocar nada**. El body trae `destino` para ofrecer «abrir el canónico que ya tenés»."
+          content:
+            application/json:
+              schema: { type: object, properties: { error: { type: string }, destino: { type: string } } }
+        "502": { description: "«miré, y lo que vino no es lo declarado»: el remoto no tiene el repo/sha/ref, el commit no trae la subruta, o el `sha` materializado NO coincide con el declarado (BR-16). Es un tercer estado, distinto de 400 y de 503 — el estante mintió, no el cliente." }
+        "503": { description: "«no puedo mirar»: sin `gh` autenticado ni PAT (BR-18 — ArnesIA no pide, guarda ni proxya credenciales), o el camino que el catálogo exige no está disponible en esta instalación." }
+        "500": { description: "Fallo NUESTRO: disco, permisos, `rename`, o el `Upsert` del registro (en ese caso el dir QUEDA y el motivo lo dice: es el único estado parcial posible y es VISIBLE)." }
+
   /sessions:
     get:
       operationId: listSessions
@@ -471,6 +738,76 @@ paths:
         "404": { description: Sesión inexistente. }
         "409": { description: No hay turno en vuelo que interrumpir (sesión idle o sin conductor vivo). }
         "500": { description: El interrupt no llegó al conductor (stdin roto). }
+
+  /sessions/{id}/dictado:
+    post:
+      operationId: dictar
+      summary: >-
+        Dictado por voz (RF-222): sube la grabación de una sesión y devuelve el texto listo para
+        poblar el composer. El cuerpo es el audio CRUDO (ni multipart ni base64): es un blob de una
+        pieza que va derecho al motor. La respuesta SIEMPRE dice si el texto quedó `limpio` u
+        `crudo` — pasar un crudo por limpio sería un pass fabricado (V-D4).
+        El formato real que sube la app es `audio/wav`, armado por el FE: el `MediaRecorder` de
+        WebKitGTK 2.52.3 declara soportar `audio/mp4` y entrega 0 bytes (RF-229). El endpoint acepta
+        cualquier mime que el motor instalado soporte; sin Content-Type asume `audio/wav`.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema: { type: string, format: binary }
+          audio/mp4:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Texto para el composer.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dictado" }
+        "400": { description: "Grabación vacía o ilegible." }
+        "404": { description: Sesión inexistente. }
+        "413": { description: "La grabación excede el tope del endpoint (24 MB)." }
+        "422":
+          description: >-
+            La transcripción vino vacía. NO es un 500: el pipeline anduvo, el audio no tenía voz.
+            El FE avisa y no toca el composer (RF-227).
+        "503":
+          description: >-
+            No hay motor de transcripción usable. 503 y no 500: falta una capacidad, no se rompió
+            nada — un 500 mandaría al operador a buscar un bug donde falta un `apt install`.
+  /dictado/disponibilidad:
+    get:
+      operationId: disponibilidadDictado
+      summary: >-
+        ¿Se puede dictar y, si no, POR QUÉ y qué instalar (RF-223/RF-227)? El composer la consulta al
+        montar: sin esto, la única forma de enterarse de que falta el motor sería grabar tres minutos
+        y fallar al final.
+      responses:
+        "200":
+          description: Disponibilidad con motivo.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisponibilidadDictado" }
+
+  /diagnostico:
+    post:
+      operationId: reportarDiagnostico
+      summary: >-
+        Diagnóstico de un fallo del FE (RF-230). Existe porque la app corre en un WebView SIN
+        devtools: su `console.error` no va a ningún lado, y el daemon es el único proceso de la app
+        que escribe a disco. Lo recibido se escribe al log local (~/.arnesia/logs/arnesia.log);
+        NO sale de la máquina — la telemetría de producto (OTel, HS-27) es otro paquete y otro
+        destino. Responde 204: el FE ya le mostró el fallo real al operador y este POST no puede
+        convertirse en un segundo error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EventoDiagnostico" }
+      responses:
+        "204": { description: "Anotado en el log." }
+        "400": { description: "Cuerpo ilegible, sin `evento`, o por encima del tope de 64 KB." }
 
   /events:
     get:
@@ -617,14 +954,202 @@ components:
         path: { type: string }
     VersionInfo:
       type: object
-      required: [huella, fecha, instalado_en, escribible, repo, sucio]
+      required: [huella, fecha, instalado_en, escribible, repo, sucio, version]
       properties:
+        version:
+          type: string
+          description: >-
+            RF-231 — identificador COMPLETO del build: semver + sello de compilación AAMMDDHHMM
+            (`0.2.21.2607260225`). «dev» en un binario sin identidad inyectada. ADITIVO a `huella`,
+            no su reemplazo: la huella dice QUÉ COMMIT y el sello dice QUÉ COMPILACIÓN — dos builds
+            del mismo árbol comparten commit y no comparten sello. Monótono: más grande = más nuevo.
+        compilado: { type: string, description: "RF-231 — el sello en formato legible (2026-07-26 02:25); ausente en un build sin sellar." }
+        aviso_build:
+          type: string
+          description: >-
+            RF-231 — hay un binario compilado DESPUÉS que el que corre (el propio ejecutable tras un
+            `make dev-sync` con la app abierta, o `<repo>/bin/arnesia`), en una línea accionable.
+            Ausente = el que corre es el último. Se compara mtime contra el sello, con margen: sin
+            margen el binario recién instalado se denunciaría a sí mismo en cada arranque.
         huella: { type: string, description: "vcs.revision[:7] (+«+sucio» si vcs.modified); «dev» sin VCS info." }
         fecha: { type: string, description: "fecha del commit (vcs.time, solo día); vacía sin VCS." }
         instalado_en: { type: string, description: "ruta REAL del ejecutable (os.Executable, capturada al boot)." }
         escribible: { type: boolean, description: "el proceso puede escribir el DIRECTORIO del ejecutable (el rename lo exige)." }
         repo: { type: string, description: "repo configurado al daemon (--repo/ARNESIA_REPO); vacío = sin repo (RF-103)." }
         sucio: { type: boolean, description: "vcs.modified del build corriente (decisión #7, aditivo)." }
+    MarketplaceConocido:
+      type: object
+      description: >-
+        UNA fila del plano Marketplaces, ya mergeada collect-all (AG-D9). La clave de merge es
+        `nombre` — el mismo con el que Claude Code keyea `installed_plugins.json` (`"<id>@<nombre>"`),
+        o sea el nombre INSTALABLE, no el repo.
+      required: [nombre, clase, eslabones, lectura]
+      properties:
+        nombre: { type: string }
+        repo: { type: string, description: "canonicalizado a host/owner/repo (RN-IDENT-1); vacío si ninguna fuente lo declara — el crudo queda en `discrepancias`." }
+        clase:
+          type: string
+          enum: [propio, referencia]
+          description: >-
+            `propio` = publicamos ahí (participa de traer/publicar/actualizar/reparar) ·
+            `referencia` = solo resuelve procedencia, catálogo READ-ONLY y jamás operable. NO son
+            simétricas, y una clase desconocida degrada a `referencia` (el lado que no habilita
+            operar lo ajeno), nunca a `propio`.
+        eslabones:
+          type: array
+          minItems: 1
+          items: { type: string, enum: [cc-known-marketplaces, declarado-por-operador] }
+          description: "de dónde salió el CONOCIMIENTO de que existe. Collect-all: los dos = detectado + confirmado."
+        install_location: { type: string, description: "el checkout que Claude Code ya mantiene — la ruta contra la que `deriva` compara. Solo del eslabón CC." }
+        cc_actualizado: { type: string, description: "el `lastUpdated` que CC declara. Dato de CC, NO nuestra lectura: nunca se muestra como «leído hace…»." }
+        lectura: { $ref: "#/components/schemas/EstadoLectura" }
+        discrepancias: { type: array, items: { type: string }, description: "repo o clase distintos entre eslabones: se MUESTRAN con los dos valores crudos, jamás se eligen en silencio (BR-8)." }
+        registrado: { type: string, description: "RFC3339 de cuándo el operador lo declaró; vacío si solo lo detectó CC." }
+    EstadoLectura:
+      type: object
+      description: >-
+        Veredicto de la última lectura de catálogo. Invariante: `tipo == leido` ⟺ `entradas` es una
+        cuenta REAL y `cuando` ≠ ""; cualquier otro tipo EXIGE `motivo` — un degradado sin motivo es
+        un degradado mudo. `no-leido` es el CERO del tipo a propósito: dice «no leído aún», nunca
+        «leído con 0 entradas».
+      required: [tipo]
+      properties:
+        tipo: { type: string, enum: [no-leido, leido, sin-acceso, url-no-resuelve] }
+        cuando: { type: string, description: "RFC3339 de la última lectura EXITOSA — se conserva aunque el tipo ya no sea `leido`, para poder decir «leído hace 2 días · ahora sin acceso»." }
+        entradas: { type: integer }
+        motivo: { type: string }
+        fuente: { type: string, enum: [local, remoto, ""] }
+    Catalogo:
+      type: object
+      description: El catálogo leído de UN marketplace, con la situación ya calculada por fila.
+      required: [marketplace, clase, lectura, entradas]
+      properties:
+        marketplace: { type: string }
+        clase: { type: string, enum: [propio, referencia] }
+        repo: { type: string }
+        owner_nombre: { type: string }
+        owner_email: { type: string }
+        owner_url: { type: string }
+        descripcion: { type: string }
+        lectura: { $ref: "#/components/schemas/EstadoLectura" }
+        entradas:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/EntradaCatalogo" }
+          description: >-
+            **NULLABLE A PROPÓSITO (BR-4).** `null` = «no hubo lectura válida: no sé qué hay»;
+            `[]` = «leí el archivo y no declara ningún arnés, hace N minutos». Son afirmaciones
+            DISTINTAS: una lista vacía se lee como «este marketplace no tiene arneses», que es
+            exactamente el pass fabricado que el criterio G3 mató en el Slice 1. Convertir el
+            `null` en `[]` «para que el cliente no tenga que chequear» ROMPE el contrato.
+        canales: { type: object, additionalProperties: { type: string }, description: "enriquecimiento OPCIONAL de `catalogo.json` (convención de prenter, NO del estándar): ausente ⇒ degrada sin ruido." }
+        versiones:
+          type: array
+          items:
+            type: object
+            properties:
+              version: { type: string }
+              estado: { type: string, description: "crudo, sin enum: es formato ajeno." }
+              fuente: { type: string }
+              fecha: { type: string }
+        truncado: { type: integer, description: "cuántas filas se descartaron por el techo de seguridad o por venir sin `name`. >0 se MUESTRA: recorte visible, jamás silencioso." }
+    EntradaCatalogo:
+      type: object
+      description: >-
+        UNA fila del catálogo = la ENTRADA DE ÍNDICE, o sea el CANAL (lo que el cliente instala con
+        `/plugin install <nombre>@<marketplace>`). Dos entradas pueden compartir `source` y NO son
+        dos arneses (AG-D11): son dos canales del mismo árbol físico.
+      required: [nombre, source, situacion, accion]
+      properties:
+        nombre: { type: string }
+        source:
+          type: object
+          description: "`plugins[].source` NORMALIZADO. El formato ajeno tiene 4 formas reales (AG-D13); el dominio solo ve esto traducido."
+          required: [tipo, crudo]
+          properties:
+            tipo: { type: string, enum: [ruta-relativa, git-subdir, url, github, desconocido] }
+            crudo: { type: string, description: "representación textual estable (clave de agrupamiento de canales). Una forma no reconocida NO se descarta: queda `desconocido` con su crudo VISIBLE." }
+            ruta: { type: string }
+            url: { type: string }
+            repo: { type: string }
+            ref: { type: string, description: "PISTA, nunca la autoridad: en el catálogo real diverge del `sha` en entradas sanas, y solo está en 77 de 220 formas objeto." }
+            sha: { type: string, description: "el PIN: presente en 220/220 formas objeto. Es la autoridad de BR-16." }
+            commit: { type: string, description: "2º hash que solo la forma `github` declara, con valor DISTINTO del `sha`. Gana el `sha`; la divergencia va a `avisos`." }
+        version: { type: string }
+        version_de: { type: string, enum: [campo-version, derivada-de-source, ""], description: "procedencia de la versión (BR-2): del campo estándar, del último segmento semver de la ruta, o AUSENTE. Jamás inventada." }
+        descripcion: { type: string }
+        comparte_source_con: { type: array, items: { type: string }, description: "los OTROS nombres del mismo catálogo con idéntico source: son canales del mismo arnés físico." }
+        estado_canal: { type: string, description: "solo del enriquecimiento opcional `catalogo.json`." }
+        nombre_anterior: { type: array, items: { type: string }, description: "de `renames` del marketplace: así un arnés keyeado con el nombre viejo sigue cruzando." }
+        aviso: { type: array, items: { type: string }, description: "problemas de CALIDAD DEL DATO de la fila (nombre duplicado, ruta ausente en el checkout, source no reconocido). Se muestran COMPLETOS y jamás convierten la fila en un descarte silencioso." }
+        situacion:
+          type: object
+          description: >-
+            Veredicto del cruce catálogo × Portafolio, calculado en el DOMINIO Go y ya resuelto en
+            el cable (nunca en el widget). `no-comparable` es una rama de PRIMERA CLASE: falta
+            cualquier insumo ⇒ `no-comparable` **con motivo**, y gana sobre toda afirmación
+            positiva. `al-hilo` es la ÚLTIMA rama de la tabla: se alcanza solo cuando ningún insumo
+            falta y ninguna instalación tiene señal.
+          required: [tipo]
+          properties:
+            tipo: { type: string, enum: [no-lo-tengo, al-hilo, mi-copia-adelantada, estante-adelantado, instalaciones-en-deriva, no-comparable] }
+            mia: { type: string }
+            estante: { type: string }
+            cuantas: { type: integer }
+            motivo: { type: string }
+            clave_portafolio: { type: string }
+            via: { type: string, enum: [home-declarado, faceta-registry, rename, ""], description: "CÓMO se cruzó. El cruce DÉBIL (`faceta-registry`) se muestra como tal — no se presenta como identidad resuelta." }
+        accion:
+          type: object
+          description: >-
+            El verbo que la fila ofrece + si está habilitado + POR QUÉ no. La habilitación vive en
+            el DOMINIO, no en el widget: para clase `referencia` es `false` en TODA rama con el
+            motivo literal «no aplica: solo arneses propios» (BR-1). En este paquete la ÚNICA celda
+            habilitada es `propio` × `no-lo-tengo` ⇒ `traer-canonico` (AG-D17); Publicar/Actualizar/
+            Reparar quedan `false` con el tooltip a su ítem del outcome (BR-10).
+          required: [verbo, habilitada]
+          properties:
+            verbo: { type: string, enum: ["", traer-canonico, publicar, actualizar-mi-copia, reparar] }
+            habilitada: { type: boolean }
+            motivo: { type: string, description: "el tooltip LITERAL. Vive en el dominio para que exista un solo texto testeable." }
+    Dictado:
+      type: object
+      required: [texto, estado]
+      properties:
+        texto: { type: string, description: "el texto que va al composer." }
+        estado:
+          type: string
+          enum: [limpio, crudo]
+          description: >-
+            OBLIGATORIO en el wire: `crudo` = la limpieza falló o se cortó y esto es el transcripto
+            sin ordenar. El FE lo marca visiblemente.
+        motivo: { type: string, description: "por qué quedó crudo. Ausente cuando estado es limpio." }
+        motor: { type: string, description: "el STT que produjo el transcripto — qué motor corrió cambia qué errores esperar." }
+    DisponibilidadDictado:
+      type: object
+      required: [disponible]
+      properties:
+        disponible: { type: boolean }
+        motor: { type: string }
+        motivo: { type: string, description: "por qué NO se puede dictar. El FE lo pinta en la superficie, no en un tooltip." }
+        instalar:
+          type: array
+          description: "qué binarios instalarían el motor faltante."
+          items: { type: string }
+    EventoDiagnostico:
+      type: object
+      required: [evento]
+      properties:
+        origen: { type: string, description: "qué parte lo emitió (\"fe\"). Ausente se anota como «desconocido»: perder un fallo por un campo cosmético sería el silencio que este endpoint vino a sacar." }
+        evento: { type: string, description: "clave estable para grepear el log (\"dictado.sin-bloques\"). Recortada a 120 chars." }
+        mensaje: { type: string }
+        detalle:
+          type: object
+          additionalProperties: true
+          description: >-
+            Libre a propósito: cada fallo tiene sus propias variables (un dictado necesita
+            muestras/pico/hz, un crash de render necesita el stack). Se loguea tal cual y NADIE
+            parsea su forma como contrato (mismo criterio que conductor-no-parsea-jsonl.md).
     SelfUpdateReport:
       type: object
       required: [resultado, pasos]

@@ -39,12 +39,15 @@ pointers:
   - "web/src/shared/ui/filtro-disclosure.tsx#FiltroDisclosure"
   - "web/src/shared/lib/toggle-en-set.ts#toggleEnSet"
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/shared/ui/estado-carga.tsx#Skeleton"
+  - "web/src/shared/ui/estado-carga.tsx#ErrorBody"
 valida:
   - "web/src/widgets/portafolio/ui/portafolio-list.stories.tsx"
   - "web/src/entities/portafolio/ui/chips.stories.tsx"
   - "web/src/entities/portafolio/model/selectors.test.ts"
   - "web/src/shared/ui/grupo-control.stories.tsx"
   - "web/src/shared/ui/filtro-disclosure.stories.tsx"
+  - "web/src/shared/ui/estado-carga.stories.tsx"
 
 dev_preview:
   route: "#/portafolio"
@@ -163,6 +166,22 @@ change_log:
     type: extend
     summary: >-
       T8/T13 (paquete 2026-07-23): (a) AG-D4 cierra el defecto **L1** de la auditoría — los rótulos de grupo pasan a TEXTO VISIBLE («Ver por» / «Filtros», mayúsculas por CSS) vía la molécula nueva `GrupoControl`, y los `role="group"` + `aria-label` del Slice 1 se CONSERVAN: se agrega afordancia visual sin degradar a11y. Ninguna de las dos «Marketplace» se renombra (con el rubro a la vista se leen sin ambigüedad, y renombrar rompería vocabulario firmado). También vuelve el hint que el código había perdido (**L3**). (b) `FiltroDisclosure` y `toggleEnSet` se PROMUEVEN de privados en `portafolio-list.tsx` a `shared/ui`/`shared/lib`: refactor de MOVIMIENTO, no de conducta — el criterio de éxito es que `FiltroEstadoAcota`/`FiltroMarketplaceAcota` sigan pasando sin tocarlas, y lo hacen. (c) filtro nuevo «sin origen resuelto» (`filtrarSinOrigen`: identidad provisional Y sin «ninguno» confirmado — la misma cuenta que el backend manda en `sin_origen_resuelto`), que prende el contador cruzado del plano Marketplaces; se DECLARA en la superficie con un banner y un «Ver todos», porque un filtro invisible que acota la lista es indistinguible de «no tengo arneses».
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T28 (Tramo B) — `Skeleton` y `ErrorBody` se PROMUEVEN de privados en `portafolio-list.tsx`
+      a `shared/ui/estado-carga.tsx` (H-6): la capa «Mejora» del Mapa necesita los mismos estados
+      de carga y de error que el Portafolio ya tiene firmados, y copiarlos habría dejado dos
+      verdades. Refactor de MOVIMIENTO, no de conducta — mismo DOM, mismas clases `pf-*`, mismo
+      contrato ARIA (`role=status`+`aria-live` · `role=alert`+`Reintentar`); el criterio de éxito
+      es que las 13 stories firmadas del Slice 1 sigan pasando sin tocarlas, y lo hacen. El texto
+      de dominio («Cargando portafolio», «No se pudo cargar el portafolio — {motivo}») lo inyecta
+      la superficie: `shared/ui/**` no puede importar `entities/*` (`shared-no-upward`). 3 stories
+      nuevas (`SkeletonHonesto` · `SkeletonAMedida` · `ErrorConMotivoYReintentar`) cementan el
+      CONTRATO completo de las dos piezas, no solo el caso que el Portafolio usa (D23).
     merge_sha: null
 
 scenarios:

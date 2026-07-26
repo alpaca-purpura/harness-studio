@@ -1,8 +1,12 @@
-# Spec — Dictado por voz en el composer (RF-215…RF-228)
+# Spec — Dictado por voz en el composer (RF-215…RF-230)
 
 > Paquete `2026-07-25-spike-voz-dictado`. **El QUÉ**, no el cómo. Evidencia de respaldo:
 > [`spike-spec.md`](./spike-spec.md) · decisiones: [`decisiones.md`](./decisiones.md).
 > Numeración: continúa desde RF-214, el último en uso en el repo.
+>
+> **Ronda 3 (2026-07-26):** RF-229/RF-230 se agregan tras probar el dictado en la app
+> instalada v0.2.20 — `MediaRecorder` no graba en este motor y no había log donde verlo.
+> RF-220 queda marcado como superado, no borrado.
 
 ## Estado de este documento — LEER ANTES DE CONSTRUIR
 
@@ -88,7 +92,7 @@ Escenario: el operador se arrepiente
   Y el composer queda EXACTAMENTE como estaba antes de grabar
 ```
 
-### RF-220 — El formato de audio es explícito
+### RF-220 — El formato de audio es explícito ⚠️ **SUPERADO por RF-229 (2026-07-26)**
 `MediaRecorder` en WebKitGTK soporta **solo `audio/mp4`** y su `mimeType` por defecto viene **vacío**
 (§1.6 a).
 
@@ -99,6 +103,11 @@ Escenario: se graba en un formato que el motor soporta
   Y si ese tipo no está soportado en el motor que corre, el botón se deshabilita con motivo visible
   Y NUNCA se asume webm/opus (no existe en este motor)
 ```
+
+> **Este RF se implementó tal cual y NO alcanzó.** Probado contra la app instalada: pasarle el mime
+> explícito no arregla nada porque `MediaRecorder` **no graba** en este motor —declara soportar
+> `audio/mp4` y entrega 0 bytes—. Queda escrito y marcado en vez de reescrito en silencio: la
+> corrección vive en **RF-229** y el diagnóstico en `decisiones.md` V-D9.
 
 ### RF-221 — El audio no se persiste *(V-D5 FIRMADA)*
 ```gherkin
@@ -238,6 +247,54 @@ Escenario: algo se cuelga río arriba
   Entonces la interfaz sale del estado de carga
   Y muestra qué etapa falló
   Y el botón vuelve a quedar usable
+```
+
+### RF-229 — La captura no depende de `MediaRecorder` *(V-D9, 2026-07-26)*
+Supera a RF-220. `MediaRecorder` de WebKitGTK 2.52.3 arranca y entrega **0 bytes sin emitir `error`**
+(perfil de encoding con `rate=0` → `encodebin` no linkea el pad de audio). Medido: el timeslice y el
+`audioBitsPerSecond` tampoco lo mueven; WebAudio en el mismo motor entrega 151552 muestras en 3.44 s.
+
+```gherkin
+Escenario: se captura audio en el motor real
+  Cuando el operador arranca un dictado
+  Entonces las muestras se capturan por AudioContext, no por MediaRecorder
+  Y se remuestrean a 16 kHz mono
+  Y el WAV lo arma el FE, así que el daemon no necesita ffmpeg para leerlo
+
+Escenario: el micrófono no entrega nada
+  Dado un dictado que se cortó
+  Cuando no llegó ni un bloque de audio
+  Entonces se avisa que el micrófono no entregó ni un bloque
+  Y el composer NO se toca
+
+Escenario: el micrófono entrega silencio digital
+  Dado un dictado que se cortó
+  Cuando llegaron bloques pero el pico quedó bajo el umbral de silencio
+  Entonces se avisa cuántos segundos de silencio se grabaron y que revise mute o app que lo tenga tomado
+  Y NO se le manda al motor de transcripción un audio que sabemos vacío
+```
+
+### RF-230 — Un fallo deja rastro sin tener que reproducirlo *(V-D10/V-D11, 2026-07-26)*
+El daemon logueaba solo a stderr y la app instalada lo lanza desde el `.desktop`, que no tiene
+terminal; el WebView no tiene devtools. Resultado real: un bug del dictado vivió toda la v0.2.20 y
+del incidente solo quedó la frase que el operador leyó en pantalla.
+
+```gherkin
+Escenario: el daemon deja rastro en disco
+  Cuando el daemon arranca
+  Entonces escribe su log a ~/.arnesia/logs/arnesia.log además de stderr
+  Y rota al llegar al tope conservando una generación
+  Y si el archivo no se puede abrir, avisa y sigue con stderr solo
+
+Escenario: el FE falla y el fallo queda escrito
+  Dado un fallo del FE (dictado sin audio, error de render, promesa rechazada)
+  Cuando se le muestra el motivo al operador
+  Entonces el mismo fallo va al log del daemon con las variables que lo explican
+  Y que ese envío falle NO agrega un segundo error visible
+
+Escenario: cada dictado deja su línea
+  Cuando termina un dictado, salga bien o mal
+  Entonces el log tiene formato, bytes, milisegundos, estado y motor
 ```
 
 ---

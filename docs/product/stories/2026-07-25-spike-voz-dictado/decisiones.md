@@ -192,3 +192,103 @@ que un enforcement sin test es una promesa, no un cerrojo.
   llamada se cuelga sin plomería (V-D6), solo graba `audio/mp4`, y necesita la ventana visible.
 - Queda escrito **en el documento y acá** en vez de editado en silencio: la doctrina de la casa es gap
   visible, jamás pass fabricado.
+
+---
+
+# Ronda 3 — el bug del micrófono en la app instalada (2026-07-26)
+
+> Detonante: el operador probó el dictado en su instalación **v0.2.20** y le salió
+> `«Falló escuchando: No se grabó nada. El composer no se tocó.»`. No había log que mirar.
+> Reproducido contra el motor real y diagnosticado con `GST_DEBUG`; las decisiones que salieron
+> se escriben acá **en el mismo turno** (§10).
+
+## V-D9 · La captura NO usa `MediaRecorder`: WebAudio + WAV armado en JS — **DECIDIDA (hallazgo, no preferencia)**
+
+**Lo que se probó** (harness GTK propio, WebKitGTK 2.52.3, mismo origin `http://127.0.0.1:4200`,
+mismo mime que la app):
+
+| Camino | Resultado medido |
+|---|---|
+| `MediaRecorder` `audio/mp4`, sin timeslice (**lo que hacía v0.2.20**) | `onstart` ✅ · `state: recording` ✅ · 1 evento de **0 bytes** · blob **0 bytes** · `onerror` **nunca** |
+| idem + `start(250)` | **0 bytes** |
+| idem + `audioBitsPerSecond: 128000` | **0 bytes** |
+| **WebAudio (`ScriptProcessor`)** | **151552 muestras en 3.44 s, pico 0.0787** ✅ |
+
+**Causa raíz**, del log de WebKit:
+
+```
+MediaRecorderPrivateGStreamer.cpp:412: Setting audio restriction caps to audio/x-raw, rate=(int)0
+gstencodebasebin.c:718: <encodebin2-0> Couldn't find a compatible stream profile
+gstbasesrc.c:3177: <capture-audiosrc0> error: streaming stopped, reason not-linked (-1)
+MediaRecorderPrivateGStreamer.cpp:272: Transfering 0 encoded bytes
+```
+
+WebKit arma el perfil de encoding con `rate=0`, `encodebin` no casa ningún profile, el pad de audio
+**nunca se linkea** y el micrófono empuja a la nada. Contribuye que faltan los plugins
+`isobmff`/`fmp4` (cae al fallback `mp4mux`), pero el `rate=0` es el que mata.
+
+**Descartado explícitamente:** el mic anda (`parec` directo: RMS 5716, pico 25131/32767), el permiso
+se concede (el puente Rust de RF-215 funciona), y los encoders están (`pulsesrc ! voaacenc ! mp4mux`
+a mano produjo 16905 bytes).
+
+- ⇒ **RF-229**: el FE captura PCM por `AudioContext` + `ScriptProcessor`, remuestrea a 16 kHz y
+  arma el WAV él mismo. `MIME` pasa de `audio/mp4` a `audio/wav`.
+- **`ScriptProcessor` (deprecado) a conciencia:** `AudioWorklet` necesita cargar un módulo por URL y
+  la app se sirve bajo CSP desde el daemon — un `blob:` de worklet es justo lo que esa política
+  bloquea. El deprecado está **medido andando** en el motor real; el moderno habría que probarlo
+  antes de confiarle la única vía de captura que queda.
+- **Efecto lateral que conviene:** el WAV 16 kHz es lo que come `whisper.cpp` ⇒ **desaparece el
+  transcodificado y con él la dependencia de `ffmpeg`**, que `spike-spec.md` §1.7 encontró AUSENTE
+  en esta máquina.
+- **Corrige V-D8 y la BR `mime-explicito`:** «solo graba `audio/mp4`» era optimista. Lo exacto es
+  que `isTypeSupported('audio/mp4')` **devuelve `true` y miente**: el único formato que este motor
+  declara soportar es también el único que no puede producir.
+
+## V-D10 · El daemon escribe a un archivo de log — **DECIDIDA**
+
+El operador preguntó «¿hay algún log que puedas revisar?». **No lo había**: el daemon logueaba solo a
+stderr y la app instalada lo lanza desde el `.desktop` del `.deb`, que no tiene terminal. Un bug vivió
+una versión entera y del incidente solo quedó la frase que el operador leyó en pantalla.
+
+- ⇒ **RF-230**: `~/.arnesia/logs/arnesia.log`, JSON por línea, rota a 8 MB conservando una
+  generación. Se apaga con `--log -`, se muda con `--log <ruta>` o `$ARNESIA_LOG`.
+- **stderr sigue en texto y el archivo va en JSON.** No es inconsistencia: en la terminal lee una
+  persona, y el archivo lo lee un `grep` después de un incidente sobre un `detalle` anidado que el
+  handler de texto aplastaría. Un `io.MultiWriter` forzaría un solo formato — por eso el fan-out.
+- **Un log que no se puede abrir no tumba el daemon:** avisa y sigue con stderr. Degradación honesta.
+- El endpoint de dictado además loguea **cada** dictado (formato, bytes, ms, estado, motor), no solo
+  los que fallan: sin la línea del camino feliz no hay con qué comparar cuando algo empieza a fallar.
+
+## V-D11 · El FE puede escribir en ese log (`POST /api/diagnostico`) — **DECIDIDA**
+
+El WebView **no tiene devtools** y su `console.error` no va a ningún lado. El daemon es el único
+proceso de la app que escribe a disco.
+
+- ⇒ **RF-230**: endpoint que recibe `{origen, evento, mensaje, detalle}` y lo escribe al log.
+  El store del dictado reporta en el mismo acto en que marca el fallo visible, y un cazador global
+  (`window.onerror` + `unhandledrejection`) cubre lo que ningún `try/catch` nuestro ve.
+- **`detalle` es libre y nadie parsea su forma como contrato** (mismo criterio que
+  `conductor-no-parsea-jsonl.md`): cada fallo tiene sus propias variables, y un schema fijo haría que
+  la próxima falla desconocida no tuviera dónde contarse.
+- **Acotado:** 64 KB por cuerpo, 30 eventos por minuto en el FE, claves recortadas a 120 chars. Un
+  diagnóstico que rompe el flujo que estaba diagnosticando no sirve.
+- **NO es telemetría de producto.** Destino: loopback → archivo local. No sale de la máquina. HS-27
+  (OTel) es otro paquete, otra decisión y otro destino — esto no lo adelanta ni lo reemplaza.
+
+## V-D12 · «No se grabó nada» se reemplaza por dos motivos distintos — **DECIDIDA**
+
+El mensaje viejo describía el síntoma y escondía la causa. Se parte en dos, porque se arreglan
+distinto:
+
+- **sin bloques** → «El micrófono no entregó ni un bloque de audio» (grafo/device roto).
+- **silencio digital** (pico < 0.001, medido: hablar normal da ≈ 0.08) → «El micrófono entregó Ns de
+  silencio (nivel 0)» (mic muteado o tomado por otra app).
+
+Cortar en el FE evita mandarle 3 minutos de ceros a un STT que devolvería vacío, haciendo parecer que
+el bug es de la transcripción.
+
+## ⏳ Pendiente de firma 🧑‍⚖️
+
+V-D9..V-D12 quedan **DECIDIDAS y construidas**, sin firma del operador todavía. Lo que falta para
+firmar es el tramo E2E contra el **binario instalado** (mismo gate que ya tenía abierto el paquete
+para el micrófono), no más discusión de diseño.

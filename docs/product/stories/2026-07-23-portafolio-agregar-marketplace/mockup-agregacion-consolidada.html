@@ -1,0 +1,1033 @@
+<!doctype html>
+<!-- charset ANTES del comentario de cabecera: la declaración solo cuenta si cae en los primeros
+     1024 bytes del documento. Lección de la auditoría 2026-07-24 (el snapshot del Portafolio
+     salía mojibake porque su meta quedaba detrás de 2 KB de comentario). -->
+<meta charset="utf-8" />
+<!--
+  ArnesIA — AGREGACIÓN CONSOLIDADA AL PORTAFOLIO (proyecto + marketplace).
+  Paquete: docs/product/stories/2026-07-23-portafolio-agregar-marketplace/
+  Etapa 1 del flujo (METODOLOGIA §10). Decisiones que baja este mockup:
+
+    AG-D1  el paquete consolida TODA la agregación, no solo la rama marketplace
+    AG-D3  densidad: modal más grande + lazy loading + buscador + filtro
+    AG-D4  toolbar con rótulos de grupo VISIBLES (VER POR / FILTROS)
+    AG-D6  wizard = máquina de estados + Atrás + Cancelar (NO pasos simultáneos)
+    AG-D7  los hallazgos NO se premarcan — el operador tilda
+    AG-D8  plano «Marketplaces» hermano de «Arneses» (8 sub-decisiones)
+
+  ── TOKENS ──────────────────────────────────────────────────────────────────────────────────
+  Derivado de STORYBOOK EN TEMA DARK, no del snapshot `mockups/arnesia-portafolio.html` (que es
+  PRE-rebrand, paleta ámbar — AG-D2). Todos los valores de abajo son copia literal de
+  `web/src/app/styles/theme.css` (generado de `web/tokens/base.tokens.json`) y las clases `pf-*`
+  calcan `web/src/app/styles/portafolio.css`. Norma: pegarse al Storybook, cero color inventado.
+
+  ── HONESTIDAD ──────────────────────────────────────────────────────────────────────────────
+  Cada superficie lleva su badge: `vigente` = YA construido y firmado en la PARIDAD del Slice 1
+  (no se re-litiga, es la línea base) · `propuesta` = lo que este mockup agrega. Superset
+  estricto: nada firmado se quita. Ningún dato de acá sale de un backend — es un mockup.
+-->
+<title>ArnesIA · Agregación consolidada al Portafolio (propuesta)</title>
+<style>
+  /* ══ tokens — copia literal de web/src/app/styles/theme.css ══ */
+  :root{
+    --background:#f6f8f8;--foreground:#0e1312;--card:#ffffff;--popover:#ffffff;
+    --primary:#00b7aa;--primary-foreground:#000000;--secondary:#eef1f1;
+    --muted-foreground:#4d5555;--accent-soft:rgba(0,183,170,.14);
+    --destructive:#bd3a2e;--border:#e1e6e6;--input:#c9d1d1;--ring:#1fc6b8;
+    --sidebar:#ffffff;--sidebar-foreground:#4d5555;--sidebar-border:#e1e6e6;
+    --c-skill:#2f74b5;--c-agent:#7455c2;--c-knowledge:#20826f;--c-plugin:#9c7b1a;
+    --ok:#2e8f5e;--warn:#c96a2e;--crit:#c94545;
+    --ok-soft:rgba(46,143,94,.13);--warn-soft:rgba(201,106,46,.13);--crit-soft:rgba(201,69,69,.12);
+    --radius-sm:4px;--radius-md:8px;--radius-lg:14px;--radius-full:9999px;
+    --text-xs:11px;--text-sm:12.5px;--text-base:14px;--text-lg:16px;--text-xl:20px;
+    --font-display:Jost,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-sans:Mulish,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --shadow-md:0 4px 14px rgba(11,15,14,.08),0 2px 4px rgba(11,15,14,.04);
+    --shadow-lg:0 14px 40px rgba(11,15,14,.10),0 4px 10px rgba(11,15,14,.05);
+  }
+  :root[data-theme="dark"]{
+    --background:#000000;--foreground:rgba(255,255,255,.92);--card:#0c1110;--popover:#141a19;
+    --primary:#1fc6b8;--primary-foreground:#000000;--secondary:#141a19;
+    --muted-foreground:rgba(255,255,255,.58);--accent-soft:rgba(0,183,170,.14);
+    --destructive:#bd3a2e;--border:#1f2826;--input:rgba(0,183,170,.35);--ring:#1fc6b8;
+    --sidebar:#0c1110;--sidebar-foreground:rgba(255,255,255,.58);--sidebar-border:#1f2826;
+    --c-skill:#5b9dd9;--c-agent:#9b7fd4;--c-knowledge:#4fb3a1;--c-plugin:#cdae54;
+    --ok:#57b380;--warn:#e0904f;--crit:#e25b5b;
+    --ok-soft:rgba(87,179,128,.14);--warn-soft:rgba(224,144,79,.14);--crit-soft:rgba(226,91,91,.13);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--background);color:var(--foreground);
+       font-family:var(--font-sans);font-size:var(--text-base);-webkit-font-smoothing:antialiased}
+  button{font:inherit}
+  .mono{font-family:var(--font-mono)}
+
+  /* ══ shell mínimo (contexto, no propuesta) ══ */
+  .app{display:flex;height:100vh;overflow:hidden}
+  .rail{width:210px;flex:none;background:var(--sidebar);border-right:1px solid var(--sidebar-border);
+        display:flex;flex-direction:column;padding:14px 12px;gap:12px}
+  .rail-marca{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:600}
+  .rail-logo{width:26px;height:26px;border-radius:var(--radius-full);background:var(--primary);
+             color:var(--primary-foreground);display:grid;place-items:center;font-size:var(--text-sm);font-weight:700}
+  .rail-sec{font-size:var(--text-xs);letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground)}
+  .rail-item{padding:7px 9px;border-radius:var(--radius-md);color:var(--muted-foreground);font-size:var(--text-sm)}
+  .rail-item.on{background:var(--accent-soft);color:var(--foreground);border:1px solid var(--primary)}
+  .rail-pie{margin-top:auto;display:flex;gap:6px;font-size:var(--text-xs);color:var(--muted-foreground)}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .crumbs{padding:12px 20px;border-bottom:1px solid var(--border);font-size:var(--text-sm);
+          color:var(--muted-foreground)}
+  .crumbs b{color:var(--foreground)}
+  .lienzo{flex:1;overflow:auto;padding:18px 20px 60px}
+
+  /* ══ aviso de propuesta ══ */
+  .banner{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;padding:9px 12px;
+          border:1px dashed var(--primary);border-radius:var(--radius-md);background:var(--accent-soft);
+          font-size:var(--text-sm)}
+  .badge{display:inline-block;font-family:var(--font-mono);font-size:9px;padding:1px 7px;
+         border-radius:6px;border:1px solid var(--border);background:var(--secondary);
+         color:var(--muted-foreground);vertical-align:middle}
+  .badge.nuevo{border-color:var(--primary);background:var(--accent-soft);color:var(--foreground)}
+  .badge.viejo{border-color:var(--ok);background:var(--ok-soft);color:var(--foreground)}
+
+  /* ══ planos hermanos — AG-D8 decisión 2 ══ */
+  .planos{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:0 0 14px}
+  .plano-tab{padding:8px 14px;border:none;border-bottom:2px solid transparent;background:transparent;
+             color:var(--muted-foreground);font-size:var(--text-base);cursor:pointer;display:flex;
+             align-items:center;gap:7px}
+  .plano-tab.activa{border-bottom-color:var(--primary);color:var(--foreground);font-weight:600}
+  .plano-tab .cta-num{font-family:var(--font-mono);font-size:9px;padding:1px 6px;border-radius:6px;
+                      border:1px solid var(--warn);background:var(--warn-soft);color:var(--foreground)}
+
+  /* ══ topbar / toolbar — calca .pf-topbar/.pf-toolbar ══ */
+  .pf-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .pf-topbar h2{margin:0;font-family:var(--font-display);font-size:var(--text-xl);font-weight:600}
+  .pf-contadores{font-size:var(--text-sm);color:var(--muted-foreground)}
+  .pf-mut{color:var(--muted-foreground)}
+  .pf-btn-primary{padding:7px 14px;border-radius:var(--radius-md);border:1px solid var(--primary);
+                  background:var(--accent-soft);color:var(--foreground);font-size:var(--text-sm);
+                  font-weight:600;cursor:pointer}
+  .pf-btn-primary:disabled{opacity:.68;cursor:not-allowed}
+  .pf-btn-secundario{padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border);
+                     background:var(--secondary);color:var(--foreground);font-size:var(--text-sm);cursor:pointer}
+  .pf-btn-secundario:disabled{opacity:.55;cursor:not-allowed}
+  .pf-btn-mini{padding:4px 9px;border-radius:var(--radius-sm);border:1px solid var(--border);
+               background:var(--secondary);color:var(--foreground);font-size:var(--text-xs);cursor:pointer}
+  .pf-btn-mini.acento{border-color:var(--primary);background:var(--accent-soft);font-weight:600}
+  .pf-btn-mini:disabled{opacity:.5;cursor:not-allowed}
+
+  .pf-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+  .pf-buscar{flex:1 1 220px;min-width:180px;padding:6px 10px;border-radius:var(--radius-md);
+             border:1px solid var(--input);background:var(--background);color:var(--foreground);
+             font-size:var(--text-sm)}
+  /* AG-D4 — el rótulo del grupo es VISIBLE. Cierra L1: hoy «Marketplace» aparece dos veces
+     (lente y filtro) sin ninguna distinción. */
+  .pf-grupo-control{display:flex;align-items:center;gap:6px}
+  .pf-rubro{font-size:var(--text-xs);letter-spacing:.06em;text-transform:uppercase;
+            color:var(--muted-foreground);white-space:nowrap}
+  .pf-lentes,.pf-filtros{display:flex;gap:4px}
+  .pf-lente-btn,.pf-filtro-btn{padding:5px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);
+       background:var(--secondary);color:var(--muted-foreground);font-size:var(--text-xs);cursor:pointer}
+  .pf-lente-btn[aria-pressed="true"],.pf-filtro-btn[aria-expanded="true"]{
+       border-color:var(--primary);background:var(--accent-soft);color:var(--foreground)}
+
+  /* ══ filas — calca .pf-fila ══ */
+  .pf-grupo-titulo{margin:0 0 6px;font-size:var(--text-xs);font-weight:600;text-transform:uppercase;
+                   letter-spacing:.04em;color:var(--muted-foreground)}
+  .pf-grupo + .pf-grupo{margin-top:14px}
+  .pf-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .pf-fila{display:grid;grid-template-columns:auto minmax(0,2fr) auto minmax(0,1.4fr) auto;
+           align-items:center;gap:12px;width:100%;padding:8px 10px;border-radius:var(--radius-md);
+           border:1px solid var(--border);background:var(--card);color:var(--foreground);
+           text-align:left;cursor:pointer}
+  .pf-fila:hover{background:var(--secondary)}
+  .pf-emblema{width:26px;height:26px;flex:none;border-radius:var(--radius-md);display:grid;
+              place-items:center;font-family:var(--font-mono);font-size:var(--text-sm);font-weight:700;
+              color:#fff}
+  .pf-fila-id{display:flex;flex-direction:column;min-width:0}
+  .pf-fila-idline{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .pf-fila-idline .mono{font-size:var(--text-sm)}
+  .pf-fila-nombre{color:var(--muted-foreground);font-size:var(--text-sm);overflow:hidden;
+                  text-overflow:ellipsis;white-space:nowrap}
+  .pf-fila-descr{color:var(--muted-foreground);font-size:var(--text-xs);overflow:hidden;
+                 text-overflow:ellipsis;white-space:nowrap}
+  .pf-fila-presencia{display:flex;flex-direction:column;gap:2px;font-size:var(--text-xs);
+                     color:var(--muted-foreground);white-space:nowrap}
+  .pf-fila-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:0}
+  .pf-chip{display:inline-block;font-family:var(--font-mono);font-size:9px;line-height:1.4;
+           padding:1px 7px;border-radius:6px;border:1px solid var(--border);background:var(--secondary);
+           color:var(--foreground)}
+  .pf-chip-deriva.al-hilo{border-color:var(--ok);background:var(--ok-soft)}
+  .pf-chip-deriva.en-deriva{border-color:var(--warn);background:var(--warn-soft)}
+  .pf-chip-deriva.deriva-no-evaluable{border-color:var(--border);background:var(--secondary);
+           color:var(--muted-foreground)}
+  .pf-chip-tipo{color:var(--muted-foreground)}
+  .pf-chip-aviso{border-color:var(--warn);background:var(--warn-soft);white-space:normal;max-width:360px}
+  .pf-dot-salud{display:inline-block;flex:none;width:9px;height:9px;border-radius:999px;
+                border:1.5px solid transparent}
+  .pf-dot-salud.ok{background:var(--ok)}
+  .pf-dot-salud.atencion{background:var(--warn)}
+  .pf-dot-salud.sin-senal{background:transparent;border-style:dashed;border-color:var(--muted-foreground)}
+
+  /* ══ puerta cruzada a la reconciliación — AG-D8 decisión 7 ══ */
+  .pf-puerta{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:8px 11px;
+             border:1px solid var(--warn);border-radius:var(--radius-md);background:var(--warn-soft);
+             font-size:var(--text-sm)}
+  .pf-puerta .pf-btn-mini{margin-left:auto}
+
+  /* ══ plano Marketplaces — AG-D8 ══ */
+  .mk-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .mk-fila{display:grid;grid-template-columns:auto minmax(0,1.7fr) minmax(0,1fr) auto;align-items:center;
+           gap:12px;padding:11px 12px;border-radius:var(--radius-md);border:1px solid var(--border);
+           background:var(--card);text-align:left;width:100%;cursor:pointer;color:var(--foreground)}
+  .mk-fila:hover{background:var(--secondary)}
+  .mk-fila.inerte{cursor:default;opacity:.92}
+  .mk-glifo{width:30px;height:30px;flex:none;border-radius:var(--radius-md);display:grid;place-items:center;
+            border:1px solid var(--border);background:var(--secondary);font-size:var(--text-base)}
+  .mk-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .mk-url{font-family:var(--font-mono);font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;
+          white-space:nowrap}
+  .mk-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:var(--text-xs);
+           color:var(--muted-foreground)}
+  .mk-clase{font-family:var(--font-mono);font-size:9px;padding:1px 7px;border-radius:6px}
+  .mk-clase.propio{border:1px solid var(--primary);background:var(--accent-soft);color:var(--foreground)}
+  .mk-clase.referencia{border:1px solid var(--border);background:var(--secondary);color:var(--muted-foreground)}
+  .mk-pendientes{display:flex;flex-direction:column;gap:3px;font-size:var(--text-xs)}
+  /* prosa: column-flex convertiría cada <b>/<span> inline en su propia línea — la celda de texto
+     corrido tiene que ser un bloque normal. */
+  .mk-pendientes.prosa{display:block;line-height:1.45}
+  .mk-alcance{font-size:var(--text-xs);color:var(--muted-foreground);display:flex;align-items:center;gap:6px}
+
+  /* ══ catálogo ══ */
+  .cat-head{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .cat-head h3{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:600}
+  .cat-sub{font-size:var(--text-sm);color:var(--muted-foreground);margin:0 0 14px}
+  .cat-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .cat-fila{display:grid;grid-template-columns:auto minmax(0,1.6fr) minmax(0,1.1fr) auto;align-items:center;
+            gap:12px;padding:9px 11px;border-radius:var(--radius-md);border:1px solid var(--border);
+            background:var(--card)}
+  .cat-situacion{display:flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--muted-foreground)}
+  .cat-accion{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+  .cat-lazy{margin-top:10px;padding:10px;text-align:center;border:1px dashed var(--border);
+            border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--muted-foreground)}
+
+  /* ══ wizard — AG-D3 modal más grande (480 → 680) ══ */
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;place-items:center;z-index:20}
+  .scrim.on{display:grid}
+  .pf-wizard{display:flex;flex-direction:column;gap:14px;width:100%;max-width:680px;padding:18px;
+             border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--card);
+             box-shadow:var(--shadow-lg)}
+  .pf-wizard-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .pf-wizard-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:600}
+  .pf-drawer-cerrar{width:28px;height:28px;border-radius:var(--radius-md);border:1px solid var(--border);
+                    background:var(--secondary);color:var(--foreground);cursor:pointer}
+  .pf-wizard-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+  .pf-wizard-tab{padding:6px 12px;border:none;border-bottom:2px solid transparent;background:transparent;
+                 color:var(--muted-foreground);font-size:var(--text-sm);cursor:pointer}
+  .pf-wizard-tab.activa{border-bottom-color:var(--primary);color:var(--foreground);font-weight:600}
+  .pf-faceta-label{font-size:var(--text-xs);letter-spacing:.06em;text-transform:uppercase;
+                   color:var(--muted-foreground)}
+  .pf-wizard-fuente{display:flex;flex-direction:column;gap:10px}
+  .pf-wizard-radios{display:inline-flex;width:fit-content;border:1px solid var(--border);
+                    border-radius:var(--radius-md);overflow:hidden}
+  .pf-wizard-radio{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--secondary);
+                   font-size:var(--text-sm);cursor:pointer;border-right:1px solid var(--border)}
+  .pf-wizard-radio:last-child{border-right:none}
+  .pf-wizard-radio:has(input:checked){background:var(--accent-soft);font-weight:600}
+  .pf-wizard-radio:has(input:disabled){color:var(--muted-foreground);cursor:not-allowed}
+  .pf-wizard-path-row{display:flex;flex-wrap:wrap;gap:8px}
+  .pf-wizard-input{flex:1 1 220px;min-width:180px;padding:6px 10px;border-radius:var(--radius-md);
+                   border:1px solid var(--input);background:var(--background);color:var(--foreground);
+                   font-size:var(--text-sm)}
+  .pf-wizard-input:disabled{opacity:.65;cursor:not-allowed}
+  .pf-wizard-spinner{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);
+                     color:var(--muted-foreground)}
+  .pf-wizard-spinner-glifo{width:12px;height:12px;border-radius:999px;border:2px solid var(--border);
+                           border-top-color:var(--primary);animation:girar .8s linear infinite}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  /* AG-D6 — pie con Atrás + Cancelar. Cierra W3: hoy, escaneada una ruta con hallazgos, no hay
+     forma de corregirla ni re-escanear sin cerrar el wizard entero. */
+  .pf-wizard-pie{display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);
+                 padding-top:12px}
+  .pf-wizard-pie .derecha{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .pf-wizard-nota{margin:0;font-size:var(--text-xs);color:var(--muted-foreground)}
+  /* AG-D3 — la lista de candidatos gana buscador + filtro + lazy loading, y respira. */
+  .pf-wizard-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;
+                   max-height:340px;overflow-y:auto}
+  .pf-wizard-candidato{display:flex;flex-direction:column;gap:5px;padding:8px 10px;
+                       border-radius:var(--radius-md);border:1px solid var(--border);background:var(--secondary)}
+  .pf-wizard-candidato-check{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer}
+  .pf-wizard-candidato-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:var(--text-xs);
+                            color:var(--muted-foreground)}
+  .pf-wizard-sub{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .pf-wizard-sub .pf-buscar{flex:1 1 180px}
+
+  /* ══ diálogo de reconciliación — AG-D8 decisión 7 ══ */
+  .rec{width:100%;max-width:520px;padding:18px;border-radius:var(--radius-lg);border:1px solid var(--border);
+       background:var(--card);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:12px}
+  .rec h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg)}
+  .rec-opciones{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+  .rec-op{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-md);
+          border:1px solid var(--border);background:var(--secondary);cursor:pointer;font-size:var(--text-sm)}
+  .rec-op:has(input:checked){border-color:var(--primary);background:var(--accent-soft)}
+  .rec-senal{margin-left:auto;font-size:var(--text-xs);color:var(--muted-foreground)}
+
+  .oculto{display:none}
+  .temabtn{position:fixed;right:14px;bottom:14px;width:34px;height:34px;border-radius:var(--radius-full);
+           border:1px solid var(--border);background:var(--card);color:var(--foreground);cursor:pointer;z-index:30}
+  .pie-leyenda{margin-top:26px;padding-top:12px;border-top:1px solid var(--border);
+               font-size:var(--text-xs);color:var(--muted-foreground);display:flex;flex-wrap:wrap;gap:14px}
+</style>
+
+<div class="app">
+  <!-- rail: contexto, NO propuesta -->
+  <aside class="rail">
+    <div class="rail-marca"><span class="rail-logo">A</span> ArnesIA</div>
+    <div class="rail-sec">Sesiones</div>
+    <div class="rail-item">nuevo frente</div>
+    <div class="rail-item">reclutamiento Q3</div>
+    <div class="rail-pie">
+      <span class="rail-item on">Portafolio</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="crumbs">alpacapurpura / <b>Portafolio</b></div>
+
+    <div class="lienzo">
+      <div class="banner">
+        <span>⚠</span>
+        <div>
+          <b>PROPUESTA — nada de esto está construido.</b> Mockup de la etapa 1 del paquete
+          <span class="mono">2026-07-23-portafolio-agregar-marketplace</span>.
+          <span class="badge viejo">vigente</span> = ya construido y firmado (PARIDAD Slice 1, línea
+          base intocable) · <span class="badge nuevo">propuesta</span> = lo que este mockup agrega.
+          Superset estricto: nada firmado se quita.
+        </div>
+      </div>
+
+      <!-- ══ PLANOS HERMANOS — AG-D8 decisión 2 ══ -->
+      <div class="planos" role="tablist" aria-label="Planos del Portafolio">
+        <button class="plano-tab activa" role="tab" aria-selected="true" id="tabArneses"
+                onclick="verPlano('arneses')">
+          Arneses <span class="badge viejo">vigente</span>
+        </button>
+        <button class="plano-tab" role="tab" aria-selected="false" id="tabMk"
+                onclick="verPlano('mk')">
+          Marketplaces <span class="badge nuevo">propuesta</span>
+          <span class="cta-num" title="pendientes accionables en marketplaces propios">3</span>
+        </button>
+      </div>
+
+      <!-- ════════════════════════════ PLANO ARNESES ════════════════════════════ -->
+      <section id="planoArneses">
+        <div class="pf-topbar">
+          <div>
+            <h2>Arneses</h2>
+            <div class="pf-contadores">6 arneses · 3 empresas · lente: empresa</div>
+          </div>
+          <button class="pf-btn-primary" onclick="abrirWizard('proyecto')">＋ Agregar</button>
+        </div>
+
+        <!-- AG-D4: rótulos VISIBLES. Cierra L1 — hoy son 6 pills iguales y «Marketplace»
+             aparece dos veces con dos significados distintos. -->
+        <div class="pf-toolbar">
+          <input class="pf-buscar" type="search" placeholder="Buscar por id, nombre o descripción…" />
+          <div class="pf-grupo-control">
+            <span class="pf-rubro">Ver por</span>
+            <div class="pf-lentes" role="group" aria-label="Lente del Portafolio">
+              <button class="pf-lente-btn" aria-pressed="true">Empresa</button>
+              <button class="pf-lente-btn" aria-pressed="false">Plano</button>
+              <button class="pf-lente-btn" aria-pressed="false">Proyecto</button>
+              <button class="pf-lente-btn" aria-pressed="false">Marketplace</button>
+            </div>
+          </div>
+          <div class="pf-grupo-control">
+            <span class="pf-rubro">Filtros</span>
+            <div class="pf-filtros" role="group" aria-label="Filtros del Portafolio">
+              <button class="pf-filtro-btn" aria-expanded="false">Estado ▾</button>
+              <button class="pf-filtro-btn" aria-expanded="false">Marketplace ▾</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AG-D8 decisión 7: SEGUNDA puerta a la reconciliación. La acción se ejecuta en la
+             fila del arnés; esto solo lleva a la lista ya filtrada. -->
+        <div class="pf-puerta">
+          <span>◇</span>
+          <div><b>2 arneses sin origen resuelto.</b> No pueden decir de qué marketplace vienen —
+            sin eso, Reparar y Actualizar no tienen contra qué comparar.</div>
+          <button class="pf-btn-mini acento" onclick="abrirRec()">Resolver origen</button>
+          <span class="badge nuevo">propuesta</span>
+        </div>
+
+        <div class="pf-grupo">
+          <p class="pf-grupo-titulo">Vitalia</p>
+          <ul class="pf-lista">
+            <li>
+              <div class="pf-fila">
+                <span class="pf-emblema" style="background:var(--c-knowledge)">V</span>
+                <span class="pf-fila-id">
+                  <span class="pf-fila-idline"><span class="mono">vitalia</span>
+                    <span class="pf-fila-nombre">Vitalia</span></span>
+                  <span class="pf-fila-descr">Brand overlay Vitalia (salud + bienestar electivo LatAm)</span>
+                </span>
+                <span class="pf-fila-presencia">◇ sin canónico<br />▣ 1 instalac.</span>
+                <span class="pf-fila-chips">
+                  <span class="pf-chip pf-chip-origen-desconocido">origen?</span>
+                  <span class="pf-chip pf-chip-deriva deriva-no-evaluable">deriva-no-evaluable</span>
+                </span>
+                <span class="pf-dot-salud sin-senal" title="sin señal — «no sé» nunca se pinta como «sano»"></span>
+              </div>
+            </li>
+            <li>
+              <div class="pf-fila">
+                <span class="pf-emblema" style="background:var(--c-skill)">R</span>
+                <span class="pf-fila-id">
+                  <span class="pf-fila-idline"><span class="mono">reclutamiento-seleccion</span>
+                    <span class="pf-fila-nombre">Personas que ingresan</span></span>
+                  <span class="pf-fila-descr">reclutamiento y selección · rol × proceso</span>
+                </span>
+                <span class="pf-fila-presencia">◆ canónico v1.1.0<br />▣ 1 instalac.</span>
+                <span class="pf-fila-chips">
+                  <span class="pf-chip mono">vitalia/arneses</span>
+                  <span class="pf-chip pf-chip-deriva al-hilo">al-hilo</span>
+                </span>
+                <span class="pf-dot-salud ok"></span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="pf-grupo">
+          <p class="pf-grupo-titulo">alpacapurpura</p>
+          <ul class="pf-lista">
+            <li>
+              <div class="pf-fila">
+                <span class="pf-emblema" style="background:var(--c-plugin)">H</span>
+                <span class="pf-fila-id">
+                  <span class="pf-fila-idline"><span class="mono">harness</span>
+                    <span class="pf-fila-nombre">Prenter Harness (dev-process kit)</span></span>
+                  <span class="pf-fila-descr">Extractable software-development PROCESS kit</span>
+                </span>
+                <span class="pf-fila-presencia">◆ canónico v0.5.2<br />▣ 2 instalac.</span>
+                <span class="pf-fila-chips">
+                  <span class="pf-chip mono">alpacapurpura/prenter-marketplace</span>
+                  <span class="pf-chip pf-chip-deriva en-deriva">en-deriva</span>
+                </span>
+                <span class="pf-dot-salud atencion"></span>
+              </div>
+            </li>
+            <li>
+              <div class="pf-fila">
+                <span class="pf-emblema" style="background:var(--c-agent)">F</span>
+                <span class="pf-fila-id">
+                  <span class="pf-fila-idline"><span class="mono">frontend-design</span>
+                    <span class="pf-fila-nombre">frontend-design</span></span>
+                  <span class="pf-fila-descr">arnés ajeno — solo se observa, no se opera</span>
+                </span>
+                <span class="pf-fila-presencia">◇ sin canónico<br />▣ 1 instalac.</span>
+                <span class="pf-fila-chips">
+                  <span class="pf-chip mono">anthropics/claude-plugins-official</span>
+                  <span class="pf-chip pf-chip-tipo">referenciada-cc</span>
+                </span>
+                <span class="pf-dot-salud sin-senal"></span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════════════ PLANO MARKETPLACES ════════════════════════ -->
+      <section id="planoMk" class="oculto">
+        <div class="pf-topbar">
+          <div>
+            <h2>Marketplaces</h2>
+            <div class="pf-contadores">
+              4 registrados · 2 propios legibles · <b>el estante de lo que vendemos, y el espejo de si el
+              cliente coincide</b>
+            </div>
+          </div>
+          <button class="pf-btn-primary" onclick="abrirWizard('mk')">＋ Agregar</button>
+        </div>
+
+        <p class="pf-wizard-nota" style="margin-bottom:12px">
+          <b>propio</b> = publicamos ahí → catálogo navegable, «Traer canónico» habilitado ·
+          <b>de referencia</b> = solo resuelve la procedencia de arneses ajenos → catálogo read-only,
+          <b>sin Traer</b>. La visión mata «operar arneses de terceros» (`vision.md` §Qué mutó), así
+          que las dos clases NO son simétricas.
+        </p>
+
+        <ul class="mk-lista">
+          <!-- propio, legible, con pendientes accionables -->
+          <li>
+            <button class="mk-fila" onclick="verCatalogo('propio')">
+              <span class="mk-glifo">🏷</span>
+              <span class="mk-id">
+                <span class="mk-url">github.com/alpacapurpura/prenter-marketplace</span>
+                <span class="mk-meta">
+                  <span class="mk-clase propio">propio</span>
+                  <span>8 entradas de catálogo</span>
+                  <span>·</span>
+                  <span>leído hace 4 min</span>
+                </span>
+              </span>
+              <span class="mk-pendientes">
+                <span><span class="pf-chip pf-chip-deriva en-deriva">2 con cambios sin publicar</span></span>
+                <span><span class="pf-chip pf-chip-aviso">1 desactualizado respecto del estante</span></span>
+              </span>
+              <span class="mk-alcance">ver catálogo →</span>
+            </button>
+          </li>
+
+          <!-- propio pero SIN ACCESO — degrada honesto, jamás catálogo vacío -->
+          <li>
+            <div class="mk-fila inerte">
+              <span class="mk-glifo">🔒</span>
+              <span class="mk-id">
+                <span class="mk-url">github.com/vitalia/arneses</span>
+                <span class="mk-meta">
+                  <span class="mk-clase propio">propio</span>
+                  <span class="pf-chip pf-chip-aviso">sin acceso — gh no autenticado y no hay PAT
+                    guardado</span>
+                </span>
+              </span>
+              <span class="mk-pendientes prosa pf-mut">catálogo no legible — <b>no</b> es «no tiene arneses»</span>
+              <span class="mk-alcance"><button class="pf-btn-mini">Reintentar</button></span>
+            </div>
+          </li>
+
+          <!-- de referencia -->
+          <li>
+            <button class="mk-fila" onclick="verCatalogo('ref')">
+              <span class="mk-glifo">📚</span>
+              <span class="mk-id">
+                <span class="mk-url">github.com/anthropics/claude-plugins-official</span>
+                <span class="mk-meta">
+                  <span class="mk-clase referencia">de referencia</span>
+                  <span>41 entradas de catálogo</span>
+                  <span>·</span>
+                  <span>leído hace 2 días</span>
+                </span>
+              </span>
+              <span class="mk-pendientes prosa pf-mut">resuelve procedencia de 1 arnés tuyo</span>
+              <span class="mk-alcance">ver catálogo (read-only) →</span>
+            </button>
+          </li>
+
+          <!-- registrado pero nunca leído -->
+          <li>
+            <div class="mk-fila inerte">
+              <span class="mk-glifo">◌</span>
+              <span class="mk-id">
+                <span class="mk-url">github.com/nordia/plugins-rrhh</span>
+                <span class="mk-meta">
+                  <span class="mk-clase propio">propio</span>
+                  <span class="pf-chip pf-chip-deriva deriva-no-evaluable">no leído aún</span>
+                </span>
+              </span>
+              <span class="mk-pendientes prosa pf-mut">registrado, sin lectura — nada que afirmar todavía</span>
+              <span class="mk-alcance"><button class="pf-btn-mini acento">Leer catálogo</button></span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ════════════════════ CATÁLOGO · marketplace PROPIO ════════════════════ -->
+      <section id="catPropio" class="oculto">
+        <div class="cat-head">
+          <button class="pf-btn-mini" onclick="verPlano('mk')">← Marketplaces</button>
+          <h3 class="mono">alpacapurpura/prenter-marketplace</h3>
+          <span class="mk-clase propio">propio</span>
+        </div>
+        <p class="cat-sub">
+          <!-- AG-D11: se cuentan ENTRADAS de índice (canales instalables), no arneses físicos —
+               `harness` y `harness-beta` son 2 entradas de 1 contenido. El contador tiene que
+               coincidir con las filas: 7 filas = 7 entradas + 1 en lazy. -->
+          8 entradas de catálogo · leído hace 4 min · <button class="pf-btn-mini">↻ Refrescar</button>
+          &nbsp; La lectura es <b>cacheada</b>: la app es conductor, no proxy — sin red el plano sigue
+          legible, y la fila siempre dice <i>cuándo</i> se leyó.
+        </p>
+
+        <!-- AG-D3 heredado: buscador + filtro (+ lazy abajo) -->
+        <div class="pf-toolbar">
+          <input class="pf-buscar" type="search" placeholder="Buscar en el catálogo…" />
+          <div class="pf-grupo-control">
+            <span class="pf-rubro">Filtros</span>
+            <div class="pf-filtros">
+              <button class="pf-filtro-btn" aria-expanded="false">Situación ▾</button>
+              <button class="pf-filtro-btn" aria-expanded="false">Empresa ▾</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AG-D8 decisión 6: la fila muestra SITUACIÓN, y la acción que aplica. -->
+        <ul class="cat-lista">
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-skill)">D</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">dev-full-cycle</span>
+                <span class="pf-fila-nombre">Developer full-cycle</span></span>
+              <span class="pf-fila-descr">v0.1.0 · rol × proceso · alpacapurpura</span>
+            </span>
+            <span class="cat-situacion">◇ no lo tengo</span>
+            <span class="cat-accion">
+              <button class="pf-btn-mini acento">↧ Traer canónico</button>
+            </span>
+          </li>
+
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-knowledge)">C</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">code-review-base</span>
+                <span class="pf-fila-nombre">Code review · base</span></span>
+              <span class="pf-fila-descr">v2.0.0 · base · varias empresas</span>
+            </span>
+            <span class="cat-situacion">
+              <span class="pf-dot-salud ok"></span> lo tengo ·
+              <span class="pf-chip pf-chip-deriva al-hilo">al-hilo</span>
+            </span>
+            <span class="cat-accion"><span class="pf-mut" style="font-size:var(--text-xs)">nada que hacer ·
+              <u>ver ficha</u></span></span>
+          </li>
+
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-plugin)">H</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">harness</span>
+                <span class="pf-fila-nombre">Prenter Harness</span></span>
+              <span class="pf-fila-descr">estante v0.5.2 · tu canónico v0.5.4</span>
+            </span>
+            <span class="cat-situacion">
+              <span class="pf-dot-salud atencion"></span> mi copia adelantada
+            </span>
+            <span class="cat-accion">
+              <!-- BR-10 (design.md §2 C5): fuera de alcance de este paquete ⇒ el par disabled+tooltip
+                   es obligatorio. El dibujo los tenía habilitados; el spec gana. -->
+              <button class="pf-btn-mini acento" disabled
+                      title="próximo · ítem 3 del outcome (Publicar), gate propio">Publicar</button>
+              <span class="badge nuevo">ítem 3</span>
+            </span>
+          </li>
+
+          <!-- AG-D11 (FIRMADA 2026-07-25) — dos entradas del índice comparten `source`
+               (./plugins/harness/0.5.3): son CANALES, no dos arneses. Una fila por canal, porque el
+               nombre instalable es el dato operativo; chip que aclara que el contenido es el mismo. -->
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-plugin)">H</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">harness-beta</span>
+                <span class="pf-fila-nombre">Canal BETA</span></span>
+              <span class="pf-fila-descr">v0.5.3 ·
+                <span class="pf-chip">mismo contenido que <span class="mono">harness</span></span></span>
+            </span>
+            <span class="cat-situacion">◇ no lo tengo</span>
+            <span class="cat-accion">
+              <button class="pf-btn-mini acento">↧ Traer canónico</button>
+            </span>
+          </li>
+
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-agent)">U</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">ux-nordia</span>
+                <span class="pf-fila-nombre">Diseño UX Nordia</span></span>
+              <span class="pf-fila-descr">estante v0.3.1 · tu canónico v0.2.0</span>
+            </span>
+            <span class="cat-situacion">
+              <span class="pf-dot-salud atencion"></span> el estante adelantado
+            </span>
+            <span class="cat-accion">
+              <button class="pf-btn-mini acento" disabled
+                      title="próximo · ítem 4 del outcome (Update-check), gate propio">Actualizar mi copia</button>
+              <span class="badge nuevo">ítem 4</span>
+            </span>
+          </li>
+
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-skill)">R</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">reclutamiento-seleccion</span>
+                <span class="pf-fila-nombre">Personas que ingresan</span></span>
+              <span class="pf-fila-descr">v1.1.0 · 3 instalaciones en proyectos de cliente</span>
+            </span>
+            <span class="cat-situacion">
+              <span class="pf-dot-salud atencion"></span> 2 instalaciones ·
+              <span class="pf-chip pf-chip-deriva en-deriva">en-deriva</span>
+            </span>
+            <span class="cat-accion">
+              <button class="pf-btn-mini acento" disabled
+                      title="próximo · ítem 5 del outcome (Reparar/Backport), gate propio">Reparar</button>
+              <span class="badge nuevo">ítem 5</span>
+            </span>
+          </li>
+
+          <!-- BR-9 / spec §4.3 — 6ta rama OBLIGATORIA: falta un insumo para comparar. Sin esta rama
+               el sistema tendría que mentir («al-hilo» por defecto) o callarse. Se pinta con
+               sin-senal (NUNCA el color de ok) + motivo textual. -->
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-mcp)">L</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">legacy-onboarding</span></span>
+              <span class="pf-fila-descr">source <span class="mono">./plugins/legacy-onboarding/latest</span>
+                — sin versión derivable</span>
+            </span>
+            <span class="cat-situacion">
+              <span class="pf-dot-salud sin-senal"></span> no comparable
+              <span class="pf-chip pf-chip-aviso">el estante no declara versión semver en la ruta —
+                no se puede afirmar si estás al día</span>
+            </span>
+            <span class="cat-accion">
+              <button class="pf-btn-mini acento">↧ Traer canónico</button>
+            </span>
+          </li>
+        </ul>
+
+        <div class="cat-lazy">↓ 1 más — se carga al llegar acá (lazy loading, AG-D3)</div>
+      </section>
+
+      <!-- ════════════ CATÁLOGO · marketplace DE REFERENCIA (read-only) ════════════ -->
+      <section id="catRef" class="oculto">
+        <div class="cat-head">
+          <button class="pf-btn-mini" onclick="verPlano('mk')">← Marketplaces</button>
+          <h3 class="mono">anthropics/claude-plugins-official</h3>
+          <span class="mk-clase referencia">de referencia</span>
+        </div>
+        <p class="cat-sub">
+          41 entradas de catálogo · leído hace 2 días · <button class="pf-btn-mini">↻ Refrescar</button><br />
+          <b>Read-only por diseño.</b> Este marketplace existe acá para que un arnés ajeno pueda decir
+          de dónde viene. «Traer canónico» <b>no aplica</b> — habilitarlo sería operar arneses de
+          terceros, y eso está muerto por visión (`vision.md` §Qué mutó · `CLAUDE.md` «solo arneses
+          propios»).
+        </p>
+        <div class="pf-toolbar">
+          <input class="pf-buscar" type="search" placeholder="Buscar en el catálogo…" />
+        </div>
+        <ul class="cat-lista">
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-agent)">F</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">frontend-design</span>
+                <span class="pf-fila-nombre">frontend-design</span></span>
+              <span class="pf-fila-descr">vunknown · anthropics</span>
+            </span>
+            <span class="cat-situacion">
+              <span class="pf-dot-salud sin-senal"></span> resuelve el origen de 1 arnés tuyo
+            </span>
+            <span class="cat-accion">
+              <button class="pf-btn-mini" disabled title="no aplica: solo arneses propios">↧ Traer canónico</button>
+            </span>
+          </li>
+          <li class="cat-fila">
+            <span class="pf-emblema" style="background:var(--c-knowledge)">?</span>
+            <span class="pf-fila-id">
+              <span class="pf-fila-idline"><span class="mono">…40 más</span></span>
+              <span class="pf-fila-descr">catálogo completo, solo para procedencia</span>
+            </span>
+            <span class="cat-situacion pf-mut">ninguno en tu portafolio</span>
+            <span class="cat-accion"></span>
+          </li>
+        </ul>
+        <div class="cat-lazy">↓ 39 más — lazy loading</div>
+      </section>
+
+      <div class="pie-leyenda">
+        <span><span class="badge viejo">vigente</span> línea base firmada (PARIDAD Slice 1)</span>
+        <span><span class="badge nuevo">propuesta</span> lo que agrega este mockup</span>
+        <span>decisiones: AG-D1 · D3 · D4 · D6 · D7 · D8</span>
+        <span>tokens = <span class="mono">web/src/app/styles/theme.css</span> (dark)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ WIZARD ══════════════════════════════ -->
+<div class="scrim" id="scrim" onclick="if(event.target===this)cerrarTodo()">
+
+  <!-- ── rama PROYECTO — máquina de estados, un paso a la vez (AG-D6) ── -->
+  <div class="pf-wizard" id="wzProyecto" role="dialog" aria-modal="true" aria-labelledby="wzTitulo">
+    <div class="pf-wizard-head">
+      <h2 id="wzTitulo">Agregar al portafolio</h2>
+      <button class="pf-drawer-cerrar" aria-label="Cerrar" onclick="cerrarTodo()">✕</button>
+    </div>
+    <div class="pf-wizard-tabs" role="tablist" aria-label="Fuente del arnés">
+      <button class="pf-wizard-tab activa" role="tab" aria-selected="true"
+              onclick="wzTab('proyecto')">Proyecto <span class="badge viejo">vigente</span></button>
+      <button class="pf-wizard-tab" role="tab" aria-selected="false"
+              onclick="wzTab('mk')">Marketplace <span class="badge nuevo">propuesta</span></button>
+    </div>
+
+    <!-- estado 1 · fuente -->
+    <div id="e1">
+      <div class="pf-wizard-fuente">
+        <span class="pf-faceta-label">Paso 1 de 2 · origen</span>
+        <div class="pf-wizard-radios" role="radiogroup" aria-label="Origen del proyecto">
+          <label class="pf-wizard-radio"><input type="radio" name="src" checked /> Carpeta local</label>
+          <label class="pf-wizard-radio" title="próximo · S2">
+            <input type="radio" name="src" disabled /> Repositorio GitHub
+            <span class="badge">S2</span></label>
+        </div>
+        <span class="pf-faceta-label">Cómo cargar la ruta</span>
+        <div class="pf-wizard-radios" role="radiogroup" aria-label="Cómo indicar la carpeta">
+          <label class="pf-wizard-radio"><input type="radio" name="modo" checked /> Escribir ruta</label>
+          <label class="pf-wizard-radio"><input type="radio" name="modo" /> Elegir carpeta</label>
+        </div>
+        <div class="pf-wizard-path-row">
+          <input class="pf-wizard-input" value="/home/chalreme/Proyectos/vitalia-rrhh" />
+        </div>
+      </div>
+      <div class="pf-wizard-pie">
+        <!-- AG-D6: Cancelar sale del flujo completo. Atrás no existe en el primer paso —
+             deshabilitado y visible, no oculto (mismo criterio que el resto del Portafolio). -->
+        <button class="pf-btn-secundario" disabled title="ya estás en el primer paso">← Atrás</button>
+        <div class="derecha">
+          <button class="pf-btn-secundario" onclick="cerrarTodo()">Cancelar</button>
+          <button class="pf-btn-primary" onclick="paso('e2')">Escanear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- estado 2 · escaneando -->
+    <div id="e2" class="oculto">
+      <div class="pf-wizard-fuente">
+        <span class="pf-faceta-label">Paso 1 de 2 · origen</span>
+        <div class="pf-wizard-path-row">
+          <input class="pf-wizard-input" value="/home/chalreme/Proyectos/vitalia-rrhh" disabled />
+        </div>
+        <div class="pf-wizard-spinner"><span class="pf-wizard-spinner-glifo"></span> Escaneando…</div>
+      </div>
+      <div class="pf-wizard-pie">
+        <button class="pf-btn-secundario" onclick="paso('e1')">← Atrás</button>
+        <div class="derecha">
+          <button class="pf-btn-secundario" onclick="cerrarTodo()">Cancelar</button>
+          <button class="pf-btn-primary" onclick="paso('e3')">(simular resultado)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- estado 3 · candidatos -->
+    <div id="e3" class="oculto">
+      <!-- W4 del mockup viejo SÍ se toma: el contador de hallazgos. -->
+      <span class="pf-faceta-label">Paso 2 de 2 · escaneo — encontrados 5 arneses</span>
+      <p class="pf-wizard-nota" style="margin:6px 0 10px">
+        Escaneado: <span class="mono">/home/chalreme/Proyectos/vitalia-rrhh</span> —
+        <button class="pf-btn-mini" onclick="paso('e1')">cambiar ruta</button>
+      </p>
+
+      <!-- AG-D3: buscador + filtro dentro de la lista, porque AG-D7 obliga a tildar a mano -->
+      <div class="pf-wizard-sub" style="margin-bottom:10px">
+        <input class="pf-buscar" type="search" placeholder="Buscar entre los hallazgos…" />
+        <button class="pf-filtro-btn" aria-expanded="false">Situación ▾</button>
+        <button class="pf-filtro-btn" aria-expanded="false">Origen ▾</button>
+      </div>
+
+      <!-- AG-D7: NADA premarcado. El operador tilda lo que quiere. -->
+      <ul class="pf-wizard-lista">
+        <li class="pf-wizard-candidato">
+          <label class="pf-wizard-candidato-check">
+            <input type="checkbox" onchange="contar()" class="cand" />
+            <span class="mono">reclutamiento-seleccion</span>
+            <span class="pf-mut">Personas que ingresan</span>
+          </label>
+          <span class="pf-wizard-candidato-meta">
+            <span>v1.1.0</span><span class="mono">vitalia/arneses</span>
+            <span class="pf-chip pf-chip-tipo">materializada</span>
+            <span class="pf-chip pf-chip-deriva al-hilo">al-hilo</span>
+          </span>
+        </li>
+        <li class="pf-wizard-candidato">
+          <label class="pf-wizard-candidato-check">
+            <input type="checkbox" onchange="contar()" class="cand" />
+            <span class="mono">legal-administrativo</span>
+            <span class="pf-chip">sin manifiesto</span>
+          </label>
+          <span class="pf-wizard-candidato-meta">
+            <span>v?</span><span>origen desconocido</span>
+            <span class="pf-chip pf-chip-deriva deriva-no-evaluable">deriva-no-evaluable</span>
+          </span>
+        </li>
+        <li class="pf-wizard-candidato">
+          <label class="pf-wizard-candidato-check">
+            <input type="checkbox" onchange="contar()" class="cand" />
+            <span class="mono">clima-cultura</span>
+            <span class="pf-chip pf-chip-ya-presente"
+                  style="border-color:var(--primary);background:var(--accent-soft)">ya en el portafolio</span>
+          </label>
+          <span class="pf-wizard-candidato-meta">
+            <span>v1.0.0</span><span class="mono">vitalia/arneses</span>
+            <span class="pf-chip pf-chip-tipo">referenciada-cc</span>
+          </span>
+        </li>
+        <li class="pf-wizard-candidato">
+          <label class="pf-wizard-candidato-check">
+            <input type="checkbox" onchange="contar()" class="cand" />
+            <span class="mono">harness</span>
+          </label>
+          <span class="pf-wizard-candidato-meta">
+            <span>v0.5.2</span><span class="mono">alpacapurpura/prenter-marketplace</span>
+            <span class="pf-chip pf-chip-deriva en-deriva">en-deriva</span>
+          </span>
+          <span class="pf-chip pf-chip-aviso">enabledPlugins declara «harness@prenter-marketplace» pero
+            sin record de instalación para esta ruta</span>
+        </li>
+        <li class="pf-wizard-candidato">
+          <label class="pf-wizard-candidato-check">
+            <input type="checkbox" onchange="contar()" class="cand" />
+            <span class="mono">hipaa-check</span>
+            <span class="pf-mut">Chequeo HIPAA-lite</span>
+          </label>
+          <span class="pf-wizard-candidato-meta">
+            <span>v0.2.0</span><span>origen desconocido</span>
+            <span class="pf-chip pf-chip-tipo">proyecto-instalado</span>
+          </span>
+        </li>
+      </ul>
+      <div class="cat-lazy">↓ el escaneo sigue trayendo — lazy loading (AG-D3)</div>
+
+      <div class="pf-wizard-pie">
+        <button class="pf-btn-secundario" onclick="paso('e1')">← Atrás</button>
+        <div class="derecha">
+          <p class="pf-wizard-nota">espejos read-only — la única copia editable es el canónico.</p>
+          <button class="pf-btn-secundario" onclick="cerrarTodo()">Cancelar</button>
+          <button class="pf-btn-primary" id="btnAgregar" disabled>Agregar 0 al portafolio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── rama MARKETPLACE — SOLO REGISTRAR (AG-D8 decisión 8) ── -->
+  <div class="pf-wizard oculto" id="wzMk" role="dialog" aria-modal="true">
+    <div class="pf-wizard-head">
+      <h2>Agregar al portafolio</h2>
+      <button class="pf-drawer-cerrar" aria-label="Cerrar" onclick="cerrarTodo()">✕</button>
+    </div>
+    <div class="pf-wizard-tabs" role="tablist">
+      <button class="pf-wizard-tab" role="tab" aria-selected="false"
+              onclick="wzTab('proyecto')">Proyecto <span class="badge viejo">vigente</span></button>
+      <button class="pf-wizard-tab activa" role="tab" aria-selected="true">Marketplace
+        <span class="badge nuevo">propuesta</span></button>
+    </div>
+
+    <div class="pf-wizard-fuente">
+      <span class="pf-faceta-label">Registrar un marketplace</span>
+      <p class="pf-wizard-nota">
+        Acá <b>solo se registra</b>. Elegir arneses y traerlos pasa en el plano
+        <b>Marketplaces</b>, que tiene espacio para un catálogo — un catálogo no cabe en un modal.
+      </p>
+      <div class="pf-wizard-path-row">
+        <input class="pf-wizard-input" value="https://github.com/nordia/plugins-rrhh" />
+        <button class="pf-btn-secundario">Validar</button>
+      </div>
+      <p class="pf-wizard-nota">se valida que exista <span class="mono">marketplace.json</span> legible
+        en el default branch. Sin respuesta real, no se pinta ningún ✓ (criterio G3).</p>
+
+      <span class="pf-faceta-label" style="margin-top:6px">Clase</span>
+      <div class="pf-wizard-radios" role="radiogroup" aria-label="Clase de marketplace">
+        <label class="pf-wizard-radio"><input type="radio" name="clase" checked /> Propio</label>
+        <label class="pf-wizard-radio"><input type="radio" name="clase" /> De referencia</label>
+      </div>
+      <p class="pf-wizard-nota">
+        <b>Propio</b> = publicamos ahí; habilita traer / publicar / actualizar / reparar.
+        <b>De referencia</b> = solo resuelve procedencia de arneses ajenos; catálogo read-only.
+      </p>
+    </div>
+
+    <div class="pf-wizard-pie">
+      <button class="pf-btn-secundario" disabled title="un solo paso">← Atrás</button>
+      <div class="derecha">
+        <button class="pf-btn-secundario" onclick="cerrarTodo()">Cancelar</button>
+        <!-- aterriza en el plano, no se queda en el modal -->
+        <button class="pf-btn-primary" onclick="registrarYAterrizar()">Registrar y ver catálogo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── reconciliación — AG-D8 decisión 7 ── -->
+  <div class="rec oculto" id="recDlg" role="dialog" aria-modal="true">
+    <h2>Resolver origen — <span class="mono">legal-administrativo</span></h2>
+    <p class="pf-wizard-nota">
+      Este arnés no puede decir de dónde viene. Elegí su marketplace de origen entre los que ArnesIA
+      ya conoce. <b>Nadie decide por vos:</b> el orden es solo una sugerencia por señales blandas
+      (nombre y autor del <span class="mono">plugin.json</span>) — vos confirmás.
+    </p>
+    <!-- NINGUNA opción viene premarcada y «Confirmar» nace deshabilitado: el orden es sugerencia,
+         la elección es del operador (PENDIENTE-01 §3). Mismo criterio que AG-D7 en los hallazgos. -->
+    <ul class="rec-opciones">
+      <li><label class="rec-op"><input type="radio" name="dest" onchange="recElegir()" />
+        <span class="mono">vitalia/arneses</span>
+        <span class="rec-senal">autor coincide · propio</span></label></li>
+      <li><label class="rec-op"><input type="radio" name="dest" onchange="recElegir()" />
+        <span class="mono">alpacapurpura/prenter-marketplace</span>
+        <span class="rec-senal">propio</span></label></li>
+      <li><label class="rec-op"><input type="radio" name="dest" onchange="recElegir()" />
+        <span class="mono">nordia/plugins-rrhh</span>
+        <span class="rec-senal">propio · no leído aún</span></label></li>
+      <li><label class="rec-op"><input type="radio" name="dest" onchange="recElegir()" />
+        <span>ninguno — dejarlo sin origen</span>
+        <span class="rec-senal">honesto, no se inventa un home</span></label></li>
+    </ul>
+    <div class="pf-wizard-pie">
+      <button class="pf-btn-secundario" onclick="cerrarTodo()">Cancelar</button>
+      <div class="derecha">
+        <button class="pf-btn-primary" id="btnRec" disabled
+                title="elegí un destino primero">Confirmar origen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="temabtn" title="Tema" onclick="
+  var r=document.documentElement;
+  r.setAttribute('data-theme', r.getAttribute('data-theme')==='dark'?'light':'dark');">◐</button>
+
+<script>
+  // dark-first: el shell arranca en dark tras el rebrand PRENTER; el toggle existe igual.
+  document.documentElement.setAttribute('data-theme','dark');
+
+  const $ = (id) => document.getElementById(id);
+  const secciones = ['planoArneses','planoMk','catPropio','catRef'];
+
+  function verPlano(cual){
+    secciones.forEach(s => $(s).classList.add('oculto'));
+    $('tabArneses').classList.toggle('activa', cual==='arneses');
+    $('tabArneses').setAttribute('aria-selected', cual==='arneses');
+    $('tabMk').classList.toggle('activa', cual!=='arneses');
+    $('tabMk').setAttribute('aria-selected', cual!=='arneses');
+    $(cual==='arneses' ? 'planoArneses' : 'planoMk').classList.remove('oculto');
+  }
+  function verCatalogo(cual){
+    secciones.forEach(s => $(s).classList.add('oculto'));
+    $(cual==='propio' ? 'catPropio' : 'catRef').classList.remove('oculto');
+    $('tabMk').classList.add('activa'); $('tabArneses').classList.remove('activa');
+  }
+
+  function abrirWizard(rama){ $('scrim').classList.add('on'); wzTab(rama); paso('e1'); }
+  function wzTab(rama){
+    $('wzProyecto').classList.toggle('oculto', rama!=='proyecto');
+    $('wzMk').classList.toggle('oculto', rama!=='mk');
+    $('recDlg').classList.add('oculto');
+  }
+  function abrirRec(){
+    $('scrim').classList.add('on');
+    $('wzProyecto').classList.add('oculto'); $('wzMk').classList.add('oculto');
+    $('recDlg').classList.remove('oculto');
+  }
+  function cerrarTodo(){ $('scrim').classList.remove('on'); }
+  function paso(id){
+    ['e1','e2','e3'].forEach(e => $(e).classList.toggle('oculto', e!==id));
+  }
+  // AG-D7 — el contador sigue lo TILDADO, arranca en 0 y el botón nace deshabilitado.
+  function contar(){
+    const n = document.querySelectorAll('.cand:checked').length;
+    const b = $('btnAgregar');
+    b.textContent = 'Agregar ' + n + ' al portafolio';
+    b.disabled = n === 0;
+  }
+  function recElegir(){
+    const b = $('btnRec');
+    b.disabled = false;
+    b.removeAttribute('title');
+  }
+  function registrarYAterrizar(){ cerrarTodo(); verCatalogo('propio'); }
+
+  document.addEventListener('keydown', e => { if(e.key==='Escape') cerrarTodo(); });
+</script>
