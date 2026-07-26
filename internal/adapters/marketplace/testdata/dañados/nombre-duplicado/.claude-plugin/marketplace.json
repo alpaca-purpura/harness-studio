@@ -1,0 +1,9 @@
+{
+  "name": "nombre-duplicado",
+  "owner": { "name": "Prenter" },
+  "plugins": [
+    { "name": "harness", "source": "./plugins/harness/0.5.3", "description": "primera" },
+    { "name": "harness", "source": "./plugins/harness/0.5.2", "description": "segunda" },
+    { "name": "otro", "source": "./plugins/otro/1.0.0" }
+  ]
+}

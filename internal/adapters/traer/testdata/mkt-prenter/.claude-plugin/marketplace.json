@@ -1,0 +1,22 @@
+{
+  "name": "prenter-marketplace",
+  "owner": {
+    "name": "Prenter",
+    "email": "hola@alpacapurpura.lat"
+  },
+  "metadata": {
+    "description": "Private Prenter marketplace (instancia 0 — KIT-06/I-72). Access = your git credentials (client code). Channels are index entries; catalogo.json is the version-state SSoT."
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness/0.5.3",
+      "description": "Canal ESTABLE — tech/sistema-agnostic dev-process kit (SDD spine, gates, roles, embedded telemetry). Reads the seam (project.config.yaml)."
+    },
+    {
+      "name": "harness-beta",
+      "source": "./plugins/harness/0.5.3",
+      "description": "Canal BETA (beta-testing) — same kit, pre-promotion. One channel per machine: switching = uninstall + install."
+    }
+  ]
+}

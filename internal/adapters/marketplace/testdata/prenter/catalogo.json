@@ -1,0 +1,34 @@
+{
+  "marketplace": "prenter-marketplace",
+  "instancia": "prenter",
+  "canales": {
+    "estable": "0.5.3",
+    "beta": "0.5.3"
+  },
+  "versiones": [
+    {
+      "version": "0.5.0",
+      "estado": "habilitada",
+      "fuente": "prenter-harness@v0.5.0",
+      "fecha": "2026-07-02"
+    },
+    {
+      "version": "0.5.1",
+      "estado": "deprecada",
+      "fuente": "prenter-harness@v0.5.1",
+      "fecha": "2026-07-02"
+    },
+    {
+      "version": "0.5.2",
+      "estado": "habilitada",
+      "fuente": "prenter-harness@v0.5.2",
+      "fecha": "2026-07-02"
+    },
+    {
+      "version": "0.5.3",
+      "estado": "habilitada",
+      "fuente": "prenter-harness@v0.5.3",
+      "fecha": "2026-07-03"
+    }
+  ]
+}

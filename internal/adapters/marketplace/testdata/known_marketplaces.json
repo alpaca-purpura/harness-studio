@@ -1,0 +1,42 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "/home/chalreme/.claude/plugins/marketplaces/claude-plugins-official",
+    "lastUpdated": "2026-07-24T17:15:06.920Z"
+  },
+  "caveman": {
+    "source": {
+      "source": "github",
+      "repo": "JuliusBrussee/caveman"
+    },
+    "installLocation": "/home/chalreme/.claude/plugins/marketplaces/caveman",
+    "lastUpdated": "2026-06-02T21:24:11.366Z"
+  },
+  "claude-code-warp": {
+    "source": {
+      "source": "github",
+      "repo": "warpdotdev/claude-code-warp"
+    },
+    "installLocation": "/home/chalreme/.claude/plugins/marketplaces/claude-code-warp",
+    "lastUpdated": "2026-06-09T15:45:17.186Z"
+  },
+  "ponytail": {
+    "source": {
+      "source": "github",
+      "repo": "DietrichGebert/ponytail"
+    },
+    "installLocation": "/home/chalreme/.claude/plugins/marketplaces/ponytail",
+    "lastUpdated": "2026-07-22T20:33:42.715Z"
+  },
+  "prenter-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "alpacapurpura/prenter-marketplace"
+    },
+    "installLocation": "/home/chalreme/.claude/plugins/marketplaces/prenter-marketplace",
+    "lastUpdated": "2026-07-10T00:36:43.459Z"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "source-raro",
+  "owner": { "name": "Prenter" },
+  "plugins": [
+    { "name": "raro", "source": 42 }
+  ]
+}

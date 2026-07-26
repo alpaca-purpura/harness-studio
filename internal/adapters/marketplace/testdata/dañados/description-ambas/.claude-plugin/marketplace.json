@@ -1,0 +1,7 @@
+{
+  "name": "description-ambas",
+  "description": "la top-level gana",
+  "metadata": { "description": "la de metadata pierde" },
+  "owner": { "name": "Prenter" },
+  "plugins": [ { "name": "x", "source": "./x" } ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "harness",
+  "displayName": "Prenter Harness (dev-process kit)",
+  "version": "0.5.3",
+  "description": "Extractable software-development PROCESS kit (idea→done lifecycle, gates, roles, DoD, safety, learning-capture). Tech/sistema-agnostic; reads project.config.yaml (the seam). Includes embedded telemetry (medicion.schema emitter — safe-stratum egress only, KIT-03). Always-on rules ship via the SessionStart hook (slim core ≤10k) + the /harness:bootstrap skill (full corpus copy), since plugins have no always-on-rules channel.",
+  "author": { "name": "Prenter", "email": "hola@alpacapurpura.lat" },
+  "keywords": ["sdd", "spec-driven-development", "process", "harness", "telemetry"]
+}

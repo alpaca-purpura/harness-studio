@@ -1,0 +1,9 @@
+{
+  "name": "version-null-explicito",
+  "owner": { "name": "Prenter" },
+  "plugins": [
+    { "name": "con-null", "source": "./plugins/con-null", "version": null },
+    { "name": "con-vacio", "source": "./plugins/con-vacio", "version": "" },
+    { "name": "con-semver", "source": "./plugins/con-semver/0.1.0", "version": "2.1.0" }
+  ]
+}

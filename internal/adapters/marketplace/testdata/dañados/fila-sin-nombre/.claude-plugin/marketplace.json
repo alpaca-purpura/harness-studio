@@ -1,0 +1,8 @@
+{
+  "name": "fila-sin-nombre",
+  "owner": { "name": "Prenter" },
+  "plugins": [
+    { "source": "./x" },
+    { "name": "sano", "source": "./plugins/sano/1.0.0" }
+  ]
+}
