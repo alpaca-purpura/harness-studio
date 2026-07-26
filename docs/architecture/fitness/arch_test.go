@@ -261,12 +261,132 @@ func TestSegundoAdaptadorPosible(t *testing.T) {
 }
 
 // --- conductor-no-parsea-jsonl.md ---
-// El JSONL solo se enumera/replaya; su schema no se decodifica en casos de uso.
-// (Chequeo estructural completo requiere el código; placeholder honesto por ahora.)
 
+// jsonlExento lista, POR RUTA y con la razón escrita, los paquetes a los que este check NO
+// aplica. Es una lista por prefijo de ruta, no un patrón: agregar un segundo paquete exige
+// tocar este test, que es exactamente el punto.
+var jsonlExento = map[string]string{
+	// internal/adapters/history es EL lector de replay del historial B2 (RF-200/201): su
+	// trabajo ES leer el JSONL de ~/.claude para reconstruir conversaciones cerradas. Ya está
+	// declarado así en .go-arch-lint.yml (`history: mayDependOn: [domain]`) y en el propio
+	// boundary conductor-no-parsea-jsonl.md, que separa «enumerar/replayar» de «tratar el
+	// schema como contrato de los eventos vivos».
+	"internal/adapters/history": "lector de replay del historial B2 — enumerar/replayar es su oficio",
+}
+
+// jsonlDecoders son las llamadas de decodificación que el scan busca.
+var jsonlDecoders = []string{"json.Unmarshal", "json.NewDecoder", "json.RawMessage"}
+
+// jsonlPistas son las marcas que convierten una decodificación cualquiera en «decodificación
+// del schema del transcript». Se buscan en la MISMA línea y en la línea previa (el comentario
+// que la encabeza), que es donde vive el contexto en este árbol.
+var jsonlPistas = []string{"transcript", "jsonl", "~/.claude/projects", ".claude/projects"}
+
+// escaneaJSONLSchema recorre las rutas dadas y devuelve los hallazgos «archivo:línea».
+// Se expone como función (y no inline en el test) para poder correrla contra un fixture en
+// memoria: sin eso, un scanner roto que no encuentra nada daría verde por vacío.
+func escaneaJSONLSchema(t *testing.T, fuentes map[string]string) []string {
+	t.Helper()
+	var hallazgos []string
+	for ruta, src := range fuentes {
+		lineas := strings.Split(src, "\n")
+		for i, ln := range lineas {
+			bajo := strings.ToLower(ln)
+			tieneDecoder := false
+			for _, d := range jsonlDecoders {
+				if strings.Contains(ln, d) {
+					tieneDecoder = true
+					break
+				}
+			}
+			if !tieneDecoder {
+				continue
+			}
+			contexto := bajo
+			if i > 0 {
+				contexto = strings.ToLower(lineas[i-1]) + "\n" + bajo
+			}
+			for _, p := range jsonlPistas {
+				if strings.Contains(contexto, p) {
+					hallazgos = append(hallazgos, fmt.Sprintf("%s:%d: %s", ruta, i+1, strings.TrimSpace(ln)))
+					break
+				}
+			}
+		}
+	}
+	slices.Sort(hallazgos)
+	return hallazgos
+}
+
+// TestNoJSONLSchemaParsing enforces conductor-no-parsea-jsonl: el JSONL de ~/.claude se
+// ENUMERA y se REPLAYA (eso es del lector de historial), pero su schema no se decodifica como
+// contrato de los eventos vivos — esos salen del stream-json del subproceso conductor, y el
+// adaptador claudecode es su único dueño.
+//
+// Dejó de ser un t.Skip con TODO (deuda D8/D14.4): un check que no corre es un pass fabricado
+// con otro nombre. Ahora es un source-scan con exención declarada por ruta + control positivo.
 func TestNoJSONLSchemaParsing(t *testing.T) {
-	t.Skip("TODO(fase 5): asegurar que ningún caso de uso json.Unmarshal-ea el transcript interno; " +
-		"los eventos vivos vienen de stream-json (ver conductor-no-parsea-jsonl.md).")
+	// ── Control positivo (§14 del plan: un negativo sin control no es un resultado) ──
+	// Un fixture en memoria con una llamada que el detector SÍ debe marcar. Sin esto, un
+	// scanner roto (regex mal, walk vacío) daría verde con `len(hallazgos) == 0` sobre el
+	// árbol real y nadie lo notaría.
+	control := escaneaJSONLSchema(t, map[string]string{
+		"fixture/positivo.go": "func leer() {\n\t// decodifica el transcript de la sesión\n\tjson.Unmarshal(raw, &t)\n}",
+		"fixture/negativo.go": "func otro() {\n\t// frame stream-json del subproceso\n\tjson.Unmarshal(line, &f)\n}",
+	})
+	if len(control) != 1 {
+		t.Fatalf("control positivo: el scanner debería marcar exactamente 1 llamada del fixture, marcó %d (%v) — el detector está roto y su verde sobre el árbol real no significaría nada", len(control), control)
+	}
+	if !strings.Contains(control[0], "fixture/positivo.go") {
+		t.Fatalf("control positivo: el scanner marcó la línea equivocada: %v", control[0])
+	}
+
+	// ── El scan real ──
+	root := repoRoot()
+	if root == "" {
+		t.Fatal("repoRoot vacío: el scan no puede correr y no puede pasar por omisión")
+	}
+	fuentes := map[string]string{}
+	for _, prefijo := range []string{"internal/usecase", "internal/domain", "internal/adapters/telemetria"} {
+		base := filepath.Join(root, filepath.FromSlash(prefijo))
+		if _, err := os.Stat(base); err != nil {
+			continue // el árbol de telemetría puede no existir todavía; los otros dos sí.
+		}
+		if werr := filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			rel, rerr := filepath.Rel(root, path)
+			if rerr != nil {
+				return rerr
+			}
+			rel = filepath.ToSlash(rel)
+			for exento := range jsonlExento {
+				if strings.HasPrefix(rel, exento) {
+					return nil
+				}
+			}
+			b, oerr := os.ReadFile(path) //nolint:gosec // ruta derivada del propio árbol del repo.
+			if oerr != nil {
+				return oerr
+			}
+			fuentes[rel] = string(b)
+			return nil
+		}); werr != nil {
+			t.Fatalf("walk %s: %v", base, werr)
+		}
+	}
+	if len(fuentes) == 0 {
+		t.Fatal("el scan no leyó ningún archivo: sin corpus, su verde sería vacío, no una garantía")
+	}
+	for _, h := range escaneaJSONLSchema(t, fuentes) {
+		t.Errorf("%s — decodifica el schema del transcript JSONL fuera del lector de historial; "+
+			"viola conductor-no-parsea-jsonl.md (los eventos vivos salen del stream-json). "+
+			"Exenciones declaradas hoy: %v", h, jsonlExento)
+	}
 }
 
 // TestLiveEventsFromStreamJSON (real desde Fase E): los eventos vivos salen del
@@ -572,7 +692,7 @@ func TestWriteRequiresApproval(t *testing.T) {
 	waitFor(t, 2*time.Second, askFrame("cr-1"))
 
 	// El deny del ROL gana al click humano: reviewer deniega Write aunque se apruebe.
-	res, err := svc.ResolvePermission(id, "cr-1", "allow", "reviewer", 0)
+	res, err := svc.ResolvePermission(id, "cr-1", "allow", "reviewer", 0, nil)
 	if err != nil {
 		t.Fatalf("resolve cr-1: %v", err)
 	}
@@ -586,7 +706,7 @@ func TestWriteRequiresApproval(t *testing.T) {
 	// backend-dev SÍ puede aprobar Write — con grant que EXPIRA (nunca perpetuo).
 	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-2", Tool: "Write", Input: []byte(`{"file_path":"spec.md"}`)}
 	waitFor(t, 2*time.Second, askFrame("cr-2"))
-	res, err = svc.ResolvePermission(id, "cr-2", "allow", "backend-dev", time.Minute)
+	res, err = svc.ResolvePermission(id, "cr-2", "allow", "backend-dev", time.Minute, nil)
 	if err != nil {
 		t.Fatalf("resolve cr-2: %v", err)
 	}
