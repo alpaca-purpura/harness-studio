@@ -1,0 +1,98 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.conciliacion-de-cobertura
+cap_num: CAP-128
+slug: conciliacion-de-cobertura
+name: "Conciliación de cobertura (cuántos turnos hubo, no cuántos medimos)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: usecase
+verb: observar
+functional_area: "telemetria.cobertura"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/telemetria_service.go#TelemetriaService.Conciliar"
+  - "internal/usecase/telemetria_service.go#TelemetriaService.Turnos"
+  - "internal/domain/telemetria_vistas.go#Cobertura"
+  - "internal/domain/telemetria_vistas.go#TurnoUnido"
+valida:
+  - "TestConciliacionCuentaLosNoLlegados"
+  - "TestJoinPorSesionYTurno"
+  - "TestTurnoSoloConProcesoOSoloConDinero"
+  - "TestCoberturaSinDenominadorEnS2"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria resumen"
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/resumen"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §6.4"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Cuenta los turnos que OCURRIERON contra los que se MIDIERON, para que un agujero de red se vea como «dos de siete turnos no reportaron» y no como un cero que parece un dato. Y donde no hay forma independiente de saber cuántos hubo, lo dice en vez de inventar un denominador."
+    merge_sha: null
+scenarios:
+  - id: el-agujero-se-ve
+    name: "Parte de la telemetría no llega"
+    status: live
+    given: "siete turnos que ocurrieron y cinco que reportaron"
+    when: "se pide la cobertura"
+    then: "dice que dos no llegaron, y el total no se presenta como completo"
+    verifica: "TestConciliacionCuentaLosNoLlegados"
+  - id: sin-denominador-se-dice
+    name: "El arnés corrió fuera de ArnesIA"
+    status: live
+    given: "una ventana sin forma independiente de saber cuántos turnos hubo"
+    when: "se pide la cobertura"
+    then: "el denominador viaja vacío, no en cero — un cero diría «no hubo turnos»"
+    verifica: "TestCoberturaSinDenominadorEnS2"
+  - id: el-join-es-un-par
+    name: "El dinero y el proceso del mismo turno llegan con horas de diferencia"
+    status: live
+    given: "dos eventos del mismo turno separados en el tiempo"
+    when: "se unen"
+    then: "producen un solo turno con las dos mitades, sin heurística de tiempo ni de orden"
+    verifica: "TestJoinPorSesionYTurno"
+business_rules:
+  - id: cuanto-hubo-no-es-cuanto-medimos
+    rule: "El denominador de la cobertura sale de los turnos que ocurrieron, no de los que llegaron. Sin eso, «cuánto medimos» se leería como «cuánto hubo»."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: sin-denominador-se-declara
+    rule: "Donde no hay forma independiente de contar los turnos, el denominador viaja vacío y la pantalla lo dice. Un cero ahí sería una mentira aritmética."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: el-join-no-adivina
+    rule: "Unir dinero y proceso es la igualdad de dos identificadores. Ninguna heurística de tiempo ni de orden, porque las dos mitades pueden llegar separadas."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Conciliación de cobertura
+
+Lo que llegó dice cuánto **medimos**, no cuánto **hubo**. La diferencia es el punto de esta
+capability: el daemon anota cada turno que ocurrió —lo sepa medir o no— y después compara. Así, un
+agujero de red deja de ser un cero que parece un dato y pasa a ser *«dos de siete turnos no
+reportaron telemetría»*: visible y explicable.
+
+Y donde no hay forma independiente de contar los turnos —porque el proceso no fue nuestro— el
+denominador **viaja vacío** y la pantalla lo dice. Poner un cero ahí sería afirmar que no hubo
+turnos, que es otra cosa.
+
+**El join es la igualdad de dos identificadores.** Las dos mitades del mismo turno pueden llegar con
+horas de diferencia y por canales distintos; correlacionarlas por tiempo daría uniones falsas.

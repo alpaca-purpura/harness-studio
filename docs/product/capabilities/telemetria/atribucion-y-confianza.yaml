@@ -1,0 +1,102 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.atribucion-y-confianza
+cap_num: CAP-127
+slug: atribucion-y-confianza
+name: "Atribución y confianza (el orden de preferencia, y el escenario derivado de la señal)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: usecase
+verb: observar
+functional_area: "telemetria.atribucion"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/telemetria_service.go#TelemetriaService.Atribuir"
+  - "internal/usecase/telemetria_service.go#NewTelemetriaService"
+  - "internal/usecase/telemetria_service.go#NuevoRegistroAtribucion"
+  - "internal/domain/telemetria.go#Confianza"
+  - "internal/domain/telemetria.go#Escenario"
+  - "internal/domain/telemetria.go#PeorConfianza"
+valida:
+  - "TestAtribucionPorHash"
+  - "TestAtribucionExactaGanaSobreLasDemas"
+  - "TestHashDesconocido"
+  - "TestSinDatoNoSumaAlTotal"
+  - "TestConfianzaDeAgregadoEsLaMinima"
+  - "TestEscenarioSeDerivaDeLaSenal"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria resumen"
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/resumen"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §6.3 · §7.0.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Cada número dice CÓMO se supo a quién pertenece: por las etiquetas que inyectamos, por la huella del paquete instalado, por el lugar donde corrió, o por nada. Lo que no se pudo atribuir se guarda y NO suma a ningún total — sumarlo sería atribuir por adivinanza."
+    merge_sha: null
+scenarios:
+  - id: el-primero-que-acierta-fija
+    name: "Un evento trae varias pistas de a quién pertenece"
+    status: live
+    given: "un evento con etiquetas propias y además una huella que apunta a otro arnés"
+    when: "se atribuye"
+    then: "gana la más confiable y la huella no la pisa"
+    verifica: "TestAtribucionExactaGanaSobreLasDemas"
+  - id: huella-desconocida-no-inventa
+    name: "Llega una huella que nunca aprendimos"
+    status: live
+    given: "un evento con una huella que no está en la tabla"
+    when: "se atribuye"
+    then: "queda sin atribuir; no se inventa un arnés"
+    verifica: "TestHashDesconocido"
+  - id: el-arnes-no-elige-su-escenario
+    name: "Un emisor declara estar mejor medido de lo que está"
+    status: live
+    given: "tres lotes cuyos eventos declaran un nivel de instrumentación falso"
+    when: "se resume la ventana"
+    then: "el nivel se calcula de la señal que llegó, no del que el emisor declaró"
+    verifica: "TestEscenarioSeDerivaDeLaSenal"
+business_rules:
+  - id: lo-no-atribuido-no-suma
+    rule: "Un evento que no se pudo asignar a un arnés se guarda y no entra a ningún total. Aparece en la cobertura y en el detalle; sumarlo sería atribuir por adivinanza."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: critical
+  - id: el-agregado-vale-lo-que-su-peor-parte
+    rule: "La confianza de una suma es la mínima de sus partes, nunca la máxima ni la más frecuente."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: critical
+  - id: el-escenario-se-deriva
+    rule: "El nivel de instrumentación lo decide la señal que llegó. Un arnés no puede declararse mejor medido de lo que está."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Atribución y confianza
+
+Cada número dice **cómo** se supo a quién pertenece, y se resuelve en orden: primero las etiquetas
+que inyectamos nosotros al lanzar el proceso; si no están, la huella del paquete instalado —que se
+**aprende** observando nuestras propias instalaciones, no se adivina—; si tampoco, el lugar donde
+corrió; y si nada resolvió, se dice que no se pudo.
+
+**Lo que no se pudo atribuir se guarda y no suma.** Aparece en la cobertura y en el detalle. Sumarlo
+al gasto de un arnés sería atribuir por adivinanza, que es exactamente lo que la confianza existe
+para impedir.
+
+**El nivel de instrumentación se deriva de la señal.** No hay campo donde un arnés pueda declararlo:
+se calcula de lo que llegó. Un arnés no puede decir que está mejor medido de lo que está.

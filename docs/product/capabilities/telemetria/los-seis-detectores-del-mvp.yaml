@@ -1,0 +1,108 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.los-seis-detectores-del-mvp
+cap_num: CAP-130
+slug: los-seis-detectores-del-mvp
+name: "Los seis detectores del MVP (número, contrafactual, umbral, sesgo en contra y un fix)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: usecase
+verb: mejorar
+functional_area: "telemetria.deteccion"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/domain/telemetria_deteccion.go#DetectoresMVP"
+  - "internal/domain/telemetria_deteccion.go#ScoreVersionMVP"
+  - "internal/usecase/telemetria_mejoras.go#TelemetriaService.Mejoras"
+valida:
+  - "TestB1BreakEvenTTL"
+  - "TestB2CostoDeLaRotacion"
+  - "TestB3CambioDeModelo"
+  - "TestB6SesionAbandonada"
+  - "TestP1CajaQueSeRechaza"
+  - "TestP1ParcialSinGate"
+  - "TestSesgoTieneDireccion"
+  - "TestNingunPuntoSinContrafactualNiFix"
+  - "TestS2DegradadoApagaLosDetectoresDeDinero"
+  - "TestS2InstrumentadoTieneDineroYNoTieneSplit"
+  - "TestNoMedidosSeDeclaran"
+  - "TestS2DegradadoElResumenNoTraeCeros"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria mejoras --arnes X"
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/arneses/{clave}/mejoras"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §2.4 · §9"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Seis detectores que no dicen «gastaste X»: dicen qué habría costado el mismo trabajo con un cambio concreto, citan el umbral algebraico que usaron, declaran su sesgo EN CONTRA de su propia recomendación y proponen un solo arreglo."
+    merge_sha: null
+scenarios:
+  - id: el-umbral-se-cita
+    name: "Un detector recomienda cambiar un ajuste"
+    status: live
+    given: "una ventana con escrituras de cache de vencimiento corto"
+    when: "el detector evalúa"
+    then: "el punto cita la desigualdad completa que usó, que es álgebra y no un número salido de esta corrida"
+    verifica: "TestB1BreakEvenTTL"
+  - id: el-sesgo-va-en-contra
+    name: "Cualquier punto de mejora"
+    status: live
+    given: "una ventana con señal completa"
+    when: "los detectores evalúan"
+    then: "cada punto declara su sesgo con dirección explícita; ninguno es neutro"
+    verifica: "TestSesgoTieneDireccion"
+  - id: cobertura-parcial-se-declara
+    name: "Un detector ve parte de la señal que necesita"
+    status: live
+    given: "señal de proceso sin veredicto de revisión humana"
+    when: "se consulta si puede correr"
+    then: "corre, pero declara cobertura parcial con su motivo — no un visto bueno liso"
+    verifica: "TestP1ParcialSinGate"
+business_rules:
+  - id: regla-de-las-cinco-cosas
+    rule: "Un punto de mejora sin número, contrafactual, umbral citado, sesgo declarado y UN arreglo concreto no se muestra. Una tarjeta sin contrafactual es un reproche, no una recomendación."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: critical
+  - id: el-sesgo-empuja-en-contra
+    rule: "El sesgo que no se puede eliminar se declara y empuja contra la propia recomendación. Si empujara a favor, la recomendación se estaría auto-justificando."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: critical
+  - id: los-que-no-medimos-se-declaran
+    rule: "Los detectores que todavía no existen se listan como «no medidos todavía». Callarlos obligaría a la pantalla a elegir entre no mostrar nada o mostrar cero."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: la-formula-se-versiona
+    rule: "Cambiar cómo se calcula un punto obliga a subir su versión de fórmula. Sin eso, dos cifras calculadas con reglas distintas se leerían como comparables."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Los seis detectores del MVP
+
+Ninguno dice *«gastaste X»*. Cada uno dice **qué habría costado el mismo trabajo con un cambio
+concreto**, cita el umbral que usó —que es álgebra, no un número salido de esta corrida—, **declara
+su sesgo empujando contra su propia recomendación** y propone **un solo** arreglo.
+
+El sesgo en contra no es escrúpulo: si el sesgo empujara a favor, la recomendación se estaría
+auto-justificando, y no habría forma de distinguir un hallazgo real de un artefacto del método.
+
+Y los que todavía no existen **se declaran**. Ocho detectores más figuran como «no medidos todavía»
+en cada respuesta. Callarlos obligaría a la pantalla a elegir entre no mostrar nada —un hueco
+escondido— o mostrar cero, que es una mentira.

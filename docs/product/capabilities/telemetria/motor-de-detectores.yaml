@@ -5,7 +5,7 @@ capability_id: arnesia.telemetria.motor-de-detectores
 cap_num: CAP-129
 slug: motor-de-detectores
 name: "Motor de detectores (cada uno declara si puede correr, y por qué no)"
-status: stub          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 license: brand-local
 module: telemetria
 layer: domain
@@ -22,6 +22,11 @@ pointers:
   - "internal/domain/telemetria_deteccion.go#DetectorID"
   - "internal/domain/telemetria_vistas.go#EstadoDetector"
   - "internal/domain/telemetria_vistas.go#RespuestaMejoras"
+  - "internal/usecase/telemetria_mejoras.go#TelemetriaService.Mejoras"
+valida:
+  - "TestDetectorQueNoAplicaTraeMotivo"
+  - "TestNoMedidosSeDeclaran"
+  - "TestP1ParcialSinGate"
 dev_preview:
   route: null
   how_to_navigate: null
@@ -36,9 +41,16 @@ change_log:
   - story_id: 2026-07-24-telemetria-embebida-otel
     date: 2026-07-26
     type: new
-    summary: "El CONTRATO del motor: un detector declara primero si puede correr con la señal que hay, y si no puede, dice por qué. Todavía sin motor ni detectores — de ahí el estado stub: la hoja no finge un check que no existe."
+    summary: "Un detector declara primero si PUEDE correr con la señal que hay, y si no puede, dice por qué. El «no aplica» viaja hasta la pantalla con su motivo, junto a los detectores que todavía no medimos — nunca como un cero."
     merge_sha: null
-scenarios: []
+scenarios:
+  - id: ningun-detector-se-apaga-sin-decir-por-que
+    name: "No hay señal suficiente para un detector"
+    status: live
+    given: "una ventana sin la señal que ese detector necesita"
+    when: "se le pregunta si puede correr"
+    then: "dice que no, y dice por qué; y su motivo es propio, no uno genérico repetido"
+    verifica: "TestDetectorQueNoAplicaTraeMotivo"
 business_rules:
   - id: motivo-obligatorio
     rule: "Un detector que no aplica trae motivo. Un detector apagado sin razón es un gap escondido, y uno que devuelve cero porque no pudo correr es una mentira."
@@ -65,5 +77,6 @@ La pregunta se contesta con el **dato real de la ventana**, no con una configura
 escenario. Es lo que hace que el día que aparezca la señal que a un detector le faltaba, se encienda
 solo, sin que nadie toque código.
 
-**Estado `stub` a propósito:** hoy existe el contrato y no el motor. La hoja no lista `valida:`
-porque no hay check que la sostenga todavía — un estado `vivo` acá sería fabricado.
+Y el «no aplica» **viaja hasta la pantalla**, con su motivo, en su propia lista. Junto a otra lista
+con los detectores que todavía no medimos. Omitir cualquiera de las dos obligaría a la pantalla a
+elegir entre no mostrar nada —un hueco escondido— o mostrar cero, que es una mentira.
