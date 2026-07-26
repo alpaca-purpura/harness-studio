@@ -323,6 +323,69 @@ export const api = {
   // listArneses — the registered arnés→path entries (S2). The page uses it to know,
   // WITHOUT a doomed 404 round-trip, whether a fuente read can even be confined.
   listArneses: () => req<{ arnes: string; path: string }[]>("/api/arneses"),
+
+  // ── Telemetría · capa «Mejora» (paquete 2026-07-24, T29) ────────────────────────────────
+  //
+  // Las 8 rutas de `/api/telemetria/*` (router.go:42-49). Genéricas <T> y domain-free, mismo
+  // patrón que `listPortafolio`: `shared/api` no puede importar `entities/*`
+  // (`shared-no-upward`), así que la página parametriza con los tipos de
+  // `entities/telemetria`.
+  //
+  // ⚠️ La ventana viaja como `desde`/`hasta` en RFC3339, **no** como un enum `7d|30d|todo`:
+  // así lo lee `ventanaDeQuery` (telemetria.go:25), y un valor ilegible da 400 en vez de
+  // devolver en silencio una ventana distinta de la pedida. La traducción
+  // `Ventana → desde/hasta` vive en la página, que es la dueña del estado.
+  telemetriaResumen: <T = unknown>(q?: VentanaQuery) =>
+    req<T>(`/api/telemetria/resumen${qsVentana(q)}`),
+
+  telemetriaSalud: <T = unknown>() => req<T>("/api/telemetria/salud"),
+
+  telemetriaPortafolio: <T = unknown>(q?: VentanaQuery) =>
+    req<T>(`/api/telemetria/portafolio${qsVentana(q)}`),
+
+  telemetriaCajas: <T = unknown>(clave: string, q?: VentanaQuery) =>
+    req<T>(`/api/telemetria/arneses/${encodeURIComponent(clave)}/cajas${qsVentana(q)}`),
+
+  telemetriaDetalleCaja: <T = unknown>(clave: string, cajaId: string, q?: VentanaQuery) =>
+    req<T>(
+      `/api/telemetria/arneses/${encodeURIComponent(clave)}/cajas/${encodeURIComponent(cajaId)}${qsVentana(q)}`,
+    ),
+
+  telemetriaMejoras: <T = unknown>(clave: string, q?: VentanaQuery) =>
+    req<T>(`/api/telemetria/arneses/${encodeURIComponent(clave)}/mejoras${qsVentana(q)}`),
+
+  // El borrado del operador (RF-275). No es idempotente-silencioso: el diálogo espera su
+  // respuesta antes de decir «listo», y un fallo deja el dato intacto y lo dice.
+  telemetriaBorrarArnes: <T = unknown>(clave: string) =>
+    req<T>(`/api/telemetria/arneses/${encodeURIComponent(clave)}`, { method: "DELETE" }),
+
+  telemetriaProceso: <T = unknown>(evento: unknown) =>
+    req<T>("/api/telemetria/proceso", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(evento),
+    }),
+}
+
+/** El rango de la consulta, ya resuelto a instantes por la página. `undefined` = todo. */
+export interface VentanaQuery {
+  desde?: string | undefined
+  hasta?: string | undefined
+  arnes?: string | undefined
+  instalacion?: string | undefined
+  limite?: number | undefined
+}
+
+function qsVentana(q: VentanaQuery | undefined): string {
+  if (!q) return ""
+  const p = new URLSearchParams()
+  if (q.desde) p.set("desde", q.desde)
+  if (q.hasta) p.set("hasta", q.hasta)
+  if (q.arnes) p.set("arnes", q.arnes)
+  if (q.instalacion) p.set("instalacion", q.instalacion)
+  if (q.limite !== undefined) p.set("limite", String(q.limite))
+  const s = p.toString()
+  return s === "" ? "" : `?${s}`
 }
 
 // fetchAuthToken reads the capability token the Tauri shell injected as a global via

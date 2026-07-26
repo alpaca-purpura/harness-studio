@@ -24,6 +24,7 @@ export {
   type SessionStatus,
   STATUS_LABEL,
   type Turn,
+  type VentanaQuery,
   VIEWS,
 } from "./api"
 export { type TokenName, tokens } from "./config/tokens"

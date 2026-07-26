@@ -1,5 +1,5 @@
 // Public API of the `shared/api` segment.
-export { ApiError, api, fetchAuthToken } from "./client"
+export { ApiError, api, fetchAuthToken, type VentanaQuery } from "./client"
 export { connectDock, type DockConnection } from "./sse"
 export {
   type Dictado,

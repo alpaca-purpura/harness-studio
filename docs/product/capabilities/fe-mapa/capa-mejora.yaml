@@ -1,0 +1,156 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-mapa.capa-mejora
+cap_num: CAP-139
+slug: capa-mejora
+name: "Capa «Mejora» del Mapa — cifra, confianza, cobertura y puntos de mejora"
+status: parcial        # Tramo B en construcción: el vocabulario visual vive y está testeado;
+                       # franja, tarjetas, inspector, diálogo y Portafolio llegan en T30-T37.
+license: brand-local
+
+module: fe-mapa
+layer: fe
+
+verb: mejorar
+functional_area: "fe-mapa.capa-mejora"
+
+user_visible: true
+
+nature: feature
+
+# ⚠️ Los punteros son los CUATRO de **D22** (los tres nombres de `capabilities-a-crear.md`
+# —`ValorOSinDato`, `ChipConfianza`, `TarjetaMejora`— no sobreviven a `design.md`/
+# `plan-storybook.md`, y la slice `widgets/mejora/` NO se crea). Se van agregando a medida que
+# el símbolo EXISTE: R1 rompe con punteros colgantes y R2 con archivos huérfanos, así que la
+# hoja crece ticket a ticket en vez de nacer completa y colgada.
+#
+# ⚠️ `CifraUsd`, no `CifraUSD`: `biome useNamingConvention` con `strictCase: true` (severidad
+# `error`, dentro de `verify`) rechaza dos mayúsculas consecutivas en PascalCase. Se renombra
+# el símbolo, no se baja el gate.
+pointers:
+  - "web/src/entities/telemetria/model/types.ts#CifraCaja"
+  - "web/src/entities/telemetria/model/types.ts#Confianza"
+  - "web/src/entities/telemetria/model/types.ts#Cobertura"
+  - "web/src/entities/telemetria/model/types.ts#PuntoMejora"
+  - "web/src/entities/telemetria/model/selectors.ts#usd"
+  - "web/src/entities/telemetria/model/selectors.ts#ETIQUETA_CONFIANZA"
+  - "web/src/entities/telemetria/model/selectors.ts#TITULO_CONFIANZA"
+  - "web/src/entities/telemetria/model/selectors.ts#etiquetaDetector"
+  - "web/src/entities/telemetria/model/selectors.ts#direccionTendencia"
+  - "web/src/entities/telemetria/model/selectors.test.ts#usd"
+  - "web/src/entities/telemetria/testing/telemetria.ts#BUCKETS_MEDIDOS"
+  - "web/src/entities/telemetria/ui/cifra-usd.tsx#CifraUsd"
+  - "web/src/entities/telemetria/ui/marca-confianza.tsx#MarcaConfianza"
+  - "web/src/entities/telemetria/ui/barra-cobertura.tsx#BarraCobertura"
+  - "web/src/entities/telemetria/ui/sparkline.tsx#Sparkline"
+  - "web/src/shared/api/client.ts#api"
+valida:
+  - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
+  - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
+  - "web/src/entities/telemetria/ui/barra-cobertura.stories.tsx"
+  - "web/src/entities/telemetria/ui/sparkline.stories.tsx"
+  - "web/src/entities/telemetria/model/selectors.test.ts"
+
+dev_preview:
+  route: "#/mapa"
+  how_to_navigate: "Mapa → conmutador de capas → Mejora"
+  main_component: "web/src/entities/telemetria/ui/cifra-usd.tsx#CifraUsd"
+  api_endpoints:
+    - "GET /api/telemetria/resumen"
+    - "GET /api/telemetria/arneses/{clave}/cajas"
+    - "GET /api/telemetria/arneses/{clave}/cajas/{cajaId}"
+    - "GET /api/telemetria/arneses/{clave}/mejoras"
+    - "GET /api/telemetria/portafolio"
+    - "GET /api/telemetria/salud"
+    - "DELETE /api/telemetria/arneses/{clave}"
+  e2e_test: null
+
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/decisiones.md D17/D18/D22/D23"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: >-
+      T29 — nace la entidad `telemetria` con el VOCABULARIO VISUAL de la plataforma (D23): un
+      formateador de dinero (`CifraUsd`, RF-281 — el único), una marca de confianza
+      (`MarcaConfianza`, RF-242 — cuatro casos, `exacta` no renderiza nada porque la ausencia de
+      marca ES la señal), una barra de cobertura (`BarraCobertura`, RF-237 — una categoría en
+      cero no se dibuja ni se nombra) y un sparkline (`Sparkline`, RF-266 — con menos de dos
+      puntos lo DICE, no dibuja una línea plana). Viven en `entities/telemetria/ui/` y no dentro
+      de `widgets/map-canvas` justamente por D23: son vocabulario de la plataforma y el
+      Portafolio consume las MISMAS piezas. `model/selectors.ts` es la ÚNICA fuente del copy de
+      confianza (candado 2 de D18) y del formato de dinero. Fixtures en dos bloques rotulados
+      MEDIDO/ILUSTRATIVO (plan-storybook §3). 18 stories con `play()` + 22 tests de tabla
+      (proyecto `unit`), gate a11y en `error`. Wire: las 8 rutas de `/api/telemetria/*` en
+      `shared/api/client.ts`, genéricas y domain-free.
+      **Desviación declarada:** la hoja se crea en T29 y no en T33 como decía el plan — R2
+      cazaría 7 archivos huérfanos en este commit y R1 cazaría un puntero colgante si se creara
+      con `punto-mejora-card.tsx#PuntoMejoraCard` antes de que ese símbolo exista. La regla 1
+      del plan (§0) obliga a crearla con el ÚLTIMO símbolo de cada tanda, así que la hoja crece
+      ticket a ticket.
+    merge_sha: null
+
+scenarios:
+  - id: mejora-cifra-un-solo-formateador
+    name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
+    given: "un monto en micros de dólar, presente o ausente"
+    when: "se renderiza <CifraUsd>"
+    then: >-
+      coma decimal, dos decimales y separador de millar de espacio fino (jamás el formato EN);
+      un monto menor al centavo sube decimales en vez de renderizarse en cero; sin monto se
+      dice «sin dato», nunca «0,00» ni «—» a secas
+    verifica: "Estandar · SeparadorDosDecimales · MenorAlCentavo · Ausente (cifra-usd.stories.tsx) · usd (selectors.test.ts)"
+  - id: mejora-confianza-cuatro-casos-por-texto
+    name: "Los cuatro casos de atribución se distinguen por TEXTO, no por tono (RF-242 · RF-280)"
+    given: "atribucion_confianza en exacta | por-hash | por-proceso | sin-dato"
+    when: "se renderiza <MarcaConfianza>"
+    then: >-
+      `exacta` no emite DOM (la ausencia de marca ES la señal); los otros tres llevan etiqueta y
+      `title` PROPIOS y distintos entre sí; **ninguno** se pinta como «atribución aproximada»,
+      que taparía tres cosas distintas bajo una
+    verifica: "Exacta · PorHash · PorProceso · SinDato · LosCuatroJuntos (marca-confianza.stories.tsx) · copy de confianza (selectors.test.ts)"
+  - id: mejora-cobertura-no-nombra-el-cero
+    name: "Una categoría de cobertura en cero no se dibuja ni se nombra (RF-237 · RF-279)"
+    given: "una Cobertura con 0 en alguna de sus cuatro categorías"
+    when: "se renderiza <BarraCobertura>"
+    then: >-
+      el segmento no existe y la etiqueta tampoco; el portador real es el TEXTO (resumen +
+      `aria-label` completo con la unidad), no el color — axe no mira contraste de no-texto y
+      dejaría pasar una barra ilegible; con 0 corridas la barra no se dibuja
+    verifica: "CuatroSegmentos · CategoriaEnCeroNoOcupaLugar · CoberturaCompleta · SinCorridas · RotuloVisibleSiempre (barra-cobertura.stories.tsx)"
+  - id: mejora-tendencia-no-se-afirma-sin-serie
+    name: "Sin serie suficiente no se afirma una tendencia (RF-266 · RF-279)"
+    given: "una serie de 0 o 1 puntos"
+    when: "se renderiza <Sparkline>"
+    then: >-
+      no se dibuja ninguna barra y se dice «pocas corridas para una tendencia» — una línea plana
+      diría «estable», que es una afirmación que nadie midió. Con serie, la dirección viaja en
+      palabras en el `aria-label`, con el conteo real
+    verifica: "EnAlza · Estable · HaciaLaBaja · PocasCorridas (sparkline.stories.tsx) · direccionTendencia (selectors.test.ts)"
+
+business_rules: []
+related_capabilities:
+  depends_on:
+    - arnesia.http-sse.superficie-telemetria
+    - arnesia.telemetria.atribucion-y-confianza
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Capa «Mejora» del Mapa
+
+La capa que responde *«este arnés, en este puesto, quema $X — y el 60 % se va en la caja Y, que
+falla el gate 3 de cada 4 veces»* (D12.2). **T29 construye su vocabulario visual**: las cuatro
+piezas que el Mapa, el inspector y el Portafolio comparten, en `entities/telemetria/ui/` y con
+stories de su contrato completo, para que la próxima superficie las reuse en vez de
+reinventarlas (D23).
+
+Las tres reglas que gobiernan cada pieza y que sus stories asertan:
+
+1. **`null` ≠ `0`.** Una ausencia se dice con su motivo; un cero es un dato medido.
+2. **Cada cifra viaja con su confianza**, y los cuatro casos se distinguen por texto.
+3. **Ningún estado depende solo del color** (RF-280): el color es refuerzo, el texto es el canal.

@@ -1,0 +1,124 @@
+/* Vocabulario visual de la entidad `telemetria` — D23: estas cuatro piezas son de la
+   PLATAFORMA, no del Mapa. Por eso su CSS va SIN scope de superficie: el Mapa, el inspector y
+   el Portafolio tienen que pintar la misma cifra, la misma marca de duda, la misma barra de
+   cobertura y el mismo sparkline. Scoparlas a `.arnesia-mejora` obligaría a la próxima
+   superficie a reinventarlas, que es exactamente lo que D23 vino a evitar.
+
+   Cero color literal (stylelint `strict-value`, dentro de `verify`). */
+
+/* ── CifraUsd (RF-281) ── el único formato de dinero de la plataforma ── */
+.num {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.num-usd {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.num-monto {
+  font-weight: 700;
+}
+/* Ausencia: se DICE, en prosa atenuada — nunca un número, nunca un guion suelto. */
+.num-sindato {
+  font-family: var(--font-sans);
+  font-variant-numeric: normal;
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* ── MarcaConfianza (RF-242) ── los tres visibles comparten tono: distingue el TEXTO ──
+   D21: texto `--foreground` sobre `--warn-soft`; `--warn` queda solo para el borde (3:1). */
+.conf {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: var(--radius-full);
+  background: var(--warn-soft);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+/* ── BarraCobertura (RF-237 · H-11 · H-13) ── */
+.cov {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.cov-rotulo {
+  font-weight: 600;
+}
+.cov-bar {
+  display: inline-flex;
+  width: 132px;
+  height: 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+/* El separador de 1 px: sin él, --heat-4 vs --heat-3 son 1,37:1 y no se cuentan. */
+.cov-seg + .cov-seg {
+  border-left: 1px solid var(--card);
+}
+.cov-exacta {
+  background: var(--heat-4);
+}
+.cov-por-hash {
+  background: var(--heat-3);
+}
+.cov-por-proceso {
+  background: var(--heat-2);
+}
+/* Ausencia = el color del hueco, no un tono del ramp. */
+.cov-sin-dato {
+  background: var(--border);
+}
+.cov-txt {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Sparkline (RF-266 · RF-279) ── */
+.spark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+}
+.spark-bar {
+  display: block;
+  width: 5px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+}
+.spark-bar-ultima {
+  background: var(--primary);
+}
+.spark-vacio {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conf,
+  .spark-bar {
+    transition: none;
+    animation: none;
+  }
+}

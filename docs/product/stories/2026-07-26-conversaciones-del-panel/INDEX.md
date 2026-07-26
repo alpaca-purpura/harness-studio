@@ -9,8 +9,8 @@
 
 | Etapa | Estado |
 |---|---|
-| decisiones | 🟡 **en curso** — CV-D1..D10 escritas; 3 puntos abiertos |
-| mockup | ⬜ no arrancado (arranca leyendo [`mockups/INDEX.md`](../../../../mockups/INDEX.md)) |
+| decisiones | ✅ **completas** — CV-D1..D13, cero puntos abiertos |
+| mockup | 🟡 **en curso** (arranca leyendo [`mockups/INDEX.md`](../../../../mockups/INDEX.md)) |
 | spec | ⬜ |
 | implementar | ⬜ |
 | PARIDAD | ⬜ |
@@ -28,6 +28,9 @@
 - **CV-D8** — el buscador busca el texto del transcript (`Conv`), que ahora **se persiste al cerrar**.
 - **CV-D9** — título auto-derivado del primer mensaje, editable.
 - **CV-D10** — la rotación por contexto es invisible: misma conversación, marca inline.
+- **CV-D11** — seleccionar una inactiva la **retoma** (`--resume`); siempre una activa por sesión.
+- **CV-D12** — vocabulario **activa/inactiva**, no «cerrada». El registro `sesiones-cerradas.json` pierde sentido.
+- **CV-D13** — la fila muestra última interacción · nº turnos · ctx final. Exige timestamp nuevo por turno.
 
 ## Radio de impacto (relevado, no estimado)
 

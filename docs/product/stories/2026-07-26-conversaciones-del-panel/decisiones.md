@@ -70,11 +70,12 @@ las declaró no importantes. **No se escribe migración de llaves** — el bug m
 CV-D5 impide que vuelva. Es un borrado de datos del operador, autorizado explícitamente el
 2026-07-26; se ejecuta con el daemon detenido y con copia previa del archivo.
 
-## CV-D7 · Una conversación viva por sesión, a la vez
+## CV-D7 · Una conversación ACTIVA por sesión, a la vez
 
-Crear una conversación **cierra la anterior**. No hay N hilos vivos en paralelo dentro de una
-sesión. El paralelismo real sigue siendo el de siempre: N sesiones en el rail. La lista del dock
-es entonces 1 activa + N cerradas.
+Crear una conversación **desactiva la anterior** — y no hay ningún botón de cerrar: el único
+cierre es implícito. No hay N hilos corriendo en paralelo dentro de una sesión. El paralelismo
+real sigue siendo el de siempre: N sesiones en el rail. La lista del dock es 1 activa + N
+inactivas (ver CV-D12: no se dice «cerrada»).
 
 ## CV-D8 · El buscador busca el TEXTO del transcript, no solo el título
 
@@ -111,12 +112,37 @@ como corte de hilo.
 > `%` de contexto, no un tema nuevo, así que cortar ahí parte un tema en dos entradas) y el
 > operador eligió invisible. La regla que manda es **conversación = tema**.
 
+## CV-D11 · Seleccionar una conversación inactiva la RETOMA
+
+No es de solo lectura: seleccionarla la vuelve la activa (`--resume` sobre su `ClaudeSessionID`,
+con `CadenaCC`/`Checkpoint`/`Cwd` intactos) y desactiva a la que estaba activa. Es el mismo
+movimiento de CV-D7 en la otra dirección: siempre exactamente **una** activa por sesión.
+
+Consecuencia sobre CV-D8: persistir `Conv` al desactivar deja de ser «guardar un archivo muerto»
+— es lo que se repinta al retomar, antes de que el stream vivo se reenganche. El mismo rol que
+`Conv` ya cumple hoy al cambiar de sesión en el rail (`session.go:59-61`).
+
+## CV-D12 · Vocabulario: activa / inactiva. NO «cerrada»
+
+Si se retoma, no está cerrada. La conversación tiene dos estados y el cierre es reversible:
+**activa** (una, la del dock) e **inactiva** (las demás, retomables).
+
+Consecuencia estructural: el registro aparte `~/.arnesia/sesiones-cerradas.json` +
+`SetArchivoCerradas` (`cmd/arnesia/main.go:325-328`) **deja de tener sentido** — modelaba un
+archivo terminal. Las conversaciones son todas pares dentro de su sesión, con una marcada activa.
+Se decide en spec si el archivo desaparece o queda como registro de sesiones enteras cerradas.
+
+## CV-D13 · La fila muestra: última interacción · nº de turnos · ctx final
+
+Y el título (CV-D9). Nada más — la fila no es una tarjeta.
+
+**Campo nuevo requerido:** «última interacción» no existe hoy en `Session`; lo único temporal es
+`CerradaEn` (`session.go:121-124`), que es otra cosa. Hace falta un timestamp estampado en cada
+turno, no al desactivar — si no, una conversación inactiva mentiría la fecha del último mensaje.
+`Turnos` y `CtxPct` ya existen y bajan a la conversación por CV-D3.
+
 ---
 
-## Abierto (aún NO conversado — no inventar)
+## Abierto
 
-- Cómo se **cierra** una conversación desde el dock: ¿botón explícito, o solo implícito al crear
-  otra (CV-D7)?
-- Si una conversación cerrada es **reanudable** (`--resume` sobre su `ClaudeSessionID`) o es de
-  solo lectura.
-- Qué muestra cada fila de la lista además del título (fecha · nº de turnos · ctx final).
+Ninguno. Decisiones COMPLETAS — sigue el mockup.
