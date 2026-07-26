@@ -42,10 +42,57 @@
   decidir módulo destino en el seam (`self-update` extendido vs. `distribucion` nuevo).
   → [`stories/2026-07-15-instalador-publico-licencias-org/INDEX.md`](stories/2026-07-15-instalador-publico-licencias-org/INDEX.md) · `deuda`
 
+## Deuda del dictado por voz (CONSTRUIDO 2026-07-26, falta el gate en vivo)
+
+- [ ] **T6 — dictar con la voz real del operador contra el binario INSTALADO.** `state: gate-humano`.
+  Es lo único que bloquea la firma 🧑‍⚖️ de PARIDAD del paquete de voz, y **no lo puede cerrar un test**:
+  RF-215 existe porque `getUserMedia` se cuelga mudo sin el puente Rust, y eso *solo* se reproduce en la
+  app instalada (el dev server concede por su cuenta). Pasos: `make installer` → instalar → abrir un
+  frente → dictar → confirmar que el composer se puebla.
+  → [`stories/2026-07-25-spike-voz-dictado/PARIDAD.md`](stories/2026-07-25-spike-voz-dictado/PARIDAD.md)
+- [ ] **T7 — qué motor STT se EMPAQUETA en `.deb`/`.AppImage`/`.rpm`.** `state: deuda`. V-D1 se firmó
+  como A2 local `base`, pero la sub-decisión `whisper.cpp` vs `faster-whisper` se resolvió como
+  **adaptador por PATH** porque no había evidencia para elegir: se midió `faster-whisper` sobre WAV con
+  voz sintética, no `whisper.cpp` (pide `cmake`/sudo) ni el `audio/mp4` real de la app. Hasta cerrarlo
+  el instalador **no promete STT** y el estado honesto por defecto en una máquina limpia es «Falta el
+  motor de transcripción». Cerrar = medir los dos motores sobre el mp4 real.
+- [ ] **Contraste a11y de `--warn` en tema claro.** `state: bug`. Destapado de paso al correr las
+  stories: `--warn` (`#c96a2e`) sobre `--card` (`#ffffff`) a 10px da **3.76:1**, bajo el mínimo 4.5 de
+  axe. Rompe 4 stories de `session-rail/new-session-picker` (`text-warn` de «historial de cerradas:
+  Failed to fetch», `new-session-picker.tsx:273`). **No se arregló dentro del paquete de voz a
+  propósito** — toca `web/tokens/base.tokens.json` (o el tamaño/peso de ese span) y merece su propio
+  paquete. Ver `stories/2026-07-25-spike-voz-dictado/PARIDAD.md` §Hallazgos.
+
+## Identidad de build en Ajustes (CONSTRUIDO + REFINADO 2026-07-26, falta el gate en vivo)
+
+- [ ] **AC-9b — ver la tarjeta en la VENTANA TAURI instalada.** `state: gate-humano`. Único ítem que
+  bloquea la firma 🧑‍⚖️ de PARIDAD de RF-231. **AC-9a ya está cerrado:** los 4 estados se vieron en
+  la app real (daemon sellado + SPA embebido, capturas en
+  [`shots/`](stories/2026-07-26-identidad-de-build/shots/)) — al día · build sin instalar · «cerrá y
+  reabrí» · sin sellar. Lo que falta pide **sudo** y por eso es del operador: `make installer` →
+  instalar → **`make dev-sync`** (existe `~/.local/bin/arnesia`, sin eso el shell instalado sigue
+  con el binario viejo: `architecture/conventions/versionado.md`) → abrir Ajustes en la ventana
+  nativa.
+  → [`stories/2026-07-26-identidad-de-build/PARIDAD.md`](stories/2026-07-26-identidad-de-build/PARIDAD.md)
+- [ ] **El SPA embebido hardcodea `127.0.0.1:4200`.** `state: bug`. Destapado verificando RF-231 en
+  vivo: con el daemon en otro puerto, la UI entera queda en `Failed to fetch` (`GET /api/version
+  falló — Failed to fetch`) aunque el daemon responda perfecto por `curl` desde ese puerto. Impide
+  correr una segunda instancia o mover el puerto sin recompilar el FE. **No se arregló al voleo** —
+  es ajeno al paquete de identidad de build y merece decidir si el origen sale de `window.location`
+  o de una config inyectada al boot.
+- [ ] **`arnesia --version` en la CLI.** `state: deuda`. La identidad del build hoy solo se ve por
+  `GET /api/version`/Ajustes. El pedido era Ajustes y ahí está; la CLI queda anotada para no
+  parecer una promesa incumplida (B-D6). Barato: `VersionCompleta()` ya existe.
+- [ ] **El sello a través del botón «Actualizar», de punta a punta.** `state: deuda`. El self-update
+  corre `bundle.sh --daemon-only` (camino ya verificado a mano), pero no se disparó el botón
+  completo en esta ronda. Se cierra junto con AC-9, en la misma sentada.
+
 ## Gates humanos pendientes (código listo, falta firma 🧑‍⚖️ PARIDAD)
 
-- **Ninguno.** Los 4 (chat-cc-funcional · franja-artefactos · boton-actualizar · inspector-drawer)
-  quedaron FIRMADOS 2026-07-09 (HS-20) — sus 7+7+6+5 desviaciones aceptadas; cierre en `ledger/HS-20.md`.
+- **Abiertos hoy: 2** — el del dictado por voz (T6, sección de arriba) y el de identidad de build
+  (AC-9). Los 4 históricos (chat-cc-funcional · franja-artefactos · boton-actualizar ·
+  inspector-drawer) quedaron FIRMADOS 2026-07-09 (HS-20) — sus 7+7+6+5 desviaciones aceptadas;
+  cierre en `ledger/HS-20.md`.
 
 ## Outcome ACTIVO — Fase 1 · Ciclo de forja de arneses vivo (2026-07-10)
 
@@ -102,10 +149,16 @@
   Observar (Abrir en Mapa, cierra GAP-1) + Desvincular con confirmación; 34 stories `play()` +
   `selectors.test.ts` · 4 capabilities `fe-portafolio/*` `vivo` (R4) · E2E vivo real.
   → [`stories/2026-07-13-portafolio-slice1-fe/paridad.md`](stories/2026-07-13-portafolio-slice1-fe/paridad.md)
-- [ ] **2. Agregar de marketplace → clonar + mejorar** — git url → **validar `marketplace.json`** → listar → elegir → checkout
-  `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar · `gate` · `bloqueo`(1). Paquete abierto
-  (sin mockup aún, 1 nota PENDIENTE-RESOLVER sobre reconciliación proyecto↔marketplace-de-origen) →
+- [ ] **2. Consolidar la agregación al Portafolio (proyecto + marketplace)** — **re-escopeado 2026-07-24**
+  (AG-D1, orden del operador): ya no es solo la rama nueva. (a) **marketplace**: git url → **validar
+  `marketplace.json`** → listar → elegir → checkout `<checkouts>/<home-slug>/<id>/` (`gh`/PAT) → chat/mejorar;
+  (b) **proyecto**: la rama ya construida en Slice 1 entra al alcance — **auditoría visual en vivo 2026-07-24**
+  probó que la app respeta el Storybook pero el mockup firmado tiene affordances que nunca bajaron a código
+  (tabs descriptivas · pasos simultáneos · contador de hallazgos · badges de diferido visibles) + 1 bug real
+  («Marketplace» dos veces en la toolbar, lente y filtro sin distinción) · `gate` · `bloqueo`(1). Mockup aún
+  no arrancado; PENDIENTE-01 FIRMADA, PENDIENTE-02 (5 preguntas de flujo) abierta →
   [`stories/2026-07-23-portafolio-agregar-marketplace/INDEX.md`](stories/2026-07-23-portafolio-agregar-marketplace/INDEX.md)
+  · [`auditoria-storybook-vs-app.md`](stories/2026-07-23-portafolio-agregar-marketplace/auditoria-storybook-vs-app.md)
 - [ ] **3. Publicar** — pull/rebase → conformance-verde → bump semver → changelog obligatorio → push → **tag-tras-push** · `gate` · `bloqueo`(2)
 - [ ] **4. Update-check + notify** — versión vs último tag de `home` + changelog + **alias de rename** (no cegar el aviso) · `gate` · `bloqueo`(3)
 - [ ] **5. Reparar + Backport** — reparar overwrite SOLO dir privado (superficies compartidas = merge) + bloqueo si lock DevStudio +
@@ -114,6 +167,21 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
+- [telemetria/D20] **`puesto` como faceta propia de la instalación del Portafolio** — hoy se deriva
+  del `rol` del **sello** (`graph.l0` META, que es del arnés), no del **lugar** donde se usa. Dos
+  instalaciones del mismo arnés en dos puestos distintos resuelven al mismo `rol` y solo se
+  distinguen por instalación. `domain.EntradaPortafolio` no tiene el campo y este paquete **no** lo
+  agrega (D20: no se toca el wire de `GET /api/portafolio`) · `deuda`
+- [capabilities/G14] **`domain_modules` de `project.config.yaml` está incompleto** — 10 módulos con
+  hojas de capability vivas no figuran en la lista (`http-sse`, `cli-daemon`, `fe-mapa`,
+  `fe-portafolio`, `fe-shell`, `handoff`, `tauri`, `usecases`, `dominio-l0`, `indice-persistencia`),
+  pese a que el template de capability dice «uno de `project.config.yaml domain_modules`». O el
+  template miente o la lista está incompleta. **Drift preexistente**, destapado por
+  `capabilities-a-crear.md` §0.1; el paquete de telemetría solo agregó `telemetria` · `deuda`
+- [telemetria/J-6 · P2] **TTL de retención sin número firmado** — D15.3 firmó «TTL por default»
+  **sin número**; el `90` del mockup es **PROPUESTO**. Implementado como flag
+  (`--telemetria-retencion`, default 90) y **rotulado `propuesto: true`** en la config y en
+  `arnesia telemetria salud`. **El número lo pone el operador** · `decisión de producto`
 - [a11y] **`.text-warn` no cumple contraste mínimo** (axe `color-contrast`, ratio 3.76 vs 4.5
   requerido — `#c96a2e` sobre `#ffffff`): destapado 2026-07-23 corriendo
   `new-session-picker.stories.tsx` (4 stories fallan en la a11y gate cuando

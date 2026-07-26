@@ -81,7 +81,18 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 - [x] **capabilities planificadas** → [`capabilities-a-crear.md`](capabilities-a-crear.md):
       22 hojas (CAP-118…CAP-139), con puntero y check. **No se crean todavía**: R1 exige que el
       símbolo exista
-- [ ] `spec.md` + `design.md` → 🧑‍⚖️ firma del par
+- [x] `spec.md` + `design.md` escritos (RF-232…RF-286 · UI al pixel) → **falta 🧑‍⚖️ firma del par**
+- [x] **plan de stories** → [`plan-storybook.md`](plan-storybook.md): 125 stories en 17 archivos
+- [x] **plan de desarrollo** → [`plan-desarrollo.md`](plan-desarrollo.md): **39 tickets en 4 tramos**,
+      con archivos, firmas, RF, capabilities, criterios y comando de demostración por ticket.
+      Resuelve los 5 bloqueantes (cross-import de entities · `knowledge` no es clase · `puesto` no
+      existe en el Portafolio · los 2 contrastes que rompían el gate a11y · los punteros de CAP-139)
+      y deja 4 paradas obligatorias para el operador (P0 firma del mockup · P1 **A20** · P2 TTL ·
+      P4 desviación del slot)
+- [x] **cadena E2E probada antes de codear** →
+      [`verificacion-2026-07-26/CADENA-E2E.md`](verificacion-2026-07-26/CADENA-E2E.md) +
+      `evidencia/baseline-mapa-antes.png` (el «antes» del gate)
+- [ ] 🧑‍⚖️ firma del mockup ← **bloquea el Tramo B entero**
 - [ ] implementación
 - [ ] PARIDAD
 
@@ -94,7 +105,45 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 | **G4** | cert de firma de código (USD 150-300/año + HSM) | no para Linux; **sí** para Windows/macOS |
 | — | ~~**D8**~~ | **cerrada por inexistencia del dilema** (V2) |
 
-## Retomar aquí (2026-07-26, tras la etapa de arquitectura)
+## Retomar aquí (2026-07-26, EN CONSTRUCCIÓN — Tramo 0 + Tramo A)
+
+**El constructor está ejecutando [`plan-desarrollo.md`](plan-desarrollo.md) T1→T27** (Tramo 0 +
+Tramo A: los RF sin superficie). El **Tramo B (T28-T37) NO se construye**: su parada **P0** exige
+la firma 🧑‍⚖️ del mockup, que sigue en iteración 1.
+
+Las tres paradas, al día de hoy:
+
+- **P0 · mockup sin firmar** ⇒ Tramo B bloqueado. El Tramo A entrega igual: `arnesia telemetria
+  resumen|mejoras|salud|purgar|catalogo` es superficie observable sin FE (patrón `arnesia portafolio`).
+- **P1 · A20 (dónde vive el bloque `env`)** ⇒ **ABIERTA, del operador**. Escrita en
+  [`decisiones.md`](decisiones.md) §🛑. Se construyó todo lo que no depende de ella.
+- **P2 · el TTL** ⇒ flag con default 90 **rotulado PROPUESTO**; el número lo pone el operador.
+- **P3 · `OTEL_LOGS_EXPORTER`** ⇒ **CERRADA** en vivo (ANEXO H10.4): es obligatoria.
+
+<details><summary>Retomar aquí anterior (tras el plan de desarrollo)</summary>
+
+## Retomar aquí (2026-07-26, tras el plan de desarrollo)
+
+**El plan de construcción está escrito y es ejecutable sin volver a decidir nada** →
+[`plan-desarrollo.md`](plan-desarrollo.md). El constructor arranca por **T1** (firmar D18-D22 en
+`decisiones.md` y registrar la deuda) y sigue el orden del §1. El **Tramo A** (T4-T27, los RF sin
+superficie) **ya está autorizado** por el gate del bloque D9·D11·D13·D14·D15·D16 y no espera al
+mockup; el **Tramo B** (T28-T37, los píxeles) **sí lo espera**.
+
+Lo que el operador tiene que responder, y hasta dónde llega el trabajo sin eso:
+
+1. **🧑‍⚖️ firma del mockup** (parada P0) — sin ella el Tramo A entrega igual: `arnesia telemetria
+   resumen|mejoras|salud` es superficie observable sin FE, mismo patrón que `arnesia portafolio`.
+2. **A20 — dónde vive el bloque `env`** (parada P1, §7.5 de `arquitectura-modulo.md`): opción A
+   (repo del arnés, cobertura parcial, cero fricción) u opción B (proyecto del usuario, cobertura
+   completa, escribe archivos de un tercero ⇒ consentimiento explícito). ⚡ H10.1 cerró la tercera
+   vía: un plugin **no** puede aportar el bloque. Sin la respuesta, todo corre en `s2-degradado`.
+3. **El número del TTL de retención** (parada P2, J-6): el `90` del mockup no está firmado.
+4. **Confirmar la desviación del slot `Tokens` → `Mejora`** (parada P4) antes de la primera story.
+
+</details>
+
+<details><summary>Retomar aquí anterior (tras la etapa de arquitectura)</summary>
 
 **La arquitectura del módulo está resuelta a detalle** →
 [`arquitectura-modulo.md`](arquitectura-modulo.md) + [`escenarios.md`](escenarios.md) +
@@ -115,6 +164,8 @@ boundaries. **Lo que falta para poder construir son tres cosas, en este orden:**
    `s2-instrumentado` (con dinero) y `s2-degradado` (sin dinero, con motivo).
 
 Después: `spec.md` + `design.md` → firma del par → implementación.
+
+</details>
 
 ## Contexto previo (pre-arquitectura)
 

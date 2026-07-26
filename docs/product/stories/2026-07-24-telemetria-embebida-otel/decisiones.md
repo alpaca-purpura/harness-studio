@@ -642,3 +642,146 @@ disciplina §10 (feature nueva = mockup→spec→PARIDAD), NO se codea salteando
 paquete es el punto de arranque cuando se retome: falta mockup de la capa Tokens (granularidad
 per-skill, dónde vive el número — ¿badge en el nodo? ¿panel del inspector?) → spec del receptor
 OTLP + del scaffold de env vars → build → PARIDAD.
+
+---
+
+# Decisiones de construcción (plan-desarrollo §2) — D18…D22
+
+> Las cinco resoluciones que el plan de desarrollo tomó para desbloquear el Tramo A/B. Dejan de
+> ser propuestas del plan y pasan a ser decisiones del paquete. Ninguna contradice el bloque
+> 🧑‍⚖️ FIRMADO del 2026-07-26.
+
+## D18 — Cross-import `entities/arnes → entities/telemetria`: props primitivas + story-candado
+
+`estado: FIRMADA (plan de desarrollo, 2026-07-26)`
+
+`design.md` §1.2 le daba a `arnes-node` (en `entities/arnes`) una prop `mejora?: CifraCaja` tipada
+desde `entities/telemetria`. **`steiger fsd/no-cross-imports` lo rechaza**, corre en
+`pnpm --dir web run fsd`, y `fsd` está dentro de `verify` — o sea que rompe CI.
+
+> **`entities/arnes` no importa `entities/telemetria`. Nunca, por ningún escape.**
+> `ArnesNode` recibe **primitivos**: `cifraUSD?: string` · `participacionPct?: number` ·
+> `confianza?: "exacta" | "por-hash" | "por-proceso" | "sin-dato"` · `marcaFuga?: string` ·
+> `motivoSinDato?: string`. El widget `map-canvas` —que **sí** puede importar las dos entities,
+> porque widgets→entities es la dirección legal— compone `CifraCaja → props`.
+
+Se ata con **dos** candados: (1) la story `CopyConfianzaEsUnaSola` en `map-canvas.stories.tsx`,
+que renderiza el nodo `por-hash` y `<MarcaConfianza confianza="por-hash">` en la misma story y
+asserta igualdad literal de `textContent` y `title`; (2) `entities/telemetria/model/selectors.test.ts`
+exporta `ETIQUETA_CONFIANZA` / `TITULO_CONFIANZA` y las asserta contra `design.md` §7.3. Se rechaza
+la variante `@x/` (enforcement incierto en `steiger.config.ts`) y el overlay del widget (reintroduce
+el posicionamiento absoluto que J-9 prohibió).
+
+## D19 — `knowledge` no es una clase: es una banda
+
+`estado: FIRMADA (plan de desarrollo, 2026-07-26)`
+
+Verificado en `internal/domain/box.go`: el enum `Clase` tiene **diez** primitivas
+(`skill · subagent · hook · rule · command · mcp · plugin · settings · output-style · statusline`)
+más `no-reconocido`, y el comentario dice textual que *«el valor legacy `knowledge` pliega a `rule`»*.
+«Conocimiento» en este árbol es una **banda** (`selectBase`) y un token (`--c-knowledge`), no una
+clase de nodo.
+
+Consecuencias (de vocabulario, no de código): `design.md` §7.3 pierde la fila
+`sin dato · conocimiento`; `spec.md` RF-238 pasa de enumerar clases a decir *«un nodo que no es
+caja (`isCaja(box) === false`)»*; la story `SinDatoResto` cubre el hueco con el copy genérico.
+**No se agrega `knowledge` a `Clase`** — sería tocar el contrato L0 y no es alcance de este paquete.
+
+## D20 — `puesto` no existe en `EntradaPortafolio`: sale del `rol` del arnés, resuelto en el backend
+
+`estado: FIRMADA (plan de desarrollo, 2026-07-26)`
+
+`web/src/entities/portafolio/model/types.ts` e `internal/domain/portafolio.go` tienen `Empresas` e
+`Instalaciones`, y **ningún campo `puesto`**. El dato sí existe en `internal/domain/graph.go`:
+`Rol string` con el comentario *«canonical (was `puesto`)»*.
+
+> La fila de RF-265 se agrupa por **`(identidad, instalacion_id)`** — la unidad que el Portafolio
+> modela. La etiqueta de «puesto» sale del **`rol` del arnés indexado**, resuelto **server-side** en
+> `GET /api/telemetria/portafolio`, viajando como `puesto *string` del DTO `FilaPortafolio`. Si el
+> arnés no declara `rol`, o no está indexado, viaja `null` y la UI dice `puesto sin declarar`.
+> **`domain.EntradaPortafolio` y el wire de `GET /api/portafolio` no se tocan.**
+
+RF-265 «un arnés en dos puestos» se cumple **por instalación**. `SinPuestoDeclarado` es el caso
+**normal** de hoy (ningún arnés del dogfood declara `rol`). Deuda registrada en `BACKLOG.md`.
+
+## D21 — Los dos contrastes que rompen el gate: fix por tema, sin tokens nuevos
+
+`estado: FIRMADA (plan de desarrollo, 2026-07-26)`
+
+Recalculado con composición alpha sobre `--card` de cada tema: `--warn` sobre `--warn-soft` da
+**3,24:1** en claro (6,11:1 en oscuro) y `--crit` sobre `--crit-soft` da **4,04:1** en claro
+(4,66:1 en oscuro). **Los dos fallos son del tema CLARO únicamente.**
+
+1. **Disclaimer «estimado»** — texto `--foreground` sobre `--warn-soft`, borde
+   `color-mix(in srgb, var(--warn) 35%, transparent)`. 13,14:1 en claro.
+2. **Marca de fuga grave** — `color: var(--crit)` sobre **`background: var(--card)`**, borde
+   `color-mix(in srgb, var(--crit) 45%, transparent)`. 4,75:1 claro / 5,33:1 oscuro.
+3. **El gate mira los dos temas**: `ReposoDark` · `CompletaB1AtencionDark` · `ConDatoDark` ⇒ el
+   total de stories pasa de 124 a **125**.
+4. `arnes-node.stories.tsx` hereda `a11y: { test: "todo" }` y **no se amplía**: `MejoraConMarcaDeFuga`
+   lleva un assert **computado** (`getComputedStyle(...).backgroundColor` de `.mej-fuga.grave` es el
+   de `--card`).
+5. `--heat-4` vs `--heat-3` es **1,37:1**, no 1,20. El assert real de la barra es el `aria-label`.
+
+## D22 — CAP-139 apunta a símbolos que el diseño renombró
+
+`estado: FIRMADA (plan de desarrollo, 2026-07-26)`
+
+`capabilities-a-crear.md` CAP-139 lista `valor-o-sin-dato.tsx#ValorOSinDato`,
+`chip-confianza.tsx#ChipConfianza` y `widgets/mejora/ui/tarjeta-mejora.tsx#TarjetaMejora`.
+**Ninguno de los tres sobrevive** a `design.md` §1.3-1.4 y `plan-storybook.md` §1.1, que fijan
+`cifra-usd.tsx#CifraUSD`, `marca-confianza.tsx#MarcaConfianza` y `punto-mejora-card.tsx#PuntoMejoraCard`
+y **eliminan la slice `widgets/mejora/`**. Gana `design.md`/`plan-storybook.md`; CAP-139 se crea (en
+T33) con estos cuatro punteros:
+
+```
+web/src/widgets/map-canvas/model/layers.ts#LAYERS
+web/src/entities/telemetria/ui/cifra-usd.tsx#CifraUSD
+web/src/entities/telemetria/ui/marca-confianza.tsx#MarcaConfianza
+web/src/widgets/map-canvas/ui/punto-mejora-card.tsx#PuntoMejoraCard
+```
+
+`arquitectura-modulo.md` §1 dibuja `web/src/widgets/mejora/` — **no se crea** (contradicción 13).
+
+---
+
+## 🛑 PREGUNTAS ABIERTAS PARA EL OPERADOR (paradas del plan-desarrollo §8)
+
+### P1 · A20 — ¿Dónde vive el bloque `env` que instrumenta `s2-instrumentado`? **ABIERTA**
+
+> **Planteada por el constructor del Tramo A, 2026-07-26. No la decide el constructor.**
+
+Las dos opciones, con su consecuencia:
+
+| | **Opción A — repo del propio arnés** | **Opción B — proyecto del usuario** |
+|---|---|---|
+| dónde | `<arnés>/.claude/settings.json`, shipeado en el paquete | `<proyecto-del-usuario>/.claude/settings.json` |
+| ¿archivo de quién? | **nuestro** | **de un tercero** |
+| ¿choca con A8 / guardrail del chat? | no | **sí** — exige backup + confirmación explícita |
+| cobertura real | **parcial**: cubre el desarrollo del arnés, no su uso | **completa** |
+| reversibilidad | trivial | requiere deshacer una escritura ajena |
+
+⚡ **No hay tercera vía** (H10.1: un plugin **no** puede aportar el bloque — 0 payloads contra 2 del
+control positivo). Recomendación de `arquitectura-modulo.md` §7.5: **A ahora, B solo por pedido
+explícito**.
+
+**Qué se construyó mientras tanto (Tramo A, 2026-07-26):** todo lo que no depende de la elección.
+`s2-degradado` funciona completo (hook → proceso, dinero apagado **con motivo**, nunca 0) y
+`s2-instrumentado` queda **soportado por el lector** (el receptor lo deriva de la señal, A22 lo deja
+entrar sin token bajo Host loopback) aunque **nadie escriba todavía ese bloque**. El día que se
+firme A o B, lo único que falta es **quién escribe el archivo**.
+
+### P2 · El TTL de retención — el `90` **NO está firmado** (J-6)
+
+D15.3 firmó «TTL por default» **sin número**. El `90` del mockup es **PROPUESTO**.
+
+**Qué se construyó (T14/T25):** el flag `--telemetria-retencion` con default 90 días, y la config
+y la salida del CLI (`arnesia telemetria salud`) lo rotulan **`retencion_dias_propuesto: true`**.
+`TestRetencionNoEsUnaConstante` asserta con 45 que no está hardcodeado. **El número lo pone el
+operador.**
+
+### P3 · `OTEL_LOGS_EXPORTER` — **CERRADA** (ANEXO H10.4, 2026-07-26)
+
+Verificada en vivo con control positivo: **sin `OTEL_LOGS_EXPORTER=otlp` llegan 0 log events**
+contra 2 del control positivo. Omitirla apaga la señal de dinero **en silencio**. Va en el contrato
+del spawn como **obligatoria** y `TestSpawnInyectaTelemetria` la asserta por nombre y valor.
