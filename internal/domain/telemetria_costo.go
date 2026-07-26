@@ -1,5 +1,7 @@
 package domain
 
+import "math"
+
 // telemetria_costo.go es el costeo con NUESTRO catálogo (arquitectura-modulo.md §2.3).
 // Es puro: no toca red, ni disco, ni reloj. Acá viven los tres modos de fallo que toda la
 // industria tiene y que este módulo no reproduce (D9.6) — cada uno con su test.
@@ -36,4 +38,83 @@ type CostoCalculado struct {
 	// SinNingunaTarifa distingue «no pude cotizar NADA» (el modelo no está en el catálogo)
 	// de «cotizé 0 porque no hubo tokens». El primero debe viajar como null al wire.
 	SinNingunaTarifa bool `json:"sin_ninguna_tarifa,omitempty"`
+}
+
+// CalcularCosto cotiza un uso con un precio. Es **pura**: no toca red, ni disco, ni reloj.
+//
+// Acá viven los tres modos de fallo que este módulo NO reproduce (D9.6, E8):
+//
+//  1. **El cache WRITE se cobra.** langfuse#14249 lo olvida y subestima ~28 %.
+//  2. **No se suman buckets que se solapan** — de ahí el parámetro `a`: con
+//     `AritmeticaInclusiva`, `cache_lectura ⊂ entrada`, y no restar duplica el conteo
+//     (langfuse#12306, 2×).
+//  3. **Los tiers NO se aplanan**: si hay `SobreUmbral` y el prompt pasa `UmbralContextoTok`,
+//     se cotiza con ese (phoenix#14314 aplana y subestima justo los prompts caros).
+//
+// Y una cuarta, que es de honestidad y no de aritmética: **un bucket con tokens y sin tarifa
+// NO se cobra a 0**. Sale nombrado en `SinTarifa` y `Completo` queda en false.
+func CalcularCosto(t Tokens, p PrecioModelo, a Aritmetica) CostoCalculado {
+	// El tramo se elige por el tamaño del PROMPT (lo que entra al modelo), que es el eje
+	// sobre el que los proveedores tarifan el contexto largo: entrada + lo que se leyó de
+	// cache + lo que se escribió a cache. La salida no cuenta para el umbral.
+	prompt := valor(t.Entrada) + valor(t.CacheLectura) + valor(t.CacheEscritura5m) + valor(t.CacheEscritura1h)
+	efectivo := p
+	if p.SobreUmbral != nil && p.UmbralContextoTok != nil && prompt > *p.UmbralContextoTok {
+		efectivo = *p.SobreUmbral
+		efectivo.ModeloCanonico = p.ModeloCanonico
+	}
+
+	// Aritmética inclusiva: `cache_lectura` viene DENTRO de `entrada`. Se descuenta para no
+	// cobrar los mismos tokens dos veces, y nunca por debajo de cero — un descuento que
+	// deja negativo significa que el emisor reportó algo incoherente, y regalar crédito
+	// sería tan falso como cobrar de más.
+	entrada := valor(t.Entrada)
+	if a == AritmeticaInclusiva {
+		entrada -= valor(t.CacheLectura)
+		if entrada < 0 {
+			entrada = 0
+		}
+	}
+
+	var usd float64
+	var sinTarifa []string
+	cobrados := 0
+
+	cobrar := func(nombre string, tokens int64, tarifa *float64) {
+		if tokens <= 0 {
+			return // sin tokens no hay nada que cobrar ni nada que reportar como faltante.
+		}
+		if tarifa == nil {
+			// Cuarta regla: sin tarifa NO es gratis. Se nombra y se marca incompleto.
+			sinTarifa = append(sinTarifa, nombre)
+			return
+		}
+		usd += float64(tokens) * *tarifa
+		cobrados++
+	}
+
+	cobrar("entrada", entrada, efectivo.Entrada)
+	cobrar("salida", valor(t.Salida), efectivo.Salida)
+	cobrar("cache_lectura", valor(t.CacheLectura), efectivo.CacheLectura)
+	// Los dos tramos del cache write se cobran por separado, cada uno con SU tarifa. Es la
+	// regla 1 (langfuse#14249 no cobra ninguno) y a la vez lo que hace posible B1.
+	cobrar("cache_escritura_5m", valor(t.CacheEscritura5m), efectivo.CacheEscritura5m)
+	cobrar("cache_escritura_1h", valor(t.CacheEscritura1h), efectivo.CacheEscritura1h)
+	cobrar("razonamiento", valor(t.Razonamiento), efectivo.Razonamiento)
+
+	return CostoCalculado{
+		Micros:    int64(math.Round(usd * 1e6)),
+		Completo:  len(sinTarifa) == 0,
+		SinTarifa: sinTarifa,
+		// SinNingunaTarifa: había tokens que cobrar y no se pudo cobrar NINGUNO. El caller
+		// debe mandar `null` al wire, no un 0 — un 0 se lee como «salió gratis».
+		SinNingunaTarifa: cobrados == 0 && len(sinTarifa) > 0,
+	}
+}
+
+func valor(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
 }

@@ -5,7 +5,7 @@ capability_id: arnesia.telemetria.costeo-de-doble-fuente
 cap_num: CAP-126
 slug: costeo-de-doble-fuente
 name: "Costeo de doble fuente (lo que dijo el runtime y lo que dice nuestro catálogo)"
-status: stub          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 license: brand-local
 module: telemetria
 layer: domain
@@ -14,9 +14,18 @@ functional_area: "telemetria.costeo"
 user_visible: false
 nature: feature
 pointers:
+  - "internal/domain/telemetria_costo.go#CalcularCosto"
   - "internal/domain/telemetria_costo.go#PrecioModelo"
   - "internal/domain/telemetria_costo.go#CostoCalculado"
   - "internal/domain/telemetria_vistas.go#ParidadCosto"
+valida:
+  - "TestCosteoCobraElCacheWrite"
+  - "TestCosteoNoSumaBucketsQueSeSolapan"
+  - "TestCosteoInclusivaNoRegalaCredito"
+  - "TestCosteoNoAplanaLosTiers"
+  - "TestSinNingunCosto"
+  - "TestCosteoCeroTokensEsCompleto"
+  - "TestParidadConElCostoReportadoReal"
 dev_preview:
   route: null
   how_to_navigate: null
@@ -31,9 +40,37 @@ change_log:
   - story_id: 2026-07-24-telemetria-embebida-otel
     date: 2026-07-26
     type: new
-    summary: "La FORMA del costeo: una tarifa cuyos tiers no se aplanan, y un resultado que dice cuáles buckets no pudo cotizar en vez de cobrarlos a cero. La función de cálculo llega en su propio ticket — de ahí el estado stub."
+    summary: "Cotiza un uso con nuestro catálogo sin reproducir ninguno de los tres errores de conteo que la industria arrastra —olvidarse de cobrar la escritura de cache, contar dos veces los tokens que se solapan, aplanar los tramos de precio— y sin cobrar a cero lo que no sabe cotizar. Verificado contra el costo que el runtime reportó en una corrida real: coincide al micro."
     merge_sha: null
-scenarios: []
+scenarios:
+  - id: la-escritura-de-cache-se-cobra
+    name: "Un turno escribe cache"
+    status: live
+    given: "un uso con tokens escritos a cache y una tarifa que los cubre"
+    when: "se cotiza"
+    then: "el costo los incluye, y es estrictamente mayor que el del mismo uso sin ellos"
+    verifica: "TestCosteoCobraElCacheWrite"
+  - id: no-se-cuenta-dos-veces
+    name: "El runtime cuenta la lectura de cache dentro de la entrada"
+    status: live
+    given: "un adaptador cuya aritmética es inclusiva"
+    when: "se cotiza un uso donde los dos buckets se solapan"
+    then: "el solapamiento se descuenta; y el descuento nunca deja el costo en negativo, que sería un crédito inventado"
+    verifica: "TestCosteoNoSumaBucketsQueSeSolapan"
+  - id: sin-tarifa-no-es-gratis-esc
+    name: "Un bucket tiene tokens y el catálogo no tiene su tarifa"
+    status: live
+    given: "un uso con un bucket que el catálogo no cotiza"
+    when: "se calcula el costo"
+    then: "el bucket sale nombrado y el total se marca parcial; no se cobra a cero"
+    verifica: "TestSinNingunCosto"
+  - id: paridad-con-el-dato-real
+    name: "Se compara nuestro cálculo con lo que reportó el runtime"
+    status: live
+    given: "el uso y el costo de una corrida real medida en vivo"
+    when: "se cotiza ese mismo uso con nuestro catálogo"
+    then: "el número coincide al micro con el que el runtime reportó"
+    verifica: "TestParidadConElCostoReportadoReal"
 business_rules:
   - id: sin-tarifa-no-es-gratis
     rule: "Un bucket con tokens y sin tarifa no se cobra a cero: sale nombrado y el costo se marca parcial. Un cero en dinero se lee como «gratis»."
