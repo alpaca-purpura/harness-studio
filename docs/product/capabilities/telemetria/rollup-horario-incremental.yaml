@@ -5,7 +5,7 @@ capability_id: arnesia.telemetria.rollup-horario-incremental
 cap_num: CAP-123
 slug: rollup-horario-incremental
 name: "Rollup horario incremental (el «no aplica» sobrevive a la suma)"
-status: vivo          # GENERADO (R4) — no teclear
+status: parcial       # GENERADO (R4) — no teclear
 license: brand-local
 module: telemetria
 layer: adapter
@@ -32,8 +32,7 @@ dev_preview:
   route: null
   how_to_navigate: null
   main_component: null
-  api_endpoints:
-    - "GET /api/telemetria/resumen"
+  api_endpoints: []   # ⚠️ NINGUNO todavía: el agregado se mantiene pero no está en el camino de lectura
   e2e_test: null
 created_in_story: 2026-07-24-telemetria-embebida-otel
 created_date: 2026-07-26
@@ -109,6 +108,13 @@ una caída a mitad no obliga a recalcular todo ni cuenta nada dos veces.
 cierto bucket da vacío, no cero — y al acumular con el grupo siguiente, si los dos siguen vacíos,
 sigue vacío. Un `cero` apurado en esa línea convertiría cada ausencia en una medición y la diferencia
 ya no se podría recuperar aguas abajo.
+
+⚠️ **Estado `parcial`, y la razón importa.** El agregado se **mantiene** (cursor, debounce, tope
+de cardinalidad, recomputo tras borrado) y está probado, pero **ninguna consulta de lectura lo usa
+todavía**: el tablero sigue leyendo el detalle. Mientras eso sea así, el agregado no puede afirmar
+que conserva historia que ninguna pantalla puede devolver — por eso la purga por plazo se lo lleva
+junto con el detalle. El día que entre al camino de lectura, esa línea se revierte y la promesa de
+«detalle purgado, resumen conservado» pasa a ser verdad. Deuda registrada en el BACKLOG.
 
 **El sesgo va declarado y en contra.** Un turno que cruza la frontera de la hora se cuenta en las
 dos. Eso infla el denominador, o sea **baja** el costo por turno que mostramos — el sesgo empuja

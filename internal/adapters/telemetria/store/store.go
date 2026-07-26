@@ -571,11 +571,24 @@ func (s *Store) Purgar(ctx context.Context, p ports.PurgaTelemetria) (int64, err
 			return 0, fmt.Errorf("store: purga por TTL: %w", eerr)
 		}
 		n, _ = res.RowsAffected()
-		// El rollup sobrevive más que el detalle: tras purgar, el drill-down de un turno
-		// viejo dice «detalle purgado, resumen conservado». Su propio TTL lo aplica el caso
-		// de uso con otra llamada.
 		if _, eerr := tx.ExecContext(ctx, `DELETE FROM turno_esperado WHERE ts < ?`, corte); eerr != nil {
 			return 0, fmt.Errorf("store: purga turnos por TTL: %w", eerr)
+		}
+		// 🔴 El agregado de las horas purgadas se va CON el detalle.
+		//
+		// La versión anterior lo conservaba, apoyada en una promesa que era falsa: «el rollup
+		// sobrevive más que el detalle, así que tras purgar el resumen se conserva». No se
+		// conservaba nada — **ninguna consulta de lectura toca `rollup_hora`** (A2 de la
+		// auditoría), así que lo único que quedaba eran filas que el producto no muestra,
+		// afirmando una retención que no existe.
+		//
+		// Entre dejar la mentira y sacarla, se saca: el agregado no puede afirmar que
+		// conserva algo que ninguna pantalla puede devolver. El día que el rollup entre al
+		// camino de lectura, esta línea se revierte **y la promesa pasa a ser verdad** —
+		// deuda registrada en el BACKLOG y en CAP-123, que por eso está en `parcial`.
+		if _, eerr := tx.ExecContext(ctx,
+			`DELETE FROM rollup_hora WHERE hora < ?`, p.AntesDe.UTC().Format("2006-01-02T15")); eerr != nil {
+			return 0, fmt.Errorf("store: purga rollup por TTL: %w", eerr)
 		}
 	default:
 		return 0, errors.New("store: purga sin criterio (ni TTL ni arnés)")

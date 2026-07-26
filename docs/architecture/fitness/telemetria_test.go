@@ -1218,3 +1218,82 @@ func TestNingunIdentificadorEsUnaRutaDelUsuario(t *testing.T) {
 		t.Error("la huella no puede contener el nombre del proyecto")
 	}
 }
+
+// TestElAgregadoNoConservaLoQueNadiePuedeLeer — **A2/C3 de la auditoría**: el agregado
+// afirmaba una retención que no existía.
+//
+// La doc prometía *«el rollup sobrevive más que el detalle: tras purgar, el drill-down dice
+// detalle purgado, resumen conservado»*. Era falso: **ninguna consulta de lectura toca
+// `rollup_hora`**, así que tras la purga quedaban filas que el producto no muestra,
+// sosteniendo una promesa vacía.
+//
+// Este test enforcea la coherencia elegida: **lo que las lecturas no devuelven, el agregado no
+// lo conserva.** El día que el rollup entre al camino de lectura, este test tiene que cambiar
+// — y ese cambio es justamente la señal de que la promesa pasó a ser verdad.
+func TestElAgregadoNoConservaLoQueNadiePuedeLeer(t *testing.T) {
+	dir := t.TempDir()
+	ahora := time.Now().UTC()
+	st, err := telstore.New(filepath.Join(dir, "telemetria.db"),
+		telstore.Opciones{LoteEspera: 10 * time.Millisecond, Reloj: func() time.Time { return ahora }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close() }()
+	roll := telstore.NewRollup(st, time.Hour)
+	defer roll.Detener()
+	svc := usecase.NewTelemetriaService(st, telcatalogo.Embebido(), nil, nil,
+		domain.DetectoresMVP(), otlp.PerfilClaudeCode(), func() time.Time { return ahora })
+	svc.SetRetencion(st, roll, 90, 24)
+	ctx := context.Background()
+
+	viejo := ahora.AddDate(0, 0, -120) // más allá del TTL
+	micros := int64(50_000)
+	if _, ierr := svc.Ingerir(ctx, []domain.EventoTelemetria{{
+		LlaveJoin: domain.LlaveJoin{SesionID: "s-vieja", TurnoID: "t-1", ArnesID: "viejo"},
+		Emisor:    domain.EmisorOTLP, Runtime: "claude-code", TSRecibido: viejo,
+		TipoEvento: domain.EventoAPIRequest, Escenario: domain.EscenarioS2Instrumentado,
+		CostoReportadoMicros: &micros,
+	}}); ierr != nil {
+		t.Fatal(ierr)
+	}
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+	if aerr := roll.Actualizar(ctx); aerr != nil {
+		t.Fatal(aerr)
+	}
+	// Control positivo previo: el agregado SÍ tenía la fila.
+	var antes int
+	if qerr := st.ReaderParaTest().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM rollup_hora WHERE arnes_id = 'viejo'`).Scan(&antes); qerr != nil {
+		t.Fatal(qerr)
+	}
+	if antes == 0 {
+		t.Fatal("control positivo: el agregado tenía que tener la fila antes de purgar")
+	}
+
+	if _, perr := svc.Purgar(ctx, ports.PurgaTelemetria{}); perr != nil {
+		t.Fatal(perr)
+	}
+
+	// Lo que las lecturas devuelven: nada.
+	r, err := svc.Resumen(ctx, ports.ConsultaTelemetria{
+		ArnesID: "viejo", Desde: viejo.AddDate(0, 0, -1), Hasta: ahora,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.CostoReportadoMicros != nil {
+		t.Fatalf("tras la purga la lectura no devuelve nada: %d", *r.CostoReportadoMicros)
+	}
+	// Y el agregado no conserva lo que la lectura no devuelve.
+	var despues int
+	if qerr := st.ReaderParaTest().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM rollup_hora WHERE arnes_id = 'viejo'`).Scan(&despues); qerr != nil {
+		t.Fatal(qerr)
+	}
+	if despues != 0 {
+		t.Errorf("quedaron %d filas de agregado de una hora purgada: afirman una retención que "+
+			"ninguna pantalla puede mostrar", despues)
+	}
+}

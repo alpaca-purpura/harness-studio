@@ -87,10 +87,24 @@
   corre `bundle.sh --daemon-only` (camino ya verificado a mano), pero no se disparó el botón
   completo en esta ronda. Se cierra junto con AC-9, en la misma sentada.
 
+## Versionado + changelog metodológicos (CONSTRUIDO 2026-07-26, falta el ciclo real)
+
+- [ ] **AC-9 — correr un ciclo de publicación real y firmar.** `state: gate-humano`. Todo el
+  mecanismo está probado E2E sobre el repo (bump → promoción → bump abortado por changelog vacío →
+  `bump-minor` → revertido), falta hacerlo de verdad cuando toque publicar: `python3
+  scripts/changelog.py sin-publicar` → `make bump-minor` (esta tanda trae superficie nueva) →
+  `make installer`. → [`stories/2026-07-26-versionado-y-changelog-metodologicos/PARIDAD.md`](stories/2026-07-26-versionado-y-changelog-metodologicos/PARIDAD.md)
+- [ ] **Volcar al changelog lo construido por los otros paquetes abiertos.** `state: deuda`. Las
+  entradas iniciales de `[Sin publicar]` se derivaron de las capabilities nuevas y del paquete de
+  RF-231 — lo verificable hoy. Cada paquete que cierre agrega la suya en su propio turno
+  (`changelog.py add`), que es justamente la regla nueva.
+- [ ] **Tag git automático al publicar.** `state: idea`. Hoy el bump **no toca git** a propósito
+  (queda revisable en el working tree). Si se quiere `git tag vX.Y.Z` en el mismo acto, es una
+  decisión aparte — no se metió al voleo.
+
 ## Gates humanos pendientes (código listo, falta firma 🧑‍⚖️ PARIDAD)
 
-- **Abiertos hoy: 2** — el del dictado por voz (T6, sección de arriba) y el de identidad de build
-  (AC-9). Los 4 históricos (chat-cc-funcional · franja-artefactos · boton-actualizar ·
+- **Abiertos hoy: 3** — dictado por voz (T6) · identidad de build (AC-9) · versionado+changelog (AC-9). Los 4 históricos (chat-cc-funcional · franja-artefactos · boton-actualizar ·
   inspector-drawer) quedaron FIRMADOS 2026-07-09 (HS-20) — sus 7+7+6+5 desviaciones aceptadas;
   cierre en `ledger/HS-20.md`.
 
@@ -167,6 +181,14 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
+- [telemetria/A2] **El rollup horario está construido y NO está en el camino de lectura.** `Resumen`,
+  `PorCaja`, `Turnos`, `cobertura` y `escenario` van todas a la tabla cruda; `rollup_hora` solo se
+  escribe. Consecuencias hoy: (a) el presupuesto de «tablero en milisegundos» **no está realizado**
+  —cada consulta escanea el detalle—; (b) la promesa de «detalle purgado, resumen conservado» era
+  falsa y se **retiró** (la purga por plazo ahora se lleva el agregado, para que nada afirme una
+  retención que ninguna pantalla puede devolver). Cerrarlo = mover los agregados de dinero y tokens
+  a `rollup_hora`, resolviendo antes qué pasa con `sesiones`/`corridas`, que el agregado no modela ·
+  `deuda`
 - [telemetria/D20] **`puesto` como faceta propia de la instalación del Portafolio** — hoy se deriva
   del `rol` del **sello** (`graph.l0` META, que es del arnés), no del **lugar** donde se usa. Dos
   instalaciones del mismo arnés en dos puestos distintos resuelven al mismo `rol` y solo se
