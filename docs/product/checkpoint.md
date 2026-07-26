@@ -12,6 +12,104 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 
 ## Paquete de trabajo activo
 
+- **Dictado por voz en el composer — CONSTRUIDO Y VERIFICADO POR TESTS, falta el gate en vivo
+  (2026-07-26).** El spike cerró y se ejecutó completo el mismo hilo. **Las 7 decisiones FIRMADAS 🧑‍⚖️**
+  (2ª ronda): V-D1 = **A2 local `base`** con la sub-decisión resuelta como **adaptador por PATH**
+  (detecta el motor instalado y degrada VISIBLE si no hay ninguno, en vez de elegir binario sobre
+  evidencia que no existe → deuda **T7**); V-D2 glosario global + 2-3 turnos; V-D4 limpieza por defecto
+  con escape a crudo; V-D5 audio no persistido; V-D6/V-D7 por no-objeción.
+  **Construido, RF-215 primero** (el orden importaba: `wry 0.55.1` no maneja `permission-request` en
+  Linux, así que sin el puente `getUserMedia` **no rechaza — queda pendiente para siempre** y el botón
+  moriría mudo en la app instalada aunque ande en `pnpm dev`): puente Rust `webkit2gtk` que concede
+  **solo audio** · `TranscriptionPort` + adaptador por PATH con transcodificado a cargo del adaptador ·
+  endpoint `POST /api/sessions/{id}/dictado` que **siempre dice si el texto quedó `limpio` o `crudo`** ·
+  limpieza como spawn **endurecido** (1 turno, 11 tools negadas, `--setting-sources project,local`,
+  cableado a fitness porque el dictado es entrada NO confiable) · FE con las **etapas nombradas**
+  (ningún spinner anónimo), medidor de nivel real, tope de 3 min que conserva lo grabado, y el composer
+  poblado **editable que jamás se auto-envía**.
+  **Verificación real:** Rust 4/4 · `go test ./...` verde · fitness verde · `npm run verify` verde ·
+  13 stories del dictado (30/30 archivos del árbol corridos) · conformance
+  `277 checks · pass 66 · fail 0` · capabilities **111 → 115** (4 nuevas, las 4 `vivo` por R4) ·
+  `arch/` **21 → 22 boundaries**. Los fitness cazaron 4 cosas durante la obra (componente `stt` sin
+  declarar en el grafo, 2 punteros R1 que no resolvían, 1 archivo sin capability) — el arnés muerde.
+  **✅ CADENA COMPLETA PROBADA CON VOZ REAL (2026-07-26).** Se instaló un motor de verdad (venv
+  aislado sin sudo) y corrió el pipeline entero por el daemon real: el STT devolvió «**warming**» y
+  «**danon**», y la limpieza con contexto **los reparó a `warning`/`daemon`** y resolvió «la tarjeta
+  esa de permisos» → **`PermissionCard`**, con `estado: "limpio"` en 13.4 s. Es lo que el spike §1.8
+  nunca hizo: ahí se midió un script de Python, acá corrió el adaptador Go del paquete. E2E
+  reproducible versionado (skipea sin motor, jamás finge).
+  **Correr los binarios destapó 4 bugs que los fakes no veían:** se leía `stdout` en vez del `.txt`
+  (habría poblado el composer con la charla del CLI), `--output_dir -` inválido, falta de
+  `--device cpu` que hace **explotar** al CLI sin CUDA, y `faster-whisper` ofrecido como binario
+  cuando **no expone ejecutable**. Y uno mayor: `exec.LookPath` habría dejado el motor **invisible
+  para la app instalada** (el `.desktop` no hereda `~/.profile`) — mismo root cause que ya arregló
+  `selfupdate.pathAumentado`, replicado acá y probado con `$PATH` limpio. También se arregló un
+  footgun del `Makefile`: `make dev-sync` reportaba «Terminado» siempre porque su `pkill -f` se
+  auto-mataba.
+  **Instalador v0.2.20 armado** (`instaladores/v0.2.20/`, .deb/.rpm/.AppImage) + `make dev-sync`.
+  **Falta SOLO el tramo del MICRÓFONO** contra el binario instalado para firmar 🧑‍⚖️ — ningún test lo
+  reemplaza. Abierto además **T7** (qué motor se empaqueta; falta medir `whisper.cpp` y el
+  **`audio/mp4` real**, que nunca se transcribió) y un **hallazgo ajeno**: `--warn` sobre `--card` en
+  tema claro da 3.76:1 y rompe 4 stories de `session-rail` — al BACKLOG, no arreglado al voleo acá.
+  [`stories/2026-07-25-spike-voz-dictado/INDEX.md`](stories/2026-07-25-spike-voz-dictado/INDEX.md)
+  · [`PARIDAD.md`](stories/2026-07-25-spike-voz-dictado/PARIDAD.md)
+  · [`spec.md`](stories/2026-07-25-spike-voz-dictado/spec.md)
+  · [`decisiones.md`](stories/2026-07-25-spike-voz-dictado/decisiones.md)
+- **Identidad de build en Ajustes — CONSTRUIDO Y REFINADO, falta el gate en vivo (2026-07-26).**
+  Pedido del operador: «que en Ajustes aparezca un último número que sea el build». Se midió el
+  agujero antes de tocar nada: la huella es el **commit**, no el build — ese mismo día se bundleó
+  v0.2.21 **dos veces** desde el mismo árbol (dos binarios, huella idéntica) — y el semver ni
+  siquiera estaba en el binario. Quedó **`arnesia v0.2.21.2607260225`** (semver + sello
+  `AAMMDDHHMM`: cambia siempre, monótono, cero estado en el repo), con el commit debajo y un aviso
+  accionable en la superficie cuando en disco hay un build más nuevo (`cerrá y reabrí la app` /
+  `corré make dev-sync`). El sello se inyecta en **`bundle.sh` y no en el Makefile** a propósito:
+  el self-update corre ese mismo script, así que la app **no pierde su identidad al actualizarse a
+  sí misma**. Sin identidad inyectada dice `dev` — jamás un número inventado.
+  **Verificación:** 12 tests Go de identidad · 15 stories de la tarjeta · daemon real (`GET
+  /api/version` con y sin binario más nuevo en disco) · `go test ./...` y fitness verdes (R1-R4:
+  `identidad.go` reclamado por CAP-60). **Refinamiento 2026-07-26** (2ª pasada, cero código): se
+  agregaron `design.md`, la capa humana del spec (mapa funcional · RN-1..8 · AC-1..9 · matriz de
+  cobertura sin huecos), B-D5/B-D6 (por qué sin mockup nuevo · los 4 límites del aviso declarados),
+  y se re-derivó el snapshot `mockup-actualizar.html` (v3, + caso 06 del aviso, `charset` reparado).
+  **VISTO EN VIVO (AC-9a, 2026-07-26):** se compiló, se levantó el daemon sellado con estado aislado
+  (sin tocar `~/.arnesia` ni `~/.local/bin`) y se forzaron los **4 estados** en el navegador — al día ·
+  build sin instalar · «cerrá y reabrí» · sin sellar (capturas en el `shots/` del paquete). Salieron
+  **dos correcciones a la propia doc**: el límite «se evalúa por request» era peor de lo real (la
+  tarjeta **refetchea al entrar a Ajustes**, sin recargar), y un **hallazgo ajeno** — el SPA tiene
+  `127.0.0.1:4200` hardcodeado, en otro puerto la UI entera dice `Failed to fetch` (al BACKLOG).
+  **Falta SOLO AC-9b**: la ventana Tauri instalada (`make installer` + sudo) para firmar 🧑‍⚖️.
+  [`stories/2026-07-26-identidad-de-build/INDEX.md`](stories/2026-07-26-identidad-de-build/INDEX.md)
+  · [`PARIDAD.md`](stories/2026-07-26-identidad-de-build/PARIDAD.md)
+- **Versionado + changelog metodológicos — CONSTRUIDO Y PROBADO E2E, falta el ciclo real
+  (2026-07-26).** Orden del operador: que actualizar la versión **y** decir qué se agrega/corrige/
+  elimina no dependa de que alguien se lo recuerde a nadie. Dos huecos medidos: el repo tenía **20
+  releases** en `instaladores/` y **cero changelog**, y `versionado.md` (v1.1, `enforced`) ni
+  mencionaba el sello de build de RF-231. Quedó: `CHANGELOG.md` (Keep a Changelog, 6 categorías
+  cerradas, `convencion-desde: 0.2.22` — **historia previa NO reconstruida**, sería inventar) ·
+  `scripts/changelog.py` (check/add/release) · **`scripts/bump.sh` como punto único** que valida
+  ANTES de tocar manifiestos y promueve `[Sin publicar]` → `## [X.Y.Z] — fecha` ·
+  `make bump-patch|bump-minor|bump-major` con criterio escrito · `changelog_test.go` (3 tests, CI) ·
+  job `changelog` de lefthook · `versionado.md` **v1.2** (4 checks nuevos + «identidad de build ≠
+  versión de release») · la regla en `CLAUDE.md` y en metodología §10 para que una sesión nueva la
+  lea sola. **E2E corrido de verdad y revertido:** bump 0.2.21→0.2.22 con promoción · segundo bump
+  **abortado** por changelog vacío **sin tocar un solo archivo** · `bump-minor` 0.2.22→0.3.0 ·
+  alias/idempotencia de `add` · rechazo de categoría inventada. Falta **AC-9**: un ciclo de
+  publicación real para firmar 🧑‍⚖️.
+  [`stories/2026-07-26-versionado-y-changelog-metodologicos/INDEX.md`](stories/2026-07-26-versionado-y-changelog-metodologicos/INDEX.md)
+- **Portafolio · consolidar la agregación (proyecto + marketplace) — ACTIVO, en etapa de mockup
+  (2026-07-24).** Re-escopeado por orden del operador (AG-D1): el paquete pasa de «agregar de
+  marketplace» a consolidar TODA la agregación al Portafolio. **Auditoría visual en vivo hecha**
+  (mockup · Storybook · app real a 1440×900): la app **sí** respeta el Storybook — pixel-idéntica
+  a la story en dark; el que driftó es el mockup `.html`, stale en paleta (ámbar pre-rebrand) y
+  adelantado en estructura (affordances que nunca bajaron a código). 1 bug real destapado en la
+  toolbar («Marketplace» dos veces, lente y filtro sin distinción). Cero cambios en código de app
+  a propósito — los hallazgos son insumo del spec, no bugfixes al voleo. **PENDIENTE-02 CERRADA
+  2026-07-25:** 7 decisiones firmadas (AG-D1..D4, D6, D7 + PENDIENTE-01). **Único bloqueo del
+  mockup: firma 🧑‍⚖️ de AG-D8** — plano «Marketplaces» reencuadrado contra `vision.md` (no es una
+  tienda: es el estante de lo que vendemos + el espejo de si el cliente coincide; partición
+  propio / de-referencia porque «operar arneses de terceros» está muerto por visión).
+  [`stories/2026-07-23-portafolio-agregar-marketplace/INDEX.md`](stories/2026-07-23-portafolio-agregar-marketplace/INDEX.md)
+  · [`auditoria-storybook-vs-app.md`](stories/2026-07-23-portafolio-agregar-marketplace/auditoria-storybook-vs-app.md)
 - **Botón «Correr» de una caja — mockup publicado, PAUSADO por el operador (2026-07-24, HS-27).**
   Tras la explicación funcional del botón, el operador prefirió seguir con el resto del barrido
   antes de firmar. Retomar en [`stories/2026-07-23-boton-correr-caja/INDEX.md`](stories/2026-07-23-boton-correr-caja/INDEX.md).
@@ -85,11 +183,11 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `266 checks · pass 57 · fail 0 · error 0 · deferred 209 · n/a 0` (medido 2026-07-24, `go run ./cmd/arnesia conformance --todo`)
-- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-24
-- **arch/:** 21 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
+- **ruleset `--todo`:** `311 checks · pass 80 · fail 0 · error 0 · deferred 231 · n/a 0` (medido 2026-07-26, `go run ./cmd/arnesia conformance --todo`)
+- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-26
+- **arch/:** 26 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 101 — 58 vivo · 40 vivo·nc · 1 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 138 — 84 vivo · 40 vivo·nc · 12 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):
