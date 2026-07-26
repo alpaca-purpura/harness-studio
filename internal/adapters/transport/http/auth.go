@@ -27,17 +27,35 @@ type AuthConfig struct {
 	Token          string
 	AllowedHosts   []string
 	AllowedOrigins []string
+	// TokenIngesta es el SEGUNDO token (decisión A6, paquete de telemetría). Abre **solo**
+	// los tres endpoints de ingesta. Filtrarlo concede «podés escribirme telemetría basura»
+	// —que la atribución y el rate limit ya acotan—, nunca «podés dirigir un agente con
+	// acceso al filesystem», que es lo que el token de la API concede.
+	TokenIngesta string
+	// IngestaTokenObligatorio es la ESCOTILLA de A22. Por default `/v1/*` acepta sin token
+	// bajo el Host gate loopback, porque Claude Code **no expande `${VAR}` en el bloque
+	// `env`** (verificado, ANEXO H10.2) y meter el token literal en un archivo versionable
+	// sería publicar un secreto. Encenderla exige token también ahí — y la consecuencia
+	// honesta, que la UI dice, es que `s2-instrumentado` deja de reportar.
+	IngestaTokenObligatorio bool
 }
 
 // AuthConfigFor builds an AuthConfig for a daemon listening on addr, deriving the loopback
 // host + origin allowlists from its port. token may be empty (dev mode).
 func AuthConfigFor(addr, token string) AuthConfig {
+	return AuthConfigConIngesta(addr, token, "", false)
+}
+
+// AuthConfigConIngesta arma la config con el segundo token (A6) y la escotilla de A22.
+func AuthConfigConIngesta(addr, token, tokenIngesta string, ingestaEstricta bool) AuthConfig {
 	_, port, err := net.SplitHostPort(addr)
 	if err != nil || port == "" {
 		port = "4200"
 	}
 	return AuthConfig{
-		Token: token,
+		Token:                   token,
+		TokenIngesta:            tokenIngesta,
+		IngestaTokenObligatorio: ingestaEstricta,
 		AllowedHosts: []string{
 			"127.0.0.1:" + port,
 			"localhost:" + port,
@@ -119,6 +137,18 @@ func withAuth(cfg AuthConfig, next http.Handler) http.Handler {
 		// la API y al stream; la UI estática embebida (assets inertes en "/") queda tras
 		// los gates 1+2 solamente — un browser debe poder CARGARLA antes de tener token
 		// (el token viaja luego en cada llamada de la SPA a /api).
+		//
+		// Las rutas de INGESTA tienen su propio gate (A6/A22): el token acotado abre esas
+		// tres y **ninguna más**, y `/v1/*` acepta sin token bajo el Host gate loopback
+		// salvo que el operador encienda la escotilla.
+		if isRutaIngesta(r.URL.Path) {
+			if !validaIngesta(r, cfg) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
 		if cfg.Token != "" && isAPIPath(r.URL.Path) && !validToken(r, cfg.Token) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
@@ -130,8 +160,52 @@ func withAuth(cfg AuthConfig, next http.Handler) http.Handler {
 
 // isAPIPath reports whether the path carries capability (API o stream) — lo que el
 // token protege. Todo lo demás bajo el mux es la SPA embebida (estática).
+//
+// `/v1/` entra acá para que el receptor OTLP quede DENTRO del confinamiento (Host+Origin);
+// su gate de token es el suyo propio, en `validaIngesta`.
 func isAPIPath(p string) bool {
-	return strings.HasPrefix(p, "/api") || p == "/events"
+	return strings.HasPrefix(p, "/api") || p == "/events" || strings.HasPrefix(p, "/v1/")
+}
+
+// rutasIngesta son las TRES rutas que el token acotado abre, y ninguna más.
+var rutasIngesta = map[string]bool{
+	"/v1/logs":                true,
+	"/v1/metrics":             true,
+	"/api/telemetria/proceso": true,
+}
+
+// isRutaIngesta reporta si la ruta es de ingesta de telemetría.
+func isRutaIngesta(p string) bool { return rutasIngesta[p] }
+
+// validaIngesta aplica el gate de las rutas de ingesta.
+//
+// **A22, y conviene leerlo dos veces:** `/v1/logs` y `/v1/metrics` aceptan **sin token** bajo
+// el Host gate loopback. No es un descuido — es que Claude Code **no expande `${VAR}` dentro
+// del bloque `env`** (medido, ANEXO H10.2), así que en `s2-instrumentado` el token no puede
+// llegar por indirección, y ponerlo literal metería un secreto vivo en un archivo versionable
+// que iría a git y se publicaría con el paquete.
+//
+// Lo que se pierde está acotado por diseño previo: sin token, un proceso local del MISMO
+// usuario puede inyectar ruido contable, y nada más. Y **el ruido no contamina ningún
+// número**: entra sin atribución, no suma a ningún total, y es VISIBLE en la cobertura y en
+// la salud. Quedan tres barreras: Host gate, tope de cuerpo y rate limit.
+//
+// `POST /api/telemetria/proceso` exige token SIEMPRE, con o sin escotilla: el hook lee la
+// ficha `0600` en runtime, así que ahí sí puede llevarlo.
+func validaIngesta(r *http.Request, cfg AuthConfig) bool {
+	esOTLP := strings.HasPrefix(r.URL.Path, "/v1/")
+	if esOTLP && !cfg.IngestaTokenObligatorio {
+		return true // Host gate loopback ya se aplicó arriba.
+	}
+	if cfg.TokenIngesta == "" && cfg.Token == "" {
+		return true // dev sin ningún token configurado.
+	}
+	// El token de INGESTA abre estas rutas; el de la API también, porque el shell ya tiene
+	// permiso de todo y obligarlo a llevar dos tokens no agrega ninguna garantía.
+	if cfg.TokenIngesta != "" && validToken(r, cfg.TokenIngesta) {
+		return true
+	}
+	return cfg.Token != "" && validToken(r, cfg.Token)
 }
 
 // validToken reads the token from a header (Authorization: Bearer / X-Arnesia-Token) or,

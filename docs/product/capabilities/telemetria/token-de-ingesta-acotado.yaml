@@ -1,0 +1,119 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A6 + A22).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.token-de-ingesta-acotado
+cap_num: CAP-133
+slug: token-de-ingesta-acotado
+name: "Token de ingesta acotado (escribir telemetría no es conducir un agente)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: crear
+functional_area: "telemetria.seguridad"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/transport/http/auth.go#validaIngesta"
+  - "internal/adapters/transport/http/auth.go#isRutaIngesta"
+  - "internal/adapters/transport/http/auth.go#AuthConfigConIngesta"
+  - "internal/adapters/transport/http/auth.go#AuthConfig"
+valida:
+  - "TestTokenDeIngestaNoAbreLaAPI"
+  - "TestOTLPAceptaSinTokenBajoLoopback"
+  - "TestOTLPBajoLosTresGates"
+  - "TestModoEstrictoApagaS2Instrumentado"
+  - "TestLasRutasDeIngestaSonTres"
+  - "TestV1QuedaDentroDelConfinamiento"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /v1/logs"
+    - "POST /v1/metrics"
+    - "POST /api/telemetria/proceso"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §7.3"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Un segundo permiso, separado del de la API, que abre solo los tres puntos de entrada de telemetría. Filtrarlo concede «podés escribirme mediciones», nunca «podés dirigir un agente con acceso a los archivos»."
+    merge_sha: null
+scenarios:
+  - id: el-permiso-acotado-no-abre-la-api
+    name: "El permiso de telemetría se usa contra la API"
+    status: live
+    given: "el permiso acotado de ingesta"
+    when: "se lo usa para entrar a la API de sesiones"
+    then: "se rechaza; y el mismo permiso sí abre el punto de entrada de telemetría"
+    verifica: "TestTokenDeIngestaNoAbreLaAPI"
+  - id: el-canal-del-runtime-va-sin-permiso
+    name: "El runtime no puede llevar un permiso"
+    status: live
+    given: "un archivo de configuración que no interpola valores"
+    when: "el runtime envía su telemetría"
+    then: "se acepta bajo la barrera de host local; el punto de entrada del hook sigue exigiendo permiso siempre"
+    verifica: "TestOTLPAceptaSinTokenBajoLoopback"
+  - id: la-barrera-de-host-no-se-relaja
+    name: "Alguien envía telemetría desde otro origen"
+    status: live
+    given: "una petición con encabezado de host ajeno"
+    when: "llega a un punto de entrada de telemetría"
+    then: "se rechaza igual; la excepción de permiso no relaja las otras barreras"
+    verifica: "TestOTLPBajoLosTresGates"
+  - id: el-operador-puede-endurecerlo
+    name: "El operador prefiere exigir permiso en todos lados"
+    status: live
+    given: "el modo estricto encendido"
+    when: "llega telemetría sin permiso"
+    then: "se rechaza, y la consecuencia se dice: el arnés que corre fuera deja de reportar"
+    verifica: "TestModoEstrictoApagaS2Instrumentado"
+business_rules:
+  - id: dos-permisos-distintos
+    rule: "El permiso de escribir mediciones y el de dirigir un agente son cosas distintas y no comparten llave. Filtrar el primero no puede conceder el segundo."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: un-secreto-no-va-en-un-archivo-versionable
+    rule: "El canal del runtime va sin permiso porque la alternativa sería poner un secreto literal en un archivo que se versiona, se publica con el paquete y no tiene rotación posible."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: la-excepcion-no-relaja-lo-demas
+    rule: "La excepción de permiso no toca las otras barreras: host local, tope de cuerpo y límite de tasa siguen aplicando."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: el-ruido-inyectado-es-visible
+    rule: "Lo que un proceso local pueda inyectar sin permiso no contamina ningún total: entra sin atribución, no suma, y aparece contado en la cobertura y en el estado del módulo."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.receptor-otlp-embebido
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Token de ingesta acotado
+
+Escribir mediciones y dirigir un agente con acceso a los archivos **no son el mismo permiso**, así
+que no comparten llave. El segundo permiso abre exactamente tres puntos de entrada y ninguno más:
+filtrarlo concede «podés mandarme mediciones basura» —que la atribución y el límite de tasa ya
+acotan— y nada más.
+
+**El canal del runtime va sin permiso, y es una decisión, no un descuido.** Se midió: el runtime no
+interpola valores dentro de su bloque de configuración, así que el permiso no puede llegarle por
+indirección; y ponerlo literal metería un secreto vivo en un archivo que se versiona, se publica con
+el paquete y no se puede rotar. Cambiar «un proceso local puede mandarme ruido contable» por «el
+secreto de esta máquina viaja en un release» es un mal negocio.
+
+**Lo que queda en pie:** la barrera de host local, el tope de cuerpo y el límite de tasa. Y el ruido
+que alguien pudiera inyectar **no contamina ningún número**: entra sin atribución, no suma a ningún
+total y aparece contado. La inyección sería visible, no silenciosa.
+
+Para el operador que prefiera lo contrario hay una escotilla — con su consecuencia dicha en voz
+alta: el arnés que corre fuera deja de reportar.
