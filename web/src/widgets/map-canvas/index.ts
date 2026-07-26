@@ -10,10 +10,14 @@
 export {
   coberturaEsParcial,
   DETECTORES_DEL_MVP,
+  denominadorDeBusqueda,
   hayDatosAtribuibles,
+  type VistaCapaMejora,
+  vistaCapaMejora,
 } from "./model/capa-mejora"
 export type { Capa, LayerDef } from "./model/layers"
 export { LAYERS } from "./model/layers"
+export { CapaMejoraStage, type CapaMejoraStageProps } from "./ui/capa-mejora-stage"
 export { FranjaMejora, type FranjaMejoraProps } from "./ui/franja-mejora"
 export { Inspector } from "./ui/inspector"
 export {

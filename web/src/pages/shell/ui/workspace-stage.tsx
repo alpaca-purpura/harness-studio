@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import type { ArtefactosMode, Box, ConformanceResult, Graph } from "@/entities/arnes"
+import type { ArtefactosMode, ConformanceResult, Graph } from "@/entities/arnes"
 import { isCaja } from "@/entities/arnes"
 import type {
   BucketToken,
@@ -8,6 +8,7 @@ import type {
   ParidadCosto,
   PuntoMejora,
   ResumenTelemetria,
+  SaludTelemetria,
   Ventana,
 } from "@/entities/telemetria"
 import { CAMPOS_PERSISTIDOS_HOOK, motivoSinDato } from "@/entities/telemetria"
@@ -23,14 +24,11 @@ import {
 } from "@/shared"
 import {
   type Capa,
-  FranjaMejora,
-  hayDatosAtribuibles,
+  CapaMejoraStage,
   Inspector,
   InspectorMejora,
   MapBar,
-  MapCanvas,
   PoliticaDatosDialog,
-  PuntosMejoraList,
 } from "@/widgets/map-canvas"
 
 const viewGlyph = (v: string) => VIEWS.find((x) => x[0] === v)?.[1] ?? "◵"
@@ -110,9 +108,6 @@ export function WorkspaceStage() {
   const [mejEstado, setMejEstado] = useState<"datos" | "cargando" | "error">("cargando")
   const [mejError, setMejError] = useState<string>()
   const [resumen, setResumen] = useState<ResumenTelemetria | null>(null)
-  // El resumen SIN el recorte que hace la franja: la condición de coherencia se evalúa sobre el
-  // dato crudo, una sola vez, para los dos bloques.
-  const [resumenCrudo, setResumenCrudo] = useState<ResumenTelemetria | null>(null)
   const [cajas, setCajas] = useState<CifraCaja[]>([])
   const [puntos, setPuntos] = useState<PuntoMejora[]>([])
   // Los 7 de fuera del MVP. Alimentan la 4ª tab del inspector (RF-263), **no** el vacío de la
@@ -122,7 +117,14 @@ export function WorkspaceStage() {
   // no afirmar que corrieron los seis cuando alguno no pudo (s2-degradado).
   const [noAplican, setNoAplican] = useState<EstadoDetector[]>([])
   const [politicaAbierta, setPoliticaAbierta] = useState(false)
+  // A-2 · `GET /api/telemetria/salud` estaba construido y **nadie lo consumía**: la retención se
+  // hardcodeaba en 90 «(propuesto)» aunque el daemon dijera 400 firmados, y **el chip de reenvío
+  // externo no se dibujaba nunca**. D13 · H-7 dicen que un estado peligroso no se esconde a la
+  // derecha; no dibujarlo es peor que esconderlo — la pantalla repite «Nada de tu cuenta. Nada
+  // de la conversación.» sin poder saber si los datos se están reenviando afuera.
+  const [salud, setSalud] = useState<SaludTelemetria | null>(null)
   const [detalle, setDetalle] = useState<DetalleCajaWire | null>(null)
+  const [detalleError, setDetalleError] = useState<string>()
   const [nonce, setNonce] = useState(0)
   // Franja Artefactos (RF-143): default auto — reposo idéntico al mapa actual, chips al
   // seleccionar. Mismo patrón de estado que `capa` (sin persistencia dura, como el resto).
@@ -297,10 +299,11 @@ export function WorkspaceStage() {
     ])
       .then(([r, c, m]) => {
         if (!alive) return
-        // `corridas === 0` NO se pinta como un tablero en cero: se pasa `null` y la franja
-        // dice qué pasó y qué hacer (RF-269).
-        setResumen(r && r.corridas > 0 ? r : null)
-        setResumenCrudo(r ?? null)
+        // 🔴 C-2 · el resumen viaja CRUDO. Colapsarlo acá mirando `r.corridas > 0` era el
+        // defecto: fuera de S1 ese campo es 0 por construcción y la franja decía «nunca corrió»
+        // sobre un arnés con dinero medido. Quién muestra qué lo decide `vistaCapaMejora()`,
+        // una sola vez, para los cinco bloques.
+        setResumen(r ?? null)
         setCajas(c.cajas ?? [])
         setPuntos(m.puntos ?? [])
         setNoAplican(m.no_aplican ?? [])
@@ -317,11 +320,31 @@ export function WorkspaceStage() {
     }
   }, [viewedId, isMapa, capa, ventana, rangoDeVentana, nonce])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` es el disparador de recarga (Reintentar · borrar), no un valor que el efecto lea.
+  useEffect(() => {
+    if (!isMapa || capa !== "mejora") return
+    let alive = true
+    api
+      .telemetriaSalud<SaludTelemetria>()
+      .then((d) => {
+        if (alive) setSalud(d)
+      })
+      .catch(() => {
+        // Sin `/salud` no se inventa una retención ni se afirma que el reenvío está apagado:
+        // los dos bloques dicen que el dato no llegó.
+        if (alive) setSalud(null)
+      })
+    return () => {
+      alive = false
+    }
+  }, [isMapa, capa, nonce])
+
   // El detalle de la caja seleccionada — el cuerpo de la 4ª tab. Se pide SOLO cuando hay caja
   // seleccionada y la capa está encendida: es un drill-down, no parte de la carga del Mapa.
   useEffect(() => {
     if (!viewedId || !isMapa || capa !== "mejora" || !selectedId) {
       setDetalle(null)
+      setDetalleError(undefined)
       return
     }
     let alive = true
@@ -330,47 +353,25 @@ export function WorkspaceStage() {
         ...rangoDeVentana(ventana),
       })
       .then((d) => {
-        if (alive) setDetalle(d)
+        if (alive) {
+          setDetalle(d)
+          setDetalleError(undefined)
+        }
       })
-      .catch(() => {
-        // El detalle es opcional: sin él la tab dice que no hay desglose de esta caja, y las
-        // otras tres tabs siguen intactas.
-        if (alive) setDetalle(null)
+      .catch((e: unknown) => {
+        // 🔴 C-3 · un GET que falla es estado de TRANSPORTE, no dato. Tragarlo hacía que la 4ª
+        // tab afirmara ocho cosas falsas —«0 corridas», seis «no aplica en este runtime» y
+        // «catálogo sin construir»— con la nota «"No aplica" no es 0» desplegada EN DEFENSA de
+        // la mentira, mientras el nodo de al lado mostraba USD 1,08.
+        if (alive) {
+          setDetalle(null)
+          setDetalleError(e instanceof Error ? e.message : String(e))
+        }
       })
     return () => {
       alive = false
     }
   }, [viewedId, isMapa, capa, selectedId, ventana, rangoDeVentana])
-
-  // `CifraCaja` por nodo + el motivo de «sin dato atribuible» para todo lo que NO es caja.
-  // El motivo sale de `MOTIVO_SIN_DATO` (entities/telemetria), que es la única fuente — el
-  // nodo lo recibe por prop porque `entities/arnes` no puede importar la otra entity (D18).
-  const mejoraPorNodo = useMemo(() => new Map(cajas.map((c) => [c.caja_id, c])), [cajas])
-  const motivosPorNodo = useMemo(() => {
-    if (capa !== "mejora" || !graph) return undefined
-    const m = new Map<string, string>()
-    for (const n of graph.nodos as Box[]) {
-      if (isCaja(n) || mejoraPorNodo.has(n.id)) continue
-      m.set(n.id, motivoSinDato(n.clase))
-    }
-    return m
-  }, [capa, graph, mejoraPorNodo])
-
-  // Total por fase: la suma de las cajas de esa fase. `null` cuando ninguna tiene costo
-  // atribuido — el carril dice «sin dato», jamás «USD 0,00» (RF-244).
-  const totalesPorFase = useMemo(() => {
-    if (capa !== "mejora" || !graph) return undefined
-    const m = new Map<string, number | null>()
-    for (const n of graph.nodos as Box[]) {
-      const fase = n.fase
-      if (!fase) continue
-      const c = mejoraPorNodo.get(n.id)
-      const prev = m.get(fase) ?? null
-      if (c?.costo_micros != null) m.set(fase, (prev ?? 0) + c.costo_micros)
-      else if (!m.has(fase)) m.set(fase, null)
-    }
-    return m
-  }, [capa, graph, mejoraPorNodo])
 
   // The node the inspector shows (S3), read straight from the loaded graph — real, complete data.
   const selectedBox = useMemo(
@@ -443,126 +444,102 @@ export function WorkspaceStage() {
               artefactos={artefactos}
               onArtefactos={setArtefactos}
             />
-            {/* La franja es CHROME: va entre la barra y el canvas, y el canvas no sabe que
-                existe (mismo criterio que MapBar). Solo con la capa encendida. */}
-            {capa === "mejora" && (
-              <FranjaMejora
-                estado={mejEstado}
-                ventana={ventana}
-                onVentana={setVentana}
-                resumen={resumen}
-                escenario={resumen?.escenario}
-                retencionDias={90}
-                retencionPropuesta
-                onPolitica={() => setPoliticaAbierta(true)}
-                onReintentar={() => setNonce((n) => n + 1)}
-                error={mejError}
-              />
-            )}
-            <div className="relative min-h-0 flex-1">
-              {loadErr ? (
-                <ComingSoon
-                  glyph="⚠"
-                  title="No se pudo cargar el arnés"
-                  note={`El daemon no devolvió el grafo de «${viewedId}». Abrí otra sesión para ver un arnés distinto. ${loadErr}`}
-                />
-              ) : !graph ? (
-                <ComingSoon
-                  glyph="⬡"
-                  title={`Cargando ${viewedId}…`}
-                  note="Leyendo el grafo del arnés."
-                />
-              ) : (
-                <>
-                  <MapCanvas
-                    graph={graph}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    artefactos={artefactos}
-                    capa={capa}
-                    mejora={mejoraPorNodo}
-                    totalesPorFase={totalesPorFase}
-                    motivosSinDato={motivosPorNodo}
+            {/* 🔴 La COMPOSICIÓN vive en `CapaMejoraStage`, no acá. Los cuatro críticos de la
+                auditoría del Tramo B nacieron de componerla en `pages/`, que es el único lugar
+                del repo sin stories — y por eso el candado de D24 no los vio. Esta página hace
+                transporte y estado; qué muestra cada bloque lo decide un widget con stories. */}
+            <CapaMejoraStage
+              capa={capa}
+              graph={graph}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              artefactos={artefactos}
+              estado={mejEstado}
+              resumen={resumen}
+              cajas={cajas}
+              puntos={puntos}
+              noAplican={noAplican}
+              error={mejError}
+              ventana={ventana}
+              onVentana={setVentana}
+              retencionDias={salud?.retencion_dias}
+              retencionPropuesta={salud?.retencion_propuesta}
+              forwardDestino={
+                salud?.forward ? (salud.forward_destino ?? "destino no declarado") : undefined
+              }
+              onPolitica={() => setPoliticaAbierta(true)}
+              onReintentar={() => setNonce((n) => n + 1)}
+              onDescartar={() => setNonce((n) => n + 1)}
+              onProponer={() => setNonce((n) => n + 1)}
+              cuerpoAlternativo={
+                loadErr ? (
+                  <ComingSoon
+                    glyph="⚠"
+                    title="No se pudo cargar el arnés"
+                    note={`El daemon no devolvió el grafo de «${viewedId}». Abrí otra sesión para ver un arnés distinto. ${loadErr}`}
                   />
-                  {/* El drawer pinta algo o NO existe (decisión del operador 2026-07-07,
-                      supersede el estado vacío RF-84): sin selección no se monta; ✕ la
-                      limpia y el drawer desaparece entero. */}
-                  {selectedBox && (
-                    <Inspector
-                      box={selectedBox}
-                      onClose={() => setSelectedId(undefined)}
-                      graph={graph}
-                      onSelect={setSelectedId}
-                      conformance={conformance}
-                      loadFuente={loadFuente}
-                      mejora={
-                        capa === "mejora" ? (
-                          <InspectorMejora
-                            esCaja={isCaja(selectedBox)}
-                            motivoNoCaja={motivoSinDato(selectedBox.clase)}
-                            ventanaLabel={ETIQUETA_VENTANA[ventana]}
-                            corridas={detalle?.turnos_totales ?? 0}
-                            buckets={bucketsDe(detalle)}
-                            totalMicros={detalle?.paridad?.reportado_micros ?? null}
-                            paridad={
-                              detalle?.paridad ?? {
-                                reportado_micros: null,
-                                calculado_micros: null,
-                                divergencia_pct: null,
-                                completo: false,
-                                catalogo_sin_construir: true,
-                              }
+                ) : !graph ? (
+                  <ComingSoon
+                    glyph="⬡"
+                    title={`Cargando ${viewedId}…`}
+                    note="Leyendo el grafo del arnés."
+                  />
+                ) : undefined
+              }
+              inspector={
+                selectedBox ? (
+                  <Inspector
+                    box={selectedBox}
+                    onClose={() => setSelectedId(undefined)}
+                    graph={graph ?? undefined}
+                    onSelect={setSelectedId}
+                    conformance={conformance}
+                    loadFuente={loadFuente}
+                    mejora={
+                      capa === "mejora" ? (
+                        <InspectorMejora
+                          estado={detalleError !== undefined ? "error" : "datos"}
+                          error={detalleError}
+                          esCaja={isCaja(selectedBox)}
+                          motivoNoCaja={motivoSinDato(selectedBox.clase)}
+                          ventanaLabel={ETIQUETA_VENTANA[ventana]}
+                          corridas={detalle?.turnos_totales ?? 0}
+                          buckets={bucketsDe(detalle)}
+                          totalMicros={detalle?.paridad?.reportado_micros ?? null}
+                          paridad={
+                            detalle?.paridad ?? {
+                              reportado_micros: null,
+                              calculado_micros: null,
+                              divergencia_pct: null,
+                              completo: false,
+                              catalogo_sin_construir: true,
                             }
-                            join={{
-                              corridas: detalle?.turnos_totales ?? 0,
-                              // `null`, no 0: sin señal de gate, «ninguna se rechazó» sería una
-                              // afirmación sobre el proceso que nadie midió (T22 sigue abierto).
-                              rechazadas: null,
-                              costo_rechazadas_micros: null,
-                              rotaciones: null,
-                            }}
-                            detectores={detalle?.detectores ?? []}
-                            noMedidos={noMedidos}
-                            onReintentar={() => setNonce((n) => n + 1)}
-                          />
-                        ) : undefined
-                      }
-                    />
-                  )}
-                </>
-              )}
-            </div>
-            {/* H-1 — la lista vive DEBAJO del canvas, como contenido de la página. No es un
-                panel flotante ni un modal, y no puede colgar del nodo (el nodo YA es un
-                `<button>`). */}
-            {capa === "mejora" && (
-              <PuntosMejoraList
-                estado={mejEstado}
-                puntos={puntos}
-                // 🔴 LA condición de coherencia, y la MISMA función que usan las stories de
-                // coherencia: sin medición atribuible la sección no se dibuja y manda el estado
-                // 1 de la franja. Duplicar esta regla acá es cómo nació el defecto que la
-                // verificación en la app instalada cazó.
-                hayDatos={hayDatosAtribuibles(resumenCrudo)}
-                // ⚠️ HUECO DEL WIRE, declarado: el wire NO manda la lista de los que corrieron
-                // y salieron limpios. Sí manda `no_aplican`, así que el CONTEO de los que
-                // corrieron sí es derivable — y es lo que la frase necesita para no exagerar.
-                noAplican={noAplican}
-                corridas={resumen?.corridas ?? 0}
-                cajaSeleccionada={selectedId}
-                onDescartar={() => setNonce((n) => n + 1)}
-                onProponer={() => setNonce((n) => n + 1)}
-                onReintentar={() => setNonce((n) => n + 1)}
-                error={mejError}
-              />
-            )}
+                          }
+                          join={{
+                            corridas: detalle?.turnos_totales ?? 0,
+                            // `null`, no 0: sin señal de gate, «ninguna se rechazó» sería una
+                            // afirmación sobre el proceso que nadie midió (T22 sigue abierto).
+                            rechazadas: null,
+                            costo_rechazadas_micros: null,
+                            rotaciones: null,
+                          }}
+                          detectores={detalle?.detectores ?? []}
+                          noMedidos={noMedidos}
+                          onReintentar={() => setNonce((n) => n + 1)}
+                        />
+                      ) : undefined
+                    }
+                  />
+                ) : undefined
+              }
+            />
             {/* H-5 — el diálogo vive detrás del enlace «qué guardamos» de la franja. */}
             {politicaAbierta && viewedId && (
               <PoliticaDatosDialog
                 arnes={viewedId}
                 camposPersistidos={CAMPOS_PERSISTIDOS_HOOK}
-                retencionDias={90}
-                retencionPropuesta
+                retencionDias={salud?.retencion_dias ?? 0}
+                retencionPropuesta={salud?.retencion_propuesta ?? true}
                 corridasPorBorrar={resumen?.corridas ?? 0}
                 onBorrar={() => {
                   api

@@ -591,3 +591,51 @@
   font-size: var(--text-xs);
   color: var(--muted-foreground);
 }
+
+/* ══ C-1 · La capa es un SUPERSET del Mapa, no un reemplazo ════════════════════════════════
+   Medido antes del fix (viewport 1136×833): canvas 739 px en Estructura → **257 px con una
+   tarjeta** → **0 px con cuatro**, y 0 px con UNA sola a 200 % de zoom. La vista Mapa dejaba de
+   mostrar el mapa.
+
+   La causa: la lista era hermana flex del canvas, el canvas solo tenía `min-h-0` —que le dice a
+   flexbox «podés encogerme sin límite»— y la lista no tenía tope ni scroll propio. */
+
+/* El canvas lleva su PISO. Con menos de esto no es un mapa, es una franja. */
+.mapa-canvas-slot {
+  min-height: 240px;
+}
+
+/* Y la lista lleva su TECHO, con scroll adentro: crece hasta su límite y ahí scrollea, en vez
+   de empujar al canvas fuera de la pantalla. `flex: 0 1 auto` + `min-height: 0` la dejan
+   ceder primero cuando la columna es corta — el mapa gana el reparto, que es el orden correcto
+   en una vista que se llama «Mapa». */
+.mapa-lista-slot {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: min(38vh, 420px);
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+.mapa-lista-slot:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+/* El encabezado se queda a la vista mientras se scrollea la lista: sin esto, al bajar se pierde
+   de qué sección son las tarjetas. */
+.mapa-lista-slot .mej-lista-hd {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--background);
+  padding-block: var(--space-1);
+}
+
+/* Pantallas cortas: el piso del canvas cede un poco antes de que la columna desborde. */
+@media (max-height: 700px) {
+  .mapa-canvas-slot {
+    min-height: 180px;
+  }
+  .mapa-lista-slot {
+    max-height: min(32vh, 260px);
+  }
+}

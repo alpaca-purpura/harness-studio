@@ -12,18 +12,13 @@ import {
   selectRefsEntrada,
   selectSoporte,
 } from "@/entities/arnes"
-import {
-  type CifraCaja,
-  etiquetaConfianza,
-  marcaPrincipal,
-  pct,
-  tituloConfianza,
-  usd,
-} from "@/entities/telemetria"
+import type { CifraCaja } from "@/entities/telemetria"
+import { usd } from "@/entities/telemetria"
 import { cn } from "@/shared/lib/cn"
 import { ErrorBoundary } from "@/shared/ui/error-boundary"
 import { SUPPORT_BANDS } from "../model/bands"
 import type { Capa } from "../model/layers"
+import { propsDeMejora } from "../model/props-de-mejora"
 import { type DrawableEdge, useEdgePaths } from "../model/use-edge-paths"
 import { useViewport } from "../model/use-viewport"
 import { Band } from "./band"
@@ -65,35 +60,15 @@ interface MapCanvasProps {
    * por eso es acá donde `CifraCaja` se compone en las props PRIMITIVAS del nodo (D18).
    */
   mejora?: ReadonlyMap<string, CifraCaja> | undefined
-  /** Total por fase, keyeado por nombre de fase. `null` ⇒ el carril dice «sin dato» (RF-244). */
+  /**
+   * Total por fase, keyeado por nombre de fase. `null` en una fase ⇒ el carril dice «sin dato»
+   * (RF-244). **El mapa entero `undefined` ⇒ el carril no muestra NADA**: sin medición en la
+   * ventana manda el estado 1 de la franja, y repetir «sin dato» en cada carril sería una
+   * segunda afirmación sobre el mismo hecho (C-2).
+   */
   totalesPorFase?: ReadonlyMap<string, number | null> | undefined
   /** El motivo de «sin dato atribuible» por nodo, resuelto por la página con la clase real. */
   motivosSinDato?: ReadonlyMap<string, string> | undefined
-}
-
-/**
- * `CifraCaja → props primitivas` — **la traducción que D18 exige que viva acá**.
- *
- * `entities/arnes` no importa `entities/telemetria` (nunca, por ningún escape), así que el nodo
- * recibe strings y números. El copy de confianza NO se duplica: sale de `etiquetaConfianza`/
- * `tituloConfianza`, que son la única fuente, y la story `CopyConfianzaEsUnaSola` asserta que
- * el chip del nodo y `<MarcaConfianza>` dicen exactamente lo mismo.
- */
-function propsDeMejora(c: CifraCaja, motivoSinDato: string | undefined) {
-  if (!c.atribuible || c.costo_micros === null) {
-    return { motivoSinDato: c.motivo ?? motivoSinDato ?? "sin corridas en esta ventana" }
-  }
-  const marca = marcaPrincipal(c.marcas)
-  const porcentaje = c.parte === undefined ? undefined : Number.parseInt(pct(c.parte) ?? "", 10)
-  return {
-    cifraUsd: usd(c.costo_micros) ?? undefined,
-    participacionPct: Number.isNaN(porcentaje) ? undefined : porcentaje,
-    confianza: c.confianza,
-    etiquetaConfianza: etiquetaConfianza(c.confianza) ?? undefined,
-    tituloConfianza: tituloConfianza(c.confianza) ?? undefined,
-    marcaFuga: marca?.nombre,
-    marcaFugaGrave: marca?.grave,
-  }
 }
 
 // The render-error net (nomenclatura-arnes §4.5): a malformed node (e.g. a clase outside the
@@ -300,14 +275,18 @@ function MapCanvasInner({
                         related={related}
                         selectedId={selectedId}
                         onSelect={onSelect}
-                        {...(capa === "mejora"
+                        // El total del carril y las marcas del nodo son DOS decisiones, y
+                        // gatearlas juntas fue un error propio: sin `totalesPorFase` los nodos
+                        // se quedaban sin cifra. El carril calla cuando no hay medición en la
+                        // ventana (manda el estado 1 de la franja, C-2); los nodos dependen de
+                        // su propio mapa.
+                        mejora={mejoraDeCarril}
+                        {...(capa === "mejora" && totalesPorFase !== undefined
                           ? {
                               totalUsd:
-                                totalesPorFase?.get(l.fase) === undefined ||
-                                totalesPorFase.get(l.fase) === null
+                                totalesPorFase.get(l.fase) == null
                                   ? null
                                   : usd(totalesPorFase.get(l.fase) as number),
-                              mejora: mejoraDeCarril,
                             }
                           : {})}
                       />
