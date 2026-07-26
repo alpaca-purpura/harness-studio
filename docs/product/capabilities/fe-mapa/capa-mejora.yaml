@@ -52,6 +52,8 @@ pointers:
   - "web/src/widgets/map-canvas/ui/puntos-mejora-list.tsx#PuntosMejoraList"
   - "web/src/widgets/map-canvas/ui/inspector-mejora.tsx#InspectorMejora"
   - "web/src/widgets/map-canvas/ui/inspector.tsx#Inspector"
+  - "web/src/widgets/map-canvas/ui/politica-datos-dialog.tsx#PoliticaDatosDialog"
+  - "web/src/entities/telemetria/testing/telemetria.ts#CAMPOS_PERSISTIDOS_HOOK"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
@@ -65,6 +67,7 @@ valida:
   - "web/src/widgets/map-canvas/ui/puntos-mejora-list.stories.tsx"
   - "web/src/widgets/map-canvas/ui/inspector-mejora.stories.tsx"
   - "web/src/widgets/map-canvas/ui/inspector.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/politica-datos-dialog.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -216,6 +219,25 @@ change_log:
       1,92 del copy. Los dos fixtures no se pueden fundir — a dos decimales, los 18 473 micros
       reales no suman nada, y bajar la precisión del formateador para que el assert cierre sería
       arreglar el termómetro.
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T35 — `PoliticaDatosDialog`, detrás del enlace «qué guardamos» de la franja (H-5). Existe
+      para que la promesa «nada de tu cuenta, nada de la conversación» sea **contrastable**, no
+      una frase: **la lista de campos viene POR PROP** (`camposPersistidos`), es la misma
+      allowlist que aplica la ingesta (`ANEXO-hooks.md` H4, importada del bloque MEDIDO), y el
+      DOM refleja exactamente ese array. Si la UI la inventara, la promesa dejaría de ser
+      verificable — que es el único valor que tiene un diálogo de privacidad. H-14: el copy dice
+      qué pasa con lo que SÍ llega por el canal de hooks y que se descarta antes de escribirse.
+      El `{N}` de retención sale de la config y va rotulado como PROPUESTO (J-6): hardcodear el
+      90 lo convertiría en decisión por omisión. El botón destructivo nace `disabled` hasta que
+      el operador confirma el alcance, y **mientras borra el diálogo no se puede cerrar**
+      (S1-D19): cerrarlo dejaría una operación en vuelo sin dónde reportar su resultado.
+      Focus trap con `trapTabKeyDown`, sin portal (el contenido vive inline para que la story lo
+      vea, patrón sancionado en `shared/lib/focus-trap.ts`). 8 stories, gate a11y en `error`.
     merge_sha: null
 
 scenarios:
@@ -388,6 +410,32 @@ scenarios:
       `role=tabpanel` y `aria-labelledby` de vuelta a su tab; los 3 paneles inactivos llevan el
       atributo `hidden`, no `display:none` por CSS
     verifica: "CuatroTabs · TabMejoraContratoAria · CambioDeNodoVuelveAResumen · Tabs (inspector.stories.tsx)"
+
+  - id: mejora-politica-la-lista-no-la-inventa-la-ui
+    name: "La lista de campos persistidos viene de la allowlist real, no de la UI (RF-275 · RF-282)"
+    given: "`camposPersistidos` con la allowlist del canal de hooks"
+    when: "se despliegan «los campos exactos»"
+    then: >-
+      el DOM refleja EXACTAMENTE ese array, ni uno más ni uno menos. La promesa de privacidad es
+      contrastable contra lo que la ingesta realmente guarda, no contra una redacción aparte
+    verifica: "CamposDesplegados · Reposo (politica-datos-dialog.stories.tsx)"
+  - id: mejora-borrado-no-se-cierra-en-vuelo
+    name: "El borrado se confirma, no se puede abandonar en vuelo, y su fallo deja el dato intacto (RF-275 · RF-278)"
+    given: "el diálogo de política abierto"
+    when: "se pide borrar la telemetría del arnés"
+    then: >-
+      la confirmación dice CUÁNTAS corridas se borran antes de borrarlas y el botón nace
+      `disabled` hasta confirmar el alcance; mientras borra, Esc no cierra y Cancelar está
+      deshabilitado; si falla, el diálogo sigue abierto y el copy dice «No se borró nada»
+    verifica: "Confirmacion · Borrando · ErrorDeBorrado · Exito · FocoAtrapado (politica-datos-dialog.stories.tsx)"
+  - id: mejora-retencion-sale-de-la-config
+    name: "El TTL de retención sale de la config y se rotula como propuesto (RF-283 · J-6)"
+    given: "`retencionDias` inyectado"
+    when: "se renderiza el bloque de retención"
+    then: >-
+      el número mostrado es el inyectado y el `90` del mockup NO está hardcodeado; cuando el
+      valor no está firmado, la UI lo dice
+    verifica: "RetencionDesdeConfig (politica-datos-dialog.stories.tsx)"
 
 business_rules: []
 related_capabilities:

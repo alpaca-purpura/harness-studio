@@ -475,3 +475,119 @@
   font-size: var(--text-xs);
   color: var(--muted-foreground);
 }
+
+/* ══ Diálogo de política de datos y borrado (T35) ══════════════════════════════════════════
+   Sin portal, inline en el árbol: `shared/lib/focus-trap.ts` explica por qué (el contenido
+   tiene que seguir dentro de `within(canvasElement)` para que la story lo vea). */
+
+.arnesia-mejora.pol-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 560px;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--foreground);
+}
+.arnesia-mejora .pol-titulo {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.arnesia-mejora .pol-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.arnesia-mejora .pol-bloque h3 {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-foreground);
+}
+.arnesia-mejora .pol-bloque p {
+  margin: 0;
+}
+.arnesia-mejora .pol-campos {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.arnesia-mejora .pol-propuesto {
+  color: var(--muted-foreground);
+}
+.arnesia-mejora .pol-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.arnesia-mejora .pol-error {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--crit) 45%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--crit);
+  font-weight: 600;
+}
+.arnesia-mejora .pol-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.arnesia-mejora .pol-link {
+  font: inherit;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.arnesia-mejora .pol-btn {
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 5px var(--space-3);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+}
+/* Destructivo: el borde y el texto llevan el tono, el FONDO no — texto `--destructive` sobre
+   `--card` pasa; sobre un relleno del mismo tono, no (misma regla que D21). */
+.arnesia-mejora .pol-btn-destructivo {
+  border-color: color-mix(in srgb, var(--destructive) 55%, transparent);
+  color: var(--destructive);
+  font-weight: 600;
+}
+.arnesia-mejora .pol-btn:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+.arnesia-mejora .pol-btn:focus-visible,
+.arnesia-mejora .pol-link:focus-visible,
+.arnesia-mejora .pol-confirm input:focus-visible,
+.arnesia-mejora .pol-dialog:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.arnesia-mejora .pol-live:empty {
+  display: none;
+}
+.arnesia-mejora .pol-live {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}

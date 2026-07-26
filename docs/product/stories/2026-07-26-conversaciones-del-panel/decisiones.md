@@ -141,8 +141,45 @@ Y el título (CV-D9). Nada más — la fila no es una tarjeta.
 turno, no al desactivar — si no, una conversación inactiva mentiría la fecha del último mensaje.
 `Turnos` y `CtxPct` ya existen y bajan a la conversación por CV-D3.
 
+## CV-D14 · El cromo del dock baja de 4 filas a 2
+
+Conversada sobre el mockup: el operador contó lo que hay que leer antes del primer mensaje y pidió
+recortarlo. Hoy son **cuatro filas** en un dock de 360 px (header · SessionLine · ScopeRow, más la
+fila de conversación que agregaba este paquete), y `vitalia` aparece **tres veces** — SessionLine,
+chip de Alcance y placeholder del composer — sobre un rail y un breadcrumb que ya lo dicen.
+
+Queda así:
+
+| Fila | Qué lleva | Cuándo |
+|---|---|---|
+| 1 | pip · frente de la sesión · colapsar | siempre (**intacta**, sin cambios) |
+| 2 | ▶ título · **chip de ctx** · 🔍 · ＋ | siempre |
+| 3 | chip del nodo en alcance, con ✕ | **solo con un nodo elegido** |
+
+- **El ctx es un chip-disclosure.** Es la única cifra accionable de la `SessionLine` (dispara la
+  rotación, RF-195) y se queda a la vista. Un clic abre el detalle con `cc-id · arnés · modelo ·
+  cwd` — las mismas cifras del vigente **más el `cwd`**, que hoy no se ve en ningún lado y es el
+  confinamiento real del conductor. **Nada se pierde**: deja de costar una fila permanente.
+- **El detalle se abre solo al retomar (CV-D11) y al rotar (CV-D10)** — son los dos momentos en que
+  el `cc-id` cambia, y eso hay que verlo sin buscarlo.
+- **`ScopeRow` deja de ser fila fija.** Su estado vacío gastaba una fila entera en el hint
+  «selecciona un nodo en el Mapa para acotar» + un chip del arnés redundante. Con nodo elegido la
+  fila aparece y se gana el lugar: cambia qué le estás pidiendo. El ✕ para quitarlo se conserva
+  literal (`chat-dock.tsx` L62-69).
+
+Alternativa **descartada** por el operador: sacar también la fila 1 (el frente de la sesión ya está
+en la tarjeta resaltada del rail, al lado, y en el breadcrumb del topbar). Habría dejado 1 sola fila
+de cromo, pero quita superficie firmada (regla dura 3 de `mockups/INDEX.md`). Se conserva.
+
+## CV-D15 · El glifo de colapsar pasa de `⟩` a `»`
+
+`⟩` (U+27E9) se lee como un paréntesis suelto. `»` es el glifo que el **rail ya usa** para lo mismo
+(`session-rail.tsx:96`: `«` colapsar / `»` expandir, la punta apunta hacia donde se mueve el panel).
+El dock vive a la derecha, así que colapsarlo lo empuja a la derecha: `»`. Vocabulario reusado, no
+inventado. La palabra «colapsar» y el `title` se conservan.
+
 ---
 
 ## Abierto
 
-Ninguno. Decisiones COMPLETAS — sigue el mockup.
+Ninguno. Decisiones COMPLETAS — el mockup las materializa todas.

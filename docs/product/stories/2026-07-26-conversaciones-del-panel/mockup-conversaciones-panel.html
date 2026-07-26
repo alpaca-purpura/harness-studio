@@ -42,6 +42,9 @@
     CV-D10  la rotación por contexto es marca INLINE; la lista sigue mostrando UNA entrada
     CV-D11  seleccionar una inactiva la retoma (--resume), no la abre en solo-lectura
     CV-D13  cada fila: título · última interacción · nº de turnos · ctx final
+    CV-D14  el cromo baja de 4 filas a 2: el ctx es un chip-disclosure, la identidad técnica vive
+            detrás de un clic y la fila de alcance solo existe cuando hay un nodo elegido
+    CV-D15  el glifo de colapsar pasa de ⟩ (se lee como paréntesis) a » — el que el rail ya usa
 -->
 <title>ArnesIA · Las conversaciones viven en el panel de conversación</title>
 <style>
@@ -366,9 +369,10 @@
       <p class="note">
         Mismo alto de panel que §1 y <b>un mensaje más a la vista</b>. <b>No hay botón de cerrar</b>
         — a propósito (CV-D7): si el operador pudiera cerrar sin abrir nada, la sesión quedaría sin
-        conversación activa y el composer no tendría a quién hablarle. <b>«⟩» pasa a «»»</b>
-        (CV-D15): el corchete se leía como paréntesis; «»» es el glifo que el rail ya usa para
-        colapsar (<code>session-rail.tsx</code> L96).
+        conversación activa y el composer no tendría a quién hablarle. El glifo de colapsar pasa de
+        <code>⟩</code> a <code>»</code> (CV-D15): el corchete se leía como un paréntesis suelto, y
+        <code>»</code> es el que el rail ya usa para lo mismo (<code>session-rail.tsx</code> L96,
+        la punta apunta hacia donde se mueve el panel).
       </p>
     </section>
 
@@ -616,6 +620,7 @@
       <div class="dock">
         <div class="convrow">
           <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:68%"></i></span>68%</button>
           <span class="acts">
             <button type="button" class="iconbtn">🔍</button>
             <button type="button" class="iconbtn nueva">＋</button>
@@ -646,6 +651,7 @@
       <div class="dock">
         <div class="convrow">
           <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">nueva conversación</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:0%"></i></span>0%</button>
           <span class="acts">
             <button type="button" class="iconbtn">🔍</button>
             <button type="button" class="iconbtn nueva">＋</button>
@@ -694,6 +700,7 @@
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev">▶</span><span class="t">sellar el arnés con arnes.l0.json</span></button>
+          <button type="button" class="ctxchip open"><span class="ctxbar"><i style="width:34%"></i></span>34%</button>
           <span class="acts">
             <button type="button" class="iconbtn">🔍</button>
             <button type="button" class="iconbtn nueva">＋</button>
@@ -703,9 +710,8 @@
           <span>Retomando la conversación…</span>
           <span class="r">--resume d303a93f</span>
         </div>
-        <div class="sline">
-          <span class="cc">◍ d303a93f</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
-          <span>· ctx</span><span class="ctxbar"><i style="width:34%"></i></span><span>34%</span>
+        <div class="detalle">
+          <div class="l"><span class="cc">◍ d303a93f</span><span>·</span><span class="k">vitalia</span><span>·</span><span>claude-opus-5[1m]</span></div>
         </div>
         <div class="msgs">
           <div class="bubble user">escribí el manifiesto en la raíz y volvé a indexar</div>
@@ -719,8 +725,8 @@
       <p class="note">
         El transcript se <b>repinta desde <code>Conv</code></b> (persistido al desactivar, CV-D8) y
         recién después engancha el stream vivo — el mismo movimiento que hoy hace cambiar de sesión
-        en el rail. La <code>SessionLine</code> pasa a mostrar el <b>cc-id y el ctx de ESTA</b>
-        conversación, no los de la anterior.
+        en el rail. El <b>detalle se abre solo</b> al retomar: el <code>cc-id</code> y el ctx pasan a
+        ser los de ESTA conversación, no los de la anterior, y eso hay que verlo sin buscarlo.
       </p>
     </section>
 
@@ -733,19 +739,11 @@
         </div>
         <div class="convrow">
           <button type="button" class="title"><span class="chev">▶</span><span class="t">nueva conversación</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:0%"></i></span>0%</button>
           <span class="acts">
             <button type="button" class="iconbtn">🔍</button>
             <button type="button" class="iconbtn nueva">＋</button>
           </span>
-        </div>
-        <div class="sline">
-          <span class="cc">◍ sin sesión CC</span><span>· vitalia</span>
-          <span>· ctx</span><span class="ctxbar"><i style="width:0%"></i></span><span>0%</span>
-        </div>
-        <div class="scope">
-          <span>Alcance:</span>
-          <span class="chip-arnes">arnés <b>vitalia</b></span>
-          <span>selecciona un nodo en el Mapa para acotar</span>
         </div>
         <div class="msgs" style="justify-content:center">
           <p class="empty">
@@ -762,8 +760,9 @@
       <p class="note">
         El vacío vigente decía «Esta conversación ES la sesión Claude Code del frente …»
         (<code>chat-dock.tsx</code> L110-115) — <b>deja de ser verdad</b> bajo CV-D3 y por eso cambia:
-        nombra la que se desactivó y dice cómo volver. <code>◍ sin sesión CC</code> es literal del
-        vigente (L82), no una invención.
+        nombra la que se desactivó y dice cómo volver. Con <b>0 %</b> y sin sesión CC todavía, el
+        chip <b>no se esconde</b>: 0 es un dato, no un vacío. El <code>◍ sin sesión CC</code> del
+        vigente (L82) sigue existiendo, adentro del detalle.
       </p>
     </section>
 
@@ -772,14 +771,14 @@
       <div class="dock">
         <div class="convrow">
           <button type="button" class="title"><span class="chev">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip open"><span class="ctxbar"><i style="width:12%"></i></span>12%</button>
           <span class="acts">
             <button type="button" class="iconbtn">🔍</button>
             <button type="button" class="iconbtn nueva">＋</button>
           </span>
         </div>
-        <div class="sline">
-          <span class="cc">◍ 7ae10c42</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
-          <span>· ctx</span><span class="ctxbar"><i style="width:12%"></i></span><span>12%</span>
+        <div class="detalle">
+          <div class="l"><span class="cc">◍ 7ae10c42</span><span>·</span><span class="k">vitalia</span><span>·</span><span>claude-opus-5[1m]</span></div>
         </div>
         <div class="msgs">
           <div class="bubble">…entonces el índice quedó vacío por eso.</div>
@@ -795,9 +794,10 @@
       </div>
       <p class="note">
         <b>Una marca inline, no un corte de hilo</b> (CV-D10): el título no cambia, la lista sigue
-        mostrando UNA entrada, el ctx vuelve a 12 % y el <code>cc-id</code> de la SessionLine es el
-        nuevo. <code>CadenaCC</code> cose los dos por debajo. Sin la marca, el ctx cayendo de 92 % a
-        12 % sin explicación parecería un bug.
+        mostrando UNA entrada, el ctx vuelve a 12 % y el <code>cc-id</code> del detalle es el nuevo
+        (por eso el detalle se abre acá también). <code>CadenaCC</code> cose los dos por debajo. Sin
+        la marca, el ctx cayendo de 92 % a 12 % sin explicación parecería un bug — y ese chip es
+        justamente lo que el operador tiene a la vista.
       </p>
     </section>
   </div>
@@ -858,6 +858,7 @@
       <div class="dock">
         <div class="convrow">
           <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:68%"></i></span>68%</button>
           <span class="acts"><button type="button" class="iconbtn">🔍</button><button type="button" class="iconbtn nueva">＋</button></span>
         </div>
         <div class="clist">
@@ -879,6 +880,7 @@
       <div class="dock">
         <div class="convrow">
           <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <button type="button" class="ctxchip"><span class="ctxbar"><i style="width:68%"></i></span>68%</button>
           <span class="acts"><button type="button" class="iconbtn">🔍</button><button type="button" class="iconbtn nueva">＋</button></span>
         </div>
         <div class="clist">
@@ -925,6 +927,8 @@
         <tr><td><code>CV-D11</code></td><td>seleccionar retoma</td><td>§4A</td></tr>
         <tr><td><code>CV-D12</code></td><td>activa/inactiva, no «cerrada»</td><td>§3A (el rótulo dice <code>activa</code>, las otras no dicen nada) · §5B</td></tr>
         <tr><td><code>CV-D13</code></td><td>última interacción · turnos · ctx</td><td>§3A · §3D (el caso sin turnos)</td></tr>
+        <tr><td><code>CV-D14</code></td><td>cromo de 4 filas → 2</td><td>§2A (reposo) · §2B (el detalle detrás del ctx) · §2C (alcance condicional) · §1 es el antes</td></tr>
+        <tr><td><code>CV-D15</code></td><td><code>⟩</code> → <code>»</code> en colapsar</td><td>todos los paneles de §2-§6; §1 conserva el <code>⟩</code> vigente</td></tr>
       </tbody>
     </table>
   </div>

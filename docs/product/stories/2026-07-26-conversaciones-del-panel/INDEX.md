@@ -9,8 +9,8 @@
 
 | Etapa | Estado |
 |---|---|
-| decisiones | ✅ **completas** — CV-D1..D13, cero puntos abiertos |
-| mockup | ⏳ **escrito, esperando firma 🧑‍⚖️** — [`mockup-conversaciones-panel.html`](./mockup-conversaciones-panel.html), 7 secciones, registrado en [`mockups/INDEX.md`](../../../../mockups/INDEX.md) |
+| decisiones | ✅ **completas** — CV-D1..D15, cero puntos abiertos |
+| mockup | ⏳ **iteración 2, esperando firma 🧑‍⚖️** — [`mockup-conversaciones-panel.html`](./mockup-conversaciones-panel.html), 7 secciones / 16 paneles, registrado en [`mockups/INDEX.md`](../../../../mockups/INDEX.md) |
 | spec | ⬜ |
 | implementar | ⬜ |
 | PARIDAD | ⬜ |
@@ -31,6 +31,9 @@
 - **CV-D11** — seleccionar una inactiva la **retoma** (`--resume`); siempre una activa por sesión.
 - **CV-D12** — vocabulario **activa/inactiva**, no «cerrada». El registro `sesiones-cerradas.json` pierde sentido.
 - **CV-D13** — la fila muestra última interacción · nº turnos · ctx final. Exige timestamp nuevo por turno.
+- **CV-D14** — el cromo del dock baja de **4 filas a 2**: ctx = chip-disclosure, identidad técnica
+  detrás de un clic, alcance solo con nodo elegido.
+- **CV-D15** — el glifo de colapsar pasa de `⟩` a `»`, el que el rail ya usa.
 
 ## Radio de impacto (relevado, no estimado)
 
