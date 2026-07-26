@@ -1,5 +1,6 @@
 import type { EstadoDetector, PuntoMejora } from "@/entities/telemetria"
 import { ErrorBody, Skeleton } from "@/shared/ui/estado-carga"
+import { DETECTORES_DEL_MVP } from "../model/capa-mejora"
 import { PuntoMejoraCard } from "./punto-mejora-card"
 
 // PuntosMejoraList — resuelve **H-1**: dónde vive la tarjeta de un punto de mejora.
@@ -16,12 +17,31 @@ import { PuntoMejoraCard } from "./punto-mejora-card"
 // **Una tarjeta sin contrafactual no existe** (A4): se filtra, no se pinta degradada. El
 // hallazgo no se pierde — el inspector lo lista como «sin fix propuesto» (T34). Esconderlo sería
 // el gap invisible; pintarlo a medias sería violar la regla que el paquete entero defiende.
+//
+// 🔴 **`hayDatos` NO es opcional, y ese es el punto.** Sin corridas atribuibles esta sección
+// **no se dibuja** (design.md §7.4: «no se dibuja: manda el estado 1 de la franja»). Nació
+// opcional-con-default y produjo el defecto que la verificación en la app instalada cazó: sobre
+// un arnés que nunca corrió, la sección afirmaba «Hay datos y ningún punto de mejora que pase el
+// corte. Los seis detectores corrieron sobre 0 corridas», contradiciendo a la franja de arriba.
+// Un default que asume que hay datos es un default que miente cuando no los hay.
 
 export interface PuntosMejoraListProps {
   estado?: "datos" | "cargando" | "error" | undefined
   puntos: readonly PuntoMejora[]
-  /** Los detectores que SÍ corrieron. Alimentan el vacío honesto de H-2. */
-  detectores?: readonly EstadoDetector[] | undefined
+  /**
+   * ¿Hubo medición atribuible en la ventana? Lo decide `hayDatosAtribuibles()`
+   * (`../model/capa-mejora`), la MISMA función que usa el composition-root — para que la franja
+   * y esta sección no puedan contradecirse. `false` ⇒ esta sección no se dibuja.
+   *
+   * **Obligatorio a propósito**: ver el comentario de cabecera.
+   */
+  hayDatos: boolean
+  /**
+   * Los detectores del MVP que **NO pudieron correr**, con su motivo (`no_aplican` del wire).
+   * Sin esto, el vacío afirmaría que corrieron los seis incluso en `s2-degradado`, donde B1 no
+   * puede correr por falta del `result` del stream-json — la misma mentira, otro escenario.
+   */
+  noAplican?: readonly EstadoDetector[] | undefined
   /** Denominador del vacío: «los seis detectores corrieron sobre N corridas». */
   corridas?: number | undefined
   /** La caja seleccionada en el canvas: su tarjeta se resalta. */
@@ -37,7 +57,8 @@ export interface PuntosMejoraListProps {
 export function PuntosMejoraList({
   estado = "datos",
   puntos,
-  detectores,
+  hayDatos,
+  noAplican,
   corridas,
   cajaSeleccionada,
   proponerDeshabilitado,
@@ -46,11 +67,24 @@ export function PuntosMejoraList({
   onReintentar,
   error,
 }: PuntosMejoraListProps) {
+  // 🔴 Sin medición atribuible, la sección NO se dibuja: manda el estado 1 de la franja
+  // (design.md §7.4). Dibujar acá cualquier vacío sería una segunda afirmación sobre el mismo
+  // hecho, y la que se leería primero es la de abajo.
+  //
+  // El estado de transporte gana igual: «no pude preguntar» hay que decirlo aunque todavía no
+  // sepamos si hay datos.
+  if (!hayDatos && estado === "datos") return null
+
   // A4 — el filtro es la regla, no una optimización: sin contrafactual computable no hay tarjeta.
   const cotizables = puntos
     .filter((p) => p.contrafactual !== null && p.contrafactual !== "")
     .slice()
     .sort((a, b) => b.diferencia_micros - a.diferencia_micros)
+
+  // Cuántos llegaron a correr. El wire no manda la lista de los que salieron limpios (hueco
+  // declarado en PARIDAD §4), pero sí `no_aplican` — así que el CONTEO sí es derivable, y es
+  // lo que la frase necesita para no exagerar.
+  const corrieron = DETECTORES_DEL_MVP - (noAplican?.length ?? 0)
 
   return (
     <section className="arnesia-mejora mej-lista" aria-label="Puntos de mejora">
@@ -67,17 +101,23 @@ export function PuntosMejoraList({
           onReintentar={onReintentar}
         />
       ) : cotizables.length === 0 ? (
-        // H-2 — **nunca una sección vacía**. «No encontramos nada» y «no buscamos» son
-        // conclusiones opuestas, y la única forma de distinguirlas es listar quién corrió.
+        // H-2 — **nunca una sección vacía**, pero tampoco una que exagere la búsqueda.
+        // «No encontramos nada» y «no buscamos» son conclusiones opuestas, y acá se dice
+        // exactamente CUÁNTOS detectores llegaron a correr: afirmar los seis cuando B1 no pudo
+        // (s2-degradado) es la misma mentira que afirmarlos sobre 0 corridas.
         <div className="mej-vacia">
           <p className="mej-vacia-titulo">Hay datos y ningún punto de mejora que pase el corte.</p>
           <p className="mej-mut">
-            {`Los seis detectores corrieron sobre ${corridas ?? 0} corridas. Ninguno encontró una fuga que se pueda cotizar y arreglar.`}
+            {corrieron === DETECTORES_DEL_MVP
+              ? `Los seis detectores corrieron sobre ${corridas ?? 0} corridas. Ninguno encontró una fuga que se pueda cotizar y arreglar.`
+              : `${corrieron} de los seis detectores corrieron sobre ${corridas ?? 0} corridas. Ninguno encontró una fuga que se pueda cotizar y arreglar.`}
           </p>
-          {detectores && detectores.length > 0 && (
+          {noAplican && noAplican.length > 0 && (
             <ul className="mej-vacia-detectores">
-              {detectores.map((d) => (
-                <li key={d.detector}>{`${d.nombre} · sin hallazgos`}</li>
+              {noAplican.map((d) => (
+                <li
+                  key={d.detector}
+                >{`${d.nombre} — no disponible: ${d.motivo ?? "sin motivo declarado"}`}</li>
               ))}
             </ul>
           )}

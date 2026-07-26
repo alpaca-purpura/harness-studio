@@ -274,6 +274,14 @@ export function InspectorMejora({
       </Sec>
 
       <Sec titulo="Detectores">
+        {/* Una sección «Detectores» vacía se lee como «no hay detectores». Si la lista no llegó,
+            se DICE — es el mismo gap escondido que la lista de puntos tenía sobre un arnés sin
+            medir. */}
+        {detectores.length === 0 && (
+          <p className="mej-nota-tbl">
+            El detalle de esta caja no trajo el estado de los detectores.
+          </p>
+        )}
         <ul className="mej-detectores">
           {detectores.map((d) => (
             <li key={d.detector}>

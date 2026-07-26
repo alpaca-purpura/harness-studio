@@ -780,6 +780,84 @@ web/src/widgets/map-canvas/ui/punto-mejora-card.tsx#PuntoMejoraCard
 
 ---
 
+## D24 — La coherencia entre bloques es un requisito, y necesita su propio candado (2026-07-26) · ✅ FIRMADA por el hallazgo
+
+`estado: FIRMADA (defecto reproducido en la app instalada, corregido en el mismo turno)`
+
+**Cómo apareció.** El operador levantó la capa en el **binario instalado** contra sus datos
+reales (`verificacion-2026-07-26/evidencia/instalada-v0222-capa-mejora.png`). Arnés `vitalia`,
+que nunca corrió con telemetría. La franja decía bien:
+
+> `— —` · «Este arnés nunca corrió con telemetría. Abrí una sesión desde ArnesIA y la medición
+> arranca sola.»
+
+Y doce centímetros más abajo, la lista decía:
+
+> «Hay datos y ningún punto de mejora que pase el corte. Los seis detectores corrieron sobre 0
+> corridas. Ninguno encontró una fuga que se pueda cotizar y arreglar.»
+
+**Dos afirmaciones falsas** —«hay datos» y «los seis detectores corrieron»— que además
+contradecían al bloque de arriba. Correr sobre cero corridas no es correr: es la formulación
+exacta que RF-263 prohíbe, presentar la ausencia de búsqueda como resultado de una búsqueda.
+
+**Lo que enseña, y es lo que se firma:** *cada bloque era defendible por separado y juntos
+afirmaban algo falso.* **131 stories verdes no lo vieron**, porque cada una renderiza un
+componente aislado y el que compone los dos —el composition-root, `pages/`— no tiene stories en
+este repo. La mentira no estaba en ningún componente: estaba en la composición.
+
+### D24.1 — Sin medición atribuible, la sección de puntos de mejora **no se dibuja**
+
+Es lo que `design.md` §7.4 ya decía («lista vacía · no hay datos → no se dibuja: manda el estado
+1 de la franja») y que la implementación ignoró. `hayDatos` pasa a ser prop **obligatoria** de
+`PuntosMejoraList`: nació opcional-con-default, y un default que asume que hay datos es un
+default que miente cuando no los hay. `tsc` cazó los seis call-sites al volverla requerida.
+
+### D24.2 — La condición vive en UN lugar, y la usan la página y las stories
+
+`widgets/map-canvas/model/capa-mejora.ts#hayDatosAtribuibles`. Duplicar la regla en el
+composition-root es exactamente cómo nació el defecto.
+
+### D24.3 — ⚠️ La condición **no** puede ser `resumen.confianza === "sin-dato"`
+
+Era la formulación natural y **habría introducido el mismo defecto en el vecino de al lado**: la
+confianza del agregado es `PeorConfianza` de la ventana (`telemetria_service.go:334`), así que
+**una sola** corrida sin atribuir la deja en `sin-dato` con 60 perfectas al lado. Habría escondido
+la lista en el **estado 2 (cobertura parcial), que sí tiene datos**.
+
+La condición correcta se deriva de la **cobertura**: `corridas > 0` **y**
+`exacta + por_hash + por_proceso > 0` — hubo corridas y al menos una se pudo atribuir.
+
+### D24.4 — El vacío no afirma más búsqueda de la que hubo
+
+«Los seis detectores corrieron» era falso también en `s2-degradado`, donde B1 no puede correr.
+El copy ahora dice **cuántos** corrieron (`DETECTORES_DEL_MVP − no_aplican.length`, derivable del
+wire) y lista los que no pudieron con su motivo. El literal firmado se conserva **para el caso
+que describe**: cuando corrieron los seis.
+
+### D24.5 — El mismo patrón, barrido en las otras superficies
+
+- **Portafolio**: el chip `✓ sin fugas detectadas` salía de la *ausencia* del campo `punto`.
+  Ahora sale de `puntos_de_mejora === 0`, que el wire documenta como dato («se midió y no se
+  encontró nada»). Con hallazgos pero sin punto principal se dice cuántos hay: **un ✓ miente en
+  la dirección más cara**, «acá no hay nada que mirar».
+- **Inspector**: una sección «Detectores» sin filas se leía como «no hay detectores». Ahora lo dice.
+- **Estado 2**: el umbral vivía como un `corridas <= 5` escondido en el JSX. Pasa a
+  `coberturaEsParcial()`, con nombre, testeado por los dos bordes y discutible en un solo lugar.
+  Sigue siendo una decisión de producto (más de un tercio sin atribuir), pero ahora **declarada**.
+
+### D24.6 — El candado
+
+`widgets/map-canvas/ui/capa-mejora-coherencia.stories.tsx`: los dos bloques en la misma story,
+derivados de **un solo `resumen`** y con las mismas funciones que usa la página — el patrón de
+`CopyConfianzaEsUnaSola` (candado de D18). **Verificado como test, no asumido**: revirtiendo el
+fix, las 3 stories de ausencia se ponen rojas y reproducen el texto del screenshot palabra por
+palabra; el **control positivo** (`ConDatosLaListaSiAfirmaBusqueda`) queda verde, así que
+«esconder siempre la lista» no pasa el candado.
+
+**Regla que queda:** toda superficie que componga dos bloques que hablan del mismo hecho lleva
+una story de coherencia sobre el DOM completo. Un assert por componente no puede ver una mentira
+por composición.
+
 ## 🛑 PREGUNTAS ABIERTAS PARA EL OPERADOR (paradas del plan-desarrollo §8)
 
 ### P1 · A20 — ¿Dónde vive el bloque `env` que instrumenta `s2-instrumentado`? **ABIERTA**

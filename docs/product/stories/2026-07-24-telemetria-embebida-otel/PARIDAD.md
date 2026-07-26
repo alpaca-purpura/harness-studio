@@ -13,10 +13,10 @@
 | | |
 |---|---|
 | Tickets cerrados | **10 de 10** (T28…T37), un commit por ticket, cada uno verde antes de abrir el siguiente |
-| Stories nuevas | **131** en **17 archivos** (11 nuevos · 6 supersets de archivos firmados) — el plan pedía 125; las 6 de más están declaradas en §3 |
-| Story-tests totales | `369` (antes del paquete: `238`) |
+| Stories nuevas | **138** en **18 archivos** (12 nuevos · 6 supersets de archivos firmados) — el plan pedía 125; las 13 de más están declaradas en §3 y §8 |
+| Story-tests totales | `376` (antes del paquete: `238`) |
 | Tests de tabla (`unit`) | `107` (antes: `85`) — 22 nuevos en `entities/telemetria/model/selectors.test.ts` |
-| Suite completa | **472 / 476 pasando.** Los **4 rojos son preexistentes y ajenos**: el bug de contraste de `.text-warn` en `new-session-picker.stories.tsx`, que ya estaba en el `BACKLOG.md` |
+| Suite completa | **479 / 483 pasando.** Los **4 rojos son preexistentes y ajenos**: el bug de contraste de `.text-warn` en `new-session-picker.stories.tsx`, que ya estaba en el `BACKLOG.md` |
 | `npm run verify` | verde (tsc · biome · depcruise · steiger · stylelint) |
 | `go test ./docs/architecture/fitness/...` | verde (incluye R1 · R1-símbolo · R2 · R4) |
 
@@ -154,7 +154,7 @@ Ninguna se resolvió en silencio. Cada una tiene su motivo verificado.
 | **D-13** | CAP-139 se crea en **T29** y no en T33 | La regla 1 del propio plan (§0) obliga a crear la hoja con el ÚLTIMO símbolo de cada tanda: crearla en T33 dejaría **7 archivos huérfanos** en el commit de T29 (R2), y crearla completa dejaría un puntero colgante a `PuntoMejoraCard` (R1). La hoja crece ticket a ticket | `capa-mejora.yaml` |
 | **D-14** | `Skeleton`/`ErrorBody` conservan sus clases `pf-*` al promoverse a `shared/ui` | Es lo que pide «movidos tal cual» y es el precedente sancionado (`FiltroDisclosure` conservó `pf-filtro`). Renombrarlas obligaría a reescribir CSS firmado del Portafolio, que es el cambio de conducta que un refactor de movimiento no puede permitirse. La capa Mejora las estiliza bajo su propio scope | `estado-carga.tsx` · `mejora.css` |
 | **D-15** | El CSS de las cuatro piezas de `entities/telemetria` va **sin scope de superficie** (`telemetria.css`) | **D23**: son vocabulario de la plataforma. Scoparlas a `.arnesia-mejora` obligaría a la próxima superficie a reinventarlas. Las clases son distintivas y no colisionan (verificado) | `telemetria.css` |
-| **D-16** | 131 stories, no 125 | +6, todas de cobertura de contrato (D23) o de un assert que una sola story no puede hacer — detalle en §3 | — |
+| **D-16** | 138 stories, no 125 | +6 de cobertura de contrato (§3) y +7 del defecto de composición D24 (§8) | — |
 
 ---
 
@@ -185,7 +185,7 @@ la alimenta tiene huecos declarados.** Ninguno se tapó.
 | 5 | **A2 — «detalle purgado, resumen conservado» no existe** | **No se dibujó ese estado.** El diálogo de borrado dice «Este arnés vuelve a estar sin datos de telemetría», que es lo que el backend realmente produce |
 | 6 | **M1 — B6 dispara siempre en `s2-instrumentado`** | La lista de mejoras nunca estará vacía contra ese escenario, y su primer ítem será un falso positivo estructural. `VaciaConDatos` existe y es correcta, pero **hoy no se va a alcanzar en S2** |
 | 7 | **M2 — B1 y B3 ponen conteos de tokens en campos `micros`** | Cualquier cifra de dinero de esas dos tarjetas está mal **en el backend**. La UI la formatea correctamente; el número es el que el dominio manda |
-| 8 | 🔴 **`RespuestaMejoras` no trae la lista de detectores que corrieron y no encontraron nada.** Trae `no_aplican` (no pudieron correr) y `no_medidos` (fuera del MVP); un detector que aplicó y salió limpio **no está en ninguna** | H-2 pide exactamente esa lista. Alimentar el vacío con `no_medidos` los pintaría como «sin hallazgos», que es **la mentira que RF-263 prohíbe por su nombre**. Encontrado al cablear el transporte: el vacío muestra su copy **sin enumerar a nadie** hasta que el wire mande la lista. Declarado en el código (`workspace-stage.tsx`) |
+| 8 | **`RespuestaMejoras` no trae la lista de detectores que corrieron y no encontraron nada.** Trae `no_aplican` (no pudieron correr) y `no_medidos` (fuera del MVP); un detector que aplicó y salió limpio **no está en ninguna** | H-2 pide esa lista. **Parcialmente resuelto en D24.4**: el CONTEO sí es derivable (`6 − no_aplican.length`), así que el vacío dice cuántos corrieron y enumera los que no pudieron con su motivo. Lo que sigue faltando es poder **nombrar** a los que salieron limpios |
 | 9 | 🔴 **`DetalleCaja` no trae el costo POR BUCKET.** Trae `Tokens` (los seis punteros) y `Paridad` (los dos totales), pero no un desglose de dinero por bucket | La columna `USD` de la tabla del inspector viaja **`null` — «no aplica»** contra el wire real. Calcularla en el FE sería costear en la UI, que es justo lo que `design.md` §1.3 prohíbe («entities presenta; no calcula»). **El assert de «la suma cierra» (`Completo`) corre contra fixture, no contra el wire**, y no puede correr contra el wire hasta que este campo exista |
 
 ---
@@ -232,3 +232,66 @@ Este tramo **no está firmado**. Para firmarlo hay que mirar, como mínimo:
 3. **V-5**: el contrato de `PuntoDeMejora` entre Go y el FE. Bloquea el E2E real de la tarjeta.
 4. **El TTL de 90 días** sigue **PROPUESTO** (J-6 · parada P2). La UI lo lee de la config y lo
    rotula como tal; el número lo pone el operador.
+
+---
+
+## 8 · 🔴 Defecto de COMPOSICIÓN, encontrado en la app instalada (D24)
+
+**No lo cazó ninguna de las 131 stories**, y no podía: cada una renderiza un componente aislado,
+y la mentira no estaba en ninguno — estaba en la composición. Lo cazó el operador mirando el
+binario instalado contra sus datos reales
+(`verificacion-2026-07-26/evidencia/instalada-v0222-capa-mejora.png`).
+
+**Lo observado** — arnés `vitalia`, que nunca corrió:
+
+| bloque | qué decía | ¿verdad? |
+|---|---|---|
+| franja | `— —` · «Este arnés nunca corrió con telemetría.» | ✅ |
+| lista, 12 cm más abajo | «**Hay datos** y ningún punto de mejora que pase el corte.» | ❌ no hay ninguno |
+| ídem | «**Los seis detectores corrieron** sobre 0 corridas.» | ❌ correr sobre cero no es correr |
+
+Las dos falsas contradicen a la de arriba, y juntas hacen leer «los detectores buscaron y no
+encontraron nada» donde la verdad es «todavía no medimos nada». Es la formulación exacta que
+RF-263 prohíbe: **presentar la ausencia de búsqueda como resultado de una búsqueda.**
+
+### Qué se corrigió
+
+| # | fix | dónde |
+|---|---|---|
+| 1 | Sin medición atribuible, **la sección no se dibuja** — que es lo que `design.md` §7.4 ya decía y la implementación ignoró. `hayDatos` pasa a prop **obligatoria** (`tsc` cazó los 6 call-sites): un default que asume datos miente cuando no los hay | `puntos-mejora-list.tsx` |
+| 2 | La condición vive en **un** lugar y la usan la página **y** las stories. Duplicarla en el composition-root es cómo nació el defecto | `model/capa-mejora.ts#hayDatosAtribuibles` |
+| 3 | El vacío dice **cuántos** detectores corrieron (`6 − no_aplican`) y lista los que no pudieron con su motivo. «Los seis corrieron» era falso también en `s2-degradado`, donde B1 no puede correr. El literal firmado se conserva para el caso que describe | ídem |
+| 4 | El ✓ `sin fugas detectadas` del Portafolio sale de `puntos_de_mejora === 0` **como dato del wire**, no de la ausencia del campo `punto`. Con hallazgos sin punto principal se dice cuántos hay: un ✓ miente en la dirección más cara, «acá no hay nada que mirar» | `tabla-mejora-portafolio.tsx` |
+| 5 | Una sección «Detectores» sin filas se leía como «no hay detectores». Ahora lo dice | `inspector-mejora.tsx` |
+| 6 | El umbral del estado 2 era un `corridas <= 5` **escondido en el JSX**. Pasa a `coberturaEsParcial()`: sigue siendo decisión de producto (más de un tercio sin atribuir), pero **declarada, con nombre y testeada por los dos bordes** | `model/capa-mejora.ts` |
+
+### ⚠️ La condición obvia habría creado el mismo defecto al lado
+
+La formulación natural —`resumen.confianza === "sin-dato"`— **es incorrecta**: la confianza del
+agregado es `PeorConfianza` de la ventana (`telemetria_service.go:334`), así que **una sola**
+corrida sin atribuir la deja en `sin-dato` con 60 perfectas al lado. Habría escondido la lista en
+el **estado 2 (cobertura parcial), que sí tiene datos**. La condición correcta se deriva de la
+cobertura: `corridas > 0` **y** `exacta + por_hash + por_proceso > 0`.
+Cementado en `CoberturaParcialConservaLaLista`.
+
+### El candado, verificado como test y no asumido
+
+`widgets/map-canvas/ui/capa-mejora-coherencia.stories.tsx` — **6 stories** que renderizan los dos
+bloques desde **un solo `resumen`**, con las mismas funciones que usa la página (patrón de
+`CopyConfianzaEsUnaSola`, candado de D18).
+
+**Control positivo del propio candado**, corrido a mano: revirtiendo el fix, las 3 stories de
+ausencia se ponen rojas y el DOM reproduce el texto del screenshot palabra por palabra
+(`…nunca corrió con telemetría…Puntos de mejora0Hay datos y ningún punto…sobre 0 corridas…`);
+`ConDatosLaListaSiAfirmaBusqueda` queda **verde**, así que «esconder siempre la lista» **no**
+pasa el candado.
+
+### La regla que queda
+
+> **Toda superficie que componga dos bloques que hablan del mismo hecho lleva una story de
+> coherencia sobre el DOM completo.** Un assert por componente no puede ver una mentira por
+> composición — y este repo tiene 0 stories en `pages/`, que es justo donde se compone.
+
+Queda como deuda declarada: **`pages/` sigue sin cobertura**. El candado cubre esta composición
+concreta porque la story la reproduce; una composición futura que nadie espeje vuelve a quedar
+ciega.

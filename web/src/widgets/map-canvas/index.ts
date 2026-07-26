@@ -7,6 +7,11 @@
 // `widgets/mejora/` chocaría con `no-sibling-widget-imports`, que está en `error`. Es también el
 // único widget que puede importar las DOS entities (`arnes` y `telemetria`), y por eso es acá
 // donde `CifraCaja` se compone en las props primitivas del nodo (D18).
+export {
+  coberturaEsParcial,
+  DETECTORES_DEL_MVP,
+  hayDatosAtribuibles,
+} from "./model/capa-mejora"
 export type { Capa, LayerDef } from "./model/layers"
 export { LAYERS } from "./model/layers"
 export { FranjaMejora, type FranjaMejoraProps } from "./ui/franja-mejora"

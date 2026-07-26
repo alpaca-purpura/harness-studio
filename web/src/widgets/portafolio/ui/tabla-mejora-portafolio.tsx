@@ -162,7 +162,18 @@ function Fila({
             {usd(fila.punto.monto_micros)}
             {fila.punto.unidad === "corrida" ? "/corrida" : " en la ventana"}
           </span>
+        ) : fila.puntos_de_mejora > 0 ? (
+          // El backend dice que HAY hallazgos pero no llegó cuál es el principal. Decirlo es
+          // feo; poner un ✓ sería mentir en la dirección más cara: «acá no hay nada que mirar».
+          <span className="pf-mej-chip">
+            <span aria-hidden="true">⚠</span>{" "}
+            {`${fila.puntos_de_mejora} punto(s) de mejora — abrí el Mapa para verlos`}
+          </span>
         ) : (
+          // ✅ El ✓ SOLO cuando el backend afirma que midió y no encontró nada: `puntos_de_mejora`
+          // es 0 **como dato**, no por ausencia de `punto` (que puede faltar por otra razón).
+          // Un ✓ sobre una búsqueda que no ocurrió es la misma mentira que cazó la verificación
+          // en la app instalada, en la superficie de al lado.
           <span className="pf-mej-chip pf-mej-chip-ok">
             <span aria-hidden="true">✓</span> sin fugas detectadas
           </span>

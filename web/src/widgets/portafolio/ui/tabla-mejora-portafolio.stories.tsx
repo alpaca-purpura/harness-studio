@@ -77,6 +77,10 @@ export const SinPuestoDeclarado: Story = {
 
 // RF-267 · RF-280 — «sin fugas detectadas» es **distinguible de «sin dato»**: son conclusiones
 // opuestas (una midió y no encontró; la otra no midió), y se distinguen por clase, no por tono.
+//
+// El ✓ sale de `puntos_de_mejora === 0` **como dato del backend**, no de la ausencia del campo
+// `punto`: un ✓ sobre una búsqueda que no ocurrió es el defecto que la verificación en la app
+// instalada cazó en la superficie de al lado.
 export const SinFugas: Story = {
   args: { filas: [...FILAS_PORTAFOLIO_ILUSTRATIVAS, FILA_SIN_DATO] },
   play: async ({ canvasElement }) => {
@@ -86,6 +90,26 @@ export const SinFugas: Story = {
     await expect(ok).toHaveClass("pf-mej-chip-ok")
     await expect(nada).toHaveClass("pf-mej-chip-neutro")
     await expect(ok.textContent).not.toBe(nada.textContent)
+  },
+}
+
+// RF-267 — el backend dice que HAY hallazgos pero no llegó cuál es el principal. Se dice cuántos;
+// **no se pone un ✓**, que mentiría en la dirección más cara: «acá no hay nada que mirar».
+export const ConHallazgosSinPuntoPrincipal: Story = {
+  args: {
+    filas: [
+      {
+        ...(FILAS_PORTAFOLIO_ILUSTRATIVAS[1] as FilaPortafolio),
+        puntos_de_mejora: 2,
+        punto: undefined,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/2 punto\(s\) de mejora/)).toBeInTheDocument()
+    await expect(c.queryByText("sin fugas detectadas")).toBeNull()
+    await expect(canvasElement.querySelector(".pf-mej-chip-ok")).toBeNull()
   },
 }
 

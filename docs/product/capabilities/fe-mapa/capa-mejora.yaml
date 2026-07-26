@@ -56,6 +56,8 @@ pointers:
   - "web/src/entities/telemetria/testing/telemetria.ts#CAMPOS_PERSISTIDOS_HOOK"
   - "web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas"
   - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
+  - "web/src/widgets/map-canvas/model/capa-mejora.ts#hayDatosAtribuibles"
+  - "web/src/widgets/map-canvas/model/capa-mejora.ts#coberturaEsParcial"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
@@ -71,6 +73,7 @@ valida:
   - "web/src/widgets/map-canvas/ui/inspector.stories.tsx"
   - "web/src/widgets/map-canvas/ui/politica-datos-dialog.stories.tsx"
   - "web/src/widgets/map-canvas/ui/map-canvas.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/capa-mejora-coherencia.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -265,6 +268,36 @@ change_log:
       §6.2 — **no se agrega ningún contenedor con `overflow` dentro del canvas**: uno solo
       rompería `useEdgePaths`, que mide posiciones absolutas. Con la capa activa los nodos son
       ~26 px más altos y `fitView` elige un zoom menor: es el overview-first ya firmado (RF-50).
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: fix
+    summary: >-
+      **D24 — defecto de COMPOSICIÓN cazado en la app instalada, contra datos reales del
+      operador** (`evidencia/instalada-v0222-capa-mejora.png`). Sobre `vitalia`, que nunca corrió:
+      la franja decía «Este arnés nunca corrió con telemetría» y la lista, doce centímetros más
+      abajo, decía «Hay datos y ningún punto de mejora que pase el corte. Los seis detectores
+      corrieron sobre 0 corridas». Dos afirmaciones falsas que contradecían al bloque de arriba —
+      correr sobre cero corridas no es correr, que es la formulación que RF-263 prohíbe.
+      **131 stories verdes no lo vieron**: cada una renderiza un componente aislado y la mentira
+      no estaba en ninguno, estaba en la composición.
+      Corregido: `hayDatos` pasa a prop OBLIGATORIA de `PuntosMejoraList` (un default que asume
+      datos miente cuando no los hay) y sin medición atribuible la sección **no se dibuja** —
+      que es lo que `design.md` §7.4 ya decía. La condición vive en `model/capa-mejora.ts` y la
+      usan la página **y** las stories: duplicarla en el composition-root es cómo nació el
+      defecto. ⚠️ **No** se usa `confianza === "sin-dato"`: la confianza del agregado es
+      `PeorConfianza`, así que una sola corrida sin atribuir habría escondido la lista en el
+      estado 2, que sí tiene datos — el mismo defecto mudado de vecino.
+      Barrido del mismo patrón: el vacío ya no afirma que corrieron los seis cuando alguno no
+      pudo (s2-degradado); el ✓ del Portafolio sale de `puntos_de_mejora === 0` como DATO y no de
+      la ausencia de `punto`; la sección «Detectores» vacía lo dice; y el umbral del estado 2
+      deja de ser un `corridas <= 5` escondido para ser `coberturaEsParcial()`, declarado y
+      testeado por los dos bordes.
+      **El candado**: `capa-mejora-coherencia.stories.tsx`, los dos bloques en la misma story
+      desde un solo `resumen` (patrón de `CopyConfianzaEsUnaSola`). Verificado como test:
+      revirtiendo el fix las 3 stories de ausencia se ponen rojas y reproducen el texto del
+      screenshot palabra por palabra, y el control positivo queda verde.
     merge_sha: null
 
 scenarios:
@@ -482,6 +515,26 @@ scenarios:
       son idénticos. El nodo recibe el copy por PROP porque `entities/arnes` no puede importar
       `entities/telemetria`; si alguien edita un literal y no el otro, esta story se pone roja
     verifica: "CopyConfianzaEsUnaSola (map-canvas.stories.tsx) · copy de confianza (selectors.test.ts)"
+
+  - id: mejora-coherencia-entre-franja-y-lista
+    name: "La franja y la lista no pueden contradecirse sobre si hubo medición (D24)"
+    given: "un arnés sin corridas, sin corridas en la ventana, o con corridas pero ninguna atribuible"
+    when: "se renderizan la franja y la sección de puntos de mejora en la misma vista"
+    then: >-
+      el DOM COMPLETO no contiene «Hay datos», ni «detectores corrieron», ni «sin fugas»: la
+      sección no se dibuja y manda el estado 1 de la franja. Con datos atribuibles la sección SÍ
+      se dibuja y SÍ afirma la búsqueda (control positivo) — «esconder siempre la lista» no pasa
+      el candado
+    verifica: "SinDatosLaListaNoContradiceLaFranja · VentanaSinCorridasTampocoAfirmaBusqueda · CorridasSinAtribucionNoCuentanComoBusqueda · ConDatosLaListaSiAfirmaBusqueda · CoberturaParcialConservaLaLista · UmbralDeCoberturaParcialEsDeclarado (capa-mejora-coherencia.stories.tsx)"
+  - id: mejora-el-vacio-no-exagera-la-busqueda
+    name: "Ningún vacío afirma más búsqueda de la que hubo (RF-263 · D24.4 · D24.5)"
+    given: "detectores que no pudieron correr, o un arnés con hallazgos sin punto principal"
+    when: "se renderiza el vacío de la lista o el chip del Portafolio"
+    then: >-
+      el vacío dice CUÁNTOS de los seis corrieron y lista los que no pudieron con su motivo; el
+      chip del Portafolio pone ✓ solo cuando `puntos_de_mejora` es 0 como dato del backend, y con
+      hallazgos sin punto principal dice cuántos hay en vez de afirmar que no hay nada que mirar
+    verifica: "VaciaConDetectoresQueNoPudieron (puntos-mejora-list.stories.tsx) · ConHallazgosSinPuntoPrincipal · SinFugas (tabla-mejora-portafolio.stories.tsx)"
 
 business_rules: []
 related_capabilities:

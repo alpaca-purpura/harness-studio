@@ -221,8 +221,13 @@ export interface FilaPortafolio {
   serie?: readonly number[] | undefined
   /** Un 0 acá SÍ es dato: «se midió y no se encontró nada» ≠ `costo_micros: null`. */
   puntos_de_mejora: number
-  /** El punto de mayor ahorro, ya resuelto, para el chip de la fila. */
-  punto?: { nombre: string; monto_micros: number; unidad: "corrida" | "ventana"; grave: boolean }
+  /**
+   * El punto de mayor ahorro, ya resuelto, para el chip de la fila. Puede faltar **aunque
+   * `puntos_de_mejora > 0`**: la UI dice cuántos hay, no pone un ✓ (que afirmaría lo contrario).
+   */
+  punto?:
+    | { nombre: string; monto_micros: number; unidad: "corrida" | "ventana"; grave: boolean }
+    | undefined
 }
 
 /** `domain.SaludTelemetria`, recortado a lo que la superficie necesita. */

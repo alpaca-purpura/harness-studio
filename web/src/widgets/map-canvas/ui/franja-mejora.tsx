@@ -8,6 +8,7 @@ import {
 } from "@/entities/telemetria"
 import { cn } from "@/shared/lib/cn"
 import { ErrorBody, Skeleton } from "@/shared/ui/estado-carga"
+import { coberturaEsParcial } from "../model/capa-mejora"
 
 // FranjaMejora — la franja de contexto de la capa (design §2.2, §5.2, §7.2, §7.7).
 //
@@ -93,7 +94,9 @@ export function FranjaMejora({
   const total = resumen
     ? usd(resumen.costo_reportado_micros ?? resumen.costo_calculado_micros)
     : null
-  const parcial = Boolean(cob && cob.sin_dato > 0 && resumen && resumen.corridas <= 5)
+  // El umbral del estado 2 vive en `../model/capa-mejora`, con nombre y testeado: antes era un
+  // `corridas <= 5` escondido acá, que es la misma decisión de producto tomada a escondidas.
+  const parcial = coberturaEsParcial(resumen)
 
   return (
     <div className="arnesia-mejora fm">

@@ -24,6 +24,7 @@ import {
 import {
   type Capa,
   FranjaMejora,
+  hayDatosAtribuibles,
   Inspector,
   InspectorMejora,
   MapBar,
@@ -109,11 +110,17 @@ export function WorkspaceStage() {
   const [mejEstado, setMejEstado] = useState<"datos" | "cargando" | "error">("cargando")
   const [mejError, setMejError] = useState<string>()
   const [resumen, setResumen] = useState<ResumenTelemetria | null>(null)
+  // El resumen SIN el recorte que hace la franja: la condición de coherencia se evalúa sobre el
+  // dato crudo, una sola vez, para los dos bloques.
+  const [resumenCrudo, setResumenCrudo] = useState<ResumenTelemetria | null>(null)
   const [cajas, setCajas] = useState<CifraCaja[]>([])
   const [puntos, setPuntos] = useState<PuntoMejora[]>([])
   // Los 7 de fuera del MVP. Alimentan la 4ª tab del inspector (RF-263), **no** el vacío de la
   // lista: ahí dirían «sin hallazgos», que es exactamente lo que RF-263 prohíbe.
   const [noMedidos, setNoMedidos] = useState<EstadoDetector[]>([])
+  // Los del MVP que NO pudieron correr, con su motivo. El vacío de la lista los necesita para
+  // no afirmar que corrieron los seis cuando alguno no pudo (s2-degradado).
+  const [noAplican, setNoAplican] = useState<EstadoDetector[]>([])
   const [politicaAbierta, setPoliticaAbierta] = useState(false)
   const [detalle, setDetalle] = useState<DetalleCajaWire | null>(null)
   const [nonce, setNonce] = useState(0)
@@ -282,15 +289,21 @@ export function WorkspaceStage() {
     Promise.all([
       api.telemetriaResumen<ResumenTelemetria>(q),
       api.telemetriaCajas<{ cajas?: CifraCaja[] }>(viewedId, q),
-      api.telemetriaMejoras<{ puntos?: PuntoMejora[]; no_medidos?: EstadoDetector[] }>(viewedId, q),
+      api.telemetriaMejoras<{
+        puntos?: PuntoMejora[]
+        no_aplican?: EstadoDetector[]
+        no_medidos?: EstadoDetector[]
+      }>(viewedId, q),
     ])
       .then(([r, c, m]) => {
         if (!alive) return
         // `corridas === 0` NO se pinta como un tablero en cero: se pasa `null` y la franja
         // dice qué pasó y qué hacer (RF-269).
         setResumen(r && r.corridas > 0 ? r : null)
+        setResumenCrudo(r ?? null)
         setCajas(c.cajas ?? [])
         setPuntos(m.puntos ?? [])
+        setNoAplican(m.no_aplican ?? [])
         setNoMedidos(m.no_medidos ?? [])
         setMejEstado("datos")
       })
@@ -526,13 +539,15 @@ export function WorkspaceStage() {
               <PuntosMejoraList
                 estado={mejEstado}
                 puntos={puntos}
-                // ⚠️ HUECO DEL WIRE, declarado: `RespuestaMejoras` trae `no_aplican` (los que
-                // NO pudieron correr) y `no_medidos` (los de fuera del MVP), pero **ninguna
-                // lista de los que corrieron y no encontraron nada**. H-2 necesita justamente
-                // esa. Pasarle `no_medidos` los pintaría como «sin hallazgos», que es la mentira
-                // que RF-263 prohíbe explícitamente. Hasta que el wire la mande, el vacío
-                // muestra su copy sin enumerar a nadie.
-                detectores={undefined}
+                // 🔴 LA condición de coherencia, y la MISMA función que usan las stories de
+                // coherencia: sin medición atribuible la sección no se dibuja y manda el estado
+                // 1 de la franja. Duplicar esta regla acá es cómo nació el defecto que la
+                // verificación en la app instalada cazó.
+                hayDatos={hayDatosAtribuibles(resumenCrudo)}
+                // ⚠️ HUECO DEL WIRE, declarado: el wire NO manda la lista de los que corrieron
+                // y salieron limpios. Sí manda `no_aplican`, así que el CONTEO de los que
+                // corrieron sí es derivable — y es lo que la frase necesita para no exagerar.
+                noAplican={noAplican}
                 corridas={resumen?.corridas ?? 0}
                 cajaSeleccionada={selectedId}
                 onDescartar={() => setNonce((n) => n + 1)}

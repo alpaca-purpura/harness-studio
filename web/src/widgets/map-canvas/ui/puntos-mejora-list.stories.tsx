@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, fn, within } from "storybook/test"
-import { DETECTORES_MVP, PUNTO_B1, PUNTO_B3, PUNTO_P1 } from "@/entities/telemetria"
+import { PUNTO_B1, PUNTO_B3, PUNTO_P1 } from "@/entities/telemetria"
 import { PuntosMejoraList } from "./puntos-mejora-list"
 
 // Story = test (fe-visual-fitness). La lista resuelve H-1 (dónde vive la tarjeta) y H-2 (cómo
@@ -13,6 +13,7 @@ const meta = {
   decorators: [(Story) => <div style={{ maxWidth: 860 }}>{Story()}</div>],
   args: {
     puntos: [PUNTO_B1, PUNTO_B3],
+    hayDatos: true,
     corridas: 61,
     onDescartar: fn(),
     onProponer: fn(),
@@ -41,6 +42,7 @@ export const DosTarjetasOrdenadas: Story = {
 // sin más sería el gap invisible, y por eso el inspector la lista igual (T34).
 export const DescartaSinContrafactual: Story = {
   args: {
+    hayDatos: true,
     puntos: [
       PUNTO_B1,
       PUNTO_P1,
@@ -59,10 +61,15 @@ export const DescartaSinContrafactual: Story = {
   },
 }
 
-// H-2 — **nunca una sección vacía**. Listar los seis detectores que corrieron es lo único que
-// distingue «no encontramos nada» de «no buscamos», que son conclusiones opuestas.
+// H-2 — **nunca una sección vacía**: decir cuántos detectores corrieron y sobre cuántas
+// corridas es lo único que distingue «no encontramos nada» de «no buscamos», que son
+// conclusiones opuestas. Con los seis corriendo, el copy es el literal firmado.
+//
+// ⚠️ Este vacío SOLO es legal con datos atribuibles (`hayDatos`). Sobre un arnés que nunca
+// corrió afirmaba «Hay datos… los seis detectores corrieron sobre 0 corridas» — el defecto que
+// la verificación en la app instalada cazó. El candado está en `capa-mejora-coherencia.stories`.
 export const VaciaConDatos: Story = {
-  args: { puntos: [], detectores: DETECTORES_MVP },
+  args: { puntos: [] },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     await expect(
@@ -73,16 +80,17 @@ export const VaciaConDatos: Story = {
         "Los seis detectores corrieron sobre 61 corridas. Ninguno encontró una fuga que se pueda cotizar y arreglar.",
       ),
     ).toBeInTheDocument()
-    await expect(canvasElement.querySelectorAll(".mej-vacia-detectores li")).toHaveLength(6)
     await expect(canvasElement.querySelector(".mejora")).toBeNull()
     await expect(canvasElement.querySelector(".mej-vacia")).not.toBeNull()
+    // Con los seis corriendo no hay nada que enumerar: la lista de «no pudieron» está vacía.
+    await expect(canvasElement.querySelectorAll(".mej-vacia-detectores li")).toHaveLength(0)
   },
 }
 
 // design §5.4 — el skeleton tiene la ALTURA de una tarjeta: un placeholder de 20 px seguido de
 // dos tarjetas de 148 saltaría el layout entero al resolver.
 export const Cargando: Story = {
-  args: { estado: "cargando" },
+  args: { estado: "cargando", hayDatos: false },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     await expect(canvasElement.querySelectorAll("[data-skeleton='mejora']")).toHaveLength(2)
@@ -92,7 +100,7 @@ export const Cargando: Story = {
 
 // design §5.4 — el error trae el motivo REAL y el canvas y la franja siguen funcionando.
 export const ErrorDeConsulta: Story = {
-  args: { estado: "error", error: "el almacén de telemetría no está disponible" },
+  args: { estado: "error", hayDatos: false, error: "el almacén de telemetría no está disponible" },
   play: async ({ canvasElement, args }) => {
     const c = within(canvasElement)
     await expect(c.getByText(/el almacén de telemetría no está disponible/)).toBeInTheDocument()
@@ -119,6 +127,7 @@ export const NotaAlPie: Story = {
 // design §6 — con 12 tarjetas la página no scrollea horizontal y ninguna desborda su columna.
 export const MuchasTarjetas: Story = {
   args: {
+    hayDatos: true,
     puntos: Array.from({ length: 12 }, (_, i) => ({
       ...PUNTO_B1,
       id: `b1-${i}`,
