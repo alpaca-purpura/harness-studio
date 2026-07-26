@@ -1,0 +1,838 @@
+<!doctype html>
+<!-- charset ANTES del comentario de cabecera: la declaración solo cuenta si cae en los primeros
+     1024 bytes del documento (si va después, todo el copy en español sale mojibake: "arnÃ©s"). -->
+<meta charset="utf-8" />
+<!--
+  ArnesIA — LAS CONVERSACIONES VIVEN EN EL PANEL DE CONVERSACIÓN. Paquete
+  docs/product/stories/2026-07-26-conversaciones-del-panel/ (CV-D1..CV-D13, decisiones completas
+  2026-07-26, sin firmar todavía).
+
+  SUPERSET ESTRICTO del dock vigente. El baseline NO es un .html: es
+  `web/src/widgets/chat-dock/ui/chat-dock.tsx` (SSoT del UI = Storybook, reglas duras 1-2 de
+  mockups/INDEX.md). Lo vigente se calca literal y se dibuja aparte, etiquetado:
+    · header: pip de estado + frente de la SESIÓN + «⟩ colapsar»           (L21-34)
+    · SessionLine: ◍ cc-id(8) · arnés · modelo · ctx [barra 44×5] · N%      (L78-93)
+    · ScopeRow: «Alcance:» + chip punteado del arnés + hint del nodo        (L46-76)
+    · Messages: burbuja user (self-end, border-primary, accent-soft) ·
+      burbuja assistant (self-start, secondary, markdown) · tarjeta de
+      actividad punteada «N pasos» desplegable                             (L95-231)
+    · Composer: textarea auto-grow 36→66px · mic · ↑ enviar / ■ interrumpir (L268-375)
+  NADA de eso se quita ni se re-ordena. Lo nuevo entra como UNA fila más bajo el header.
+
+  IDIOMA DE INTERACCIÓN REUSADO, no inventado: la lista se abre EN SITIO y toma el área del
+  transcript, igual que NewSessionPicker toma el <aside> del rail (TS-D6/D10: «100% inline, cero
+  popover/backdrop»). Mismo producto, mismo gesto.
+
+  Tokens = copia LITERAL de web/src/app/styles/theme.css (generado por `npm run tokens:build`
+  desde web/tokens/base.tokens.json). Dark-first post-rebrand PRENTER. NO forkear los colores del
+  snapshot ámbar `arnesia-portafolio.html` (marcado STALE ahí mismo desde 2026-07-15).
+
+  VOCABULARIO — verificado contra L0 (regla dura 4). Términos de esta superficie: «conversación»
+  (un tema con el conductor, dentro de una sesión) · «activa/inactiva» · «retomar». NO chocan con
+  procedencia · origen · canal · insumos · banda. ⚠ Colisión declarada y resuelta: `status`
+  (idle|streaming|await, internal/domain/session.go) es OTRO eje y sigue existiendo — describe qué
+  hace la conversación ACTIVA ahora mismo. activa/inactiva describe cuál de las N es la del dock.
+
+  DECISIONES QUE ESTE DIBUJO MATERIALIZA:
+    CV-D2   crear · listar · buscar · abrir: TODO en el dock (§2). Sale del picker del rail (§5)
+    CV-D4   el alcance es la sesión activa — la lista lo dice en su cabecera, no se deduce
+    CV-D7   crear desactiva la anterior; NO hay botón de cerrar en ningún estado dibujado
+    CV-D8   el buscador entra al texto del transcript, con el fragmento que coincidió a la vista
+    CV-D9   título auto-derivado, editable en línea
+    CV-D10  la rotación por contexto es marca INLINE; la lista sigue mostrando UNA entrada
+    CV-D11  seleccionar una inactiva la retoma (--resume), no la abre en solo-lectura
+    CV-D13  cada fila: título · última interacción · nº de turnos · ctx final
+-->
+<title>ArnesIA · Las conversaciones viven en el panel de conversación</title>
+<style>
+  /* ——— tokens: copia literal de web/src/app/styles/theme.css ——— */
+  :root {
+    --background: #f6f8f8; --foreground: #0e1312; --card: #ffffff; --card-foreground: #0e1312;
+    --primary: #00b7aa; --primary-foreground: #000000; --secondary: #eef1f1;
+    --muted: #eef1f1; --muted-foreground: #4d5555; --accent-soft: rgba(0,183,170,.14);
+    --destructive: #bd3a2e; --destructive-foreground: #ffffff;
+    --border: #e1e6e6; --input: #c9d1d1; --ring: #1fc6b8;
+    --c-skill: #2f74b5;
+    --ok: #2e8f5e; --warn: #c96a2e; --crit: #c94545;
+    --ok-soft: rgba(46,143,94,.13); --warn-soft: rgba(201,106,46,.13); --crit-soft: rgba(201,69,69,.12);
+    --radius-sm: 4px; --radius-md: 8px; --radius-lg: 14px; --radius-full: 9999px;
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px;
+    --text-xs: 11px; --text-sm: 12.5px; --text-base: 14px; --text-lg: 16px; --text-xl: 20px;
+    --font-display: Jost, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-sans: Mulish, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
+    --shadow-md: 0 4px 14px rgba(11,15,14,.08), 0 2px 4px rgba(11,15,14,.04);
+  }
+  :root[data-theme="dark"] {
+    --background: #000000; --foreground: rgba(255,255,255,.92); --card: #0c1110;
+    --card-foreground: rgba(255,255,255,.92); --primary: #1fc6b8; --primary-foreground: #000000;
+    --secondary: #141a19; --muted: #141a19; --muted-foreground: rgba(255,255,255,.58);
+    --accent-soft: rgba(0,183,170,.14); --destructive: #bd3a2e; --destructive-foreground: #ffffff;
+    --border: #1f2826; --input: rgba(0,183,170,.35); --ring: #1fc6b8;
+    --c-skill: #5b9dd9;
+    --ok: #57b380; --warn: #e0904f; --crit: #e25b5b;
+    --ok-soft: rgba(87,179,128,.14); --warn-soft: rgba(224,144,79,.14); --crit-soft: rgba(226,91,91,.13);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--background); color: var(--foreground);
+    font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: var(--space-6) var(--space-4) 72px; }
+
+  header.top { border-bottom: 1px solid var(--border); padding-bottom: var(--space-4); margin-bottom: var(--space-6); }
+  h1 { font-family: var(--font-display); font-size: var(--text-xl); margin: 0 0 var(--space-2); font-weight: 600; }
+  .sub { color: var(--muted-foreground); font-size: var(--text-xs); max-width: 80ch; margin: 0; }
+  .toolbar { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-3); flex-wrap: wrap; }
+  .toolbar button {
+    font: inherit; font-size: var(--text-xs); color: var(--muted-foreground); cursor: pointer;
+    background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 5px 10px;
+  }
+  .toolbar button:hover { background: var(--secondary); color: var(--foreground); }
+
+  h2 {
+    font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600;
+    margin: var(--space-6) 0 var(--space-1); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  }
+  h2 .rf { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted-foreground); font-weight: 400; }
+  .lead { color: var(--muted-foreground); font-size: var(--text-xs); margin: 0 0 var(--space-4); max-width: 84ch; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; border-radius: var(--radius-full);
+    padding: 1px 8px; font-size: 10px; font-weight: 600; letter-spacing: .02em;
+    border: 1px solid var(--border); color: var(--muted-foreground); white-space: nowrap;
+  }
+  .badge.vigente { color: var(--muted-foreground); border-style: dashed; }
+  .badge.propuesta { color: var(--primary); border-color: var(--input); background: var(--accent-soft); }
+  .badge code { font-family: var(--font-mono); font-size: 9.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(352px, 1fr)); gap: var(--space-4); }
+  .grid.one { grid-template-columns: minmax(352px, 420px); }
+  .panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .panel > .head {
+    display: flex; align-items: center; gap: var(--space-2); padding: 9px var(--space-3);
+    border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .panel > .head .name { font-size: var(--text-xs); font-weight: 700; }
+  .panel > .head .ref { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); margin-left: auto; }
+  .panel > .note {
+    padding: var(--space-2) var(--space-3); font-size: 10.5px; color: var(--muted-foreground);
+    border-top: 1px dashed var(--border); background: var(--background); margin-top: auto;
+  }
+  .panel > .note b { color: var(--foreground); font-weight: 600; }
+  .panel > .note code { font-family: var(--font-mono); font-size: 9.5px; }
+
+  /* ═══ el dock — calca chat-dock.tsx ═══ */
+  .dock { display: flex; flex-direction: column; background: var(--card); }
+
+  /* header: flex items-center gap-2 border-b px-3 py-2.5 */
+  .dhead { display: flex; align-items: center; gap: var(--space-2); border-bottom: 1px solid var(--border); padding: 10px var(--space-3); }
+  .dhead .frente { display: flex; min-width: 0; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 600; }
+  .dhead .frente span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dhead .colapsar { margin-left: auto; font: inherit; font-size: 10.5px; color: var(--muted-foreground); background: transparent; border: 0; cursor: pointer; white-space: nowrap; padding: 4px 8px; border-radius: var(--radius-md); }
+  .dhead .colapsar:hover { background: var(--secondary); color: var(--foreground); }
+
+  .pip { width: 7px; height: 7px; border-radius: var(--radius-full); flex: none; background: var(--muted-foreground); }
+  .pip.idle { background: var(--muted-foreground); }
+  .pip.streaming { background: var(--primary); animation: pulse 1.15s ease-in-out infinite; }
+  .pip.await { background: var(--warn); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+  /* SessionLine: bg-secondary px-3 py-1.5 font-mono text-[9.5px] */
+  .sline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); background: var(--secondary); padding: 5px var(--space-3); font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); }
+  .sline .cc { color: var(--primary); }
+  .ctxbar { width: 44px; height: 5px; border-radius: var(--radius-full); border: 1px solid var(--border); background: var(--card); overflow: hidden; display: inline-block; }
+  .ctxbar i { display: block; height: 100%; background: var(--primary); }
+
+  /* ScopeRow: px-3 py-1.5 text-[10px] */
+  .scope { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); padding: 5px var(--space-3); font-size: 10px; color: var(--muted-foreground); }
+  .chip-arnes { display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--border); border-radius: var(--radius-full); padding: 1px 8px; color: var(--foreground); }
+  .chip-arnes b { font-family: var(--font-mono); font-weight: 700; }
+
+  /* Messages: flex-1 gap-2 p-3 */
+  .msgs { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); min-height: 96px; }
+  .bubble { max-width: 92%; border-radius: 10px; border: 1px solid var(--border); background: var(--secondary); padding: 7px 10px; font-size: var(--text-xs); line-height: 1.55; align-self: flex-start; border-bottom-left-radius: 3px; }
+  .bubble.user { align-self: flex-end; border-color: var(--primary); background: var(--accent-soft); border-bottom-left-radius: 10px; border-bottom-right-radius: 3px; white-space: pre-wrap; }
+  .act { max-width: 92%; align-self: stretch; border: 1px dashed var(--border); border-radius: var(--radius-md); font-size: var(--text-xs); }
+  .act .sum { display: flex; align-items: center; gap: 6px; padding: 3px 10px; color: var(--muted-foreground); }
+  .act .sum .chev { margin-left: auto; font-size: 9px; }
+
+  /* ── PROPUESTA: fila de conversación bajo el header ── */
+  .convrow { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); padding: 5px var(--space-3) 5px 10px; }
+  .convrow .title { display: flex; align-items: center; gap: 5px; min-width: 0; font: inherit; font-size: var(--text-xs); font-weight: 600; color: var(--foreground); background: transparent; border: 0; padding: 3px 5px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; }
+  .convrow .title:hover { background: var(--secondary); }
+  .convrow .title .chev { flex: none; font-size: 8px; color: var(--muted-foreground); }
+  .convrow .title .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .convrow .acts { margin-left: auto; display: flex; align-items: center; gap: 2px; flex: none; }
+  .iconbtn { font: inherit; font-size: var(--text-xs); width: 24px; height: 24px; display: grid; place-items: center; background: transparent; border: 0; border-radius: var(--radius-sm); color: var(--muted-foreground); cursor: pointer; }
+  .iconbtn:hover { background: var(--secondary); color: var(--foreground); }
+  .iconbtn.nueva { color: var(--primary); font-size: var(--text-base); }
+  .titlein { font: inherit; font-size: var(--text-xs); font-weight: 600; color: var(--foreground); background: var(--card); border: 1px solid var(--primary); border-radius: var(--radius-sm); padding: 2px 5px; width: 100%; }
+
+  /* ── PROPUESTA: la lista TOMA el área del transcript (idioma de NewSessionPicker) ── */
+  .clist { display: flex; flex-direction: column; min-height: 96px; }
+  .clist .search { padding: var(--space-2) var(--space-3) 6px; position: relative; }
+  .clist .search .ico { position: absolute; left: 20px; top: 50%; transform: translateY(-45%); font-size: 11px; color: var(--muted-foreground); pointer-events: none; }
+  .clist .search .inp { width: 100%; border: 1px solid var(--border); background: var(--secondary); color: var(--foreground); border-radius: var(--radius-md); padding: 6px 10px 6px 26px; font: inherit; font-size: var(--text-xs); }
+  .clist .search .inp.focus { border-color: var(--primary); }
+  .clist .search .inp.ph { color: var(--muted-foreground); }
+  .clist .scopelbl { padding: 0 var(--space-3) 6px; font-size: 9.5px; color: var(--muted-foreground); }
+  .clist .scopelbl b { color: var(--foreground); font-weight: 600; }
+  .clist .rows { display: flex; flex-direction: column; gap: 3px; padding: 0 var(--space-2) var(--space-2); }
+
+  .crow { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; font: inherit; color: var(--foreground); background: transparent; border: 1px solid transparent; border-radius: var(--radius-md); padding: 6px 8px; cursor: pointer; }
+  .crow:hover { background: var(--secondary); }
+  .crow.activa { border-color: var(--primary); background: var(--accent-soft); }
+  .crow .rad { margin-top: 3px; width: 11px; height: 11px; flex: none; border-radius: var(--radius-full); border: 1.5px solid var(--input); display: grid; place-items: center; }
+  .crow.activa .rad { border-color: var(--primary); }
+  .crow.activa .rad i { width: 5px; height: 5px; border-radius: var(--radius-full); background: var(--primary); display: block; }
+  .crow .body { min-width: 0; flex: 1; display: block; }
+  .crow .ttl { display: block; font-size: var(--text-xs); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crow .meta { display: block; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crow .snip { display: block; font-size: 10px; color: var(--muted-foreground); margin-top: 3px; line-height: 1.45; }
+  .crow .snip mark { background: var(--accent-soft); color: var(--foreground); border-radius: 2px; padding: 0 2px; }
+  .crow .tag { flex: none; font-size: 9px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+
+  .listfoot { margin-top: auto; display: flex; justify-content: flex-end; gap: var(--space-2); border-top: 1px dashed var(--border); padding: 8px var(--space-3); }
+  .btn-ghost { font: inherit; font-size: 10.5px; color: var(--muted-foreground); background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px 10px; cursor: pointer; }
+  .btn-ghost:hover { background: var(--secondary); color: var(--foreground); }
+
+  .empty { margin: auto; padding: var(--space-4); text-align: center; font-size: var(--text-xs); color: var(--muted-foreground); max-width: 90%; }
+  .empty b { color: var(--foreground); }
+
+  /* marca inline de rotación (CV-D10) — NO es burbuja, es respiro del hilo */
+  .rot { align-self: center; display: inline-flex; align-items: center; gap: 6px; border: 1px dashed var(--input); background: var(--secondary); border-radius: var(--radius-md); padding: 2px 8px; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); }
+
+  /* franja de retoma — efímera, mientras --resume rehidrata */
+  .resumebar { display: flex; align-items: center; gap: 6px; padding: 5px var(--space-3); border-bottom: 1px solid var(--border); background: var(--accent-soft); font-size: 10.5px; }
+  .resumebar.bad { background: var(--crit-soft); }
+  .resumebar .r { margin-left: auto; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); }
+
+  .composer { display: flex; align-items: flex-end; gap: var(--space-2); border-top: 1px solid var(--border); padding: var(--space-3); }
+  .ta { flex: 1; min-height: 36px; max-height: 66px; border: 1px solid var(--border); background: var(--secondary); color: var(--foreground); border-radius: var(--radius-md); padding: 8px 10px; font: inherit; font-size: var(--text-xs); }
+  .ta.ph { color: var(--muted-foreground); }
+  .btn { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: var(--radius-md); border: 0; cursor: pointer; font-size: var(--text-base); background: var(--primary); color: var(--primary-foreground); }
+  .btn.off { opacity: .4; cursor: not-allowed; }
+  .btn.ghost { background: var(--secondary); color: var(--muted-foreground); border: 1px solid var(--border); }
+  .btn.stop { background: var(--destructive); color: var(--destructive-foreground); }
+
+  .tblwrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: var(--text-xs); }
+  th, td { text-align: left; padding: 8px var(--space-3); border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td code, th code { font-family: var(--font-mono); font-size: 10px; }
+
+  .callout { border: 1px solid var(--border); border-left: 3px solid var(--warn); background: var(--card); border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--text-xs); color: var(--muted-foreground); margin-top: var(--space-4); }
+  .callout b { color: var(--foreground); }
+  .callout code { font-family: var(--font-mono); font-size: 10px; }
+  .callout.ok { border-left-color: var(--ok); }
+  .callout.bad { border-left-color: var(--crit); }
+</style>
+
+<div class="page">
+  <header class="top">
+    <h1>Las conversaciones viven en el panel de conversación</h1>
+    <p class="sub">
+      Superset estricto de <code>chat-dock.tsx</code>. Lo vigente se calca aparte y etiquetado
+      <span class="badge vigente">vigente</span> — si algo de eso desaparece en la implementación es
+      un fallo de PARIDAD, no una mejora. Lo nuevo va <span class="badge propuesta">propuesta</span>.
+      Tokens copiados literal de <code>theme.css</code>; el SSoT del UI sigue siendo Storybook.
+    </p>
+    <div class="toolbar">
+      <button type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">
+        ◐ alternar tema
+      </button>
+      <span class="badge">paquete <code>2026-07-26-conversaciones-del-panel</code></span>
+      <span class="badge">CV-D1…CV-D13 · sin firmar</span>
+    </div>
+  </header>
+
+  <!-- ═══════════ 1 · LO VIGENTE ═══════════ -->
+  <h2>1 · Lo vigente <span class="rf">chat-dock.tsx L12-42, L46-93, L95-231, L268-375</span></h2>
+  <p class="lead">
+    El dock completo tal como está hoy en el binario instalado (verificado en vivo el 2026-07-26
+    contra <code>127.0.0.1:4200</code>). Tres cosas que NO existen y que este paquete agrega: no hay
+    lista de conversaciones, no hay buscador, no hay «＋ nueva».
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">Dock en reposo</span><span class="badge vigente">vigente</span><span class="ref">L19-41</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="sline">
+          <span class="cc">◍ 4b046945</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
+          <span>· ctx</span><span class="ctxbar"><i style="width:68%"></i></span><span>68%</span>
+        </div>
+        <div class="scope">
+          <span>Alcance:</span>
+          <span class="chip-arnes">arnés <b>vitalia</b></span>
+          <span>selecciona un nodo en el Mapa para acotar</span>
+        </div>
+        <div class="msgs">
+          <div class="bubble user">no veo nada en el mapa, ¿podés repararlo?</div>
+          <div class="act"><div class="sum"><span>⚙</span><span>7 pasos</span><span class="chev">▶</span></div></div>
+          <div class="bubble">El manifiesto declara <b>0 elementos</b>: el arnés no tiene <code>arnes.l0.json</code> sellado.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost" title="Dictar">🎙</button>
+          <button type="button" class="btn off" title="Enviar (Claude Code headless detrás)">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        El header muestra el <b>frente de la sesión</b>, no un título de conversación — hoy son la
+        misma cosa. <code>SessionLine</code>, <code>ScopeRow</code> y el composer quedan
+        <b>intactos</b> en toda la propuesta.
+      </p>
+    </section>
+  </div>
+
+  <!-- ═══════════ 2 · LA FILA DE CONVERSACIÓN ═══════════ -->
+  <h2>2 · La fila de conversación <span class="rf">CV-D2 · CV-D7 · CV-D9</span></h2>
+  <p class="lead">
+    Una fila nueva, debajo del header vigente. Trae las tres acciones que faltaban: el título de la
+    conversación activa (que despliega la lista), el buscador y «＋ nueva». El header de arriba no se
+    toca — sigue diciendo de qué <b>sesión</b> es este dock.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">2A · Cerrada (reposo)</span><span class="badge propuesta">propuesta</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn" title="Buscar en las conversaciones de esta sesión">🔍</button>
+            <button type="button" class="iconbtn nueva" title="Nueva conversación — desactiva la actual">＋</button>
+          </span>
+        </div>
+        <div class="sline">
+          <span class="cc">◍ 4b046945</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
+          <span>· ctx</span><span class="ctxbar"><i style="width:68%"></i></span><span>68%</span>
+        </div>
+        <div class="msgs">
+          <div class="bubble user">no veo nada en el mapa, ¿podés repararlo?</div>
+          <div class="bubble">El manifiesto declara <b>0 elementos</b>.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        <b>No hay botón de cerrar</b> — a propósito (CV-D7): el único cierre es implícito, al crear o
+        retomar otra. Si el operador pudiera cerrar sin abrir nada, la sesión quedaría sin
+        conversación activa y el composer no tendría a quién hablarle.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">2B · Renombrar en línea</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D9</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="convrow">
+          <span class="titlein">por qué el mapa sale vacío</span>
+        </div>
+        <div class="sline">
+          <span class="cc">◍ 4b046945</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
+          <span>· ctx</span><span class="ctxbar"><i style="width:68%"></i></span><span>68%</span>
+        </div>
+        <div class="msgs">
+          <div class="bubble user">no veo nada en el mapa, ¿podés repararlo?</div>
+          <div class="bubble">El manifiesto declara <b>0 elementos</b>.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        Mismo gesto que renombrar el frente en el rail (<code>session-rail.tsx</code> L256-273):
+        <b>✎ → input → Enter confirma, Escape descarta</b>. El título nace auto-derivado del primer
+        mensaje; editarlo no lo vuelve a derivar nunca más.
+      </p>
+    </section>
+  </div>
+
+  <!-- ═══════════ 3 · LA LISTA ═══════════ -->
+  <h2>3 · La lista <span class="rf">CV-D4 · CV-D8 · CV-D11 · CV-D13</span></h2>
+  <p class="lead">
+    Se abre <b>en sitio</b> y toma el área del transcript — el mismo gesto que <code>NewSessionPicker</code>
+    ya usa en el rail (TS-D6/D10: «100 % inline, cero popover/backdrop»). El header, la SessionLine y
+    el composer siguen visibles: nunca se pierde de vista qué sesión es ni se puede escribir a ciegas.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">3A · Desplegada</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D13</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn" title="Buscar">🔍</button>
+            <button type="button" class="iconbtn nueva" title="Nueva conversación">＋</button>
+          </span>
+        </div>
+        <div class="clist">
+          <div class="search">
+            <span class="ico">🔍</span>
+            <div class="inp ph">Buscar en estas conversaciones…</div>
+          </div>
+          <p class="scopelbl">4 conversaciones de la sesión <b>repro del bug de carga</b></p>
+          <div class="rows">
+            <button type="button" class="crow activa">
+              <span class="rad"><i></i></span>
+              <span class="body">
+                <span class="ttl">por qué el mapa sale vacío</span>
+                <span class="meta">hace 4 min · 90 turnos · ctx 68 %</span>
+              </span>
+              <span class="tag">activa</span>
+            </button>
+            <button type="button" class="crow">
+              <span class="rad"></span>
+              <span class="body">
+                <span class="ttl">sellar el arnés con arnes.l0.json</span>
+                <span class="meta">ayer 18:02 · 41 turnos · ctx 34 %</span>
+              </span>
+            </button>
+            <button type="button" class="crow">
+              <span class="rad"></span>
+              <span class="body">
+                <span class="ttl">prueba de dictado</span>
+                <span class="meta">24 jul · 6 turnos · ctx 4 %</span>
+              </span>
+            </button>
+            <button type="button" class="crow">
+              <span class="rad"></span>
+              <span class="body">
+                <span class="ttl">nuevo frente</span>
+                <span class="meta">23 jul · 0 turnos · ctx 0 %</span>
+              </span>
+            </button>
+          </div>
+          <div class="listfoot"><button type="button" class="btn-ghost">Cancelar</button></div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        Cada fila: <b>título · última interacción · nº de turnos · ctx final</b> (CV-D13). El rótulo
+        «de la sesión <b>…</b>» materializa CV-D4 — el alcance se <b>dice</b>, no se deduce. Una
+        conversación de 0 turnos se muestra igual: <b>0 no se esconde</b>.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">3B · Buscando en el texto</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D8</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn" title="Buscar">🔍</button>
+            <button type="button" class="iconbtn nueva" title="Nueva conversación">＋</button>
+          </span>
+        </div>
+        <div class="clist">
+          <div class="search">
+            <span class="ico">🔍</span>
+            <div class="inp focus">manifiesto</div>
+          </div>
+          <p class="scopelbl">2 de 4 coinciden</p>
+          <div class="rows">
+            <button type="button" class="crow activa">
+              <span class="rad"><i></i></span>
+              <span class="body">
+                <span class="ttl">por qué el mapa sale vacío</span>
+                <span class="meta">hace 4 min · 90 turnos · ctx 68 %</span>
+                <span class="snip">…el <mark>manifiesto</mark> declara 0 elementos: el arnés no tiene…</span>
+              </span>
+              <span class="tag">activa</span>
+            </button>
+            <button type="button" class="crow">
+              <span class="rad"></span>
+              <span class="body">
+                <span class="ttl">sellar el arnés con arnes.l0.json</span>
+                <span class="meta">ayer 18:02 · 41 turnos · ctx 34 %</span>
+                <span class="snip">…escribí el <mark>manifiesto</mark> en la raíz y volvé a indexar…</span>
+              </span>
+            </button>
+          </div>
+          <div class="listfoot"><button type="button" class="btn-ghost">Cancelar</button></div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        Busca el <b>texto del transcript</b>, no solo el título (CV-D8) — y por eso <b>muestra el
+        fragmento que coincidió</b>: sin el snippet, el operador no sabe por qué apareció esa fila.
+        La conversación activa participa de la búsqueda como cualquier otra.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">3C · Sin coincidencias</span><span class="badge propuesta">propuesta</span></div>
+      <div class="dock">
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="clist">
+          <div class="search">
+            <span class="ico">🔍</span>
+            <div class="inp focus">telemetría</div>
+          </div>
+          <div class="empty">
+            Ninguna conversación de esta sesión menciona <b>«telemetría»</b>.<br />
+            <span style="font-size:10px">Se buscó en el título y en el texto de las 4.</span>
+            <div style="margin-top:8px"><button type="button" class="btn-ghost">Limpiar búsqueda</button></div>
+          </div>
+          <div class="listfoot"><button type="button" class="btn-ghost">Cancelar</button></div>
+        </div>
+      </div>
+      <p class="note">
+        El vacío <b>dice dónde buscó y cuántas miró</b>. Un «sin resultados» pelado dejaría al
+        operador sin saber si el buscador mira títulos o texto — y esa duda es exactamente la que
+        originó este paquete.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">3D · Sesión de una sola conversación</span><span class="badge propuesta">propuesta</span></div>
+      <div class="dock">
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">nueva conversación</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="clist">
+          <p class="scopelbl" style="padding-top:10px">1 conversación de la sesión <b>dictado e2e</b></p>
+          <div class="rows">
+            <button type="button" class="crow activa">
+              <span class="rad"><i></i></span>
+              <span class="body">
+                <span class="ttl">nueva conversación</span>
+                <span class="meta">sin turnos todavía · ctx 0 %</span>
+              </span>
+              <span class="tag">activa</span>
+            </button>
+          </div>
+          <div class="empty" style="padding-top:0">
+            Esta sesión recién arranca. Cuando abras otra con <b>＋</b>, esta queda acá y la podés
+            retomar.
+          </div>
+          <div class="listfoot"><button type="button" class="btn-ghost">Cancelar</button></div>
+        </div>
+      </div>
+      <p class="note">
+        Sin turnos, «última interacción» <b>no se inventa una fecha</b>: dice «sin turnos todavía».
+        El buscador no se dibuja cuando hay una sola — nada que filtrar.
+      </p>
+    </section>
+  </div>
+
+  <!-- ═══════════ 4 · RETOMAR Y CREAR ═══════════ -->
+  <h2>4 · Retomar y crear <span class="rf">CV-D7 · CV-D11 · CV-D12</span></h2>
+  <p class="lead">
+    Las dos transiciones son la misma: siempre queda <b>exactamente una activa</b>. Crear desactiva
+    la que estaba; retomar desactiva la que estaba. No hay estado intermedio sin conversación activa.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">4A · Retomando (efímero)</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D11</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip streaming"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev">▶</span><span class="t">sellar el arnés con arnes.l0.json</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="resumebar">
+          <span>Retomando la conversación…</span>
+          <span class="r">--resume d303a93f</span>
+        </div>
+        <div class="sline">
+          <span class="cc">◍ d303a93f</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
+          <span>· ctx</span><span class="ctxbar"><i style="width:34%"></i></span><span>34%</span>
+        </div>
+        <div class="msgs">
+          <div class="bubble user">escribí el manifiesto en la raíz y volvé a indexar</div>
+          <div class="bubble">Listo: <code>arnes.l0.json</code> con 12 elementos.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">generando… (■ para interrumpir)</div>
+          <button type="button" class="btn stop" title="Interrumpir el turno (in-band, la sesión sigue viva)">■</button>
+        </div>
+      </div>
+      <p class="note">
+        El transcript se <b>repinta desde <code>Conv</code></b> (persistido al desactivar, CV-D8) y
+        recién después engancha el stream vivo — el mismo movimiento que hoy hace cambiar de sesión
+        en el rail. La <code>SessionLine</code> pasa a mostrar el <b>cc-id y el ctx de ESTA</b>
+        conversación, no los de la anterior.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">4B · Recién creada</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D7</span></div>
+      <div class="dock">
+        <div class="dhead">
+          <span class="frente"><i class="pip idle"></i><span class="t">repro del bug de carga</span></span>
+          <button type="button" class="colapsar">⟩ colapsar</button>
+        </div>
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev">▶</span><span class="t">nueva conversación</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="sline">
+          <span class="cc">◍ sin sesión CC</span><span>· vitalia</span>
+          <span>· ctx</span><span class="ctxbar"><i style="width:0%"></i></span><span>0%</span>
+        </div>
+        <div class="scope">
+          <span>Alcance:</span>
+          <span class="chip-arnes">arnés <b>vitalia</b></span>
+          <span>selecciona un nodo en el Mapa para acotar</span>
+        </div>
+        <div class="msgs" style="justify-content:center">
+          <p class="empty">
+            Pídele un cambio a <b>vitalia</b>. «por qué el mapa sale vacío» quedó guardada — la
+            retomás desde ▶.
+          </p>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        El vacío vigente decía «Esta conversación ES la sesión Claude Code del frente …»
+        (<code>chat-dock.tsx</code> L110-115) — <b>deja de ser verdad</b> bajo CV-D3 y por eso cambia:
+        nombra la que se desactivó y dice cómo volver. <code>◍ sin sesión CC</code> es literal del
+        vigente (L82), no una invención.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">4C · Rotación por contexto</span><span class="badge propuesta">propuesta</span><span class="ref">CV-D10</span></div>
+      <div class="dock">
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts">
+            <button type="button" class="iconbtn">🔍</button>
+            <button type="button" class="iconbtn nueva">＋</button>
+          </span>
+        </div>
+        <div class="sline">
+          <span class="cc">◍ 7ae10c42</span><span>· vitalia</span><span>· claude-opus-5[1m]</span>
+          <span>· ctx</span><span class="ctxbar"><i style="width:12%"></i></span><span>12%</span>
+        </div>
+        <div class="msgs">
+          <div class="bubble">…entonces el índice quedó vacío por eso.</div>
+          <div class="rot">⟳ contexto rotado · checkpoint</div>
+          <div class="bubble user">seguí con el sellado</div>
+          <div class="bubble">Retomo desde el checkpoint: falta <code>arnes.l0.json</code>.</div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        <b>Una marca inline, no un corte de hilo</b> (CV-D10): el título no cambia, la lista sigue
+        mostrando UNA entrada, el ctx vuelve a 12 % y el <code>cc-id</code> de la SessionLine es el
+        nuevo. <code>CadenaCC</code> cose los dos por debajo. Sin la marca, el ctx cayendo de 92 % a
+        12 % sin explicación parecería un bug.
+      </p>
+    </section>
+  </div>
+
+  <!-- ═══════════ 5 · LO QUE SE MUEVE ═══════════ -->
+  <h2>5 · Lo que se mueve (no se borra) <span class="rf">CV-D2</span></h2>
+  <p class="lead">
+    La regla dura 3 de <code>mockups/INDEX.md</code> prohíbe quitar un artefacto firmado. El bloque
+    de conversaciones del picker <b>no se elimina: se muda</b> — y acá queda declarado, con su origen
+    y su destino, para que la PARIDAD lo pueda verificar.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">5A · Hoy, en el rail</span><span class="badge vigente">vigente</span><span class="ref">new-session-picker.tsx L263-307</span></div>
+      <div style="padding: var(--space-3); background: var(--card)">
+        <div style="border:1px solid var(--border); border-radius: var(--radius-md); padding: 8px; font-size:10px; display:flex; flex-direction:column; gap:3px">
+          <b style="color:var(--muted-foreground)">Conversaciones: 1 abierta · 0 cerradas</b>
+          <span style="font-family:var(--font-mono); color:var(--muted-foreground)">quiero saber por qué solo veo el readme &nbsp; 2026-07-24 &nbsp; · 12 turnos</span>
+        </div>
+      </div>
+      <p class="note">
+        Escondido tras «＋ Nueva sesión» → elegir un arnés. Y <b>muestra 0</b>: pide por clave
+        calificada (<code>sin-home~vitalia~vitalia</code>) mientras el registro guarda id pelado
+        (<code>vitalia</code>). Verificado contra la API el 2026-07-26.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">5B · Su destino</span><span class="badge propuesta">propuesta</span></div>
+      <div style="padding: var(--space-3); background: var(--card); font-size: var(--text-xs); color: var(--muted-foreground); display:flex; flex-direction:column; gap:8px">
+        <div><b style="color:var(--foreground)">§3A</b> — la lista, con las mismas cifras (turnos, fecha) pero legibles y buscables.</div>
+        <div><b style="color:var(--foreground)">§3B</b> — el texto del transcript, que ahí no se podía buscar.</div>
+        <div><b style="color:var(--foreground)">§4A</b> — retomar, que ahí no existía: solo se podían leer los turnos truncados a una línea.</div>
+        <div style="border-top:1px dashed var(--border); padding-top:8px">
+          El picker del rail queda <b style="color:var(--foreground)">solo con lo suyo</b>: elegir el
+          arnés y la copia. Nada más se le quita.
+        </div>
+      </div>
+      <p class="note">
+        Lo que <b>no</b> sobrevive es el estado «cerradas» como categoría — CV-D12: si se retoma, no
+        estaba cerrada. Ese rótulo desaparece del producto, y con él el registro aparte
+        <code>sesiones-cerradas.json</code>.
+      </p>
+    </section>
+  </div>
+
+  <!-- ═══════════ 6 · ESTADOS DE DATO ═══════════ -->
+  <h2>6 · Estados de dato</h2>
+  <p class="lead">
+    Honestidad del repo: un hueco se ve como hueco. Ninguno de estos estados finge una lista vacía
+    cuando lo que pasó fue que no se pudo leer.
+  </p>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="head"><span class="name">6A · Cargando</span><span class="badge propuesta">propuesta</span></div>
+      <div class="dock">
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts"><button type="button" class="iconbtn">🔍</button><button type="button" class="iconbtn nueva">＋</button></span>
+        </div>
+        <div class="clist">
+          <div class="rows" style="padding-top:10px">
+            <span style="height:34px; border-radius: var(--radius-md); background: var(--secondary); border:1px solid var(--border); display:block"></span>
+            <span style="height:34px; border-radius: var(--radius-md); background: var(--secondary); border:1px solid var(--border); display:block; opacity:.7"></span>
+            <span style="height:34px; border-radius: var(--radius-md); background: var(--secondary); border:1px solid var(--border); display:block; opacity:.4"></span>
+          </div>
+        </div>
+      </div>
+      <p class="note">
+        Mismo esqueleto que <code>PickerSkeleton</code> (<code>new-session-picker.tsx</code> L309-326),
+        con <code>role="status"</code> y <code>aria-label</code>. No se inventa un spinner nuevo.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="head"><span class="name">6B · No se pudo leer</span><span class="badge propuesta">propuesta</span></div>
+      <div class="dock">
+        <div class="convrow">
+          <button type="button" class="title"><span class="chev" style="transform:rotate(90deg)">▶</span><span class="t">por qué el mapa sale vacío</span></button>
+          <span class="acts"><button type="button" class="iconbtn">🔍</button><button type="button" class="iconbtn nueva">＋</button></span>
+        </div>
+        <div class="clist">
+          <div class="empty" style="color:var(--warn)">
+            No se pudieron leer las conversaciones — <b style="color:var(--warn)">daemon no responde</b>.
+            <div style="margin-top:8px"><button type="button" class="btn-ghost">Reintentar</button></div>
+          </div>
+          <div class="listfoot"><button type="button" class="btn-ghost">Cancelar</button></div>
+        </div>
+        <div class="composer">
+          <div class="ta ph">Pídele un cambio a vitalia</div>
+          <button type="button" class="btn ghost">🎙</button>
+          <button type="button" class="btn off">↑</button>
+        </div>
+      </div>
+      <p class="note">
+        El motivo va <b>en la superficie</b>, no en un tooltip ni en la consola — y con Reintentar,
+        igual que el picker (<code>onReintentar</code>, L143-156). <b>No</b> se degrada a «0
+        conversaciones»: eso sería un pass fabricado.
+      </p>
+    </section>
+  </div>
+
+  <!-- ═══════════ 7 · TRAZA ═══════════ -->
+  <h2>7 · Traza decisión → superficie</h2>
+  <p class="lead">Toda decisión firmada tiene un dibujo, o queda declarada como sin superficie.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead>
+        <tr><th>Decisión</th><th>Qué dice</th><th>Dónde se ve</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>CV-D1</code></td><td><code>Hist</code> = historial del arnés</td><td>— <b>sin superficie a propósito</b>: fuera de alcance, el view-strip no se toca</td></tr>
+        <tr><td><code>CV-D2</code></td><td>todo lo de conversación, en el dock</td><td>§2A · §3A · §5</td></tr>
+        <tr><td><code>CV-D3</code></td><td>sesión contiene N conversaciones</td><td>§3A (rótulo «de la sesión …») · §4B (el vacío ya no dice «esta conversación ES la sesión»)</td></tr>
+        <tr><td><code>CV-D4</code></td><td>solo las de la sesión activa</td><td>§3A rótulo · §3C «de esta sesión»</td></tr>
+        <tr><td><code>CV-D5</code></td><td>cuelga de <code>session_id</code></td><td>— sin superficie (modelo)</td></tr>
+        <tr><td><code>CV-D6</code></td><td>se borran las 3 cerradas de hoy</td><td>— sin superficie (dato)</td></tr>
+        <tr><td><code>CV-D7</code></td><td>una activa; crear desactiva</td><td>§2A (<b>ausencia</b> de botón cerrar) · §4B</td></tr>
+        <tr><td><code>CV-D8</code></td><td>busca el texto del transcript</td><td>§3B (snippet con la coincidencia) · §3C (dice dónde buscó)</td></tr>
+        <tr><td><code>CV-D9</code></td><td>título auto-derivado, editable</td><td>§2B</td></tr>
+        <tr><td><code>CV-D10</code></td><td>rotación invisible</td><td>§4C</td></tr>
+        <tr><td><code>CV-D11</code></td><td>seleccionar retoma</td><td>§4A</td></tr>
+        <tr><td><code>CV-D12</code></td><td>activa/inactiva, no «cerrada»</td><td>§3A (el rótulo dice <code>activa</code>, las otras no dicen nada) · §5B</td></tr>
+        <tr><td><code>CV-D13</code></td><td>última interacción · turnos · ctx</td><td>§3A · §3D (el caso sin turnos)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <b>Gaps dibujados como gaps.</b> «última interacción» <b>no existe hoy</b> en el modelo
+    (<code>session.go</code> no tiene timestamp por turno; lo único temporal es <code>CerradaEn</code>).
+    Las fechas de §3A son <b>forma real, valores ilustrativos</b> — el campo hay que construirlo, y
+    hasta entonces esa columna no se puede pintar sin mentir. Igual el snippet de §3B: exige que
+    <code>Conv</code> se persista al desactivar, que hoy <b>no pasa</b> (verificado: las cerradas en
+    disco guardan metadata y tiran el transcript).
+  </div>
+
+  <div class="callout ok">
+    <b>Lo que este dibujo NO decide</b>, y va a spec: el ancho de la lista cuando el dock está
+    estirado (CH-D5) · si la búsqueda es incremental o con Enter · el orden de la lista (acá:
+    última interacción descendente, con la activa siempre visible) · qué pasa con permisos pendientes
+    de la conversación que se desactiva.
+  </div>
+</div>

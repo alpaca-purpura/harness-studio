@@ -120,7 +120,14 @@ export function MapBar({
             role="tab"
             aria-selected={capa === l.id}
             disabled={l.disabled}
-            title={l.disabled ? "Necesita telemetría (indexer JSONL)" : undefined}
+            // RF-233 — el motivo sale de `l.motivo`, no de un literal fijo acá. El que estaba
+            // hardcodeado («Necesita telemetría (indexer JSONL)») YA NO ERA VERDAD: la señal
+            // llega (V1), lo que falta es el diseño.
+            title={l.motivo}
+            // RF-276 — el motivo NO puede vivir solo en `title`: un lector de pantalla puede no
+            // anunciarlo. Va también en un `sr-only` referenciado por `aria-describedby`, con el
+            // MISMO texto (la story asserta la igualdad para que no driften).
+            aria-describedby={l.motivo ? `capa-motivo-${l.id}` : undefined}
             onClick={() => onCapa(l.id)}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs text-muted-foreground disabled:opacity-40",
@@ -131,6 +138,16 @@ export function MapBar({
           </button>
         ))}
       </div>
+      {/* Los motivos viven FUERA del tablist a propósito, por dos razones duras:
+          · el nombre accesible de la tab tiene que seguir siendo su etiqueta y nada más
+            (la story firmada `Default` busca la tab por `name: "Desempeño"`);
+          · `role="tablist"` exige que sus hijos sean `tab` (axe `aria-required-children`).
+          `aria-describedby` cruza el documento sin problema. */}
+      {LAYERS.filter((l) => l.motivo).map((l) => (
+        <span key={l.id} id={`capa-motivo-${l.id}`} className="sr-only">
+          {l.motivo}
+        </span>
+      ))}
     </div>
   )
 }

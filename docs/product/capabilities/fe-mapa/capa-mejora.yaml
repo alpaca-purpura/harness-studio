@@ -44,11 +44,13 @@ pointers:
   - "web/src/entities/telemetria/ui/barra-cobertura.tsx#BarraCobertura"
   - "web/src/entities/telemetria/ui/sparkline.tsx#Sparkline"
   - "web/src/shared/api/client.ts#api"
+  - "web/src/widgets/map-canvas/model/layers.ts#LAYERS"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
   - "web/src/entities/telemetria/ui/barra-cobertura.stories.tsx"
   - "web/src/entities/telemetria/ui/sparkline.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/map-bar.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -93,6 +95,22 @@ change_log:
       ticket a ticket.
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T30 — el slot del conmutador se enciende: `Capa` pasa de `"tokens"` a `"mejora"` (rename de
+      literal de unión, lo agarra `tsc` — cero consumidores huérfanos) y `LayerDef` gana
+      `motivo?`. El `title` fijo «Necesita telemetría (indexer JSONL)» SALE: ya no es verdad para
+      ninguno de los dos slots apagados — la señal de duración por request y por herramienta
+      llega hoy (V1), lo que falta es el diseño. Un motivo que miente manda a construir lo que ya
+      está construido. Los motivos nuevos viven en `layers.ts` (dato, no literal en el JSX) y
+      viajan a `title` **y** a un `<span class="sr-only">` referenciado por `aria-describedby`
+      (RF-276): el `sr-only` va FUERA del `tablist` para no contaminar el nombre accesible de la
+      tab ni romper `aria-required-children`. 4 stories nuevas; la firmada `Default` no se toca.
+      🔴 Desviación declarada de un baseline firmado (mockups/INDEX.md regla 3 · D17.1).
+    merge_sha: null
+
 scenarios:
   - id: mejora-cifra-un-solo-formateador
     name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
@@ -130,6 +148,17 @@ scenarios:
       diría «estable», que es una afirmación que nadie midió. Con serie, la dirección viaja en
       palabras en el `aria-label`, con el conteo real
     verifica: "EnAlza · Estable · HaciaLaBaja · PocasCorridas (sparkline.stories.tsx) · direccionTendencia (selectors.test.ts)"
+
+  - id: mejora-conmutador-cuatro-slots-y-motivos-honestos
+    name: "El conmutador ofrece Mejora, ya no Tokens, y los apagados dicen la verdad de hoy (RF-232 · RF-233 · RF-276)"
+    given: "los cuatro slots del tablist de capas"
+    when: "se renderiza MapBar"
+    then: >-
+      hay 4 tabs en el orden Estructura · Mejora · Desempeño · Proceso, ninguna se llama
+      «Tokens», Mejora NO está deshabilitada, y los dos apagados llevan su motivo real tanto en
+      `title` como en un `sr-only` con el MISMO texto (assert de igualdad para que no driften).
+      El literal viejo «Necesita telemetría (indexer JSONL)» no aparece en ningún `title`
+    verifica: "CapaMejoraDisponible · CapaMejoraActiva · MotivosHonestos · MotivoAccesible (map-bar.stories.tsx)"
 
 business_rules: []
 related_capabilities:
