@@ -58,3 +58,48 @@ base real contaminaría los totales que la propia feature muestra.
 | El **instalador** (`.deb`/`.AppImage`/`.rpm`) | `make installer` **bumpea la versión** y versiona en `instaladores/vX.Y.Z/`; no corresponde hacerlo antes de que exista la feature | al cerrar el paquete: `make installer` **+ `make dev-sync`** (existe `~/.local/bin/arnesia`, y sin eso el shell instalado ignora el sidecar nuevo) |
 | El **shell Tauri** | acá se manejó la UI servida por el daemon, que es la misma que embebe el bundle; la ventana nativa no se ejercitó | click-through humano sobre la app instalada, gate de PARIDAD |
 | Windows y macOS | no hay runner de esas plataformas | sigue abierto (G4, `tauri#11992`) |
+
+---
+
+## Cierre del Tramo A contra la app INSTALADA (2026-07-26)
+
+> La condición del operador era literal: *«que se asegure que cuando yo instale el app realmente
+> vea lo que tú has construido y validado»*. Esto es esa verificación, corrida de verdad.
+
+```
+make installer   → v0.2.22 · .deb 10,6 MB · .rpm 10,6 MB · .AppImage 85,9 MB + checksums.txt
+make dev-sync    → ~/.local/bin/arnesia reemplazado (identidad 0.2.22.2607261433)
+```
+
+`make dev-sync` **no es opcional en esta máquina**: existe el override local de self-update, y el
+shell instalado lo prefiere **siempre** sobre el sidecar del `.deb`. Sin ese paso se probaría el
+binario viejo creyendo haber probado el nuevo — el modo de falla más caro de esta cadena.
+
+### La prueba de que lo instalado ES lo construido
+
+```
+sha256  ~/.local/bin/arnesia  = e699bd73a0f939b9…
+sha256  ./bin/arnesia         = e699bd73a0f939b9…      ⇒ byte por byte, el mismo binario
+```
+
+### El módulo, vivo en el binario instalado
+
+| qué | resultado |
+|---|---|
+| `~/.local/bin/arnesia telemetria` | lista los 7 subcomandos |
+| `GET /healthz` | **200** |
+| `GET /api/telemetria/resumen` · `/salud` · `/mejoras` | **200** los tres |
+| `POST /v1/logs` | **200** — la ingesta OTLP está viva |
+| UI en `http://127.0.0.1:4200/` con navegador real | monta, título ArnesIA, consola sin errores |
+
+Captura: [`evidencia/instalada-v0222-tramo-a.png`](evidencia/instalada-v0222-tramo-a.png).
+
+### Lo que esta captura NO muestra, y es correcto que no lo muestre
+
+**La capa «Mejora» todavía no está dibujada.** El Tramo B se autorizó recién con la firma del
+mockup y se está construyendo. Lo que esta verificación prueba es que **el backend construido viaja
+dentro del binario que el operador instala** y responde ahí — no en un dev server.
+
+La verificación visual de la capa se repite al cerrar el Tramo B, contra un instalador nuevo, y va
+al `PARIDAD.md` junto a [`evidencia/baseline-mapa-antes.png`](evidencia/baseline-mapa-antes.png),
+que es el «antes».

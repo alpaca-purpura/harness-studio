@@ -24,6 +24,20 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+
+### Seguridad
+
+## [0.2.22] — 2026-07-26
+
+### Agregado
 - Identidad de build en Ajustes: la tarjeta muestra `arnesia vX.Y.Z.AAMMDDHHMM` (semver + sello de compilación) y cuándo se compiló, con el commit debajo — dos builds del mismo commit ya se distinguen (RF-231).
 - Aviso en Ajustes cuando en disco hay un build más nuevo que el que está corriendo, con la acción concreta: cerrar y reabrir la app, o `make dev-sync` (RF-231).
 - `CHANGELOG.md` + `scripts/changelog.py`: el bump de versión ahora exige y promueve el registro de qué se agrega, corrige o elimina.
