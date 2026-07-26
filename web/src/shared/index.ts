@@ -5,8 +5,12 @@ export {
   ApiError,
   api,
   connectDock,
+  type Dictado,
+  type DisponibilidadDictado,
   type DockConnection,
   type DockFrame,
+  type EstadoDictado,
+  type EventoDiagnostico,
   type GateReport,
   GLOBAL_VIEWS,
   type HarnessSummary,
@@ -24,8 +28,21 @@ export {
 } from "./api"
 export { type TokenName, tokens } from "./config/tokens"
 export { cn } from "./lib/cn"
+export { instalarCazadorDeErrores, reportar } from "./lib/diagnostico"
 export { isTauri } from "./lib/platform"
+export { aWav, concatenar, HZ_STT, MIME_WAV, pico, remuestrear } from "./lib/wav"
 export { bindHashState, type Theme, useAppStore } from "./store/app-store"
+export {
+  AVISO_MS,
+  ETAPA_LABEL,
+  type Etapa,
+  type Fallo,
+  MIME as DICTADO_MIME,
+  mmss,
+  type Resultado,
+  TOPE_MS,
+  useDictado,
+} from "./store/dictado-store"
 export { useMapLive } from "./store/map-live-store"
 export {
   selectActive,

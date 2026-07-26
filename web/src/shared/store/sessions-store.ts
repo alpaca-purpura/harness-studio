@@ -57,6 +57,7 @@ interface SessionsState {
     requestId: string,
     decision: "allow" | "deny",
     once?: boolean,
+    answers?: Record<string, string>,
   ) => Promise<void>
   interrupt: () => Promise<void>
   setScope: (node: ScopeNode | null) => void
@@ -220,11 +221,11 @@ export const useSessions = create<SessionsState>((set, get) => ({
   // resolvePermission (RF-113): la decisión humana sobre la tarjeta. `once` acota el
   // grant a 1 s (la siguiente petición del mismo tool VUELVE a preguntar). La tarjeta se
   // cierra cuando llega el frame `permission_result` del daemon (él es la verdad).
-  resolvePermission: async (requestId, decision, once) => {
+  resolvePermission: async (requestId, decision, once, answers) => {
     const id = get().activeId
     if (!id) return
     try {
-      await api.resolvePermission(id, requestId, decision, once ? 1 : undefined)
+      await api.resolvePermission(id, requestId, decision, once ? 1 : undefined, answers)
     } catch (err) {
       set((st) => ({
         sessions: appendConv(st.sessions, id, "sys", `error al resolver permiso: ${String(err)}`),

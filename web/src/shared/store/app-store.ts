@@ -6,9 +6,15 @@ import { create } from "zustand"
 
 export type Theme = "light" | "dark"
 
+// readView — la "ruta" es el fragmento de hash. El query-string del hash NO forma parte de la
+// ruta: es estado DE la vista (p.ej. `#/portafolio?plano=marketplaces`, AG-D8 decisión 8 del
+// paquete 2026-07-23), y la página que lo escribe es la que lo lee. Sin este recorte,
+// `#/portafolio?plano=marketplaces` no matchearía la ruta `portafolio` y GlobalView caería a
+// ComingSoon.
 function readView(): string {
   if (typeof window === "undefined") return "mapa"
-  return window.location.hash.replace(/^#\/?/, "") || "mapa"
+  const sinPrefijo = window.location.hash.replace(/^#\/?/, "")
+  return (sinPrefijo.split("?")[0] ?? "") || "mapa"
 }
 
 interface AppState {

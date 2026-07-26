@@ -31,6 +31,16 @@ export interface PortafolioDrawerProps {
   onIdentificar?: ((installPath: string, id: string, nombre: string) => void) | undefined
   identificando?: boolean | undefined
   identificarError?: string | undefined
+  /** S7 (AG-D8 decisión 7, paquete 2026-07-23): abre el diálogo «Resolver origen» SOBRE este
+   *  drawer — la acción se ejecuta acá, en la ficha del arnés, y el contador cruzado del plano
+   *  Marketplaces es solo la segunda forma de llegar. undefined ⇒ no se ofrece. */
+  onResolverOrigen?: (() => void) | undefined
+  /** S8 (AG-D17, paquete 2026-07-23): `↧ Traer canónico` REAL. undefined ⇒ el botón queda
+   *  `disabled` + `TOOLTIP_S2` como en el Slice 1 (superset estricto, BR-12: las stories
+   *  firmadas que no pasan este callback siguen viendo exactamente lo de antes). */
+  onTraerCanonico?: (() => void) | undefined
+  trayendo?: boolean | undefined
+  traerError?: string | undefined
 }
 
 const TOOLTIP_UPDATE = "update-check llega en Slice 4"
@@ -58,6 +68,10 @@ export function PortafolioDrawer({
   onIdentificar,
   identificando,
   identificarError,
+  onResolverOrigen,
+  onTraerCanonico,
+  trayendo,
+  traerError,
 }: PortafolioDrawerProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeBtnRef = useRef<HTMLButtonElement>(null)
@@ -145,6 +159,23 @@ export function PortafolioDrawer({
           <>identidad provisional (sin home) · scope: {entrada.identidad.scope ?? "desconocido"}</>
         )}
       </p>
+
+      {/* S7 (AG-D8 decisión 7) — la reconciliación se ejecuta ACÁ, in-situ sobre la ficha del
+          arnés (mismo patrón que «Identificar» del Slice 2). El contador cruzado del plano
+          Marketplaces es la SEGUNDA puerta al mismo lugar, no otro lugar. Solo se ofrece cuando
+          la identidad es provisional: un home ya declarado no necesita resolverse. */}
+      {!entrada.identidad.home && onResolverOrigen && (
+        <div className="pf-puerta pf-drawer-puerta">
+          <span aria-hidden="true">◇</span>
+          <div>
+            Este arnés no puede decir de qué marketplace viene — sin eso, Reparar y Actualizar no
+            tienen contra qué comparar.
+          </div>
+          <button type="button" className="pf-btn-mini acento" onClick={onResolverOrigen}>
+            Resolver origen
+          </button>
+        </div>
+      )}
 
       {sinSello && (
         <section className="pf-zona pf-sin-sello">
@@ -284,9 +315,25 @@ export function PortafolioDrawer({
         ) : (
           <div className="pf-canonico-ausente">
             <p className="pf-mut">No tenés el canónico local — necesario para autorear.</p>
-            <button type="button" className="pf-btn-secundario" disabled title={TOOLTIP_S2}>
-              ↧ Traer canónico
+            {/* S8 (AG-D17) — DOS PUERTAS, UN ACTO: este botón y la fila del catálogo llaman al
+                mismo callback (AG-D8 decisión 5, cero vocabulario nuevo). Sin `onTraerCanonico`
+                queda exactamente como en el Slice 1: `disabled` + `TOOLTIP_S2` (superset
+                estricto — las stories firmadas que no pasan el callback no cambian). */}
+            <button
+              type="button"
+              className="pf-btn-secundario"
+              disabled={!onTraerCanonico || trayendo}
+              title={onTraerCanonico ? undefined : TOOLTIP_S2}
+              aria-busy={trayendo}
+              onClick={onTraerCanonico}
+            >
+              {trayendo ? "Trayendo…" : "↧ Traer canónico"}
             </button>
+            {traerError && (
+              <p role="alert" className="pf-error">
+                {traerError}
+              </p>
+            )}
           </div>
         )}
       </section>

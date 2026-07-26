@@ -5,3 +5,7 @@
 export { PortafolioDrawer, type PortafolioDrawerProps } from "./ui/portafolio-drawer"
 export { PortafolioList, type PortafolioListProps } from "./ui/portafolio-list"
 export { PortafolioWizard, type PortafolioWizardProps } from "./ui/portafolio-wizard"
+export {
+  ResolverOrigenDialog,
+  type ResolverOrigenDialogProps,
+} from "./ui/resolver-origen-dialog"

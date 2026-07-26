@@ -2,7 +2,13 @@
 // cualquier capa (FSD: entities/*/model). Unit-tested por el proyecto vitest `unit`
 // (environment node, NO Storybook/browser) — ver selectors.test.ts.
 
-import type { Candidato, EntradaPortafolio, IdentidadArnes, SaludPortafolio } from "./types"
+import type {
+  Candidato,
+  EntradaPortafolio,
+  EstadoDeriva,
+  IdentidadArnes,
+  SaludPortafolio,
+} from "./types"
 
 // identificadorDe — cadena de identificación visible (S1-D26): `id` → `scope` → «(sin id)».
 // Cuando no hay manifiesto, el scope ES el discriminador de la identidad provisional
@@ -234,6 +240,63 @@ export function marketplacesDisponibles(es: EntradaPortafolio[]): string[] {
         vistos.add(r)
         out.push(r)
       }
+    }
+  }
+  return out
+}
+
+// filtrarSinOrigen — filtro «sin origen resuelto» (paquete 2026-07-23, AG-D8 decisión 7): las
+// entradas con identidad PROVISIONAL (`home` vacío ⇒ no pueden decir de qué marketplace vienen) a
+// las que el operador todavía NO confirmó «ninguno». Es la misma cuenta que el backend manda en
+// `sin_origen_resuelto`, así que el contador cruzado del plano Marketplaces y esta lista coinciden.
+//
+// Confirmar «ninguno» (`origen_sin_resolver_desde` poblado) las saca de acá SIN inventarles un
+// home: la fila deja de reclamar atención, y sigue diciendo la verdad sobre su origen (BR-11).
+export function filtrarSinOrigen(es: EntradaPortafolio[]): EntradaPortafolio[] {
+  return es.filter((e) => !e.identidad.home && !e.origen_sin_resolver_desde)
+}
+
+// filtrarCandidatos — buscador + filtros de los hallazgos del wizard (AG-D3; obligatorio *porque*
+// AG-D7 no premarca nada y tildar 30 filas a mano exige poder acotarlas). Vocabulario YA firmado:
+// la búsqueda va sobre el identificador visible/nombre/descripción/registry, el filtro de deriva
+// usa los 3 literales de `EstadoDeriva` (los mismos que pinta `DerivaChip`) y el de origen usa
+// los `origen.registry` REALES presentes — nunca un enum fijo. Sets vacíos ⇒ sin filtro.
+export function filtrarCandidatos(
+  cs: Candidato[],
+  q: string,
+  derivas: ReadonlySet<EstadoDeriva>,
+  origenes: ReadonlySet<string>,
+): Candidato[] {
+  const query = q.trim().toLowerCase()
+  return cs.filter((c) => {
+    if (derivas.size > 0 && !derivas.has(c.instalacion.deriva)) return false
+    if (origenes.size > 0) {
+      const registry = c.instalacion.origen.registry
+      if (!registry || !origenes.has(registry)) return false
+    }
+    if (query === "") return true
+    const campos = [
+      identificadorDe(c.identidad),
+      c.nombre,
+      c.descripcion,
+      c.instalacion.origen.registry,
+    ]
+    return campos.some((campo) => campo?.toLowerCase().includes(query))
+  })
+}
+
+// registriesDeCandidatos — los `origen.registry` DISTINTOS presentes en un escaneo, orden de
+// primera aparición (mismo criterio que `marketplacesDisponibles` para la lista). Alimenta las
+// chips del filtro «Origen» del wizard: los hallazgos sin registry simplemente no aportan valor
+// (no se inventa un «desconocido» clickeable — eso ya lo dice la fila).
+export function registriesDeCandidatos(cs: Candidato[]): string[] {
+  const vistos = new Set<string>()
+  const out: string[] = []
+  for (const c of cs) {
+    const registry = c.instalacion.origen.registry
+    if (registry && !vistos.has(registry)) {
+      vistos.add(registry)
+      out.push(registry)
     }
   }
   return out

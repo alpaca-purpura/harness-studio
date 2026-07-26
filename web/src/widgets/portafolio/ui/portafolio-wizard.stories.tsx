@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import type React from "react"
 import type { ReactNode } from "react"
+import { useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import type { Validacion } from "@/entities/marketplace"
 import type { Candidato } from "@/entities/portafolio"
 import { PortafolioWizard } from "./portafolio-wizard"
 
@@ -125,9 +128,13 @@ export const Paso1Fuente: Story = {
 
     const tabProyecto = c.getByRole("tab", { name: "Proyecto" })
     await expect(tabProyecto).toHaveAttribute("aria-selected", "true")
+    // §9.2 del paquete 2026-07-23 — la tab Marketplace DEJA de estar `disabled` y su
+    // «próximo · S2» se borra: la rama se construyó (AG-D8 decisión 8). El tooltip de
+    // «Repositorio GitHub», más abajo, SÍ se queda (eso sigue fuera de alcance).
     const tabMarketplace = c.getByRole("tab", { name: "Marketplace" })
-    await expect(tabMarketplace).toBeDisabled()
-    await expect(tabMarketplace).toHaveAttribute("title", "próximo · S2")
+    await expect(tabMarketplace).toBeEnabled()
+    await expect(tabMarketplace).not.toHaveAttribute("title")
+    await expect(tabMarketplace).toHaveAttribute("aria-selected", "false")
 
     const radioLocal = c.getByRole("radio", { name: "Carpeta local" })
     await expect(radioLocal).toBeEnabled()
@@ -212,10 +219,19 @@ export const Escaneando: Story = {
     const escanear = c.getByRole("button", { name: "Escanear" })
     await expect(escanear).toBeDisabled()
 
+    // AG-D6 (paquete 2026-07-23) — ahora hay DOS salidas donde antes había una, y son distintas:
+    // `← Atrás` aborta el fetch y vuelve al paso 1 (eso es exactamente lo que `onCancelarEscaneo`
+    // ya hacía en el Slice 1: se reusa, no se inventa un callback), y `Cancelar` aborta y cierra
+    // el flujo entero (reusa `onClose`, que ya hace abort + cero efectos).
+    const atras = c.getByRole("button", { name: "← Atrás" })
+    await expect(atras).toBeEnabled()
+    await userEvent.click(atras)
+    await expect(args.onCancelarEscaneo).toHaveBeenCalledTimes(1)
+
     const cancelar = c.getByRole("button", { name: "Cancelar" })
     await expect(cancelar).toBeEnabled()
     await userEvent.click(cancelar)
-    await expect(args.onCancelarEscaneo).toHaveBeenCalledTimes(1)
+    await expect(args.onClose).toHaveBeenCalledTimes(1)
   },
 }
 
@@ -406,6 +422,14 @@ export const Agregando: Story = {
     await expect(cerrar).toBeDisabled()
     await expect(cerrar).toHaveAttribute("title", "agregando en curso — esperá a que termine")
 
+    // AG-D6 — el pie tampoco deja salir con un POST en vuelo, y dice por qué.
+    const atras = c.getByRole("button", { name: "← Atrás" })
+    await expect(atras).toBeDisabled()
+    await expect(atras).toHaveAttribute("title", "agregando en curso — esperá a que termine")
+    const cancelar = c.getByRole("button", { name: "Cancelar" })
+    await expect(cancelar).toBeDisabled()
+    await expect(cancelar).toHaveAttribute("title", "agregando en curso — esperá a que termine")
+
     await userEvent.keyboard("{Escape}")
     await expect(args.onClose).not.toHaveBeenCalled()
   },
@@ -434,22 +458,491 @@ export const A11yModal: Story = {
     await expect(tabMarketplace).toHaveAttribute("aria-selected", "false")
 
     const closeBtn = c.getByRole("button", { name: "Cerrar" })
-    const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
     await expect(c.getByRole("button", { name: "Escanear" })).toBeDisabled()
 
     // Foco inicial: dentro del wizard, en Cerrar.
     await waitFor(() => expect(closeBtn).toHaveFocus())
 
-    // Trap hacia atrás: Shift+Tab desde el primer focuseable (Cerrar) va al último — el input
-    // (S1-D23: Escanear arranca disabled sin ruta, sale del loop hasta que haya texto).
+    // Trap hacia atrás: Shift+Tab desde el primer focuseable (Cerrar) va al último. Con el pie de
+    // AG-D6 el último focuseable pasa a ser `Cancelar` (`← Atrás` queda FUERA del loop por
+    // `disabled` en el primer paso, y `Escanear` también mientras no haya ruta — S1-D23).
     await userEvent.tab({ shift: true })
-    await expect(input).toHaveFocus()
+    await expect(c.getByRole("button", { name: "Cancelar" })).toHaveFocus()
 
     // Trap hacia adelante: Tab desde el último vuelve al primero.
     await userEvent.tab()
     await expect(closeBtn).toHaveFocus()
 
     // Escape llama onClose (fuera de "agregando" — ver story Agregando para el caso bloqueado).
+    await userEvent.keyboard("{Escape}")
+    await expect(args.onClose).toHaveBeenCalledTimes(1)
+  },
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// Paquete 2026-07-23-portafolio-agregar-marketplace — AG-D6 (Atrás/Cancelar, W3/W4) y AG-D8
+// decisión 8 (rama Marketplace, S6). Todo lo de abajo es SUPERSET: nada de arriba se quitó.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+const RUTA_ESCANEADA = "/home/chalreme/Proyectos/luana-platform"
+
+// WizardConEstado — wrapper con estado local para las stories que necesitan ejercitar una
+// TRANSICIÓN real (ir a `fuente` y volver). Las props del widget son puras: el dueño de `estado`
+// es la página, así que acá lo simulamos con `useState` — es lo que hace la página.
+function WizardConEstado(props: React.ComponentProps<typeof PortafolioWizard>) {
+  const [estado, setEstado] = useState<React.ComponentProps<typeof PortafolioWizard>["estado"]>(
+    props.estado,
+  )
+  return (
+    <PortafolioWizard
+      {...props}
+      estado={estado}
+      onAtras={() => {
+        props.onAtras?.()
+        setEstado("fuente")
+      }}
+    />
+  )
+}
+
+// E-11 — `← Atrás` desde `candidatos`: llama `onAtras` UNA vez, y al volver al paso 1 el input
+// conserva la ruta EXACTA. Volver a paso 1 para corregir un typo no debe castigar al operador
+// con re-tildar 30 filas: el set de elegidos SOBREVIVE (el widget lo posee y no desmonta).
+export const WizardAtrasDesdeCandidatos: Story = {
+  args: {
+    estado: "candidatos",
+    candidatos: candidatosDemo,
+    pathEscaneado: RUTA_ESCANEADA,
+    onAtras: fn(),
+  },
+  render: (args) => <WizardConEstado {...args} />,
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+
+    // se tildan 2 (AG-D7: nada premarcado, el operador tilda).
+    const filas = canvasElement.querySelectorAll(".pf-wizard-candidato")
+    await userEvent.click(within(filas[0] as HTMLElement).getByRole("checkbox"))
+    await userEvent.click(within(filas[2] as HTMLElement).getByRole("checkbox"))
+    await expect(c.getByRole("button", { name: "Agregar 2 al portafolio" })).toBeEnabled()
+
+    // W4 — el contador de HALLAZGOS (4) es otra cifra que la de elegidos (2), a propósito.
+    await expect(c.getByText(/encontrados 4 arneses/)).toBeInTheDocument()
+    // W3 — la ruta escaneada es VISIBLE.
+    await expect(c.getByText(RUTA_ESCANEADA)).toBeInTheDocument()
+
+    await userEvent.click(c.getByRole("button", { name: "← Atrás" }))
+    await expect(args.onAtras).toHaveBeenCalledTimes(1)
+
+    // ya en `fuente`: el input conserva la ruta exacta.
+    const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
+    await expect(input).toHaveValue(RUTA_ESCANEADA)
+  },
+}
+
+// E-12 — `cambiar ruta` es LA MISMA transición que `← Atrás`, con otra puerta: un solo handler,
+// dos botones. Esta story asserta el mismo resultado que E-11 a propósito.
+export const WizardCambiarRuta: Story = {
+  args: {
+    estado: "candidatos",
+    candidatos: candidatosDemo,
+    pathEscaneado: RUTA_ESCANEADA,
+    onAtras: fn(),
+  },
+  render: (args) => <WizardConEstado {...args} />,
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await userEvent.click(c.getByRole("button", { name: "cambiar ruta" }))
+    await expect(args.onAtras).toHaveBeenCalledTimes(1)
+    const input = c.getByRole("textbox", { name: "Ruta del proyecto" })
+    await expect(input).toHaveValue(RUTA_ESCANEADA)
+  },
+}
+
+// E-13 — Cancelar = CERO efectos: `onClose` se llama y NI `onAgregar` NI `onEscanear` se tocan.
+// El widget no persiste nada por su cuenta (S1-D9).
+export const WizardCancelarCeroEfectos: Story = {
+  args: {
+    estado: "candidatos",
+    candidatos: candidatosDemo,
+    pathEscaneado: RUTA_ESCANEADA,
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const filas = canvasElement.querySelectorAll(".pf-wizard-candidato")
+    await userEvent.click(within(filas[0] as HTMLElement).getByRole("checkbox"))
+    await userEvent.click(within(filas[1] as HTMLElement).getByRole("checkbox"))
+
+    await userEvent.click(c.getByRole("button", { name: "Cancelar" }))
+    await expect(args.onClose).toHaveBeenCalledTimes(1)
+    await expect(args.onAgregar).not.toHaveBeenCalled()
+    await expect(args.onEscanear).not.toHaveBeenCalled()
+  },
+}
+
+// E-14 — con un POST en vuelo el cierre está BLOQUEADO por las TRES puertas (✕, Atrás, Cancelar)
+// y Esc no cierra; cada una dice por qué (S1-D19). Complementa `Agregando` sin reemplazarla.
+export const WizardCierreBloqueadoAgregando: Story = {
+  args: { estado: "agregando" },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    for (const nombre of ["Cerrar", "← Atrás", "Cancelar"]) {
+      const btn = c.getByRole("button", { name: nombre })
+      await expect(btn).toBeDisabled()
+      await expect(btn).toHaveAttribute("title", "agregando en curso — esperá a que termine")
+    }
+    await userEvent.keyboard("{Escape}")
+    await expect(args.onClose).not.toHaveBeenCalled()
+  },
+}
+
+// E-08 — 0 hallazgos HONESTO: el mensaje completo + `PasoFuente` re-montado (la forma de «volver
+// a paso 1» sin inventar una prop) + CERO filas de candidato. Complementa `SinHallazgos`.
+export const WizardCeroHallazgos: Story = {
+  args: { estado: "candidatos", candidatos: [], pathEscaneado: "/home/chalreme/Proyectos/vitalia" },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/No encontré arneses instalados aquí/)).toBeInTheDocument()
+    await expect(c.getByLabelText("Ruta del proyecto")).toBeVisible()
+    await expect(canvasElement.querySelectorAll(".pf-wizard-candidato")).toHaveLength(0)
+    // sin hallazgos no hay nada que agregar: el botón contador no existe.
+    await expect(c.queryByRole("button", { name: /Agregar \d+ al portafolio/ })).toBeNull()
+  },
+}
+
+// AG-D6 — el primer paso muestra `← Atrás` **`disabled` y VISIBLE** con el literal del mockup:
+// nunca oculto (mismo criterio que el resto del Portafolio con lo que no aplica).
+export const WizardAtrasDisabledEnPrimerPaso: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const atras = c.getByRole("button", { name: "← Atrás" })
+    await expect(atras).toBeVisible()
+    await expect(atras).toBeDisabled()
+    await expect(atras).toHaveAttribute("title", "ya estás en el primer paso")
+  },
+}
+
+// AG-D3 — buscador + filtros + lazy sobre los hallazgos, obligatorio *porque* AG-D7 no premarca.
+// Los filtros reusan vocabulario YA firmado (`EstadoDeriva` literal, `origen.registry` real):
+// cero palabra nueva.
+export const WizardFiltraHallazgos: Story = {
+  args: {
+    estado: "candidatos",
+    candidatos: candidatosDemo,
+    pathEscaneado: RUTA_ESCANEADA,
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const buscador = c.getByRole("searchbox", { name: "Buscar entre los hallazgos" })
+    await userEvent.type(buscador, "harness")
+    await expect(canvasElement.querySelectorAll(".pf-wizard-candidato")).toHaveLength(1)
+
+    await userEvent.clear(buscador)
+    await expect(canvasElement.querySelectorAll(".pf-wizard-candidato")).toHaveLength(4)
+
+    const filtros = within(c.getByRole("group", { name: "Filtros de los hallazgos" }))
+    await userEvent.click(filtros.getByRole("button", { name: "Deriva" }))
+    await userEvent.click(c.getByRole("button", { name: "en-deriva" }))
+    await expect(canvasElement.querySelectorAll(".pf-wizard-candidato")).toHaveLength(1)
+  },
+}
+
+// ── Rama Marketplace (S6) ──────────────────────────────────────────────────────────────────
+
+const validacionDemo: Validacion = {
+  url_canonica: "github.com/alpacapurpura/prenter-marketplace",
+  nombre: "prenter-marketplace",
+  owner_nombre: "Prenter",
+  owner_email: "hola@alpacapurpura.lat",
+  entradas: 2,
+  fuente: "local",
+  ya_registrado: false,
+}
+
+// BR-5 / criterio G3 — **no existe `Registrar` sin haber validado**: no está en el DOM, y al
+// estado `validado` solo se llega con un 200 real. BR-5 vive en la máquina de estados, no en un
+// `disabled` que se pueda saltear. Y el ✓ no aparece en ninguna parte.
+// biome-ignore lint/style/useNamingConvention: nombre de story EXIGIDO literal por el capability wizard-registrar-marketplace (scenario wiz-mkt-sin-validado-no-hay-registrar)
+export const WizardMarketplacePasoURL: Story = {
+  args: { rama: "marketplace", mkEstado: "url", onRama: fn(), onValidarMarketplace: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+
+    await expect(c.getByRole("tab", { name: "Marketplace" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(c.queryByRole("button", { name: /Registrar/ })).toBeNull()
+    // Cero ✓ de AFIRMACIÓN. (El copy firmado de la nota menciona el carácter «✓» justamente para
+    // decir que sin respuesta real no se pinta ninguno — eso no es un resultado fingido.)
+    await expect(c.queryByText(/✓ leí/)).toBeNull()
+    await expect(canvasElement.querySelector(".pf-wizard-validado")).toBeNull()
+
+    const input = c.getByRole("textbox", { name: "URL del marketplace" })
+    const validar = c.getByRole("button", { name: "Validar" })
+    await expect(validar).toBeDisabled()
+    await userEvent.type(input, "https://github.com/alpacapurpura/prenter-marketplace")
+    await expect(validar).toBeEnabled()
+    await userEvent.click(validar)
+    await expect(args.onValidarMarketplace).toHaveBeenCalledWith(
+      "https://github.com/alpacapurpura/prenter-marketplace",
+    )
+
+    // AG-D6/§9.2 — desde `url`, `← Atrás` vuelve a la tab Proyecto (el literal «un solo paso» del
+    // mockup se descarta: ahora hay 4 estados).
+    await userEvent.click(c.getByRole("button", { name: "← Atrás" }))
+    await expect(args.onRama).toHaveBeenCalledWith("proyecto")
+  },
+}
+
+// E-15 / C6 — el ✓ muestra lo que se LEYÓ del archivo real: `name`, `owner.name` (+ email),
+// «N arneses en el catálogo» y la fuente. Nada inferido. La clase arranca en `propio` (caso
+// dominante) y la nota explica la diferencia A LA VISTA: no es un default silencioso.
+export const WizardMarketplaceValidado: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "validado",
+    mkValidacion: validacionDemo,
+    onRama: fn(),
+    onRegistrarMarketplace: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+
+    const validado = c.getByRole("group", { name: "Marketplace validado" })
+    await expect(validado).toHaveTextContent("github.com/alpacapurpura/prenter-marketplace")
+    await expect(validado).toHaveTextContent("prenter-marketplace")
+    await expect(validado).toHaveTextContent("Prenter")
+    await expect(validado).toHaveTextContent("hola@alpacapurpura.lat")
+    await expect(validado).toHaveTextContent("2 arneses en el catálogo")
+    await expect(validado).toHaveTextContent("fuente: local")
+
+    await expect(c.getByRole("radio", { name: "Propio" })).toBeChecked()
+    await expect(c.getByRole("radio", { name: "De referencia" })).not.toBeChecked()
+    await expect(c.getByText(/publicamos ahí; habilita traer/)).toBeInTheDocument()
+    await expect(c.getByText(/solo resuelve procedencia de arneses ajenos/)).toBeInTheDocument()
+
+    // la url ya no se puede editar sin volver atrás: lo validado es lo que se registra.
+    await expect(c.getByRole("textbox", { name: "URL del marketplace" })).toBeDisabled()
+    await expect(c.queryByRole("button", { name: "Validar" })).toBeNull()
+  },
+}
+
+// WizardMkConEstado — wrapper que simula lo que hace la PÁGINA en la rama Marketplace: pasar de
+// `url` a `validado` cuando el backend devuelve un 200. Sin esto no se puede asertar que
+// `Registrar` manda la url REAL que el operador tipeó (el widget la posee, igual que `path`).
+function WizardMkConEstado(props: React.ComponentProps<typeof PortafolioWizard>) {
+  const [mkEstado, setMkEstado] =
+    useState<React.ComponentProps<typeof PortafolioWizard>["mkEstado"]>("url")
+  return (
+    <PortafolioWizard
+      {...props}
+      rama="marketplace"
+      mkEstado={mkEstado}
+      mkValidacion={mkEstado === "url" ? undefined : validacionDemo}
+      onValidarMarketplace={(url) => {
+        props.onValidarMarketplace?.(url)
+        setMkEstado("validado")
+      }}
+    />
+  )
+}
+
+const URL_MK = "https://github.com/alpacapurpura/prenter-marketplace"
+
+// E-19 — el camino completo `url → validado → registrando`: `Registrar y ver catálogo` manda los
+// valores EXACTOS (la url que el operador tipeó + la clase elegida, `propio` por default). Y
+// **antes de validar el botón no existe**: BR-5 vive en la máquina de estados.
+// biome-ignore lint/style/useNamingConvention: nombre de story EXIGIDO literal por plan-pruebas.md E-19
+export const WizardRegistrarYAterriza: Story = {
+  args: {
+    rama: "marketplace",
+    onRama: fn(),
+    onValidarMarketplace: fn(),
+    onRegistrarMarketplace: fn(),
+  },
+  render: (args) => <WizardMkConEstado {...args} />,
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+
+    await expect(c.queryByRole("button", { name: /Registrar/ })).toBeNull()
+    await userEvent.type(c.getByRole("textbox", { name: "URL del marketplace" }), URL_MK)
+    await userEvent.click(c.getByRole("button", { name: "Validar" }))
+    await expect(args.onValidarMarketplace).toHaveBeenCalledWith(URL_MK)
+
+    // recién en `validado` aparece el primario, y la clase arranca en `propio` (caso dominante).
+    const registrar = c.getByRole("button", { name: "Registrar y ver catálogo" })
+    await expect(c.getByRole("radio", { name: "Propio" })).toBeChecked()
+    await userEvent.click(registrar)
+    await expect(args.onRegistrarMarketplace).toHaveBeenCalledWith(URL_MK, "propio")
+  },
+}
+
+// …y la clase es una ELECCIÓN, no un default silencioso: cambiarla cambia lo que se registra.
+export const WizardRegistrarDeReferencia: Story = {
+  args: {
+    rama: "marketplace",
+    onRama: fn(),
+    onValidarMarketplace: fn(),
+    onRegistrarMarketplace: fn(),
+  },
+  render: (args) => <WizardMkConEstado {...args} />,
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await userEvent.type(c.getByRole("textbox", { name: "URL del marketplace" }), URL_MK)
+    await userEvent.click(c.getByRole("button", { name: "Validar" }))
+    await userEvent.click(c.getByRole("radio", { name: "De referencia" }))
+    await userEvent.click(c.getByRole("button", { name: "Registrar y ver catálogo" }))
+    await expect(args.onRegistrarMarketplace).toHaveBeenCalledWith(URL_MK, "referencia")
+  },
+}
+
+// E-18 / BR-7 — registrar un duplicado NO pisa ni duplica: se informa y se ofrece `ir a él`.
+export const WizardRegistrarDuplicado: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "validado",
+    mkValidacion: validacionDemo,
+    mkYaRegistrado: { nombre: "prenter-marketplace" },
+    mkError:
+      "arnesia POST /api/marketplaces: 409 marketplace: ya registrado (no se duplica ni se pisa)",
+    onRama: fn(),
+    // biome-ignore lint/style/useNamingConvention: nombre de prop EXIGIDO literal por design.md §9.1
+    onIrAMarketplace: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/ya está registrado/)).toBeInTheDocument()
+    await expect(c.getByText(/no se duplica ni se pisa lo que ya declaraste/)).toBeInTheDocument()
+    await expect(c.getByRole("alert")).toHaveTextContent("409")
+    await userEvent.click(c.getByRole("button", { name: "ir a él" }))
+    await expect(args.onIrAMarketplace).toHaveBeenCalledWith("prenter-marketplace")
+  },
+}
+
+// E-16 — url inexistente (400): motivo REAL del backend y **CERO ✓** en todo el DOM.
+export const WizardMarketplaceErrorNoExiste: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "url",
+    mkError:
+      "arnesia POST /api/marketplaces/validaciones: 400 gh: HTTP 404 — repo inexistente o sin acceso con la credencial actual",
+    onRama: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("alert")).toHaveTextContent("404")
+    await expect(c.queryByText(/✓ leí/)).toBeNull()
+    await expect(c.queryByRole("button", { name: /Registrar/ })).toBeNull()
+  },
+}
+
+// E-17 — repo que existe pero NO es marketplace (400): mensaje DISTINGUIBLE del 404 de E-16.
+export const WizardMarketplaceErrorNoEsMarketplace: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "url",
+    mkError:
+      "arnesia POST /api/marketplaces/validaciones: 400 marketplace: el repo no expone .claude-plugin/marketplace.json legible",
+    onRama: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("alert")).toHaveTextContent(
+      "no expone .claude-plugin/marketplace.json legible",
+    )
+    await expect(c.getByRole("alert")).not.toHaveTextContent("404")
+    await expect(c.queryByText(/✓ leí/)).toBeNull()
+  },
+}
+
+// E-54 — sin `gh` ni PAT (503): «NO PUEDO MIRAR» nunca se pinta como «tu url está mal». Tercer
+// mensaje distinto de los dos 400 de arriba.
+export const WizardMarketplaceSinViaDeLectura: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "url",
+    mkError:
+      "arnesia POST /api/marketplaces/validaciones: 503 marketplace: sin vía de lectura (ni checkout local ni gh/PAT)",
+    onRama: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const alerta = c.getByRole("alert")
+    await expect(alerta).toHaveTextContent("503")
+    await expect(alerta).toHaveTextContent("sin vía de lectura")
+    await expect(alerta).not.toHaveTextContent("404")
+    await expect(alerta).not.toHaveTextContent("no expone")
+    await expect(c.queryByText(/✓ leí/)).toBeNull()
+  },
+}
+
+// Validando: spinner honesto y la url bloqueada (no se dispara una segunda validación en paralelo).
+export const WizardMarketplaceValidando: Story = {
+  args: { rama: "marketplace", mkEstado: "validando", onRama: fn() },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("status")).toHaveTextContent("Validando…")
+    await expect(c.getByRole("textbox", { name: "URL del marketplace" })).toBeDisabled()
+    await expect(c.queryByText(/✓ leí/)).toBeNull()
+  },
+}
+
+// Registrando: mismo criterio que `agregando` (S1-D19) — el cierre está bloqueado por las tres
+// puertas y cada una dice por qué; Esc no cierra.
+export const WizardMarketplaceRegistrando: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "registrando",
+    mkValidacion: validacionDemo,
+    onRama: fn(),
+    onRegistrarMarketplace: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const btn = c.getByRole("button", { name: "Registrando…" })
+    await expect(btn).toBeDisabled()
+    await expect(btn).toHaveAttribute("aria-busy", "true")
+
+    for (const nombre of ["Cerrar", "← Atrás", "Cancelar"]) {
+      const b = c.getByRole("button", { name: nombre })
+      await expect(b).toBeDisabled()
+      await expect(b).toHaveAttribute("title", "registrando en curso — esperá a que termine")
+    }
+    await userEvent.keyboard("{Escape}")
+    await expect(args.onClose).not.toHaveBeenCalled()
+  },
+}
+
+// E-30 — a11y de la rama Marketplace (gate axe en `error`: cualquier violación ROMPE el test).
+// `role=dialog` + `aria-modal` + `aria-labelledby` al `<h2>`; foco inicial dentro; Tab cicla en
+// las dos direcciones; Esc cierra.
+export const WizardMarketplaceA11y: Story = {
+  args: {
+    rama: "marketplace",
+    mkEstado: "validado",
+    mkValidacion: validacionDemo,
+    onRama: fn(),
+    onRegistrarMarketplace: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const dialog = c.getByRole("dialog")
+    await expect(dialog).toHaveAttribute("aria-modal", "true")
+    const labelledby = dialog.getAttribute("aria-labelledby")
+    await expect(labelledby).toBeTruthy()
+    const titleEl = labelledby ? document.getElementById(labelledby) : null
+    await expect(titleEl).toHaveTextContent("Agregar al portafolio")
+
+    // el radiogroup de clase está rotulado (los radios no quedan huérfanos).
+    await expect(c.getByRole("radiogroup", { name: "Clase de marketplace" })).toBeInTheDocument()
+
+    const cerrar = c.getByRole("button", { name: "Cerrar" })
+    await waitFor(() => expect(cerrar).toHaveFocus())
+    await userEvent.tab({ shift: true })
+    await expect(c.getByRole("button", { name: "Cancelar" })).toHaveFocus()
+    await userEvent.tab()
+    await expect(cerrar).toHaveFocus()
+
     await userEvent.keyboard("{Escape}")
     await expect(args.onClose).toHaveBeenCalledTimes(1)
   },

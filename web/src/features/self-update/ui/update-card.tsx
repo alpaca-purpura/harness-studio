@@ -99,21 +99,54 @@ export function UpdateCard({
         </div>
       ) : (
         <>
+          {/* RF-231 — la identidad del BUILD arriba de todo, porque es la que responde la
+              pregunta que el operador se hace al abrir Ajustes: «¿corro lo último que
+              compilé?». La huella (el commit) queda debajo: no la contesta, porque dos
+              compilaciones del mismo árbol comparten commit. */}
           <div className="uc-kv">
             <span className="uc-k">daemon</span>
             <span className="uc-v">
-              {version.huella === "dev" ? (
-                <>
-                  arnesia · <span className="uc-mut">versión no embebida (dev)</span>
-                </>
+              {version.version && version.version !== "dev" ? (
+                <b>arnesia v{version.version}</b>
               ) : (
                 <>
-                  arnesia · <span className="uc-mut">huella</span> {version.huella}
-                  {version.fecha ? ` · ${version.fecha}` : ""}
+                  arnesia · <span className="uc-mut">build sin sellar (dev)</span>
                 </>
               )}
             </span>
           </div>
+          {version.compilado ? (
+            <div className="uc-kv">
+              <span className="uc-k">compilado</span>
+              <span className="uc-v">
+                {version.compilado}
+                {version.huella !== "dev" ? (
+                  <>
+                    {" · "}
+                    <span className="uc-mut">commit</span> {version.huella}
+                    {version.fecha ? ` · ${version.fecha}` : ""}
+                  </>
+                ) : null}
+              </span>
+            </div>
+          ) : (
+            <div className="uc-kv">
+              <span className="uc-k">commit</span>
+              <span className="uc-v">
+                {version.huella === "dev" ? (
+                  <span className="uc-mut">versión no embebida (dev)</span>
+                ) : (
+                  <>
+                    {version.huella}
+                    {version.fecha ? ` · ${version.fecha}` : ""}
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+          {/* El aviso vive en la superficie y no en un title: un número que el operador tiene
+              que comparar de memoria contra su último build es justo lo que no queremos. */}
+          {version.aviso_build ? <p className="uc-warnbox">▲ {version.aviso_build}</p> : null}
           <div className="uc-kv">
             <span className="uc-k">instalado en</span>
             <span className="uc-v">

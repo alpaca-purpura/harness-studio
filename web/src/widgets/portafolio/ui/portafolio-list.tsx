@@ -12,6 +12,7 @@ import {
   filtrarEntradas,
   filtrarPorMarketplace,
   filtrarPorSalud,
+  filtrarSinOrigen,
   identificadorDe,
   type LentePortafolio,
   marketplacesDisponibles,
@@ -21,16 +22,10 @@ import {
   saludDe,
 } from "@/entities/portafolio"
 import { cn } from "@/shared/lib/cn"
+import { FiltroDisclosure } from "@/shared/ui/filtro-disclosure"
+import { GrupoControl } from "@/shared/ui/grupo-control"
 
 const SALUDES: readonly SaludPortafolio[] = ["ok", "atencion", "sin-senal"]
-
-// toggleEnSet — helper puro de UI (no dominio): agrega/saca un valor de un Set inmutable.
-function toggleEnSet<T>(set: ReadonlySet<T>, v: T): Set<T> {
-  const next = new Set(set)
-  if (next.has(v)) next.delete(v)
-  else next.add(v)
-  return next
-}
 
 // PortafolioList — superficie 1 del Portafolio (plan §2.6/§3 T4, G1/G2/G4/G5/G6/G8/G9).
 // Props puras: CERO transporte (fe-transporte-independiente) — el fetch/refetch/AbortController
@@ -54,6 +49,11 @@ export interface PortafolioListProps {
   onFiltroSalud: (s: ReadonlySet<SaludPortafolio>) => void
   filtroMarketplace: ReadonlySet<string>
   onFiltroMarketplace: (s: ReadonlySet<string>) => void
+  /** Filtro «sin origen resuelto» (AG-D8 decisión 7, paquete 2026-07-23): lo prende el contador
+   *  cruzado del plano Marketplaces. Es un FILTRO, no una lente: acota, no reagrupa. Opcional
+   *  (BR-12) ⇒ las stories firmadas del Slice 1 no cambian. */
+  filtroSinOrigen?: boolean | undefined
+  onFiltroSinOrigen?: ((v: boolean) => void) | undefined
   /** clave de la fila abierta en el drawer (T5) — resalta la fila, no cambia su comportamiento. */
   seleccionada?: string | undefined
   onAbrir: (clave: string) => void
@@ -97,70 +97,17 @@ function Topbar({
   )
 }
 
-// ── FiltroDisclosure: botón que despliega un panel de chips toggleables (multi-select) —
-// mismo patrón de disclosure ya sancionado por `rules-subband.tsx` (aria-expanded, sin portal,
-// sin click-outside): la afordancia es DISTINTA de una lente (acota la lista, no la reagrupa). ──
-function FiltroDisclosure<T extends string>({
-  etiqueta,
-  abierto,
-  onToggleAbierto,
-  panelId,
-  valores,
-  labelDe,
-  seleccion,
-  onCambiar,
-  vacio,
-}: {
-  etiqueta: string
-  abierto: boolean
-  onToggleAbierto: () => void
-  panelId: string
-  valores: readonly T[]
-  labelDe: (v: T) => string
-  seleccion: ReadonlySet<T>
-  onCambiar: (s: ReadonlySet<T>) => void
-  vacio?: string | undefined
-}) {
-  return (
-    <div className="pf-filtro">
-      <button
-        type="button"
-        className="pf-filtro-btn"
-        aria-expanded={abierto}
-        aria-controls={panelId}
-        onClick={onToggleAbierto}
-      >
-        {etiqueta}
-        {seleccion.size > 0 && ` (${seleccion.size})`}
-      </button>
-      {abierto && (
-        <div
-          id={panelId}
-          className="pf-filtro-panel"
-          role="group"
-          aria-label={`Filtrar por ${etiqueta.toLowerCase()}`}
-        >
-          {valores.length === 0 && vacio && <p className="pf-mut">{vacio}</p>}
-          {valores.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="pf-lente-btn"
-              aria-pressed={seleccion.has(v)}
-              onClick={() => onCambiar(toggleEnSet(seleccion, v))}
-            >
-              {labelDe(v)}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── Toolbar: buscar + 4 lentes empresa/plano/proyecto/marketplace (S1-D8, cerrada 2026-07-23)
 // + filtros Estado/Marketplace (S1-D8, cerrada 2026-07-24) — afordancia DISTINTA de la lente:
-// acotan la lista visible sin reagruparla. ──
+// acotan la lista visible sin reagruparla.
+//
+// AG-D4 (paquete 2026-07-23) cierra el defecto **L1** de la auditoría: los rótulos de grupo pasan
+// a ser TEXTO VISIBLE (`VER POR […]` / `FILTROS […]`, mayúsculas por CSS) vía `GrupoControl`.
+// Antes eran 6 pills iguales en fila donde la 4ª es una LENTE y la 6ª un FILTRO — un lector de
+// pantalla las distinguía por el `aria-label` del grupo, un ojo no. Ninguna de las dos
+// «Marketplace» se renombra: con el rubro a la vista se leen sin ambigüedad, y renombrar rompería
+// vocabulario ya firmado en la PARIDAD del Slice 1. Los `role="group"` + `aria-label` existentes
+// se CONSERVAN (no se degrada a11y, se agrega afordancia). ──
 function Toolbar({
   lente,
   onLente,
@@ -196,7 +143,12 @@ function Toolbar({
         value={busqueda}
         onChange={(e) => onBusqueda(e.target.value)}
       />
-      <div className="pf-lentes" role="group" aria-label="Lente del Portafolio">
+      <GrupoControl
+        rotulo="Ver por"
+        ariaLabel="Lente del Portafolio"
+        hint="lente para encontrar un arnés cuando hay muchos"
+        claseControles="pf-lentes"
+      >
         <button
           type="button"
           className="pf-lente-btn"
@@ -229,8 +181,8 @@ function Toolbar({
         >
           Marketplace
         </button>
-      </div>
-      <div className="pf-filtros" role="group" aria-label="Filtros del Portafolio">
+      </GrupoControl>
+      <GrupoControl rotulo="Filtros" ariaLabel="Filtros del Portafolio" claseControles="pf-filtros">
         <FiltroDisclosure
           etiqueta="Estado"
           abierto={abierto === "estado"}
@@ -252,7 +204,7 @@ function Toolbar({
           onCambiar={onFiltroMarketplace}
           vacio="sin marketplaces en los datos actuales"
         />
-      </div>
+      </GrupoControl>
     </div>
   )
 }
@@ -448,6 +400,7 @@ function Cuerpo({
   busqueda,
   filtroSalud,
   filtroMarketplace,
+  filtroSinOrigen,
   seleccionada,
   onAbrir,
   onReintentar,
@@ -460,6 +413,7 @@ function Cuerpo({
   busqueda: string
   filtroSalud: ReadonlySet<SaludPortafolio>
   filtroMarketplace: ReadonlySet<string>
+  filtroSinOrigen: boolean
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
   onReintentar: () => void
@@ -471,12 +425,14 @@ function Cuerpo({
   // estado === "datos"
   if (entradas.length === 0) return <VaciaBody />
 
-  // Pipeline (S1-D8): buscar → filtro Estado → filtro Marketplace → recién ahí la lente
-  // reagrupa lo que sobrevivió. Los filtros acotan; la lente solo cambia la presentación.
-  const filtradas = filtrarPorMarketplace(
+  // Pipeline (S1-D8, + «sin origen» del paquete 2026-07-23): buscar → filtro Estado → filtro
+  // Marketplace → filtro «sin origen resuelto» → recién ahí la lente reagrupa lo que sobrevivió.
+  // Los filtros acotan; la lente solo cambia la presentación.
+  const acotadas = filtrarPorMarketplace(
     filtrarPorSalud(filtrarEntradas(entradas, busqueda), filtroSalud),
     filtroMarketplace,
   )
+  const filtradas = filtroSinOrigen ? filtrarSinOrigen(acotadas) : acotadas
   if (filtradas.length === 0) return <SinResultadosBody onLimpiar={onLimpiarTodo} />
 
   if (lente === "plano") {
@@ -505,16 +461,20 @@ export function PortafolioList({
   onFiltroSalud,
   filtroMarketplace,
   onFiltroMarketplace,
+  filtroSinOrigen,
+  onFiltroSinOrigen,
   seleccionada,
   onAbrir,
   onAgregar,
   onReintentar,
 }: PortafolioListProps) {
   const marketplaces = marketplacesDisponibles(entradas)
+  const sinOrigenActivo = filtroSinOrigen ?? false
   const onLimpiarTodo = () => {
     onBusqueda("")
     onFiltroSalud(new Set())
     onFiltroMarketplace(new Set())
+    onFiltroSinOrigen?.(false)
   }
   return (
     <div className="pf-list">
@@ -531,6 +491,21 @@ export function PortafolioList({
         marketplaces={marketplaces}
       />
       <BannerCorruptas corruptas={corruptas} />
+      {/* AG-D8 decisión 7 — el filtro que prende el contador cruzado del plano Marketplaces se
+          DECLARA: un filtro invisible que acota la lista es indistinguible de «no tengo arneses».
+          Salir de él es un click, y no se pierde ninguna otra selección. */}
+      {sinOrigenActivo && (
+        <div className="pf-puerta">
+          <span aria-hidden="true">◇</span>
+          <div>
+            Mostrando <b>solo los arneses sin origen resuelto</b> — los que no pueden decir de qué
+            marketplace vienen. Abrí uno y usá «Resolver origen» en su ficha.
+          </div>
+          <button type="button" className="pf-btn-mini" onClick={() => onFiltroSinOrigen?.(false)}>
+            Ver todos
+          </button>
+        </div>
+      )}
       <div className="pf-body">
         <Cuerpo
           estado={estado}
@@ -540,6 +515,7 @@ export function PortafolioList({
           busqueda={busqueda}
           filtroSalud={filtroSalud}
           filtroMarketplace={filtroMarketplace}
+          filtroSinOrigen={sinOrigenActivo}
           seleccionada={seleccionada}
           onAbrir={onAbrir}
           onReintentar={onReintentar}

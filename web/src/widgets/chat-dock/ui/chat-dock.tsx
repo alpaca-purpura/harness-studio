@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import type { Session, Turn } from "@/shared"
+import type { Resultado, Session, Turn } from "@/shared"
 import { selectActive, selectPendingPerms, selectScope, useSessions } from "@/shared"
 import { cn } from "@/shared/lib/cn"
 import { Pip } from "@/shared/ui/indicators"
+import { DictadoAviso, DictadoButton, VoiceBar } from "./dictado-button"
 import { Md } from "./markdown"
 import { PermissionCard } from "./permission-card"
 
@@ -142,7 +143,9 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
         <PermissionCard
           key={ask.request_id}
           ask={ask}
-          onResolve={(decision, once) => void resolvePermission(ask.request_id, decision, once)}
+          onResolve={(decision, opts) =>
+            void resolvePermission(ask.request_id, decision, opts?.once, opts?.answers)
+          }
         />
       ))}
       <div ref={endRef} />
@@ -268,6 +271,9 @@ function Composer() {
   const active = useSessions(selectActive)
   const [value, setValue] = useState("")
   const taRef = useRef<HTMLTextAreaElement>(null)
+  // crudoMotivo marca que el texto de abajo vino SIN ordenar (RF-227). Se limpia en cuanto
+  // el operador toca el campo: a partir de ahí el texto es suyo, no el crudo del dictado.
+  const [crudoMotivo, setCrudoMotivo] = useState<string | undefined>()
 
   // CH-D1: auto-grow con el contenido (fitComposer); el ResizeObserver recalcula el
   // wrap cuando el dock cambia de ancho (CH-D5).
@@ -290,51 +296,80 @@ function Composer() {
     const text = value.trim()
     if (!text || busy) return
     setValue("")
+    setCrudoMotivo(undefined)
     void sendTurn(text)
   }
 
+  // recibirDictado puebla el composer con lo dictado (RF-226). Lo que NO hace, y es el
+  // punto: **no envía**. Auto-enviar convertiría un error de transcripción en un turno real
+  // contra el código del operador.
+  const recibirDictado = (r: Resultado) => {
+    setValue(r.texto)
+    setCrudoMotivo(r.estado === "crudo" ? (r.motivo ?? "falló el paso de limpieza") : undefined)
+    // Foco al final: lo primero que uno hace con un dictado es corregirle una palabra.
+    requestAnimationFrame(() => {
+      const ta = taRef.current
+      if (!ta) return
+      ta.focus()
+      ta.setSelectionRange(ta.value.length, ta.value.length)
+    })
+  }
+
   return (
-    <div className="flex flex-none items-end gap-2 border-t border-border p-3">
-      <textarea
-        ref={taRef}
-        value={value}
-        rows={1}
-        placeholder={
-          active?.status === "await"
-            ? "esperando tu decisión de permiso…"
-            : busy
-              ? "generando… (■ para interrumpir)"
-              : `Pídele un cambio a ${active?.arnes ?? "…"}`
-        }
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault()
-            submit()
+    <>
+      <VoiceBar />
+      <div className="flex flex-none items-end gap-2 border-t border-border p-3">
+        <textarea
+          ref={taRef}
+          value={value}
+          rows={1}
+          placeholder={
+            active?.status === "await"
+              ? "esperando tu decisión de permiso…"
+              : busy
+                ? "generando… (■ para interrumpir)"
+                : `Pídele un cambio a ${active?.arnes ?? "…"}`
           }
-        }}
-        className="max-h-[66px] min-h-[36px] flex-1 resize-none rounded-lg border border-border bg-secondary px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-      />
-      {busy ? (
-        <button
-          type="button"
-          onClick={() => void interrupt()}
-          title="Interrumpir el turno (in-band, la sesión sigue viva)"
-          className="grid size-9 flex-none place-items-center rounded-lg bg-destructive text-sm text-destructive-foreground"
-        >
-          ■
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!value.trim()}
-          title="Enviar (Claude Code headless detrás)"
-          className="grid size-9 flex-none place-items-center rounded-lg bg-primary text-sm text-primary-foreground disabled:opacity-40"
-        >
-          ↑
-        </button>
-      )}
-    </div>
+          onChange={(e) => {
+            setValue(e.target.value)
+            // El operador editó: ya no es «el crudo del dictado», es su texto.
+            if (crudoMotivo) setCrudoMotivo(undefined)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault()
+              submit()
+            }
+          }}
+          className={cn(
+            "max-h-[66px] min-h-[36px] flex-1 resize-none rounded-lg border border-border bg-secondary px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none",
+            // El crudo se DISTINGUE del limpio: pasarlo por limpio sería un pass fabricado.
+            crudoMotivo && "border-warn focus:border-warn",
+          )}
+        />
+        {active && !busy && <DictadoButton sesionId={active.id} onTexto={recibirDictado} />}
+        {busy ? (
+          <button
+            type="button"
+            onClick={() => void interrupt()}
+            title="Interrumpir el turno (in-band, la sesión sigue viva)"
+            className="grid size-9 flex-none place-items-center rounded-lg bg-destructive text-sm text-destructive-foreground"
+          >
+            ■
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!value.trim()}
+            title="Enviar (Claude Code headless detrás)"
+            className="grid size-9 flex-none place-items-center rounded-lg bg-primary text-sm text-primary-foreground disabled:opacity-40"
+          >
+            ↑
+          </button>
+        )}
+      </div>
+      <DictadoAviso crudoMotivo={crudoMotivo} />
+    </>
   )
 }

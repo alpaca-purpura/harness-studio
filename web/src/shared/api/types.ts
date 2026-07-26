@@ -154,3 +154,48 @@ export const STATUS_LABEL: Record<SessionStatus, string> = {
   await: "te necesita",
   idle: "en pausa",
 }
+
+// ── Dictado por voz (paquete 2026-07-25-spike-voz-dictado, RF-222/RF-223) ──────────────
+
+// EstadoDictado dice si el texto salió ordenado o es el transcripto crudo. La distinción es
+// obligatoria en el wire: pasar un crudo por limpio sería un pass fabricado.
+export type EstadoDictado = "limpio" | "crudo"
+
+// Dictado is the daemon's answer to one dictation: el texto que va al composer, más cuán
+// honestos estamos siendo sobre él.
+export interface Dictado {
+  texto: string
+  estado: EstadoDictado
+  // motivo explica por qué quedó crudo. Ausente cuando estado es "limpio".
+  motivo?: string
+  // motor es el STT que produjo el transcripto (qué motor corrió cambia qué errores esperar).
+  motor?: string
+}
+
+// DisponibilidadDictado — si se puede dictar y, si no, POR QUÉ y qué instalar (RF-227).
+// El composer la consulta al montar: sin esto, la única forma de enterarse de que falta el
+// motor sería grabar tres minutos y fallar al final.
+export interface DisponibilidadDictado {
+  disponible: boolean
+  motor?: string
+  motivo?: string
+  instalar?: string[]
+}
+
+// ── Diagnóstico de fallos (paquete 2026-07-25-spike-voz-dictado, RF-230) ───────────────
+
+// EventoDiagnostico es un fallo del FE contado con detalle suficiente para arreglarlo sin
+// reproducirlo.
+//
+// `detalle` es libre a propósito: cada fallo tiene sus propias variables (un dictado necesita
+// muestras/pico/hz, un crash de render necesita el stack) y encorsetarlas en un schema fijo
+// haría que la próxima falla desconocida no tuviera dónde contarse. El daemon lo escribe tal
+// cual al log; nadie parsea su forma como contrato.
+export interface EventoDiagnostico {
+  // origen dice qué parte lo emitió ("fe").
+  origen: string
+  // evento es la clave estable para grepear el log ("dictado.sin-audio").
+  evento: string
+  mensaje?: string
+  detalle?: Record<string, unknown>
+}

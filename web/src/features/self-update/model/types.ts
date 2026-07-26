@@ -16,6 +16,19 @@ export interface VersionInfo {
   repo: string
   /** vcs.modified del build corriente (decisión #7). */
   sucio: boolean
+  /**
+   * Identificador COMPLETO del build: `0.2.21.2607260225` = semver + sello de compilación
+   * `AAMMDDHHMM`. «dev» en un binario sin identidad inyectada (RF-231).
+   *
+   * Es aditivo a `huella`, no su reemplazo: la huella dice QUÉ COMMIT, el sello dice QUÉ
+   * COMPILACIÓN — dos builds del mismo árbol comparten huella y no comparten sello, que es
+   * justo la pregunta que el operador se hace («¿corro lo último que compilé?»).
+   */
+  version: string
+  /** el sello en formato legible (`2026-07-26 02:25`); vacío en un build de dev. */
+  compilado?: string
+  /** hay un build MÁS NUEVO en disco que el que corre, en una línea accionable. Vacío = al día. */
+  aviso_build?: string
 }
 
 export type PasoEstado = "ok" | "fallo" | "no-corrido" | "agendado"

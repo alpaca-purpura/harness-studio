@@ -39,7 +39,7 @@ export const EditConDiff: Story = {
     await userEvent.click(c.getByRole("button", { name: "Permitir esta sesión" }))
     await expect(args.onResolve).toHaveBeenCalledWith("allow")
     await userEvent.click(c.getByRole("button", { name: "Permitir una vez" }))
-    await expect(args.onResolve).toHaveBeenCalledWith("allow", true)
+    await expect(args.onResolve).toHaveBeenCalledWith("allow", { once: true })
     await userEvent.click(c.getByRole("button", { name: "Denegar" }))
     await expect(args.onResolve).toHaveBeenCalledWith("deny")
   },
@@ -80,5 +80,53 @@ export const ToolDesconocidoJsonCrudo: Story = {
     const c = within(canvasElement)
     // Shape no reconocido ⇒ JSON crudo, jamás una vista inventada (honesto).
     await expect(c.getByText(/"url"/)).toBeInTheDocument()
+  },
+}
+
+// AskUserQuestion (RF-113 bugfix): antes caía al JSON crudo genérico con botones
+// permitir/denegar que no aplicaban — nunca había forma de elegir una opción.
+export const AskUserQuestionOpciones: Story = {
+  args: {
+    ask: {
+      request_id: "cr-5",
+      tool: "AskUserQuestion",
+      input: {
+        questions: [
+          {
+            question: "¿Qué framework de testing preferís?",
+            header: "Testing",
+            options: [
+              { label: "Vitest", description: "ya usado en el repo" },
+              { label: "Jest", description: "más extendido" },
+            ],
+            multiSelect: false,
+          },
+        ],
+      },
+    },
+  },
+  play: async ({ args, canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("¿Qué framework de testing preferís?")).toBeInTheDocument()
+    await expect(c.getByText("Testing")).toBeInTheDocument()
+    // Sin elegir opción, el submit queda deshabilitado (antes no había ninguna forma de elegir).
+    await expect(c.getByRole("button", { name: "Enviar respuesta" })).toBeDisabled()
+    await userEvent.click(c.getByRole("button", { name: "Vitest" }))
+    await expect(c.getByRole("button", { name: "Enviar respuesta" })).toBeEnabled()
+    await userEvent.click(c.getByRole("button", { name: "Enviar respuesta" }))
+    await expect(args.onResolve).toHaveBeenCalledWith("allow", {
+      answers: { "¿Qué framework de testing preferís?": "Vitest" },
+    })
+  },
+}
+
+export const AskUserQuestionJsonCrudoSiShapeInesperado: Story = {
+  args: {
+    ask: { request_id: "cr-6", tool: "AskUserQuestion", input: { foo: "bar" } },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // questions ausente/mal formado ⇒ fallback honesto (JSON crudo), no inventa opciones.
+    await expect(c.getByText(/"foo"/)).toBeInTheDocument()
   },
 }

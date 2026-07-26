@@ -903,3 +903,519 @@
     animation: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   Paquete 2026-07-23-portafolio-agregar-marketplace (AG-D8 FIRMADA 🧑‍⚖️): planos hermanos,
+   plano Marketplaces (S2), catálogo (S3/S4), moléculas de shared/ui (GrupoControl/ListaLazy/
+   BuscadorFiltro), rama Marketplace del wizard (S6) y diálogo Resolver origen (S7).
+
+   Reglas duras respetadas (spec §1 · design.md §10):
+   1. CERO color literal — todo `var(--…)` de theme.css. Los DOS literales del mockup
+      (`#fff` en `.pf-emblema`, `rgba(0,0,0,.55)` en `.scrim`) NO se copian: el emblema lo pinta
+      `Glyph` (shared/canvas) con `--background`, y el overlay lo pone la página con
+      `bg-foreground/40`.
+   2. CERO token nuevo.
+   3. `sin-senal` NUNCA reusa el color de `ok`: reusa el patrón ya firmado (transparente + borde
+      dashed sobre `--muted-foreground`).
+   4. `--warn` = «necesita acción» (recuperable: autenticar) · `--crit` reservado a FALLO.
+   5. Todo texto nuevo sobre `--warn-soft` va en `--foreground`, nunca en `--warn` (no se agrava
+      la deuda a11y de `.text-warn`, contraste 4.5:1 abierta en BACKLOG.md).
+   6. Todo calificado con el ancestro `.arnesia-portafolio`, para que el decorador `Frame` de las
+      stories rinda igual que la app.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Planos hermanos (AG-D8 decisión 2) ── */
+.arnesia-portafolio .pf-planos {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 18px;
+}
+.arnesia-portafolio .pf-plano-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: var(--text-base);
+  cursor: pointer;
+}
+.arnesia-portafolio .pf-plano-tab.activa {
+  border-bottom-color: var(--primary);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.arnesia-portafolio .pf-plano-tab:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+/* Contador cruzado en la pestaña: `--warn` = necesita acción, con texto `--foreground`. */
+.arnesia-portafolio .pf-plano-cta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--foreground);
+}
+
+/* ── GrupoControl (AG-D4, cierra L1/L3): el rótulo es TEXTO VISIBLE. Las mayúsculas las pone el
+      CSS, no el dato — el DOM dice «Ver por», igual que el mockup. ── */
+.arnesia-portafolio .pf-grupo-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.arnesia-portafolio .pf-grupo-control-rotulo {
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.arnesia-portafolio .pf-grupo-control-hint {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* ── Puerta cruzada a la reconciliación (AG-D8 decisión 7) ── */
+.arnesia-portafolio .pf-puerta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  color: var(--foreground);
+  font-size: var(--text-sm);
+}
+.arnesia-portafolio .pf-puerta .pf-btn-mini {
+  margin-left: auto;
+  flex: none;
+}
+.arnesia-portafolio .pf-drawer-puerta {
+  margin: 0 0 4px;
+}
+
+/* ── Botón mini (del mockup) + botón-enlace («ver ficha» dentro de prosa) ── */
+.arnesia-portafolio .pf-btn-mini {
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.arnesia-portafolio .pf-btn-mini.acento {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.arnesia-portafolio .pf-btn-mini:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.arnesia-portafolio .pf-btn-mini:focus-visible,
+.arnesia-portafolio .pf-btn-enlace:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.arnesia-portafolio .pf-btn-enlace {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--foreground);
+  font: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Chips de dominio de Marketplace (design.md §8.4) ── */
+.arnesia-portafolio .pf-chip-clase.propio {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-chip-clase.referencia {
+  border-color: var(--border);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+/* `leido` es un dato neutro (no un veredicto de salud): descriptivo. */
+.arnesia-portafolio .pf-chip-lectura {
+  white-space: normal;
+  max-width: 420px;
+}
+.arnesia-portafolio .pf-chip-lectura.leido {
+  border-color: var(--border);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+/* «no leído aún» = sin señal: transparente + dashed. JAMÁS el color de `ok`. */
+.arnesia-portafolio .pf-chip-lectura.no-leido {
+  border-style: dashed;
+  border-color: var(--muted-foreground);
+  background: transparent;
+  color: var(--muted-foreground);
+}
+/* `sin-acceso` y `url-no-resuelve` son RECUPERABLES (autenticar, corregir el archivo): `--warn`,
+   nunca `--crit`. Texto en `--foreground` sobre `--warn-soft` (regla 5). */
+.arnesia-portafolio .pf-chip-lectura.sin-acceso,
+.arnesia-portafolio .pf-chip-lectura.url-no-resuelve {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-chip-situacion {
+  white-space: normal;
+}
+.arnesia-portafolio .pf-chip-situacion.ok {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.arnesia-portafolio .pf-chip-situacion.atencion {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-chip-situacion.sin-senal {
+  border-style: dashed;
+  border-color: var(--muted-foreground);
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .pf-chip-canal {
+  color: var(--muted-foreground);
+}
+/* ViaChip: `--warn-soft` con texto `--foreground` (regla 5). */
+.arnesia-portafolio .pf-chip-via {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--foreground);
+  white-space: normal;
+  max-width: 360px;
+}
+
+/* ── Plano Marketplaces (S2) — calca las clases del mockup ── */
+.arnesia-portafolio .pf-mk-nota {
+  margin: 0 0 12px;
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .mk-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arnesia-portafolio .mk-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.7fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+.arnesia-portafolio button.mk-fila:hover {
+  background: var(--secondary);
+}
+.arnesia-portafolio button.mk-fila:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+/* `inerte` = la fila NO navega (lectura degradada): no finge ser clickeable. */
+.arnesia-portafolio .mk-fila.inerte {
+  cursor: default;
+}
+.arnesia-portafolio .mk-id {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.arnesia-portafolio .mk-url {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arnesia-portafolio .mk-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .mk-pendientes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  font-size: var(--text-xs);
+}
+/* prosa: el column-flex convertiría cada <b>/<span> inline en su propia línea — la celda de
+   texto corrido tiene que ser un bloque normal. */
+.arnesia-portafolio .mk-pendientes.prosa {
+  display: block;
+  line-height: 1.45;
+}
+.arnesia-portafolio .mk-alcance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* ── Catálogo (S3/S4) ── */
+.arnesia-portafolio .cat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.arnesia-portafolio .cat-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arnesia-portafolio .cat-sub {
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.arnesia-portafolio .cat-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.arnesia-portafolio .cat-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.6fr) minmax(0, 1.1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.arnesia-portafolio .cat-fila[aria-busy="true"] {
+  border-color: var(--primary);
+}
+.arnesia-portafolio .cat-situacion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+.arnesia-portafolio .cat-accion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.arnesia-portafolio .cat-sin-accion,
+.arnesia-portafolio .cat-traido {
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .cat-traer-error {
+  max-width: 320px;
+  white-space: normal;
+}
+
+/* ── ListaLazy (AG-D3 + AG-D16): la caja con scroll y el pie del centinela. El pie vive DENTRO
+      de la caja a propósito: si estuviera fuera, estaría siempre a la vista y el centinela
+      montaría todo de una. ── */
+.arnesia-portafolio .pf-lazy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.arnesia-portafolio .cat-lista-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.arnesia-portafolio .pf-wizard-lista-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+}
+/* Con ListaLazy la caja de scroll es el contenedor, no el <ul>: si el <ul> también acotara su
+   alto, el pie/centinela quedaría fuera del área que scrollea. */
+.arnesia-portafolio .pf-lazy > .pf-wizard-lista-candidatos,
+.arnesia-portafolio .pf-lazy > .cat-lista {
+  max-height: none;
+  overflow-y: visible;
+}
+.arnesia-portafolio .cat-lazy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 10px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* ── Rama Marketplace del wizard (S6) ── */
+.arnesia-portafolio .pf-wizard-mk {
+  gap: 8px;
+}
+.arnesia-portafolio .pf-wizard-ya-registrado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 11px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  color: var(--foreground);
+  font-size: var(--text-sm);
+}
+.arnesia-portafolio .pf-wizard-ya-registrado p {
+  margin: 0;
+}
+/* El ✓ solo existe con un archivo REAL leído (BR-5/G3): el borde `--ok` marca una afirmación
+   evidenciada, no un estado de salud. */
+.arnesia-portafolio .pf-wizard-validado {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ok);
+  border-radius: var(--radius-md);
+  background: var(--ok-soft);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-wizard-validado-titulo {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.arnesia-portafolio .pf-wizard-validado-datos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+.arnesia-portafolio .pf-wizard-validado-datos .mono {
+  font-family: var(--font-mono);
+}
+
+/* ── Pie del wizard (AG-D6): Atrás siempre VISIBLE (disabled cuando no aplica), Cancelar a la
+      derecha. Cierra W3. ── */
+.arnesia-portafolio .pf-wizard-pie {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.arnesia-portafolio .pf-wizard-pie .derecha {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Diálogo Resolver origen (S7) ── */
+.arnesia-portafolio .pf-resolver {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.arnesia-portafolio .pf-resolver-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.arnesia-portafolio .pf-resolver-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+.arnesia-portafolio .pf-resolver-opciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.arnesia-portafolio .pf-resolver-op {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+.arnesia-portafolio .pf-resolver-op:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+}
+.arnesia-portafolio .pf-resolver-op:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.arnesia-portafolio .pf-resolver-senal {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+  text-align: right;
+}
+
+/* G8 a11y — reduced-motion apaga las animaciones nuevas (el spinner de la validación reusa el
+   glifo ya cubierto arriba; acá no se agrega ninguna animación nueva). */

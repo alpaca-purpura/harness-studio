@@ -26,7 +26,26 @@ pnpm run build
 echo "── 2/$STEPS daemon (go build con SPA+doctrina+kit dentro) → bin/arnesia"
 cd "$ROOT"
 mkdir -p "$ROOT/bin"
-go build -trimpath -ldflags '-s -w' -o "$ROOT/bin/arnesia" ./cmd/arnesia
+
+# Identidad del build (RF-231): semver + sello de compilación, inyectados por -ldflags.
+#
+# Va ACÁ y no en el Makefile a propósito: el self-update corre este mismo script
+# (`--daemon-only`), así que un binario producido por el botón Actualizar sella igual que uno
+# hecho a mano. Si esto viviera en el Makefile, actualizarse desde la app devolvería un binario
+# que se reporta como «dev» — la clase de mentira que este RF vino a sacar.
+#
+# La fuente de verdad del semver es Cargo.toml, la misma que ya usa el Makefile para bumpear.
+# Hora LOCAL: el número se compara contra «cuándo compilé», y esa referencia es el reloj que
+# el operador tiene delante.
+VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$ROOT/web/src-tauri/Cargo.toml" | head -1)"
+BUILD="$(date '+%y%m%d%H%M')"
+COMPILADO="$(date '+%Y-%m-%d %H:%M')"
+IDENT="github.com/alpacapurpura/arnesia/internal/adapters/selfupdate"
+echo "   identidad: ${VERSION:-?}.$BUILD ($COMPILADO)"
+
+go build -trimpath \
+  -ldflags "-s -w -X '$IDENT.Version=$VERSION' -X '$IDENT.Build=$BUILD' -X '$IDENT.Compilado=$COMPILADO'" \
+  -o "$ROOT/bin/arnesia" ./cmd/arnesia
 
 if [[ "$DAEMON_ONLY" == 1 ]]; then
   echo "OK — daemon en bin/arnesia (--daemon-only: sin sidecar ni instaladores)"

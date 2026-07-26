@@ -255,3 +255,47 @@ export const FiltroSinResultados: Story = {
     await expect(args.onFiltroMarketplace).toHaveBeenCalledWith(new Set())
   },
 }
+
+// E-27 / AG-D4 — cierra el defecto **L1** de la auditoría: los rótulos de grupo son TEXTO
+// VISIBLE en el DOM (no solo un `aria-label` que un ojo no ve), y los `role="group"` con sus
+// `aria-label` existentes SIGUEN presentes: se agrega afordancia visual sin degradar a11y.
+// Las dos «Marketplace» (lente y filtro) quedan dentro de grupos rotulados DISTINTOS, así que se
+// leen sin ambigüedad — y ninguna se renombra (eso rompería vocabulario firmado en el Slice 1).
+export const ToolbarRotulosVisibles: Story = {
+  args: { entradas: entradasDemo },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+
+    // VISIBLES en el DOM (el CSS los pone en mayúsculas; el dato dice «Ver por»).
+    await expect(c.getByText("Ver por")).toBeVisible()
+    await expect(c.getByText("Filtros")).toBeVisible()
+
+    // los `role="group"` + `aria-label` del Slice 1 se CONSERVAN (cero degradación a11y).
+    const lentes = c.getByRole("group", { name: "Lente del Portafolio" })
+    const filtros = c.getByRole("group", { name: "Filtros del Portafolio" })
+    await expect(lentes).toBeInTheDocument()
+    await expect(filtros).toBeInTheDocument()
+
+    // las DOS «Marketplace» existen, cada una en su grupo rotulado: ya no son 6 pills iguales.
+    await expect(within(lentes).getByRole("button", { name: "Marketplace" })).toBeInTheDocument()
+    await expect(within(filtros).getByRole("button", { name: "Marketplace" })).toBeInTheDocument()
+
+    // L3 — el hint del mockup que el código había perdido.
+    await expect(c.getByText("lente para encontrar un arnés cuando hay muchos")).toBeInTheDocument()
+  },
+}
+
+// AG-D8 decisión 7 — el filtro «sin origen resuelto» que prende el contador cruzado del plano
+// Marketplaces se DECLARA en la superficie: un filtro invisible que acota la lista es
+// indistinguible de «no tengo arneses». Y salir de él es un click.
+export const FiltroSinOrigenSeDeclara: Story = {
+  args: { entradas: entradasDemo, filtroSinOrigen: true, onFiltroSinOrigen: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/solo los arneses sin origen resuelto/)).toBeInTheDocument()
+    // entradasDemo: 2 de las 3 son provisionales (home vacío) ⇒ sobreviven 2.
+    await expect(canvasElement.querySelectorAll(".pf-fila")).toHaveLength(2)
+    await userEvent.click(c.getByRole("button", { name: "Ver todos" }))
+    await expect(args.onFiltroSinOrigen).toHaveBeenCalledWith(false)
+  },
+}

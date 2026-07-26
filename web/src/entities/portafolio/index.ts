@@ -7,14 +7,17 @@ export {
   agruparPorEmpresa,
   agruparPorMarketplace,
   agruparPorProyecto,
+  filtrarCandidatos,
   filtrarEntradas,
   filtrarPorMarketplace,
   filtrarPorSalud,
+  filtrarSinOrigen,
   gruposCandidatosDe,
   identificadorDe,
   idsColisionados,
   marketplacesDisponibles,
   registriesDe,
+  registriesDeCandidatos,
   saludDe,
 } from "./model/selectors"
 export type {

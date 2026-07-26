@@ -363,3 +363,73 @@ export const FocoYTeclado: Story = {
     await expect(args.onClose).toHaveBeenCalledTimes(1)
   },
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// Paquete 2026-07-23-portafolio-agregar-marketplace — S8 (`↧ Traer canónico`, AG-D17) y S7
+// (segunda puerta a la reconciliación). SUPERSET: sin estos callbacks el drawer rinde EXACTAMENTE
+// como en el Slice 1 (`IdentidadResuelta` sigue asertando `disabled` + «próximo · S2»).
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+// E-107 / AG-D17 — con `onTraerCanonico` el botón que ya existía se HABILITA (dos puertas, un
+// acto: la fila del catálogo llama al mismo callback) y **deja de llevar `TOOLTIP_S2`**.
+export const DrawerTraerHabilitado: Story = {
+  args: { entrada: entradaResueltaSinCanonico, onTraerCanonico: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const traer = c.getByRole("button", { name: "↧ Traer canónico" })
+    await expect(traer).toBeEnabled()
+    await expect(traer).not.toHaveAttribute("title")
+    await userEvent.click(traer)
+    await expect(args.onTraerCanonico).toHaveBeenCalledTimes(1)
+  },
+}
+
+// E-107 — `trayendo`: botón bloqueado + `aria-busy`; no se puede disparar dos veces el mismo.
+export const DrawerTrayendo: Story = {
+  args: { entrada: entradaResueltaSinCanonico, onTraerCanonico: fn(), trayendo: true },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const btn = c.getByRole("button", { name: "Trayendo…" })
+    await expect(btn).toBeDisabled()
+    await expect(btn).toHaveAttribute("aria-busy", "true")
+    await expect(c.queryByRole("button", { name: "↧ Traer canónico" })).toBeNull()
+  },
+}
+
+// E-107 — `falló`: el motivo textual del backend, LITERAL (incluido el rechazo por clase
+// `referencia`, que es el dominio hablando: BR-1 no se re-implementa en el FE).
+export const DrawerTraerFallo: Story = {
+  args: {
+    entrada: entradaResueltaSinCanonico,
+    onTraerCanonico: fn(),
+    traerError:
+      "arnesia POST /api/marketplaces/claude-plugins-official/traidos: 400 traer: no aplica: solo arneses propios",
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("alert")).toHaveTextContent("no aplica: solo arneses propios")
+    await expect(c.getByRole("button", { name: "↧ Traer canónico" })).toBeEnabled()
+  },
+}
+
+// AG-D8 decisión 7 — la reconciliación se ejecuta ACÁ, in-situ sobre la ficha (mismo patrón que
+// «Identificar»). Solo se ofrece con identidad PROVISIONAL: un home ya declarado no necesita
+// resolverse.
+export const DrawerResolverOrigen: Story = {
+  args: { entrada: entradaProyectoInstaladoProvisional, onResolverOrigen: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/no puede decir de qué marketplace viene/)).toBeInTheDocument()
+    await userEvent.click(c.getByRole("button", { name: "Resolver origen" }))
+    await expect(args.onResolverOrigen).toHaveBeenCalledTimes(1)
+  },
+}
+
+// …y con home declarado NO se ofrece (nada que resolver): la puerta no aparece.
+export const DrawerSinPuertaConHome: Story = {
+  args: { entrada: entradaResueltaSinCanonico, onResolverOrigen: fn() },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.queryByRole("button", { name: "Resolver origen" })).toBeNull()
+  },
+}

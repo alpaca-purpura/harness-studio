@@ -9,7 +9,14 @@
 // to :4200); in a plain browser the global is absent and the daemon falls back to
 // Host+Origin only.
 
-import type { NewSession, Session, Turn } from "./types"
+import type {
+  Dictado,
+  DisponibilidadDictado,
+  EventoDiagnostico,
+  NewSession,
+  Session,
+  Turn,
+} from "./types"
 
 const BASE = import.meta.env.VITE_ARNESIA_API ?? "http://127.0.0.1:4200"
 
@@ -17,12 +24,20 @@ const BASE = import.meta.env.VITE_ARNESIA_API ?? "http://127.0.0.1:4200"
 let authToken: string | undefined
 
 // ApiError carries the HTTP status so callers can branch (e.g. 409 = session busy).
+//
+// `body` es el cuerpo CRUDO de la respuesta de error. Existe porque varios 4xx del daemon llevan
+// datos estructurados que la UI necesita sin parsear prosa: el 409 de `POST /api/marketplaces`
+// trae `{"error":…,"nombre":…}` para poder ofrecer «ir a él» (BR-7/E-18) y el 409 de
+// `POST …/traidos` trae `{"error":…,"destino":…}` para «abrir el canónico que ya tenés»
+// (BR-14/E-79). Se guarda tal cual (nunca se parsea acá: `shared/api` es domain-free).
 export class ApiError extends Error {
   status: number
-  constructor(status: number, message: string) {
+  body: string
+  constructor(status: number, message: string, body = "") {
     super(message)
     this.name = "ApiError"
     this.status = status
+    this.body = body
   }
 }
 
@@ -43,9 +58,27 @@ async function reqText(path: string, init?: RequestInit): Promise<string> {
     throw new ApiError(
       res.status,
       `arnesia ${init?.method ?? "GET"} ${path}: ${res.status} ${body}`,
+      body,
     )
   }
   return res.text()
+}
+
+// reqRaw posts a binary body (the dictation blob). No fija Content-Type a mano: lo aporta el
+// Blob, que es quien sabe en qué formato grabó el motor.
+async function reqRaw<T>(path: string, body: Blob, signal?: AbortSignal): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`
+  const init: RequestInit = { method: "POST", body, headers }
+  // `signal` va condicional: con `exactOptionalPropertyTypes`, pasar `undefined` explícito no
+  // es lo mismo que omitir la clave.
+  if (signal) init.signal = signal
+  const res = await fetch(`${BASE}${path}`, init)
+  const text = await res.text().catch(() => "")
+  if (!res.ok) {
+    throw new ApiError(res.status, `arnesia POST ${path}: ${res.status} ${text}`, text)
+  }
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 export const api = {
@@ -117,6 +150,67 @@ export const api = {
       }),
     }),
 
+  // Marketplaces (paquete 2026-07-23-portafolio-agregar-marketplace, design.md §8.6): el plano
+  // (S2), el catálogo con refresco explícito (S3/S4), registrar (S6), la reconciliación de origen
+  // (S7) y `↧ Traer canónico` (S8). Genéricos <T> domain-free, mismo patrón que `listPortafolio`
+  // — `shared/api` NO puede importar `entities/*` (sería una dependencia hacia arriba).
+  //
+  // `ApiError.status` ya existe ⇒ el FE distingue el 409 de `registrarMarketplace` (ya
+  // registrado, BR-7), el 503 de `validarMarketplace` («no puedo mirar», ≠ «tu url está mal») y
+  // el 409/502/503 de `traerCanonico` **por status, no parseando el `message`**.
+  listMarketplaces: <T = unknown>() => req<T>("/api/marketplaces"),
+
+  validarMarketplace: <T = unknown>(url: string, signal?: AbortSignal) =>
+    req<T>("/api/marketplaces/validaciones", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+      ...(signal ? { signal } : {}),
+    }),
+
+  registrarMarketplace: <T = unknown>(url: string, clase: string) =>
+    req<T>("/api/marketplaces", {
+      method: "POST",
+      body: JSON.stringify({ url, clase }),
+    }),
+
+  olvidarMarketplace: <T = unknown>(nombre: string) =>
+    req<T>(`/api/marketplaces/${encodeURIComponent(nombre)}`, { method: "DELETE" }),
+
+  // GET = caché primero (la primera visita hace UNA lectura y la persiste: idempotente).
+  catalogoDeMarketplace: <T = unknown>(nombre: string, signal?: AbortSignal) =>
+    req<T>(`/api/marketplaces/${encodeURIComponent(nombre)}/catalogo`, {
+      ...(signal ? { signal } : {}),
+    }),
+
+  // POST …/lecturas = refresco EXPLÍCITO (AG-D8 decisión 3). Es lo que pegan `Refrescar`,
+  // `Reintentar` y `Leer catálogo`. Body vacío; misma respuesta que el GET.
+  leerCatalogo: <T = unknown>(nombre: string, signal?: AbortSignal) =>
+    req<T>(`/api/marketplaces/${encodeURIComponent(nombre)}/lecturas`, {
+      method: "POST",
+      ...(signal ? { signal } : {}),
+    }),
+
+  candidatosDeOrigen: <T = unknown>(clave: string) =>
+    req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}/origen/candidatos`),
+
+  // `home === null` ⇒ `{sin_origen:true}`: «ninguno — dejarlo sin origen» es una ELECCIÓN que se
+  // registra, no la ausencia de una (E-26). No clona ni instala nada (BR-11).
+  asignarOrigen: <T = unknown>(clave: string, home: string | null) =>
+    req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}/origen`, {
+      method: "POST",
+      body: JSON.stringify(home === null ? { sin_origen: true } : { home }),
+    }),
+
+  // traerCanonico (S8, AG-D17) — materializa la fila del catálogo como canónico editable bajo
+  // `~/.arnesia/checkouts/`. Se manda la ENTRADA, no el `source`: el cliente no elige el
+  // mecanismo (lo decide `PlanificarTraer` en el dominio). Sin `signal` a propósito: cerrar el
+  // catálogo NO aborta un POST de materialización — abortar a mitad es peor que esperar (§13.10).
+  traerCanonico: <T = unknown>(nombre: string, entrada: string) =>
+    req<T>(`/api/marketplaces/${encodeURIComponent(nombre)}/traidos`, {
+      method: "POST",
+      body: JSON.stringify({ entrada }),
+    }),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   // Historial B2 (RF-202/203): conversaciones de un arnés (vivas + cerradas, metadata) y
@@ -158,12 +252,14 @@ export const api = {
 
   // resolvePermission (RF-113/RF-114) — la decisión humana sobre una tarjeta `permission`.
   // Sin `role`: el daemon usa la autoridad del ARNÉS de la sesión (decisión #6).
-  // ttl_segundos ACOTA el TTL del grant del rol (1 = «permitir una vez»).
+  // ttl_segundos ACOTA el TTL del grant del rol (1 = «permitir una vez»). answers
+  // (RF-113 bugfix) solo lo manda la tarjeta de AskUserQuestion — question text → respuesta.
   resolvePermission: <T = unknown>(
     id: string,
     requestId: string,
     decision: "allow" | "deny",
     ttlSegundos?: number,
+    answers?: Record<string, string>,
   ) =>
     req<T>(`/api/sessions/${id}/permission`, {
       method: "POST",
@@ -171,12 +267,36 @@ export const api = {
         request_id: requestId,
         decision,
         ...(ttlSegundos ? { ttl_segundos: ttlSegundos } : {}),
+        ...(answers ? { answers } : {}),
       }),
     }),
 
   // interrupt (RF-116) — Stop real: corta el turno en vuelo in-band; el cierre llega
   // como frame `result` por SSE.
   interrupt: (id: string) => req<void>(`/api/sessions/${id}/interrupt`, { method: "POST" }),
+
+  // dictado (RF-222) — sube la grabación y devuelve el texto para el composer. El cuerpo es
+  // el audio CRUDO, no JSON ni base64: es un blob de una pieza que va derecho al motor, y
+  // envolverlo solo agregaría una copia y una decodificación. El Content-Type lo pone el
+  // Blob (`audio/mp4` — lo único que graba WebKitGTK).
+  //
+  // NO lleva timeout propio: el tope de cada etapa vive en el daemon (RF-228) y duplicarlo
+  // acá solo desincronizaría los dos. El cancel del operador va por AbortSignal.
+  dictado: (id: string, audio: Blob, signal?: AbortSignal) =>
+    reqRaw<Dictado>(`/api/sessions/${id}/dictado`, audio, signal),
+
+  // disponibilidadDictado (RF-223/RF-227) — el composer la consulta al montar para saber si
+  // ofrece el botón, y con qué motivo lo deshabilita si no.
+  disponibilidadDictado: () => req<DisponibilidadDictado>("/api/dictado/disponibilidad"),
+
+  // diagnostico (RF-230) — manda un fallo del FE al log del daemon.
+  //
+  // Existe porque el FE corre en un WebView SIN devtools y su `console.error` no va a ningún
+  // lado: el bug del `MediaRecorder` mudo (RF-229) fue invisible durante toda una versión
+  // instalada por exactamente eso. El daemon es el único proceso de la app que escribe a
+  // disco, así que el detalle se le manda a él.
+  diagnostico: (ev: EventoDiagnostico) =>
+    req<void>("/api/diagnostico", { method: "POST", body: JSON.stringify(ev) }),
 
   // getVersion (RF-107) — identidad honesta del binario del daemon; también es el
   // polling del reinicio del self-update (RF-105): responde ⇔ el daemon está vivo.

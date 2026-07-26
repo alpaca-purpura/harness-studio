@@ -78,6 +78,12 @@ export interface EntradaPortafolio {
   canonico?: Canonico
   instalaciones?: Instalacion[]
   agregado?: string
+  // origen_sin_resolver_desde — RFC3339 de cuándo el operador CONFIRMÓ dejar esta entrada sin
+  // origen (S7, opción «ninguno — dejarlo sin origen»; BR-11/E-26 del paquete
+  // 2026-07-23-portafolio-agregar-marketplace). Distinto de ausente, que significa «todavía nadie
+  // lo miró»: el contador cruzado «N sin origen resuelto» cuenta las provisionales SIN este
+  // campo. Confirmar «ninguno» no inventa un home — solo deja de reclamar atención.
+  origen_sin_resolver_desde?: string
 }
 
 // EntradaCorrupta — wire de corruptaWire (HTTP): SOLO el motivo, el blob crudo NO viaja

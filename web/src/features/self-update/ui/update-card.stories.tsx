@@ -17,6 +17,8 @@ const versionOk: VersionInfo = {
   escribible: true,
   repo: "/home/chalreme/Proyectos/harness-studio",
   sucio: false,
+  version: "0.2.21.2607260225",
+  compilado: "2026-07-26 02:25",
 }
 
 // Estado ACTUAL real del operador (mockup caso 05): /usr/bin root + sin repo.
@@ -27,6 +29,15 @@ const versionHoy: VersionInfo = {
   escribible: false,
   repo: "",
   sucio: false,
+  version: "dev",
+}
+
+// RF-231 — el caso que motivó el sello: `make dev-sync` reemplazó el binario mientras la app
+// seguía abierta. El archivo en disco ya es nuevo; el proceso que responde es el viejo.
+const versionBuildViejo: VersionInfo = {
+  ...versionOk,
+  aviso_build:
+    "el binario instalado es más nuevo (2026-07-26 03:18) que el que está corriendo — cerrá y reabrí la app",
 }
 
 const reporteExito: SelfUpdateReport = {
@@ -87,6 +98,40 @@ export const Idle: Story = {
     await expect(btn).toBeEnabled()
     await btn.click()
     await expect(args.onUpdate).toHaveBeenCalled()
+  },
+}
+
+// RF-231 — la identidad del BUILD, que es lo que responde «¿corro lo último que compilé?».
+// La huella sola NO lo responde: dos compilaciones del mismo árbol la comparten (pasó de
+// verdad el 2026-07-26, bundleando v0.2.21 dos veces).
+export const IdentidadDelBuild: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("arnesia v0.2.21.2607260225")).toBeInTheDocument()
+    await expect(c.getByText(/2026-07-26 02:25/)).toBeInTheDocument()
+    // El commit sigue estando: es otro dato, no el mismo.
+    await expect(c.getByText(/1c7443f/)).toBeInTheDocument()
+    // Al día = NINGÚN aviso. Un aviso que aparece siempre no se lee nunca.
+    await expect(c.queryByText(/más nuevo/)).not.toBeInTheDocument()
+  },
+}
+
+// RF-231 — el caso que lo motivó: `make dev-sync` reemplazó el binario con la app abierta.
+export const BuildViejoCorriendo: Story = {
+  args: { version: versionBuildViejo },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/el binario instalado es más nuevo/)).toBeInTheDocument()
+    await expect(c.getByText(/cerrá y reabrí la app/)).toBeInTheDocument()
+  },
+}
+
+// RF-231 — un build sin sellar (CI, `go run`) lo DICE en vez de inventar un número.
+export const BuildSinSellar: Story = {
+  args: { version: versionHoy },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/build sin sellar \(dev\)/)).toBeInTheDocument()
   },
 }
 

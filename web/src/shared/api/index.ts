@@ -2,7 +2,11 @@
 export { ApiError, api, fetchAuthToken } from "./client"
 export { connectDock, type DockConnection } from "./sse"
 export {
+  type Dictado,
+  type DisponibilidadDictado,
   type DockFrame,
+  type EstadoDictado,
+  type EventoDiagnostico,
   type GateReport,
   GLOBAL_VIEWS,
   type HarnessSummary,
