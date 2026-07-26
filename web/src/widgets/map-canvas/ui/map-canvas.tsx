@@ -12,9 +12,18 @@ import {
   selectRefsEntrada,
   selectSoporte,
 } from "@/entities/arnes"
+import {
+  type CifraCaja,
+  etiquetaConfianza,
+  marcaPrincipal,
+  pct,
+  tituloConfianza,
+  usd,
+} from "@/entities/telemetria"
 import { cn } from "@/shared/lib/cn"
 import { ErrorBoundary } from "@/shared/ui/error-boundary"
 import { SUPPORT_BANDS } from "../model/bands"
+import type { Capa } from "../model/layers"
 import { type DrawableEdge, useEdgePaths } from "../model/use-edge-paths"
 import { useViewport } from "../model/use-viewport"
 import { Band } from "./band"
@@ -44,6 +53,47 @@ interface MapCanvasProps {
   // Franja Artefactos (D2/D11, RF-143): off = mapa actual idéntico (cero DOM extra) ·
   // auto = chips solo al seleccionar · todos = siempre. Default off; el toggle vive en MapBar.
   artefactos?: ArtefactosMode | undefined
+  /**
+   * Capa activa (T37). **Cero rama de layout**: la geografía es la misma en las cuatro. La capa
+   * solo decide si los nodos reciben sus props de mejora — con `estructura` no reciben ninguna
+   * y el DOM es idéntico al de hoy (RF-245, guardián `CapaMejoraSupersetGeografia`).
+   */
+  capa?: Capa | undefined
+  /**
+   * El gasto por caja, keyeado por `nodeId`. **Este widget es el único que puede importar las
+   * DOS entities** (`arnes` y `telemetria`), porque widgets→entities es la dirección legal —
+   * por eso es acá donde `CifraCaja` se compone en las props PRIMITIVAS del nodo (D18).
+   */
+  mejora?: ReadonlyMap<string, CifraCaja> | undefined
+  /** Total por fase, keyeado por nombre de fase. `null` ⇒ el carril dice «sin dato» (RF-244). */
+  totalesPorFase?: ReadonlyMap<string, number | null> | undefined
+  /** El motivo de «sin dato atribuible» por nodo, resuelto por la página con la clase real. */
+  motivosSinDato?: ReadonlyMap<string, string> | undefined
+}
+
+/**
+ * `CifraCaja → props primitivas` — **la traducción que D18 exige que viva acá**.
+ *
+ * `entities/arnes` no importa `entities/telemetria` (nunca, por ningún escape), así que el nodo
+ * recibe strings y números. El copy de confianza NO se duplica: sale de `etiquetaConfianza`/
+ * `tituloConfianza`, que son la única fuente, y la story `CopyConfianzaEsUnaSola` asserta que
+ * el chip del nodo y `<MarcaConfianza>` dicen exactamente lo mismo.
+ */
+function propsDeMejora(c: CifraCaja, motivoSinDato: string | undefined) {
+  if (!c.atribuible || c.costo_micros === null) {
+    return { motivoSinDato: c.motivo ?? motivoSinDato ?? "sin corridas en esta ventana" }
+  }
+  const marca = marcaPrincipal(c.marcas)
+  const porcentaje = c.parte === undefined ? undefined : Number.parseInt(pct(c.parte) ?? "", 10)
+  return {
+    cifraUsd: usd(c.costo_micros) ?? undefined,
+    participacionPct: Number.isNaN(porcentaje) ? undefined : porcentaje,
+    confianza: c.confianza,
+    etiquetaConfianza: etiquetaConfianza(c.confianza) ?? undefined,
+    tituloConfianza: tituloConfianza(c.confianza) ?? undefined,
+    marcaFuga: marca?.nombre,
+    marcaFugaGrave: marca?.grave,
+  }
 }
 
 // The render-error net (nomenclatura-arnes §4.5): a malformed node (e.g. a clase outside the
@@ -66,6 +116,10 @@ function MapCanvasInner({
   activeId,
   onPick,
   artefactos = "off",
+  capa = "estructura",
+  mejora,
+  totalesPorFase,
+  motivosSinDato,
 }: MapCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -113,6 +167,20 @@ function MapCanvasInner({
     return [...base, ...artes]
   }, [graph, chips, planes])
   const paths = useEdgePaths(contentRef, drawableEdges, { z, focusId: focus })
+
+  // La composición `CifraCaja → props primitivas`, una sola vez por render (D18). Con la capa
+  // apagada el mapa queda VACÍO y el nodo no recibe ninguna prop nueva: el DOM es el de hoy.
+  const mejoraDeCarril = useMemo(() => {
+    if (capa !== "mejora") return undefined
+    const m = new Map<string, ReturnType<typeof propsDeMejora>>()
+    for (const nodo of graph.nodos) {
+      const cifra = mejora?.get(nodo.id)
+      const motivo = motivosSinDato?.get(nodo.id)
+      if (cifra) m.set(nodo.id, propsDeMejora(cifra, motivo))
+      else if (motivo !== undefined) m.set(nodo.id, { motivoSinDato: motivo })
+    }
+    return m
+  }, [capa, graph, mejora, motivosSinDato])
 
   // Related set for hover dimming (RF-33): the focused node + its direct neighbors stay
   // lit — including the artefacto chips (the derived edges participate, mockup:715-721).
@@ -193,6 +261,7 @@ function MapCanvasInner({
                       dim={dimmed(b.id)}
                       selected={b.id === selectedId}
                       onSelect={onSelect}
+                      {...mejoraDeCarril?.get(b.id)}
                     />
                   ))
                 )}
@@ -231,6 +300,16 @@ function MapCanvasInner({
                         related={related}
                         selectedId={selectedId}
                         onSelect={onSelect}
+                        {...(capa === "mejora"
+                          ? {
+                              totalUsd:
+                                totalesPorFase?.get(l.fase) === undefined ||
+                                totalesPorFase.get(l.fase) === null
+                                  ? null
+                                  : usd(totalesPorFase.get(l.fase) as number),
+                              mejora: mejoraDeCarril,
+                            }
+                          : {})}
                       />
                     </Fragment>
                   )
@@ -261,6 +340,7 @@ function MapCanvasInner({
                     related={related}
                     selectedId={selectedId}
                     onSelect={onSelect}
+                    mejora={mejoraDeCarril}
                   />
                 ) : (
                   <Band
@@ -270,6 +350,7 @@ function MapCanvasInner({
                     related={related}
                     selectedId={selectedId}
                     onSelect={onSelect}
+                    mejora={mejoraDeCarril}
                   />
                 )
               })}

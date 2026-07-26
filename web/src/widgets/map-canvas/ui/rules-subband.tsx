@@ -2,6 +2,7 @@ import { type CSSProperties, useState } from "react"
 import { ArnesNode, alwFor, type Box } from "@/entities/arnes"
 import { cn } from "@/shared/lib/cn"
 import { ActivationChip } from "./activation-chip"
+import type { MejoraNodo } from "./lane"
 
 // RulesSubband is the collapsible «Reglas» group inside the Base band (mockup:363-387,
 // RF-40/41/42). Collapsed by default (a real arnés brings many rules — 46 in the real case).
@@ -18,12 +19,15 @@ function RuleGroup({
   related,
   selectedId,
   onSelect,
+  mejora,
 }: {
   tag: string
   tone: string
   nodes: Box[]
   related?: ReadonlySet<string> | undefined
   selectedId?: string | undefined
+  /** Props primitivas de la capa Mejora, ya compuestas por el widget (D18). */
+  mejora?: ReadonlyMap<string, MejoraNodo> | undefined
   onSelect?: ((id: string) => void) | undefined
 }) {
   if (nodes.length === 0) return null
@@ -40,6 +44,7 @@ function RuleGroup({
               box={b}
               dim={related !== undefined && !related.has(b.id)}
               selected={b.id === selectedId}
+              {...mejora?.get(b.id)}
               onSelect={onSelect}
             />
           </div>
@@ -54,9 +59,11 @@ interface RulesSubbandProps {
   related?: ReadonlySet<string> | undefined
   selectedId?: string | undefined
   onSelect?: ((id: string) => void) | undefined
+  /** Props primitivas de la capa Mejora, ya compuestas por el widget (D18). */
+  mejora?: ReadonlyMap<string, MejoraNodo> | undefined
 }
 
-export function RulesSubband({ rules, related, selectedId, onSelect }: RulesSubbandProps) {
+export function RulesSubband({ rules, related, selectedId, onSelect, mejora }: RulesSubbandProps) {
   const [collapsed, setCollapsed] = useState(true)
   const always = rules.filter((r) => alwFor(r.id) === true)
   const conditional = rules.filter((r) => alwFor(r.id) !== true)
@@ -84,6 +91,7 @@ export function RulesSubband({ rules, related, selectedId, onSelect }: RulesSubb
           related={related}
           selectedId={selectedId}
           onSelect={onSelect}
+          mejora={mejora}
         />
         <RuleGroup
           tag="carga condicional (paths:)"
@@ -92,6 +100,7 @@ export function RulesSubband({ rules, related, selectedId, onSelect }: RulesSubb
           related={related}
           selectedId={selectedId}
           onSelect={onSelect}
+          mejora={mejora}
         />
       </div>
     </div>

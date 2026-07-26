@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import type { ArtefactosMode, ConformanceResult, Graph } from "@/entities/arnes"
+import type { ArtefactosMode, Box, ConformanceResult, Graph } from "@/entities/arnes"
+import { isCaja } from "@/entities/arnes"
+import type {
+  CifraCaja,
+  EstadoDetector,
+  PuntoMejora,
+  ResumenTelemetria,
+  Ventana,
+} from "@/entities/telemetria"
+import { CAMPOS_PERSISTIDOS_HOOK, motivoSinDato } from "@/entities/telemetria"
 import {
   api,
   ComingSoon,
@@ -10,7 +19,15 @@ import {
   useSessions,
   VIEWS,
 } from "@/shared"
-import { type Capa, Inspector, MapBar, MapCanvas } from "@/widgets/map-canvas"
+import {
+  type Capa,
+  FranjaMejora,
+  Inspector,
+  MapBar,
+  MapCanvas,
+  PoliticaDatosDialog,
+  PuntosMejoraList,
+} from "@/widgets/map-canvas"
 
 const viewGlyph = (v: string) => VIEWS.find((x) => x[0] === v)?.[1] ?? "◵"
 
@@ -39,9 +56,22 @@ export function WorkspaceStage() {
   // Whether the portfolio has been fetched at least once — gates the graph load so a session
   // pointing at a non-indexed arnés never fires a 404 before we know the portfolio.
   const [harnessesLoaded, setHarnessesLoaded] = useState(false)
-  // Only Estructura is enabled in the MVP; the switcher lives in MapBar (chrome), staged layers
-  // render disabled with the "Necesita telemetría" tooltip (RF-60 / spec §8).
+  // La capa activa. `estructura` por default; el conmutador vive en MapBar (chrome).
   const [capa, setCapa] = useState<Capa>("estructura")
+
+  // ── Capa «Mejora» (T37) ─────────────────────────────────────────────────────────────────
+  //
+  // **Esta página es la ÚNICA que hace transporte** (`fe-transporte-independiente`): los
+  // widgets reciben props puras. Acá viven el estado de la ventana y las tres consultas.
+  const [ventana, setVentana] = useState<Ventana>("7d")
+  const [mejEstado, setMejEstado] = useState<"datos" | "cargando" | "error">("cargando")
+  const [mejError, setMejError] = useState<string>()
+  const [resumen, setResumen] = useState<ResumenTelemetria | null>(null)
+  const [cajas, setCajas] = useState<CifraCaja[]>([])
+  const [puntos, setPuntos] = useState<PuntoMejora[]>([])
+  const [noMedidos, setNoMedidos] = useState<EstadoDetector[]>([])
+  const [politicaAbierta, setPoliticaAbierta] = useState(false)
+  const [nonce, setNonce] = useState(0)
   // Franja Artefactos (RF-143): default auto — reposo idéntico al mapa actual, chips al
   // seleccionar. Mismo patrón de estado que `capa` (sin persistencia dura, como el resto).
   const [artefactos, setArtefactos] = useState<ArtefactosMode>("auto")
@@ -186,6 +216,79 @@ export function WorkspaceStage() {
     }
   }, [mapaPeek, isMapa, setMapaPeek])
 
+  // La ventana en instantes: el wire recibe `desde`/`hasta` en RFC3339, no un enum
+  // (`ventanaDeQuery`, telemetria.go:25). Un valor ilegible da 400 en vez de devolver en
+  // silencio una ventana distinta de la pedida.
+  const rangoDeVentana = useCallback((v: Ventana) => {
+    if (v === "todo") return {}
+    const dias = v === "30d" ? 30 : 7
+    return { desde: new Date(Date.now() - dias * 86_400_000).toISOString() }
+  }, [])
+
+  // Las tres consultas de la capa. Solo corren con la capa ENCENDIDA: con `estructura` activa
+  // no se le pide nada al daemon, que es lo que hace que la capa apagada no cueste nada.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` es el disparador de recarga (Reintentar · descartar · borrar), no un valor que el efecto lea — mismo patrón que `arnesId` en el efecto de carga del grafo.
+  useEffect(() => {
+    if (!viewedId || !isMapa || capa !== "mejora") return
+    let alive = true
+    setMejEstado("cargando")
+    setMejError(undefined)
+    const q = { ...rangoDeVentana(ventana), arnes: viewedId }
+    Promise.all([
+      api.telemetriaResumen<ResumenTelemetria>(q),
+      api.telemetriaCajas<{ cajas?: CifraCaja[] }>(viewedId, q),
+      api.telemetriaMejoras<{ puntos?: PuntoMejora[]; no_medidos?: EstadoDetector[] }>(viewedId, q),
+    ])
+      .then(([r, c, m]) => {
+        if (!alive) return
+        // `corridas === 0` NO se pinta como un tablero en cero: se pasa `null` y la franja
+        // dice qué pasó y qué hacer (RF-269).
+        setResumen(r && r.corridas > 0 ? r : null)
+        setCajas(c.cajas ?? [])
+        setPuntos(m.puntos ?? [])
+        setNoMedidos(m.no_medidos ?? [])
+        setMejEstado("datos")
+      })
+      .catch((e: unknown) => {
+        if (!alive) return
+        setMejError(e instanceof Error ? e.message : String(e))
+        setMejEstado("error")
+      })
+    return () => {
+      alive = false
+    }
+  }, [viewedId, isMapa, capa, ventana, rangoDeVentana, nonce])
+
+  // `CifraCaja` por nodo + el motivo de «sin dato atribuible» para todo lo que NO es caja.
+  // El motivo sale de `MOTIVO_SIN_DATO` (entities/telemetria), que es la única fuente — el
+  // nodo lo recibe por prop porque `entities/arnes` no puede importar la otra entity (D18).
+  const mejoraPorNodo = useMemo(() => new Map(cajas.map((c) => [c.caja_id, c])), [cajas])
+  const motivosPorNodo = useMemo(() => {
+    if (capa !== "mejora" || !graph) return undefined
+    const m = new Map<string, string>()
+    for (const n of graph.nodos as Box[]) {
+      if (isCaja(n) || mejoraPorNodo.has(n.id)) continue
+      m.set(n.id, motivoSinDato(n.clase))
+    }
+    return m
+  }, [capa, graph, mejoraPorNodo])
+
+  // Total por fase: la suma de las cajas de esa fase. `null` cuando ninguna tiene costo
+  // atribuido — el carril dice «sin dato», jamás «USD 0,00» (RF-244).
+  const totalesPorFase = useMemo(() => {
+    if (capa !== "mejora" || !graph) return undefined
+    const m = new Map<string, number | null>()
+    for (const n of graph.nodos as Box[]) {
+      const fase = n.fase
+      if (!fase) continue
+      const c = mejoraPorNodo.get(n.id)
+      const prev = m.get(fase) ?? null
+      if (c?.costo_micros != null) m.set(fase, (prev ?? 0) + c.costo_micros)
+      else if (!m.has(fase)) m.set(fase, null)
+    }
+    return m
+  }, [capa, graph, mejoraPorNodo])
+
   // The node the inspector shows (S3), read straight from the loaded graph — real, complete data.
   const selectedBox = useMemo(
     () => (selectedId ? graph?.nodos.find((n) => n.id === selectedId) : undefined),
@@ -257,6 +360,22 @@ export function WorkspaceStage() {
               artefactos={artefactos}
               onArtefactos={setArtefactos}
             />
+            {/* La franja es CHROME: va entre la barra y el canvas, y el canvas no sabe que
+                existe (mismo criterio que MapBar). Solo con la capa encendida. */}
+            {capa === "mejora" && (
+              <FranjaMejora
+                estado={mejEstado}
+                ventana={ventana}
+                onVentana={setVentana}
+                resumen={resumen}
+                escenario={resumen?.escenario}
+                retencionDias={90}
+                retencionPropuesta
+                onPolitica={() => setPoliticaAbierta(true)}
+                onReintentar={() => setNonce((n) => n + 1)}
+                error={mejError}
+              />
+            )}
             <div className="relative min-h-0 flex-1">
               {loadErr ? (
                 <ComingSoon
@@ -277,6 +396,10 @@ export function WorkspaceStage() {
                     selectedId={selectedId}
                     onSelect={setSelectedId}
                     artefactos={artefactos}
+                    capa={capa}
+                    mejora={mejoraPorNodo}
+                    totalesPorFase={totalesPorFase}
+                    motivosSinDato={motivosPorNodo}
                   />
                   {/* El drawer pinta algo o NO existe (decisión del operador 2026-07-07,
                       supersede el estado vacío RF-84): sin selección no se monta; ✕ la
@@ -294,6 +417,42 @@ export function WorkspaceStage() {
                 </>
               )}
             </div>
+            {/* H-1 — la lista vive DEBAJO del canvas, como contenido de la página. No es un
+                panel flotante ni un modal, y no puede colgar del nodo (el nodo YA es un
+                `<button>`). */}
+            {capa === "mejora" && (
+              <PuntosMejoraList
+                estado={mejEstado}
+                puntos={puntos}
+                detectores={noMedidos.length > 0 ? noMedidos : undefined}
+                corridas={resumen?.corridas ?? 0}
+                cajaSeleccionada={selectedId}
+                onDescartar={() => setNonce((n) => n + 1)}
+                onProponer={() => setNonce((n) => n + 1)}
+                onReintentar={() => setNonce((n) => n + 1)}
+                error={mejError}
+              />
+            )}
+            {/* H-5 — el diálogo vive detrás del enlace «qué guardamos» de la franja. */}
+            {politicaAbierta && viewedId && (
+              <PoliticaDatosDialog
+                arnes={viewedId}
+                camposPersistidos={CAMPOS_PERSISTIDOS_HOOK}
+                retencionDias={90}
+                retencionPropuesta
+                corridasPorBorrar={resumen?.corridas ?? 0}
+                onBorrar={() => {
+                  api
+                    .telemetriaBorrarArnes(viewedId)
+                    .finally(() => {
+                      setPoliticaAbierta(false)
+                      setNonce((n) => n + 1)
+                    })
+                    .catch(() => undefined)
+                }}
+                onCerrar={() => setPoliticaAbierta(false)}
+              />
+            )}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { ArnesNode, type Box } from "@/entities/arnes"
 import { ActivationChip } from "./activation-chip"
+import type { MejoraNodo } from "./lane"
 import { RulesSubband } from "./rules-subband"
 
 // BaseBand is the `base` band of the Base region (mockup:363-394, RF-40/43): it splits its
@@ -11,16 +12,24 @@ interface BaseBandProps {
   nodes: Box[]
   related?: ReadonlySet<string> | undefined
   selectedId?: string | undefined
+  /** Props primitivas de la capa Mejora, ya compuestas por el widget (D18). */
+  mejora?: ReadonlyMap<string, MejoraNodo> | undefined
   onSelect?: ((id: string) => void) | undefined
 }
 
-export function BaseBand({ nodes, related, selectedId, onSelect }: BaseBandProps) {
+export function BaseBand({ nodes, related, selectedId, onSelect, mejora }: BaseBandProps) {
   const rules = nodes.filter((n) => n.clase === "rule")
   const rest = nodes.filter((n) => n.clase !== "rule")
 
   return (
     <div className="band base-band">
-      <RulesSubband rules={rules} related={related} selectedId={selectedId} onSelect={onSelect} />
+      <RulesSubband
+        rules={rules}
+        related={related}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        mejora={mejora}
+      />
       {rest.length > 0 && (
         <div className="subband">
           <div className="subband-hd static">
@@ -35,6 +44,7 @@ export function BaseBand({ nodes, related, selectedId, onSelect }: BaseBandProps
                   box={b}
                   dim={related !== undefined && !related.has(b.id)}
                   selected={b.id === selectedId}
+                  {...mejora?.get(b.id)}
                   onSelect={onSelect}
                 />
               </div>

@@ -11,6 +11,13 @@ import {
   selectArtefactos,
   selectBandaDesconocida,
 } from "@/entities/arnes"
+import {
+  CAJAS_ILUSTRATIVAS,
+  type CifraCaja,
+  MarcaConfianza,
+  MOTIVO_SIN_DATO,
+} from "@/entities/telemetria"
+import type { Capa } from "../model/layers"
 import { MapCanvas } from "./map-canvas"
 
 // Story = test: the full map surface. This is the fitness fixture of record — the signed mockup
@@ -217,5 +224,123 @@ export const ArtefactosCobranzaPagar: Story = {
       el.getAttribute("data-node-id")?.startsWith("art-factura.pdf"),
     )
     await expect(facturas.length).toBe(1)
+  },
+}
+
+// ══ Capa «Mejora» (paquete 2026-07-24, T37) ═══════════════════════════════════════════════
+//
+// Este widget es **el único que puede importar las DOS entities** (`arnes` y `telemetria`),
+// porque widgets→entities es la dirección legal. Por eso vive acá la composición
+// `CifraCaja → props primitivas` (D18) y por eso vive acá el candado del copy.
+
+const cifrasDogfood = new Map<string, CifraCaja>(CAJAS_ILUSTRATIVAS.map((c) => [c.caja_id, c]))
+
+const motivosDogfood = new Map<string, string>([
+  ["std-spec", MOTIVO_SIN_DATO["rule"] as string],
+  ["hook-posttooluse", MOTIVO_SIN_DATO["hook"] as string],
+  ["hook-stop", MOTIVO_SIN_DATO["hook"] as string],
+])
+
+// RF-245 · T-16 — **la geografía es la misma**. Los seis asserts de `Dogfood` se repiten
+// idénticos y además el conteo de nodos, carriles y edges es el mismo: la capa AGREGA, no
+// rediseña. Si la capa moviera un nodo, esta story lo caza.
+export const CapaMejoraSupersetGeografia: Story = {
+  args: { capa: "mejora", mejora: cifrasDogfood, motivosSinDato: motivosDogfood },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // Los 6 asserts de `Dogfood`, textuales.
+    await expect(c.getByText("escribir el spec")).toBeInTheDocument()
+    await expect(c.getByText("construir contra el spec")).toBeInTheDocument()
+    await expect(c.getByText("idea → spec")).toBeInTheDocument()
+    await expect(c.getByText("estándar de spec")).toBeInTheDocument()
+    await expect(c.getByText("PostToolUse · Write|Edit")).toBeInTheDocument()
+    await expect(c.getByText("Stop")).toBeInTheDocument()
+    // …y la geografía, contada.
+    await expect(canvasElement.querySelectorAll(".node")).toHaveLength(devFullCycle.nodos.length)
+    await expect(canvasElement.querySelectorAll(".lane").length).toBeGreaterThan(0)
+    await expect(canvasElement.querySelectorAll("svg path").length).toBeGreaterThan(0)
+  },
+}
+
+// RF-238 · RF-244 · T-17 — **solo las cajas llevan cifra**. Todo lo demás dice por qué no, y
+// **ninguno muestra un 0**: un cero en un hook afirmaría que el hook corrió y no consumió.
+export const CapaMejoraSoloCajasLlevanCifra: Story = {
+  args: { capa: "mejora", mejora: cifrasDogfood, motivosSinDato: motivosDogfood },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll(".mej-cifra")).toHaveLength(4)
+    for (const id of ["std-spec", "hook-posttooluse", "hook-stop"]) {
+      const nodo = canvasElement.querySelector(`[data-node-id="${id}"]`) as HTMLElement
+      await expect(nodo).not.toBeNull()
+      await expect(nodo.querySelector(".mej-cifra")).toBeNull()
+      await expect(nodo.querySelector(".mej-share")).toBeNull()
+      await expect(nodo.textContent).toContain("sin dato atribuible")
+      await expect(nodo.textContent).not.toMatch(/USD|0,00/)
+    }
+  },
+}
+
+// RF-245 — conmutar ida y vuelta **no pierde la selección** y **no deja rastro** de la capa.
+// Un `.mej-cifra` sobreviviente sería un número viejo pintado sobre la capa estructura.
+export const ConmutarNoPierdeSeleccion: Story = {
+  render: () => {
+    const [capa, setCapa] = useState<Capa>("estructura")
+    return (
+      <div style={{ height: 620 }}>
+        <button
+          type="button"
+          data-testid="conmutar"
+          onClick={() => setCapa((x) => (x === "estructura" ? "mejora" : "estructura"))}
+        >
+          conmutar
+        </button>
+        <MapCanvas
+          graph={devFullCycle}
+          capa={capa}
+          selectedId="spec-writer"
+          mejora={cifrasDogfood}
+          motivosSinDato={motivosDogfood}
+        />
+      </div>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const seleccionado = () =>
+      canvasElement.querySelector('[data-node-id="spec-writer"]') as HTMLElement
+    await expect(seleccionado()).toHaveAttribute("aria-pressed", "true")
+    await expect(canvasElement.querySelectorAll(".mej-cifra")).toHaveLength(0)
+    await c.getByTestId("conmutar").click()
+    await expect(canvasElement.querySelectorAll(".mej-cifra").length).toBeGreaterThan(0)
+    await expect(seleccionado()).toHaveAttribute("aria-pressed", "true")
+    await c.getByTestId("conmutar").click()
+    await expect(canvasElement.querySelectorAll(".mej-cifra")).toHaveLength(0)
+    await expect(seleccionado()).toHaveAttribute("aria-pressed", "true")
+  },
+}
+
+// 🔒 **EL CANDADO DE D18.** El chip de confianza del nodo (que recibe el copy por PROP, porque
+// `entities/arnes` no puede importar `entities/telemetria`) tiene que decir EXACTAMENTE lo
+// mismo que `<MarcaConfianza>`. Vive acá porque este widget es el único que puede importar las
+// dos entities. Si alguien edita un literal y no el otro, CI se rompe.
+export const CopyConfianzaEsUnaSola: Story = {
+  render: () => (
+    <div style={{ height: 620 }}>
+      <div data-testid="referencia">
+        <MarcaConfianza confianza="por-hash" />
+      </div>
+      <MapCanvas graph={devFullCycle} capa="mejora" mejora={cifrasDogfood} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const referencia = canvasElement.querySelector(
+      "[data-testid='referencia'] [data-confianza]",
+    ) as HTMLElement
+    const enElNodo = canvasElement.querySelector(
+      '[data-node-id="builder"] [data-confianza="por-hash"]',
+    ) as HTMLElement
+    await expect(referencia).not.toBeNull()
+    await expect(enElNodo).not.toBeNull()
+    await expect(enElNodo.textContent).toBe(referencia.textContent)
+    await expect(enElNodo.getAttribute("title")).toBe(referencia.getAttribute("title"))
   },
 }

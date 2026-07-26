@@ -54,6 +54,8 @@ pointers:
   - "web/src/widgets/map-canvas/ui/inspector.tsx#Inspector"
   - "web/src/widgets/map-canvas/ui/politica-datos-dialog.tsx#PoliticaDatosDialog"
   - "web/src/entities/telemetria/testing/telemetria.ts#CAMPOS_PERSISTIDOS_HOOK"
+  - "web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas"
+  - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
@@ -68,6 +70,7 @@ valida:
   - "web/src/widgets/map-canvas/ui/inspector-mejora.stories.tsx"
   - "web/src/widgets/map-canvas/ui/inspector.stories.tsx"
   - "web/src/widgets/map-canvas/ui/politica-datos-dialog.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/map-canvas.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -238,6 +241,30 @@ change_log:
       (S1-D19): cerrarlo dejaría una operación en vuelo sin dónde reportar su resultado.
       Focus trap con `trapTabKeyDown`, sin portal (el contenido vive inline para que la story lo
       vea, patrón sancionado en `shared/lib/focus-trap.ts`). 8 stories, gate a11y en `error`.
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T37 — transporte y composición. `workspace-stage.tsx` es el dueño del estado de la capa y
+      de la ventana, y **el único que hace transporte** (`fe-transporte-independiente`): los
+      widgets reciben props puras. Las tres consultas corren SOLO con la capa encendida — con
+      `estructura` activa no se le pide nada al daemon, que es lo que hace que la capa apagada no
+      cueste nada. `corridas === 0` se pasa como `null`, no como un tablero en cero (RF-269).
+      `map-canvas.tsx` gana `capa`, `mejora`, `totalesPorFase` y `motivosSinDato`, y es acá donde
+      vive la composición `CifraCaja → props primitivas` (D18) — es el único widget que puede
+      importar las DOS entities. **Cero rama de layout**: la geografía es la misma en las cuatro
+      capas, y `CapaMejoraSupersetGeografia` lo asserta repitiendo los 6 asserts de `Dogfood` más
+      el conteo de nodos, carriles y edges. La ventana viaja como `desde`/`hasta` RFC3339, que es
+      lo que `ventanaDeQuery` lee.
+      🔒 **`CopyConfianzaEsUnaSola` es el candado de D18**: el chip del nodo (que recibe el copy
+      por prop) y `<MarcaConfianza>` tienen que decir exactamente lo mismo, texto y `title`. Si
+      alguien edita un literal y no el otro, CI se rompe. Vive acá porque es el único lugar que
+      puede importar las dos entities.
+      §6.2 — **no se agrega ningún contenedor con `overflow` dentro del canvas**: uno solo
+      rompería `useEdgePaths`, que mide posiciones absolutas. Con la capa activa los nodos son
+      ~26 px más altos y `fitView` elige un zoom menor: es el overview-first ya firmado (RF-50).
     merge_sha: null
 
 scenarios:
@@ -436,6 +463,25 @@ scenarios:
       el número mostrado es el inyectado y el `90` del mockup NO está hardcodeado; cuando el
       valor no está firmado, la UI lo dice
     verifica: "RetencionDesdeConfig (politica-datos-dialog.stories.tsx)"
+
+  - id: mejora-la-geografia-no-se-mueve
+    name: "La capa AGREGA; la geografía del canvas no cambia (RF-245 · T-16 · T-17)"
+    given: "el mismo arnés en capa estructura y en capa mejora"
+    when: "se conmuta entre las dos"
+    then: >-
+      el conteo de `.node`, de `.lane` y de paths del EdgeLayer es idéntico y los 6 asserts de la
+      story firmada `Dogfood` se repiten y pasan; solo las 4 cajas llevan cifra y los nodos que no
+      son caja dicen su motivo sin mostrar ningún 0; volver a estructura no pierde la selección ni
+      deja ninguna `.mej-cifra` en el DOM
+    verifica: "CapaMejoraSupersetGeografia · CapaMejoraSoloCajasLlevanCifra · ConmutarNoPierdeSeleccion (map-canvas.stories.tsx)"
+  - id: mejora-copy-de-confianza-es-uno-solo
+    name: "El chip del nodo y <MarcaConfianza> dicen EXACTAMENTE lo mismo (D18, candado 1)"
+    given: "un nodo con atribución por-hash en el canvas y <MarcaConfianza confianza=por-hash> al lado"
+    when: "se comparan sus textos y sus `title`"
+    then: >-
+      son idénticos. El nodo recibe el copy por PROP porque `entities/arnes` no puede importar
+      `entities/telemetria`; si alguien edita un literal y no el otro, esta story se pone roja
+    verifica: "CopyConfianzaEsUnaSola (map-canvas.stories.tsx) · copy de confianza (selectors.test.ts)"
 
 business_rules: []
 related_capabilities:
