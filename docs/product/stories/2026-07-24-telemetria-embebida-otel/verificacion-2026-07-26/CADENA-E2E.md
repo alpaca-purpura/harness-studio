@@ -103,3 +103,51 @@ dentro del binario que el operador instala** y responde ahí — no en un dev se
 La verificación visual de la capa se repite al cerrar el Tramo B, contra un instalador nuevo, y va
 al `PARIDAD.md` junto a [`evidencia/baseline-mapa-antes.png`](evidencia/baseline-mapa-antes.png),
 que es el «antes».
+
+---
+
+## Cierre del Tramo B — la capa, vista en la app instalada (2026-07-26)
+
+```
+make installer  → v0.2.23        make dev-sync → ~/.local/bin/arnesia
+sha256 instalado = sha256 compilado = 70a19f8446fe08a0…
+```
+
+Navegador real contra el binario instalado, arnés `vitalia` (datos reales del operador, que **nunca
+corrió con telemetría**): el conmutador muestra **`Estructura · Mejora · Desempeño · Proceso`**, la
+capa Mejora enciende, y los dos slots que siguen apagados ya no dicen «necesita telemetría» sino el
+motivo real —falta el diseño, no la señal—.
+
+### Lo que la pantalla destapó, y ninguna story podía cazar
+
+**Primera pasada** ([`evidencia/instalada-v0222-capa-mejora.png`](evidencia/instalada-v0222-capa-mejora.png)):
+la franja decía bien *«— — · Este arnés nunca corrió con telemetría»* y doce centímetros más abajo
+la lista afirmaba **«Hay datos y ningún punto de mejora que pase el corte · Los seis detectores
+corrieron sobre 0 corridas»**.
+
+**Dos afirmaciones falsas, cada bloque defendible por separado, contradiciendo al de arriba.** Las
+131 stories no podían verlo: verifican componentes **aislados**, y las dos frases nunca se
+renderizaron juntas.
+
+**Segunda pasada, tras el fix**
+([`evidencia/instalada-v0223-capa-mejora-corregida.png`](evidencia/instalada-v0223-capa-mejora-corregida.png)):
+la sección **no se dibuja** —que es lo que `design.md` §7.4 ya mandaba y la implementación había
+ignorado— y el DOM ya no contiene «Hay datos». La franja manda.
+
+### Lo que deja como norma
+
+1. **El fix fue en la composición, no en el copy**: `hayDatos` pasó de opcional-con-default a
+   **prop obligatoria**, y `tsc` cazó los 6 call-sites. Un default que asume que hay datos miente
+   justo cuando no los hay.
+2. **La condición se verificó revirtiendo el fix**: el candado se puso rojo y reprodujo la captura
+   palabra por palabra, y el **control positivo** quedó verde — así que «esconder siempre la lista»
+   tampoco pasa.
+3. **El mismo patrón estaba en cuatro sitios más** (S2 degradado, el `✓` del Portafolio, la sección
+   vacía del inspector y un umbral `corridas <= 5` escondido en el JSX, que era una decisión de
+   producto tomada a escondidas).
+
+### El hueco que queda abierto, y es estructural
+
+El candado cubre **esta** composición porque la story la reproduce a mano. **`pages/` sigue con 0
+stories en el repo**, y es justo donde se compone. Una composición futura que nadie espeje queda
+ciega igual. Está declarado en `PARIDAD.md`.

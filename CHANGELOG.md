@@ -35,6 +35,22 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Seguridad
 
+## [0.2.23] — 2026-07-26
+
+### Agregado
+- Capa «Mejora» del Mapa: telemetría embebida con ingesta OTLP y hook, costeo con catálogo propio, join dinero×proceso por (sesión,turno), 6 detectores de fuga y superficie en Mapa y Portafolio
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+
+### Seguridad
+- La telemetría se ingiere por allowlist en los dos caminos: no se persiste identidad de cuenta ni contenido de conversación, y la ruta del proyecto se guarda como huella
+
 ## [0.2.22] — 2026-07-26
 
 ### Agregado
