@@ -19,8 +19,12 @@ scenarios:
   - "Elegir carpeta con el diálogo nativo dispara PUT /api/self-update/repo y refresca GET /api/version al confirmar"
   - "Un candidato rechazado por el servidor muestra el motivo exacto inline (repoConfigError), nunca un fallo mudo"
   - "En browser plano (sin Tauri) el botón no existe — el mensaje sigue apuntando a --repo/ARNESIA_REPO"
+  - "RF-231: la tarjeta encabeza con el identificador COMPLETO del build (arnesia v0.2.21.2607260225) y muestra cuándo se compiló; el commit queda debajo, porque es otro dato y no responde «¿corro lo último que compilé?»"
+  - "RF-231: si hay un build más nuevo en disco, el aviso va en la SUPERFICIE (caja warn), no en un title — un número que hay que comparar de memoria contra el último build no sirve"
+  - "RF-231: un build sin sellar lo dice («build sin sellar (dev)») en vez de inventar un número"
 business_rules:
   - "RF-110 (bugfix fix-repo-self-update, 2026-07-13): selector NATIVO de carpeta, no input de texto — gesto real de OS, no scriptable por contenido web"
+  - "RF-231 (2026-07-26): el aviso de build viejo NO puede aparecer cuando el binario que corre es el último — un aviso que aparece siempre no se lee nunca. De ahí el margen entre el sello y el mtime del propio archivo."
 related_capabilities:
   depends_on: []
   enables: []

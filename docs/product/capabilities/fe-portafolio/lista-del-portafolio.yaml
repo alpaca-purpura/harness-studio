@@ -34,11 +34,17 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
   - "web/src/widgets/portafolio/ui/portafolio-list.tsx#PortafolioList"
+  - "web/src/entities/portafolio/model/selectors.ts#filtrarSinOrigen"
+  - "web/src/shared/ui/grupo-control.tsx#GrupoControl"
+  - "web/src/shared/ui/filtro-disclosure.tsx#FiltroDisclosure"
+  - "web/src/shared/lib/toggle-en-set.ts#toggleEnSet"
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
 valida:
   - "web/src/widgets/portafolio/ui/portafolio-list.stories.tsx"
   - "web/src/entities/portafolio/ui/chips.stories.tsx"
   - "web/src/entities/portafolio/model/selectors.test.ts"
+  - "web/src/shared/ui/grupo-control.stories.tsx"
+  - "web/src/shared/ui/filtro-disclosure.stories.tsx"
 
 dev_preview:
   route: "#/portafolio"
@@ -50,7 +56,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-24
+last_modified: 2026-07-25
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D4/S1-D6/S1-D8"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -152,6 +158,13 @@ change_log:
       con la interacción real del disclosure. `SinResultados` ahora limpia búsqueda Y ambos
       filtros con un solo botón ("Limpiar búsqueda y filtros").
     merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      T8/T13 (paquete 2026-07-23): (a) AG-D4 cierra el defecto **L1** de la auditoría — los rótulos de grupo pasan a TEXTO VISIBLE («Ver por» / «Filtros», mayúsculas por CSS) vía la molécula nueva `GrupoControl`, y los `role="group"` + `aria-label` del Slice 1 se CONSERVAN: se agrega afordancia visual sin degradar a11y. Ninguna de las dos «Marketplace» se renombra (con el rubro a la vista se leen sin ambigüedad, y renombrar rompería vocabulario firmado). También vuelve el hint que el código había perdido (**L3**). (b) `FiltroDisclosure` y `toggleEnSet` se PROMUEVEN de privados en `portafolio-list.tsx` a `shared/ui`/`shared/lib`: refactor de MOVIMIENTO, no de conducta — el criterio de éxito es que `FiltroEstadoAcota`/`FiltroMarketplaceAcota` sigan pasando sin tocarlas, y lo hacen. (c) filtro nuevo «sin origen resuelto» (`filtrarSinOrigen`: identidad provisional Y sin «ninguno» confirmado — la misma cuenta que el backend manda en `sin_origen_resuelto`), que prende el contador cruzado del plano Marketplaces; se DECLARA en la superficie con un banner y un «Ver todos», porque un filtro invisible que acota la lista es indistinguible de «no tengo arneses».
+    merge_sha: null
+
 scenarios:
   - id: lista-lente-empresa-agrupa-nm
     name: "Lente empresa agrupa N:M con «sin empresa» al final (G4)"

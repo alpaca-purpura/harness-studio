@@ -1,0 +1,109 @@
+---
+# Capability nueva (paquete 2026-07-25-spike-voz-dictado, RF-230).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.http-sse.diagnostico-de-fallos
+cap_num: CAP-116
+slug: diagnostico-de-fallos
+name: "Diagnóstico de fallos del FE (el WebView deja rastro en el log)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: http-sse
+layer: transport
+verb: infra
+functional_area: "http-sse.diagnostico"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/transport/http/diagnostico.go#postDiagnostico"
+  - "internal/adapters/transport/http/router.go#NewHandler"
+  - "web/src/shared/lib/diagnostico.ts#reportar"
+  - "web/src/shared/lib/diagnostico.ts#instalarCazadorDeErrores"
+valida:
+  - "TestDiagnosticoEscribeElDetalleAlLog"
+  - "TestDiagnosticoSinEventoEsRechazado"
+  - "TestDiagnosticoIlegibleEsRechazado"
+  - "TestDiagnosticoSinOrigenSeAceptaYSeMarca"
+  - "TestDiagnosticoRecortaLasClaves"
+  - "TestDiagnosticoAcotaElCuerpo"
+  - "TestDiagnosticoVivoSinDictadoCableado"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /api/diagnostico"
+  e2e_test: null
+created_in_story: 2026-07-25-spike-voz-dictado
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-25-spike-voz-dictado/spec.md RF-230"
+change_log:
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-26
+    type: new
+    summary: "El FE puede dejar rastro de sus fallos en el log del daemon. Nace de un bug real: el MediaRecorder de WebKitGTK entregó 0 bytes durante toda la v0.2.20 sin emitir error, y del incidente solo quedaba la frase que el operador leyó en pantalla."
+    merge_sha: null
+scenarios:
+  - id: fallo-del-fe-queda-escrito
+    name: "El FE falla y el fallo queda en el log"
+    status: live
+    given: "la app corriendo en el WebView, sin devtools"
+    when: "una parte del FE falla (un dictado sin audio, un error de render, una promesa rechazada)"
+    then: "el detalle del fallo —con las variables que lo explican— queda escrito en el log del daemon, sin que el operador tenga que hacer nada"
+    verifica: "TestDiagnosticoEscribeElDetalleAlLog"
+  - id: el-diagnostico-no-agrega-un-segundo-error
+    name: "El reporte del fallo falla"
+    status: live
+    given: "un fallo del FE ya mostrado en la superficie"
+    when: "el POST del diagnóstico no llega o el daemon lo rechaza"
+    then: "no pasa nada visible: el operador sigue viendo el fallo real y la app no encadena un segundo error encima del primero"
+    verifica: "web/src/shared/lib/diagnostico.ts#reportar"
+  - id: sin-servicio-igual-reporta
+    name: "Falla el arranque"
+    status: live
+    given: "un daemon donde el resto de los servicios todavía no está cableado"
+    when: "el FE reporta un fallo"
+    then: "el endpoint responde igual: el primer fallo que hay que poder diagnosticar es el del arranque"
+    verifica: "TestDiagnosticoVivoSinDictadoCableado"
+business_rules:
+  - id: el-diagnostico-no-sale-de-la-maquina
+    rule: "El destino del diagnóstico es el daemon en loopback y de ahí un archivo local. NUNCA sale a Internet. La telemetría de producto (OTel, HS-27) es otro paquete, otra decisión y otro destino: esto no la adelanta ni la reemplaza."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: detalle-libre-nunca-contrato
+    rule: "El campo `detalle` es libre y se loguea tal cual; nadie parsea su forma como contrato. Encorsetarlo en un schema fijo haría que la próxima falla desconocida no tuviera dónde contarse."
+    enforcement: ["docs/architecture/boundaries/conductor-no-parsea-jsonl.md"]
+    severity: medium
+  - id: el-diagnostico-no-puede-romper-nada
+    rule: "Reportar un fallo nunca lanza, nunca bloquea y está acotado por tope de tamaño y de frecuencia. Un diagnóstico que rompe el flujo que estaba diagnosticando no sirve."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/spec.md#rf-230"]
+    severity: high
+related_capabilities:
+  depends_on:
+    - arnesia.cli-daemon.log-del-daemon
+    - arnesia.http-sse.confinamiento-de-superficie-local
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Diagnóstico de fallos del FE
+
+La app instalada corre en un WebView **sin devtools**: su `console.error` no va a ningún lado. El
+daemon es el único proceso de la app que escribe a disco, así que es el único que puede dejar
+rastro de un fallo del navegador.
+
+## El incidente que lo trajo
+
+`MediaRecorder` de WebKitGTK 2.52.3 dice soportar `audio/mp4`, arranca, y entrega **0 bytes sin
+emitir `error`**. Vivió así toda la v0.2.20. Lo único que quedaba del incidente era la frase que el
+operador leyó en pantalla («No se grabó nada»); reconstruirlo costó levantar un WebView aparte con
+`GST_DEBUG` para leer el log de GStreamer que la app se tragaba.
+
+Con este endpoint, el mismo fallo llega al log con las variables que lo explican —bloques, muestras,
+pico, hz, mime, bytes— y se arregla leyendo un archivo.
+
+## Lo que NO es
+
+No es telemetría de producto. No sale de la máquina, no mide uso, no tiene backend. Es el log de la
+casa: loopback → archivo local del usuario.

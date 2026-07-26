@@ -1,0 +1,162 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.plano-marketplaces
+cap_num: CAP-107
+slug: plano-marketplaces
+name: "Plano Marketplaces (plano hermano de Arneses, filas honestas, contador cruzado)"
+status: parcial         # FE construido y validado por stories (T8-T13/T20); el E2E vivo espera el backend + la firma 🧑‍⚖️ de PARIDAD.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: observar
+functional_area: "fe-portafolio.marketplaces"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
+  - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
+  - "web/src/shared/api/client.ts#listPortafolio"
+  - "web/src/entities/marketplace/model/types.ts#MarketplaceConocido"
+  - "web/src/entities/marketplace/model/types.ts#EstadoLectura"
+  - "web/src/entities/marketplace/model/selectors.ts#textoDeLectura"
+  - "web/src/entities/marketplace/model/selectors.ts#esNavegable"
+  - "web/src/entities/marketplace/model/selectors.ts#accionDeFila"
+  - "web/src/entities/marketplace/model/selectors.ts#ordenarMarketplaces"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#mkPrenterPropio"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#mkSinAcceso"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#mkNoLeido"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#mkConDiscrepancia"
+  - "web/src/entities/marketplace/model/selectors.test.ts#textoDeLectura"
+  - "web/src/entities/marketplace/model/selectors.test.ts#ordenarMarketplaces"
+  - "web/src/entities/marketplace/ui/chips.tsx#ClaseChip"
+  - "web/src/entities/marketplace/ui/chips.tsx#EstadoLecturaChip"
+  - "web/src/widgets/marketplace/ui/marketplace-list.tsx#MarketplaceList"
+  - "web/src/shared/api/client.ts#listMarketplaces"
+  - "web/src/shared/api/client.ts#leerCatalogo"
+valida:
+  - "web/src/widgets/marketplace/ui/marketplace-list.stories.tsx"
+  - "web/src/entities/marketplace/ui/chips.stories.tsx"
+  - "web/src/entities/marketplace/model/selectors.test.ts"
+
+dev_preview:
+  route: "#/portafolio?plano=marketplaces"
+  how_to_navigate: "rail → Portafolio → pestaña «Marketplaces» (plano hermano de «Arneses», arriba de la lista)"
+  main_component: "web/src/widgets/marketplace/ui/marketplace-list.tsx#MarketplaceList"
+  api_endpoints:
+    - "GET /api/marketplaces"
+    - "POST /api/marketplaces/{nombre}/lecturas"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/decisiones.md AG-D8 (FIRMADA 🧑‍⚖️) + design.md §8"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). AG-D8 reencuadró el plano leyendo la visión:
+      NO es una tienda para navegar (`vision.md` §Qué mutó mata «operar arneses de terceros»;
+      `CLAUDE.md` dice «solo arneses propios») — es EL ESTANTE DE LO QUE VENDEMOS y el espejo de si
+      lo que el cliente tiene coincide. De ahí la partición `propio`/`referencia`, que el borrador
+      previo no tenía y sin la cual el plano degeneraba en gestor universal de plugins. Vive DENTRO
+      de Portafolio (dos planos hermanos conmutables), no como entrada nueva del rail: mismo
+      dominio, comparten el `＋ Agregar`, y el rail ya lleva 4 entradas. Cuatro estados explícitos
+      por fila (`leído hace <t>` · `no leído aún` · `sin acceso` · `url no resuelve`) y ninguno
+      produce un catálogo vacío navegable: una fila no legible NO navega, muestra el motivo y
+      ofrece `Reintentar`/`Leer catálogo`. La fila también trae el contador cruzado «N arneses sin
+      origen resuelto», que es la segunda puerta a la reconciliación (AG-D8 decisión 7). Nota de
+      token: `no leído aún` usa la clase `sin-senal` (transparente + dashed), NUNCA el color de
+      `ok` — «no sé» ≠ «sano»; y `sin acceso` es `--warn` (recuperable: autenticar), no `--crit`.
+    merge_sha: null
+
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      T9/T10/T13 construidos: `entities/marketplace` (tipos espejo del wire de design.md §3.1 + PRESENTADORES puros — la situación la calcula el dominio Go, C1 — + fixtures con shape REAL de esta máquina) y `widgets/marketplace/ui/marketplace-list.tsx` (S2). La fila NO navega si la lectura degradó (`sin-acceso`/`url-no-resuelve`/`no-leido`): muestra el motivo textual y su botón (`Reintentar`/`Leer catálogo`) — jamás un catálogo vacío que se lea como «no tiene arneses» (BR-4). `no-leido` usa la clase `sin-senal` (transparente + dashed), NUNCA el color de `ok`; `sin-acceso` es `--warn`, jamás `--crit`. El contador cruzado «N sin origen resuelto» es la segunda puerta a la reconciliación (conmuta al plano Arneses con `filtrarSinOrigen` prendido). Corruptas + `aviso_detector` en banner VISIBLE sin tapar la lista (BR-11). El transporte (`GET /api/marketplaces`, `POST …/lecturas`) vive SOLO en `portafolio-view.tsx`. `status: parcial` a propósito: los endpoints Go los construye el tramo backend del mismo paquete, y el E2E vivo + la firma de PARIDAD son lo que gradúa a `vivo`. Deuda honesta: el wire de `GET /api/marketplaces` no trae la agregación «N con cambios sin publicar» que dibuja el mockup, así que la celda de pendientes muestra las discrepancias reales (BR-8) y el estado de lectura — tecleársela habría sido la cifra fabricada que este paquete mata.
+    merge_sha: null
+
+scenarios:
+  - id: plano-nace-poblado-no-vacio
+    name: "El plano nace poblado por lo que Claude Code ya conoce"
+    given: "un `known_marketplaces.json` con entradas y el registro propio vacío"
+    when: "se entra a la pestaña Marketplaces"
+    then: "las filas aparecen con su repo, clase, nº de entradas de catálogo y estado de lectura — no hay un estado vacío «registrá tu primer marketplace»"
+    verifica: "story MarketplacesConDatos (marketplace-list.stories.tsx) · E-01 de plan-pruebas.md"
+  - id: plano-fila-no-legible-no-navega
+    name: "Una fila que no se pudo leer NO navega a un catálogo vacío (BR-4)"
+    given: "una fila `sin acceso` y una `no leído aún`"
+    when: "se renderiza el plano"
+    then: "ninguna de las dos es clickeable al catálogo: cada una muestra su motivo textual y su botón (`Reintentar` / `Leer catálogo`) — un catálogo vacío se leería como «no tiene arneses»"
+    verifica: "stories MarketplaceSinAcceso · MarketplaceNoLeido"
+  - id: plano-sin-senal-nunca-es-verde
+    name: "`no leído aún` nunca reusa el color de `ok`"
+    given: "una fila sin lectura previa"
+    when: "se pinta su estado"
+    then: "usa la clase `sin-senal` (transparente + borde dashed sobre `--muted-foreground`), estructuralmente distinta de la de `ok`"
+    verifica: "story MarketplaceNoLeido (assert de clase, mismo criterio que DotSaludTresRamas)"
+  - id: plano-clases-no-simetricas
+    name: "`propio` y `referencia` se distinguen a la vista y no son simétricas"
+    given: "un marketplace propio y uno de referencia, los dos legibles"
+    when: "se renderiza el plano"
+    then: "los dos navegan, pero el de referencia lo hace a un catálogo read-only y su fila lo dice — la partición es visible antes de entrar"
+    verifica: "story MarketplacesDosClases · E-07 de plan-pruebas.md"
+  - id: plano-contador-cruzado
+    name: "El contador «N sin origen resuelto» es la segunda puerta a la reconciliación"
+    given: "N entradas del Portafolio con identidad provisional y sin «ninguno» confirmado"
+    when: "se hace click en el contador"
+    then: "se conmuta al plano Arneses ya filtrado por esas entradas — un solo lugar donde se ejecuta la reconciliación, dos formas de llegar"
+    verifica: "story ContadorCruzadoNavega"
+  - id: plano-degradado-visible-no-modal
+    name: "Registro corrupto y detector ilegible se muestran sin tapar la lista"
+    given: "`corruptas[]` poblado y/o `aviso_detector` presente"
+    when: "se renderiza el plano"
+    then: "banner visible (no modal) y el resto de las filas siguen usables — mismo patrón que el banner de corruptas de la lista de arneses (BR-11)"
+    verifica: "story MarketplacesConCorruptas · E-68/E-75 de plan-pruebas.md"
+
+business_rules:
+  - id: plano-no-es-tienda
+    rule: "El plano Marketplaces es el estante de lo que publicamos y el espejo de la coincidencia con el cliente; no es un gestor universal de plugins ni una tienda para navegar arneses ajenos."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: critical
+  - id: fila-inalcanzable-muestra-motivo
+    rule: "Un marketplace inalcanzable muestra motivo textual y no navega; jamás una lista vacía que parezca «no tiene arneses»."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: transporte-solo-en-la-pagina
+    rule: "`MarketplaceList` recibe props puras y callbacks; el fetch/refetch/AbortController viven en `pages/shell/ui/portafolio-view.tsx`."
+    enforcement: ["docs/architecture/boundaries/fe-transporte-independiente.md"]
+    severity: high
+  - id: entidad-marketplace-no-cruza-a-portafolio
+    rule: "`entities/marketplace` no importa `entities/portafolio`: los átomos compartidos (`DotSaludPortafolio`) los importa el WIDGET — un cross-import entity↔entity rompe `steiger fsd/no-cross-imports`, que corre dentro de `pnpm run verify`."
+    enforcement: ["docs/architecture/boundaries/fe-topologia-fsd.md", "docs/architecture/boundaries/fe-taxonomia-componentes.md"]
+    severity: high
+
+related_capabilities:
+  depends_on: [arnesia.http-sse.superficie-marketplaces, arnesia.portafolio.registrar-marketplace]
+  enables: [arnesia.fe-portafolio.catalogo-de-marketplace, arnesia.fe-portafolio.resolver-origen-dialogo]
+  similar: [arnesia.fe-portafolio.lista-del-portafolio]
+  obsoletes: []
+---
+
+# Plano Marketplaces (plano hermano de Arneses, filas honestas, contador cruzado)
+
+Superficie S2 del paquete. Dos planos hermanos conmutables arriba de la lista: **Arneses**
+(default, la superficie firmada del Slice 1, sin cambios de fondo) y **Marketplaces** (nuevo).
+
+Lo que hace que este plano no sea decorativo: **es el único lugar donde caben las conversaciones
+contra el marketplace `home`** — publicar, update-check y reparar (ítems 3-5 del outcome) son todas
+eso, y hasta ahora no había dónde ponerlas. Este paquete construye la superficie y el cálculo
+honesto de la situación; la ejecución de las tres es su propio paquete con su propio gate.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter. Ojo con el riesgo #1
+del diseño: las moléculas de `shared/ui/` NO pueden importar `entities/*` (`shared-no-upward`, en
+`error`) — son genéricas y el vocabulario de dominio entra por prop.

@@ -1,0 +1,173 @@
+---
+# Capability nueva (paquete 2026-07-25-spike-voz-dictado, V-D3/V-D4 · RF-216..221, RF-226..228).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-chat.dictar-en-el-composer
+cap_num: CAP-115
+slug: dictar-en-el-composer
+name: "Dictar en el composer (grabar → transcribir → ordenar → poblar)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: fe-chat
+layer: fe
+verb: mejorar
+functional_area: "fe-chat.composer"
+user_visible: true
+nature: feature
+pointers:
+  - "web/src/widgets/chat-dock/ui/dictado-button.tsx#DictadoButton"
+  - "web/src/widgets/chat-dock/ui/dictado-button.tsx#VoiceBar"
+  - "web/src/widgets/chat-dock/ui/chat-dock.tsx#Composer"
+  - "web/src/shared/store/dictado-store.ts#useDictado"
+  - "web/src/shared/lib/wav.ts#aWav"
+valida:
+  - "toggle corta y libera el micrófono"
+  - "el tope conserva lo grabado y avisa"
+  - "cancelar descarta sin transcribir y deja el composer como estaba"
+  - "el crudo se marca visiblemente"
+  - "una falla no pisa lo que el operador ya había tecleado"
+  - "sin motor el botón queda deshabilitado con motivo"
+  - "un micrófono que no entrega audio se distingue de uno que entrega silencio"
+dev_preview:
+  route: "/"
+  how_to_navigate: "Abrir la app · elegir un frente de trabajo para que aparezca el chat dock · el botón de micrófono está en el composer, a la izquierda del botón de enviar"
+  main_component: "web/src/widgets/chat-dock/ui/dictado-button.tsx"
+  api_endpoints:
+    - "POST /api/sesiones/{id}/dictado"
+    - "GET /api/dictado/disponibilidad"
+  e2e_test: null
+created_in_story: 2026-07-25-spike-voz-dictado
+created_date: 2026-07-25
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-25-spike-voz-dictado/spec.md RF-216..RF-228 · mockups/arnesia-voz-dictado.html"
+change_log:
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-25
+    type: new
+    summary: "Botón de micrófono en el composer: toggle con tope duro, medidor de nivel, etapas con nombre, y el composer poblado editable que NUNCA se auto-envía. Escalera de degradación con motivo siempre visible."
+    merge_sha: null
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-26
+    type: change
+    summary: "La captura deja de usar MediaRecorder (RF-229): en el motor real entregaba 0 bytes sin emitir error. Ahora toma PCM por AudioContext, remuestrea a 16 kHz y arma el WAV en el FE. «No se grabó nada» se parte en dos motivos que se arreglan distinto."
+    merge_sha: null
+scenarios:
+  - id: arranca-un-dictado
+    name: "El operador arranca un dictado"
+    status: live
+    given: "el composer del chat"
+    when: "el operador hace click en el botón de micrófono"
+    then: "empieza a grabar y la interfaz muestra un estado visible de «escuchando…», con el nivel de entrada moviéndose"
+    verifica: "mockups/arnesia-voz-dictado.html §2 «Escuchando»"
+  - id: toggle-corta
+    name: "Cortar el dictado"
+    status: live
+    given: "que se está grabando"
+    when: "el operador hace click de nuevo en el botón de micrófono"
+    then: "la grabación se detiene y el micrófono se libera: ningún track queda vivo"
+    verifica: "toggle corta y libera el micrófono"
+  - id: tope-duro
+    name: "Mic olvidado abierto"
+    status: live
+    given: "que se está grabando"
+    when: "la grabación alcanza el tope de duración (default 3 min)"
+    then: "se detiene sola, sigue el flujo normal con lo grabado hasta ahí (no se descarta), y se le avisa al operador que se cortó por el tope"
+    verifica: "el tope conserva lo grabado y avisa"
+  - id: cancelar
+    name: "El operador se arrepiente"
+    status: live
+    given: "que se está grabando"
+    when: "el operador cancela"
+    then: "la grabación se detiene, el audio se descarta sin transcribir, y el composer queda EXACTAMENTE como estaba antes de grabar"
+    verifica: "cancelar descarta sin transcribir y deja el composer como estaba"
+  - id: composer-poblado
+    name: "Llega el texto limpio"
+    status: live
+    given: "un dictado transcripto y ordenado"
+    when: "la limpieza devuelve el texto"
+    then: "el composer se puebla con ese texto, queda editable con el foco al final, y NO se envía solo: el operador revisa y usa el botón de enviar de siempre"
+    verifica: "mockups/arnesia-voz-dictado.html §4 «Limpio»"
+  - id: crudo-marcado
+    name: "La limpieza falló"
+    status: live
+    given: "un dictado transcripto"
+    when: "la limpieza falla o tarda de más"
+    then: "el composer se puebla con el transcripto CRUDO y se marca visiblemente que quedó sin ordenar; el dictado NO se pierde por una falla del paso opcional"
+    verifica: "el crudo se marca visiblemente"
+  - id: no-pisa-lo-tecleado
+    name: "La transcripción falla"
+    status: live
+    given: "que el operador ya tenía texto escrito en el composer"
+    when: "la transcripción falla o vuelve vacía"
+    then: "se avisa explícitamente nombrando la etapa que falló, y el composer NO se toca"
+    verifica: "una falla no pisa lo que el operador ya había tecleado"
+  - id: sin-audio-se-nombra-la-causa
+    name: "El micrófono no entrega audio"
+    status: live
+    given: "un dictado que se cortó"
+    when: "no llegó ni un bloque, o llegaron bloques con silencio digital"
+    then: "se avisa CUÁL de los dos casos fue —se arreglan distinto— y el composer no se toca; nunca se manda al motor un audio que ya sabemos vacío"
+    verifica: "un micrófono que no entrega audio se distingue de uno que entrega silencio"
+  - id: degradacion-visible
+    name: "No se puede dictar"
+    status: live
+    given: "permiso denegado, o sin dispositivo, o sin motor de STT, o sin formato soportado"
+    when: "el operador mira el composer"
+    then: "el botón queda deshabilitado con el motivo escrito en la superficie —no solo en un title— y NUNCA queda «pensando» para siempre"
+    verifica: "sin motor el botón queda deshabilitado con motivo"
+business_rules:
+  - id: nunca-auto-envia
+    rule: "El composer poblado por dictado NUNCA se auto-envía. El dictado alimenta el tecleo, no lo reemplaza: el operador revisa y aprieta enviar. Auto-enviar convertiría un error de transcripción en un turno real contra su código."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/spec.md#rf-226"]
+    severity: critical
+  - id: crudo-jamas-pasa-por-limpio
+    rule: "Un transcripto sin ordenar se marca visiblemente como crudo. Pasarlo por limpio sería un pass fabricado."
+    enforcement: ["docs/architecture/boundaries/codigo-traza-a-capability.md"]
+    severity: high
+  - id: motivo-en-superficie
+    rule: "Todo estado deshabilitado trae su motivo en la superficie, no solo en un tooltip. Un botón gris sin explicación es un gap escondido."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/spec.md#rf-227"]
+    severity: medium
+  - id: captura-sin-mediarecorder
+    rule: "La captura NO usa MediaRecorder. En WebKitGTK 2.52.3 isTypeSupported('audio/mp4') devuelve true y MIENTE: el recorder arranca y entrega 0 bytes sin emitir error (perfil de encoding con rate=0 → encodebin nunca linkea el pad de audio). Las muestras se toman por AudioContext y el WAV lo arma el FE. Reemplaza a la regla mime-explicito, que se implementó tal cual y no alcanzó."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/spec.md#rf-229", "web/src/shared/lib/wav.test.ts"]
+    severity: critical
+  - id: nada-tapa-un-cuelgue
+    rule: "Toda etapa tiene límite de tiempo y, al vencer, la interfaz sale del estado de carga, dice qué etapa falló y deja el botón usable. Ningún spinner anónimo: el peor modo de falla del spike fue una promesa que nunca resuelve."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/spec.md#rf-228"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.http-sse.superficie-dictado
+    - arnesia.tauri.permiso-de-microfono
+    - arnesia.fe-chat.chat-cc
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Dictar en el composer
+
+El operador habla en vez de escribir. El botón de micrófono entra en el composer **como un botón
+más**, a la izquierda del enviar — sin barra nueva, sin modo aparte, sin tocar el layout de la fila.
+Todo lo vigente (textarea con auto-grow, botón ↑, botón ■ de interrupción, los tres placeholders)
+queda idéntico.
+
+Dibujo: [`mockups/arnesia-voz-dictado.html`](../../../../mockups/arnesia-voz-dictado.html).
+
+## Lo que la superficie tiene que dejar ver
+
+**Las etapas tienen nombre.** «Escuchando…» → «Transcribiendo…» → «Ordenando lo dictado…». No hay
+spinner anónimo, porque el peor modo de falla que encontró el spike fue una promesa que nunca
+resuelve, y un spinner sin nombre es exactamente lo que la haría invisible. La limpieza vale 13-17 s
+contra 2.2 s del STT: se gana su propio escalón visible en vez de esconderse en «procesando».
+
+**El nivel de entrada se mueve.** Un micrófono mudo se ve igual que uno vivo si lo único que hay es
+un punto rojo. El medidor es la señal de que realmente está entrando audio.
+
+**El crudo se distingue del limpio.** Borde `warn` + motivo escrito. Y el escape a crudo está
+disponible **en vivo** durante la limpieza («usar el crudo»): a los 15 s el operador ya sabe si
+quiere seguir esperando.
+
+**Cuatro motivos distintos de no-disponible**, cada uno con su texto: permiso denegado · sin
+dispositivo · sin motor de STT en `$PATH` (con qué instalar) · formato no soportado. Se arreglan de
+maneras distintas, así que decir lo mismo en los cuatro casos sería inútil.

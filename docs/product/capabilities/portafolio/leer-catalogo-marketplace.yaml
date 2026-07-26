@@ -1,0 +1,207 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.leer-catalogo-marketplace
+cap_num: CAP-103
+slug: leer-catalogo-marketplace
+name: "Leer el catálogo de un marketplace (local primero, remoto por gh, caché fechado)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: portafolio
+layer: adapter
+
+verb: observar
+functional_area: "portafolio.marketplaces"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/repo_ref.go#CanonicalizarRepo"
+  - "internal/adapters/portafolio/deriva.go#Referencias"
+  - "internal/domain/portafolio.go#EntradaCorrupta"
+  - "internal/domain/marketplace.go#SourceCatalogo"
+  - "internal/domain/marketplace.go#EntradaCatalogo"
+  - "internal/domain/marketplace.go#Catalogo"
+  - "internal/domain/marketplace.go#EstadoLectura"
+  - "internal/domain/marketplace.go#VersionDeEntrada"
+  - "internal/domain/marketplace.go#AgruparCanales"
+  - "internal/ports/marketplace.go#CatalogoReader"
+  - "internal/ports/marketplace.go#CatalogoValidador"
+  - "internal/ports/marketplace.go#CatalogoCache"
+  - "internal/adapters/marketplace/parse.go"
+  - "internal/adapters/marketplace/catalogo_local.go#LectorLocal"
+  - "internal/adapters/marketplace/catalogo_local.go#LeerCatalogoDeDir"
+  - "internal/adapters/marketplace/catalogo_remoto.go#LectorRemoto"
+  - "internal/adapters/marketplace/cache.go#Cache"
+  - "internal/usecase/marketplace.go#MarketplaceService"
+valida:
+  - "TestLectorLocalPrenterDosEntradas"
+  - "TestEnriquecimientoCatalogoJSON"
+  - "TestSinCatalogoJSONDegradaSinRuido"
+  - "TestLasCuatroFormasDeSource"
+  - "TestSinClavePlugins"
+  - "TestPluginsVacioEsAfirmacion"
+  - "TestJSONCorruptoNoCrashea"
+  - "TestSourceRutaAusenteAvisaSinBorrarFila"
+  - "TestNombreDuplicadoAmbasVisibles"
+  - "TestFilaSinNombreSeDescartaVisible"
+  - "TestOwnerConURL"
+  - "TestDescripcionTopLevelGana"
+  - "TestCatalogoJSONCorruptoAvisaSinRomper"
+  - "TestCatalogoJSONDeOtroMarketplaceSeIgnora"
+  - "TestLectorRemotoGHShimPrenter"
+  - "TestElegirCredencial"
+  - "TestSinViaDeLectura503"
+  - "TestTimeoutEsSinAccesoConMotivo"
+  - "TestTechoDeBytes"
+  - "TestTechoDeEntradasEsVisible"
+  - "TestHostNoGitHub"
+  - "TestGH401EsSinAcceso"
+  - "TestCacheCorruptoNoEsCeroEntradas"
+  - "TestCacheVersionDesconocidaSeDescarta"
+  - "TestCacheRechazaEntradasNil"
+  - "TestCacheSlugSeguroYSinColision"
+  - "TestCacheDosEscriturasConcurrentes"
+  - "TestCatalogoSinRedUsaCacheConCuando"
+  - "TestCatalogoIlegibleNoFabricaVacio"
+  - "TestCacheStaleNoAfirmaEstarAlDia"
+  - "TestVacioRealPisaElCache"
+  - "TestCatalogoSeDevuelveAunqueNoSePuedaCachear"
+  - "TestInstallLocationAusenteCaeARemoto"
+  - "TestInstallLocationSymlink"
+  - "TestSinPermisoDeLectura"
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/marketplaces/{nombre}/catalogo"
+    - "POST /api/marketplaces/{nombre}/lecturas"
+    - "POST /api/marketplaces/validaciones"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/design.md §5 + decisiones.md AG-D10/AG-D13/AG-D14/AG-D15"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      Etapa 4 (implementación, MISMO día que el diseño): el código existe, los punteros del bloque
+      comentado quedaron ACTIVOS y `valida:` lista los checks reales que corren en CI. Estado
+      `stub → parcial`: `parcial` y no `vivo` porque el **gate humano 🧑‍⚖️ de PARIDAD sigue
+      pendiente** — el criterio del repo es que solo el operador gradúa a `vivo`, y un `vivo`
+      auto-declarado sería exactamente el estado fabricado que R4 mata.
+    merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). Cuatro hechos de la máquina real que el
+      lector TIENE que respetar y que ninguna decisión previa había capturado: (a) el archivo
+      vive en `.claude-plugin/marketplace.json`, no en la raíz (AG-D10); (b) `plugins[].source`
+      tiene CUATRO formas reales — string de ruta relativa (53/273 en el catálogo oficial) y
+      objeto `git-subdir`/`url`/`github` (220/273) — así que AG-D10 «source es una ruta
+      relativa» valía para prenter y no para el 80 % del oficial (AG-D13); (c) `version` SÍ es
+      campo estándar (259 `null` + 14 semver reales, y hay `$schema` oficial), de modo que BR-2
+      pasa de derivación exclusiva a PRECEDENCIA con procedencia anotada: campo > último
+      segmento semver de la ruta > ausente (AG-D14); (d) el catálogo oficial son 273 filas /
+      159 KB, no 41 (AG-D16) — lo que hace del caché un requisito de O(1) por fila del plano, no
+      un confort offline. Política: local primero (checkout que CC ya mantiene: cero red,
+      offline), remoto por `gh api` como fallback (la app es CONDUCTOR: invoca el CLI ya
+      autenticado del operador, jamás proxya un login ni guarda una credencial). Degradado:
+      lectura fallida con caché ⇒ el caché + el motivo + el `cuando` viejo; sin caché ⇒
+      `entradas: null` (NUNCA `[]`) + motivo. `catalogo.json` (convención de prenter, no
+      estándar) enriquece si existe y degrada sin ruido si no.
+    merge_sha: null
+
+scenarios:
+  - id: cat-local-primero-offline
+    name: "El catálogo se lee del checkout local antes que de la red"
+    given: "un marketplace con `install_location` y `.claude-plugin/marketplace.json` en disco"
+    when: "se pide su catálogo"
+    then: "se lee del disco con `fuente: local` — cero red, funciona sin conexión; el remoto solo entra si no hay checkout"
+    verifica: "E-02 de plan-pruebas.md (TestLectorLocalPrenterDosEntradas)"
+  - id: cat-version-nunca-inventada
+    name: "La versión sale del campo o de la ruta; si no, queda ausente (BR-2 + AG-D14)"
+    given: "una fila con `version` declarada, otra con la versión dentro de la ruta del `source`, y otra con ninguna de las dos"
+    when: "se deriva la versión de cada fila"
+    then: "la primera usa el campo (`campo-version`), la segunda la deriva de la ruta (`derivada-de-source`), la tercera queda SIN versión — jamás una versión fabricada, y siempre se puede auditar de dónde salió"
+    verifica: "E-04/E-43 de plan-pruebas.md (TestVersionDeEntradaDerivaDeSource, TestVersionNoSemverEsNoComparable)"
+  - id: cat-ilegible-no-es-vacio
+    name: "Un catálogo que no se pudo leer viaja `null`, nunca `[]` (BR-4)"
+    given: "un marketplace sin acceso (gh no autenticado, 404, permisos) y sin caché previo"
+    when: "se pide su catálogo"
+    then: "`entradas` viaja como `null` con el motivo textual real — una lista vacía se leería como «este marketplace no tiene arneses», el mismo pass fabricado que el criterio G3 mató en el Slice 1"
+    verifica: "E-31/E-33/E-35/E-36/E-54/E-60 de plan-pruebas.md"
+  - id: cat-vacio-real-es-afirmacion
+    name: "Un `plugins: []` REAL sí viaja `[]` y se afirma con fecha"
+    given: "un marketplace cuyo `marketplace.json` declara `plugins: []`"
+    when: "se lee"
+    then: "`entradas: []` con `lectura.tipo: leido` y `entradas: 0` — «leí y no declara ningún arnés, hace 4 min» es una afirmación evidenciada, distinta de «no sé»"
+    verifica: "E-32/E-74 de plan-pruebas.md"
+  - id: cat-cache-dice-cuando
+    name: "La fila siempre dice CUÁNDO se leyó, y nunca finge frescura (BR-3)"
+    given: "un caché de hace 2 días y un remoto que ya avanzó"
+    when: "se pide el catálogo sin refrescar"
+    then: "se muestra el caché con «leído hace 2 días» — el sistema no afirma estar al día; el refresco explícito es el que actualiza"
+    verifica: "E-29/E-63 de plan-pruebas.md"
+  - id: cat-enriquecimiento-opcional
+    name: "`catalogo.json` enriquece si está y degrada sin ruido si no"
+    given: "prenter (con `catalogo.json`) y `claude-plugins-official` (sin él)"
+    when: "se leen los dos catálogos"
+    then: "prenter gana `canales` + `versiones` + `estado_canal` por fila; el oficial queda sin ninguno de los tres y SIN motivo de error — es convención propia, no parte del estándar; un `catalogo.json` presente pero roto SÍ deja aviso"
+    verifica: "E-05/E-06/E-72/E-73 de plan-pruebas.md"
+  - id: cat-recorte-siempre-visible
+    name: "Todo recorte del catálogo es visible"
+    given: "un catálogo que excede el techo de entradas, o filas sin `name`"
+    when: "se lee"
+    then: "las descartadas se cuentan en `truncado` y el motivo lo dice — jamás un recorte silencioso"
+    verifica: "E-40/E-57/E-58 de plan-pruebas.md"
+
+business_rules:
+  - id: catalogo-nunca-vacio-fabricado
+    rule: "Un catálogo no legible viaja con `entradas: null` y motivo textual; solo un `plugins: []` REAL viaja `entradas: []` con su fecha de lectura."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: version-catalogo-nunca-inventada
+    rule: "La versión de una fila del catálogo sale de `plugins[].version` o del último segmento semver de la ruta del `source`; si ninguna aplica, queda ausente con procedencia vacía."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+  - id: catalogo-cacheado-con-fecha
+    rule: "La lectura de catálogo es cacheada con refresco explícito y la fila SIEMPRE informa cuándo se leyó: la app es conductor, no proxy, y sin red el plano tiene que seguir siendo legible."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: high
+  - id: lector-no-escribe-arbol-ajeno
+    rule: "El lector de catálogo nunca escribe en `~/.claude/**` ni en el checkout del marketplace; todo lo que ArnesIA persiste vive bajo `~/.arnesia/`."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: critical
+
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-marketplace]
+  enables: [arnesia.portafolio.situacion-de-catalogo, arnesia.fe-portafolio.catalogo-de-marketplace]
+  similar: [arnesia.portafolio.evaluar-deriva]
+  obsoletes: []
+---
+
+# Leer el catálogo de un marketplace (local primero, remoto por gh, caché fechado)
+
+Traduce el `marketplace.json` **ajeno** a tipos propios y lo deja utilizable sin red. Es la capa
+anti-corrupción del paquete: el formato de Claude Code tiene 4 formas de `source`, 13 claves
+opcionales por fila y dos lugares posibles para la descripción — nada de eso entra crudo al
+dominio (ver `docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md`).
+
+**Mecanismo remoto = `gh api`, no clone shallow.** Un clone del catálogo oficial arrastraría un
+árbol con cientos de directorios de plugin para leer 159 KB, y duplicaría lo que Claude Code ya
+clona en `installLocation`. `gh api` son 1-2 requests, cero escrituras en disco, y —lo cardinal—
+la credencial nunca la tiene ArnesIA: es el CLI del operador el que ya está autenticado
+(auth-terms firmado; precedente en el árbol: `selfupdate/updater.go` y `publish/publisher.go` ya
+hacen shell-out a `git`). El fallback PAT existe y su **selector de credencial es una función
+pura**, testeable sin ningún login real.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.

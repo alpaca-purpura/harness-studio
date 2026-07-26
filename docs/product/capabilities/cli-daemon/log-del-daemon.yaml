@@ -1,0 +1,104 @@
+---
+# Capability nueva (paquete 2026-07-25-spike-voz-dictado, RF-230).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.cli-daemon.log-del-daemon
+cap_num: CAP-117
+slug: log-del-daemon
+name: "Log del daemon a archivo rotativo (el incidente deja rastro)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: cli-daemon
+layer: infra
+verb: infra
+functional_area: "cli-daemon.observabilidad"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/logfile/logfile.go#Writer"
+  - "internal/adapters/logfile/logfile.go#Abrir"
+  - "internal/adapters/logfile/logfile.go#Ruta"
+  - "cmd/arnesia/main.go#activarLog"
+  - "cmd/arnesia/main.go#dosDestinos"
+valida:
+  - "TestEscribeYPersiste"
+  - "TestAbrirCreaElDirPadre"
+  - "TestRotaYConservaUnaGeneracion"
+  - "TestReabrirAppendea"
+  - "TestWriteConcurrenteNoRompe"
+  - "TestWriteTrasCloseNoPanica"
+dev_preview:
+  route: null
+  how_to_navigate: "Correr el daemon y leer ~/.arnesia/logs/arnesia.log (JSON por línea). `arnesia serve --log -` lo apaga y deja solo stderr."
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-25-spike-voz-dictado
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-25-spike-voz-dictado/spec.md RF-230"
+change_log:
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-26
+    type: new
+    summary: "El daemon escribe su log a ~/.arnesia/logs/arnesia.log además de stderr. Hasta acá solo iba a stderr, y la app instalada arranca desde el .desktop del .deb — que no tiene terminal donde mirarlo: un incidente no dejaba rastro."
+    merge_sha: null
+scenarios:
+  - id: la-app-instalada-deja-rastro
+    name: "Algo falla en la app instalada"
+    status: live
+    given: "el daemon lanzado como sidecar desde el .desktop, sin terminal"
+    when: "algo falla"
+    then: "queda escrito en un archivo del disco del operador, no en un stderr que nadie lee"
+    verifica: "TestEscribeYPersiste"
+  - id: el-log-no-crece-para-siempre
+    name: "El log llega al tope"
+    status: live
+    given: "un log que alcanzó su tamaño máximo"
+    when: "se escribe una línea más"
+    then: "rota conservando UNA generación vieja: no se pierde el contexto anterior al incidente ni queda un archivo que nadie puede abrir"
+    verifica: "TestRotaYConservaUnaGeneracion"
+  - id: reiniciar-no-borra-el-incidente
+    name: "El daemon reinicia"
+    status: live
+    given: "un log con el rastro de un incidente"
+    when: "el daemon arranca de nuevo"
+    then: "appendea: un segundo arranque no puede borrar el log del incidente que se está investigando"
+    verifica: "TestReabrirAppendea"
+  - id: sin-archivo-el-daemon-sigue
+    name: "El archivo de log no se puede abrir"
+    status: live
+    given: "un disco lleno o un permiso denegado sobre ~/.arnesia/logs/"
+    when: "el daemon arranca"
+    then: "avisa y sigue con stderr solo: la observabilidad se degrada, el producto no se cae"
+    verifica: "cmd/arnesia/main.go#activarLog"
+business_rules:
+  - id: dos-formatos-a-proposito
+    rule: "stderr va en texto (lo lee una persona en una terminal) y el archivo en JSON (lo lee un grep después de un incidente, y los diagnósticos del FE traen un `detalle` anidado que el handler de texto aplasta). Un io.MultiWriter forzaría un solo formato para los dos."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/spec.md#rf-230"]
+    severity: low
+  - id: el-log-es-local
+    rule: "El log es un archivo del usuario. No se sube, no se envía, no tiene backend. La telemetría de producto (OTel, HS-27) es otro paquete y otra decisión."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+related_capabilities:
+  depends_on: []
+  enables:
+    - arnesia.http-sse.diagnostico-de-fallos
+  similar: []
+  obsoletes: []
+---
+
+# Log del daemon
+
+`~/.arnesia/logs/arnesia.log` — JSON por línea, rota a los 8 MB conservando `arnesia.log.1`.
+Se apaga con `arnesia serve --log -`, se muda con `--log <ruta>` o `$ARNESIA_LOG`.
+
+## Por qué no existía y por qué ahora sí
+
+El daemon logueaba a stderr. En desarrollo eso alcanza —hay una terminal—; en la app instalada el
+sidecar lo lanza el `.desktop` del `.deb` y **ese stderr no lo lee nadie**. La consecuencia se midió
+sola: un bug del dictado vivió una versión entera y lo único que quedó del incidente fue la frase
+que el operador leyó en pantalla.
+
+Con el archivo, el daemon deja además la línea de cada dictado —formato, bytes, milisegundos,
+estado, motor— así que la próxima vez el número está antes de que alguien pregunte.

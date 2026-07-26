@@ -1,0 +1,193 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.situacion-de-catalogo
+cap_num: CAP-104
+slug: situacion-de-catalogo
+name: "Situación de una fila del catálogo (6 ramas, precedencia, acción por clase)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: observar
+functional_area: "portafolio.marketplaces"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#EntradaPortafolio"
+  - "internal/domain/portafolio.go#IdentidadArnes"
+  - "internal/domain/portafolio.go#EstadoDeriva"
+  - "internal/domain/repo_ref.go#CanonicalizarRepo"
+  - "internal/domain/marketplace_situacion.go#TipoSituacion"
+  - "internal/domain/marketplace_situacion.go#SituacionCatalogo"
+  - "internal/domain/marketplace_situacion.go#CalcularSituacion"
+  - "internal/domain/marketplace_situacion.go#CruzarConPortafolio"
+  - "internal/domain/marketplace_situacion.go#CoincidenciaPortafolio"
+  - "internal/domain/marketplace_situacion.go#RegistriesDe"
+  - "internal/domain/marketplace_situacion.go#AccionDeSituacion"
+  - "internal/domain/marketplace_situacion.go#AccionCatalogo"
+  - "internal/domain/marketplace.go#CompararSemver"
+  - "internal/domain/marketplace.go#EsSemver"
+valida:
+  - "TestReferenciaNuncaHabilitaAccion"
+  - "TestSituacionMiCopiaAdelantada"
+  - "TestSituacionEstanteAdelantado"
+  - "TestSituacionEnDerivaGanaAVersion"
+  - "TestSituacionNoComparableSinVersionEstante"
+  - "TestSituacionNoComparableGana"
+  - "TestVersionNoSemverEsNoComparable"
+  - "TestVersionCatalogoNuncaInventada"
+  - "TestPortafolioVacioTodoNoLoTengo"
+  - "TestNCoincidenciasEsNoComparable"
+  - "TestCruceFacetaRegistry"
+  - "TestRenamesCruzaPorNombreAnterior"
+  - "TestCanonicoTraidoCruzaPorHome"
+  - "TestAgruparCanalesMismoSource"
+  - "TestSituacionSeRecalculaAunDesdeElCache"
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/marketplaces/{nombre}/catalogo"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/design.md §6 + spec.md §4.3"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      Etapa 4 (implementación, MISMO día que el diseño): el código existe, los punteros del bloque
+      comentado quedaron ACTIVOS y `valida:` lista los checks reales que corren en CI. Estado
+      `stub → parcial`: `parcial` y no `vivo` porque el **gate humano 🧑‍⚖️ de PARIDAD sigue
+      pendiente** — el criterio del repo es que solo el operador gradúa a `vivo`, y un `vivo`
+      auto-declarado sería exactamente el estado fabricado que R4 mata.
+    merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). Es el ENTREGABLE CENTRAL del paquete: los
+      ítems 3-5 del outcome (Publicar / Actualizar mi copia / Reparar) quedan fuera de alcance,
+      pero lo que este paquete SÍ entrega es el cálculo honesto de la situación que los habilita.
+      Seis ramas con precedencia explícita, y la 6ta (`no-comparable`) es de PRIMERA CLASE: sin
+      ella el sistema tendría que elegir entre mentir (`al-hilo` por defecto) o callarse.
+      `instalaciones-en-deriva` gana a la divergencia de versión porque es un hecho duro de hash
+      al que no le falta ningún insumo; `no-comparable` gana a toda afirmación positiva.
+      Dos decisiones de fondo que el spec no tenía: (a) el cruce por `(home,id)` estricto NO
+      alcanza — la instalación dominante real (`harness@prenter-marketplace` en el caché de CC)
+      no tiene `arnes.l0.json`, así que su identidad es provisional y un cruce por `identidad.home`
+      daría `no-lo-tengo` en TODA la columna; se agregan las vías `faceta-registry` (el registry
+      de la copia resuelve al marketplace) y `rename` (el catálogo renombró la entrada), con el
+      CÓMO anotado y mostrado; (b) `AccionDeSituacion` mapea (situación × clase) → verbo +
+      habilitación + tooltip LITERAL en el dominio, así BR-1 (`referencia` jamás habilita Traer)
+      y BR-10 (todo `disabled` con motivo) quedan en UN lugar testeable y ningún widget puede
+      pintar un botón habilitado por su cuenta.
+    merge_sha: null
+
+scenarios:
+  - id: sit-seis-ramas-con-precedencia
+    name: "Las 6 ramas y su precedencia son una tabla testeada, no una cascada de ifs en la UI"
+    given: "una fila del catálogo y las entradas del Portafolio que le cruzan"
+    when: "se calcula la situación"
+    then: "el orden de evaluación es: integridad del insumo > `instalaciones-en-deriva` > falta de insumo comparable > divergencia de versión > `al-hilo`; `al-hilo` es la ÚLTIMA rama y solo se alcanza cuando ningún insumo falta y ninguna instalación tiene señal"
+    verifica: "E-20/E-21/E-22/E-23 de plan-pruebas.md"
+  - id: sit-no-comparable-gana-a-lo-positivo
+    name: "`no-comparable` gana sobre cualquier afirmación positiva (BR-9)"
+    given: "versión igual al estante pero con una instalación `deriva-no-evaluable` o con aviso"
+    when: "se calcula la situación"
+    then: "el resultado es `no-comparable` con el motivo que dice QUÉ falta — nunca `al-hilo`, porque no se puede afirmar que la copia coincide sin haber podido evaluarla"
+    verifica: "E-23 de plan-pruebas.md (TestSituacionNoComparableGana)"
+  - id: sit-deriva-gana-a-version
+    name: "La deriva por hash gana a la divergencia de versión"
+    given: "una instalación `en-deriva` Y a la vez el estante adelantado"
+    when: "se calcula la situación"
+    then: "gana `instalaciones-en-deriva`: es un hecho de contenido al que no le falta insumo, y es lo más accionable"
+    verifica: "E-22 de plan-pruebas.md (TestSituacionEnDerivaGanaAVersion)"
+  - id: sit-cruce-por-faceta-registry
+    name: "El cruce funciona con identidad provisional, y dice que el cruce fue débil"
+    given: "una entrada `sin-home~harness~…` cuyo `registries` resuelve al marketplace (el caso real dominante)"
+    when: "se cruza el catálogo con el Portafolio"
+    then: "la entrada se ENCUENTRA con `via: faceta-registry`, la UI lo dice («origen no declarado — cruzado por el registry de la copia») y la fila sigue contando en «N sin origen resuelto» — sin esta vía toda la columna diría `no-lo-tengo`"
+    verifica: "E-66 de plan-pruebas.md (TestCruceFacetaRegistry)"
+  - id: sit-n-coincidencias-no-elige
+    name: "Con N coincidencias no se elige ninguna (C-ID-2)"
+    given: "dos entradas del Portafolio que cruzan con la misma fila del catálogo"
+    when: "se calcula la situación"
+    then: "`no-comparable` citando las N claves y mandando a resolver el origen — el sistema nunca junta ni elige identidades por coincidencia parcial"
+    verifica: "E-65 de plan-pruebas.md (TestNCoincidenciasEsNoComparable)"
+  - id: sit-referencia-nunca-habilita
+    name: "Un marketplace de referencia jamás habilita una acción (BR-1)"
+    given: "las 6 situaciones sobre un marketplace de clase `referencia`"
+    when: "se pide la acción de cada una"
+    then: "las 6 devuelven `habilitada: false` con el motivo «no aplica: solo arneses propios» — habilitarlo sería exactamente «operar arneses de terceros», que la visión mata"
+    verifica: "E-07 de plan-pruebas.md (TestReferenciaNuncaHabilitaAccion)"
+  - id: sit-acciones-disabled-con-motivo
+    name: "Publicar / Actualizar / Reparar salen `disabled` con su tooltip literal (BR-10)"
+    given: "un marketplace `propio` en cada una de las situaciones accionables"
+    when: "se pide la acción"
+    then: "el verbo correcto con `habilitada: false` y un motivo que apunta a su ítem del outcome — el tooltip vive en el dominio, así el mismo texto se testea una vez y ningún widget lo reinventa"
+    verifica: "E-20/E-21/E-22 de plan-pruebas.md"
+  - id: sit-portafolio-vacio-no-fabrica-al-hilo
+    name: "Con el Portafolio vacío, todo es `no-lo-tengo`; nada es `al-hilo`"
+    given: "0 entradas persistidas y un catálogo de N filas"
+    when: "se calcula la situación de cada fila"
+    then: "las N dan `no-lo-tengo` y ninguna `al-hilo` — `al-hilo` exige una entrada real, no es el default"
+    verifica: "E-64 de plan-pruebas.md (TestPortafolioVacioTodoNoLoTengo)"
+
+business_rules:
+  - id: situacion-no-comparable-de-primera-clase
+    rule: "Si falta cualquier insumo para comparar (sin versión del estante, sin canónico, versión no-semver, deriva no evaluable, N coincidencias), la situación es `no-comparable` CON motivo; `no-comparable` gana sobre toda afirmación positiva."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: comparacion-nunca-por-string
+    rule: "Dos versiones se comparan como semver o no se comparan: si alguna no parsea, el resultado es `no-comparable` — jamás una comparación de strings (mismo espíritu que «deriva nunca por semver»)."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+  - id: referencia-no-opera
+    rule: "`AccionDeSituacion` devuelve `habilitada: false` para clase `referencia` en TODA rama, sin excepción."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: critical
+  - id: situacion-no-se-calcula-en-el-widget
+    rule: "La situación se calcula en el dominio y viaja en el wire; el FE la PRESENTA (etiqueta/tono/acción) y no la re-deriva — además, cruzarla en el FE exigiría un cross-import entity↔entity que `steiger` prohíbe."
+    enforcement: ["docs/architecture/boundaries/fe-topologia-fsd.md", "docs/architecture/boundaries/fe-transporte-independiente.md"]
+    severity: high
+
+related_capabilities:
+  depends_on:
+    - arnesia.portafolio.leer-catalogo-marketplace
+    - arnesia.portafolio.registrar-identidad
+    - arnesia.portafolio.evaluar-deriva
+  enables: [arnesia.fe-portafolio.catalogo-de-marketplace]
+  similar: [arnesia.portafolio.resolver-origen]
+  obsoletes: []
+---
+
+# Situación de una fila del catálogo (6 ramas, precedencia, acción por clase)
+
+El **espejo** del modelo de AG-D8: dice si lo que el cliente tiene coincide con lo que
+publicamos. Es lo que desbloquea los ítems 3-5 del outcome sin superficie nueva — y lo único de
+esos tres que este paquete construye.
+
+Dos cosas que hay que leer juntas:
+
+1. **La precedencia es el orden de la tabla, no una preferencia estética.** `al-hilo` es la última
+   fila a propósito: se llega ahí solo cuando ningún insumo falta y ninguna instalación tiene
+   señal. Eso es «no sé» ≠ «sano» hecho estructura de control.
+2. **El cruce de identidad tiene tres vías porque el dato real las necesita.** La instalación
+   dominante en esta máquina (`harness@prenter-marketplace` en el caché de Claude Code) **no
+   tiene `arnes.l0.json`**: su identidad es provisional. Un cruce estricto por `identidad.home`
+   habría dado `no-lo-tengo` en la columna entera — un pass fabricado al revés. La vía
+   `faceta-registry` lo resuelve **y se declara como cruce débil**, que es justo lo que la
+   reconciliación (S7) existe para convertir en `home-declarado`.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.

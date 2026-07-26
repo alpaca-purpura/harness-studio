@@ -1,0 +1,57 @@
+#!/bin/sh
+# Shim de `git` para el camino B (E-81/E-83/E-84/E-85/E-97/E-98/E-99). Reproduce la SECUENCIA REAL
+# capturada en vivo contra 42Crunch-AI/claude-plugins el 2026-07-25 y se controla por env:
+#   ARNESIA_SHIM_LOG        archivo donde se apendea cada invocación (argv completo, una por línea)
+#   ARNESIA_SHIM_SHA        lo que devuelve `rev-parse HEAD`
+#   ARNESIA_SHIM_SUBRUTA    subruta a materializar en el work tree en `checkout`
+#   ARNESIA_SHIM_FETCH_ERR  stderr con el que falla el PRIMER fetch (exit 128); vacío = éxito
+#   ARNESIA_SHIM_FETCH_ERR2 stderr con el que falla el SEGUNDO fetch; vacío = éxito
+#   ARNESIA_SHIM_BYTES      tamaño en bytes del archivo grande que `checkout` materializa
+#   ARNESIA_SHIM_SLEEP      segundos que duerme el fetch (test de timeout)
+[ -n "$ARNESIA_SHIM_LOG" ] && printf '%s\n' "$*" >> "$ARNESIA_SHIM_LOG"
+
+work=""
+sub=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -C) work="$2"; shift 2 ;;
+    -c) shift 2 ;;
+    *) sub="$1"; shift; break ;;
+  esac
+done
+
+case "$sub" in
+  init|remote|sparse-checkout)
+    exit 0 ;;
+  fetch)
+    [ -n "$ARNESIA_SHIM_SLEEP" ] && sleep "$ARNESIA_SHIM_SLEEP"
+    contador="${ARNESIA_SHIM_LOG}.fetch"
+    n=$(cat "$contador" 2>/dev/null || echo 0)
+    n=$((n + 1)); printf '%s' "$n" > "$contador"
+    if [ "$n" -eq 1 ] && [ -n "$ARNESIA_SHIM_FETCH_ERR" ]; then
+      printf '%s\n' "$ARNESIA_SHIM_FETCH_ERR" >&2; exit 128
+    fi
+    if [ "$n" -eq 2 ] && [ -n "$ARNESIA_SHIM_FETCH_ERR2" ]; then
+      printf '%s\n' "$ARNESIA_SHIM_FETCH_ERR2" >&2; exit 128
+    fi
+    exit 0 ;;
+  checkout)
+    # cone mode arrastra los archivos de la RAÍZ del repo ajeno (hecho 7 de §13.1): el shim los
+    # materializa a propósito, para que el test verifique que el staging NO se los lleva.
+    printf 'README del repo AJENO\n' > "$work/README.md"
+    mkdir -p "$work/.git" && printf 'ref: refs/heads/main\n' > "$work/.git/HEAD"
+    destino="$work"
+    [ -n "$ARNESIA_SHIM_SUBRUTA" ] && destino="$work/$ARNESIA_SHIM_SUBRUTA"
+    mkdir -p "$destino/skills" "$destino/references"
+    printf '# skill del arnes\n' > "$destino/skills/SKILL.md"
+    printf 'referencia\n' > "$destino/references/nota.md"
+    printf '#!/bin/sh\n' > "$destino/run.sh" && chmod 755 "$destino/run.sh"
+    if [ -n "$ARNESIA_SHIM_BYTES" ]; then
+      head -c "$ARNESIA_SHIM_BYTES" /dev/zero | tr '\0' 'x' > "$destino/grande.bin"
+    fi
+    exit 0 ;;
+  rev-parse)
+    printf '%s\n' "${ARNESIA_SHIM_SHA:-0000000000000000000000000000000000000000}"
+    exit 0 ;;
+esac
+exit 1

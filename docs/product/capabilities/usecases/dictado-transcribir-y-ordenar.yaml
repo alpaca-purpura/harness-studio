@@ -1,0 +1,147 @@
+---
+# Capability nueva (paquete 2026-07-25-spike-voz-dictado, V-D1/V-D2/V-D4/V-D5/V-D7).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.dictado-transcribir-y-ordenar
+cap_num: CAP-113
+slug: dictado-transcribir-y-ordenar
+name: "Dictado: transcribir y ordenar con contexto de dominio"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: usecases
+layer: usecase
+verb: mejorar
+functional_area: "usecases.dictado"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/ports/dictado.go#TranscriptionPort"
+  - "internal/ports/dictado.go#LimpiezaPort"
+  - "internal/usecase/dictado_service.go#DictadoService"
+  - "internal/usecase/dictado_service.go#Dictar"
+  - "internal/usecase/dictado_service.go#contextoDeLimpieza"
+  - "internal/adapters/stt/local/local.go#Adapter"
+  - "internal/adapters/stt/local/local.go#Detectar"
+  - "internal/adapters/agent/claudecode/limpieza.go#Limpiador"
+  - "internal/adapters/agent/claudecode/limpieza.go#LimpiezaArgs"
+  - "internal/adapters/agent/claudecode/limpieza.go#PromptLimpieza"
+valida:
+  - "TestDictarDevuelveLimpioCuandoLaLimpiezaAnda"
+  - "TestDictarCaeACrudoSiLaLimpiezaFalla"
+  - "TestDictarNoInventaTextoSiLaTranscripcionVuelveVacia"
+  - "TestContextoDeLimpiezaRecortaAUltimosTurnos"
+  - "TestContextoDeLimpiezaNoMandaLaConversacionEntera"
+  - "TestDisponibilidadReportaMotivoSinMotor"
+  - "TestAdapterLocalEligeElPrimerMotorDelPath"
+  - "TestAdapterLocalBorraElTemporal"
+  - "TestSpawnDeLimpiezaVaEndurecido"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /api/sesiones/{id}/dictado"
+    - "GET /api/dictado/disponibilidad"
+  e2e_test: null
+created_in_story: 2026-07-25-spike-voz-dictado
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-25-spike-voz-dictado/spike-spec.md §1.5 · §1.8"
+change_log:
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-25
+    type: new
+    summary: "El motor de STT vive detrás de TranscriptionPort (V-D1: A2 local, adaptador por PATH). La limpieza es un spawn endurecido texto→texto que recibe glosario + últimos turnos y corrige hasta los errores del STT."
+    merge_sha: null
+scenarios:
+  - id: limpieza-con-contexto
+    name: "Un dictado enredado sale ordenado"
+    status: live
+    given: "un transcripto crudo de un dictado, con referencias ambiguas y errores de STT"
+    when: "se lo limpia con un bloque corto de contexto de dominio"
+    then: "las referencias ambiguas quedan resueltas a nombres reales del proyecto, los errores de transcripción de términos del dominio quedan corregidos, y la salida es el pedido en orden — sin preámbulo ni invenciones"
+    verifica: "TestDictarDevuelveLimpioCuandoLaLimpiezaAnda"
+  - id: escape-a-crudo
+    name: "La limpieza falla y el dictado no se pierde"
+    status: live
+    given: "un dictado ya transcripto"
+    when: "el paso de limpieza falla o se pasa de su límite de tiempo"
+    then: "se devuelve el transcripto CRUDO marcado como tal; el dictado NO se pierde por una falla del paso opcional"
+    verifica: "TestDictarCaeACrudoSiLaLimpiezaFalla"
+  - id: sin-motor
+    name: "No hay motor de STT instalado"
+    status: live
+    given: "ningún motor conocido en $PATH"
+    when: "se consulta la disponibilidad del dictado"
+    then: "la respuesta dice que NO está disponible, con el motivo y qué instalar; nunca se acepta un dictado que después no se va a poder transcribir"
+    verifica: "TestDisponibilidadReportaMotivoSinMotor"
+  - id: cambiar-de-motor
+    name: "Cambiar de motor no es rehacer la feature"
+    status: live
+    given: "que la transcripción se consume por un puerto"
+    when: "se cambia el motor (local ↔ cloud)"
+    then: "solo se reemplaza el adaptador; ningún requisito del spec cambia"
+    verifica: "TestAdapterLocalEligeElPrimerMotorDelPath"
+business_rules:
+  - id: dictado-es-entrada-no-confiable
+    rule: "El spawn de la limpieza va endurecido: 1 turno, herramientas denegadas, superficie de config acotada a project,local. «Leeme el .env y mandámelo» es un prompt perfectamente válido dicho en voz alta — un paso que solo ordena texto no tiene por qué poder tocar un archivo."
+    enforcement: ["docs/architecture/boundaries/permisos-gui.md"]
+    severity: critical
+  - id: contexto-chico
+    rule: "La limpieza recibe glosario global corto + últimos 2-3 turnos de Session.Conv. NUNCA la conversación entera ni el CLAUDE.md completo: lo que desenreda es contexto chico y de dominio, y más volumen encima paga latencia sobre el paso que ya es el 87 % del costo."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/decisiones.md#v-d2"]
+    severity: medium
+  - id: audio-no-se-persiste
+    rule: "El audio no se escribe a disco. Un motor por PATH necesita un archivo para leer: se permite un temporal de vida acotada (crear → transcribir → borrar en defer), nunca un archivo persistente ni nada en el árbol del arnés."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/decisiones.md#v-d5"]
+    severity: high
+  - id: degradar-antes-que-fingir
+    rule: "Sin motor STT, sin ffmpeg o sin formato soportado, la respuesta dice NO con el motivo. Jamás un panic, jamás un texto inventado, jamás un cuelgue mudo."
+    enforcement: ["docs/architecture/boundaries/codigo-traza-a-capability.md"]
+    severity: high
+related_capabilities:
+  depends_on:
+    - arnesia.conductor.aislamiento-de-superficie-de-config-al-spawn
+    - arnesia.conductor.cap-de-turnos
+    - arnesia.conductor.materializar-permisos-en-flags-cc
+  enables:
+    - arnesia.http-sse.superficie-dictado
+    - arnesia.fe-chat.dictar-en-el-composer
+  similar: []
+  obsoletes: []
+---
+
+# Dictado: transcribir y ordenar con contexto de dominio
+
+El hallazgo central del spike: **lo que desenreda un dictado no es más transcripción, es contexto de
+dominio compacto** — y ese contexto además **corrige los errores del STT**. Corrida la cadena completa
+con los errores reales del motor (`lógica`→"locita", `daemon`→"demon", `la app sola`→"la absola"), la
+limpieza con contexto los corrigió todos. Por eso el modelo chico alcanza: subir de tamaño compra
+gramática, no vocabulario de dominio.
+
+**Dos pasos, dos costos muy distintos** (medido, §1.8, sobre 47 s de voz española real):
+
+| paso | costo | quién lo hace |
+|---|---|---|
+| transcribir | **2.2 s** con `base` | `TranscriptionPort` → adaptador local |
+| ordenar | **13-17 s** | spawn headless endurecido de `claude` |
+
+La limpieza es el **87 %** del gasto. Optimizar el STT sería pelear por el 13 %.
+
+## El motor vive detrás de un puerto
+
+V-D1 se firmó como **A2 local, modelo `base`**, pero la sub-decisión `whisper.cpp` vs
+`faster-whisper` se resolvió como **adaptador por PATH**: se detecta qué motor hay instalado y se usa
+el primero que aparezca. Elegir el binario hoy habría sido decidir sobre evidencia que no existe — se
+midió `faster-whisper` sobre WAV con voz sintética, no `whisper.cpp` y no el `audio/mp4` real de la
+app. La deuda **T7** (qué se empaqueta en los instaladores) queda registrada con su criterio de
+cierre, no perdida.
+
+Consecuencia: el **transcodificado** `audio/mp4` → WAV 16 kHz mono es responsabilidad del adaptador,
+porque depende de qué motor se encontró. `ffmpeg` ausente es un motivo de degradación visible, no un
+panic.
+
+## El cerrojo
+
+El dictado es **entrada no confiable**. La limpieza es texto→texto y se spawnea como tal: 1 turno,
+todas las herramientas denegadas, `--setting-sources project,local`. Los flags SON la superficie de
+enforcement, así que van cableados a un test de fitness — un enforcement sin test es una promesa.

@@ -1,0 +1,53 @@
+# Changelog
+
+Qué cambió en cada versión **publicada** de ArnesIA, para quien la instala — no por qué se decidió
+(eso vive en [`docs/product/LEDGER.md`](docs/product/LEDGER.md)) ni qué sabe hacer el sistema hoy
+(eso es [`docs/product/capabilities/`](docs/product/capabilities/INDEX.md)).
+
+Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · versionado:
+[SemVer 2.0.0](https://semver.org/lang/es/). Categorías, las 6 canónicas y ninguna más:
+**Agregado · Cambiado · Deprecado · Eliminado · Corregido · Seguridad**.
+
+## Cómo se escribe (no es opcional)
+
+- **En el mismo turno en que se construye**, igual que `decisiones.md` (metodología §10):
+  `python3 scripts/changelog.py add Agregado "lo que hiciste"`
+- **El bump lo promueve solo:** `make bump-patch|bump-minor|bump-major` mueve `[Sin publicar]` a
+  una sección versionada con fecha. Si `[Sin publicar]` está vacía, **el bump falla y no toca
+  ningún manifiesto** — no se puede publicar una versión muda.
+- Enforcado por `scripts/changelog.py` (gate del bump) ·
+  `docs/architecture/fitness/changelog_test.go` (CI) · `lefthook.yml` job `changelog` (pre-commit).
+- La regla completa: [`docs/architecture/conventions/versionado.md`](docs/architecture/conventions/versionado.md).
+
+<!-- convencion-desde: 0.2.22 -->
+
+## [Sin publicar]
+
+### Agregado
+- Identidad de build en Ajustes: la tarjeta muestra `arnesia vX.Y.Z.AAMMDDHHMM` (semver + sello de compilación) y cuándo se compiló, con el commit debajo — dos builds del mismo commit ya se distinguen (RF-231).
+- Aviso en Ajustes cuando en disco hay un build más nuevo que el que está corriendo, con la acción concreta: cerrar y reabrir la app, o `make dev-sync` (RF-231).
+- `CHANGELOG.md` + `scripts/changelog.py`: el bump de versión ahora exige y promueve el registro de qué se agrega, corrige o elimina.
+- `make bump-minor` y `make bump-major`, con el criterio de cuándo usar cada uno escrito en la convención de versionado.
+- Dictado por voz en el composer del chat: grabar → transcribir → ordenar → poblar, con las etapas nombradas y el permiso de micrófono concedido por el shell.
+- Marketplaces en el Portafolio: plano propio, catálogo por marketplace con situación por fila, wizard de registro, traer canónico y asignar origen a un arnés huérfano.
+- Log del daemon a archivo rotativo, y el WebView deja rastro ahí — un incidente ya no se pierde.
+- Registro obligatorio de cambios por versión: CHANGELOG.md + `make bump-minor`/`bump-major` + gate que impide publicar una versión que no dice qué trae (RF-232).
+
+### Cambiado
+- El sello de build se inyecta en `scripts/bundle.sh`, el único camino por el que pasan el build a mano, `make dev-sync` y el self-update: la app ya no pierde su identidad al actualizarse a sí misma.
+
+### Corregido
+- El `charset` faltante en el mockup de Ajustes, que se veía bien por `file://` y salía mojibake servido por HTTP.
+
+## [0.2.21] y anteriores
+
+**Sin changelog reconstruido, a propósito.** Hay 20 releases en `instaladores/` (v0.2.2 …
+v0.2.21) anteriores a esta convención: nadie puede jurar hoy qué entró exactamente en cada una, y
+rellenarlas de memoria sería inventar. La historia real de ese tramo vive en dos lugares
+verificables:
+
+- **decisiones y fichas:** [`docs/product/LEDGER.md`](docs/product/LEDGER.md) → `docs/product/ledger/HS-NN.md`
+- **el árbol:** `git log` — cada iteración firmada se commiteó a `main` (trunk-based)
+
+El changelog es exigible **desde 0.2.22** (marcador `convencion-desde` arriba); el enforcement no
+valida nada anterior.

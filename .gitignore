@@ -9,6 +9,9 @@ web/dist/*
 
 # Go
 bin/
+# …pero los fixtures de test NO son binarios de build: se versionan.
+!**/testdata/bin/
+!**/testdata/bin/**
 *.exe
 /arnesia
 

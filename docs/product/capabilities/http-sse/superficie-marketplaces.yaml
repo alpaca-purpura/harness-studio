@@ -1,0 +1,182 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.http-sse.superficie-marketplaces
+cap_num: CAP-106
+slug: superficie-marketplaces
+name: "Superficie REST de marketplaces (7 endpoints, 400 ≠ 503 ≠ 409, `entradas: null`)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: http-sse
+layer: transport
+
+verb: infra
+functional_area: "http-sse.rest"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/adapters/transport/http/router.go#NewHandler"
+  - "internal/adapters/transport/http/portafolio.go#listPortafolio"
+  - "internal/adapters/transport/http/portafolio.go#postIdentificar"
+  - "internal/adapters/transport/http/portafolio.go#corruptaWire"
+  - "internal/adapters/transport/http/marketplace.go#listMarketplaces"
+  - "internal/adapters/transport/http/marketplace.go#postRegistrarMarketplace"
+  - "internal/adapters/transport/http/marketplace.go#postValidarMarketplace"
+  - "internal/adapters/transport/http/marketplace.go#deleteOlvidarMarketplace"
+  - "internal/adapters/transport/http/marketplace.go#getCatalogoMarketplace"
+  - "internal/adapters/transport/http/marketplace.go#postLeerCatalogo"
+  - "internal/adapters/transport/http/marketplace.go#conflictoMarketplaceBody"
+valida:
+  - "TestGetMarketplacesShape"
+  - "TestGetMarketplacesDetectorIlegible200"
+  - "TestPostValidacionesRepoInexistente400"
+  - "TestPostValidacionesNoEsMarketplace400"
+  - "TestPostValidacionesSinViaDeLectura503"
+  - "TestPostValidaciones200ConDatosLeidos"
+  - "TestPostMarketplaces409ConNombre"
+  - "TestPostMarketplacesClaseInvalida400"
+  - "TestDeleteMarketplaceSigueDetectado"
+  - "TestGetCatalogoDegradado200ConEntradasNull"
+  - "TestGetCatalogoDesconocido404"
+  - "TestPostLecturasRefrescaYDevuelveElMismoShape"
+  - "TestPostTraidos200"
+  - "TestPostTraidos409ConDestino"
+  - "TestPostTraidosReferencia400"
+  - "TestTraerStatusPorCentinela"
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/marketplaces"
+    - "POST /api/marketplaces"
+    - "POST /api/marketplaces/validaciones"
+    - "DELETE /api/marketplaces/{nombre}"
+    - "GET /api/marketplaces/{nombre}/catalogo"
+    - "POST /api/marketplaces/{nombre}/lecturas"
+    - "GET /api/portafolio/arneses/{clave}/origen/candidatos"
+    - "POST /api/portafolio/arneses/{clave}/origen"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/design.md §7"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      Etapa 4 (implementación, MISMO día que el diseño): el código existe, los punteros del bloque
+      comentado quedaron ACTIVOS y `valida:` lista los checks reales que corren en CI. Estado
+      `stub → parcial`: `parcial` y no `vivo` porque el **gate humano 🧑‍⚖️ de PARIDAD sigue
+      pendiente** — el criterio del repo es que solo el operador gradúa a `vivo`, y un `vivo`
+      auto-declarado sería exactamente el estado fabricado que R4 mata.
+    merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). 8 rutas nuevas, todas bajo `withAuth`
+      (Host+Origin+token, boundary superficie-local-confinada) y todas traduciendo request↔usecase
+      sin una sola regla de negocio (dominio-independiente-de-transporte). Tres decisiones de
+      transporte que son reglas de honestidad disfrazadas de códigos HTTP: (a) `entradas: null`
+      vs `[]` — nil sin `omitempty` en Go y `EntradaCatalogo[] | null` en TS: `null` = «no pude
+      leer», `[]` = «leí y no declara ninguno»; es el mecanismo anti-pass-fabricado a nivel cable,
+      y el error más fácil de cometer es «arreglarlo» inicializando el slice; (b) 400 ≠ 503 en la
+      validación — 400 dice «tu url no sirve», 503 dice «no puedo mirar» (sin `gh`/PAT ni checkout
+      local), y confundirlos haría que la UI acuse al operador de un problema nuestro; (c) el
+      catálogo NUNCA responde 5xx por no haber podido leerse: un 500 no le da al FE nada que
+      renderizar y lo empujaría a mostrar una lista vacía. El 409 de registrar lleva el `nombre`
+      en el body para que la UI pueda ofrecer «ir a él» sin parsear texto (BR-7).
+    merge_sha: null
+
+scenarios:
+  - id: rest-solo-200-pinta-tilde
+    name: "Solo un 200 puede pintar el ✓ de validación (BR-5 / criterio G3)"
+    given: "tres urls: una de marketplace real, una inexistente y un repo que no es marketplace"
+    when: "se validan las tres"
+    then: "solo la primera responde 200 con `nombre`+`owner`+`entradas` LEÍDOS del archivo; las otras dos dan 400 con motivos DISTINGUIBLES y sin ningún campo que la UI pueda leer como éxito"
+    verifica: "E-15/E-16/E-17 de plan-pruebas.md"
+  - id: rest-sin-via-de-lectura-es-503
+    name: "«No puedo mirar» es 503, no 400"
+    given: "sin `gh` autenticado, sin PAT y sin checkout local"
+    when: "se valida una url"
+    then: "503 con el motivo «sin vía de lectura» — la UI no puede confundirlo con una url inválida"
+    verifica: "E-54/E-59 de plan-pruebas.md"
+  - id: rest-catalogo-degrada-en-200
+    name: "Un catálogo ilegible responde 200 degradado, nunca 5xx"
+    given: "un marketplace conocido cuyo catálogo no se pudo leer"
+    when: "se pide su catálogo"
+    then: "200 con `entradas: null` y `lectura.motivo` poblado — el FE tiene qué renderizar y muestra el motivo, en vez de una lista vacía indistinguible de «no tiene arneses»"
+    verifica: "E-31/E-33/E-35/E-36/E-60 de plan-pruebas.md"
+  - id: rest-duplicado-es-409-con-nombre
+    name: "Registrar un duplicado da 409 CON el nombre (BR-7)"
+    given: "un marketplace ya registrado"
+    when: "se registra de nuevo"
+    then: "409 con `{error, nombre}` y el registro intacto — la UI ofrece navegar a él sin parsear el texto del error"
+    verifica: "E-18 de plan-pruebas.md (TestPostMarketplaces409ConNombre)"
+  - id: rest-listado-nunca-oculta-el-dano
+    name: "El listado degrada visible: corruptas y detector ilegible conviven con los datos"
+    given: "registro con una fila corrupta y `known_marketplaces.json` ilegible"
+    when: "se pide `GET /api/marketplaces`"
+    then: "200 con lo que sí se pudo leer + `corruptas[]` + `aviso_detector` — jamás un 500 ni una lista vacía muda"
+    verifica: "E-68/E-75 de plan-pruebas.md"
+  - id: rest-refresco-es-explicito
+    name: "El refresco de catálogo es un POST propio, no un GET con efecto oculto"
+    given: "un catálogo ya cacheado"
+    when: "se pega `POST /api/marketplaces/{nombre}/lecturas`"
+    then: "se fuerza una lectura fresca y se actualiza el `cuando`; el `GET` sigue siendo cache-first (AG-D8 decisión 3: refresco EXPLÍCITO)"
+    verifica: "E-63 de plan-pruebas.md (TestCacheStaleNoAfirmaEstarAlDia)"
+
+business_rules:
+  - id: transporte-sin-reglas
+    rule: "Los handlers traducen request↔usecase y nada más: la situación, la clase fail-safe, la precedencia y los tooltips viven en el dominio."
+    enforcement: ["docs/architecture/boundaries/dominio-independiente-de-transporte.md"]
+    severity: high
+  - id: entradas-null-no-es-array-vacio
+    rule: "`entradas` viaja `null` cuando no hubo lectura y `[]` solo cuando el marketplace declara `plugins: []`; el campo NO lleva `omitempty` para que nil serialice a `null`."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: rutas-bajo-withauth
+    rule: "Las 8 rutas nuevas quedan dentro de `withAuth` (Host+Origin+token); ninguna se exenta como `/healthz`."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+
+related_capabilities:
+  depends_on:
+    - arnesia.portafolio.registrar-marketplace
+    - arnesia.portafolio.leer-catalogo-marketplace
+    - arnesia.portafolio.situacion-de-catalogo
+    - arnesia.portafolio.asignar-origen
+  enables:
+    - arnesia.fe-portafolio.plano-marketplaces
+    - arnesia.fe-portafolio.catalogo-de-marketplace
+    - arnesia.fe-portafolio.wizard-registrar-marketplace
+    - arnesia.fe-portafolio.resolver-origen-dialogo
+  similar: [arnesia.http-sse.superficie-rest]
+  obsoletes: []
+---
+
+# Superficie REST de marketplaces (7 endpoints, 400 ≠ 503 ≠ 409, `entradas: null`)
+
+La superficie observable del plano Marketplaces. Lo único que hay que memorizar de este capability
+son las **tres distinciones que parecen detalles de transporte y son reglas de honestidad**:
+
+| distinción | qué evita |
+|---|---|
+| `entradas: null` vs `[]` | que «no pude leer» se lea como «este marketplace no tiene arneses» |
+| 400 vs 503 en validar | que un problema nuestro (sin `gh`) se le facture al operador como url inválida |
+| 200 degradado vs 5xx en catálogo | que el FE, sin nada que renderizar, termine pintando una lista vacía |
+
+El contrato completo (shapes JSON, tabla de status por endpoint) vive en
+`docs/product/stories/2026-07-23-portafolio-agregar-marketplace/design.md §7` y se refleja en
+`docs/architecture/contracts/api/openapi.yaml` (bump a `0.7.0-marketplaces`), donde
+`entradas` se documenta `nullable: true` **con su razón** — sin esa nota, el próximo implementador
+«prolijo» lo normaliza a `[]` y rompe BR-4 sin darse cuenta.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.

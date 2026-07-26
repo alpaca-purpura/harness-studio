@@ -1,0 +1,192 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.catalogo-de-marketplace
+cap_num: CAP-108
+slug: catalogo-de-marketplace
+name: "Catálogo de un marketplace (situación por fila, buscador+filtro+lazy, referencia read-only)"
+status: parcial         # FE construido y validado por stories (T8-T13/T20); el E2E vivo espera el backend + la firma 🧑‍⚖️ de PARIDAD.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: observar
+functional_area: "fe-portafolio.marketplaces"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/entities/portafolio/ui/chips.tsx#DotSaludPortafolio"
+  - "web/src/entities/portafolio/ui/chips.tsx#DerivaChip"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  - "web/src/entities/marketplace/model/types.ts#EntradaCatalogo"
+  - "web/src/entities/marketplace/model/types.ts#SituacionCatalogo"
+  - "web/src/entities/marketplace/model/types.ts#AccionCatalogo"
+  - "web/src/entities/marketplace/model/selectors.ts#etiquetaDeSituacion"
+  - "web/src/entities/marketplace/model/selectors.ts#tonoDeSituacion"
+  - "web/src/entities/marketplace/model/selectors.ts#filtrarEntradasCatalogo"
+  - "web/src/entities/marketplace/model/selectors.ts#filtrarPorSituacion"
+  - "web/src/entities/marketplace/model/selectors.ts#situacionesDisponibles"
+  - "web/src/entities/marketplace/model/selectors.ts#rotuloDeTipoSituacion"
+  - "web/src/entities/marketplace/model/types.ts#EstadoTraer"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#catPrenter"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#catNull"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#catVacio"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#situacionesLas6"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#catalogo273"
+  - "web/src/entities/marketplace/model/selectors.test.ts#filtrarEntradasCatalogo"
+  - "web/src/shared/api/client.ts#traerCanonico"
+  - "web/src/entities/marketplace/ui/chips.tsx#SituacionChip"
+  - "web/src/entities/marketplace/ui/chips.tsx#CanalChip"
+  - "web/src/entities/marketplace/ui/chips.tsx#ViaChip"
+  - "web/src/widgets/marketplace/ui/marketplace-catalogo.tsx#MarketplaceCatalogo"
+  - "web/src/shared/ui/lista-lazy.tsx#ListaLazy"
+  - "web/src/shared/ui/buscador-filtro.tsx#BuscadorFiltro"
+  - "web/src/shared/api/client.ts#catalogoDeMarketplace"
+valida:
+  - "web/src/widgets/marketplace/ui/marketplace-catalogo.stories.tsx"
+  - "web/src/shared/ui/lista-lazy.stories.tsx"
+  - "web/src/entities/marketplace/ui/chips.stories.tsx"
+  - "web/src/entities/marketplace/model/selectors.test.ts"
+
+dev_preview:
+  route: "#/portafolio?plano=marketplaces"
+  how_to_navigate: "rail → Portafolio → pestaña «Marketplaces» → click en una fila legible (una no legible NO navega, a propósito)"
+  main_component: "web/src/widgets/marketplace/ui/marketplace-catalogo.tsx#MarketplaceCatalogo"
+  api_endpoints:
+    - "GET /api/marketplaces/{nombre}/catalogo"
+    - "POST /api/marketplaces/{nombre}/lecturas"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/decisiones.md AG-D3/AG-D8-decisión-6/AG-D11 + design.md §6/§8"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). Superficies S3 (propio) y S4 (referencia,
+      read-only). La fila muestra SITUACIÓN, no un botón genérico (AG-D8 decisión 6), y la situación
+      LA CALCULA EL DOMINIO GO: acá se presenta. Eso no es una preferencia de estilo — cruzarla en
+      el FE exigiría importar `EntradaPortafolio` desde `entities/marketplace`, un cross-import
+      entity↔entity que `steiger fsd/no-cross-imports` rompe (y `fsd` corre dentro de `verify`);
+      además el spec lo ordena explícitamente («NUNCA se calcula en el widget»). El verbo `↧ Traer
+      canónico` se REUSA del drawer del arnés (`portafolio-drawer.tsx`), no se inventa: dos puertas,
+      un acto, cero vocabulario nuevo. Las 4 piezas de AG-D3 (modal más grande + lazy + buscador +
+      filtro) se heredan tal cual, y el lazy pasa de confort a REQUISITO: el catálogo real de
+      `claude-plugins-official` son 273 filas / 159 KB (AG-D16), no las 41 que el mockup dibujaba.
+      Tres cosas que el mockup firmado NO tenía y el spec sí exige (documentadas como superset en
+      design.md §2): la 6ta rama `no-comparable` (se pinta con `sin-senal` + motivo textual), el
+      `disabled`+tooltip en Publicar/Actualizar/Reparar (BR-10 — el mockup los dejó habilitados con
+      solo un badge al lado) y el chip de canales de AG-D11. La única fila del mockup con el par
+      correcto es la de `referencia` (`disabled title="no aplica: solo arneses propios"`): ese
+      literal se conserva tal cual.
+    merge_sha: null
+
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      T8/T9/T10/T20 construidos: `widgets/marketplace/ui/marketplace-catalogo.tsx` (S3 propio / S4 referencia read-only) + las moléculas genéricas de `shared/ui` (`ListaLazy`, `BuscadorFiltro`, `FiltroDisclosure` promovida, `GrupoControl`), que NO importan `entities/*` (`shared-no-upward`, severidad error): el vocabulario entra por prop. La fila PRESENTA la `situacion` y la `accion` que el dominio calculó: `accion.habilitada` viene del wire y, en false, se pinta `disabled` + `title` con el motivo LITERAL (BR-10 — cierra C5, donde el mockup los tenía habilitados). `entradas: null` no es `[]` y esa es la rama central: con `null` se muestra el MOTIVO y se dice explícitamente que eso no significa «no tiene arneses» (BR-4); con `[]` se afirma «leído hace X · no declara ningún arnés». 273 filas se montan de a 20 y el faltante SE DICE con su número exacto (E-28). `no-comparable` se pinta con el dot `sin-senal` (importado por el WIDGET, no por la entidad) + el motivo completo sin truncar. Los estados `trayendo`/`traído`/`falló` de `↧ Traer canónico` (§13.10) viven acá y en el drawer: dos puertas, un acto. `status: parcial`: falta el backend, el E2E vivo y la firma de PARIDAD.
+    merge_sha: null
+
+scenarios:
+  - id: cat-fila-muestra-situacion-no-boton-generico
+    name: "Cada fila muestra su situación real y la acción que le corresponde (AG-D8 decisión 6)"
+    given: "un catálogo con las 6 situaciones representadas"
+    when: "se renderiza"
+    then: "cada fila pinta su situación con su tono y su verbo; la acción que no aplica no se pinta — no hay un «Agregar» genérico por fila"
+    verifica: "story CatalogoLas6Situaciones · E-20/E-21/E-22/E-23 de plan-pruebas.md"
+  - id: cat-acciones-disabled-con-tooltip
+    name: "Publicar / Actualizar / Reparar quedan `disabled` con tooltip a su ítem (BR-10)"
+    given: "filas en `mi-copia-adelantada`, `estante-adelantado` e `instalaciones-en-deriva`"
+    when: "se renderiza"
+    then: "los tres botones tienen `disabled` Y `title` con el motivo que viene del dominio — el widget no inventa el texto ni puede habilitarlos por su cuenta"
+    verifica: "story CatalogoLas6Situaciones (assert de `disabled` + `title` literal)"
+  - id: cat-referencia-read-only
+    name: "El catálogo de un marketplace de referencia es read-only (BR-1)"
+    given: "un catálogo de clase `referencia`"
+    when: "se renderiza"
+    then: "`↧ Traer canónico` aparece `disabled` con `title=\"no aplica: solo arneses propios\"` y NO existe ningún Publicar/Actualizar/Reparar en el DOM"
+    verifica: "story CatalogoReferenciaReadOnly · E-07 de plan-pruebas.md"
+  - id: cat-no-comparable-con-motivo
+    name: "`no-comparable` se pinta con `sin-senal` y su motivo completo (BR-9)"
+    given: "una fila sin versión derivable, o sin canónico, o con N coincidencias"
+    when: "se renderiza"
+    then: "dot `sin-senal` (nunca el de `ok`) + el motivo textual COMPLETO, sin truncar — mismo criterio que `AvisoChip`"
+    verifica: "story CatalogoNoComparable · E-23 de plan-pruebas.md"
+  - id: cat-canales-mismo-source
+    name: "Dos entradas que comparten `source` se explican como canales (AG-D11)"
+    given: "`harness` y `harness-beta` apuntando a `./plugins/harness/0.5.3` (el dato REAL de prenter)"
+    when: "se renderiza el catálogo"
+    then: "las dos filas existen (la fila es la entrada de índice: es lo que el cliente instala) y cada una lleva el chip «mismo contenido que <la otra>» — nadie puede creer que son dos arneses distintos"
+    verifica: "story CatalogoCanalesMismoSource · E-03 de plan-pruebas.md"
+  - id: cat-lazy-no-trunca-en-silencio
+    name: "273 filas se montan de a poco y el faltante SE DICE (AG-D3 + AG-D16)"
+    given: "un catálogo de 273 entradas (la cifra real del oficial)"
+    when: "se abre"
+    then: "montaje inicial acotado + un pie que dice el número EXACTO de filas todavía no montadas y ofrece cargarlas — nunca un truncado mudo"
+    verifica: "story CatalogoDoscientasSetentaYTres · E-28 de plan-pruebas.md"
+  - id: cat-null-vs-vacio
+    name: "«No pude leer» y «no declara ninguno» se ven distinto"
+    given: "un catálogo con `entradas: null` + motivo, y otro con `entradas: []` + `leído hace 4 min`"
+    when: "se renderizan los dos"
+    then: "el primero muestra el motivo y NO dice nada sobre cuántos arneses hay; el segundo afirma «leído hace 4 min · no declara ningún arnés». Las dos superficies son distinguibles a la vista"
+    verifica: "stories CatalogoNoLegible · CatalogoVacioReal · E-31/E-32 de plan-pruebas.md"
+  - id: cat-via-debil-se-declara
+    name: "Un cruce débil de identidad se declara como tal"
+    given: "una fila que cruzó por `faceta-registry` o por `rename`"
+    when: "se renderiza"
+    then: "aparece el `ViaChip` que lo explica («origen no declarado — cruzado por el registry de la copia» / «renombrado: X → Y») — la UI no presenta un cruce débil como identidad resuelta"
+    verifica: "story CatalogoCruceDebil · E-66/E-38 de plan-pruebas.md"
+
+business_rules:
+  - id: situacion-viene-del-dominio
+    rule: "El widget presenta la situación y la acción que el dominio calculó; no las re-deriva ni puede habilitar un botón que el dominio dejó deshabilitado."
+    enforcement: ["docs/architecture/boundaries/fe-transporte-independiente.md", "docs/architecture/boundaries/dominio-independiente-de-transporte.md"]
+    severity: critical
+  - id: verbo-reusado-no-inventado
+    rule: "`↧ Traer canónico` es el verbo que ya existe en el drawer del arnés: la fila del catálogo es la segunda puerta al mismo acto, no un vocabulario nuevo."
+    enforcement: ["mockups/INDEX.md"]
+    severity: medium
+  - id: lazy-obligatorio-y-honesto
+    rule: "Todo catálogo se renderiza incremental y cualquier faltante se declara con su número exacto; el caso normal es 273 filas, no 20."
+    enforcement: ["docs/architecture/boundaries/fe-visual-fitness.md"]
+    severity: high
+  - id: molecula-shared-es-generica
+    rule: "`ListaLazy`/`BuscadorFiltro`/`FiltroDisclosure`/`GrupoControl` viven en `shared/ui` y NO importan `entities/*` (`shared-no-upward`, severidad error): son genéricas y reciben el vocabulario de dominio por prop."
+    enforcement: ["docs/architecture/boundaries/fe-taxonomia-componentes.md"]
+    severity: high
+
+related_capabilities:
+  depends_on:
+    - arnesia.fe-portafolio.plano-marketplaces
+    - arnesia.portafolio.situacion-de-catalogo
+    - arnesia.http-sse.superficie-marketplaces
+  enables: []
+  similar: [arnesia.fe-portafolio.lista-del-portafolio, arnesia.fe-portafolio.drawer-detalle-read]
+  obsoletes: []
+---
+
+# Catálogo de un marketplace (situación por fila, buscador+filtro+lazy, referencia read-only)
+
+Superficies S3/S4. Es la superficie donde el paquete rinde su entregable: **la columna de
+situación**. Todo lo demás (buscar, filtrar, lazy) existe para que esa columna sea usable con 273
+filas.
+
+Tres cosas que el implementador va a querer «simplificar» y no debe:
+
+1. **La situación no se calcula acá.** Viene del wire. Recalcularla en el FE es imposible sin un
+   cross-import que `steiger` rompe, y sería una segunda fuente de verdad para la misma pregunta.
+2. **`Habilitada: false` en todas las acciones no es un placeholder.** Es el alcance del paquete
+   hecho contrato. El día que llegue el paquete del ítem 3 cambia UNA función pura del dominio y su
+   tabla de test; este widget no se toca.
+3. **`entradas: null` y `entradas: []` son estados distintos de la UI.** Colapsarlos en «lista
+   vacía» es exactamente el pass fabricado que el criterio G3 mató en el Slice 1.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.

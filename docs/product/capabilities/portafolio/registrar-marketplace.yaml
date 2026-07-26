@@ -1,0 +1,164 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.registrar-marketplace
+cap_num: CAP-102
+slug: registrar-marketplace
+name: "Registro de marketplaces conocidos (collect-all CC + declarado)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: portafolio
+layer: dominio
+
+verb: mapear
+functional_area: "portafolio.marketplaces"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/domain/repo_ref.go#CanonicalizarRepo"
+  - "internal/adapters/portafolio/scanner.go#Scanner"
+  - "internal/adapters/portafolio/store.go#Store"
+  - "internal/ports/portafolio.go#PortafolioStore"
+  - "internal/domain/marketplace.go#ClaseMarketplace"
+  - "internal/domain/marketplace.go#EslabonMarketplace"
+  - "internal/domain/marketplace.go#MarketplaceConocido"
+  - "internal/domain/marketplace.go#MergeMarketplaces"
+  - "internal/domain/marketplace.go#ClaseSegura"
+  - "internal/ports/marketplace.go#MarketplaceStore"
+  - "internal/ports/marketplace.go#MarketplaceDetector"
+  - "internal/adapters/marketplace/store.go#Store"
+  - "internal/adapters/marketplace/detector.go#DetectorCC"
+  - "internal/usecase/marketplace.go#MarketplaceService"
+  - "cmd/arnesia/main.go#newMarketplaceService"
+valida:
+  - "TestDetectorCCCincoEntradasReales"
+  - "TestMergeMarketplacesAnotaDiscrepancia"
+  - "TestClaseDesconocidaDegradaAReferencia"
+  - "TestMismoRepoNombresDistintosNoMergean"
+  - "TestStoreEnvelopeIlegibleDegradaHonesto"
+  - "TestStoreFilaCorruptaNoContagia"
+  - "TestStoreFilaSinNombreEsCorrupta"
+  - "TestRegistrarDuplicadoNoPisaNiDuplica"
+  - "TestRegistrarConcurrenteNoDuplica"
+  - "TestOlvidarSigueDetectado"
+  - "TestDetectorIlegibleNoOcultaNiAborta"
+  - "TestCorruptaYDetectorConviven"
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/marketplaces"
+    - "POST /api/marketplaces"
+    - "DELETE /api/marketplaces/{nombre}"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/design.md §3.1/§4.1"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      Etapa 4 (implementación, MISMO día que el diseño): el código existe, los punteros del bloque
+      comentado quedaron ACTIVOS y `valida:` lista los checks reales que corren en CI. Estado
+      `stub → parcial`: `parcial` y no `vivo` porque el **gate humano 🧑‍⚖️ de PARIDAD sigue
+      pendiente** — el criterio del repo es que solo el operador gradúa a `vivo`, y un `vivo`
+      auto-declarado sería exactamente el estado fabricado que R4 mata.
+    merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía): el registro de marketplaces NO es una
+      lista virgen — es collect-all de dos eslabones (AG-D9), `known_marketplaces.json` de
+      Claude Code (5 entradas vivas en la máquina real, da `installLocation` gratis) + lo que
+      el operador declara por el wizard. Merge por `nombre` (la clave con la que CC keyea
+      `installed_plugins.json`); una discrepancia de `repo` entre eslabones queda en
+      `Discrepancias[]` y se MUESTRA, jamás se resuelve en silencio (BR-8/C-OR-6). La clase
+      `propio`/`referencia` es una declaración del operador que no vive en ningún otro lado:
+      por eso el registro persiste en `~/.arnesia/marketplaces.json` (JSON atómico, envelope
+      versionado, degradado entry-wise) y NO en el índice SQLite, que por doctrina es
+      desechable (`indice-desechable-jsonl-es-verdad` v1.3 hace wipe en mismatch de esquema).
+      Una clase desconocida degrada a `referencia`, nunca a `propio` — fail-safe hacia el lado
+      que no habilita operar lo ajeno.
+    merge_sha: null
+
+scenarios:
+  - id: mkt-plano-nace-poblado
+    name: "El plano de marketplaces nace poblado, no vacío (AG-D9)"
+    given: "`~/.claude/plugins/known_marketplaces.json` con N entradas y el registro propio vacío"
+    when: "se pide el listado de marketplaces conocidos"
+    then: "salen las N filas con eslabón `cc-known-marketplaces`, su `repo` canonicalizado y su `install_location` — el operador no tiene que declarar a mano lo que Claude Code ya sabe"
+    verifica: "E-01 de plan-pruebas.md (TestDetectorCCCincoEntradasReales)"
+  - id: mkt-merge-discrepancia-visible
+    name: "Una discrepancia de repo entre eslabones se muestra, no se elige (BR-8)"
+    given: "el mismo `nombre` detectado por CC con un `repo` y declarado por el operador con otro"
+    when: "se mergea el registro"
+    then: "UNA fila con los dos eslabones, el repo DECLARADO como valor efectivo, y una discrepancia con LOS DOS valores crudos en el texto — nunca una elección silenciosa"
+    verifica: "E-24 de plan-pruebas.md (TestMergeMarketplacesAnotaDiscrepancia)"
+  - id: mkt-clase-fail-safe
+    name: "Una clase desconocida degrada a `referencia`, jamás a `propio`"
+    given: "una fila del registro con `clase` fuera del enum (p.ej. `tienda`)"
+    when: "se lee el registro"
+    then: "la fila se trata como `referencia` (el lado que NO habilita traer/publicar/reparar) y la degradación queda visible como discrepancia"
+    verifica: "E-47 de plan-pruebas.md (TestClaseDesconocidaDegradaAReferencia)"
+  - id: mkt-registro-corrupto-no-brickea
+    name: "Un registro corrupto no impide listar (BR-11)"
+    given: "`~/.arnesia/marketplaces.json` con el envelope o una fila ilegible"
+    when: "se abre el store y se pide el listado"
+    then: "el store abre igual, la corrupta se reporta APARTE con su motivo, y el plano sigue poblado por el eslabón de Claude Code"
+    verifica: "E-44/E-45/E-46/E-75 de plan-pruebas.md"
+  - id: mkt-registrar-no-adquiere
+    name: "Registrar es conocer, no adquirir (BR-11)"
+    given: "una url de marketplace validada"
+    when: "el operador registra"
+    then: "se escribe UNA fila en `~/.arnesia/marketplaces.json` y nada más: cero clone, cero instalación, cero escritura fuera de `~/.arnesia/`"
+    verifica: "boundary marketplace-referencia-es-solo-procedencia (check registrar-no-adquiere)"
+
+business_rules:
+  - id: registro-marketplaces-collect-all
+    rule: "El registro de marketplaces es collect-all de `cc-known-marketplaces` + `declarado-por-operador`, mergeado por `nombre`; toda discrepancia entre eslabones queda visible y ninguna se resuelve sola."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+  - id: clase-desconocida-degrada-a-referencia
+    rule: "Una `ClaseMarketplace` fuera del enum degrada a `referencia`, nunca a `propio`: el fail-safe apunta al lado que no habilita operar arneses ajenos."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: critical
+  - id: registrar-no-pisa-ni-duplica
+    rule: "Registrar un marketplace cuyo `nombre` ya existe no duplica ni sobreescribe: se informa y se ofrece navegar (BR-7)."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-identidad, arnesia.portafolio.resolver-origen]
+  enables:
+    - arnesia.portafolio.leer-catalogo-marketplace
+    - arnesia.portafolio.situacion-de-catalogo
+    - arnesia.portafolio.asignar-origen
+    - arnesia.fe-portafolio.plano-marketplaces
+  similar: []
+  obsoletes: []
+---
+
+# Registro de marketplaces conocidos (collect-all CC + declarado)
+
+El **estante** del modelo de AG-D8: los marketplaces que ArnesIA conoce, con su clase
+(`propio` = publicamos ahí · `referencia` = solo resuelve procedencia de un arnés ajeno).
+
+Lo cardinal es que **no se inventa el registro**: Claude Code ya lleva el suyo en
+`~/.claude/plugins/known_marketplaces.json`, y ese archivo es un **4º eslabón real** paralelo a
+`installed_plugins.json` v2 que el Slice 0 ya consumía. El registro propio agrega solo lo que CC
+no modela (la clase) y lo que CC no conoce todavía (lo que el operador declara).
+
+`install_location` cierra un círculo que estaba abierto desde Slice 0: es exactamente la ruta
+`home/plugins/<id>/<versión>/` contra la que `EvaluarDeriva` compara por hash.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter. Código y capability
+shippean en el MISMO commit (R1 + R2 + R3).

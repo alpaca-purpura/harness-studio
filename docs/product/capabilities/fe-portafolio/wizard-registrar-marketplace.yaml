@@ -1,0 +1,161 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.wizard-registrar-marketplace
+cap_num: CAP-109
+slug: wizard-registrar-marketplace
+name: "Wizard rama Marketplace (registrar: validar real → clase → aterrizar en el catálogo)"
+status: parcial         # FE construido y validado por stories (T8-T13/T20); el E2E vivo espera el backend + la firma 🧑‍⚖️ de PARIDAD.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: crear
+functional_area: "fe-portafolio.wizard"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
+  - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizardProps"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/shared/lib/focus-trap.ts#trapTabKeyDown"
+  - "web/src/entities/marketplace/model/types.ts#Validacion"
+  - "web/src/entities/marketplace/model/types.ts#ClaseMarketplace"
+  - "web/src/entities/marketplace/ui/chips.tsx#ClaseChip"
+  - "web/src/shared/api/client.ts#validarMarketplace"
+  - "web/src/shared/api/client.ts#registrarMarketplace"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#validacionPrenter"
+valida:
+  - "web/src/widgets/portafolio/ui/portafolio-wizard.stories.tsx"
+  - "web/src/entities/marketplace/ui/chips.stories.tsx"
+
+dev_preview:
+  route: "#/portafolio"
+  how_to_navigate: "rail → Portafolio → ＋ Agregar → pestaña «Marketplace» (hoy `disabled`; este paquete la habilita)"
+  main_component: "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
+  api_endpoints:
+    - "POST /api/marketplaces/validaciones"
+    - "POST /api/marketplaces"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/decisiones.md AG-D8 decisión 8 + spec.md §4.5 + design.md §9.2"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). La tab «Marketplace» del wizard existe hoy
+      `disabled`+tooltip por el criterio G3 del Slice 1 (nunca pintar un «✓ marketplace válido» sin
+      backend detrás): este paquete la habilita CON backend. El wizard deja de pelear con el
+      catálogo (AG-D8 decisión 8): hace solo lo que un modal hace bien, REGISTRAR — pegar git url →
+      validar `.claude-plugin/marketplace.json` legible → elegir clase → guardar → cerrar y
+      aterrizar en el plano, en la fila nueva, con el catálogo abierto. El elegir-y-traer NO ocurre
+      dentro del modal: un catálogo de 273 filas es una página, no un diálogo. BR-5 queda cableado
+      en la MÁQUINA DE ESTADOS, no en un `disabled`: el botón `Registrar y ver catálogo` no existe
+      hasta el estado `validado`, y a `validado` solo se llega con un 200 real — no hay forma de
+      registrar algo no validado. Superset sobre el mockup firmado: el mockup no dibujaba la
+      pantalla de éxito (su `registrarYAterrizar()` solo cerraba el modal), y el spec §4.5.2 + E-15
+      exigen mostrar `name` + `owner.name` + nº de `plugins[]` LEÍDOS del archivo real — sin eso el
+      ✓ no está evidenciado. También cambia el literal del mockup «un solo paso» en el `Atrás`
+      deshabilitado: ahora hay 4 estados y `Atrás` desde `url` vuelve a la tab Proyecto.
+    merge_sha: null
+
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      T11 construido: rama Marketplace del wizard (S6) + AG-D6 (Atrás/Cancelar, cierra W3/W4). BR-5 hecho MÁQUINA DE ESTADOS, no un `disabled` salteable: `Registrar y ver catálogo` NO EXISTE en el DOM hasta el estado `validado`, al que solo se llega con un 200 real — y el tilde muestra `name` + `owner` + «N arneses en el catálogo» + `fuente`, todo LEÍDO del archivo (C6/E-15). Los tres fallos son tres mensajes distintos (400 url inválida · 400 no-es-marketplace · 503 «no puedo mirar») y el FE los distingue por `ApiError.status`, nunca parseando prosa. El 409 (BR-7) informa «ya está registrado» + `ir a él` con el `nombre` que vino en el body. La tab `Marketplace` deja de estar `disabled` y su `TOOLTIP_S2` se borra (§9.2); el de «Repositorio GitHub» se queda. Superset ESTRICTO (BR-12): ninguna prop existente se quitó y las nuevas son opcionales. Se ajustaron 4 stories firmadas del Slice 1 porque el DISEÑO cambia esa conducta (tab habilitada, `Cancelar` del estado `escaneando` mudado al pie): ninguna afordancia se perdió — hay dos salidas donde había una. `status: parcial`: falta el backend y el E2E vivo.
+    merge_sha: null
+
+scenarios:
+  - id: wiz-mkt-sin-validado-no-hay-registrar
+    name: "No existe `Registrar` sin haber validado (BR-5 / criterio G3)"
+    given: "el wizard en la rama Marketplace, estado `url`"
+    when: "se busca el botón de registrar"
+    then: "no está en el DOM: solo aparece en el estado `validado`, al que solo se llega con un 200 real del backend — BR-5 vive en la máquina de estados, no en un `disabled` que se pueda saltear"
+    verifica: "story WizardMarketplacePasoURL"
+  - id: wiz-mkt-exito-muestra-lo-leido
+    name: "El ✓ muestra lo que se LEYÓ del archivo real"
+    given: "una validación exitosa de `alpacapurpura/prenter-marketplace`"
+    when: "se renderiza el estado `validado`"
+    then: "se ven `name`, `owner.name` (+ email/url si vienen), «N arneses en el catálogo» y la fuente (`local`/`remoto`) — datos leídos, ninguno inferido"
+    verifica: "story WizardMarketplaceValidado · E-15 de plan-pruebas.md"
+  - id: wiz-mkt-error-distinguible
+    name: "Url inexistente, repo-que-no-es-marketplace y sin-vía-de-lectura son tres mensajes distintos"
+    given: "los tres fallos de validación"
+    when: "se renderiza el error"
+    then: "cada uno muestra su motivo real; el 503 («no puedo mirar») nunca se pinta como si la url estuviera mal; en los tres casos hay CERO ✓"
+    verifica: "stories WizardMarketplaceErrorNoExiste · WizardMarketplaceErrorNoEsMarketplace · WizardMarketplaceSinViaDeLectura · E-16/E-17/E-54"
+  - id: wiz-mkt-clase-explicita
+    name: "La clase arranca en `propio` pero la diferencia se explica a la vista"
+    given: "el estado `validado`"
+    when: "se renderizan los radios de clase"
+    then: "`Propio` viene marcado (caso dominante) y la nota explica qué habilita cada clase — no es un default silencioso: el operador ve la consecuencia antes de confirmar"
+    verifica: "story WizardMarketplaceValidado (assert del copy de la nota)"
+  - id: wiz-mkt-duplicado-ofrece-navegar
+    name: "Registrar un duplicado informa y ofrece ir a él, sin pisar nada (BR-7)"
+    given: "un nombre ya registrado (409 del backend con el nombre en el body)"
+    when: "se intenta registrar"
+    then: "se muestra «ya está registrado» + botón `ir a él`; el registro existente queda INTACTO (la clase previa no se sobreescribe)"
+    verifica: "story WizardRegistrarDuplicado · E-18 de plan-pruebas.md"
+  - id: wiz-mkt-aterriza-en-el-catalogo
+    name: "Registrar cierra el modal y aterriza en el catálogo de la fila nueva"
+    given: "una validación exitosa de una url nueva"
+    when: "se confirma el registro"
+    then: "el modal cierra, el plano conmuta a Marketplaces y el catálogo de la fila recién registrada queda abierto — el wizard es la puerta de entrada, el plano es donde se navega"
+    verifica: "story WizardRegistrarYAterriza · E-19 de plan-pruebas.md"
+  - id: wiz-mkt-cierre-bloqueado-en-registrando
+    name: "Durante `registrando` el cierre está bloqueado (mismo criterio que S1-D19)"
+    given: "un POST de registro en vuelo"
+    when: "se intenta cerrar con ✕ o Esc"
+    then: "no cierra, y el ✕ lleva el tooltip que explica por qué — mismo criterio que `agregando` de la rama Proyecto"
+    verifica: "story WizardMarketplaceRegistrando"
+  - id: wiz-mkt-a11y
+    name: "El diálogo cumple a11y con el gate axe en `error`"
+    given: "la rama Marketplace abierta"
+    when: "corre la story"
+    then: "`role=dialog` + `aria-modal` + `aria-labelledby`, foco atrapado con `trapTabKeyDown`, Esc funcional; cualquier violación axe ROMPE el test (el gate está en `error`, no en warning)"
+    verifica: "story WizardMarketplaceA11y · E-30 de plan-pruebas.md"
+
+business_rules:
+  - id: validar-no-pinta-tilde-sin-lectura
+    rule: "El ✓ solo aparece con un `marketplace.json` real leído, y el estado `validado` es la única puerta a `Registrar`: criterio G3, no se relaja."
+    enforcement: ["docs/architecture/boundaries/fe-visual-fitness.md"]
+    severity: critical
+  - id: registrar-no-elige-arneses
+    rule: "El wizard registra; no lista ni trae arneses. El elegir-y-traer vive en el plano, que tiene espacio para un catálogo."
+    enforcement: ["mockups/INDEX.md"]
+    severity: medium
+  - id: superset-estricto
+    rule: "Nada firmado en la PARIDAD del Slice 1 se quita: las props existentes de `PortafolioWizardProps` se conservan y las nuevas son opcionales con default, para que las stories firmadas sigan pasando sin tocarlas."
+    enforcement: ["docs/process/metodologia.md"]
+    severity: high
+
+related_capabilities:
+  depends_on: [arnesia.http-sse.superficie-marketplaces, arnesia.portafolio.registrar-marketplace]
+  enables: [arnesia.fe-portafolio.plano-marketplaces, arnesia.fe-portafolio.catalogo-de-marketplace]
+  similar: [arnesia.fe-portafolio.wizard-agregar-proyecto]
+  obsoletes: []
+---
+
+# Wizard rama Marketplace (registrar: validar real → clase → aterrizar en el catálogo)
+
+Superficie S6. La tab que hoy está `disabled` con tooltip «próximo · S2» pasa a funcionar, con
+backend detrás — que es exactamente la condición que el criterio G3 del Slice 1 puso para
+habilitarla.
+
+Lo cardinal del diseño: **BR-5 no es un `disabled`, es la topología de la máquina de estados.** El
+botón de registrar no existe hasta que hubo una lectura real; no hay un camino en el que un ✓ pueda
+aparecer sin archivo leído. Ese es el patrón que conviene copiar cada vez que aparezca un «no
+prometas lo que no verificaste».
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter. Este capability
+comparte archivo con `arnesia.fe-portafolio.wizard-agregar-proyecto` (`portafolio-wizard.tsx`): el
+mismo componente sirve las dos ramas y el commit de implementación tiene que EXTENDER esa hoja
+también (`design.md §11.1`).

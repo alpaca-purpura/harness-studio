@@ -1,0 +1,95 @@
+---
+# Capability nueva (paquete 2026-07-25-spike-voz-dictado, V-D6 · RF-215).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.tauri.permiso-de-microfono
+cap_num: CAP-112
+slug: permiso-de-microfono
+name: "El shell concede el permiso de micrófono del WebView"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: tauri
+layer: tauri
+verb: infra
+functional_area: "tauri.permisos-del-webview"
+user_visible: false
+nature: feature
+pointers:
+  - "web/src-tauri/src/lib.rs#conceder_permiso_de_microfono"
+  - "web/src-tauri/src/lib.rs#decidir_permiso"
+  - "web/src-tauri/src/lib.rs#concede_captura"
+valida:
+  - "concede_solo_captura_de_audio"
+  - "rechaza_permisos_que_no_son_de_medios"
+  - "rechaza_la_camara_aunque_venga_junto_con_el_microfono"
+  - "rechaza_media_que_no_pide_audio"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-25-spike-voz-dictado
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-25-spike-voz-dictado/spike-spec.md §1.6 b/d"
+change_log:
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-25
+    type: new
+    summary: "wry 0.55.1 no maneja permission-request en el backend webkitgtk: getUserMedia no rechaza, queda pendiente para siempre. El shell engancha la señal del WebView y concede SOLO captura de audio."
+    merge_sha: null
+scenarios:
+  - id: concede-audio
+    name: "La SPA del daemon pide el micrófono"
+    status: live
+    given: "el shell de escritorio con el WebView apuntando a http://127.0.0.1:4200"
+    when: "la página llama a getUserMedia({audio:true})"
+    then: "el shell recibe la UserMediaPermissionRequest y la concede; la promesa RESUELVE con un stream, no queda pendiente"
+    verifica: "concede_solo_captura_de_audio (web/src-tauri/src/lib.rs) — la regla; el loop vivo contra el binario instalado es T6, ABIERTO"
+  - id: no-concede-lo-demas
+    name: "No se concede nada más que audio"
+    status: live
+    given: "el shell de escritorio"
+    when: "llega una permission-request que NO es de captura de audio"
+    then: "el shell NO la concede automáticamente: la deja seguir su curso por defecto"
+    verifica: "rechaza_permisos_que_no_son_de_medios (web/src-tauri/src/lib.rs)"
+  - id: no-enciende-la-camara
+    name: "Una request que pide audio Y video no enciende la cámara"
+    status: live
+    given: "el shell de escritorio"
+    when: "llega una UserMediaPermissionRequest que pide audio y video a la vez"
+    then: "el shell NO la concede: conceder «porque pide audio» encendería la cámara sin que nadie la haya pedido"
+    verifica: "rechaza_la_camara_aunque_venga_junto_con_el_microfono (web/src-tauri/src/lib.rs)"
+business_rules:
+  - id: solo-audio
+    rule: "El shell concede EXCLUSIVAMENTE captura de audio. Video, geolocalización, notificaciones y cualquier otra permission-request quedan fuera: el shell es la raíz de confianza de la superficie local y un allow-all convertiría esa raíz en una llave maestra."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: high
+  - id: verificar-instalado
+    rule: "Este permiso se verifica contra el binario INSTALADO, jamás contra el dev server: el navegador de dev no reproduce el bug, así que un pass en `pnpm dev` no prueba nada."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/PARIDAD.md"]
+    severity: high
+related_capabilities:
+  depends_on: []
+  enables:
+    - arnesia.fe-chat.dictar-en-el-composer
+  similar: []
+  obsoletes: []
+---
+
+# El shell concede el permiso de micrófono del WebView
+
+`wry 0.55.1` implementa `permission-request` en macOS y Android, **no en el backend `webkitgtk`**.
+El síntoma no es un rechazo: `getUserMedia` **queda pendiente para siempre**, así que la UI se
+quedaría "escuchando" sin micrófono y sin error — el peor modo de falla que encontró el spike
+(`spike-spec.md` §1.6 b/d).
+
+El shell engancha la señal `permission-request` del `WebView` de WebKitGTK vía `with_webview` y
+concede **solo** las `WebKitUserMediaPermissionRequest` que piden audio. Cualquier otra request
+sigue su curso por defecto.
+
+**Esta capability va PRIMERO** (V-D6, firmada): sin ella, todo el resto del dictado funciona en
+`pnpm dev` — donde el navegador concede por su cuenta — y muere mudo en la app instalada.
+
+Si una versión futura de `wry` maneja `permission-request` en `webkitgtk`, esta capability se
+retira; re-chequear con `webkit_captura_test.py` del paquete.

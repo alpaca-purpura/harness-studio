@@ -1,0 +1,106 @@
+---
+# Capability nueva (paquete 2026-07-25-spike-voz-dictado, RF-222).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.http-sse.superficie-dictado
+cap_num: CAP-114
+slug: superficie-dictado
+name: "Superficie HTTP del dictado (subir audio · disponibilidad)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: http-sse
+layer: transport
+verb: infra
+functional_area: "http-sse.dictado"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/transport/http/dictado.go#postDictado"
+  - "internal/adapters/transport/http/dictado.go#getDisponibilidad"
+  - "internal/adapters/transport/http/router.go#NewHandler"
+valida:
+  - "TestPostDictadoDevuelveLimpioOCrudo"
+  - "TestPostDictadoRechazaAudioDemasiadoGrande"
+  - "TestPostDictadoRechazaMimeNoSoportado"
+  - "TestPostDictado404SiLaSesionNoExiste"
+  - "TestGetDisponibilidadDiceElMotivo"
+  - "TestPostDictadoAsumeWavSinContentType"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /api/sesiones/{id}/dictado"
+    - "GET /api/dictado/disponibilidad"
+  e2e_test: null
+created_in_story: 2026-07-25-spike-voz-dictado
+created_date: 2026-07-25
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-25-spike-voz-dictado/spec.md RF-222"
+change_log:
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-25
+    type: new
+    summary: "Endpoint que recibe el audio grabado de una sesión y devuelve el texto listo para poblar el composer, marcando si quedó LIMPIO o CRUDO. Más una sonda de disponibilidad para que el FE sepa si puede ofrecer el botón."
+    merge_sha: null
+  - story_id: 2026-07-25-spike-voz-dictado
+    date: 2026-07-26
+    type: change
+    summary: "El endpoint loguea cada dictado (formato, bytes, ms, estado, motor), no solo los que fallan, y el mime por defecto pasa a audio/wav: desde RF-229 el FE arma el WAV él mismo porque el MediaRecorder del motor no graba."
+    merge_sha: null
+scenarios:
+  - id: sube-y-devuelve
+    name: "Llega un dictado"
+    status: live
+    given: "una sesión activa"
+    when: "el FE sube el audio grabado al endpoint de voz de esa sesión"
+    then: "el backend responde con el texto listo para poblar el composer, y la respuesta indica si el texto está LIMPIO o es CRUDO"
+    verifica: "TestPostDictadoDevuelveLimpioOCrudo"
+  - id: disponibilidad
+    name: "El FE pregunta si puede ofrecer el botón"
+    status: live
+    given: "el daemon corriendo"
+    when: "el FE consulta la disponibilidad del dictado"
+    then: "la respuesta dice si está disponible y, si no, el motivo legible y qué instalar"
+    verifica: "TestGetDisponibilidadDiceElMotivo"
+  - id: audio-acotado
+    name: "El audio que entra está acotado"
+    status: live
+    given: "el endpoint de dictado"
+    when: "llega un cuerpo más grande que el tope o con un mime que no se soporta"
+    then: "se rechaza con un error legible, sin leer el cuerpo entero a memoria"
+    verifica: "TestPostDictadoRechazaAudioDemasiadoGrande"
+business_rules:
+  - id: tope-de-cuerpo
+    rule: "El endpoint acota el tamaño del cuerpo antes de leerlo. Un dictado de 3 min es la cota funcional (RF-218); sin tope de transporte, un POST cualquiera contra la superficie local podría inflar memoria del daemon."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: high
+  - id: audio-nunca-a-disco-del-arnes
+    rule: "El handler no escribe el audio al árbol del arnés ni a un directorio persistente. Si el adaptador necesita un archivo, es un temporal de vida acotada que él mismo borra."
+    enforcement: ["docs/product/stories/2026-07-25-spike-voz-dictado/decisiones.md#v-d5"]
+    severity: high
+related_capabilities:
+  depends_on:
+    - arnesia.usecases.dictado-transcribir-y-ordenar
+    - arnesia.http-sse.confinamiento-de-superficie-local
+  enables:
+    - arnesia.fe-chat.dictar-en-el-composer
+  similar:
+    - arnesia.http-sse.superficie-rest
+  obsoletes: []
+---
+
+# Superficie HTTP del dictado
+
+Dos rutas, montadas sobre los mismos gates de auth que el resto de la superficie local
+(`confinamiento-de-superficie-local`):
+
+- **`POST /api/sesiones/{id}/dictado`** — recibe el audio grabado y devuelve el texto para el
+  composer. La respuesta **siempre dice si el texto está `limpio` o `crudo`**: pasar un crudo por
+  limpio sería exactamente el pass fabricado que la doctrina de la casa prohíbe.
+- **`GET /api/dictado/disponibilidad`** — sonda que el FE consulta al montar el composer. Devuelve
+  `disponible: false` **con motivo legible** cuando no hay motor de STT en `$PATH`, para que el botón
+  se deshabilite con la razón a la vista en vez de aceptar un dictado que después no se va a poder
+  transcribir.
+
+El cuerpo va **acotado antes de leerse**. La cota funcional la fija RF-218 (3 min de grabación); la
+de transporte existe aparte porque el endpoint no puede confiar en que el cliente respetó la primera.

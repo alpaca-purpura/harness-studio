@@ -1,0 +1,166 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.asignar-origen
+cap_num: CAP-105
+slug: asignar-origen
+name: "Asignar origen a un arnés huérfano (re-key por home declarado, sin clonar)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: portafolio
+layer: usecase
+
+verb: mejorar
+functional_area: "portafolio.identidad"
+
+user_visible: false
+
+nature: feature
+
+pointers:
+  - "internal/usecase/portafolio.go#PortafolioService"
+  - "internal/domain/portafolio.go#IdentidadArnes"
+  - "internal/domain/portafolio.go#EntradaPortafolio"
+  - "internal/domain/portafolio.go#EslabonOrigen"
+  - "internal/domain/portafolio.go#ResolverOrigen"
+  - "internal/domain/repo_ref.go#CanonicalizarRepo"
+  - "internal/ports/portafolio.go#PortafolioStore"
+  - "internal/usecase/portafolio.go#AsignarOrigen"
+  - "internal/usecase/portafolio.go#SinOrigenResuelto"
+  - "internal/usecase/portafolio.go#ErrAsignarOrigenColisiona"
+  - "internal/usecase/marketplace.go#CandidatosDeOrigen"
+  - "internal/usecase/marketplace.go#CandidatoOrigen"
+  - "internal/adapters/transport/http/marketplace.go#getCandidatosOrigen"
+  - "internal/adapters/transport/http/marketplace.go#postAsignarOrigen"
+valida:
+  - "TestAsignarOrigenReKeyeaYAnotaEslabon"
+  - "TestAsignarOrigenNingunoNoInventaHome"
+  - "TestAsignarOrigenColisionaNoFusiona"
+  - "TestAsignarOrigenReevaluaDeriva"
+  - "TestAsignarOrigenHomeNoCanonicalizable"
+  - "TestCandidatosDeOrigenOrdenaPorSenal"
+  - "TestContadorSinOrigenResuelto"
+  - "TestGetCandidatosOrigen"
+  - "TestPostAsignarOrigen"
+
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/portafolio/arneses/{clave}/origen/candidatos"
+    - "POST /api/portafolio/arneses/{clave}/origen"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/design.md §3.6 + decisiones.md PENDIENTE-01 §3 + AG-D8 decisión 7"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      Etapa 4 (implementación, MISMO día que el diseño): el código existe, los punteros del bloque
+      comentado quedaron ACTIVOS y `valida:` lista los checks reales que corren en CI. Estado
+      `stub → parcial`: `parcial` y no `vivo` porque el **gate humano 🧑‍⚖️ de PARIDAD sigue
+      pendiente** — el criterio del repo es que solo el operador gradúa a `vivo`, y un `vivo`
+      auto-declarado sería exactamente el estado fabricado que R4 mata.
+    merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). Cierra la mitad B de PENDIENTE-01: un arnés
+      cargado de un proyecto casi nunca trae `home`, y «el arnés siempre debe poder decir de dónde
+      proviene». HALLAZGO DE DISEÑO que cambió el mecanismo: el precedente natural era escribir el
+      sello (`Identificar`, S1-D28, escribe `arnes.l0.json` in-situ), pero la instalación dominante
+      real es `referenciada-cc`, cuyo dir vive bajo `~/.claude/plugins/cache/…`, y `~/.claude` está
+      en la lista `protegidos` de `validarRootPortafolio` — escribir el sello ahí es IMPOSIBLE por
+      diseño, y relajar el guardrail sería peor que el problema. Entonces el `home` declarado se
+      escribe en el STORE (re-key de la identidad a `(home,id)`) y la procedencia queda anotada con
+      un eslabón `declarado-por-operador`, honesto: el manifiesto sigue sin decirlo. Colisión de
+      clave ⇒ error EXPLÍCITO (fusionar dos identidades es una acción aparte, C-ID-2), jamás una
+      fusión silenciosa. La opción «ninguno — dejarlo sin origen» estampa
+      `OrigenSinResolverDESDE` (campo aditivo, `omitempty` ⇒ cero migración): distinto de «todavía
+      nadie lo miró», y saca la fila del contador cruzado sin inventarle un home. Efecto útil que
+      aparece solo: con el `home` resuelto, `RutaReferencia` ya puede encontrar la copia de
+      referencia y la deriva pasa de `no-evaluable` a un veredicto por hash real.
+    merge_sha: null
+
+scenarios:
+  - id: origen-re-key-anota-procedencia
+    name: "Asignar origen re-keyea la identidad y anota de dónde salió el dato (BR-3)"
+    given: "una entrada con identidad provisional `sin-home~<id>~<scope>`"
+    when: "el operador confirma un marketplace como origen"
+    then: "la entrada pasa a la clave `(home,id)`, la vieja se desvincula, y cada instalación gana el eslabón `declarado-por-operador / home / <repo>` — la procedencia dice que lo declaró el operador, no el manifiesto"
+    verifica: "E-25 de plan-pruebas.md (TestAsignarOrigenReKeyeaYAnotaEslabon)"
+  - id: origen-no-clona-no-instala
+    name: "Asignar origen no clona ni instala nada (BR-11)"
+    given: "una entrada cuyo dir de instalación es read-only (o vive en un árbol protegido)"
+    when: "se asigna el origen"
+    then: "la operación tiene éxito y NO se escribe ningún archivo fuera de `~/.arnesia/`: asignar origen ≠ traer"
+    verifica: "E-25 de plan-pruebas.md (fixture con el dir en modo 0555)"
+  - id: origen-ninguno-no-inventa-home
+    name: "«Ninguno — dejarlo sin origen» es una elección honesta, no un home fabricado"
+    given: "una entrada provisional y el operador eligiendo explícitamente «ninguno»"
+    when: "confirma"
+    then: "la identidad NO cambia, se estampa la fecha de la confirmación, y la fila deja de contar en «N sin origen resuelto» — sin inventarle ningún marketplace"
+    verifica: "E-26 de plan-pruebas.md (TestAsignarOrigenNingunoNoInventaHome)"
+  - id: origen-colision-no-fusiona
+    name: "Una colisión de identidad se informa, no se fusiona (C-ID-2)"
+    given: "ya existe una entrada con la clave `(home,id)` de destino"
+    when: "se intenta asignar ese mismo origen a otra entrada con el mismo id"
+    then: "error explícito y LAS DOS entradas quedan intactas — fusionar dos identidades es una acción aparte que el operador tiene que pedir"
+    verifica: "E-69 de plan-pruebas.md (TestAsignarOrigenColisionaNoFusiona)"
+  - id: origen-habilita-deriva
+    name: "Resolver el origen destraba la evaluación de deriva, sin un botón nuevo"
+    given: "una instalación `deriva-no-evaluable` por «sin referencia local accesible», cuyo home asignado SÍ tiene checkout con esa versión"
+    when: "se asigna el origen"
+    then: "la deriva se re-evalúa y pasa a `al-hilo` o `en-deriva` POR HASH real (nunca por el string de versión), y el cambio se persiste"
+    verifica: "E-70 de plan-pruebas.md (TestAsignarOrigenReevaluaDeriva)"
+  - id: origen-candidatos-sugieren-no-deciden
+    name: "Los candidatos se ordenan por señales blandas, y el operador SIEMPRE confirma"
+    given: "una entrada sin origen y N marketplaces conocidos"
+    when: "se piden los candidatos"
+    then: "salen ordenados (registry ya coincidente > autor coincidente > propio > resto) con su señal textual, NADA premarcado y el confirmar deshabilitado hasta que el operador elija"
+    verifica: "E-25 de plan-pruebas.md (story ResolverOrigenConfirma)"
+
+business_rules:
+  - id: home-declarado-no-toca-arbol-ajeno
+    rule: "El `home` declarado se escribe en el store del Portafolio, nunca como sello en el dir de la instalación: la instalación dominante vive bajo `~/.claude`, que la política de paths protegidos prohíbe escribir."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: reconciliar-no-adquiere
+    rule: "Asignar origen escribe el `home` declarado y re-evalúa deriva; no clona, no instala, no descarga nada."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: high
+  - id: identidad-nunca-se-fusiona-sola
+    rule: "Un re-key que colisionaría con una identidad existente falla con error explícito; la fusión de dos identidades es una acción del operador, fuera de este alcance."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+
+related_capabilities:
+  depends_on: [arnesia.portafolio.registrar-marketplace, arnesia.portafolio.registrar-identidad, arnesia.portafolio.resolver-origen]
+  enables: [arnesia.fe-portafolio.resolver-origen-dialogo, arnesia.portafolio.situacion-de-catalogo]
+  similar: [arnesia.portafolio.identificar]
+  obsoletes: []
+---
+
+# Asignar origen a un arnés huérfano (re-key por home declarado, sin clonar)
+
+Lo que le faltaba al ítem 2 (Agregar) para que el ítem 5 (Reparar) tenga con qué reconciliar
+(PENDIENTE-01 §4). Un arnés que se encontró en un proyecto ajeno casi nunca declara su
+marketplace; sin origen, el ciclo de mejora continua no cierra.
+
+**Un solo lugar donde se ejecuta, dos puertas para llegar** (AG-D8 decisión 7): la acción vive
+in-situ sobre la fila del arnés en el plano Arneses (mismo patrón que «Identificar» del Slice 2);
+el plano Marketplaces aporta un contador cruzado que lleva ahí ya filtrado.
+
+**El mecanismo NO es el sello.** Es el hallazgo de diseño de este capability: el precedente
+(`Identificar`) escribe `arnes.l0.json` in-situ, pero eso solo funciona para instalaciones cuyo dir
+sea escribible y no protegido — y la instalación dominante real de esta máquina vive en el caché de
+Claude Code, bajo `~/.claude`, que el propio guardrail del Portafolio prohíbe tocar. El `home`
+declarado va al store, con su eslabón de procedencia diciendo que lo declaró el operador.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.

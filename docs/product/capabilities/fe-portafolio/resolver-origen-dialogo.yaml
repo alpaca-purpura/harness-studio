@@ -1,0 +1,158 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-portafolio.resolver-origen-dialogo
+cap_num: CAP-110
+slug: resolver-origen-dialogo
+name: "Diálogo Resolver origen (in-situ sobre la fila, nada premarcado, «ninguno» explícito)"
+status: parcial         # FE construido y validado por stories (T8-T13/T20); el E2E vivo espera el backend + la firma 🧑‍⚖️ de PARIDAD.
+license: brand-local
+
+module: fe-portafolio
+layer: fe
+
+verb: mejorar
+functional_area: "fe-portafolio.identidad"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/shared/lib/focus-trap.ts#trapTabKeyDown"
+  - "web/src/entities/portafolio/model/selectors.ts#registriesDe"
+  - "web/src/entities/portafolio/model/selectors.ts#identificadorDe"
+  - "web/src/widgets/portafolio/ui/resolver-origen-dialog.tsx#ResolverOrigenDialog"
+  - "web/src/widgets/portafolio/ui/resolver-origen-dialog.tsx#ResolverOrigenDialogProps"
+  - "web/src/entities/marketplace/model/types.ts#CandidatoOrigen"
+  - "web/src/entities/portafolio/model/selectors.ts#filtrarSinOrigen"
+  - "web/src/shared/api/client.ts#candidatosDeOrigen"
+  - "web/src/shared/api/client.ts#asignarOrigen"
+  - "web/src/entities/marketplace/testing/marketplaces.ts#candidatosOrigenDemo"
+  - "web/src/entities/portafolio/model/types.ts#EntradaPortafolio"
+valida:
+  - "web/src/widgets/portafolio/ui/resolver-origen-dialog.stories.tsx"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.stories.tsx"
+  - "web/src/widgets/portafolio/ui/portafolio-list.stories.tsx"
+  - "web/src/entities/portafolio/model/selectors.test.ts"
+
+dev_preview:
+  route: "#/portafolio"
+  how_to_navigate: "rail → Portafolio → click en una fila con identidad provisional → drawer → «Resolver origen» (o: plano Marketplaces → contador «N sin origen resuelto» → lista ya filtrada)"
+  main_component: "web/src/widgets/portafolio/ui/resolver-origen-dialog.tsx#ResolverOrigenDialog"
+  api_endpoints:
+    - "GET /api/portafolio/arneses/{clave}/origen/candidatos"
+    - "POST /api/portafolio/arneses/{clave}/origen"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/decisiones.md PENDIENTE-01 §3 + AG-D8 decisión 7 + design.md §9.3"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). Superficie S7. Vive en
+      `widgets/portafolio/`, no en `widgets/marketplace/`, porque actúa SOBRE UN ARNÉS: el
+      marketplace es solo el destino que se elige. Un lugar donde se ejecuta, dos puertas para
+      llegar (AG-D8 decisión 7): in-situ sobre la fila del arnés en el plano Arneses (mismo patrón
+      que «Identificar» del Slice 2) y el contador cruzado del plano Marketplaces, que lleva a la
+      lista ya filtrada. El principio anti-drift no se toca: los candidatos vienen ORDENADOS por
+      señales blandas desde el backend (el widget no ordena, así el criterio es testeable), NADA
+      viene premarcado y `Confirmar origen` nace `disabled` con el tooltip «elegí un destino
+      primero» — el operador SIEMPRE confirma (PENDIENTE-01 §3, intacto). La opción «ninguno —
+      dejarlo sin origen» es la ÚLTIMA de la lista y es una elección de primera clase, modelada
+      como `eleccion: string | null | undefined`: `null` es «ninguno» (elegido, habilita Confirmar)
+      y `undefined` es «nada elegido» (no habilita) — la distinción de tres estados es lo que
+      permite ofrecer «ninguno» sin premarcar nada. Confirmar escribe el `home` declarado y NO
+      clona ni instala (BR-11). A diferencia del parche de S1-D21, este contrato SÍ trae slot
+      `error?: string`: nace nuevo, no hay razón para repetir un banner de página.
+    merge_sha: null
+
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      T12/T13 construidos: `widgets/portafolio/ui/resolver-origen-dialog.tsx` (S7) + su puerta en el drawer + el filtro `filtrarSinOrigen` de la lista. Vive en `widgets/portafolio` porque actúa SOBRE UN ARNÉS; no hay import cruzado con `widgets/marketplace` (`no-sibling-widget-imports`): la página compone los dos. Nada premarcado: `Confirmar origen` nace `disabled` con el tooltip literal «elegí un destino primero», el orden de los candidatos lo decide el backend por señales blandas y el widget NO reordena. «ninguno — dejarlo sin origen» es la ÚLTIMA opción y una ELECCIÓN (habilita Confirmar) que se registra en `origen_sin_resolver_desde` sin inventar un home (E-26). El 409 de colisión se EXPLICA en el slot `error` propio del diálogo y las dos entradas quedan intactas (fusionar es otra operación). Dos puertas, un lugar: la ficha del arnés ejecuta, el contador cruzado del plano Marketplaces solo lleva a la lista ya filtrada. `status: parcial`: falta el backend, el E2E vivo y la firma de PARIDAD.
+    merge_sha: null
+
+scenarios:
+  - id: origen-nada-premarcado
+    name: "Nada viene premarcado y `Confirmar` nace deshabilitado"
+    given: "un arnés sin origen y N marketplaces candidatos"
+    when: "se abre el diálogo"
+    then: "ningún radio marcado; `Confirmar origen` con `disabled` y `title=\"elegí un destino primero\"`; al elegir cualquier opción se habilita"
+    verifica: "story ResolverOrigenConfirma · E-25 de plan-pruebas.md"
+  - id: origen-ninguno-es-eleccion
+    name: "«Ninguno — dejarlo sin origen» es una elección, no la ausencia de elección"
+    given: "el diálogo abierto"
+    when: "se elige la última opción («ninguno»)"
+    then: "`Confirmar` se HABILITA (es una decisión válida) y al confirmar se registra la confirmación sin inventar ningún home — la fila deja de reclamar atención sin mentir sobre su origen"
+    verifica: "story ResolverOrigenNinguno · E-26 de plan-pruebas.md"
+  - id: origen-senales-explicadas
+    name: "Cada candidato muestra POR QUÉ está sugerido"
+    given: "candidatos con distintas señales (registry ya coincidente, autor coincidente, propio, no leído aún)"
+    when: "se renderizan"
+    then: "cada fila muestra su señal textual debajo del nombre; el orden es sugerencia, no decisión — el operador ve el criterio en vez de confiar en una lista sin explicación"
+    verifica: "story ResolverOrigenConSenales"
+  - id: origen-colision-copy-honesto
+    name: "Una colisión de identidad se explica, no se resuelve sola"
+    given: "un 409 del backend (ya existe una entrada con esa identidad)"
+    when: "se confirma"
+    then: "el slot `error` muestra «ya existe una entrada con esa identidad — fusionar es otra operación»; las dos entradas quedan intactas y el diálogo sigue abierto para elegir otro destino"
+    verifica: "story ResolverOrigenColision · E-69 de plan-pruebas.md"
+  - id: origen-cancelar-cero-efectos
+    name: "Cancelar = cero efectos"
+    given: "una opción ya elegida sin confirmar"
+    when: "se cancela o se cierra con Esc"
+    then: "`onConfirmar` nunca se llamó; el Portafolio queda sin cambios"
+    verifica: "story ResolverOrigenCancela"
+  - id: origen-dos-puertas-un-lugar
+    name: "Dos formas de llegar, un solo lugar donde se ejecuta"
+    given: "N entradas sin origen resuelto"
+    when: "se llega por la fila del arnés y por el contador cruzado del plano Marketplaces"
+    then: "las dos abren EL MISMO diálogo sobre la misma fila; el contador solo conmuta al plano Arneses ya filtrado"
+    verifica: "story ContadorCruzadoNavega (plano-marketplaces) + ResolverOrigenConfirma"
+  - id: origen-a11y
+    name: "El diálogo cumple a11y con el gate axe en `error`"
+    given: "el diálogo abierto sobre el drawer"
+    when: "corre la story"
+    then: "`role=dialog` + `aria-modal` + `aria-labelledby` al `<h2>`; foco atrapado; Esc cierra; al cerrar el foco vuelve al botón que lo abrió"
+    verifica: "story ResolverOrigenA11y · E-30 de plan-pruebas.md"
+
+business_rules:
+  - id: operador-siempre-confirma
+    rule: "El sistema sugiere destinos ordenados por señales blandas y NUNCA auto-decide: nada premarcado, confirmación explícita siempre."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: reconciliar-no-trae
+    rule: "Confirmar escribe el `home` declarado; no clona, no instala, no descarga: asignar origen ≠ traer."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: high
+  - id: dialogo-vive-en-portafolio
+    rule: "El diálogo vive en `widgets/portafolio/` porque actúa sobre un arnés; el marketplace es solo el destino elegido. No hay import cruzado entre `widgets/portafolio` y `widgets/marketplace`: la página compone los dos."
+    enforcement: ["docs/architecture/boundaries/fe-taxonomia-componentes.md"]
+    severity: high
+
+related_capabilities:
+  depends_on: [arnesia.portafolio.asignar-origen, arnesia.portafolio.registrar-marketplace, arnesia.http-sse.superficie-marketplaces]
+  enables: [arnesia.portafolio.situacion-de-catalogo]
+  similar: [arnesia.portafolio.identificar, arnesia.fe-portafolio.drawer-detalle-read]
+  obsoletes: []
+---
+
+# Diálogo Resolver origen (in-situ sobre la fila, nada premarcado, «ninguno» explícito)
+
+Superficie S7 — la mitad B de PENDIENTE-01 en el FE. «El arnés siempre debe poder decir de dónde
+proviene», y cuando no puede, el operador le asigna un origen **explícitamente**.
+
+El detalle de modelado que hace que esto funcione sin traicionar el anti-drift: la elección tiene
+**tres** estados, no dos. `undefined` = nada elegido (Confirmar deshabilitado) · `null` = «ninguno,
+dejarlo sin origen» (elección válida, Confirmar habilitado) · `"<repo>"` = un destino. Con solo dos
+estados habría que premarcar algo o esconder la opción honesta; con tres, «no tiene origen y lo sé»
+es una respuesta que el sistema puede registrar sin inventar nada.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.

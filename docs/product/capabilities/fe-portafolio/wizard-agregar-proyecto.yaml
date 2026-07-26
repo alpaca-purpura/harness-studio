@@ -25,6 +25,12 @@ pointers:
   - "web/src/entities/portafolio/ui/chips.tsx#TipoInstalacionChip"
   - "web/src/entities/portafolio/ui/chips.tsx#AvisoChip"
   - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizard"
+  - "web/src/widgets/portafolio/ui/portafolio-wizard.tsx#PortafolioWizardProps"
+  - "web/src/entities/portafolio/model/selectors.ts#filtrarCandidatos"
+  - "web/src/entities/portafolio/model/selectors.ts#registriesDeCandidatos"
+  - "web/src/shared/ui/lista-lazy.tsx#ListaLazy"
+  - "web/src/shared/ui/buscador-filtro.tsx#BuscadorFiltro"
+  - "web/src/shared/ui/filtro-disclosure.tsx#FiltroDisclosure"
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
 valida:
   - "web/src/widgets/portafolio/ui/portafolio-wizard.stories.tsx"
@@ -41,7 +47,7 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-16
+last_modified: 2026-07-25
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D9/S1-D10/S1-D23/S1-D26"
 change_log:
   - story_id: 2026-07-13-portafolio-slice1-fe
@@ -130,6 +136,13 @@ change_log:
       si hay un solo grupo) + el aviso sin-record ya no es anónimo (el scanner conserva el id) +
       `TipoInstalacionChip` no pinta chip vacío con `tipo:""`. Story nueva
       `CandidatosMonorepoAgrupados` (calca el caso real post-fix); unit tests de los 2 selectores.
+    merge_sha: null
+
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      T11 (paquete 2026-07-23) cierra W3/W4 de la auditoría con AG-D6 + AG-D3, SIN agregar estados a la máquina de 4: (a) pie con `← Atrás` y `Cancelar` en todos los pasos — `Atrás` en el primer paso va `disabled` y VISIBLE con «ya estás en el primer paso», y desde `escaneando` reusa `onCancelarEscaneo` (abortar y volver al paso 1 es exactamente lo que ese callback ya hacía: cero vocabulario nuevo); (b) en `candidatos`, el rótulo «Paso 2 de 2 · escaneo — encontrados N arneses» (la cifra de HALLAZGOS, distinta de la de elegidos a propósito) y la ruta escaneada VISIBLE con «cambiar ruta», que es la MISMA transición que `← Atrás` (un handler, dos puertas); (c) volver a `fuente` preserva la ruta y las tildadas (el widget las posee y no desmonta), y las claves que el escaneo nuevo ya no trae se descartan del set sin aviso — no hay nada que reportar; (d) buscador + filtros (`Deriva` con los 3 literales de `EstadoDeriva`, `Origen` con los `registry` REALES) + `ListaLazy` sobre los hallazgos, obligatorio *porque* AG-D7 no premarca nada. Nota de vocabulario: el mockup rotula esos filtros «Situación» y «Origen»; «Situación» pasó a significar `SituacionCatalogo` en este mismo paquete, así que el filtro de los hallazgos usa la palabra ya firmada para ese dato — `Deriva` — en vez de colisionar.
     merge_sha: null
 
 scenarios:

@@ -1,0 +1,255 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.traer-canonico
+cap_num: CAP-111
+slug: traer-canonico
+name: "Traer canónico (materializar el arnés del estante: local o clone externo, atómico)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: portafolio
+layer: usecase
+
+verb: crear
+functional_area: "portafolio.canonico"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/domain/portafolio.go#Canonico"
+  - "internal/domain/portafolio.go#IdentidadArnes"
+  - "internal/domain/portafolio.go#HuellaPath"
+  - "internal/domain/portafolio.go#Slug"
+  - "internal/domain/repo_ref.go#CanonicalizarRepo"
+  - "internal/adapters/portafolio/deriva.go#HashFormaPlugin"
+  - "internal/ports/portafolio.go#DerivaEvaluator"
+  - "internal/ports/portafolio.go#PortafolioStore"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  - "internal/domain/traer.go#PlanTraer"
+  - "internal/domain/traer.go#CaminoTraer"
+  - "internal/domain/traer.go#PlanificarTraer"
+  - "internal/domain/traer.go#RutaCanonico"
+  - "internal/domain/traer.go#RaizCheckouts"
+  - "internal/domain/traer.go#DentroDeCheckouts"
+  - "internal/ports/traer.go#Materializador"
+  - "internal/adapters/traer/copia.go#CopiarArbol"
+  - "internal/adapters/traer/local.go#CopiadorLocal"
+  - "internal/adapters/traer/externo.go#ClonadorExterno"
+  - "internal/usecase/traer.go#ResultadoTraer"
+  - "internal/adapters/transport/http/marketplace.go#postTraerCanonico"
+valida:
+  - "TestPlanificarTraerCaminoLocal"
+  - "TestPlanificarTraerCaminoExterno"
+  - "TestPlanificarTraerRechazaReferencia"
+  - "TestPlanificarTraerSourceNoMaterializable"
+  - "TestPlanificarTraerRaizDeMarketplace"
+  - "TestGitHubDosHashesGanaSha"
+  - "TestRefDivergenteEsAvisoNoAborto"
+  - "TestRutaCanonicoNoEscapa"
+  - "TestDentroDeCheckouts"
+  - "TestRaizTemporalesBajoArnesia"
+  - "TestExclusionCoincideConHashFormaPlugin"
+  - "TestCopiaSymlinks"
+  - "TestCopiaPreservaEjecutable"
+  - "TestCopiaRaizDeMarketplaceExcluyeGit"
+  - "TestCopiadorLocalPrenter"
+  - "TestCaminoLocalNoImportaRed"
+  - "TestClonadorExternoShim"
+  - "TestFetchPorShaFallaReintentaConRef"
+  - "TestTraerRemotoNoTiene"
+  - "TestTraerClasificaAuthVsNoExiste"
+  - "TestTraerTokenNuncaEnArgv"
+  - "TestTechoDeBytesEnClone"
+  - "TestTimeoutDeClone"
+  - "TestTraerCaminoALocal"
+  - "TestTraerEvaluaDerivaDeInmediato"
+  - "TestTraerCanalesDestinoPropio"
+  - "TestTraerDestinoPobladoAborta"
+  - "TestTraerDestinoVacioSePuedeUsar"
+  - "TestTraerDestinoEsArchivo"
+  - "TestTraerSHANoCoincideAborta"
+  - "TestTraerCancelacionNoDejaResiduo"
+  - "TestBarridoDeTemporalesAlArrancar"
+  - "TestTraerJamasEscribeEnClaude"
+  - "TestTraerFalloLocalLimpia"
+  - "TestUpsertFallidoDejaDirVisible"
+  - "TestStagingEnMismoFilesystemQueDestino"
+  - "TestTraerConcurrenteMismoDestino"
+  - "TestTraerConcurrenteCanalesDistintos"
+  - "TestTraerSinCacheLeePrimero"
+  - "TestTraerConInstalacionesPrevias"
+
+dev_preview:
+  route: "#/portafolio?plano=marketplaces"
+  how_to_navigate: "rail → Portafolio → pestaña «Marketplaces» → catálogo de un marketplace PROPIO → fila `no lo tengo` → `↧ Traer canónico`. Segunda puerta: drawer de un arnés sin canónico → `↧ Traer canónico`"
+  main_component: "web/src/widgets/marketplace/ui/marketplace-catalogo.tsx#MarketplaceCatalogo"
+  api_endpoints:
+    - "POST /api/marketplaces/{nombre}/traidos"
+  e2e_test: null
+
+created_in_story: 2026-07-23-portafolio-agregar-marketplace
+created_date: 2026-07-25
+last_modified: 2026-07-25
+source_ref: "docs/product/stories/2026-07-23-portafolio-agregar-marketplace/decisiones.md AG-D17 (FIRMADA 🧑‍⚖️) + spec.md §4.7 + design.md §13"
+change_log:
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: extend
+    summary: >-
+      Etapa 4 (implementación, MISMO día que el diseño): el código existe, los punteros del bloque
+      comentado quedaron ACTIVOS y `valida:` lista los checks reales que corren en CI. Estado
+      `stub → parcial`: `parcial` y no `vivo` porque el **gate humano 🧑‍⚖️ de PARIDAD sigue
+      pendiente** — el criterio del repo es que solo el operador gradúa a `vivo`, y un `vivo`
+      auto-declarado sería exactamente el estado fabricado que R4 mata.
+    merge_sha: null
+  - story_id: 2026-07-23-portafolio-agregar-marketplace
+    date: 2026-07-25
+    type: new
+    summary: >-
+      Alta en el diseño (etapa 3, sin código todavía). AG-D17 FIRMADA 🧑‍⚖️: `Traer` entra COMPLETO,
+      los dos caminos. La asimetría que lo separa de Publicar/Actualizar/Reparar (que siguen fuera de
+      alcance) es que `Traer` escribe **solo en `~/.arnesia/checkouts/`**, mientras los otros tres
+      escriben en cosas del cliente o en el estante remoto. Materializa el arnés del estante como
+      canónico EDITABLE para poder mejorarlo — no lo instala para usarlo (eso lo hace Claude Code en
+      el proyecto del cliente; ArnesIA es dueña única del modificar).
+      El diseño se hizo verificando contra GitHub EN VIVO y eso corrigió la letra del spec en tres
+      puntos: (a) el pin de camino B es el **`sha`**, no el `ref` — en una entrada sana
+      (`42Crunch-AI/claude-plugins`) el `ref v1.5.5` resuelve a `faf53053…` y el `sha` declarado es
+      `30287f5e…`, **commits distintos**: clonar por `ref` y verificar `sha` abortaría siempre, y
+      además `ref` está en 77/220 entradas contra `sha` en 220/220; (b) `source: "github"` trae DOS
+      hashes válidos (`commit` y `sha`) sin semántica documentada ⇒ gana `sha` (el único universal) y
+      la divergencia se muestra como aviso, no se silencia; (c) la identidad se registra con
+      `Home = CanonicalizarRepo(repo)` (RN-IDENT-1) mientras el PATH usa el nombre legible del
+      marketplace — colapsar los dos haría que el canónico recién traído **no cruzara con la fila del
+      catálogo de la que vino**. Mecanismo probado en vivo: `git init` + `sparse-checkout --cone` +
+      `fetch --depth 1 --filter=blob:none origin <sha>` + `checkout FETCH_HEAD` ⇒ `HEAD == sha` exacto,
+      solo el subdir pedido, 664 KB. Atomicidad (BR-15): staging **bajo `~/.arnesia/`** (no `/tmp`:
+      `os.Rename` cross-device falla con EXDEV) → un solo `os.Rename` → registro → deriva. El set de
+      exclusión de la copia es EXACTAMENTE el de `HashFormaPlugin` (`.git/`, `.in_use`,
+      `.orphaned_at`), que es lo que garantiza que BR-17 dé `al-hilo` y que el canónico no herede el
+      remote del marketplace.
+    merge_sha: null
+
+scenarios:
+  - id: traer-destino-confinado
+    name: "El destino cae siempre dentro de `~/.arnesia/checkouts/`, y nunca en `~/.claude` (BR-13)"
+    given: "nombres de marketplace y de entrada hostiles (`../../.claude`, `/etc`, unicode puro, vacío, con `@` y espacios)"
+    when: "se calcula el destino del Traer"
+    then: "todos caen dentro de `checkouts` — `Slug` colapsa separadores y `..`, un segmento que quedaría vacío usa la huella de la ruta, y el resultado se re-verifica con una aserción de path antes de crear y con symlinks resueltos después de mover"
+    verifica: "E-87/E-88 de plan-pruebas.md (aserción de ruta y de bytes sobre las 6 ramas, no de confianza)"
+  - id: traer-no-pisa-el-canonico
+    name: "Si el destino ya tiene contenido, se aborta sin tocar nada (BR-14)"
+    given: "un canónico ya materializado en el destino"
+    when: "se repite el Traer"
+    then: "aborta con 409 y el contenido previo queda byte-idéntico; ni se crea un temporal. Un dir VACÍO no cuenta como poblado (se puede usar); un archivo en esa ruta sí"
+    verifica: "E-79/E-79b/E-79c/E-102 de plan-pruebas.md"
+  - id: traer-atomico-sin-residuo
+    name: "Materialización atómica: ni canónico parcial ni entrada registrada (BR-15)"
+    given: "cualquiera de las 6 ramas de falla (planificación · destino poblado · materialización · sha · rename · registro)"
+    when: "falla"
+    then: "el temporal se borra, el destino no existe y el store queda sin entradas. El ÚNICO parcial posible es el fallo del registro tras materializar: ahí el dir se conserva a propósito (borrar contenido que costó red es peor) y queda VISIBLE — el Traer siguiente da 409, no un silencio"
+    verifica: "E-86/E-86b/E-89/E-100/E-101 de plan-pruebas.md"
+  - id: traer-sha-es-la-autoridad
+    name: "El `sha` declarado es el pin y se verifica; el `ref` es una pista (BR-16)"
+    given: "una entrada real cuyo `ref` y `sha` apuntan a commits DISTINTOS"
+    when: "se materializa por camino externo"
+    then: "se hace fetch del `sha` y se verifica que `HEAD` lo iguale; la divergencia con el `ref` queda como aviso visible y NO aborta. Si el contenido traído no iguala el `sha`, se aborta sin registrar nada"
+    verifica: "E-82/E-95/E-96/E-97 de plan-pruebas.md"
+  - id: traer-deriva-inmediata-honesta
+    name: "Tras traer, la deriva se evalúa de inmediato y se muestra tal cual salga (BR-17)"
+    given: "un canónico recién materializado"
+    when: "se evalúa la deriva"
+    then: "el veredicto viaja en la respuesta incluso si es `en-deriva` o `deriva-no-evaluable` con motivo — un 200 no implica `al-hilo`. El set de exclusión de la copia es el de `HashFormaPlugin`, que es lo que hace que un traído sano SÍ dé `al-hilo`"
+    verifica: "E-77/E-94 de plan-pruebas.md"
+  - id: traer-referencia-no-existe
+    name: "En un marketplace de referencia la acción no existe (BR-1)"
+    given: "una fila de un marketplace de clase `referencia`"
+    when: "se intenta traer por API (sin pasar por el botón deshabilitado)"
+    then: "se rechaza con el literal «no aplica: solo arneses propios» y CERO I/O — un botón `disabled` es render, no control de acceso"
+    verifica: "E-80 de plan-pruebas.md · boundary marketplace-referencia-es-solo-procedencia (check traer-referencia-rechazado)"
+  - id: traer-auth-user-owned
+    name: "La credencial es del operador; ArnesIA no la pide, no la guarda, no la proxya (BR-18)"
+    given: "un repo que exige auth, con `gh` autenticado o con PAT como fallback"
+    when: "se materializa por camino externo"
+    then: "`gh` actúa como credential helper de git (ArnesIA nunca ve el token) y el PAT viaja por env de un askpass en el temporal, jamás en `argv` ni en la URL. Sin ninguna de las dos: error de auth DISTINGUIBLE de «no existe»"
+    verifica: "E-84/E-85 de plan-pruebas.md (el token no aparece en ningún archivo ni en el argv capturado)"
+  - id: traer-source-no-adivinado
+    name: "Una forma de `source` que no se sabe materializar se rechaza con el crudo visible"
+    given: "`source` desconocido, u objeto sin `sha` ni `ref`, o ruta relativa sin el marketplace clonado en disco"
+    when: "se planifica el Traer"
+    then: "se rechaza con el crudo del `source` en el motivo — no se intenta adivinar a qué repo pertenece una ruta relativa huérfana"
+    verifica: "E-90 de plan-pruebas.md"
+  - id: traer-dos-puertas-un-acto
+    name: "Dos puertas, un acto: la fila del catálogo y el botón del drawer"
+    given: "un arnés sin canónico, visible en el catálogo y en su drawer"
+    when: "se dispara Traer desde cualquiera de las dos"
+    then: "es el mismo endpoint, el mismo estado y el mismo resultado; el botón del drawer deja de estar `disabled` y pierde su tooltip de diferido — cero vocabulario nuevo"
+    verifica: "E-107 de plan-pruebas.md (stories del catálogo y del drawer)"
+
+business_rules:
+  - id: destino-confinado-a-checkouts
+    rule: "El destino de Traer es `~/.arnesia/checkouts/<slug-nombre-marketplace>/<slug-id>/`; nada se escribe fuera de `~/.arnesia` y JAMÁS dentro de `~/.claude`. La validación es una función pura + una aserción de path antes y después de mover."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: materializacion-atomica
+    rule: "Se materializa en un staging bajo `~/.arnesia/` y se mueve con un solo `os.Rename`; ninguna rama de falla deja canónico parcial ni entrada registrada. El staging NO va en `/tmp`: un rename cross-device rompe la atomicidad."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: no-se-pisa-el-canonico
+    rule: "El canónico es la única copia editable: un destino con contenido aborta la operación sin tocarlo."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: sha-es-la-autoridad
+    rule: "El pin del camino externo es el `sha` declarado (presente en 220/220 formas objeto), no el `ref` (77/220 y puede apuntar a otro commit); si el contenido traído no lo iguala, se aborta."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: exclusion-coincide-con-el-hash
+    rule: "La copia excluye exactamente el set que `HashFormaPlugin` excluye (`.git/`, `.in_use`, `.orphaned_at`): excluir menos hace que el canónico herede el remote del marketplace; excluir más rompe la comparación de deriva."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+  - id: identidad-canonica-vs-path
+    rule: "La identidad se registra con `Home = CanonicalizarRepo(repo)` (RN-IDENT-1) aunque el PATH use el nombre legible del marketplace: colapsarlos haría que el canónico recién traído no cruzara con la fila del catálogo de la que vino."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: traer-referencia-prohibido
+    rule: "Un marketplace de clase `referencia` no admite Traer, y el rechazo vive en el dominio: el botón deshabilitado es render, no control de acceso."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: critical
+
+related_capabilities:
+  depends_on:
+    - arnesia.portafolio.leer-catalogo-marketplace
+    - arnesia.portafolio.situacion-de-catalogo
+    - arnesia.portafolio.registrar-marketplace
+    - arnesia.portafolio.evaluar-deriva
+    - arnesia.portafolio.registrar-identidad
+  enables: [arnesia.fe-portafolio.catalogo-de-marketplace, arnesia.fe-portafolio.drawer-detalle-read]
+  similar: [arnesia.portafolio.asignar-origen]
+  obsoletes: []
+---
+
+# Traer canónico (materializar el arnés del estante: local o clone externo, atómico)
+
+Superficie S8. Cierra el circuito del ciclo de vida: el plano dice **qué** hay en el estante y en
+qué situación está; `Traer` es lo que permite **agarrarlo para mejorarlo**. Sin esto, el plano era
+un espejo sin manos.
+
+**No instala para usar: materializa para modificar.** La distinción es de visión
+(`vision.md` §Ecosistema: ArnesIA es dueña única del observar y el modificar; las apps de rol solo
+ejecutan). Lo que se materializa es el **canónico**, la única copia editable de una identidad.
+
+Dos caminos, elegidos por la forma del `source` (AG-D13), no por una preferencia:
+
+- **A · local** — `installLocation` en disco + `source` ruta relativa ⇒ copia de subcarpeta. Sin red,
+  sin auth, sin `git`. **Es el caso de lo que vendemos** (`prenter-marketplace`).
+- **B · externo** — `source` objeto ⇒ `git init` + `sparse-checkout --cone` + `fetch --depth 1
+  --filter=blob:none origin <sha>` + `checkout FETCH_HEAD`, con verificación de que `HEAD` iguale el
+  `sha` declarado. Probado en vivo: 664 KB para un plugin de un repo con 78.
+
+Lo más fácil de implementar mal es la **atomicidad** (BR-15) y lo más fácil de implementar *de más*
+es la **confianza**: BR-13 no se cumple «con cuidado», se cumple con una función pura que no puede
+producir un escape y con un test que asserta bytes y rutas. Detalle completo en `design.md` §13.
+
+**Punteros a activar al construir:** ver el bloque comentado del frontmatter.
