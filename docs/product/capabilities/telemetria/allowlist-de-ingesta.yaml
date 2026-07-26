@@ -1,0 +1,124 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D15 + ANEXO H4).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.allowlist-de-ingesta
+cap_num: CAP-121
+slug: allowlist-de-ingesta
+name: "Allowlist de ingesta (ni identidad de cuenta, ni contenido, ni rutas)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: observar
+functional_area: "telemetria.ingesta"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/otlp/mapa_cc.go#MapearLogRecord"
+  - "internal/adapters/telemetria/otlp/mapa_cc.go#MapearPuntoMetrica"
+  - "internal/adapters/telemetria/otlp/mapa_cc.go#AllowlistOTLP"
+  - "internal/adapters/telemetria/otlp/mapa_cc.go#NegadosDuros"
+  - "internal/adapters/telemetria/hooks/proyecta.go#Proyectar"
+  - "internal/adapters/telemetria/hooks/proyecta.go#HuellaCWD"
+  - "internal/adapters/telemetria/hooks/proyecta.go#AllowlistHook"
+  - "internal/adapters/telemetria/hooks/proyecta.go#NegadosHook"
+  - "internal/domain/telemetria.go#EventoTelemetria"
+valida:
+  - "TestLaIdentidadNoCruzaLaPuerta"
+  - "TestHookNoReenviaContenido"
+  - "TestAtributoNuevoCaeAfueraYSeCuenta"
+  - "TestCwdDesconocidoNoSeGuardaCrudo"
+  - "TestCwdConocidoAtribuyePorProceso"
+  - "TestToolResultBytesSePersiste"
+  - "TestProyeccionPorEvento"
+  - "TestLaAllowlistNoTieneCamposDeContenido"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /v1/logs"
+    - "POST /v1/metrics"
+    - "POST /api/telemetria/proceso"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §6.1"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "La telemetría que entra se persiste solo por lista declarada: la identidad de cuenta que el runtime manda en cada punto y el contenido de la conversación que manda el hook se descartan en la puerta, en los dos caminos de ingesta."
+    merge_sha: null
+scenarios:
+  - id: pii-en-la-puerta
+    name: "Llega telemetría con identidad de cuenta"
+    status: live
+    given: "el receptor recibiendo de un runtime que manda email e identificadores de cuenta en cada punto"
+    when: "se ingiere el lote"
+    then: "el evento persistido no contiene ninguno de esos campos, y los identificadores de trabajo que sí declaramos llegan intactos"
+    verifica: "TestLaIdentidadNoCruzaLaPuerta"
+  - id: hook-no-reenvia-la-conversacion
+    name: "El hook recibe el prompt completo por su entrada"
+    status: live
+    given: "un hook de proceso invocado con los seis payloads reales del runtime"
+    when: "el hook proyecta y emite"
+    then: "lo emitido tiene identificadores, nombre de herramienta y duración; no tiene prompt, respuesta, salida de herramienta ni rutas del usuario"
+    verifica: "TestHookNoReenviaContenido"
+  - id: campo-nuevo-cae-afuera
+    name: "El emisor agrega un campo que no conocíamos"
+    status: live
+    given: "un payload con un atributo desconocido"
+    when: "se ingiere"
+    then: "el evento entra con lo que sí está declarado, el campo nuevo se descarta sin error, y el descarte se cuenta"
+    verifica: "TestAtributoNuevoCaeAfueraYSeCuenta"
+  - id: la-ruta-se-usa-y-se-tira
+    name: "El hook trae el directorio de trabajo del usuario"
+    status: live
+    given: "un payload con la ruta real de un proyecto"
+    when: "se proyecta"
+    then: "la ruta sirve para reconocer la instalación y después se descarta; lo que queda es un identificador conocido o una huella no reversible"
+    verifica: "TestCwdDesconocidoNoSeGuardaCrudo"
+business_rules:
+  - id: allowlist-no-denylist
+    rule: "Se persiste lo declarado. Una lista de prohibidos queda desactualizada frente a un emisor que agrega campos; una lista de permitidos deja lo nuevo afuera por default."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+  - id: allowlist-en-los-dos-caminos
+    rule: "El hook proyecta antes de mandar y el daemon revalida al recibir. No se confía en que el emisor haya filtrado, aunque el emisor sea nuestro propio binario."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+  - id: ni-un-constructor-por-mapa
+    rule: "El evento se arma campo por campo. No existe una función que reciba un mapa de atributos y lo vuelque al evento — esa es la única forma de que la lista sea una garantía y no una intención."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+  - id: la-ruta-nunca-se-persiste
+    rule: "El directorio de trabajo se usa para reconocer la instalación y se descarta. Lo que se guarda es un identificador conocido o una huella que no vuelve a la ruta."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+    - arnesia.telemetria.decodificador-otlp-json
+  enables:
+    - arnesia.telemetria.almacen-de-telemetria
+  similar: []
+  obsoletes: []
+---
+
+# Allowlist de ingesta
+
+La telemetría del runtime llega con el email de la cuenta y cuatro identificadores más **en cada
+punto y cada registro**; el payload del hook llega con el prompt del usuario, la respuesta del
+asistente y la salida de las herramientas **en claro**. Nada de eso hace falta: para unir dinero y
+proceso alcanzan los dos identificadores del turno y las etiquetas que nosotros mismos inyectamos.
+
+El evento se arma **campo por campo** desde las claves declaradas. No existe una ruta de código que
+copie un mapa entero del emisor al evento — y hay un enforcer que lo impide, porque esa es la única
+forma de que la lista sea una garantía y no una intención.
+
+**La ruta del usuario se usa y se tira.** Sirve para reconocer de qué instalación viene la corrida;
+después queda un identificador conocido o una huella que no vuelve a la ruta. Un hook que postea su
+entrada entera a la máquina local cumple «no egresa» y aun así filtra la conversación al almacén —
+por eso hay dos checks de conformance y no uno.
