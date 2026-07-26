@@ -235,7 +235,18 @@ func (s *TelemetriaService) anotarParidad(r *domain.ResumenTelemetria) {
 	if abs < 0 {
 		abs = -abs
 	}
-	r.DivergenciaSospechosa = abs > UmbralDivergenciaPct
+	// 🔴 M9 · una divergencia EXPLICADA no es sospechosa.
+	//
+	// En el camino normal —OTLP, que nunca dice a qué vencimiento se escribió el cache— el
+	// costo calculado es una cota inferior DECLARADA, y la divergencia ronda el 90 % siempre.
+	// Marcarla sospechosa hacía que la alarma sonara en todas las corridas, y una alarma que
+	// suena siempre no es una alarma: es ruido que entrena a ignorarla.
+	//
+	// Sospechosa es la divergencia que **no tiene explicación**: el costo dice estar completo
+	// y aun así no coincide con lo que el runtime reportó. Eso sí significa catálogo viejo,
+	// bucket perdido o tramo equivocado — que es para lo que el oráculo existe.
+	explicada := r.CostoCompleto != nil && !*r.CostoCompleto && len(r.SinTarifa) > 0
+	r.DivergenciaSospechosa = abs > UmbralDivergenciaPct && !explicada
 }
 
 // PorCaja devuelve el gasto por caja, con las marcas de fuga que los detectores encontraron.

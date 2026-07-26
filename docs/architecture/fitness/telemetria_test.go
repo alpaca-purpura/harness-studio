@@ -672,34 +672,79 @@ func TestDetectorQueNoAplicaTraeMotivo(t *testing.T) {
 	}
 }
 
-// TestPresupuestoDeBinario — §11: el daemon no puede pasar los 25 MB absolutos.
+// PresupuestoBaselineMB es el peso del daemon **sin el módulo de telemetría**, medido sobre un
+// árbol limpio (`git archive HEAD`, sin `web/dist`) el 2026-07-26: **18,95 MB**.
 //
-// El delta contra el release anterior (≤ 1,5 MB) no se puede medir acá sin el binario del
-// release, así que **se verifica el techo absoluto y se declara el hueco**: el delta lo mide
-// el paso de empaquetado, que sí tiene los dos binarios a mano.
+// Está acá y no en un archivo aparte para que quien cambie el número tenga que tocar el test que
+// lo usa, y para que el `git blame` diga cuándo y por qué se movió.
+const PresupuestoBaselineMB = 18.95
+
+// TestPresupuestoDeBinario verifica los DOS presupuestos de §11, no solo uno.
+//
+// 🔴 M8 de la auditoría: este test decía verificar «delta ≤ 1,5 MB contra el release anterior» y
+// solo comparaba contra el techo absoluto de 25 MB. El presupuesto PRINCIPAL del boundary
+// `peso-del-binario-es-presupuesto` no estaba enforced en ningún lado — que el módulo entrara
+// era un accidente feliz, no un hecho verificado.
+//
+// Y el auditor encontró algo peor: **el resultado dependía del working tree.** Árbol limpio →
+// 19,41 MB; con la SPA construida en `web/dist` → 23,38 MB, o sea el 93,5 % del techo. El mismo
+// test daba dos respuestas muy distintas según qué hubiera compilado el desarrollador antes.
+//
+// Por eso ahora se compila desde un **`git archive HEAD`** en un directorio limpio: sin
+// `web/dist`, sin artefactos locales, mismo resultado en cualquier máquina y en CI.
 func TestPresupuestoDeBinario(t *testing.T) {
 	if testing.Short() {
-		t.Skip("compila el daemon; se salta en -short y corre en CI")
+		t.Skip("compila el daemon desde un árbol limpio; se salta en -short y corre en CI")
 	}
 	root := repoRoot()
 	if root == "" {
 		t.Fatal("repoRoot vacío")
 	}
+	limpio := t.TempDir()
+	// `git archive` da el árbol EXACTO del commit: sin `web/dist`, sin binarios locales, sin
+	// nada que el desarrollador haya compilado antes. Es lo que hace al número reproducible.
+	tar := exec.Command("git", "archive", "--format=tar", "HEAD")
+	tar.Dir = root
+	untar := exec.Command("tar", "-x", "-C", limpio)
+	untar.Stdin, _ = tar.StdoutPipe()
+	if err := untar.Start(); err != nil {
+		t.Fatalf("desempaquetar el árbol limpio: %v", err)
+	}
+	if err := tar.Run(); err != nil {
+		t.Skipf("no se pudo armar el árbol limpio (¿working tree sin commitear?): %v", err)
+	}
+	if err := untar.Wait(); err != nil {
+		t.Fatalf("desempaquetar: %v", err)
+	}
+
 	bin := filepath.Join(t.TempDir(), "arnesia")
-	if err := compilarDaemon(t, root, bin); err != nil {
-		t.Fatalf("compilar el daemon: %v", err)
+	cmd := exec.Command("go", "build", "-o", bin, "./cmd/arnesia")
+	cmd.Dir = limpio
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("compilar desde el árbol limpio: %v\n%s", err, out)
 	}
 	fi, err := os.Stat(bin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	const tope = 25 << 20
-	if fi.Size() > tope {
-		t.Fatalf("el daemon pesa %.2f MB, tope absoluto %d MB (§11)",
-			float64(fi.Size())/(1<<20), tope>>20)
+	mb := float64(fi.Size()) / (1 << 20)
+
+	// 1 · techo ABSOLUTO.
+	const topeAbsolutoMB = 25.0
+	if mb > topeAbsolutoMB {
+		t.Errorf("el daemon pesa %.2f MB, tope absoluto %.0f MB (§11)", mb, topeAbsolutoMB)
 	}
-	t.Logf("daemon = %.2f MB de %d MB (%.0f %% del presupuesto absoluto)",
-		float64(fi.Size())/(1<<20), tope>>20, float64(fi.Size())/float64(tope)*100)
+	// 2 · **el presupuesto que este test decía verificar y no verificaba**: el delta.
+	const topeDeltaMB = 1.5
+	delta := mb - PresupuestoBaselineMB
+	if delta > topeDeltaMB {
+		t.Errorf("el daemon creció %.2f MB sobre la línea base de %.2f MB (tope +%.1f MB, §11). "+
+			"Si el crecimiento es legítimo, mové PresupuestoBaselineMB **con la medición nueva "+
+			"en el commit** — no bajes el tope", delta, PresupuestoBaselineMB, topeDeltaMB)
+	}
+	t.Logf("daemon (árbol limpio) = %.2f MB · delta sobre la base %.2f MB = %+.2f MB "+
+		"(tope +%.1f) · %.0f %% del techo absoluto",
+		mb, PresupuestoBaselineMB, delta, topeDeltaMB, mb/topeAbsolutoMB*100)
 }
 
 // servicioFitness arma servicio + almacén en un directorio TEMPORAL.
@@ -808,10 +853,12 @@ func TestTierDesconocidoNoSeAsumeBarato(t *testing.T) {
 	if r.DivergenciaPct == nil {
 		t.Fatal("con los dos costos presentes, la divergencia tiene que viajar")
 	}
-	if !r.DivergenciaSospechosa {
-		t.Errorf("una divergencia de %.1f %% tiene que encender el aviso (umbral %.0f %%) — "+
-			"el oráculo de doble costo no sirve si el sistema no lo mira",
-			*r.DivergenciaPct, usecase.UmbralDivergenciaPct)
+	// M9 · esta divergencia está EXPLICADA (el motivo viaja en `sin_tarifa`), así que NO se
+	// marca sospechosa: una alarma que suena en todas las corridas no es una alarma. Lo que
+	// se exige acá es que la divergencia sea VISIBLE y que el motivo la acompañe.
+	if r.DivergenciaSospechosa {
+		t.Errorf("una divergencia con motivo declarado (%v) no es sospechosa: el oráculo tiene "+
+			"que apuntar a lo INEXPLICADO, o suena siempre y se aprende a ignorarlo", r.SinTarifa)
 	}
 	// Y NO se cotizó al tramo barato: el calculado tiene que ser el que EXCLUYE el bucket sin
 	// tier (1 959 micros), no los 12 280 de asumir 5 minutos.
@@ -1296,4 +1343,69 @@ func TestElAgregadoNoConservaLoQueNadiePuedeLeer(t *testing.T) {
 		t.Errorf("quedaron %d filas de agregado de una hora purgada: afirman una retención que "+
 			"ninguna pantalla puede mostrar", despues)
 	}
+}
+
+// TestElOraculoApuntaALoInexplicado — **M9 de la auditoría**: el oráculo estaba saturado.
+//
+// En el camino normal la divergencia ronda el 90 % **siempre** (OTLP nunca dice el vencimiento
+// del cache write), así que `divergencia_sospechosa` se encendía en todas las corridas. Una
+// alarma que suena siempre no es una alarma: entrena a ignorarla, y entonces no sirve para lo
+// único que existe — cazar el caso en que el costeo está mal de verdad.
+//
+// La regla: sospechosa es la divergencia **sin explicación**. Con motivo declarado, no.
+func TestElOraculoApuntaALoInexplicado(t *testing.T) {
+	svc, st := servicioFitness(t)
+	ctx := context.Background()
+	base := func(sesion string, tk domain.Tokens, reportado int64) domain.EventoTelemetria {
+		r := reportado
+		return domain.EventoTelemetria{
+			LlaveJoin: domain.LlaveJoin{SesionID: sesion, TurnoID: "t-1", ArnesID: sesion},
+			Emisor:    domain.EmisorOTLP, Runtime: "claude-code", TSRecibido: time.Now().UTC(),
+			TipoEvento: domain.EventoAPIRequest, Escenario: domain.EscenarioS2Instrumentado,
+			Modelo: "claude-haiku-4-5", Tokens: tk, CostoReportadoMicros: &r,
+		}
+	}
+	// A · divergencia EXPLICADA: el cache write llegó sin vencimiento declarado.
+	sinTier := int64(8257)
+	// B · divergencia INEXPLICADA: todos los buckets cotizables, y aun así no coincide.
+	entrada := int64(10)
+	if _, err := svc.Ingerir(ctx, []domain.EventoTelemetria{
+		base("explicada", domain.Tokens{Entrada: &entrada, CacheEscrituraSinTier: &sinTier}, 18473),
+		base("inexplicada", domain.Tokens{Entrada: &entrada}, 999_999),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+
+	expl, err := svc.Resumen(ctx, ports.ConsultaTelemetria{ArnesID: "explicada"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expl.DivergenciaPct == nil {
+		t.Fatal("la divergencia tiene que ser VISIBLE aunque esté explicada")
+	}
+	if expl.DivergenciaSospechosa {
+		t.Errorf("divergencia con motivo (%v) marcada sospechosa: el oráculo suena siempre y "+
+			"se aprende a ignorarlo", expl.SinTarifa)
+	}
+	if len(expl.SinTarifa) == 0 {
+		t.Error("si no es sospechosa es porque hay motivo, y el motivo tiene que viajar")
+	}
+
+	// ── control positivo: la INEXPLICADA sí dispara ──
+	inex, err := svc.Resumen(ctx, ports.ConsultaTelemetria{ArnesID: "inexplicada"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inex.DivergenciaPct == nil {
+		t.Fatal("control positivo: la divergencia inexplicada tiene que calcularse")
+	}
+	if !inex.DivergenciaSospechosa {
+		t.Fatalf("control positivo: una divergencia del %.1f %% SIN motivo declarado tiene que "+
+			"encender el aviso — es para lo que el oráculo existe", *inex.DivergenciaPct)
+	}
+	t.Logf("explicada: %.1f %% (no suena, motivo %v) · inexplicada: %.1f %% (SUENA)",
+		*expl.DivergenciaPct, expl.SinTarifa, *inex.DivergenciaPct)
 }
