@@ -1,0 +1,69 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D16.1 + A16).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.motor-de-detectores
+cap_num: CAP-129
+slug: motor-de-detectores
+name: "Motor de detectores (cada uno declara si puede correr, y por qué no)"
+status: stub          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: domain
+verb: observar
+functional_area: "telemetria.deteccion"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/domain/telemetria_deteccion.go#Detector"
+  - "internal/domain/telemetria_deteccion.go#ContextoDeteccion"
+  - "internal/domain/telemetria_deteccion.go#Aplicabilidad"
+  - "internal/domain/telemetria_deteccion.go#PuntoDeMejora"
+  - "internal/domain/telemetria_deteccion.go#Ventana"
+  - "internal/domain/telemetria_deteccion.go#DetectorID"
+  - "internal/domain/telemetria_vistas.go#EstadoDetector"
+  - "internal/domain/telemetria_vistas.go#RespuestaMejoras"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §2.4 · §9"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El CONTRATO del motor: un detector declara primero si puede correr con la señal que hay, y si no puede, dice por qué. Todavía sin motor ni detectores — de ahí el estado stub: la hoja no finge un check que no existe."
+    merge_sha: null
+scenarios: []
+business_rules:
+  - id: motivo-obligatorio
+    rule: "Un detector que no aplica trae motivo. Un detector apagado sin razón es un gap escondido, y uno que devuelve cero porque no pudo correr es una mentira."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: aplicabilidad-es-de-la-ventana
+    rule: "Si un detector puede correr lo decide el dato REAL de la ventana, no una configuración ni el escenario. Así, cuando la señal que le falta aparezca, el detector se enciende solo."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Motor de detectores
+
+El contrato: **primero se pregunta si el detector puede correr, después se lo corre.** Un detector
+que no puede correr no devuelve cero — devuelve por qué no puede, y eso llega hasta la pantalla.
+
+La pregunta se contesta con el **dato real de la ventana**, no con una configuración ni con el
+escenario. Es lo que hace que el día que aparezca la señal que a un detector le faltaba, se encienda
+solo, sin que nadie toque código.
+
+**Estado `stub` a propósito:** hoy existe el contrato y no el motor. La hoja no lista `valida:`
+porque no hay check que la sostenga todavía — un estado `vivo` acá sería fabricado.

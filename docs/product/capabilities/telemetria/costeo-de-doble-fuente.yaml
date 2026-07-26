@@ -1,0 +1,65 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D9.6 + D16.2).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.costeo-de-doble-fuente
+cap_num: CAP-126
+slug: costeo-de-doble-fuente
+name: "Costeo de doble fuente (lo que dijo el runtime y lo que dice nuestro catálogo)"
+status: stub          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: domain
+verb: crear
+functional_area: "telemetria.costeo"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/domain/telemetria_costo.go#PrecioModelo"
+  - "internal/domain/telemetria_costo.go#CostoCalculado"
+  - "internal/domain/telemetria_vistas.go#ParidadCosto"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §2.3"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "La FORMA del costeo: una tarifa cuyos tiers no se aplanan, y un resultado que dice cuáles buckets no pudo cotizar en vez de cobrarlos a cero. La función de cálculo llega en su propio ticket — de ahí el estado stub."
+    merge_sha: null
+scenarios: []
+business_rules:
+  - id: sin-tarifa-no-es-gratis
+    rule: "Un bucket con tokens y sin tarifa no se cobra a cero: sale nombrado y el costo se marca parcial. Un cero en dinero se lee como «gratis»."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: los-tiers-no-se-aplanan
+    rule: "Una tarifa con tramo largo conserva su tramo. Aplanarla subestima el costo de los prompts grandes, que son justo los caros."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Costeo de doble fuente
+
+Se guardan **los dos** costos: el que reportó el runtime y el que calcula nuestro catálogo. Si
+divergen, la prueba de paridad está corriendo en producción y gratis; y si uno falta, el otro sigue
+estando, en vez de quedarse sin ninguno.
+
+La forma del resultado tiene una regla que parece un detalle y no lo es: un bucket con tokens y sin
+tarifa **no se cobra a cero**. Sale nombrado y el total se marca parcial. Cobrar a cero lo que no se
+sabe cotizar es la manera más barata de mentir sobre dinero.
+
+**Estado `stub` a propósito:** hoy existen los tipos y no la función de cálculo. Sin check, no hay
+`valida:` — un estado `vivo` acá sería fabricado.

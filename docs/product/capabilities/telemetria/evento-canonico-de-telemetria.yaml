@@ -1,0 +1,114 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D9.2 + D16.2).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.evento-canonico-de-telemetria
+cap_num: CAP-120
+slug: evento-canonico-de-telemetria
+name: "Evento canónico de telemetría (una puerta de escritura, «no aplica» ≠ 0)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: domain
+verb: crear
+functional_area: "telemetria.dominio"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/domain/telemetria.go#EventoTelemetria"
+  - "internal/domain/telemetria.go#LlaveJoin"
+  - "internal/domain/telemetria.go#Tokens"
+  - "internal/domain/telemetria.go#Escenario"
+  - "internal/domain/telemetria.go#UsoDelTurno"
+  - "internal/domain/telemetria.go#PerfilRuntime"
+  - "internal/domain/telemetria.go#FichaDaemon"
+  - "internal/domain/telemetria_vistas.go#ResumenTelemetria"
+  - "internal/domain/telemetria_vistas.go#Cobertura"
+  - "internal/domain/telemetria_vistas.go#GastoCaja"
+  - "internal/domain/telemetria_vistas.go#TurnoUnido"
+  - "internal/domain/telemetria_vistas.go#SaludTelemetria"
+  - "internal/domain/telemetria_vistas.go#FilaPortafolio"
+  - "internal/ports/telemetria.go#TelemetriaSink"
+  - "internal/ports/telemetria.go#TelemetriaStore"
+valida:
+  - "TestNoAplicaNoEsCeroEnElWire"
+  - "TestEventoNoTieneCamposDeIdentidad"
+  - "TestEventoLlevaSuConfianza"
+  - "TestConfianzaDeAgregadoEsLaMinima"
+  - "TestTodoEnUTC"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §2.1 · §2.5"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Existe UN evento que los cuatro emisores producen, con la llave del join (sesion_id, turno_id) verificada en vivo, los buckets de tokens como punteros (ausencia ≠ cero) y los dos costos —el que reportó el runtime y el que calcula nuestro catálogo— viajando siempre juntos."
+    merge_sha: null
+scenarios:
+  - id: bucket-ausente-no-es-cero
+    name: "Un runtime no reporta un bucket de tokens"
+    status: live
+    given: "un evento cuyo bucket de razonamiento no vino"
+    when: "el evento se serializa"
+    then: "la clave no aparece; y en particular no aparece con valor 0"
+    verifica: "TestNoAplicaNoEsCeroEnElWire"
+  - id: sin-donde-poner-identidad
+    name: "El evento no tiene dónde guardar identidad de cuenta"
+    status: live
+    given: "el tipo del evento canónico"
+    when: "se inspeccionan sus campos"
+    then: "no existe ningún campo donde pudiera entrar un email, un id de cuenta ni contenido de conversación"
+    verifica: "TestEventoNoTieneCamposDeIdentidad"
+  - id: agregado-vale-lo-que-su-peor-parte
+    name: "Se suman cifras con confianzas distintas"
+    status: live
+    given: "una parte atribuida con exactitud y otra deducida"
+    when: "se agregan"
+    then: "el total lleva la confianza de la peor de las dos, nunca la de la mejor"
+    verifica: "TestConfianzaDeAgregadoEsLaMinima"
+business_rules:
+  - id: una-sola-puerta-de-escritura
+    rule: "Los cuatro emisores producen el MISMO tipo. El almacén tiene una sola puerta de escritura: dos formas de entrar son dos formas de olvidarse de filtrar."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+  - id: nulo-no-es-cero
+    rule: "Ausencia y cero son cosas distintas en todo el módulo. Convertir una ausencia en cero es fabricar un dato."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: la-llave-del-join-es-un-par
+    rule: "El join dinero×proceso es la igualdad de (sesion_id, turno_id). Sin heurística de tiempo ni de orden: con solo la sesión, el join no llega al turno y no se puede decir dónde se va el gasto."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+related_capabilities:
+  depends_on: []
+  enables:
+    - arnesia.telemetria.allowlist-de-ingesta
+    - arnesia.telemetria.almacen-de-telemetria
+    - arnesia.telemetria.costeo-de-doble-fuente
+  similar: []
+  obsoletes: []
+---
+
+# Evento canónico de telemetría
+
+El módulo entero habla un solo idioma. El receptor OTLP, el adaptador del agente, el hook del arnés
+y el propio daemon producen **el mismo tipo**, y el almacén tiene **una sola puerta de escritura**.
+Dos formas de entrar serían dos formas de olvidarse de filtrar.
+
+Tres invariantes que no son estilo:
+
+1. **La llave del join es un par.** El mismo turno lleva el mismo identificador en el canal de
+   telemetría y en el canal de hooks. El join es una igualdad de dos campos, no una correlación por
+   tiempo — que es lo que permite decir *«el 60 % se va en esta caja»* en vez de *«esta sesión costó
+   tanto»*.
+2. **Ausencia no es cero.** Los buckets de tokens son punteros. Un runtime que no tiene el concepto
+   de «razonamiento» no reporta 0 razonamientos: no reporta nada, y eso viaja como nada.
+3. **El evento no tiene dónde poner identidad.** No es una convención: no existe el campo. Si
+   existiera, tarde o temprano alguien lo llenaría.
