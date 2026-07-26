@@ -202,7 +202,36 @@ func (s *TelemetriaService) Resumen(ctx context.Context, q ports.ConsultaTelemet
 	if s.catalogo != nil {
 		r.Catalogo = s.catalogo.Version()
 	}
+	s.anotarParidad(&r)
 	return r, nil
+}
+
+// UmbralDivergenciaPct es la diferencia entre el costo reportado y el calculado a partir de
+// la cual la cifra se marca sospechosa.
+//
+// **Este es el oráculo del módulo.** Los dos costos existen para compararse: una divergencia
+// grande significa que el catálogo está viejo, que el mapeo perdió un bucket, o que se está
+// cotizando un tramo equivocado — los tres son errores REALES que ningún test de tabla ve
+// venir, porque un test de tabla solo conoce los casos que su autor imaginó. Un 5 % deja
+// pasar el redondeo y caza los errores estructurales, que son de decenas de por ciento.
+const UmbralDivergenciaPct = 5.0
+
+// anotarParidad completa la comparación de los dos costos y enciende el aviso.
+//
+// Un `Completo:false` sin divergencia visible sería un flag que nadie mira; una divergencia
+// sin el motivo (`SinTarifa`) sería un aviso que nadie puede accionar. Van juntos.
+func (s *TelemetriaService) anotarParidad(r *domain.ResumenTelemetria) {
+	if r.CostoReportadoMicros == nil || r.CostoCalculadoMicros == nil || *r.CostoReportadoMicros == 0 {
+		return // sin los dos números no hay paridad que declarar. nil, no 0.
+	}
+	d := (float64(*r.CostoCalculadoMicros) - float64(*r.CostoReportadoMicros)) /
+		float64(*r.CostoReportadoMicros) * 100
+	r.DivergenciaPct = &d
+	abs := d
+	if abs < 0 {
+		abs = -abs
+	}
+	r.DivergenciaSospechosa = abs > UmbralDivergenciaPct
 }
 
 // PorCaja devuelve el gasto por caja, con las marcas de fuga que los detectores encontraron.

@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
@@ -43,8 +46,11 @@ func (fakeDerivaEvaluator) Evaluar(string, string, string, string) (domain.Estad
 }
 
 type fakePortafolioStore struct {
+	mu        sync.Mutex
 	entradas  map[string]domain.EntradaPortafolio
 	checkouts []string
+	// upsertErr fuerza el fallo del paso 9 de Traer (E-100): el ÚNICO parcial posible.
+	upsertErr error
 }
 
 func newFakePortafolioStore() *fakePortafolioStore {
@@ -52,6 +58,8 @@ func newFakePortafolioStore() *fakePortafolioStore {
 }
 
 func (f *fakePortafolioStore) Listar() ([]domain.EntradaPortafolio, []domain.EntradaCorrupta) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	out := make([]domain.EntradaPortafolio, 0, len(f.entradas))
 	for _, e := range f.entradas {
 		out = append(out, e)
@@ -60,11 +68,18 @@ func (f *fakePortafolioStore) Listar() ([]domain.EntradaPortafolio, []domain.Ent
 }
 
 func (f *fakePortafolioStore) Upsert(e domain.EntradaPortafolio) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.upsertErr != nil {
+		return f.upsertErr
+	}
 	f.entradas[e.Identidad.Clave()] = e
 	return nil
 }
 
 func (f *fakePortafolioStore) Desvincular(clave string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if _, ok := f.entradas[clave]; !ok {
 		return false, nil
 	}
@@ -72,7 +87,11 @@ func (f *fakePortafolioStore) Desvincular(clave string) (bool, error) {
 	return true, nil
 }
 
-func (f *fakePortafolioStore) Checkouts() []string { return f.checkouts }
+func (f *fakePortafolioStore) Checkouts() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.checkouts
+}
 
 // fakeIndexPort satisface ports.IndexPort para testear ObservarEnMapa (S1-D1, Slice 1): el
 // único método que el usecase ejercita es Upsert — Rebuild/Query/List son stubs no
@@ -598,5 +617,225 @@ func TestReevaluarDerivaTrasEdicion(t *testing.T) {
 	// Path fuera del Portafolio → no-op honesto.
 	if cambio, err = svc.ReevaluarDeriva(context.Background(), "/otro/lado"); err != nil || cambio {
 		t.Errorf("fuera del portafolio: cambio=%v err=%v", cambio, err)
+	}
+}
+
+// ── S7 · AsignarOrigen (paquete 2026-07-23-portafolio-agregar-marketplace) ──
+
+// derivaConHome finge un evaluador cuya referencia SOLO resuelve cuando el home está declarado:
+// es exactamente el efecto útil de reconciliar (E-70).
+type derivaConHome struct{ visto []string }
+
+func (d *derivaConHome) Evaluar(installDir, home, _, version string) (domain.EstadoDeriva, string) {
+	d.visto = append(d.visto, home)
+	if home == "" || version == "" {
+		return domain.DerivaNoEvaluable, "sin referencia local accesible (marketplace no clonado, o esa versión ausente del checkout)"
+	}
+	return domain.DerivaAlHilo, ""
+}
+
+// svcConStore cablea un PortafolioService mínimo (sin scanner ni loader: AsignarOrigen no los usa).
+func svcConStore(st *fakePortafolioStore, deriva ports.DerivaEvaluator) *usecase.PortafolioService {
+	return usecase.NewPortafolioService(st, &fakePortafolioScanner{}, &fakePortafolioLoader{}, deriva, nil)
+}
+
+const homeVitalia = "github.com/vitalia/arneses"
+
+func entradaProvisional(id string, insts ...domain.Instalacion) domain.EntradaPortafolio {
+	return domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{ID: id},
+		Nombre:        id,
+		Instalaciones: insts,
+	}
+}
+
+// E-25 · AsignarOrigen re-keyea por el home declarado, anota el eslabón en CADA instalación y NO
+// escribe ningún archivo fuera del store (el dir de la instalación está en modo 0555).
+func TestAsignarOrigenReKeyeaYAnotaEslabon(t *testing.T) {
+	st := newFakePortafolioStore()
+	dirInst := t.TempDir()
+	if err := os.Chmod(dirInst, 0o555); err != nil { //nolint:gosec // G302: el dir read-only es EL insumo de E-25 (nada se escribe ahí).
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(dirInst, 0o750) }) //nolint:gosec // G302: restaura para que t.TempDir() pueda limpiar.
+
+	vieja := entradaProvisional("legal-administrativo", domain.Instalacion{
+		InstallPath: dirInst, Tipo: domain.InstReferenciadaCC,
+		Origen: domain.OrigenPortafolio{Version: "1.2.0", Registry: "github.com/otro/registry"},
+	})
+	claveVieja := vieja.Identidad.Clave()
+	st.entradas[claveVieja] = vieja
+
+	deriva := &derivaConHome{}
+	svc := svcConStore(st, deriva)
+
+	nueva, err := svc.AsignarOrigen(context.Background(), claveVieja, homeVitalia)
+	if err != nil {
+		t.Fatalf("AsignarOrigen: %v", err)
+	}
+
+	claveNueva := domain.IdentidadArnes{Home: homeVitalia, ID: "legal-administrativo"}.Clave()
+	if nueva.Identidad.Clave() != claveNueva {
+		t.Fatalf("clave nueva = %q, want %q", nueva.Identidad.Clave(), claveNueva)
+	}
+	// El slug de `github.com/vitalia/arneses` colapsa '.' y '/' a '-' (misma regla que todo el
+	// Portafolio): la clave real es `github-com-vitalia-arneses~legal-administrativo~`.
+	if claveNueva != "github-com-vitalia-arneses~legal-administrativo~" {
+		t.Fatalf("clave nueva = %q (el slug del Portafolio colapsa '.' y '/')", claveNueva)
+	}
+	if _, sigue := st.entradas[claveVieja]; sigue {
+		t.Fatalf("la clave vieja %q sigue en el store", claveVieja)
+	}
+	if _, ok := st.entradas[claveNueva]; !ok {
+		t.Fatalf("la clave nueva %q no está en el store: %v", claveNueva, st.entradas)
+	}
+
+	var vioEslabon bool
+	for _, inst := range nueva.Instalaciones {
+		for _, e := range inst.Origen.Eslabones {
+			if e.Fuente == "declarado-por-operador" && e.Campo == "home" && e.Valor == homeVitalia {
+				vioEslabon = true
+			}
+		}
+	}
+	if !vioEslabon {
+		t.Fatalf("falta el eslabón {declarado-por-operador,home,%s}: %+v", homeVitalia, nueva.Instalaciones)
+	}
+	// El home declarado se UNE a los registries (faceta N:M, S1-D3): no reemplaza el existente.
+	if len(nueva.Registries) != 1 || nueva.Registries[0] != homeVitalia {
+		t.Fatalf("Registries = %v, want [%s]", nueva.Registries, homeVitalia)
+	}
+	// El dir de la instalación en 0555 no impidió nada: NO se escribe ahí (C3).
+	if entradas, rerr := os.ReadDir(dirInst); rerr != nil || len(entradas) != 0 {
+		t.Fatalf("se escribió en el dir de la instalación: %v / %v", entradas, rerr)
+	}
+}
+
+// E-26 · «ninguno — dejarlo sin origen»: la identidad NO cambia, se estampa el sello temporal y el
+// contador baja en 1. JAMÁS se inventa un home.
+func TestAsignarOrigenNingunoNoInventaHome(t *testing.T) {
+	st := newFakePortafolioStore()
+	vieja := entradaProvisional("legal-administrativo")
+	clave := vieja.Identidad.Clave()
+	st.entradas[clave] = vieja
+	svc := svcConStore(st, fakeDerivaEvaluator{})
+
+	antes, err := svc.SinOrigenResuelto(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if antes != 1 {
+		t.Fatalf("SinOrigenResuelto antes = %d, want 1", antes)
+	}
+
+	nueva, err := svc.AsignarOrigen(context.Background(), clave, "")
+	if err != nil {
+		t.Fatalf("AsignarOrigen(\"\"): %v", err)
+	}
+	if nueva.Identidad.Clave() != clave {
+		t.Fatalf("la identidad CAMBIÓ: %q → %q", clave, nueva.Identidad.Clave())
+	}
+	if nueva.Identidad.Home != "" {
+		t.Fatalf("se inventó un home: %q", nueva.Identidad.Home)
+	}
+	if nueva.OrigenSinResolverDesde == "" {
+		t.Fatal("OrigenSinResolverDesde vacío: sin el sello la fila sigue reclamando atención")
+	}
+	if _, perr := time.Parse(time.RFC3339, nueva.OrigenSinResolverDesde); perr != nil {
+		t.Fatalf("OrigenSinResolverDesde = %q, want RFC3339: %v", nueva.OrigenSinResolverDesde, perr)
+	}
+
+	despues, err := svc.SinOrigenResuelto(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if despues != 0 {
+		t.Fatalf("SinOrigenResuelto después = %d, want 0", despues)
+	}
+}
+
+// E-69 · colisión al asignar origen: NO se fusionan las dos identidades, las DOS siguen intactas.
+func TestAsignarOrigenColisionaNoFusiona(t *testing.T) {
+	st := newFakePortafolioStore()
+	ya := domain.EntradaPortafolio{
+		Identidad: domain.IdentidadArnes{Home: homeVitalia, ID: "legal-administrativo"},
+		Nombre:    "la que ya estaba",
+	}
+	st.entradas[ya.Identidad.Clave()] = ya
+	otra := entradaProvisional("legal-administrativo")
+	st.entradas[otra.Identidad.Clave()] = otra
+
+	svc := svcConStore(st, fakeDerivaEvaluator{})
+	_, err := svc.AsignarOrigen(context.Background(), otra.Identidad.Clave(), homeVitalia)
+	if !errors.Is(err, usecase.ErrAsignarOrigenColisiona) {
+		t.Fatalf("err = %v, want ErrAsignarOrigenColisiona", err)
+	}
+	if len(st.entradas) != 2 {
+		t.Fatalf("entradas = %d, want 2 (las dos intactas)", len(st.entradas))
+	}
+	if st.entradas[ya.Identidad.Clave()].Nombre != "la que ya estaba" {
+		t.Fatal("la entrada existente se pisó")
+	}
+	if _, ok := st.entradas[otra.Identidad.Clave()]; !ok {
+		t.Fatal("la provisional desapareció")
+	}
+}
+
+// E-70 · asignar origen HABILITA la deriva: la instalación pasa de `no-evaluable` a un veredicto
+// real por hash, y el cambio se persiste. Es el efecto útil de reconciliar, sin un botón nuevo.
+func TestAsignarOrigenReevaluaDeriva(t *testing.T) {
+	st := newFakePortafolioStore()
+	vieja := entradaProvisional("legal-administrativo", domain.Instalacion{
+		InstallPath: "/proj/.claude/plugins/legal-administrativo", Tipo: domain.InstReferenciadaCC,
+		Deriva:        domain.DerivaNoEvaluable,
+		DerivaDetalle: "sin referencia local accesible (marketplace no clonado, o esa versión ausente del checkout)",
+		Origen:        domain.OrigenPortafolio{Version: "1.2.0"},
+	})
+	clave := vieja.Identidad.Clave()
+	st.entradas[clave] = vieja
+
+	deriva := &derivaConHome{}
+	svc := svcConStore(st, deriva)
+	nueva, err := svc.AsignarOrigen(context.Background(), clave, homeVitalia)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nueva.Instalaciones) != 1 {
+		t.Fatalf("instalaciones = %d, want 1", len(nueva.Instalaciones))
+	}
+	if nueva.Instalaciones[0].Deriva != domain.DerivaAlHilo {
+		t.Fatalf("Deriva = %q, want al-hilo (el home nuevo habilitó la referencia)", nueva.Instalaciones[0].Deriva)
+	}
+	if len(deriva.visto) != 1 || deriva.visto[0] != homeVitalia {
+		t.Fatalf("la deriva se evaluó con home %v, want %q", deriva.visto, homeVitalia)
+	}
+	persistida := st.entradas[nueva.Identidad.Clave()]
+	if len(persistida.Instalaciones) != 1 || persistida.Instalaciones[0].Deriva != domain.DerivaAlHilo {
+		t.Fatalf("el cambio no se persistió: %+v", persistida.Instalaciones)
+	}
+}
+
+// Un home que no canonicaliza es 400 explícito y no toca nada.
+func TestAsignarOrigenHomeNoCanonicalizable(t *testing.T) {
+	st := newFakePortafolioStore()
+	vieja := entradaProvisional("x")
+	st.entradas[vieja.Identidad.Clave()] = vieja
+	svc := svcConStore(st, fakeDerivaEvaluator{})
+
+	_, err := svc.AsignarOrigen(context.Background(), vieja.Identidad.Clave(), "solo-un-nombre")
+	if !errors.Is(err, usecase.ErrAsignarOrigenNoCanonicalizable) {
+		t.Fatalf("err = %v, want ErrAsignarOrigenNoCanonicalizable", err)
+	}
+	if len(st.entradas) != 1 || st.entradas[vieja.Identidad.Clave()].Identidad.Home != "" {
+		t.Fatal("se tocó el store con un home inválido")
+	}
+}
+
+// Una clave desconocida es 404.
+func TestAsignarOrigenClaveDesconocida(t *testing.T) {
+	svc := svcConStore(newFakePortafolioStore(), fakeDerivaEvaluator{})
+	_, err := svc.AsignarOrigen(context.Background(), "no-existe", homeVitalia)
+	if !errors.Is(err, usecase.ErrObservarClaveNoEncontrada) {
+		t.Fatalf("err = %v, want ErrObservarClaveNoEncontrada", err)
 	}
 }

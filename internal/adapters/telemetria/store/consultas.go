@@ -78,11 +78,29 @@ func (s *Store) Resumen(ctx context.Context, q ports.ConsultaTelemetria) (domain
 
 	row := s.reader.QueryRowContext(ctx,
 		`SELECT SUM(costo_reportado_micros), SUM(costo_calculado_micros),
-		        COUNT(DISTINCT corrida_id), COUNT(DISTINCT sesion_id), COUNT(DISTINCT turno_id)
+		        COUNT(DISTINCT corrida_id), COUNT(DISTINCT sesion_id), COUNT(DISTINCT turno_id),
+		        -- El agregado es completo solo si TODAS sus partes lo son. Basta un evento
+		        -- que no se pudo cotizar entero para que el total sea una cota inferior.
+		        MIN(COALESCE(costo_completo, 1)),
+		        -- Y hay que saber si alguien cotizó algo: sin filas, MIN() devuelve NULL y
+		        -- eso NO es «incompleto», es «no hay nada que juzgar».
+		        SUM(CASE WHEN costo_calculado_micros IS NOT NULL THEN 1 ELSE 0 END),
+		        SUM(CASE WHEN tok_cache_sin_tier IS NOT NULL AND tok_cache_sin_tier > 0 THEN 1 ELSE 0 END)
 		   FROM evento`+whereAtrib, args...)
 	var rep, calc sql.NullInt64
-	if err := row.Scan(&rep, &calc, &out.Corridas, &out.Sesiones, &out.Turnos); err != nil {
+	var completoMin, conCalculo, sinTier sql.NullInt64
+	if err := row.Scan(&rep, &calc, &out.Corridas, &out.Sesiones, &out.Turnos,
+		&completoMin, &conCalculo, &sinTier); err != nil {
 		return out, fmt.Errorf("store: resumen: %w", err)
+	}
+	if conCalculo.Valid && conCalculo.Int64 > 0 {
+		completo := !completoMin.Valid || completoMin.Int64 == 1
+		out.CostoCompleto = &completo
+		if !completo && sinTier.Valid && sinTier.Int64 > 0 {
+			// El motivo se NOMBRA: un «incompleto» sin razón es un aviso que nadie puede
+			// accionar. Este es el caso real y el único que el MVP produce.
+			out.SinTarifa = append(out.SinTarifa, "cache_escritura_sin_tier")
+		}
 	}
 	if rep.Valid {
 		v := rep.Int64

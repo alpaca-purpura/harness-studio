@@ -28,6 +28,12 @@ type versionBody struct {
 	Escribible  bool   `json:"escribible"`
 	Repo        string `json:"repo"`
 	Sucio       bool   `json:"sucio"`
+	// Identidad del BUILD (RF-231), aditiva: `version` = semver + sello (`0.2.21.2607260225`),
+	// `compilado` = el mismo sello legible, `aviso_build` = hay uno más nuevo en disco.
+	// Aditivos y no reemplazo de `huella`: la huella dice QUÉ COMMIT, el sello dice QUÉ BUILD.
+	Version    string `json:"version"`
+	Compilado  string `json:"compilado,omitempty"`
+	AvisoBuild string `json:"aviso_build,omitempty"`
 }
 
 // repoConfigBody es el wire-format de PUT /api/self-update/repo (RF-109, bugfix
@@ -72,6 +78,9 @@ func getVersion(updates *usecase.SelfUpdateService) http.HandlerFunc {
 			Escribible:  v.Escribible,
 			Repo:        v.Repo,
 			Sucio:       v.Sucio,
+			Version:     v.Version,
+			Compilado:   v.Compilado,
+			AvisoBuild:  v.AvisoBuild,
 		})
 	}
 }

@@ -47,16 +47,33 @@ type ResumenTelemetria struct {
 	Hasta time.Time `json:"hasta"`
 	// Estimado es SIEMPRE true mientras la fuente sea `cost_usd_micros`: está documentado
 	// como "Estimated cost", no facturación (ANEXO H4). La UI lo dice en la superficie.
-	Estimado             bool                   `json:"estimado"`
-	CostoReportadoMicros *int64                 `json:"costo_reportado_micros"` // null = ningún turno lo trajo
-	CostoCalculadoMicros *int64                 `json:"costo_calculado_micros"` // null = sin catálogo aplicable
-	Corridas             int                    `json:"corridas"`
-	Sesiones             int                    `json:"sesiones"`
-	Turnos               int                    `json:"turnos"`
-	Escenario            Escenario              `json:"escenario"`
-	Confianza            Confianza              `json:"confianza"`
-	Cobertura            Cobertura              `json:"cobertura"`
-	Catalogo             VersionCatalogoPrecios `json:"catalogo"`
+	Estimado             bool   `json:"estimado"`
+	CostoReportadoMicros *int64 `json:"costo_reportado_micros"` // null = ningún turno lo trajo
+	CostoCalculadoMicros *int64 `json:"costo_calculado_micros"` // null = sin catálogo aplicable
+	// CostoCompleto dice si el costo CALCULADO cotizó todos los buckets que tenían tokens.
+	// `false` significa que la cifra es una **cota inferior declarada**, no un total.
+	//
+	// Viaja hasta acá a propósito: un flag que existe y nadie ve no sirve de nada — y el
+	// caso que lo dispara (escritura de cache sin tier declarado, que es lo único que el
+	// canal OTLP puede dar) produce una divergencia del 33 % contra lo reportado.
+	CostoCompleto *bool    `json:"costo_completo"`
+	SinTarifa     []string `json:"sin_tarifa,omitempty"`
+	// DivergenciaPct compara los dos costos, en porcentaje del reportado. `nil` cuando falta
+	// alguno: sin dos números no hay divergencia que calcular, y un 0 diría «coinciden».
+	//
+	// DivergenciaSospechosa se enciende al pasar el umbral. **El oráculo de doble costo es lo
+	// que caza los errores de costeo** —catálogo viejo, bucket perdido, tramo equivocado— que
+	// ningún test de tabla ve venir, porque un test de tabla solo conoce los casos que su
+	// autor imaginó. Esto es lo que hace que el sistema lo MIRE.
+	DivergenciaPct        *float64               `json:"divergencia_pct"`
+	DivergenciaSospechosa bool                   `json:"divergencia_sospechosa"`
+	Corridas              int                    `json:"corridas"`
+	Sesiones              int                    `json:"sesiones"`
+	Turnos                int                    `json:"turnos"`
+	Escenario             Escenario              `json:"escenario"`
+	Confianza             Confianza              `json:"confianza"`
+	Cobertura             Cobertura              `json:"cobertura"`
+	Catalogo              VersionCatalogoPrecios `json:"catalogo"`
 }
 
 // MarcaDeFuga NOMBRA el detector, nunca es un ⚠ genérico: un signo de admiración sin

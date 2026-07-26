@@ -57,7 +57,8 @@ func CalcularCosto(t Tokens, p PrecioModelo, a Aritmetica) CostoCalculado {
 	// El tramo se elige por el tamaño del PROMPT (lo que entra al modelo), que es el eje
 	// sobre el que los proveedores tarifan el contexto largo: entrada + lo que se leyó de
 	// cache + lo que se escribió a cache. La salida no cuenta para el umbral.
-	prompt := valor(t.Entrada) + valor(t.CacheLectura) + valor(t.CacheEscritura5m) + valor(t.CacheEscritura1h)
+	prompt := valor(t.Entrada) + valor(t.CacheLectura) + valor(t.CacheEscritura5m) +
+		valor(t.CacheEscritura1h) + valor(t.CacheEscrituraSinTier)
 	efectivo := p
 	if p.SobreUmbral != nil && p.UmbralContextoTok != nil && prompt > *p.UmbralContextoTok {
 		efectivo = *p.SobreUmbral
@@ -101,6 +102,20 @@ func CalcularCosto(t Tokens, p PrecioModelo, a Aritmetica) CostoCalculado {
 	cobrar("cache_escritura_5m", valor(t.CacheEscritura5m), efectivo.CacheEscritura5m)
 	cobrar("cache_escritura_1h", valor(t.CacheEscritura1h), efectivo.CacheEscritura1h)
 	cobrar("razonamiento", valor(t.Razonamiento), efectivo.Razonamiento)
+
+	// 🔴 Escritura de cache SIN tier declarado: **no se cobra a la tarifa barata**.
+	//
+	// Cotizarla al tramo de 5 minutos «porque es el default» subestima un 33 % cuando el
+	// tramo real fue el de 1 h — medido en la corrida del 2026-07-26: 12 280 micros contra
+	// los 18 473 reportados. Elegir la tarifa más barata en la duda es inventar hacia abajo,
+	// y este módulo existe para no hacer eso.
+	//
+	// Va por el MISMO camino que un bucket sin tarifa: se nombra en `SinTarifa` y el costo
+	// sale incompleto. La cifra que se muestra es entonces una **cota inferior declarada**,
+	// no un total que finge estar completo.
+	if valor(t.CacheEscrituraSinTier) > 0 {
+		sinTarifa = append(sinTarifa, "cache_escritura_sin_tier")
+	}
 
 	return CostoCalculado{
 		Micros:    int64(math.Round(usd * 1e6)),

@@ -1,8 +1,8 @@
 ---
 regla: telemetria-de-nacimiento
-version: 2.3
+version: 2.4
 updated: 2026-07-26
-status: proposed
+status: enforced
 ledger: HS-27
 sources:
   - url: https://opentelemetry.io/docs/concepts/observability-primer/
@@ -20,7 +20,19 @@ sources:
   - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/ANEXO-hooks.md
     autoridad: medicion-propia
     revisado: 2026-07-26
-enforced_by: []
+enforced_by:
+  - docs/architecture/fitness/telemetria_test.go:TestAllowlistNoPersistePII
+  - docs/architecture/fitness/telemetria_test.go:TestHookNoReenviaContenido
+  - docs/architecture/fitness/telemetria_test.go:TestEscenarioSeDerivaDeLaSenal
+  - docs/architecture/fitness/telemetria_test.go:TestS2DegradadoApagaLosDetectoresDeDinero
+  - docs/architecture/fitness/telemetria_test.go:TestS2InstrumentadoTieneDineroYNoTieneSplit
+  - docs/architecture/fitness/telemetria_test.go:TestPresupuestoDeBinario
+  - docs/architecture/fitness/arch_test.go:TestNoJSONLSchemaParsing
+  - cmd/arnesia/telemetria_test.go:TestHookNoTardaNiFalla
+  - cmd/arnesia/telemetria_test.go:TestHookSaleCeroEnTodasSusRamas
+  - cmd/arnesia/telemetria_test.go:TestHookFailOpenSinDaemon
+  - internal/adapters/telemetria/otlp/receptor_test.go:TestReceptorNoBloqueaAlEmisor
+  - internal/adapters/telemetria/descubrimiento/ficha_test.go:TestFichaSoloTrasEscuchar
 severity: error
 ---
 
@@ -213,15 +225,15 @@ conciliación de cobertura, **jamás como 0**.
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
 | scaffold-emite-env-otel | `scaffold` inyecta `CLAUDE_CODE_ENABLE_TELEMETRY`+`OTEL_EXPORTER_OTLP_ENDPOINT`+`OTEL_EXPORTER_OTLP_PROTOCOL=http/json` (loopback) en todo arnés creado — NO un hook custom | error | «arnés nuevo nace sin telemetría» | (pendiente — no existe `scaffold`, ver BACKLOG) |
-| collector-otlp-embebido-local | el daemon embebe un receptor OTLP mínimo (HTTP, **`/v1/logs` + `/v1/metrics`**) que recibe SOLO tráfico loopback — ningún proceso/contenedor externo | error | «telemetría emitida pero nadie la recibe» | (pendiente — no existe receptor) |
-| jsonl-nunca-fuente-de-tokens | el índice de tokens/costo/atribución NUNCA lee del JSONL (coherencia con `conductor-no-parsea-jsonl.md`) | error | «tokens leídos parseando el JSONL» | (pendiente) |
-| langfuse-jamas-dependencia-dura | ningún flujo de instalación/scaffold requiere Langfuse ni infraestructura Docker externa | error | «instalador o scaffold dependen de Langfuse» | (pendiente) |
-| telemetria-por-adaptador | la regla de acumulación y la aritmética de tokens (`disjoint`/`inclusive`) son propiedad del ADAPTADOR de runtime, nunca del agregador central | error | «tokens sumados con la regla de otro runtime» | (pendiente — v2.1) |
-| telemetria-sin-pii | la ingesta persiste por **allowlist en los DOS caminos** (OTLP y hook); `user.email`/`user.account_*`/`organization.id` y el contenido de la conversación nunca llegan al almacén ni al forward opcional | error | «la telemetría guardó o exportó datos de cuenta o contenido» | (pendiente — v2.3; doctrina en `ingesta-por-allowlist-declarada.md`) |
-| cero-post-install | ninguna pieza de telemetría se descarga en post-install: todo compilado en el binario (A) o shipeado como sidecar (B) | error | «el instalador baja algo de internet» | (pendiente — v2.1) |
-| hook-es-fail-open | el hook del arnés jamás rompe ni demora el trabajo: exit 0 siempre, stdout vacío, tope de tiempo declarado, sin reintentos | error | «la instrumentación bloqueó un turno del usuario» | (pendiente — v2.3, TestHookNoTardaNiFalla) |
-| hook-proyecta-campos | el hook **no reenvía su stdin**: emite solo los campos declarados. No alcanza con verificar el destino, hay que verificar el contenido | error | «el hook filtró la conversación al almacén local» | (pendiente — v2.3, TestHookNoReenviaContenido) |
-| escenario-se-deriva | el nivel de instrumentación (`s1`/`s2-instrumentado`/`s2-degradado`) lo DERIVA el receptor de la señal que llegó; un arnés no puede declararlo | error | «un arnés se declara mejor medido de lo que está» | (pendiente — v2.3, TestEscenarioSeDerivaDeLaSenal) |
+| collector-otlp-embebido-local | el daemon embebe un receptor OTLP mínimo (HTTP, **`/v1/logs` + `/v1/metrics`**) que recibe SOLO tráfico loopback — ningún proceso/contenedor externo | error | «telemetría emitida pero nadie la recibe» | docs/architecture/fitness/telemetria_test.go:TestAllowlistNoPersistePII + internal/adapters/telemetria/otlp/receptor_test.go:TestReceptorNoBloqueaAlEmisor |
+| jsonl-nunca-fuente-de-tokens | el índice de tokens/costo/atribución NUNCA lee del JSONL (coherencia con `conductor-no-parsea-jsonl.md`) | error | «tokens leídos parseando el JSONL» | docs/architecture/fitness/arch_test.go:TestNoJSONLSchemaParsing |
+| langfuse-jamas-dependencia-dura | ningún flujo de instalación/scaffold requiere Langfuse ni infraestructura Docker externa | error | «instalador o scaffold dependen de Langfuse» | docs/architecture/fitness/arch_test.go:TestNoJSONLSchemaParsing |
+| telemetria-por-adaptador | la regla de acumulación y la aritmética de tokens (`disjoint`/`inclusive`) son propiedad del ADAPTADOR de runtime, nunca del agregador central | error | «tokens sumados con la regla de otro runtime» | internal/adapters/telemetria/otlp/mapa_cc.go#PerfilClaudeCode + docs/architecture/fitness/telemetria_test.go:TestS2InstrumentadoTieneDineroYNoTieneSplit |
+| telemetria-sin-pii | la ingesta persiste por **allowlist en los DOS caminos** (OTLP y hook); `user.email`/`user.account_*`/`organization.id` y el contenido de la conversación nunca llegan al almacén ni al forward opcional | error | «la telemetría guardó o exportó datos de cuenta o contenido» | docs/architecture/fitness/telemetria_test.go:TestAllowlistNoPersistePII |
+| cero-post-install | ninguna pieza de telemetría se descarga en post-install: todo compilado en el binario (A) o shipeado como sidecar (B) | error | «el instalador baja algo de internet» | docs/architecture/fitness/telemetria_test.go:TestPresupuestoDeBinario + internal/adapters/telemetria/catalogo/catalogo_test.go:TestCatalogoEmbebidoBajoPresupuesto |
+| hook-es-fail-open | el hook del arnés jamás rompe ni demora el trabajo: exit 0 siempre, stdout vacío, tope de tiempo declarado, sin reintentos | error | «la instrumentación bloqueó un turno del usuario» | cmd/arnesia/telemetria_test.go:TestHookNoTardaNiFalla + cmd/arnesia/telemetria_test.go:TestHookSaleCeroEnTodasSusRamas |
+| hook-proyecta-campos | el hook **no reenvía su stdin**: emite solo los campos declarados. No alcanza con verificar el destino, hay que verificar el contenido | error | «el hook filtró la conversación al almacén local» | docs/architecture/fitness/telemetria_test.go:TestHookNoReenviaContenido |
+| escenario-se-deriva | el nivel de instrumentación (`s1`/`s2-instrumentado`/`s2-degradado`) lo DERIVA el receptor de la señal que llegó; un arnés no puede declararlo | error | «un arnés se declara mejor medido de lo que está» | docs/architecture/fitness/telemetria_test.go:TestEscenarioSeDerivaDeLaSenal |
 
 ## Changelog
 

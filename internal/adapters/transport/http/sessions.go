@@ -228,11 +228,14 @@ func sessionInterrupt(svc *usecase.SessionService) http.HandlerFunc {
 // permissionBody is the POST /api/sessions/{id}/permission payload: the human answer
 // to a control_request card of the Dock (D3). role names the authority the decision
 // runs under; ttl_segundos optionally NARROWS the role's grant TTL (never widens it).
+// answers (RF-113 bugfix) solo lo manda la tarjeta de AskUserQuestion — question text →
+// label elegido.
 type permissionBody struct {
-	RequestID   string `json:"request_id"`
-	Decision    string `json:"decision"` // allow | deny
-	Role        string `json:"role"`
-	TTLSegundos int    `json:"ttl_segundos"`
+	RequestID   string            `json:"request_id"`
+	Decision    string            `json:"decision"` // allow | deny
+	Role        string            `json:"role"`
+	TTLSegundos int               `json:"ttl_segundos"`
+	Answers     map[string]string `json:"answers,omitempty"`
 }
 
 // resolvePermission resolves a pending control_request: role permission-set + human
@@ -249,7 +252,7 @@ func resolvePermission(svc *usecase.SessionService) http.HandlerFunc {
 			return
 		}
 		res, err := svc.ResolvePermission(r.PathValue("id"), body.RequestID, body.Decision, body.Role,
-			time.Duration(body.TTLSegundos)*time.Second)
+			time.Duration(body.TTLSegundos)*time.Second, body.Answers)
 		if err != nil {
 			switch {
 			case errors.Is(err, usecase.ErrPermisoNoPendiente):

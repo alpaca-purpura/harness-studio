@@ -165,6 +165,14 @@ var migraciones = []Migracion{
   actualizado TEXT NOT NULL
 ) STRICT`,
 	}},
+	// v2 · escritura de cache SIN tier declarado. Es ADITIVA (`ADD COLUMN`), que es
+	// exactamente el caso que el versionado por migraciones existe para cubrir: la columna
+	// se agrega y las filas viejas quedan con NULL, que es la verdad — de esas no sabemos en
+	// qué tramo se escribió, igual que de las nuevas.
+	{Version: 2, SQL: []string{
+		`ALTER TABLE evento ADD COLUMN tok_cache_sin_tier INTEGER`,
+		`ALTER TABLE rollup_hora ADD COLUMN tok_cache_sin_tier INTEGER`,
+	}},
 }
 
 // Migraciones expone la lista para el test que verifica que son aditivas. Devuelve una copia

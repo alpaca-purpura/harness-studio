@@ -158,7 +158,7 @@ func TestResolvePermissionUsesArnesRole(t *testing.T) {
 		return s.Status == domain.StatusAwait
 	})
 
-	res, err := svc.ResolvePermission(id, "cr-1", "allow", "", 0) // rol vacío ⇒ del arnés.
+	res, err := svc.ResolvePermission(id, "cr-1", "allow", "", 0, nil) // rol vacío ⇒ del arnés.
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestControlRequestSobrePaqueteCerradoSeDeniegaSinTarjeta(t *testing.T) {
 		s, _ := svc.Get(id)
 		return s.Status == domain.StatusAwait
 	})
-	if _, err := svc.ResolvePermission(id, "cr-8", "allow", "", 0); err != nil {
+	if _, err := svc.ResolvePermission(id, "cr-8", "allow", "", 0, nil); err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
 	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-9", Tool: "Edit", Input: []byte(`{"file_path":"` + cerrado + `/kit/skills/pm.md"}`), ToolUseID: "toolu_9"}

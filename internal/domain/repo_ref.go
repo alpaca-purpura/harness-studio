@@ -32,7 +32,17 @@ func CanonicalizarRepo(ref string) (canon string, ok bool) {
 		if strings.Contains(ref, "://") {
 			return "", false // esquema desconocido: no inventamos un host.
 		}
-		rest = "github.com/" + ref // "owner/repo" corto: asume github.com.
+		// IDEMPOTENCIA (paquete 2026-07-23-portafolio-agregar-marketplace): RN-IDENT-1 exige
+		// «canonicalizar los DOS lados antes de comparar», y para que eso funcione la función
+		// tiene que ser idempotente. Un ref YA canónico ("host/owner/repo", ≥3 segmentos con el
+		// primero pareciendo un host) no vuelve a recibir el prefijo `github.com/`: antes
+		// `CanonicalizarRepo("github.com/a/b")` daba `github.com/github.com/a/b`, así que
+		// comparar un valor ya canónico contra un crudo canonicalizado NUNCA coincidía.
+		if yaCanonico(ref) {
+			rest = ref
+		} else {
+			rest = "github.com/" + ref // "owner/repo" corto: asume github.com.
+		}
 	}
 
 	rest = strings.TrimSuffix(rest, "/")
@@ -52,4 +62,15 @@ func CanonicalizarRepo(ref string) (canon string, ok bool) {
 		}
 	}
 	return strings.Join(parts, "/"), true
+}
+
+// yaCanonico reporta si ref ya tiene la forma "host/owner/repo" (sin esquema): ≥3 segmentos y
+// el primero parece un host (contiene un punto y no está vacío). Sostiene la idempotencia de
+// CanonicalizarRepo — ver el comentario en el `default` del switch.
+func yaCanonico(ref string) bool {
+	partes := strings.Split(strings.TrimSuffix(strings.TrimSuffix(ref, "/"), ".git"), "/")
+	if len(partes) < 3 {
+		return false
+	}
+	return partes[0] != "" && strings.Contains(partes[0], ".")
 }

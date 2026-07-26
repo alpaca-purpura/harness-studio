@@ -370,8 +370,19 @@ func runServe(args []string) error {
 		defer cerrarTel()
 	}
 
+	// El listener se crea ANTES del handler y el Host gate se deriva de `ln.Addr()`, **no del
+	// flag**. Con `--addr 127.0.0.1:0` —el puerto efímero que todo E2E de telemetría tiene que
+	// usar para no chocar con un daemon viejo pegado a un puerto fijo— el flag dice `:0` y el
+	// puerto real es otro: derivar la allowlist del flag dejaría al daemon respondiendo 403 a
+	// su propio endpoint. (Encontrado corriendo el E2E, no razonando.)
+	ln, err := net.Listen("tcp", *addr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", *addr, err)
+	}
+	dirReal := ln.Addr().String()
+
 	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, marketplaceSvc, dictadoSvc, telSvc, telHandler, embeddedUI(), broker,
-		httpapi.AuthConfigConIngesta(*addr, *authToken, tokenIngesta, *telEstricta))
+		httpapi.AuthConfigConIngesta(dirReal, *authToken, tokenIngesta, *telEstricta))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus
 	// (RF-210, decisiones.md D5): SOLO el arnés dueño del path que cambió se recarga —
@@ -389,7 +400,7 @@ func runServe(args []string) error {
 	}()
 
 	srv := &http.Server{
-		Addr:              *addr,
+		Addr:              dirReal,
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -397,10 +408,6 @@ func runServe(args []string) error {
 	// Listener EXPLÍCITO (A8, variante recomendada por §10.1): la ficha del daemon se
 	// publica **después** de que el socket acepta, nunca antes. Una ficha que nombra un
 	// puerto donde no escucha nadie es una mentira que el hook cobra en timeouts.
-	ln, err := net.Listen("tcp", *addr)
-	if err != nil {
-		return fmt.Errorf("listen %s: %w", *addr, err)
-	}
 	fichaDaemon, retirarFicha := publicarFicha(ctx, ln, tokenIngesta)
 	if retirarFicha != nil {
 		defer retirarFicha()

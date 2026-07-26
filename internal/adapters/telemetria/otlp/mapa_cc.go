@@ -159,17 +159,22 @@ func MapearLogRecord(r RegistroLog, perfil domain.PerfilRuntime, ahora time.Time
 		ev.ServiceTier = r.Attrs.Texto("service_tier")
 		// Los 4 buckets. `CacheEscritura5m`/`1h` quedan **nil** acá a propósito: el split no
 		// viene por OTel, lo aporta el `result` del stream-json (§4.4). Poner el total en
-		// uno de los dos sería inventar en qué tramo se escribió.
+		// uno de los dos sería inventar en qué tramo se escribió — y, como el de 1 h cuesta
+		// 1,6×, inventar hacia abajo.
 		ev.Tokens.Entrada = enteroOpcional(r.Attrs, "input_tokens")
 		ev.Tokens.Salida = enteroOpcional(r.Attrs, "output_tokens")
 		ev.Tokens.CacheLectura = enteroOpcional(r.Attrs, "cache_read_tokens")
 		ev.CostoReportadoMicros = enteroOpcional(r.Attrs, "cost_usd_micros")
 		ev.DuracionMs = enteroOpcional(r.Attrs, "duration_ms")
-		// `cache_creation_tokens` es el TOTAL de escritura de cache sin desagregar. Va al
-		// bucket de 5 m porque es el TTL por default de Anthropic, y el evento lleva el
-		// dato de que no hay split: `CacheEscritura1h` nil. El costeo lo verá parcial y el
-		// detector B1 pedirá `TieneSplitTTL`, que solo el stream-json enciende.
-		ev.Tokens.CacheEscritura5m = enteroOpcional(r.Attrs, "cache_creation_tokens")
+		// 🔴 `cache_creation_tokens` es el TOTAL de escritura de cache **sin desagregar**, y
+		// va a su bucket propio — NO al de 5 minutos.
+		//
+		// Plegarlo a 5 m «porque es el TTL por default» es el bug `phoenix#14314`, y nuestra
+		// propia evidencia lo falsifica: en la corrida del 2026-07-26 el `result` dice
+		// `ephemeral_1h = 8257, ephemeral_5m = 0` — fue 1 hora, y el costo reportado (18 473
+		// micros) coincide exacto con la tarifa de 1 h. Cotizarlo a 5 m da 12 280: un 33 %
+		// por debajo. **Elegir la tarifa barata en la duda es inventar hacia abajo.**
+		ev.Tokens.CacheEscrituraSinTier = enteroOpcional(r.Attrs, "cache_creation_tokens")
 
 	case "tool_decision":
 		// ANEXO H8: es señal de PROCESO que llega por OTel, no por hook.
@@ -297,7 +302,8 @@ func MapearPuntoMetrica(p PuntoMetrica, perfil domain.PerfilRuntime, ahora time.
 		case "cacheread", "cache_read":
 			ev.Tokens.CacheLectura = &n
 		case "cachecreation", "cache_creation":
-			ev.Tokens.CacheEscritura5m = &n
+			// Misma razón que en el log record: la métrica tampoco dice el tramo.
+			ev.Tokens.CacheEscrituraSinTier = &n
 		default:
 			return domain.EventoTelemetria{}, d, ErrEventoIgnorado
 		}

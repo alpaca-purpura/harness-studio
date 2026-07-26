@@ -2,7 +2,7 @@
 regla: peso-del-binario-es-presupuesto
 version: 1.0
 updated: 2026-07-26
-status: proposed
+status: enforced
 ledger: HS-28
 sources:
   - url: https://go-proverbs.github.io/
@@ -20,7 +20,9 @@ sources:
   - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/investigacion-stack-embebible.md
     autoridad: medicion-propia
     revisado: 2026-07-26
-enforced_by: []
+enforced_by:
+  - docs/architecture/fitness/telemetria_test.go:TestPresupuestoDeBinario
+  - internal/adapters/telemetria/catalogo/catalogo_test.go:TestCatalogoEmbebidoBajoPresupuesto
 severity: error
 ---
 

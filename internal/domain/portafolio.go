@@ -317,4 +317,11 @@ type EntradaPortafolio struct {
 	Canonico      *Canonico      `json:"canonico,omitempty"`
 	Instalaciones []Instalacion  `json:"instalaciones,omitempty"`
 	Agregado      string         `json:"agregado,omitempty"` // RFC3339.
+	// OrigenSinResolverDesde: RFC3339 de cuándo el operador CONFIRMÓ dejar esta entrada sin
+	// origen (S7, opción «ninguno — dejarlo sin origen», BR-11/E-26). Distinto de "", que
+	// significa «todavía nadie lo miró»: el contador cruzado «N sin origen resuelto» cuenta
+	// las provisionales con este campo VACÍO. Confirmar «ninguno» no inventa un home — solo
+	// deja de reclamar atención. Aditivo con omitempty ⇒ todo `portafolio.json` existente
+	// sigue parseando sin migración.
+	OrigenSinResolverDesde string `json:"origen_sin_resolver_desde,omitempty"`
 }

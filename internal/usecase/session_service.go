@@ -23,6 +23,12 @@ import (
 // docs/architecture/boundaries/dominio-independiente-de-transporte.md).
 const dockEventType = "dock"
 
+// askUserQuestionTool is the CC tool name the Dock renders as a question card (not a
+// generic permission ask) — RF-113 bugfix. It never mints a session grant (each question
+// is unique; blind-approving a FUTURE different question with no answer would echo a
+// stale/wrong updatedInput back to the conductor).
+const askUserQuestionTool = "AskUserQuestion"
+
 // ErrBusy is returned by Turn when the session's conductor is already generating. A turn
 // must not race a live one (boundary sesion-viva-consistente `un-turno-a-la-vez`): two
 // turns would interleave on one stdin and mix the assembling buffer. The transport maps
@@ -709,9 +715,14 @@ var (
 //     aunque el humano haya aprobado (la autoridad se impone fuera del razonamiento —
 //     y fuera del click);
 //   - allow mintea un Grant efímero (TTL del rol, o ttl si el operador lo acota más);
-//     mientras Vigente, el mismo tool no re-pregunta en esta sesión;
+//     mientras Vigente, el mismo tool no re-pregunta en esta sesión — EXCEPTO
+//     askUserQuestionTool, que jamás mintea grant (cada pregunta es distinta);
 //   - deny-by-default: sin rol no hay resolución (ResolveForRole exige rol).
-func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, ttl time.Duration) (PermissionResolution, error) {
+//
+// answers (RF-113 bugfix) son las respuestas humanas a un AskUserQuestion — question text
+// → label elegido (multi-select: labels separados por coma, mismo shape que la propia
+// herramienta usa internamente). nil/vacío para cualquier otro tool.
+func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, ttl time.Duration, answers map[string]string) (PermissionResolution, error) {
 	if decision != string(domain.DecisionAllow) && decision != string(domain.DecisionDeny) {
 		return PermissionResolution{}, fmt.Errorf("decision %q inválida: allow|deny", decision)
 	}
@@ -757,7 +768,8 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 	}
 
 	var grant domain.Grant
-	if res.Efectiva == domain.DecisionAllow {
+	mintaGrant := res.Efectiva == domain.DecisionAllow && p.Tool != askUserQuestionTool
+	if mintaGrant {
 		grantSet := ps
 		if ttl > 0 && (grantSet.TTL == 0 || ttl < grantSet.TTL) {
 			grantSet.TTL = ttl // el operador solo puede ACOTAR el TTL del rol, nunca ampliarlo.
@@ -769,7 +781,7 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 	s.mu.Lock()
 	if r2 := s.rt[id]; r2 != nil {
 		delete(r2.pendingPerm, requestID)
-		if res.Efectiva == domain.DecisionAllow {
+		if mintaGrant {
 			if r2.grants == nil {
 				r2.grants = map[string]domain.Grant{}
 			}
@@ -787,7 +799,11 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 	}
 	d := ports.ControlDecision{Allow: res.Efectiva == domain.DecisionAllow, Message: res.Motivo, ToolUseID: p.ToolUseID}
 	if d.Allow {
-		d.UpdatedInput = p.Input // echo del input original (control protocol: requerido en allow).
+		if p.Tool == askUserQuestionTool && len(answers) > 0 {
+			d.UpdatedInput = askUserQuestionUpdatedInput(p.Input, answers)
+		} else {
+			d.UpdatedInput = p.Input // echo del input original (control protocol: requerido en allow).
+		}
 	}
 	if err := live.RespondControl(s.baseCtx, requestID, d); err != nil {
 		return res, fmt.Errorf("%w: %w", ErrEnvioControl, err)
@@ -800,6 +816,30 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 		Status: string(domain.StatusStreaming),
 	})
 	return res, nil
+}
+
+// askUserQuestionUpdatedInput builds the allow updatedInput for an AskUserQuestion
+// control_request: el `questions` original (y cualquier otro campo) + `answers` (question
+// text → label elegido). HONESTIDAD sobre el wire: no está documentado oficialmente:
+// inferido del zod schema `{questions, answers, response?, annotations?, afkTimeoutMs?}`
+// leído del binario `claude` instalado (2.1.220) — misma incertidumbre best-effort que
+// controlResponseLine (claudecode/conductor.go). Si el original no parsea como objeto,
+// cae a echo crudo (nunca inventa un shape sobre datos que no pudo leer).
+func askUserQuestionUpdatedInput(original []byte, answers map[string]string) []byte {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(original, &m); err != nil || m == nil {
+		return original
+	}
+	raw, err := json.Marshal(answers)
+	if err != nil {
+		return original
+	}
+	m["answers"] = raw
+	out, err := json.Marshal(m)
+	if err != nil {
+		return original
+	}
+	return out
 }
 
 // ErrNadaQueInterrumpir — Interrupt on a session with no live in-flight turn (HTTP 409).

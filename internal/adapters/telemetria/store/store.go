@@ -312,10 +312,10 @@ const insertEvento = `INSERT OR IGNORE INTO evento (
   sesion_id, turno_id, arnes_id, instalacion_id, caja_id, corrida_id, atribucion,
   plugin_id_hash, cwd_huella, modelo, modelo_canonico, proveedor, speed, service_tier,
   tok_entrada, tok_salida, tok_cache_lectura, tok_cache_5m, tok_cache_1h, tok_razonamiento,
-  aritmetica, acumulacion, costo_reportado_micros, costo_calculado_micros, costo_completo,
+  tok_cache_sin_tier, aritmetica, acumulacion, costo_reportado_micros, costo_calculado_micros, costo_completo,
   catalogo_version, duracion_ms, escenario, tipo_evento, resultado, gate, motivo, herramienta,
   decision, tool_input_bytes, tool_result_bytes
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 func (s *Store) escribirLote(ctx context.Context, evs []domain.EventoTelemetria) error {
 	tx, err := s.writer.BeginTx(ctx, nil)
@@ -346,6 +346,7 @@ func (s *Store) escribirLote(ctx context.Context, evs []domain.EventoTelemetria)
 			textoOpcional(e.Speed), textoOpcional(e.ServiceTier),
 			e.Tokens.Entrada, e.Tokens.Salida, e.Tokens.CacheLectura,
 			e.Tokens.CacheEscritura5m, e.Tokens.CacheEscritura1h, e.Tokens.Razonamiento,
+			e.Tokens.CacheEscrituraSinTier,
 			textoOpcional(string(e.Aritmetica)), textoOpcional(string(e.Acumulacion)),
 			e.CostoReportadoMicros, e.CostoCalculadoMicros, boolOpcional(e.CostoCompleto),
 			textoOpcional(e.CatalogoVersion), e.DuracionMs,

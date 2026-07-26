@@ -551,3 +551,120 @@ func dentroDePath(parent, child string) bool {
 	}
 	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != "."
 }
+
+// ── S7 · asignar origen (paquete 2026-07-23-portafolio-agregar-marketplace, design.md §3.6) ──
+
+// ErrAsignarOrigenColisiona se devuelve cuando re-keyear la entrada a (home,id) daría una clave
+// que YA existe.
+// Fusionar dos identidades es una acción EXPLÍCITA fuera de alcance (C-ID-2, boundary
+// portafolio-identidad-y-deriva-honesta §1) — el sistema no las junta solo.
+var ErrAsignarOrigenColisiona = errors.New("portafolio: ya existe una entrada con esa identidad (fusionar es otra operación)")
+
+// ErrAsignarOrigenNoCanonicalizable se devuelve cuando el home declarado no resuelve a
+// host/owner/repo → 400.
+var ErrAsignarOrigenNoCanonicalizable = errors.New("portafolio: el home declarado no resuelve a host/owner/repo")
+
+// AsignarOrigen escribe el `home` DECLARADO de la entrada `clave` (S7, BR-11) y la re-keyea.
+// NO clona, NO instala, NO escribe ningún archivo fuera de `~/.arnesia/` (C3 de design.md: el
+// dir de una instalación `referenciada-cc` vive bajo `~/.claude`, que validarRootPortafolio
+// PROHÍBE escribir — por eso el home va al STORE, no al sello).
+//
+// Con home=="" ⇒ el operador eligió «ninguno — dejarlo sin origen»: NO se toca la identidad,
+// solo se estampa OrigenSinResolverDesde (deja de contar en «N sin origen resuelto») — jamás
+// se inventa un home (E-26).
+//
+// Con home≠"": canonicaliza (400 si no resuelve) → arma IdentidadArnes{Home:canon, ID:id} → si
+// la clave nueva existe y NO es la misma entrada ⇒ ErrAsignarOrigenColisiona → Upsert bajo la
+// clave nueva + Desvincular la vieja → anota en CADA instalación el eslabón
+// {Fuente:"declarado-por-operador", Campo:"home", Valor:canon} y re-corre ResolverOrigen para
+// que la discrepancia home≠registry (si la hay) quede visible (BR-3/C-OR-6) → re-evalúa deriva
+// con el home nuevo (ahora RutaReferencia SÍ puede resolver: es el efecto útil de reconciliar,
+// y aparece solo, sin un botón nuevo).
+func (s *PortafolioService) AsignarOrigen(_ context.Context, clave, home string) (domain.EntradaPortafolio, error) {
+	entrada, encontrada := s.buscarPorClave(clave)
+	if !encontrada {
+		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %q", ErrObservarClaveNoEncontrada, clave)
+	}
+
+	// «Ninguno — dejarlo sin origen»: honesto, no se inventa un home (E-26).
+	if strings.TrimSpace(home) == "" {
+		entrada.OrigenSinResolverDesde = time.Now().UTC().Format(time.RFC3339)
+		if err := s.store.Upsert(entrada); err != nil {
+			return domain.EntradaPortafolio{}, err
+		}
+		return entrada, nil
+	}
+
+	canon, ok := domain.CanonicalizarRepo(home)
+	if !ok {
+		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %q", ErrAsignarOrigenNoCanonicalizable, home)
+	}
+
+	nueva := entrada
+	nueva.Identidad = domain.IdentidadArnes{Home: canon, ID: entrada.Identidad.ID}
+	nuevaClave := nueva.Identidad.Clave()
+	if nuevaClave != clave {
+		if _, existe := s.buscarPorClave(nuevaClave); existe {
+			return domain.EntradaPortafolio{}, fmt.Errorf("%w: %q", ErrAsignarOrigenColisiona, nuevaClave)
+		}
+	}
+
+	// El home declarado es una faceta N:M del registry (S1-D3): se UNE, jamás reemplaza.
+	nueva.Registries = unionRegistries(entrada.Registries, canon)
+	// La entrada deja de reclamar atención por «sin origen»: ya tiene uno declarado.
+	nueva.OrigenSinResolverDesde = ""
+
+	insts := make([]domain.Instalacion, len(entrada.Instalaciones))
+	copy(insts, entrada.Instalaciones)
+	for i := range insts {
+		insts[i].Origen.Eslabones = append(insts[i].Origen.Eslabones, domain.EslabonOrigen{
+			Fuente: "declarado-por-operador", Campo: "home", Valor: canon,
+		})
+		// Re-resolver deja visible la discrepancia home≠registry si la hay (BR-3/C-OR-6);
+		// ResolverOrigen conserva los eslabones crudos.
+		resuelto := domain.ResolverOrigen(insts[i].Origen.Eslabones)
+		resuelto.Version = primerNoVacio(resuelto.Version, insts[i].Origen.Version)
+		resuelto.Registry = primerNoVacio(resuelto.Registry, insts[i].Origen.Registry)
+		insts[i].Origen = resuelto
+		// BR-4: con el home nuevo, RutaReferencia puede resolver por primera vez — el efecto
+		// útil de reconciliar, que aparece SOLO, sin un botón nuevo (E-70).
+		if s.deriva != nil && insts[i].InstallPath != "" {
+			insts[i].Deriva, insts[i].DerivaDetalle = s.deriva.Evaluar(insts[i].InstallPath, canon, nueva.Identidad.ID, insts[i].Origen.Version)
+		}
+	}
+	nueva.Instalaciones = insts
+
+	if err := s.store.Upsert(nueva); err != nil {
+		return domain.EntradaPortafolio{}, err
+	}
+	if nuevaClave != clave {
+		if _, derr := s.store.Desvincular(clave); derr != nil {
+			return domain.EntradaPortafolio{}, derr
+		}
+	}
+	return nueva, nil
+}
+
+// unionRegistries agrega canon a xs sin duplicar y preservando el orden de aparición (S1-D3:
+// las facetas se unen, nunca se reemplazan).
+func unionRegistries(xs []string, canon string) []string {
+	for _, x := range xs {
+		if x == canon {
+			return xs
+		}
+	}
+	return append(append([]string{}, xs...), canon)
+}
+
+// SinOrigenResuelto cuenta las entradas con identidad provisional (Home=="") y
+// OrigenSinResolverDesde=="" — el contador cruzado de AG-D8 decisión 7.
+func (s *PortafolioService) SinOrigenResuelto(_ context.Context) (int, error) {
+	entradas, _ := s.store.Listar()
+	n := 0
+	for _, e := range entradas {
+		if e.Identidad.Provisional() && e.OrigenSinResolverDesde == "" {
+			n++
+		}
+	}
+	return n, nil
+}

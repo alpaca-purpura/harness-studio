@@ -2,7 +2,7 @@
 regla: no-aplica-no-es-cero
 version: 1.0
 updated: 2026-07-26
-status: proposed
+status: enforced
 ledger: HS-28
 sources:
   - url: https://prometheus.io/docs/prometheus/latest/querying/basics/#staleness

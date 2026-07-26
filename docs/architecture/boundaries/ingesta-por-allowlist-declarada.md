@@ -2,7 +2,7 @@
 regla: ingesta-por-allowlist-declarada
 version: 1.0
 updated: 2026-07-26
-status: proposed
+status: enforced
 ledger: HS-28
 sources:
   - url: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
@@ -17,7 +17,14 @@ sources:
   - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/ANEXO-hooks.md
     autoridad: medicion-propia
     revisado: 2026-07-26
-enforced_by: []
+enforced_by:
+  - docs/architecture/fitness/telemetria_test.go:TestAllowlistNoPersistePII
+  - docs/architecture/fitness/telemetria_test.go:TestHookNoReenviaContenido
+  - docs/architecture/fitness/telemetria_test.go:TestAllowlistEsListaNoSugerencia
+  - docs/architecture/fitness/telemetria_test.go:TestToolResultBytesSePersiste
+  - internal/adapters/telemetria/hooks/proyecta_test.go:TestCwdDesconocidoNoSeGuardaCrudo
+  - internal/adapters/telemetria/otlp/mapa_cc_test.go:TestLaIdentidadNoCruzaLaPuerta
+  - internal/adapters/telemetria/forward/forward_test.go:TestForwardNoReenviaCrudo
 severity: error
 ---
 

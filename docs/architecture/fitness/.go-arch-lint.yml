@@ -76,8 +76,35 @@ components:
     in: internal/adapters/selfupdate/**
   portafolio:
     in: internal/adapters/portafolio/**
+  marketplace:
+    in: internal/adapters/marketplace/**
+  traer:
+    in: internal/adapters/traer/**
   history:
     in: internal/adapters/history/**
+  stt:
+    in: internal/adapters/stt/**
+  logfile:
+    in: internal/adapters/logfile/**
+
+  # --- telemetría embebida (paquete 2026-07-24-telemetria-embebida-otel) ---
+  # Los cinco NO se importan entre sí: cada uno habla `domain`+`ports` y nada más. Lo que el
+  # bloque prohíbe POR OMISIÓN es tan importante como lo que permite —
+  # `transport-http` no puede importar ninguno (el receptor entra inyectado como http.Handler,
+  # igual que el broker SSE), e `index` y `telemetria-store` no se conocen: son dos bases con
+  # doctrinas opuestas (una desechable, la otra irrecuperable).
+  telemetria-otlp:
+    in: internal/adapters/telemetria/otlp/**
+  telemetria-hooks:
+    in: internal/adapters/telemetria/hooks/**
+  telemetria-store:
+    in: internal/adapters/telemetria/store/**
+  telemetria-catalogo:
+    in: internal/adapters/telemetria/catalogo/**
+  telemetria-descubrimiento:
+    in: internal/adapters/telemetria/descubrimiento/**
+  telemetria-forward:
+    in: internal/adapters/telemetria/forward/**
 
   # --- datos embebidos (go:embed) ---
   dogfood:
@@ -135,6 +162,10 @@ deps:
   portafolio:
     mayDependOn: [domain, ports] # walker + lock + deriva + store del Portafolio (Slice 0)
     canUse: [yaml]               # parsea el lock DevStudio (.devstudio/arneses.yaml, S0-D4/D8)
+  marketplace:
+    mayDependOn: [domain, ports] # registro + caché + detector CC + los 2 lectores de catálogo
+  traer:
+    mayDependOn: [domain, ports] # materializa un PlanTraer en un staging (camino A local, B por git)
 
   # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
@@ -145,6 +176,37 @@ deps:
   history:
     mayDependOn: [domain]
 
+  # Motor de STT local (RF-223): shellea el motor que el operador tenga en $PATH. No conoce
+  # el dominio — habla `audio []byte` → `string` y nada más.
+  stt:
+    mayDependOn: [ports]
+
+  # `logfile` (RF-230) NO tiene entrada acá a propósito: ausencia = default-deny total, igual
+  # que `domain`. Escribe bytes a un archivo y no conoce ni el dominio. Que no dependa de nada
+  # es el punto — es el primero que se cablea al arrancar, antes de que exista cualquier otra
+  # cosa que pueda fallar.
+
+  # Decodifica el wire OTLP y emite el evento canónico. NO conoce el almacén ni el catálogo:
+  # habla `ports.TelemetriaSink` y nada más.
+  telemetria-otlp:
+    mayDependOn: [domain, ports]
+  # Proyecta el payload del hook a los campos declarados (allowlist). Lo usan el daemon (por el
+  # endpoint) y el propio binario (por el subcomando) — por eso vive acá y no en `cmd`: dos
+  # implementaciones de la misma allowlist es la forma segura de que una se olvide de un campo.
+  telemetria-hooks:
+    mayDependOn: [domain, ports]
+  telemetria-store:
+    mayDependOn: [domain, ports]
+    canUse: [sqlite]        # telemetria.db — base PROPIA, jamás index.db (A2)
+  telemetria-catalogo:
+    mayDependOn: [domain, ports]
+  # Escribe la ficha del daemon a os.UserConfigDir(). No conoce el almacén ni el receptor.
+  telemetria-descubrimiento:
+    mayDependOn: [domain, ports]
+  # Egreso opcional del operador, apagado por default. Habla el evento YA PROYECTADO.
+  telemetria-forward:
+    mayDependOn: [domain, ports]
+
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, history, dogfood, doctrina]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, marketplace, traer, history, stt, logfile, dogfood, doctrina, telemetria-otlp, telemetria-hooks, telemetria-store, telemetria-catalogo, telemetria-descubrimiento, telemetria-forward]

@@ -152,6 +152,19 @@ type Tokens struct {
 	CacheEscritura5m *int64 `json:"cache_escritura_5m,omitempty"`
 	CacheEscritura1h *int64 `json:"cache_escritura_1h,omitempty"`
 	Razonamiento     *int64 `json:"razonamiento,omitempty"`
+	// CacheEscrituraSinTier son tokens de escritura de cache que llegaron **sin decir a qué
+	// vencimiento se escribieron**. Es el caso del canal OTLP, que manda un solo
+	// `cache_creation_tokens` agregado.
+	//
+	// 🔴 Tiene bucket PROPIO y no se pliega al de 5 minutos, y esa es toda la razón de que
+	// exista: la tarifa de 1 h cuesta 1,6× la de 5 min, así que asumir el tramo barato
+	// SUBESTIMA. Medido en la corrida real: asumir 5 min da 12 280 micros contra los 18 473
+	// que el runtime reportó — un 33 % por debajo, que es exactamente el bug `phoenix#14314`
+	// que este módulo existe para no reproducir.
+	//
+	// Un tier desconocido **no se asume: se declara**. `CalcularCosto` lo deja sin cobrar y
+	// lo nombra en `SinTarifa`, y el costo sale marcado incompleto.
+	CacheEscrituraSinTier *int64 `json:"cache_escritura_sin_tier,omitempty"`
 }
 
 // LlaveJoin es la unidad de trabajo. El par (SesionID, TurnoID) es LA llave del join

@@ -2,7 +2,7 @@
 regla: cifra-viaja-con-su-confianza
 version: 1.0
 updated: 2026-07-26
-status: proposed
+status: enforced
 ledger: HS-28
 sources:
   - url: https://www.w3.org/TR/prov-dm/
@@ -18,7 +18,12 @@ sources:
   - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/INFORME.md
     autoridad: medicion-propia
     revisado: 2026-07-26
-enforced_by: []
+enforced_by:
+  - docs/architecture/fitness/telemetria_test.go:TestCifraLlevaConfianza
+  - internal/domain/telemetria_test.go:TestConfianzaDeAgregadoEsLaMinima
+  - internal/domain/telemetria_costo_test.go:TestParidadConElCostoReportadoReal
+  - internal/domain/telemetria_deteccion_test.go:TestSesgoTieneDireccion
+  - internal/usecase/telemetria_service_test.go:TestDobleCostoSePersisteEntero
 severity: error
 ---
 

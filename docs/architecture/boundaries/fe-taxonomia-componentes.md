@@ -1,7 +1,7 @@
 ---
 regla: fe-taxonomia-componentes
-version: 1.1
-updated: 2026-07-06
+version: 1.2
+updated: 2026-07-25
 status: enforced
 ledger: HS-09
 sources:
@@ -21,6 +21,7 @@ enforced_by:
   - web/.dependency-cruiser.js#canvas-not-chrome
   - web/.dependency-cruiser.js#chrome-not-canvas-internals
   - web/.dependency-cruiser.js#ui-not-domain
+  - web/.dependency-cruiser.js#no-sibling-widget-imports
 severity: high
 ---
 
@@ -78,9 +79,21 @@ Atomic vive DENTRO de `shared/ui` como vocabulario; la estructura real = **6 cap
 | canvas-not-chrome | el canvas (`map-canvas`, `shared/canvas`) no importa chrome (`session-rail`, `chat-dock`, `topbar`, `view-strip`, `pages/shell`) | error | «nodo del Mapa importa el Rail/Dock (mezcla runtimes canvas/shell)» | dependency-cruiser#canvas-not-chrome |
 | chrome-not-canvas-internals | el chrome no hace deep-import a internos del canvas (solo props/store) | error | «chrome alcanza los internos del canvas (Mapa HTML+SVG)» | dependency-cruiser#chrome-not-canvas-internals |
 | ui-not-domain | `shared/ui/**` no importa `entities/features/*/model` ni el store | error | «primitivo/molécula acoplado al dominio» | dependency-cruiser#ui-not-domain |
+| no-sibling-widget-imports | un widget no importa otro widget (cross-slice de chrome): la página los compone | error | «dos organismos de app acoplados entre sí en vez de por la vista» | dependency-cruiser#no-sibling-widget-imports |
 | primitives-solo-semanticos | `shared/ui/**` no usa colores/valores crudos, solo `var(--…)` | warn | banda Base «primitivo con valor mágico (no tokenizado)» | stylelint (ver fe-tokens-contrato) |
 
 ## Changelog
+
+- 2026-07-25 · v1.2 · **+1 check `no-sibling-widget-imports`** (paquete
+  `docs/product/stories/2026-07-23-portafolio-agregar-marketplace/`, `design.md` §11.4). La capa
+  `widgets` era la única capa de slices sin regla de cross-import: `no-sibling-feature-imports` ya
+  cubría `features/`, pero dos widgets podían acoplarse libremente. El paquete de marketplaces es el
+  primero que pone **dos widgets de la misma vista** (`widgets/marketplace` y `widgets/portafolio`,
+  compuestos por `pages/shell/ui/portafolio-view.tsx`), donde el acoplamiento sería invisible sin
+  gate. Regla espejo de la de features, `severity: error`. **Verificada en vivo antes de agregarla:**
+  el árbol de hoy tiene **cero** imports cruzados entre widgets, así que la regla nace verde
+  (`depcruise src`: «no dependency violations found», 122 módulos / 314 dependencias). 4 → **5
+  checks**; sin cambio de `status` (sigue `enforced`).
 
 - 2026-07-06 · v1.1 · `proposed → enforced` (HS-09, Fase D). El Mapa MVP es la primera superficie que
   ejercita **canvas⊥chrome** de verdad: `widgets/map-canvas` importa solo `entities/arnes` + `shared/*`,
