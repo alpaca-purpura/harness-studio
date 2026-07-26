@@ -22,6 +22,23 @@ import { CapaMejoraStage } from "./capa-mejora-stage"
 
 const FRASES_DE_QUE_HUBO_BUSQUEDA = [/Hay datos/, /detectores corrieron/]
 
+/** El wire de `s2-instrumentado`: `corridas: 0` por construcción, todo lo demás poblado. */
+const S2_INSTRUMENTADO: ResumenTelemetria = {
+  ...RESUMEN_ILUSTRATIVO,
+  escenario: "s2-instrumentado",
+  corridas: 0,
+  turnos: 58,
+  costo_reportado_micros: 1_920_000,
+  cobertura: {
+    esperados: null,
+    exacta: 58,
+    por_hash: 0,
+    por_proceso: 0,
+    sin_dato: 3,
+    no_llegaron: null,
+  },
+}
+
 const NUNCA_CORRIO: ResumenTelemetria = {
   ...RESUMEN_ILUSTRATIVO,
   corridas: 0,
@@ -119,6 +136,26 @@ export const ZoomAltoConservaElMapa: Story = {
   play: async ({ canvasElement }) => {
     await expect(altoDelCanvas(canvasElement)).toBeGreaterThanOrEqual(180)
     await expect(canvasElement.querySelectorAll(".node").length).toBeGreaterThan(0)
+  },
+}
+
+// 🔴 **C-2 · el escenario mayoritario.** Fuera de S1 el wire manda `corridas: 0` con el dinero,
+// la cobertura y las cajas poblados. Antes: la franja decía «nunca corrió», el carril cobraba
+// USD 1,08 y la lista se escondía. Los tres bloques, ahora, dicen lo mismo.
+export const S2InstrumentadoNoDiceNuncaCorrio: Story = {
+  args: { resumen: S2_INSTRUMENTADO },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(S2_INSTRUMENTADO.corridas).toBe(0)
+    // 1 · la franja NO dice «nunca corrió» y sí alcanza su rama de s2 (antes inalcanzable).
+    await expect(c.queryByText(/nunca corrió con telemetría/)).toBeNull()
+    await expect(c.getByText("corrió fuera de ArnesIA, instrumentado")).toBeInTheDocument()
+    // 2 · el canvas sigue mostrando el dinero, que es verdad.
+    await expect(canvasElement.querySelectorAll(".mej-cifra").length).toBeGreaterThan(0)
+    // 3 · y la lista de puntos —el entregable del paquete— NO se esconde.
+    await expect(canvasElement.querySelectorAll(".mejora").length).toBeGreaterThan(0)
+    // 4 · el denominador del vacío no puede decir «0 corridas».
+    await expect(canvasElement.textContent).not.toContain("sobre 0 corridas")
   },
 }
 

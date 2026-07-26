@@ -66,14 +66,20 @@ export const VentanaCambia: Story = {
   },
 }
 
-// RF-235 — el total NUNCA viaja solo: su denominador dice de cuántas corridas salió, cuántas se
-// pudieron atribuir, cuántas sesiones y cuántas cajas. Los números cierran entre sí (H-8).
+// RF-235 — el total NUNCA viaja solo: su denominador dice de cuántas corridas salió, cuántos
+// turnos se pudieron atribuir, cuántas sesiones y cuántas cajas.
+//
+// ⚠️ **Desviación del literal de design §7.2, por A-7**: el backend NO cuenta lo mismo en las dos
+// mitades — `corridas` es `COUNT(DISTINCT corrida_id)` y la cobertura cuenta TURNOS, con filtros
+// distintos (`consultas.go:95` vs `:143`). El copy firmado («de 61 corridas, 58 con atribución»)
+// promete que cierran, y en vivo se vio `de 340 corridas, 58 con atribución` al lado de `sobre 61
+// corridas`. Se nombran las DOS unidades en vez de fingir la coherencia.
 export const TotalConDenominador: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     await expect(c.getByText("4,82")).toBeInTheDocument()
     await expect(
-      c.getByText("de 61 corridas, 58 con atribución · 12 sesiones · 4 cajas"),
+      c.getByText("de 61 corridas · 58 de 61 turnos con atribución · 12 sesiones · 4 cajas"),
     ).toBeInTheDocument()
   },
 }

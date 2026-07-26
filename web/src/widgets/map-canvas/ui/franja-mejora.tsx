@@ -8,7 +8,11 @@ import {
 } from "@/entities/telemetria"
 import { cn } from "@/shared/lib/cn"
 import { ErrorBody, Skeleton } from "@/shared/ui/estado-carga"
-import { coberturaEsParcial } from "../model/capa-mejora"
+import {
+  coberturaEsParcial,
+  denominadorDeBusqueda,
+  unidadDelDenominador,
+} from "../model/capa-mejora"
 
 // FranjaMejora — la franja de contexto de la capa (design §2.2, §5.2, §7.2, §7.7).
 //
@@ -91,6 +95,13 @@ export function FranjaMejora({
 }: FranjaMejoraProps) {
   const cob: Cobertura | undefined = resumen?.cobertura
   const conAtribucion = cob ? cob.exacta + cob.por_hash + cob.por_proceso : 0
+  // A-7 · el numerador y el denominador NO son la misma magnitud en el backend: `corridas` es
+  // `COUNT(DISTINCT corrida_id)` (consultas.go:95) y la cobertura cuenta TURNOS (`:143`), sin los
+  // mismos filtros. Se nombran las dos unidades en vez de fingir que cierran — un denominador que
+  // promete cerrar y no cierra es peor que uno que declara de qué habla.
+  const totalCobertura = cob ? conAtribucion + cob.sin_dato : 0
+  const denominador = denominadorDeBusqueda(resumen)
+  const unidad = unidadDelDenominador(resumen)
   const total = resumen
     ? usd(resumen.costo_reportado_micros ?? resumen.costo_calculado_micros)
     : null
@@ -175,7 +186,7 @@ export function FranjaMejora({
               {parcial && (
                 <span className="fm-parcial">
                   {" — de "}
-                  {resumen.corridas} corridas, <b className="fm-parcial-n">{conAtribucion}</b>
+                  {denominador} {unidad}, <b className="fm-parcial-n">{conAtribucion}</b>
                 </span>
               )}
             </span>
@@ -183,7 +194,14 @@ export function FranjaMejora({
               <span className="fm-mut">{`${cob?.sin_dato} corridas quedaron sin atribución.`}</span>
             ) : (
               <span className="fm-denominador">
-                {`de ${resumen.corridas} corridas, ${conAtribucion} con atribución · ${resumen.sesiones} sesiones · ${resumen.cajas} cajas`}
+                {[
+                  `de ${denominador} ${unidad}`,
+                  `${conAtribucion} de ${totalCobertura} turnos con atribución`,
+                  resumen.sesiones > 0 ? `${resumen.sesiones} sesiones` : null,
+                  resumen.cajas > 0 ? `${resumen.cajas} cajas` : null,
+                ]
+                  .filter((x): x is string => x !== null)
+                  .join(" · ")}
               </span>
             )}
           </span>

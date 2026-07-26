@@ -30,10 +30,14 @@ export const DETECTORES_DEL_MVP = 6
  * también miraba `corridas`, **escondía la lista de puntos de mejora justo donde el backend sí
  * los había calculado**. El entregable central del paquete, invisible en el caso normal.
  *
- * La condición se deriva de **la señal que existe**, en orden de fuerza:
- *  1. alguna corrida se pudo atribuir (cobertura) — lo más directo;
- *  2. llegaron turnos — hubo medición aunque el contador de corridas no la vea;
- *  3. hay dinero contado — no se cobra sobre la nada.
+ * La condición es **la cobertura atribuida**, y nada más: al menos un turno pudo colgarse de
+ * una caja. Es lo que el nombre dice y es lo único que hace verdadera la frase «los detectores
+ * corrieron y no encontraron nada» — sin atribución no hay a qué colgar un hallazgo.
+ *
+ * ⚠️ Probé agregarle un fallback por `turnos > 0` / `dinero > 0` «para cubrir S2» y **rompió el
+ * invariante de D24**: con 4 turnos todos sin atribuir, la lista volvía a afirmar que se buscó.
+ * No hacía falta — en `s2-instrumentado` la cobertura viene poblada (`exacta: 58`), así que la
+ * primera condición ya alcanza. El defecto C-2 era **solo** el `corridas <= 0`.
  *
  * ⚠️ Tampoco sirve `resumen.confianza === "sin-dato"` (la otra formulación natural): la confianza
  * del agregado es `PeorConfianza` de la ventana (`telemetria_service.go:334`), así que **una
@@ -41,7 +45,7 @@ export const DETECTORES_DEL_MVP = 6
  * estado 2, que sí tiene datos.
  */
 export function hayDatosAtribuibles(resumen: ResumenTelemetria | null | undefined): boolean {
-  if (!resumen || resumen.corridas <= 0) return false
+  if (!resumen) return false
   const c = resumen.cobertura
   return c.exacta + c.por_hash + c.por_proceso > 0
 }
@@ -56,6 +60,17 @@ export function hayDatosAtribuibles(resumen: ResumenTelemetria | null | undefine
 export function denominadorDeBusqueda(resumen: ResumenTelemetria | null | undefined): number {
   if (!resumen) return 0
   return resumen.corridas > 0 ? resumen.corridas : resumen.turnos
+}
+
+/**
+ * Cómo se llama lo que cuenta el denominador. Fuera de S1 no son corridas —el contador es 0 por
+ * construcción— sino turnos, y llamarlas «corridas» sería nombrar mal la unidad justo en la
+ * frase que existe para que el número no se lea solo.
+ */
+export function unidadDelDenominador(
+  resumen: ResumenTelemetria | null | undefined,
+): "corridas" | "turnos" {
+  return resumen && resumen.corridas > 0 ? "corridas" : "turnos"
 }
 
 /**
