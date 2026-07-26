@@ -151,3 +151,38 @@ ignorado— y el DOM ya no contiene «Hay datos». La franja manda.
 El candado cubre **esta** composición porque la story la reproduce a mano. **`pages/` sigue con 0
 stories en el repo**, y es justo donde se compone. Una composición futura que nadie espeje queda
 ciega igual. Está declarado en `PARIDAD.md`.
+
+---
+
+## Cierre tras la auditoría de UI (2026-07-26) — v0.2.24
+
+```
+make installer → v0.2.24 · make dev-sync
+sha256 instalado = sha256 compilado = 511cb72dd672c0ad…
+```
+
+La auditoría del Tramo B declaró **no firmar** con 4 críticos, **todos de la clase que ninguna
+story aislada puede ver**: la composición miente aunque cada componente sea honesto. El peor era
+que **encender la capa colapsaba el canvas del Mapa** (739 px → 0 px con cuatro tarjetas; 0 px a
+200 % de zoom con una sola).
+
+Corregidos los cuatro, cada uno con un test que se pone rojo al revertir el fix. Los tres que miden
+el alto real del canvas los corrí yo: `capa-mejora-stage.stories.tsx` → **10 passed**.
+
+Captura final contra el binario instalado:
+[`evidencia/instalada-v0224-final.png`](evidencia/instalada-v0224-final.png). El Mapa está entero
+con la capa encendida, la franja dice `— —` y no ceros, y la promesa de privacidad viaja con su
+retención rotulada como propuesta.
+
+### Lo que este ciclo dejó como norma
+
+1. **La composición se testea donde se compone.** Nace `CapaMejoraStage`, un widget con stories que
+   recibe el wire crudo; la página quedó con transporte y estado. Los cuatro críticos vivían en
+   `pages/`, que tenía **0 stories**.
+2. **Una story verde no prueba que la app llegue a esa pantalla.** `PARIDAD.md` lleva ahora una
+   columna **«¿alcanzable?»** por fila: **52 sí · 10 no · 3 parcial · 3 n/a**. Se descubrió porque
+   un componente con su rama de error y su story siguió verde con el cableado roto.
+3. **Un candado mal fundado es peor que ninguno.** El de D24 usó `corridas` como proxy de «hay
+   datos», y ese campo llega NULL fuera de S1 ⇒ escondió el entregable central en el escenario que
+   el propio paquete declara mayoritario. La condición tiene que derivarse de la señal que el
+   backend **produce**, no del campo que suena bien.

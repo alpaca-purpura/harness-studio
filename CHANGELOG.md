@@ -35,6 +35,21 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Seguridad
 
+## [0.2.24] — 2026-07-26
+
+### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+- Capa Mejora: encender la capa ya no colapsa el canvas del Mapa; el escenario s2-instrumentado deja de decir «nunca corrió» mientras muestra gasto; un error del detalle ya no se pinta como dato; y la fila del Portafolio tiene una sola implementación
+
+### Seguridad
+
 ## [0.2.23] — 2026-07-26
 
 ### Agregado
