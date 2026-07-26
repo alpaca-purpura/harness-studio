@@ -119,23 +119,27 @@
   `new-session-picker.stories.tsx` (4 stories fallan en la a11y gate cuando
   `ConversacionesDelArnes` renderiza su error de fetch, `.text-warn`). Preexistente, sin
   relación con el re-key — fix de token de color, no tocado en este cierre · `deuda`
-- [HS-09/11/telemetria-de-nacimiento] **telemetría embebida vía OTel nativo ⇒ desbloquea la capa
-  Tokens del Mapa** — **arquitectura RESUELTA 2026-07-24** (ya NO es "bloqueo" de diseño; era 2
-  ítems del BACKLOG que resultaron ser el mismo trabajo). Verificado con doc oficial de Claude
-  Code: `CLAUDE_CODE_ENABLE_TELEMETRY` + OTel nativo YA emite `claude_code.token.usage`/
-  `claude_code.cost.usage` con atribución `skill.name`/`tool_name` limpia — sin hook custom, sin
-  Langfuse, sin parsear JSONL (coherente con `conductor-no-parsea-jsonl.md`). Diseño: receptor
-  OTLP embebido loopback-only en el daemon + scaffold inyecta env vars (nunca infraestructura
-  externa — orden del operador: el instalador jamás depende de Langfuse/Docker). Detalle en
-  [`docs/architecture/boundaries/telemetria-de-nacimiento.md`](../architecture/boundaries/telemetria-de-nacimiento.md)
-  v2.0 → [`stories/2026-07-24-telemetria-embebida-otel/INDEX.md`](stories/2026-07-24-telemetria-embebida-otel/INDEX.md).
-  Falta: mockup de la capa Tokens (ni el mockup "destino" la dibuja) → spec → build → PARIDAD ·
-  `deuda` (ya no `bloqueo` — el diseño está resuelto, falta construir)
-- [HS-09/11] **capas Desempeño/Proceso del Mapa** — estas SÍ siguen genuinamente bloqueadas (no
-  recortables como Tokens): Desempeño necesita latencia/reintentos que solo OTel `hook_*`/
-  `api_retry` ve + diseño de qué es "desempeño" a nivel Mapa; Proceso necesita mapear eventos a
-  fases del arnés (diseño no trivial). Mismo receptor OTLP embebido del ítem de arriba las
-  alimentaría, pero necesitan su propio diseño de datos primero · `bloqueo`
+- [HS-27/HS-28/telemetria-de-nacimiento] **capa «Mejora» del Mapa (ex «capa Tokens») — telemetría
+  embebida** — **arquitectura RESUELTA y VERIFICADA EN VIVO** contra `claude 2.1.220` (2026-07-26,
+  3 corridas, USD 0,044). Receptor OTLP embebido loopback-only en el daemon; **canal primario
+  `/v1/logs` (`api_request`)**, que trae por request los 4 buckets de tokens + `cost_usd_micros` +
+  `duration_ms` + atribución; `OTEL_RESOURCE_ATTRIBUTES` inyecta nuestra llave de terreno y **viaja
+  copiada en cada punto**. Decodificador **OTLP/JSON con la stdlib (+0,49 MB)** — `pdata` se midió
+  en **+10,79 MB** y se descartó. **El MVP es el JOIN** dinero × proceso (D12.2), no un badge de
+  tokens: es el hueco que ccusage/tokscale/Dynatrace no llenan. Alcance **S1 + S2**, cero egreso.
+  ⚠️ **Hallazgo abierto: la telemetría arrastra PII** (email + ids de cuenta en cada punto) ⇒ la
+  ingesta va por allowlist y el forward opcional filtra en el borde (D15).
+  Detalle en [`docs/architecture/boundaries/telemetria-de-nacimiento.md`](../architecture/boundaries/telemetria-de-nacimiento.md)
+  v2.2 → [`stories/2026-07-24-telemetria-embebida-otel/INDEX.md`](stories/2026-07-24-telemetria-embebida-otel/INDEX.md).
+  Falta: **🧑‍⚖️ firma de D9/D11/D13/D14/D15/D16** → mockup → spec+design → build → PARIDAD · `deuda`
+- [HS-09/11] **capas Desempeño/Proceso del Mapa** — **reclasificadas 2026-07-26** (ya no son
+  `bloqueo`; la verificación en vivo destapó que la señal existe y D12.2 se llevó una parte):
+  · **Proceso entra PARCIALMENTE** por la capa Mejora — el detector P1 («caja que consume y se
+  rechaza en el gate») es parte del MVP del join. Lo que queda afuera es el mapeo completo de
+  eventos a fases del arnés · `deuda de diseño`
+  · **Desempeño** sigue afuera, pero **no por falta de señal**: `api_request.duration_ms` y
+  `hook_execution_complete.total_duration_ms` ya llegan hoy (verificado). Falta el **diseño** de
+  qué es «desempeño» a nivel Mapa · `deuda de diseño`
 - [HS-11] **FE del botón «Correr» de una caja** — el backend YA es async con gate post-run
   (`POST .../boxes/{id}/run` → 202+run_id · `GET .../runs/{runId}` · construido 2026-07-23);
   `inspector.tsx` («Corridas donde actuó») solo tiene prosa «al implementar…», sin botón, sin
@@ -199,8 +203,9 @@
   · `modo-por-fase`
   (`permisos-gui-human-in-the-loop.md`) espera permission-mode por fase (hoy:
   `--permission-mode` hardcodeado a `"default"` en `conductor.go`) · `hooks-desde-otel`
-  espera el canal OTel de Desempeño — **confirmado explícitamente fuera de alcance** de la
-  arquitectura de telemetría resuelta hoy (ítem de arriba: esa cubre SOLO la capa Tokens).
+  espera el canal OTel de Desempeño — **desbloqueado parcialmente 2026-07-26**: los eventos
+  `hook_execution_start`/`_complete` llegan hoy con `total_duration_ms`, `num_blocking` y
+  `num_success` (verificado en vivo). Falta el diseño, no la señal.
   Ninguno recortable hoy · `bloqueo`
 - [HS-16 Grupo C] `gate-honesto` — **re-verificado 2026-07-24, sin cambios**:
   `domain.VerificarGateHonesto` sigue sin existir (grep confirma), deuda de diseño pura (definir

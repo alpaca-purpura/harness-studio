@@ -1,0 +1,122 @@
+
+
+// Contra-experimento de F1: decodificar OTLP/JSON con la stdlib, sin pdata.
+// Nosotros controlamos el spawn ⇒ podemos exigir OTEL_EXPORTER_OTLP_PROTOCOL=http/json.
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	_ "modernc.org/sqlite"
+)
+
+type kv struct {
+	Key   string `json:"key"`
+	Value struct {
+		StringValue *string `json:"stringValue"`
+		IntValue    *json.Number `json:"intValue"`
+		DoubleValue *float64 `json:"doubleValue"`
+		BoolValue   *bool   `json:"boolValue"`
+	} `json:"value"`
+}
+
+type point struct {
+	Attributes   []kv     `json:"attributes"`
+	AsInt        *json.Number `json:"asInt"`
+	AsDouble     *float64 `json:"asDouble"`
+	TimeUnixNano string   `json:"timeUnixNano"`
+}
+
+type metricsReq struct {
+	ResourceMetrics []struct {
+		Resource struct {
+			Attributes []kv `json:"attributes"`
+		} `json:"resource"`
+		ScopeMetrics []struct {
+			Metrics []struct {
+				Name string `json:"name"`
+				Unit string `json:"unit"`
+				Sum  struct {
+					DataPoints             []point `json:"dataPoints"`
+					AggregationTemporality int     `json:"aggregationTemporality"`
+					IsMonotonic            bool    `json:"isMonotonic"`
+				} `json:"sum"`
+			} `json:"metrics"`
+		} `json:"scopeMetrics"`
+	} `json:"resourceMetrics"`
+}
+
+type logsReq struct {
+	ResourceLogs []struct {
+		ScopeLogs []struct {
+			LogRecords []struct {
+				TimeUnixNano string `json:"timeUnixNano"`
+				Attributes   []kv   `json:"attributes"`
+			} `json:"logRecords"`
+		} `json:"scopeLogs"`
+	} `json:"resourceLogs"`
+}
+
+func main() {
+	_ = sql.Drivers()
+	http.HandleFunc("/v1/metrics", func(w http.ResponseWriter, r *http.Request) {})
+	if len(os.Args) < 2 {
+		return
+	}
+	nm, np, nl, nEvents := 0, 0, 0, map[string]int{}
+	for _, f := range glob(os.Args[1], "*metrics*application_json*.bin") {
+		var m metricsReq
+		if err := json.Unmarshal(read(f), &m); err != nil {
+			fmt.Println("ERROR", f, err)
+			continue
+		}
+		for _, rm := range m.ResourceMetrics {
+			for _, sm := range rm.ScopeMetrics {
+				for _, mm := range sm.Metrics {
+					nm++
+					np += len(mm.Sum.DataPoints)
+					for _, p := range mm.Sum.DataPoints {
+						if mm.Name == "claude_code.cost.usage" && p.AsDouble != nil {
+							fmt.Printf("  costo=%v temporalidad=%d attrs=%d\n",
+								*p.AsDouble, mm.Sum.AggregationTemporality, len(p.Attributes))
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, f := range glob(os.Args[1], "*logs*application_json*.bin") {
+		var l logsReq
+		if err := json.Unmarshal(read(f), &l); err != nil {
+			fmt.Println("ERROR", f, err)
+			continue
+		}
+		for _, rl := range l.ResourceLogs {
+			for _, sl := range rl.ScopeLogs {
+				for _, lr := range sl.LogRecords {
+					nl++
+					for _, a := range lr.Attributes {
+						if a.Key == "event.name" && a.Value.StringValue != nil {
+							nEvents[*a.Value.StringValue]++
+						}
+					}
+				}
+			}
+		}
+	}
+	fmt.Printf("stdlib json: métricas=%d puntos=%d logRecords=%d\n", nm, np, nl)
+	for k, v := range nEvents {
+		fmt.Printf("   %3d× %s\n", v, k)
+	}
+}
+
+func glob(dir, pat string) []string {
+	f, _ := filepath.Glob(filepath.Join(dir, pat))
+	return f
+}
+func read(f string) []byte { b, _ := os.ReadFile(f); return b }

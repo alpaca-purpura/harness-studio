@@ -1,93 +1,100 @@
-# Telemetría embebida vía OTel nativo — capa Tokens del Mapa (paquete de trabajo)
+# Capa «Mejora» del Mapa — telemetría embebida (paquete de trabajo)
 
-> Ficha HS-27 (deuda viva, barrido 2026-07-23/24) · Origen: dos ítems del BACKLOG que resultaron
-> ser el mismo trabajo ("telemetría JSONL → indexer real" + "telemetria-de-nacimiento").
-> Disciplina METODOLOGIA §10: mockup → decisiones → spec → 🧑‍⚖️ → código → PARIDAD.
+> Ficha HS-27/HS-28 · Origen: dos ítems del BACKLOG que resultaron ser el mismo trabajo
+> ("telemetría JSONL → indexer real" + "telemetria-de-nacimiento").
+> Disciplina METODOLOGIA §10: mockup → decisiones → spec+design → 🧑‍⚖️ → código → PARIDAD.
+>
+> **El paquete se abrió como «capa Tokens» y ya no se llama así** (D12.3 lo pidió, D16.3 lo
+> resolvió): el entregable junta **dinero + proceso** y propone un fix — «Tokens» nombraba el
+> insumo, no el producto. El slug de la carpeta se conserva por estabilidad de links.
 
-## Rumbo firmado (2026-07-24, arquitectura del operador)
+## Qué se entrega (D12.2 — el MVP es el JOIN)
 
-**Arquitectura RESUELTA** (ver `decisiones.md` D1-D5): receptor OTLP embebido loopback-only en
-el daemon Go · scaffold inyecta env vars de Claude Code (`CLAUDE_CODE_ENABLE_TELEMETRY` +
-`OTEL_EXPORTER_OTLP_ENDPOINT`), no un hook custom · JSONL sigue SOLO enumerar/replay
-(`conductor-no-parsea-jsonl.md` intacto) · Langfuse 100% opcional, nunca dependencia del
-producto. Detalle en `docs/architecture/boundaries/telemetria-de-nacimiento.md` v2.0.
+> *«este arnés, en este puesto, quema $X — y el 60 % se va en la caja Y, que falla el gate 3 de
+> cada 4 veces»*
 
-## Por qué es un paquete propio y no se codeó ya
+No es tokens solos ni proceso solo: es la **correlación**. Es el hueco de mercado confirmado (D9.8):
+ccusage, tokscale, Dynatrace y Azure agregan por herramienta, modelo, proyecto y día —
+**ninguno por unidad de trabajo**. El eje **arnés × empresa × puesto** es terreno libre.
 
-Toca UI **nueva** del Mapa (capa Tokens — hoy ni siquiera el mockup "destino" la diseña,
-`mockups/arnesia-mapa-destino.html:295` la deja en "Fase 2" sin dibujar) + un componente Go
-nuevo (receptor OTLP). Disciplina de paquete de trabajo: feature nueva = mockup→spec→PARIDAD,
-nunca saltar el proceso aunque el diseño de arquitectura ya esté resuelto.
+**Alcance (D12.1): S1 + S2, máquina propia. S3 fuera.** Todo en `127.0.0.1`.
 
-## Flujo y gates
+## Arquitectura — resuelta y VERIFICADA EN VIVO
 
-1. **Mockup** — falta por completo. Preguntas de diseño abiertas: ¿granularidad visual (badge
-   por nodo con `skill.name` matcheado, vs. panel agregado del inspector)? ¿unidades (tokens
-   crudos vs. USD, tabla de precios por modelo)? ¿qué pasa con nodos no-skill (hooks/reglas/
-   knowledge) que el atributo `skill.name` no cubre — "sin dato atribuible" honesto, mismo
-   patrón que Hallazgos/Contenido hoy?
-2. **Decisiones** (`decisiones.md`) — D1-D5 de la arquitectura YA escritas; faltan las de diseño
-   visual cuando arranque el mockup.
-3. **Spec** (`spec.md`) → 🧑‍⚖️ firma del paquete → implementación autorizada. Cubre: receptor
-   OTLP (schema mínimo a decodificar, wire format elegido HTTP/JSON vs protobuf), esquema del
-   índice local, contrato del scaffold (env vars), wiring FE de la prop `capa` (hoy
-   `map-canvas.tsx` NO la recibe en absoluto).
-4. **Implementación** — Go (receptor + índice) + FE (capa Tokens real) + stories/tests.
-5. **PARIDAD** → gate final.
+Receptor OTLP embebido loopback-only en el daemon Go · el scaffold/spawn inyecta env vars de
+telemetría · el JSONL **no** se toca · Langfuse 100 % opcional, nunca dependencia del producto.
+Detalle en [`arquitectura-telemetria.md`](arquitectura-telemetria.md) (8 capas L0→L7) y en el
+boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/telemetria-de-nacimiento.md) v2.2.
+
+**Lo que la verificación del 26/07 corrigió** ([`verificacion-2026-07-26/INFORME.md`](verificacion-2026-07-26/INFORME.md)):
+
+| antes | después | evidencia |
+|---|---|---|
+| canal = `/v1/metrics` (D4.1) | **canal primario = `/v1/logs` (`api_request`)** | V1 |
+| D8: leer el JSONL **o** resignar B1/B12 | **el dilema no existía** — el split 5m/1h viene en el `result` del stream-json | V2 |
+| `pdata`, +1,7 MB (F1) | **+10,79 MB medido** → OTLP/JSON + stdlib, **+0,49 MB** | V5 |
+| forzar `http/protobuf` (F4) | **forzar `http/json`** | V5 |
+| atribución por-skill amenazada (D10) | confirmada la amenaza, **rescatada por `plugin_id_hash`** hasta nivel de arnés | V3 |
+| — | **nuevo:** PII en cada punto · temporalidad Delta · `intValue` off-spec | V6, V5.1, V5 |
 
 ## Estado
 
-- [x] investigación real (Explore + claude-code-guide, 2026-07-24): backend/FE actuales, prior
-      art legacy (KIT-03/`emit.py`), Langfuse corriendo en la máquina, verificación oficial OTel
-      nativo de Claude Code
-- [x] arquitectura RESUELTA y documentada (boundary v2.0 + `decisiones.md` D1-D5)
-- [~] investigación multi-runtime (2026-07-26, PARCIAL) → [`investigacion-runtimes.md`](investigacion-runtimes.md):
-      6 runtimes verificados (Claude Code · Gemini · Qwen · Codex · Amp · Cursor). Destapó que el
-      canal universal es el **stream-json por turno**, no OTel (5/6 vs 3/6), y 3 restricciones
-      duras del esquema normalizado (aritmética de tokens no uniforme entre proveedores · una regla
-      de acumulación distinta por runtime · nadie adopta `gen_ai.*` puro). Faltan OpenCode/Cline/
-      Goose/Aider/Crush + estado 2026 de semconv GenAI + licencias de plataformas OSS
-- [x] investigación plataformas OSS + licencias (2026-07-26) →
-      [`investigacion-plataformas.md`](investigacion-plataformas.md): **contiene una CORRECCIÓN a
-      `telemetria-de-nacimiento.md` v2.0** (la redacción «third-party» de `skill.name`/`plugin.name`
-      NO se evita con `OTEL_LOG_TOOL_DETAILS` — amenaza la atribución por-componente). Veredicto: no
-      existe backend lite adoptable; lo vendorizable es dato+esquema (catálogo LiteLLM MIT ·
-      `ModelUsage` de Helicone Apache-2.0 · semconv Go de OpenInference) — Phoenix ELv2 descartado,
-      Lunary borrado del mapa
-- [x] investigación stack embebible (2026-07-26, **con mediciones propias**) →
-      [`investigacion-stack-embebible.md`](investigacion-stack-embebible.md): stack recomendado =
-      handler propio + `collector/pdata` (**+1,7 MB**, API v1.x estable) + `modernc.org/sqlite` ya
-      presente + rollup horario (**190× más rápido**). Ratifica el `sin-cgo` ya enforced. Destapa
-      2 riesgos operativos altos: `tauri#11992` (notarización macOS falla **con `externalBin`**, que
-      ya usamos) y Azure Artifact Signing geo-restringido (probablemente no aplica a LATAM)
-- [ ] mockup de la capa Tokens (granularidad, unidades, nodos sin dato)
-- [ ] spec.md
+- [x] investigación real (2026-07-24): backend/FE actuales, prior art legacy (KIT-03/`emit.py`),
+      Langfuse corriendo en la máquina, verificación oficial de OTel nativo
+- [x] arquitectura resuelta y documentada (boundary + `decisiones.md` D1-D5)
+- [x] investigación multi-runtime → [`investigacion-runtimes.md`](investigacion-runtimes.md):
+      **13 runtimes** en dos tandas (Claude Code · Gemini · Qwen · Codex · Amp · Cursor · Copilot
+      CLI · OpenCode · Cline · Goose · Aider · Crush · Factory Droid) + estado 2026 de la semconv
+      GenAI (**todo en `Development`**). El canal universal es el **stream-json por turno**, no OTel.
+      *Genuinamente sin verificar:* Factory Droid y la lista de §«NO verificado» del propio informe
+- [x] investigación plataformas OSS + licencias → [`investigacion-plataformas.md`](investigacion-plataformas.md)
+- [x] investigación stack embebible → [`investigacion-stack-embebible.md`](investigacion-stack-embebible.md)
+      — ⚠️ su recomendación de `pdata` quedó **refutada por medición propia** (V5)
+- [x] arquitectura consolidada → [`arquitectura-telemetria.md`](arquitectura-telemetria.md)
+- [x] **verificación EN VIVO contra `claude 2.1.220`** (2026-07-26) →
+      [`verificacion-2026-07-26/`](verificacion-2026-07-26/INFORME.md): 7 hallazgos, evidencia cruda
+      versionada (PII redactada), USD 0,044 de costo
+- [x] refinamiento pre-mockup: detectores del MVP · evento canónico · renombre (D16)
+- [ ] **🧑‍⚖️ firma del bloque D9 + D11 + D13 + D14 + D15 + D16** ← *acá estamos*
+- [ ] mockup de la capa Mejora
+- [ ] `spec.md` + `design.md` → 🧑‍⚖️ firma del par
 - [ ] implementación
 - [ ] PARIDAD
 
-- [x] **arquitectura consolidada** (2026-07-26) →
-      [`arquitectura-telemetria.md`](arquitectura-telemetria.md): las ~50 recomendaciones agrupadas
-      A-H + los 13 detectores · la arquitectura en 8 capas (L0 contrato → L7 superficie) · **el
-      mecanismo de obligación** (se logra en el SELLO vía `arnesia conformance`, no en runtime) ·
-      alcance S1+S2 y MVP=join cerrados por D12
+## Decisiones abiertas
+
+| # | qué | ¿bloquea el MVP? |
+|---|---|---|
+| **D9.9** | ¿parser propio o shell-out a `ccusage`? | no — posterior al MVP |
+| **D15** | privacidad/retención: TTL, borrado, filtrado en el forward | **sí** — antes de persistir nada |
+| **G4** | cert de firma de código (USD 150-300/año + HSM) | no para Linux; **sí** para Windows/macOS |
+| — | ~~**D8**~~ | **cerrada por inexistencia del dilema** (V2) |
 
 ## Retomar aquí
 
-**Investigación SOTA CERRADA (2026-07-26, 3 carriles)** → D9 (arquitectura consolidada), D10
-(corrección del boundary a v2.1), D11 (empaquetado A-o-B-nunca-C) en `decisiones.md`.
-**D9 está SIN FIRMAR** — es recomendación de la investigación, no decisión. Primer paso al retomar:
-🧑‍⚖️ sobre D9, y resolver las dos abiertas (**D8** ¿leer 4 campos del JSONL? · **D9.9** ¿parser propio
-o shell-out a `ccusage`?).
+**Investigación CERRADA y VERIFICADA EN VIVO.** El refinamiento pre-mockup está hecho: la lista
+corta de detectores (D16.1), los campos del evento canónico (D16.2) y el renombre (D16.3).
 
-Después, el mockup. Arrancar releyendo `mockups/INDEX.md` (línea base del Mapa) como manda la
-disciplina. **Dos preguntas de diseño que la investigación agregó y bloquean el mockup:**
-1. **Granularidad de atribución** — `skill.name` se redacta a `"third-party"` para nuestros arneses
-   (D10); `OTEL_RESOURCE_ATTRIBUTES` mitiga pero solo **por proceso**. ¿El número vive por nodo del
-   Mapa (⇒ hace falta un proceso por unidad) o por caja/arnés?
-2. **Llave canónica** — no puede ser `skill.name` (concepto exclusivo de Claude Code, D7.2). Debe
-   ser del terreno propio (arnés × caja/paso × sesión) o el mockup no sobrevive al segundo runtime.
+**Próximo paso: 🧑‍⚖️ sobre D9/D11/D13/D14/D15/D16, y después el mockup.** D14 requiere firma
+explícita porque **corrige a D4, que ya estaba firmada**.
 
-Fuera de alcance de este paquete (siguen genuinamente bloqueadas, no recortables): capas
-**Desempeño** (necesita latencia/reintentos que solo OTel ve vía `hook_*`/`api_retry`, más
-diseño de qué es "desempeño" a nivel Mapa) y **Proceso** (mapear eventos a fases del arnés,
-diseño no trivial) — quedan en BACKLOG como `bloqueo` genuino.
+Arrancar el mockup releyendo [`mockups/INDEX.md`](../../../../mockups/INDEX.md) como manda la
+disciplina — la línea base es el Storybook, no un `.html` suelto. **Las dos preguntas de diseño que
+bloqueaban el mockup ya tienen respuesta empírica:**
+
+1. **Granularidad** — resuelta: `arnés × caja × sesión × turno` (V3/D14.3). Por-skill no se puede y
+   no hace falta; cada número carga su `atribucion_confianza` (D16.2).
+2. **Llave canónica** — resuelta: la del terreno propio, inyectada por `OTEL_RESOURCE_ATTRIBUTES`,
+   que **viaja copiada en cada punto** (V4). No depende del vocabulario de ningún runtime.
+
+## Fuera de alcance de este paquete
+
+- **Capa Desempeño** (latencia/reintentos a nivel Mapa) — sigue afuera **pero ya no por falta de
+  señal**: `api_request.duration_ms` y `hook_execution_complete.total_duration_ms` llegan hoy
+  (V1). Lo que falta es el **diseño** de qué es «desempeño» a nivel Mapa. Reclasificar en el
+  BACKLOG: era `bloqueo`, es `deuda de diseño`.
+- **Capa Proceso completa** — **entra PARCIALMENTE por D12.2**: el join necesita la señal de
+  proceso (detector P1: caja que consume y se rechaza en el gate). Lo que queda afuera es el mapeo
+  completo de eventos a fases del arnés.
+- **S3** (arnés en máquina de un cliente sin ArnesIA) — descartado por D12.1: choca con
+  `superficie-local-confinada.md` y abre consentimiento/GDPR. Paquete propio si se reabre.

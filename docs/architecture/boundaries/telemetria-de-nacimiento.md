@@ -1,6 +1,6 @@
 ---
 regla: telemetria-de-nacimiento
-version: 2.1
+version: 2.2
 updated: 2026-07-26
 status: proposed
 ledger: HS-27
@@ -14,6 +14,9 @@ sources:
   - url: https://code.claude.com/docs/en/agent-sdk/observability.md
     autoridad: oficial
     revisado: 2026-07-24
+  - url: docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/INFORME.md
+    autoridad: medicion-propia
+    revisado: 2026-07-26
 enforced_by: []
 severity: error
 ---
@@ -113,18 +116,56 @@ real. La UI no puede presentarlo como plata gastada sin decirlo.
 costo en dinero**. Tampoco hay vocabulario para «skill»/«plugin»/«sub-agente». Todo eso es namespace
 propio, legítimamente.
 
+## ⚡ v2.2 — Verificación EN VIVO: cinco correcciones medidas (2026-07-26)
+
+v2.0 y v2.1 se apoyaban en documentación. Se corrió el receptor de verdad contra `claude 2.1.220`
+(3 corridas, USD 0,044) y **cinco afirmaciones del diseño no sobrevivieron**. Informe + evidencia
+cruda: `docs/product/stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/`.
+
+1. **El canal primario es `/v1/logs`, no `/v1/metrics`.** El log event `claude_code.api_request`
+   trae **por request** los 4 buckets de tokens, `cost_usd_micros`, `duration_ms`, `model`,
+   `speed`, `query_source`, `prompt.id` y `session.id`. La métrica `token.usage` llega troceada en
+   4 puntos. **Se reciben los dos endpoints; el que manda es el de logs.**
+2. **El split `ephemeral_5m`/`ephemeral_1h` NO obliga a tocar el transcript.** Viene en el `result`
+   del **stream-json**, canal ya sancionado por `conductor-no-parsea-jsonl.md` y ya consumido por
+   el árbol. Se cierra la discusión de enmendar el boundary hermano.
+3. **`collector/pdata` cuesta +10,79 MB medidos** sobre nuestra base real (`net/http` +
+   `modernc.org/sqlite`), no +1,7 MB. Un decodificador OTLP/JSON con la stdlib cuesta **+0,49 MB**
+   y se probó contra los payloads reales. **Como controlamos el spawn, se fuerza
+   `OTEL_EXPORTER_OTLP_PROTOCOL=http/json`** (y no `http/protobuf`, como decía la recomendación
+   anterior). `pdata` queda como plan B para un runtime que no deje elegir protocolo.
+   ⚠️ Claude Code emite `intValue` como **número JSON** (off-spec): el decodificador usa
+   `json.Number`. Las métricas llegan **Delta monotónicas** ⇒ no hay que diferenciar contadores.
+4. **La redacción `third-party` es real** (reproducida con dato propio), **pero `plugin_id_hash` es
+   estable entre sesiones y distinto por plugin** ⇒ la atribución **por arnés** se recupera con una
+   tabla local `hash → arnés`. La atribución **por skill** no se recupera: `skill_activated` no
+   trae hash. **La granularidad honesta es `arnés × caja × sesión × turno`.**
+5. 🔴 **La telemetría arrastra PII en CADA punto**: `user.email`, `user.account_uuid`,
+   `user.account_id`, `organization.id`, `user.id`. Ninguna versión anterior lo contemplaba. La
+   ingesta persiste por **allowlist**, y el forward opcional al OTLP del operador **filtra en el
+   borde** — reenviarlo crudo exportaría el email de quien corra el arnés.
+   *(Dato a favor del canal: prompts y respuestas llegan `<REDACTED>` por default. La telemetría es
+   menos invasiva que el transcript.)*
+
 ## Checklist evaluable
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
 | scaffold-emite-env-otel | `scaffold` inyecta `CLAUDE_CODE_ENABLE_TELEMETRY`+`OTEL_EXPORTER_OTLP_ENDPOINT` (loopback) en todo arnés creado — NO un hook custom | error | «arnés nuevo nace sin telemetría» | (pendiente — no existe `scaffold`, ver BACKLOG) |
-| collector-otlp-embebido-local | el daemon embebe un receptor OTLP mínimo (HTTP, `/v1/metrics`) que recibe SOLO tráfico loopback — ningún proceso/contenedor externo | error | «telemetría emitida pero nadie la recibe» | (pendiente — no existe receptor) |
+| collector-otlp-embebido-local | el daemon embebe un receptor OTLP mínimo (HTTP, **`/v1/logs` + `/v1/metrics`**) que recibe SOLO tráfico loopback — ningún proceso/contenedor externo | error | «telemetría emitida pero nadie la recibe» | (pendiente — no existe receptor) |
 | jsonl-nunca-fuente-de-tokens | el índice de tokens/costo/atribución NUNCA lee del JSONL (coherencia con `conductor-no-parsea-jsonl.md`) | error | «tokens leídos parseando el JSONL» | (pendiente) |
 | langfuse-jamas-dependencia-dura | ningún flujo de instalación/scaffold requiere Langfuse ni infraestructura Docker externa | error | «instalador o scaffold dependen de Langfuse» | (pendiente) |
 | telemetria-por-adaptador | la regla de acumulación y la aritmética de tokens (`disjoint`/`inclusive`) son propiedad del ADAPTADOR de runtime, nunca del agregador central | error | «tokens sumados con la regla de otro runtime» | (pendiente — v2.1) |
+| telemetria-sin-pii | la ingesta persiste por **allowlist**; `user.email`/`user.account_*`/`organization.id` nunca llegan al almacén ni al forward opcional | error | «la telemetría guardó o exportó datos de cuenta» | (pendiente — v2.2) |
 | cero-post-install | ninguna pieza de telemetría se descarga en post-install: todo compilado en el binario (A) o shipeado como sidecar (B) | error | «el instalador baja algo de internet» | (pendiente — v2.1) |
 
 ## Changelog
+
+- 2026-07-26 · v2.2 · **Verificación en vivo** (paquete `stories/2026-07-24-telemetria-embebida-otel/`,
+  decisiones D14-D16). 5 correcciones medidas contra `claude 2.1.220`: canal primario `/v1/logs`;
+  el split 5m/1h no exige tocar el transcript; `pdata` cuesta 6× lo estimado ⇒ OTLP/JSON + stdlib y
+  `http/json` en el spawn; `plugin_id_hash` rescata la atribución por arnés; **PII en cada punto**.
+  1 check nuevo (7 en total). Sigue `proposed`: cero código.
 
 - 2026-07-26 · v2.1 · **Corrección + multi-runtime** (investigación SOTA, 3 carriles — paquete
   `stories/2026-07-24-telemetria-embebida-otel/`, decisiones D9-D11). (1) **Corregida una afirmación

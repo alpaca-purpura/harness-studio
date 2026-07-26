@@ -15,10 +15,20 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 - **Botón «Correr» de una caja — mockup publicado, PAUSADO por el operador (2026-07-24, HS-27).**
   Tras la explicación funcional del botón, el operador prefirió seguir con el resto del barrido
   antes de firmar. Retomar en [`stories/2026-07-23-boton-correr-caja/INDEX.md`](stories/2026-07-23-boton-correr-caja/INDEX.md).
-- **Telemetría embebida vía OTel nativo — arquitectura RESUELTA, sin construir (HS-27).** Capa
-  Tokens del Mapa: receptor OTLP embebido loopback-only + scaffold env vars, Langfuse 100%
-  opcional. Falta mockup (ninguno existe hoy) → spec → build. Ver
-  [`stories/2026-07-24-telemetria-embebida-otel/INDEX.md`](stories/2026-07-24-telemetria-embebida-otel/INDEX.md).
+- **Capa «Mejora» del Mapa (ex «capa Tokens») — investigación CERRADA y VERIFICADA EN VIVO, sin
+  construir (HS-27/HS-28, 2026-07-26).** Tres carriles de investigación SOTA (13 runtimes ·
+  plataformas OSS + licencias · stack embebible) + **verificación empírica contra `claude 2.1.220`**
+  (receptor OTLP casero, 3 corridas, USD 0,044) que **corrigió 5 afirmaciones del diseño**: el canal
+  primario es `/v1/logs` (`api_request`), no `/v1/metrics` · el split de cache 5m/1h viene en el
+  `result` del stream-json ⇒ **D8 se cerró sin enmendar ningún boundary** · `pdata` cuesta
+  **+10,79 MB** medidos (no +1,7) ⇒ OTLP/JSON + stdlib, **+0,49 MB** · `plugin_id_hash` rescata la
+  atribución por arnés pese a la redacción `third-party` · 🔴 **la telemetría arrastra PII**
+  (email + ids de cuenta en cada punto). **El MVP es el JOIN dinero × proceso** (D12.2), alcance
+  S1 + S2, cero egreso. Refinamiento pre-mockup hecho: 6 detectores del MVP, evento canónico con
+  `atribucion_confianza`, renombre de la capa. **Falta la firma 🧑‍⚖️ de D9/D11/D13/D14/D15/D16 y
+  después el mockup.** Boundary v2.2 →
+  [`stories/2026-07-24-telemetria-embebida-otel/INDEX.md`](stories/2026-07-24-telemetria-embebida-otel/INDEX.md)
+  · [`verificacion-2026-07-26/INFORME.md`](stories/2026-07-24-telemetria-embebida-otel/verificacion-2026-07-26/INFORME.md).
 - **Chat dock · legibilidad y ergonomía (2026-07-22) — CERRADO Y FIRMADO 🧑‍⚖️ (HS-26).**
   Las 6 quejas + cariño markdown, verificadas E2E vivo (claude real contra vitalia); CAP-99 +
   CAP-100. Paquete [`stories/2026-07-22-chat-dock-ux/`](stories/2026-07-22-chat-dock-ux/INDEX.md).

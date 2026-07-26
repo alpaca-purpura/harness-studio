@@ -3,7 +3,9 @@
 > Disciplina METODOLOGIA §10: cada decisión conversada se escribe acá EN EL MISMO TURNO.
 > Origen: barrido de deuda viva 2026-07-23/24 (HS-27), ítem "telemetría JSONL → indexer real".
 
-## D1 — Restricción rectora del operador (2026-07-24)
+## D1 — Restricción rectora del operador (2026-07-24) · ✅ FIRMADA
+
+> `estado: FIRMADA` — orden directa del operador, citada textual abajo.
 
 > «arnesia es un producto instalable, si usamos langfuse vamos a tener que portarlo o llamarlo
 > como dependencia al momento de instalarlo. No vamos a entregar un manual con el paso a paso
@@ -15,7 +17,7 @@ Ninguna pieza de la arquitectura de telemetría puede exigir infraestructura ext
 nunca llama esas dependencias. Esta restricción YA era ley en `vision.md` ("Langfuse = espejo
 opcional, jamás dependencia dura") — D1 la hace explícita como criterio de diseño, no solo prosa.
 
-## D2 — Hallazgo que forzó revisar el ángulo Langfuse
+## D2 — Hallazgo que forzó revisar el ángulo Langfuse · 📄 HALLAZGO (no requiere firma)
 
 Existe un emisor de telemetría YA CONSTRUIDO en el repo predecesor congelado
 (`~/Proyectos/prenter-harness/products/kit/core-harness/telemetry/emit.py`, KIT-03, 508
@@ -35,7 +37,10 @@ langfuse/`) con datos de un batch de pruebas viejo. El operador confirmó: se de
 Es prior art valioso como REFERENCIA (concepto de atribución por-skill, tabla de costos por
 modelo, ética fail-open, walk de privacidad) — no como código a portar.
 
-## D3 — Verificación oficial que resuelve el canal correcto (2026-07-24)
+## D3 — Verificación oficial que resuelve el canal correcto (2026-07-24) · 📄 HALLAZGO
+
+> ⚠️ **Parcialmente superado por la verificación en vivo del 26/07** (V1, V3): la atribución
+> `skill.name` que este bloque llamaba «LIMPIA» **no lo es** — ver D10 y D14.1.
 
 Consultada la doc oficial de Claude Code (`code.claude.com/docs/en/monitoring-usage.md` +
 `.../agent-sdk/observability.md`):
@@ -80,7 +85,10 @@ parsear JSONL (formato inestable, turnos ambiguos, sin costo en USD listo). No s
 silencio: se documenta acá que la arquitectura mejor disponible reemplaza la primera respuesta,
 descubierta un paso después en la misma investigación.
 
-## D6 — Cero instalación manual, cross-platform Windows/macOS/Linux (2026-07-25)
+## D6 — Cero instalación manual, cross-platform Windows/macOS/Linux (2026-07-25) · ✅ FIRMADA
+
+> `estado: FIRMADA` — orden directa del operador (cita textual abajo). Los 8 puntos que lista son
+> **problemas identificados, no soluciones firmadas**: cada uno necesita su decisión en el `spec.md`.
 
 > «definitivamente no podemos pedirle al usuario que instale algo manualmente, sea lo que sea lo
 > debemos instalar nosotros al momento de instalar arnesia y debemos pensar que debe funcionar en
@@ -115,7 +123,9 @@ un `install`**:
 8. **Auto-update por SO**: `updater.go` es Linux-céntrico — Windows no puede reemplazar un `.exe`
    en ejecución (rename + restart) y macOS debe preservar la firma.
 
-## D7 — Multi-runtime: la telemetría es un PUERTO, no un receptor OTLP (2026-07-25)
+## D7 — Multi-runtime: la telemetría es un PUERTO, no un receptor OTLP (2026-07-25) · ✅ FIRMADA
+
+> `estado: FIRMADA` — orden directa del operador + ya era ley del árbol (`AgentPort`).
 
 > «no solo trabajaremos con claude code, en el futuro implementaremos arneses para codex, open
 > code, y así»
@@ -147,7 +157,18 @@ Consecuencias a resolver en `spec.md`:
 7. **Proxy descartado como estrategia general**: además del riesgo de ToS al interceptar tráfico
    autenticado de terceros, instalar un CA cert local rompe D6.
 
-## D8 — DECISIÓN ABIERTA: el split de TTL 5m/1h no existe en OTel (2026-07-25)
+## D8 — ~~DECISIÓN ABIERTA~~ · **DISUELTA 2026-07-26** (el dilema no existía)
+
+> **No se firma: se cierra.** La verificación en vivo encontró una tercera vía que no estaba en la
+> mesa — el split `ephemeral_5m`/`ephemeral_1h` **viene en el `result` del stream-json**, canal ya
+> sancionado y ya consumido por el árbol. Ni (a) enmendar el boundary ni (b) resignar B1/B12.
+> Evidencia: [`verificacion-2026-07-26/INFORME.md`](verificacion-2026-07-26/INFORME.md) §V2.
+> **Queda vivo un solo residuo:** `arch_test.go:TestNoJSONLSchemaParsing` sigue `t.Skip`eado
+> (línea 267) — hay que enforcearlo o borrarlo, porque hoy simula una protección que no corre.
+
+<details><summary>Planteo original (2026-07-25) — se conserva por trazabilidad</summary>
+
+### el split de TTL 5m/1h no existe en OTel (2026-07-25)
 
 Investigación externa (subagente, 2026-07-25) verificó contra doc oficial: los campos
 `cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` **NO están en la
@@ -163,6 +184,8 @@ expirado con break-even ≈ 39.47 %, y watchdog de regresión de TTL). Los camin
 Dato que pesa: el check que lo prohíbe (`fitness/arch_test.go:TestNoJSONLSchemaParsing`) está
 **`t.Skip`eado** y `internal/adapters/history/reader.go` ya parsea schema JSONL — la excepción de
 facto ya existe. **Decidir explícitamente, no por omisión.** Sin firma, esta queda ABIERTA.
+
+</details>
 
 ## D9 — Arquitectura consolidada tras la investigación SOTA (2026-07-26) · ⏳ SIN FIRMAR
 
@@ -291,7 +314,11 @@ La investigación recomienda **no** construir parser de disco propio y hacer she
 
 **Sin firma. Decidir explícitamente en el `spec.md`.**
 
-## D10 — Corrección a `telemetria-de-nacimiento.md` v2.0 (2026-07-26)
+## D10 — Corrección a `telemetria-de-nacimiento.md` v2.0 (2026-07-26) · ✅ CONFIRMADA EN VIVO
+
+> `estado: CONFIRMADA` — ya no es lectura de doc: se reprodujo con dato real (`plugin.name =
+> third-party` en un `api_request`). Ver [`verificacion-2026-07-26/INFORME.md`](verificacion-2026-07-26/INFORME.md) §V3,
+> que además aporta la mitigación `plugin_id_hash` que este bloque no conocía.
 
 El boundary v2.0 afirma que `OTEL_LOG_TOOL_DETAILS=1` *«evita la redacción de terceros»*.
 **Es falso para la atribución de tokens/costo.** Doc oficial, textual:
@@ -311,7 +338,7 @@ real. La UI no puede presentarlo como plata gastada sin decirlo.
 
 ⇒ **Boundary a corregir a v2.1** cuando se firme este bloque.
 
-## D11 — Restricción de empaquetado: A o B, nunca C (2026-07-26)
+## D11 — Restricción de empaquetado: A o B, nunca C (2026-07-26) · ⏳ PROPUESTA
 
 Sobre *«o que al instalar obligue a extraer las dependencias previo a la instalación»*: tres niveles
 posibles — **(A)** compilado dentro del binario Go · **(B)** sidecar shipeado en el instalador ·
@@ -412,7 +439,10 @@ TTL) y **B12** (watchdog de TTL). **Los otros 11 detectores + todo el eje de pro
 puede firmar después, sin frenar el paquete. (D9.9 —parser propio vs shell-out a `ccusage`— sigue
 igual de abierta, pero también es posterior al MVP.)
 
-## D13 — Aclaración: el egreso del daemon y el del arnés son niveles distintos (2026-07-26)
+## D13 — Aclaración: el egreso del daemon y el del arnés son niveles distintos (2026-07-26) · ⏳ PROPUESTA
+
+> `estado: PROPUESTA` — y **sube de severidad** tras V6: el forward opcional del daemon
+> exportaría **email e ids de cuenta** del usuario. Ver D15.
 
 Consulta del operador: *«¿estás considerando que ArnesIA consuma Langfuse? ¿cómo has pensado para
 los casos de los usuarios que no tienen instalado Langfuse?»*
@@ -437,6 +467,123 @@ Dos invariantes que se derivan y deben quedar en el `spec.md`:
 2. **Un arnés no puede alcanzar ni configurar el forward del daemon** — no es capacidad expuesta al
    paquete. (Coherente con el guardrail ya vigente de que el alcance del chat embebido excluye el
    paquete propio.)
+
+## D14 — Verificación EN VIVO: 7 hallazgos que corrigen el diseño (2026-07-26) · ⏳ PROPUESTA
+
+> Informe completo + evidencia cruda:
+> [`verificacion-2026-07-26/INFORME.md`](verificacion-2026-07-26/INFORME.md).
+> Método: receptor OTLP casero + 3 corridas de `claude 2.1.220`. Costo: USD 0,044.
+> **Requiere firma porque CORRIGE a D4, que ya estaba firmada.**
+
+### D14.1 — El canal primario es `/v1/logs` (`api_request`), no `/v1/metrics`
+
+`claude_code.api_request` trae **por request**: los 4 buckets de tokens, `cost_usd_micros`,
+`duration_ms`, `model`, `speed`, `query_source`, `prompt.id`, `session.id` y nuestros `arnesia.*`.
+La métrica `token.usage` llega troceada en 4 puntos que hay que recomponer. **Corrige D4.1**, que
+mandaba decodificar `POST /v1/metrics`: se reciben los dos, pero el que manda es el de logs.
+
+### D14.2 — El stack medido: OTLP/JSON + `encoding/json`, no `pdata`
+
+**F1 no reproduce.** Medido sobre nuestra base real (`net/http` + `modernc.org/sqlite`):
+
+| opción | delta de binario |
+|---|---:|
+| decodificador OTLP/JSON con la stdlib (~120 líneas, probado contra los payloads reales) | **+0,49 MB** |
+| `collector/pdata` (`pmetricotlp` + `plogotlp`) | **+10,79 MB** (F1 decía +1,7 MB) |
+
+El daemon hoy pesa 22,71 MB ⇒ `pdata` lo llevaría a ~33,5 MB (**+48 %**) en un producto cuyo
+argumento es «se instala y ya». Podemos elegir el formato **porque controlamos el spawn** (S1) y el
+hook es nuestro (S2). **Invierte F4**: se fuerza `OTEL_EXPORTER_OTLP_PROTOCOL=http/json`.
+`pdata` queda como plan B si algún runtime no deja elegir protocolo. `protojson` no era alternativa:
+`pdata` no expone los `proto.Message`, usarlo obliga a vendorizar los `.proto`.
+
+**Dos gotchas verificados que van al `spec.md`:** (1) Claude Code emite `intValue` como **número
+JSON**, off-spec — el decodificador usa `json.Number` o revienta; (2) las métricas llegan
+**`Delta` monotónicas** ⇒ el receptor **no** diferencia contadores acumulados.
+
+### D14.3 — La granularidad honesta es `arnés × caja × sesión × turno`
+
+`plugin_id_hash` es **estable entre sesiones y distinto por plugin** ⇒ la atribución por **arnés**
+se recupera con una tabla local `hash → arnés` (la podemos construir: nosotros instalamos). Vale
+sobre todo en **S2**, donde no inyectamos env vars. Lo que **no** se recupera es el nombre de la
+**skill** interna: `skill_activated` no trae hash. **Se acepta la limitación y se diseña sobre el
+eje del terreno propio** — que es lo que D7.2 pedía igual.
+
+### D14.4 — D8 se cierra sin firma y sin enmienda
+
+Ver D8. Queda un residuo real: `arch_test.go:267` sigue `t.Skip`eado.
+
+## D15 — 🔴 Privacidad: la telemetría arrastra PII (2026-07-26) · ⏳ PROPUESTA — **decisión de producto**
+
+Hallazgo nuevo, ninguna decisión previa lo contemplaba. **Cada** data point y **cada** log record
+llega con `user.email`, `user.account_uuid`, `user.account_id`, `organization.id`, `user.id`.
+
+Propuesta:
+
+1. **Allowlist en la ingesta, no denylist.** Se persiste solo lo declarado en el esquema canónico.
+   Para el join no hace falta ninguno de esos campos: `session.id` + los `arnesia.*` alcanzan.
+2. **El forward opcional del daemon (C2) filtra en el borde.** Reenviar OTLP crudo a un Langfuse
+   externo exportaría el email y los ids de cuenta de quien corra el arnés. Sube la severidad de D13.
+3. **Retención explícita y borrable**: TTL por default + acción «borrar la telemetría de este
+   arnés» en la UI. Sin esto no es un vendible, es un riesgo.
+4. **Argumento a favor del canal OTLP y en contra de leer disco:** prompts y respuestas llegan
+   `<REDACTED>` por default. La telemetría es **menos** invasiva que el transcript.
+
+Aplicado a este mismo paquete: la evidencia commiteada está redactada con criterio de allowlist.
+
+## D16 — Refinamiento pre-mockup (2026-07-26) · ⏳ PROPUESTA
+
+Las tres piezas que faltaban para que el mockup tenga qué dibujar.
+
+### D16.1 — Lista corta de detectores del MVP (regla A4 aplicada)
+
+A4: una métrica entra solo si (1) sale de dato propio, (2) está cotizada en dinero, (3) viene con
+**UN** fix concreto. De los 13 + proceso, pasan **seis**:
+
+| id | qué muestra | fix que propone | señal | S1 | S2 |
+|---|---|---|---|:--:|:--:|
+| **B4** | gasto por **arnés × empresa × puesto** (el espinazo del join) | dónde mirar | `api_request` + `arnesia.*` | ✅ | ✅ |
+| **P1** | **caja que consume y se rechaza en el gate** | arreglar esa caja | eventos del daemon + hooks | ✅ | ✅ |
+| **B2** | costo de la **rotación de contexto** | subir/bajar `umbralRot` | evento propio + `cache_creation` del turno siguiente | ✅ | ⚠️ |
+| **B6** | **sesión abandonada** (escribe cache, nunca lo lee) | no spawnear / reusar sesión | secuencia de `api_request` | ✅ | ✅ |
+| **B3** | **cambio de modelo** que invalida el cache | fijar el modelo de la caja | `model` por request | ✅ | ✅ |
+| **B1** | **re-warm por TTL** vencido (break-even 39,47 %) | pasar el TTL a 1h | split 5m/1h del `result` | ✅ | ❌ |
+
+Los otros 7 + el resto de fuga de proceso quedan **declarados como no medidos todavía**, visibles
+en la UI como tales (patrón `sin-check`, jamás cero fabricado). **B1 no aplica en S2** y así debe
+mostrarse: el hook no ve el stream-json.
+
+### D16.2 — El evento canónico, con un campo que no estaba en ninguna propuesta
+
+`domain.EventoTelemetria` — grupos de campos:
+
+| grupo | campos |
+|---|---|
+| **llave del join** | `arnes_id` · `instalacion_id` · `caja_id`/`paso_id` · `sesion_id` · `turno_id` (`prompt.id`) · `corrida_id` |
+| **procedencia** | `runtime` · `runtime_version` · `origen` (`otlp`\|`streamjson`\|`hook`\|`daemon`) · `adaptador_version` |
+| **tiempo** | `ts` · `duracion_ms` |
+| **modelo** | `modelo` · `modelo_canonico` · `proveedor` · `speed` · `service_tier` |
+| **tokens** | `entrada` · `salida` · `cache_lectura` · `cache_escritura_5m` · `cache_escritura_1h` · `razonamiento` — **punteros: `nil` = «no aplica» ≠ 0** (D-4) |
+| **aritmética** | `regla_uso` (`disjoint`\|`inclusive`) · `regla_acumulacion` — propiedad del adaptador (D-6, D-7) |
+| **dinero** | `costo_reportado_micros` (lo que dijo el runtime) · `costo_calculado_micros` (lo que dice **nuestro** catálogo) · `catalogo_version` |
+| **proceso** | `tipo_evento` · `resultado` (`ok`\|`rechazado`\|`reintento`\|`cancelado`) · `gate` · `motivo` |
+| **atribución** | `plugin_id_hash` · **`atribucion_confianza`** |
+
+Dos elecciones que valen la pena señalar:
+
+1. **Guardar los DOS costos** (el del runtime y el nuestro) convierte el test de paridad A6 en algo
+   que corre **en producción y gratis**: si divergen, o nuestro catálogo está viejo o el runtime
+   cambió su tarifa. Es el oracle independiente sin construir un segundo sistema.
+2. **`atribucion_confianza`** (`exacta` \| `por-proceso` \| `por-hash` \| `sin-dato`) — **nadie lo
+   propuso y es lo que hace honesta la pantalla.** Cada número carga cómo se atribuyó, así la UI
+   nunca muestra con seguridad algo que se dedujo. Es la doctrina `sin-check`/`no-reconocido`
+   aplicada al dinero.
+
+### D16.3 — Renombre: «capa Tokens» → **capa «Mejora»**
+
+D12.3 lo pidió y nadie lo hizo. El entregable junta dinero + proceso y propone un fix; «Tokens»
+describe el insumo, no el producto. **«Mejora»** ya es vocabulario firmado (`vision.md`, mejora
+continua) y no pisa el vocabulario L0 (`procedencia`/`origen`/`canal`/`insumos`/`banda`).
 
 ## Estado del paquete
 
