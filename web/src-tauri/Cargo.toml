@@ -7,7 +7,7 @@
 
 [package]
 name = "arnesia"
-version = "0.2.17"
+version = "0.2.21"
 description = "ArnesIA — la fábrica de arneses (shell de escritorio)"
 authors = ["alpacapurpura <hola@alpacapurpura.lat>"]
 edition = "2021"                    # verificar al instalar (MSRV la marca la Tauri 2 vigente)
@@ -39,6 +39,20 @@ tauri-plugin-deep-link = "2"                      # registro OS del scheme arnes
 serde = { version = "1", features = ["derive"] } # verificar al instalar
 serde_json = "1"                                 # verificar al instalar
 getrandom = "0.2"                                # HS-06: mint del token de API (raíz de confianza del shell)
+
+# RF-215 (paquete 2026-07-25-spike-voz-dictado, V-D6 FIRMADA): `wry` implementa
+# `permission-request` en macOS y Android, NO en el backend `webkitgtk`. Sin este puente,
+# `getUserMedia` en la SPA del daemon **no rechaza: queda pendiente para siempre** — el botón
+# de dictado andaría en `pnpm dev` (donde el navegador concede por su cuenta) y moriría mudo
+# en la app instalada. Enganchamos la señal del WebView nativo para conceder SOLO captura de
+# audio. Ya venía en el lock como dependencia transitiva de wry; acá se hace directa.
+# Linux-only a propósito: en macOS/Android lo resuelve wry y este código no se compila.
+#
+# feature `v2_8`: `is_for_audio_device`/`is_for_video_device` están gateadas ahí. Sin ellas la
+# única decisión posible sería «es una UserMediaPermissionRequest → allow», que concedería
+# también la CÁMARA. El sistema corre WebKitGTK 2.52.3, así que los símbolos existen de sobra.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2", features = ["v2_8"] }
 
 # Perfil release estándar de Tauri (binario chico). Opcional; ajustar al instalar.
 [profile.release]

@@ -92,7 +92,12 @@ pub fn run() {
                     "window.__ARNESIA_TOKEN__ = \"{token_for_setup}\";"
                 ));
             }
-            win.build()?;
+            let ventana = win.build()?;
+
+            // RF-215 (V-D6 FIRMADA): sin esto, el botón de dictado se cuelga MUDO en la app
+            // instalada. Va acá, pegado al build de la ventana, porque el WebView nativo recién
+            // existe después.
+            conceder_permiso_de_microfono(&ventana);
 
             // Sidecar: si el daemon NO responde en :4200, spawnear el externalBin
             // `binaries/arnesia-<target-triple>` con `serve` + el token por env.
@@ -175,6 +180,74 @@ pub fn run() {
         });
 }
 
+/// conceder_permiso_de_microfono engancha `permission-request` del WebView nativo y concede
+/// **solo** captura de audio (RF-215, capability `arnesia.tauri.permiso-de-microfono`).
+///
+/// **Por qué existe:** `wry` implementa `permission-request` en macOS y Android, **no en el
+/// backend `webkitgtk`**. El síntoma no es un rechazo — `getUserMedia` **queda pendiente para
+/// siempre** (probado en vivo contra `libwebkit2gtk-4.1 2.52.3`, ver
+/// `docs/product/stories/2026-07-25-spike-voz-dictado/spike-spec.md` §1.6 b/d). Sin este puente el
+/// dictado anda en `pnpm dev` —donde el navegador concede por su cuenta— y muere mudo instalado.
+///
+/// Si una versión futura de `wry` maneja la señal en `webkitgtk`, esto se borra: re-chequear con
+/// `webkit_captura_test.py` del paquete.
+#[cfg(target_os = "linux")]
+fn conceder_permiso_de_microfono(win: &tauri::WebviewWindow) {
+    use webkit2gtk::WebViewExt;
+
+    // El WebView nativo solo se toca desde el hilo de la UI; `with_webview` garantiza eso.
+    if let Err(e) = win.with_webview(|webview| {
+        webview
+            .inner()
+            .connect_permission_request(|_, req| decidir_permiso(req));
+    }) {
+        // Degradación honesta: sin el hook, el dictado quedará no-disponible. No abortamos el
+        // arranque del shell por eso — el resto de la app funciona igual.
+        eprintln!("[arnesia] no pude enganchar permission-request del WebView: {e}");
+    }
+}
+
+/// En macOS/Android lo resuelve `wry`; en el resto no hay superficie que enganchar.
+#[cfg(not(target_os = "linux"))]
+fn conceder_permiso_de_microfono(_win: &tauri::WebviewWindow) {}
+
+/// decidir_permiso traduce la request nativa a la decisión pura de [`concede_captura`].
+///
+/// Devuelve `true` = «yo me hice cargo de esta request»; `false` deja correr el manejo por
+/// defecto de WebKit (que es negar).
+#[cfg(target_os = "linux")]
+fn decidir_permiso(req: &webkit2gtk::PermissionRequest) -> bool {
+    use webkit2gtk::glib::prelude::Cast;
+    use webkit2gtk::{
+        PermissionRequestExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt,
+    };
+
+    let Some(media) = req.downcast_ref::<UserMediaPermissionRequest>() else {
+        // Geolocalización, notificaciones, etc.: ni las miramos.
+        return concede_captura(false, false, false);
+    };
+    if !concede_captura(
+        true,
+        media.is_for_audio_device(),
+        media.is_for_video_device(),
+    ) {
+        return false;
+    }
+    req.allow();
+    true
+}
+
+/// concede_captura es la regla, aislada de GTK para que sea verificable.
+///
+/// **El shell es la raíz de confianza de la superficie local** (boundary
+/// `superficie-local-confinada`): concede EXCLUSIVAMENTE captura de audio. Un allow-all
+/// convertiría esa raíz en una llave maestra — de ahí que la cámara se niegue incluso cuando
+/// viene en la misma request que el micrófono.
+#[cfg(target_os = "linux")]
+fn concede_captura(es_user_media: bool, para_audio: bool, para_video: bool) -> bool {
+    es_user_media && para_audio && !para_video
+}
+
 /// mint_token genera un token aleatorio de 256 bits en hex (raíz de confianza de la API local).
 fn mint_token() -> String {
     let mut b = [0u8; 32];
@@ -190,4 +263,39 @@ fn daemon_running() -> bool {
         .ok()
         .and_then(|addr| TcpStream::connect_timeout(&addr, Duration::from_millis(300)).ok())
         .is_some()
+}
+
+// RF-215 · capability arnesia.tauri.permiso-de-microfono. La regla de concesión se testea
+// aislada de GTK a propósito: enganchar la señal exige un WebView vivo con display, pero LA
+// DECISIÓN —qué se concede y qué no— es la superficie de enforcement, y un enforcement sin
+// test es una promesa, no un cerrojo (misma doctrina que los flags de permisos del conductor).
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::concede_captura;
+
+    #[test]
+    fn concede_solo_captura_de_audio() {
+        assert!(concede_captura(true, true, false));
+    }
+
+    #[test]
+    fn rechaza_permisos_que_no_son_de_medios() {
+        // Geolocalización, notificaciones, portapapeles…: no son UserMediaPermissionRequest.
+        assert!(!concede_captura(false, false, false));
+        // Ni siquiera si algo llegara con las flags de audio puestas.
+        assert!(!concede_captura(false, true, false));
+    }
+
+    #[test]
+    fn rechaza_la_camara_aunque_venga_junto_con_el_microfono() {
+        // El caso peligroso: una sola request que pide audio Y video. Conceder «porque pide
+        // audio» encendería la cámara del operador sin que nadie la haya pedido.
+        assert!(!concede_captura(true, true, true));
+        assert!(!concede_captura(true, false, true));
+    }
+
+    #[test]
+    fn rechaza_media_que_no_pide_audio() {
+        assert!(!concede_captura(true, false, false));
+    }
 }
