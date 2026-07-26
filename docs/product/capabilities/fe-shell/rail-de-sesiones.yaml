@@ -35,3 +35,13 @@ Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-1
 Register→loadArnesDir→Upsert→Session.Arnes bajo la misma llave sin colisión (ver
 `docs/product/capabilities/portafolio/observar-en-mapa.yaml`). El historial previo
 (`useConversaciones.cargar`) sigue la misma clave.
+
+**Contraste del error de historial (2026-07-26, T3 del paquete `conversaciones-del-panel`):** el
+error de lectura del bloque `ConversacionesDelArnes` y el aviso de tramos faltantes **dejan de
+usar `--warn` como color de texto**. Medido: `#c96a2e` sobre `#ffffff` a 10 px = **3,76:1**, bajo
+el mínimo 4,5 de axe — era la causa de que **4 de las 7 stories** de `new-session-picker` fallaran
+el gate a11y y, con ellas, el job `visual-fitness` de CI desde 2026-07-20. El motivo pasa a
+`--foreground` (18,74:1) y la alarma la da un **borde izquierdo de 3 px** en `--warn`, que al no
+ser texto sólo necesita 3:1 (3,76 ✓). Es la regla C-3 de `design.md` aplicada al consumidor que la
+rompía. ⚠ **La deuda del token sigue abierta** (`BACKLOG.md`): lo que se corrigió es el uso, no el
+valor del token.

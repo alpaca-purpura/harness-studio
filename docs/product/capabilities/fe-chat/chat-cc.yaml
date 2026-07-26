@@ -5,13 +5,14 @@ capability_id: arnesia.fe-chat.chat-cc
 cap_num: CAP-68
 slug: chat-cc
 name: "Chat CC (turno/interrupt)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo             # GENERADO (R4) — no teclear
 module: fe-chat
 verb: crear
 pointers:
   - "web/src/widgets/chat-dock/ui/chat-dock.tsx#ChatDock"
   - "web/src/shared/store/sessions-store.ts#sendTurn"
-valida: []
+valida:
+  - "chat-dock.stories.tsx"
 scenarios: []
 business_rules: []
 related_capabilities:
@@ -23,3 +24,19 @@ source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-68)"
 # Chat CC (turno/interrupt)
 
 Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+
+## Baseline de la superficie (T2, paquete 2026-07-26-conversaciones-del-panel)
+
+`chat-dock.stories.tsx` es el **baseline** del widget: A-01 `VigenteReposo` fija las cuatro
+filas de cromo que hoy se ven (header · `SessionLine` · `ScopeRow` · composer), A-02 la tarjeta
+de permiso y A-03 el turno en vuelo. Se escribió **antes** del primer cambio del paquete, que
+reescribe el widget entero: sin él, «el superset no rompió nada» sería una afirmación sin
+evidencia (H-1).
+
+**Hallazgo que destapó el baseline, declarado y no tapado:** `SessionLine` pinta el
+`◍ <cc-id>` con `text-primary` sobre `bg-secondary` — **2,21:1** medido por axe, contra el
+mínimo 4,5 de texto. Es una violación **preexistente** del dock que se envía hoy, invisible
+hasta ahora porque el widget no tenía story. Las 3 stories del baseline apagan **sólo** la
+regla `color-contrast` (el resto de axe sigue en `error`) y la deuda queda anotada en
+`BACKLOG.md`; se corrige al construir `IdentidadDetalle` (RF-328), adonde el cuerpo de
+`SessionLine` se muda.

@@ -270,7 +270,14 @@ function ConversacionesDelArnes() {
         Conversaciones: {vivas.length} abierta{vivas.length === 1 ? "" : "s"} · {cerradas.length}{" "}
         cerrada{cerradas.length === 1 ? "" : "s"}
       </span>
-      {error !== undefined && <span className="text-warn">historial de cerradas: {error}</span>}
+      {error !== undefined && (
+        // C-3 (design.md, paquete conversaciones-del-panel): `--warn` como color de TEXTO da
+        // 3,76:1 sobre `--card` y rompe el gate axe. El motivo va en `--foreground` (18,74:1) y
+        // la señal de alarma la da un borde izquierdo — no textual, 3,76 ≥ 3 ✓.
+        <span className="border-warn border-l-[3px] pl-1.5 text-foreground">
+          historial de cerradas: {error}
+        </span>
+      )}
       {cerradas.map((c) => (
         <div key={c.id} className="flex flex-col">
           <button
@@ -287,7 +294,8 @@ function ConversacionesDelArnes() {
           {historialDe === c.id && (
             <div className="ml-2 flex max-h-24 flex-col gap-0.5 overflow-y-auto border-l border-border pl-2">
               {faltantes.length > 0 && (
-                <span className="text-warn">
+                // C-3: mismo criterio — texto en `--foreground`, alarma por borde.
+                <span className="border-warn border-l-[3px] pl-1.5 text-foreground">
                   {faltantes.length} tramo(s) ya no están en disco — historial parcial
                 </span>
               )}
