@@ -13,19 +13,21 @@
 > [`arquitectura-telemetria.md`](arquitectura-telemetria.md); este documento **no los relitiga**.
 >
 > **Trazabilidad:** cada RF cita `mockup-capa-mejora.html:<línea>` — línea real, verificada contra
-> el archivo. Los RF sin superficie (§H) lo dicen y citan su decisión firmada.
+> el archivo. **Re-trazado contra la ITERACIÓN 2 del mockup (2026-07-26, 1 156 líneas):** las **51**
+> citas se recorrieron una por una y ninguna quedó apuntando al dibujo viejo. Los RF sin superficie
+> (§H) lo dicen y citan su decisión firmada.
 
 ## Estado de este documento — LEER ANTES DE CONSTRUIR
 
 | | |
 |---|---|
 | ✅ **Decisiones firmadas que este spec ejecuta** | D9 · D11 · D13 · D14 · D15 · D16 (gate del 2026-07-26) · **D17.1/D17.2/D17.3** (firmadas en el mismo hilo) |
-| ⚠️ **El mockup NO está firmado** | `mockup-capa-mejora.html` va por **iteración 1**. Este spec se escribe contra él porque el gate de decisiones lo autorizó, pero **los RF 🎨 no se construyen hasta que el mockup tenga su 🧑‍⚖️** |
-| 🔴 **Desviación de un baseline firmado** | **RF-232** renombra el slot `Tokens`→`Mejora` del conmutador de capas (`mockups/INDEX.md` regla 3 · D17.1). No se quita ningún slot: cambia **una etiqueta ya firmada en PARIDAD**. Va al gate declarada, no colada |
+| ⚠️ **El mockup NO está firmado** | `mockup-capa-mejora.html` va por **iteración 2** (2026-07-26, 1 156 líneas): cerró los **14 huecos** de §I, aplicó los **10 veredictos** de §J y reparó los **2 contrastes** que rompían el gate a11y. Este spec se re-trazó línea por línea contra ella, pero **los RF 🎨 no se construyen hasta que el mockup tenga su 🧑‍⚖️** |
+| 🔴 **Desviaciones de un baseline/decisión firmados (3)** | **(1)** **RF-232** renombra el slot `Tokens`→`Mejora` del conmutador de capas (`mockups/INDEX.md` regla 3 · D17.1): no se quita ningún slot, cambia **una etiqueta ya firmada en PARIDAD**. **(2)** el mockup usa los tokens PRENTER vigentes y no la paleta ámbar del baseline. **(3)** **RF-255** dice `[Proponerlo en el chat]` donde D17.3 firmó `[Aplicar]` (J-5). Las tres van al gate **declaradas en la cabecera del `.html`**, ninguna colada |
 | 📌 **Deuda visible, no bloqueante** | **D9.9** (parser propio vs. shell-out a `ccusage`) sigue abierta — posterior al MVP. **G4** (cert de firma de código) no bloquea Linux |
 | 🆕 **Anexo de hooks (2026-07-26, misma fecha)** | [`verificacion-2026-07-26/ANEXO-hooks.md`](verificacion-2026-07-26/ANEXO-hooks.md) llegó durante la escritura de este spec y cambió **dos** cosas: (1) el payload del hook trae **contenido en claro** ⇒ la allowlist ata a **los dos caminos de ingesta** (RF-282, BR-M14); (2) la atribución tiene **cuatro** niveles y `por-proceso` es real vía `cwd` ⇒ cuatro casos distinguibles en la UI (RF-242, RF-237). No cambia la forma del mockup; cambia lo que promete y cuántos estados dibuja |
-| 🕳 **14 huecos del mockup** | §I al final. Ninguno se inventa acá: se listan con la resolución propuesta para la iteración 2 |
-| ⚔️ **10 contradicciones mockup ↔ decisiones** | §J al final, con el veredicto de cuál gana |
+| 🕳 **14 huecos del mockup — CERRADOS** | §I al final: la auditoría de la iteración 1, con la resolución propuesta **y dónde quedó en la iteración 2** |
+| ⚔️ **10 contradicciones mockup ↔ decisiones — RESUELTAS** | §J al final: cada una con su veredicto **y cómo quedó el dibujo**. Dos las ganó el mockup (J-5 la etiqueta del botón, J-9 dónde van las marcas) y se declaran como desviación |
 
 **Orden obligatorio de construcción:** los RF sin superficie (§H, RF-282…RF-286) **antes** que
 cualquier píxel. Son la ingesta, la allowlist de PII y la retención: si la UI se construye primero,
@@ -95,7 +97,7 @@ se persiste PII antes de tener dónde borrarla.
 ## A · La barra y la franja de contexto (6 RF)
 
 ### RF-232 — El slot `Tokens` del conmutador pasa a llamarse «Mejora» y se enciende 🎨 🔴
-`mockup-capa-mejora.html:303` (propuesta) · `:272` (lo vigente, calcado) ·
+`mockup-capa-mejora.html:458` (propuesta) · `:425` (lo vigente, calcado) ·
 `widgets/map-canvas/model/layers.ts:13` (el código que cambia).
 
 **Desviación declarada de un baseline firmado.** Los cuatro slots se conservan; cambia una
@@ -118,7 +120,8 @@ Escenario: conmutar a la capa Mejora
 ```
 
 ### RF-233 — `Desempeño` y `Proceso` siguen apagados, con el motivo REAL 🎨
-`mockup-capa-mejora.html:304-305`. Hoy el tooltip dice «Necesita telemetría (indexer JSONL)»
+`mockup-capa-mejora.html:459-464` (los dos slots, y el motivo también en texto `sr-only`
+referenciado por `aria-describedby`). Hoy el tooltip dice «Necesita telemetría (indexer JSONL)»
 (`map-bar.tsx:123`). **Eso deja de ser verdad**: la señal llega (V1). Lo que falta es el diseño.
 
 ```gherkin
@@ -134,7 +137,7 @@ Escenario: el motivo del slot Proceso
 ```
 
 ### RF-234 — Ventana temporal explícita 🎨
-`mockup-capa-mejora.html:308-311`. Sin ventana, «cuánto gasta» no significa nada.
+`mockup-capa-mejora.html:468-470`. Sin ventana, «cuánto gasta» no significa nada.
 
 ```gherkin
 Escenario: la ventana nace en 7 días
@@ -150,19 +153,24 @@ Escenario: cambiar la ventana recalcula todo
 ```
 
 ### RF-235 — El total del arnés en la ventana, con su denominador 🎨
-`mockup-capa-mejora.html:312-315`.
+`mockup-capa-mejora.html:471-474` — el denominador de la iteración 2 dice **de 61 corridas, 58 con
+atribución**, y 58 = 14 + 31 + 4 + 9 (las cuatro cajas). Los números cierran (**H-8**).
 
 ```gherkin
 Escenario: el total y sobre qué se calculó
   Dado un arnés con 61 corridas en 12 sesiones sobre 4 cajas en la ventana
+  Y 58 de esas corridas con atribución
   Cuando se pinta la franja de contexto
   Entonces muestra "USD 4,82"
-  Y debajo muestra "61 corridas · 12 sesiones · 4 cajas"
+  Y debajo muestra "de 61 corridas, 58 con atribución · 12 sesiones · 4 cajas"
   Y el total es exactamente la suma de las cifras de las cajas visibles
+  Y el denominador de la franja y los segmentos de la barra de cobertura suman lo mismo
 ```
 
 ### RF-236 — El disclaimer «estimado, no facturación» va en la superficie 🎨
-`mockup-capa-mejora.html:316`. **No** en un `title`, **no** en un pie de página.
+`mockup-capa-mejora.html:475`. **No** en un `title`, **no** en un pie de página. Texto en
+`--foreground` sobre `--warn-soft` (13,14:1 en claro): el `--warn` sobre `--warn-soft` de la
+iteración 1 daba 3,24:1 y rompía el gate (`plan-storybook.md` §2.18, A11Y-1).
 
 ```gherkin
 Escenario: la cifra dice qué es
@@ -172,7 +180,8 @@ Escenario: la cifra dice qué es
 ```
 
 ### RF-237 — Barra de cobertura por calidad de atribución — CUATRO segmentos 🎨
-`mockup-capa-mejora.html:317-322` (el mockup dibuja **tres**; el cuarto es el hueco **H-13**).
+`mockup-capa-mejora.html:476-482` — iteración 2: **cuatro** segmentos (44/9/5/3), rótulo
+`cobertura` siempre visible (**H-11**) y la unidad declarada, «sobre 61 corridas» (**H-8** · **H-13**).
 Es lo que impide leer el total como si fuera completo.
 
 ```gherkin
@@ -180,8 +189,9 @@ Escenario: cobertura con las cuatro calidades
   Dado 12 corridas exactas, 3 por huella, 2 por proceso y 1 sin dato
   Cuando se pinta la franja de contexto
   Entonces la barra tiene cuatro segmentos proporcionales a 12, 3, 2 y 1
-  Y al lado se lee "12 exactas · 3 por huella · 2 por proceso · 1 sin dato"
+  Y al lado se lee "12 exactas · 3 por huella · 2 por proceso · 1 sin dato — sobre 18 corridas"
   Y el texto declara la UNIDAD que cuenta (corridas), no la deja implícita
+  Y la suma de los cuatro segmentos es exactamente el denominador que muestra el total
   Y los cuatro segmentos son distinguibles entre sí sin depender del color
 
 Escenario: una calidad que no aparece no ocupa lugar
@@ -200,7 +210,7 @@ Escenario: cobertura completa
 ## B · El canvas (8 RF)
 
 ### RF-238 — Solo las cajas llevan cifra 🎨
-`mockup-capa-mejora.html:331-334` (la regla) · `:341-348` (una caja con cifra).
+`mockup-capa-mejora.html:520-526` (la regla) · `:533-540` (una caja con cifra).
 
 ```gherkin
 Escenario: una caja lleva su cifra
@@ -216,7 +226,8 @@ Escenario: un nodo que no es caja jamás lleva cifra
 ```
 
 ### RF-239 — Cifra + participación porcentual sobre el arnés 🎨
-`mockup-capa-mejora.html:345` · `:359` · `:376` · `:390`.
+`mockup-capa-mejora.html:537` · `:551` · `:569` · `:583` — 40 + 32 + 18 + 10 = 100 %, y
+1,92 + 1,54 + 0,89 + 0,47 = USD 4,82, el total de la franja.
 
 ```gherkin
 Escenario: la caja dice cuánto y qué proporción
@@ -227,7 +238,8 @@ Escenario: la caja dice cuánto y qué proporción
 ```
 
 ### RF-240 — Barra de participación al pie de la caja 🎨
-`mockup-capa-mejora.html:347` · `:360` · `:378` · `:392`.
+`mockup-capa-mejora.html:539` · `:553` · `:571` · `:585` — las cuatro con `role="img"` y su
+`aria-label` (la iteración 1 las dibujaba mudas).
 
 ```gherkin
 Escenario: la proporción se lee sin leer el número
@@ -242,8 +254,9 @@ Escenario: caja sin dato
 ```
 
 ### RF-241 — La marca de fuga nombra el detector, nunca un ⚠ genérico 🎨
-`mockup-capa-mejora.html:346` (`re-warm TTL`) · `:377` (`3 de 4 rechazos en gate`) · `:391`
-(`por huella`).
+`mockup-capa-mejora.html:538` (`re-warm TTL`) · `:570` (`rechazo en gate` — el literal de
+`design.md` §7.3; la iteración 1 decía `3 de 4 rechazos en gate`).
+**`por huella` dejó de ser una marca de fuga**: es marca de *confianza* y vive en RF-242.
 
 ```gherkin
 Escenario: el detector se nombra
@@ -258,9 +271,10 @@ Escenario: dos detectores en la misma caja
 ```
 
 ### RF-242 — Una cifra marcada según CÓMO se atribuyó — cuatro casos, cuatro copys 🎨
-`mockup-capa-mejora.html:390` (subrayado punteado + motivo) · `:407-411` (la regla) · `:150` (la
-marca) · ANEXO H5 (el orden de preferencia). El mockup solo distingue **exacta** y **por huella** —
-los otros dos son el hueco **H-13**.
+`mockup-capa-mejora.html:612-650` (**los cuatro casos, juntos**) · `:583-584` (por huella, en el
+canvas) · `:551-552` (por proceso, en el canvas) · `:646` (sin dato) · `:651-657` (la regla) ·
+`:233` y `:239-241` (las marcas, en CSS) · ANEXO H5 (el orden de preferencia).
+La iteración 2 dibuja **los cuatro** — cerró el hueco **H-13**.
 
 Orden de preferencia al atribuir: `exacta` → `por-hash` → `por-proceso` → `sin-dato`. Se usa el
 primero que resuelva; la UI muestra **cuál** se usó, nunca «aproximada» a secas.
@@ -299,7 +313,8 @@ Escenario: los cuatro se distinguen entre sí
 ```
 
 ### RF-243 — «Sin dato atribuible» con motivo, en cada nodo que no puede llevar cifra 🎨
-`mockup-capa-mejora.html:362-365` (subagente) · `:398-401` (regla) · `:402-405` (MCP).
+`mockup-capa-mejora.html:555-558` (subagente) · `:591-594` (regla) · `:595-598` (MCP, con el copy
+corregido por **H-10**) · `:599-602` (conocimiento) · `:604-608` (por qué el MCP no se desglosa).
 
 Tres motivos distintos, no un texto genérico.
 
@@ -322,7 +337,8 @@ Escenario: nunca un cero
 ```
 
 ### RF-244 — Cada carril muestra el total de su fase 🎨
-`mockup-capa-mejora.html:339` · `:353` · `:370` · `:384`.
+`mockup-capa-mejora.html:531` · `:545` · `:563` · `:577` — los cuatro conservan el
+`<span class="count">` y suman el total al lado (**J-8**).
 
 ```gherkin
 Escenario: total por fase
@@ -338,7 +354,8 @@ Escenario: carril sin cajas con dato
 ```
 
 ### RF-245 — La capa es un overlay: nada se mueve de sitio 🎨
-`mockup-capa-mejora.html:331` (*«Nada se mueve de sitio»*) · BR-M16.
+`mockup-capa-mejora.html:520` (*«Nada se mueve de sitio»*) · `:523-526` (nada absoluto, **J-9**) ·
+BR-M16.
 
 ```gherkin
 Escenario: la geografía es la misma en las dos capas
@@ -361,7 +378,7 @@ Escenario: volver no pierde nada
 > El corazón del entregable. Una tarjeta = un punto de mejora = una caja × un detector.
 
 ### RF-246 — Una tarjeta existe solo si la cifra pasa A4 🎨
-`mockup-capa-mejora.html:419-421`.
+`mockup-capa-mejora.html:671-673`.
 
 ```gherkin
 Escenario: la regla de aceptación
@@ -376,7 +393,7 @@ Escenario: hallazgo sin fix
 ```
 
 ### RF-247 — Titular: qué caja y qué le pasa, en lenguaje del usuario 🎨
-`mockup-capa-mejora.html:425` · `:447`.
+`mockup-capa-mejora.html:714` (B1) · `:687` (P1).
 
 ```gherkin
 Escenario: el titular nombra la caja y el problema
@@ -387,7 +404,7 @@ Escenario: el titular nombra la caja y el problema
 ```
 
 ### RF-248 — Lede: cuánto, sobre qué base y qué proporción 🎨
-`mockup-capa-mejora.html:426-427` · `:448-450`.
+`mockup-capa-mejora.html:715-716` (B1) · `:688-690` (P1).
 
 ```gherkin
 Escenario: el monto siempre trae su base
@@ -398,7 +415,9 @@ Escenario: el monto siempre trae su base
 ```
 
 ### RF-249 — Contrafactual, no «gastaste X» (A2) 🎨
-`mockup-capa-mejora.html:429-430` · `:452-453`.
+`mockup-capa-mejora.html:719` (B1) · `:693` (P1) — los dos declaran la unidad de la diferencia:
+«USD 0,53 en la ventana (USD 0,04 por corrida)». La iteración 1 decía «0,53 por corrida» sobre una
+caja de 14 corridas, que no cerraba.
 
 ```gherkin
 Escenario: el mundo alternativo
@@ -409,7 +428,8 @@ Escenario: el mundo alternativo
 ```
 
 ### RF-250 — Umbral algebraico citado, auditable a mano (A1) 🎨
-`mockup-capa-mejora.html:431-432`.
+`mockup-capa-mejora.html:720-730` — con el despliegue **en línea** de «ver el cálculo» abierto
+(`aria-expanded` + `aria-controls`), que cierra el hueco **H-4**.
 
 ```gherkin
 Escenario: la desigualdad se muestra entera
@@ -425,7 +445,7 @@ Escenario: un detector sin umbral algebraico
 ```
 
 ### RF-251 — Confianza con denominador explícito 🎨
-`mockup-capa-mejora.html:433-434` · `:456-457`.
+`mockup-capa-mejora.html:732` (B1) · `:697` (P1).
 
 ```gherkin
 Escenario: la confianza dice sobre cuántas corridas
@@ -439,7 +459,7 @@ Escenario: confianza degradada
 ```
 
 ### RF-252 — El sesgo se declara y va EN CONTRA de la recomendación (A3) 🎨
-`mockup-capa-mejora.html:435-436` (subestima) · `:458-459` (sobreestima).
+`mockup-capa-mejora.html:734` (subestima) · `:699` (sobreestima).
 
 ```gherkin
 Escenario: sesgo que subestima el ahorro
@@ -459,7 +479,7 @@ Escenario: no hay tarjeta sin sesgo declarado
 ```
 
 ### RF-253 — Un fix, concreto, y dónde se aplica 🎨
-`mockup-capa-mejora.html:439` · `:462`.
+`mockup-capa-mejora.html:737` (B1) · `:702` (P1).
 
 ```gherkin
 Escenario: el fix es una acción, no un consejo
@@ -474,7 +494,7 @@ Escenario: un solo fix por tarjeta
 ```
 
 ### RF-254 — La versión del score es visible (A7) 🎨
-`mockup-capa-mejora.html:440` · `:463`.
+`mockup-capa-mejora.html:738` (B1) · `:703` (P1).
 
 ```gherkin
 Escenario: el score se versiona
@@ -484,7 +504,9 @@ Escenario: el score se versiona
 ```
 
 ### RF-255 — `[Proponerlo en el chat]` abre el chat: NO escribe archivos 🎨
-`mockup-capa-mejora.html:442` · `:468-472` (la regla) · D17.3.
+`mockup-capa-mejora.html:740` (B1) · `:705` (P1) · `:744-754` (la regla) · D17.3 · **J-5**: la
+etiqueta `[Proponerlo en el chat]` gana sobre el `[Aplicar]` firmado y se declara en la cabecera del
+mockup como tercera desviación.
 
 ```gherkin
 Escenario: proponer el fix
@@ -502,7 +524,7 @@ Escenario: el alcance del chat sigue vigente
 ```
 
 ### RF-256 — `[Descartar]` saca la tarjeta sin borrar el dato 🎨
-`mockup-capa-mejora.html:441` · `:464`.
+`mockup-capa-mejora.html:739` (B1) · `:704` (P1).
 
 ```gherkin
 Escenario: descartar un punto de mejora
@@ -514,7 +536,8 @@ Escenario: descartar un punto de mejora
 ```
 
 ### RF-257 — La severidad no depende solo del color 🎨
-`mockup-capa-mejora.html:424` (tono `warn`) vs `:446` (tono `crit`).
+`mockup-capa-mejora.html:711` (chip `atención`) vs `:683` (chip `crítico`) — la severidad la carga
+el **texto** del chip; el tono del borde es refuerzo. El ⚠ del titular va `aria-hidden`.
 
 ```gherkin
 Escenario: dos severidades distinguibles en escala de grises
@@ -529,7 +552,7 @@ Escenario: dos severidades distinguibles en escala de grises
 ## D · Inspector — cuarta tab «Mejora» (7 RF)
 
 ### RF-258 — Cuarta tab, y las tres vigentes intactas 🎨
-`mockup-capa-mejora.html:480-481` (la regla) · `:492-497` (las cuatro tabs) ·
+`mockup-capa-mejora.html:774-777` (la regla) · `:788-792` (las cuatro tabs) ·
 `widgets/map-canvas/ui/inspector.tsx:111-115` (el arreglo `TABS` que se extiende).
 
 ```gherkin
@@ -547,7 +570,7 @@ Escenario: nodo que no es caja
 ```
 
 ### RF-259 — Desglose por bucket de tokens con su costo 🎨
-`mockup-capa-mejora.html:499-511`.
+`mockup-capa-mejora.html:795-807` — las cinco filas con número suman USD 1,92, el total de la caja.
 
 ```gherkin
 Escenario: el número se puede auditar
@@ -559,7 +582,7 @@ Escenario: el número se puede auditar
 ```
 
 ### RF-260 — «No aplica» ≠ 0 🎨
-`mockup-capa-mejora.html:509` (razonamiento) · `:512-513` (la regla) · `:508` (un 0 legítimo).
+`mockup-capa-mejora.html:805` (razonamiento) · `:808-810` (la regla) · `:804` (un 0 legítimo).
 
 ```gherkin
 Escenario: concepto que el runtime no tiene
@@ -574,7 +597,7 @@ Escenario: concepto que el runtime sí tiene, con valor cero
 ```
 
 ### RF-261 — Costo reportado vs. calculado, a la vista (A6) 🎨
-`mockup-capa-mejora.html:515-524`.
+`mockup-capa-mejora.html:812-821` — el veredicto es **texto** (`coinciden`), no solo el tono.
 
 ```gherkin
 Escenario: los dos costos coinciden
@@ -594,7 +617,7 @@ Escenario: el runtime no reporta costo
 ```
 
 ### RF-262 — El join, a nivel nodo 🎨
-`mockup-capa-mejora.html:525-535`. Esta tabla sola es la mitad de la frase objetivo.
+`mockup-capa-mejora.html:823-833`. Esta tabla sola es la mitad de la frase objetivo.
 
 ```gherkin
 Escenario: dinero y proceso en la misma tabla
@@ -609,7 +632,8 @@ Escenario: la señal de proceso no está disponible
 ```
 
 ### RF-263 — Detectores, incluidos los que NO aplican, con motivo 🎨
-`mockup-capa-mejora.html:536-543` · BR-M13.
+`mockup-capa-mejora.html:834-847` — iteración 2: **los seis** detectores del MVP, más la línea de
+los otros siete como `no medido todavía` (la iteración 1 listaba cuatro) · BR-M13.
 
 ```gherkin
 Escenario: los seis detectores del MVP están listados
@@ -629,7 +653,8 @@ Escenario: los detectores fuera del MVP
 ```
 
 ### RF-264 — La tab declara sobre qué ventana calculó 🎨
-`mockup-capa-mejora.html:500` (`Tokens · últimas 14 corridas`).
+`mockup-capa-mejora.html:796` (`Tokens · 7 días (14 corridas)`) — la iteración 2 corrige la doble
+ventana de **J-3**: la ventana es la de la capa y las corridas son el denominador.
 
 ```gherkin
 Escenario: la ventana de la tab es la de la capa
@@ -653,7 +678,7 @@ Escenario: la ventana de la tab es la de la capa
 > y viajando como `puesto *string`. Sin `rol` viaja **`null`** y la UI dice `puesto sin declarar`.
 > «Un arnés en dos puestos» se cumple **por instalación**: dos instalaciones ⇒ dos filas.
 > `domain.EntradaPortafolio` y el wire de `GET /api/portafolio` **no se tocan**.
-`mockup-capa-mejora.html:571-578`.
+`mockup-capa-mejora.html:883-893`.
 
 ```gherkin
 Escenario: la fila del Portafolio
@@ -669,7 +694,8 @@ Escenario: un arnés en dos puestos
 ```
 
 ### RF-266 — Tendencia, con texto equivalente 🎨
-`mockup-capa-mejora.html:577` (en alza) · `:583` (estable).
+`mockup-capa-mejora.html:890` (en alza) · `:898` (estable) · `:915` (pocas corridas para una
+tendencia).
 
 ```gherkin
 Escenario: la tendencia se lee sin ver el dibujo
@@ -684,12 +710,15 @@ Escenario: menos puntos que el mínimo
 ```
 
 ### RF-267 — Punto de mejora principal por fila, con su monto 🎨
-`mockup-capa-mejora.html:578` (con fuga) · `:584` (sin fugas).
+`mockup-capa-mejora.html:891` (con fuga) · `:899` (fuga crítica, con su unidad declarada) ·
+`:907` (sin fugas) · `:916` (nunca corrió).
 
 ```gherkin
 Escenario: la fila lleva su punto de mejora
-  Dado un arnés con un punto de mejora de USD 0,53 por corrida
-  Entonces la fila muestra el detector nombrado y el monto: re-warm de cache · USD 0,53/corrida
+  Dado un arnés que cuesta USD 0,31 por corrida y un punto de mejora de USD 0,12 por corrida
+  Entonces la fila muestra el detector nombrado y el monto: re-warm de cache · USD 0,12/corrida
+  Y el monto del punto de mejora NUNCA supera el costo por corrida de la fila
+  Y si el monto es un total de la ventana, el chip lo dice: "USD 0,67 en la ventana"
 
 Escenario: sin fugas detectadas
   Dado un arnés con datos y sin ningún hallazgo de los seis detectores
@@ -698,7 +727,8 @@ Escenario: sin fugas detectadas
 ```
 
 ### RF-268 — «Sin dato» honesto: la fila no desaparece ni va en cero 🎨
-`mockup-capa-mejora.html:586-591` · `:594-595`.
+`mockup-capa-mejora.html:911-918` (la fila) · `:910` (el separador rotulado al ordenar) ·
+`:921-925` (el pie con el disclaimer, **H-12**).
 
 ```gherkin
 Escenario: arnés que nunca corrió con telemetría
@@ -723,7 +753,7 @@ Escenario: no se puede ordenar mintiendo
 > para firmar, y un build que solo construye el caso feliz tampoco.
 
 ### RF-269 — Estado 1 · Sin datos todavía 🎨
-`mockup-capa-mejora.html:608-612`.
+`mockup-capa-mejora.html:954-959`.
 
 ```gherkin
 Escenario: el arnés nunca corrió con telemetría
@@ -735,7 +765,7 @@ Escenario: el arnés nunca corrió con telemetría
 ```
 
 ### RF-270 — Estado 2 · Cobertura parcial 🎨
-`mockup-capa-mejora.html:613-617`.
+`mockup-capa-mejora.html:967-971`.
 
 ```gherkin
 Escenario: el total se calculó sobre parte de las corridas
@@ -746,7 +776,8 @@ Escenario: el total se calculó sobre parte de las corridas
 ```
 
 ### RF-271 — Estado 3 · Corrió fuera de ArnesIA (S2 degradado) 🎨
-`mockup-capa-mejora.html:618-622` · `:666` (la traza) · D16.1 (B1 no aplica en S2).
+`mockup-capa-mejora.html:972-978` (S2 **sin instrumentar**) · `:979-987` (S2 **instrumentado**,
+**J-10**) · `:1144-1145` (la traza) · D16.1 (B1 no aplica en el S2 degradado).
 
 ```gherkin
 Escenario: B1 no aplica porque el hook no ve el stream-json
@@ -773,7 +804,8 @@ Escenario: los dos modos de S2 se distinguen (ANEXO H9, ver J-10)
 ```
 
 ### RF-272 — Estado 4 · Otro runtime, costo puesto por nosotros 🎨
-`mockup-capa-mejora.html:623-627`.
+`mockup-capa-mejora.html:988-995` — rotulado `estado previsto`: el MVP entrega **un** adaptador
+(**J-7**).
 
 ```gherkin
 Escenario: el runtime no reporta costo en dinero
@@ -784,7 +816,7 @@ Escenario: el runtime no reporta costo en dinero
 ```
 
 ### RF-273 — Estado 5 · Catálogo de precios viejo 🎨
-`mockup-capa-mejora.html:628-632` · D11 (embeber + refresco opcional con degradación honesta).
+`mockup-capa-mejora.html:996-1001` · D11 (embeber + refresco opcional con degradación honesta).
 
 ```gherkin
 Escenario: el catálogo nunca se refrescó
@@ -795,7 +827,7 @@ Escenario: el catálogo nunca se refrescó
 ```
 
 ### RF-274 — Estado 6 · Atribución por huella 🎨
-`mockup-capa-mejora.html:633-637` · `:660` (la traza) · V3.
+`mockup-capa-mejora.html:1002-1007` · `:1136` (la traza) · V3.
 
 ```gherkin
 Escenario: el runtime redactó el nombre del plugin
@@ -812,7 +844,10 @@ Escenario: huella desconocida
 ```
 
 ### RF-275 — Estado 7 · Qué guardamos, y el botón de borrado 🎨
-`mockup-capa-mejora.html:638-642` · D15 · **ANEXO H4**.
+`mockup-capa-mejora.html:1008-1017` (el resumen, con la segunda línea que pide **H-14**) · `:483`
+(el enlace «qué guardamos» en la franja, que es **dónde vive** — **H-5**) · `:1062-1099` (el diálogo:
+qué NO se guarda · la lista literal de campos · retención) · `:1101-1114` (la confirmación de
+borrado) · D15 · **ANEXO H4**.
 
 El mockup promete *«Nada de tu cuenta. Nada del contenido.»* El anexo verificó que por el canal de
 hooks el contenido llega **en claro** (`UserPromptSubmit.prompt`, `Stop.last_assistant_message`,
@@ -856,7 +891,8 @@ Escenario: borrar de verdad
 > patrón**: extiende el que ya está firmado.
 
 ### RF-276 — El conmutador de capas mantiene su semántica ARIA, y el motivo es accesible
-`mockup-capa-mejora.html:301-306` · `map-bar.tsx:108-133`.
+`mockup-capa-mejora.html:456-465` — el motivo va en `title` **y** en un `sr-only` referenciado por
+`aria-describedby` · `map-bar.tsx:108-133`.
 
 ```gherkin
 Escenario: semántica del tablist de capas
@@ -872,7 +908,7 @@ Escenario: el motivo de un slot deshabilitado es accesible
 ```
 
 ### RF-277 — La cuarta tab del inspector respeta el contrato de tabs vigente
-`mockup-capa-mejora.html:492-497` · `inspector.tsx:205-250`.
+`mockup-capa-mejora.html:788-792` · `inspector.tsx:205-250`.
 
 ```gherkin
 Escenario: la tab nueva se cablea igual que las tres vigentes
@@ -888,7 +924,8 @@ Escenario: cambiar de nodo
 ```
 
 ### RF-278 — Foco visible en todo control nuevo
-`mockup-capa-mejora.html:105` (`.seg button:focus-visible`) · `:176` (`.btn:focus-visible`).
+`mockup-capa-mejora.html:178` (`.seg button:focus-visible`) · `:283` (`.btn:focus-visible`) ·
+`:198` (`.ctx-link:focus-visible`, el enlace de privacidad) · `:301` (`.dw-tab:focus-visible`).
 
 ```gherkin
 Escenario: recorrer la capa con el teclado
@@ -900,13 +937,14 @@ Escenario: recorrer la capa con el teclado
 ```
 
 ### RF-279 — Barras y sparklines tienen texto equivalente
-`mockup-capa-mejora.html:318` (`role="img"` + `aria-label` de cobertura) · `:577` · `:583`
-(sparklines) · `:347` (barra de participación).
+`mockup-capa-mejora.html:478` (`role="img"` + `aria-label` de cobertura, **con la unidad**) ·
+`:890` · `:898` · `:906` (sparklines) · `:539` · `:553` · `:571` · `:585` (barras de participación,
+cada una con su texto equivalente).
 
 ```gherkin
 Escenario: la barra de cobertura se puede leer
-  Dado la barra de cobertura con 12 exactas, 3 por huella y 2 sin dato
-  Entonces expone un texto equivalente con esos tres números y sus etiquetas
+  Dado la barra de cobertura con 44 exactas, 9 por huella, 5 por proceso y 3 sin dato
+  Entonces expone un texto equivalente con esos cuatro números, sus etiquetas y el total de corridas
 
 Escenario: la barra de participación se puede leer
   Dado la barra de participación de una caja al 40 %
@@ -919,8 +957,10 @@ Escenario: el sparkline se puede leer
 ```
 
 ### RF-280 — Ningún estado depende solo del color
-`mockup-capa-mejora.html:346` (fuga con texto) · `:391` (`por huella` con texto) · `:538-542`
-(detectores con texto además del punto) · `:588-590` (sin dato con texto).
+`mockup-capa-mejora.html:538` y `:570` (fugas con texto) · `:584` y `:552` (`por huella` /
+`por proceso` con texto — **mismo tono, distinta palabra**) · `:836-846` (detectores con texto
+además del punto) · `:683` y `:711` (severidad con chip de texto) · `:907` vs `:916` (sin fugas vs.
+sin dato, distinguibles por texto).
 
 ```gherkin
 Escenario: los tres estados de un detector en escala de grises
@@ -939,7 +979,7 @@ Escenario: sin dato vs. sin fugas
 ```
 
 ### RF-281 — La cifra monetaria se escribe igual en las cinco superficies
-`mockup-capa-mejora.html:77` (`.num` con `tabular-nums`) · `:313` · `:345` · `:504-508` · `:576`.
+`mockup-capa-mejora.html:145` (`.num` con `tabular-nums`) · `:472` · `:537` · `:800-804` · `:888`.
 
 ```gherkin
 Escenario: un solo formato de dinero
@@ -1160,16 +1200,46 @@ stories. **Prohibido mock donde hay dato real disponible.**
 - **No asumir que `transcript_path` es un archivo** (ANEXO H7): en la corrida verificada apuntó al
   **directorio** del proyecto. No lo usamos, pero queda anotado para que nadie lo asuma después.
 - **Decisión de producto pendiente, destapada por ANEXO H9:** dónde vive el bloque `env` que
-  instrumenta S2. No bloquea las superficies; bloquea el mecanismo de obligación.
+  instrumenta S2 — repo del propio arnés, o proyecto del usuario con consentimiento explícito (A8).
+  **La tercera vía ya está descartada con medición:** un plugin **no** puede aportar `env`
+  (ANEXO **H10.1**, 0 payloads contra 2 del control). No bloquea las superficies; bloquea el
+  mecanismo de obligación.
 - **`PARIDAD.md`** se llena fila por fila durante la implementación.
-- **El mockup sigue en iteración 1.** Ningún RF 🎨 se construye antes de su 🧑‍⚖️.
+- **El mockup va por iteración 2** (14 huecos cerrados · 10 veredictos aplicados · 2 contrastes
+  reparados) y **sigue sin firmar**. Ningún RF 🎨 se construye antes de su 🧑‍⚖️.
 
 ---
 
-## I · Huecos del mockup (12) — para la iteración 2
+## I · Huecos del mockup (14) — CERRADOS en la iteración 2
 
-> No se inventa nada acá. Cada hueco es algo que el spec necesita y el dibujo no resuelve, con la
-> resolución propuesta.
+> No se inventa nada acá. Cada hueco es algo que el spec necesita y el dibujo no resolvía, con la
+> resolución propuesta —&nbsp;y ahora con **dónde quedó** en la iteración 2.
+>
+> ⚠️ **Las líneas citadas dentro de la columna «hueco» son de la ITERACIÓN 1** y se conservan tal
+> cual, como registro de la auditoría: describen un dibujo que ya no existe y por eso **no se
+> re-trazan**. Las líneas vivas —las que valen para construir— son las de los RF y las de la tabla
+> de cierre de abajo.
+
+**Dónde quedó cada uno** (líneas de la iteración 2, `mockup-capa-mejora.html`):
+
+| # | dónde quedó | línea |
+|---|---|---|
+| **H-1** | lista de puntos de mejora **debajo del canvas**, ordenada por ahorro descendente; el nodo no gana ningún control | `:676-743` (+ la regla en `:666-673`) |
+| **H-2** | estado vacío propio, con los seis detectores que corrieron | `:756-766` |
+| **H-3** | columna «Abrir en Mapa»: aterriza con la capa Mejora activa y la caja seleccionada | `:892` · `:900` · `:908` · `:917` (+ la regla en `:926-935`) |
+| **H-4** | «ver el cálculo» = despliegue **en línea** (`aria-expanded`/`aria-controls`), no modal | `:722-729` |
+| **H-5** | «qué guardamos» vive en la franja y abre el diálogo con retención + borrado | `:483` → `:1062-1114` |
+| **H-6** | tres estados de transporte: cargando · error con motivo y reintento · daemon caído | `:1022-1044` |
+| **H-7** | chip del forward, **solo cuando está encendido**, nombrando el destino | `:504` (+ la regla en `:507-512`) |
+| **H-8** | los números cierran y la barra declara su unidad | `:473` · `:478-481` · `:485-492` |
+| **H-9** | «sin corridas en esta ventana» + fecha de la última + `Ver todo` | `:960-966` |
+| **H-10** | el MCP dice «incluido, todavía no se desglosa» (B13 fuera de alcance) | `:597` · `:604-608` |
+| **H-11** | rótulo `cobertura` siempre visible, a la izquierda de la barra | `:477` |
+| **H-12** | disclaimer al pie del Portafolio + confianza por fila | `:921-925` · `:889` · `:897` |
+| **H-13** | cuatro segmentos en la cobertura y **cuatro** marcas de confianza, juntas | `:478-481` · `:612-650` |
+| **H-14** | el copy promete sobre **lo guardado**, y el diálogo lista los campos por nombre | `:1010-1012` · `:1066-1071` (qué NO) · `:1074-1086` (qué SÍ, con la lista literal) |
+
+**La auditoría original, como registro** (las líneas de esta tabla son de la iteración 1):
 
 | # | hueco | por qué importa | resolución propuesta |
 |---|---|---|---|
@@ -1190,9 +1260,30 @@ stories. **Prohibido mock donde hay dato real disponible.**
 
 ---
 
-## J · Contradicciones entre el mockup y las decisiones firmadas (9)
+## J · Contradicciones entre el mockup y las decisiones firmadas (10) — RESUELTAS
 
-> Cada una con su veredicto. Donde gana el spec, el mockup se corrige en la iteración 2.
+> Cada una con su veredicto. Donde gana el spec, el mockup **se corrigió** en la iteración 2; donde
+> gana el mockup, la desviación **se declara en la cabecera del `.html`**, no se cuela.
+>
+> ⚠️ Igual que en §I: **las líneas citadas en la columna «contradicción» son de la iteración 1** y
+> quedan como registro de la auditoría. Las vivas son las de abajo.
+
+**Cómo quedó cada una** (líneas de la iteración 2):
+
+| # | quién ganó | cómo quedó en el dibujo | línea |
+|---|---|---|---|
+| **J-1** | la traza | la tarjeta P1 lleva el chip `requiere el hook de gate — se construye en este paquete`, y la traza lo repite | `:684` · `:749-751` · `:1140` |
+| **J-2** | D16.1 | la tarjeta B1 lleva el chip `solo con telemetría de ArnesIA` | `:712` · `:752-753` |
+| **J-3** | la franja | el inspector dice `Tokens · 7 días (14 corridas)`: una sola ventana, corridas como denominador | `:796` · `:774-777` |
+| **J-4** | «puesto» en lo nuevo | el Portafolio dice `puesto`; el chip vigente se calca como lo emite el componente (`reporta a`) y queda anotado como deuda | `:449` · `:406-412` · `:884` · `:878-879` |
+| **J-5** | **el mockup** | `[Proponerlo en el chat]` se mantiene y pasa a ser la **tercera desviación declarada** | `:705` · `:740` · `:745` (cabecera: bloque «DESVIACIONES DECLARADAS») |
+| **J-6** | ninguna: falta decidir | «Retención 90 días» va con el chip `valor propuesto, sin firmar`, en las dos superficies | `:1012` · `:1089-1093` |
+| **J-7** | estado previsto | el estado 4 lleva el rótulo `estado previsto` y dice que el MVP entrega **un** adaptador | `:990` · `:992-994` |
+| **J-8** | superset | los cuatro carriles conservan `<span class="count">` y suman el total al lado | `:531` · `:545` · `:563` · `:577` |
+| **J-9** | **el mockup** | ninguna marca nueva es `position:absolute`: van en el flujo y al pie | `:537-539` · `:523-526` |
+| **J-10** | la firma, con la precisión que faltaba | dos rótulos distintos: `S2 degradado` y `S2 instrumentado` | `:972-978` · `:979-987` · `:1145` |
+
+**La auditoría original, como registro** (las líneas de esta tabla son de la iteración 1):
 
 | # | contradicción | veredicto |
 |---|---|---|
@@ -1205,4 +1296,4 @@ stories. **Prohibido mock donde hay dato real disponible.**
 | **J-7** | **El estado 4 promete «otro runtime»** (`:623-627`) cuando el único adaptador verificado es Claude Code (V7.5: «los otros 5 runtimes — solo se probó Claude Code») | **Se sostiene como estado previsto, declarado.** El esquema es multi-runtime por D7/D9.2, pero el MVP entrega **un** adaptador. La UI tiene que poder mostrar el estado; el paquete **no** promete un segundo runtime |
 | **J-8** | **El encabezado del carril muestra dinero donde el componente vigente muestra el contador de nodos.** El mockup pone `USD 1,92` en `.lane-hd` (`:339`); `lane.tsx:29` pinta ahí `<span className="count">` | **Superset, no sustitución.** El contador se conserva y el total de la fase se suma al lado (RF-244). Quitarlo sería violar BR-M16 |
 | **J-9** | **La esquina de badges del nodo ya está ocupada dos veces.** `.caja-badge` y `.prop-badge` comparten `top:8px; right:8px` en `map.css:310` y `:329`; la capa Mejora agrega marcas al mismo nodo | **No se agrega un tercer badge absoluto.** Las marcas nuevas (cifra, fuga, participación) van **en el flujo** de la tarjeta y al pie, como las dibuja el mockup (`:345-347`). Se resuelve en `design.md` §2 |
-| **J-10** | **S2 tiene DOS modos, y D16.1 firmó suponiendo uno solo.** El bloque `env` de los settings del proyecto enciende la telemetría completa (ANEXO H9, verificado en tres variantes con control de puerto) ⇒ en S2 *instrumentado* llega la misma señal que en S1, **dinero incluido, y B1 aplica**. D16.1 marca B1 con `❌` para S2, y el estado 3 del mockup (`:618-622`) dibuja un único S2 degradado | **No se relitiga la firma: se declara la precisión que falta.** El spec **mantiene** RF-271 tal cual —B1 apagado con motivo cuando no hay `result` del stream-json— porque ese es el S2 que D16.1 firmó. Lo que se agrega es que la UI debe **distinguir los dos modos**: «corrió fuera de ArnesIA, sin instrumentar» ≠ «corrió fuera de ArnesIA, instrumentado». Son dos niveles de dato, no el mismo con otro nombre. **Dónde vive el bloque `env` es decisión de producto pendiente** (repo del arnés = sin fricción · proyecto del usuario = escribir settings de un tercero, choca con A8 y con el guardrail vigente ⇒ consentimiento explícito). Y sigue **sin verificar** si un plugin puede aportar `env` — si pudiera, el arnés se instrumenta solo al instalarse |
+| **J-10** | **S2 tiene DOS modos, y D16.1 firmó suponiendo uno solo.** El bloque `env` de los settings del proyecto enciende la telemetría completa (ANEXO H9, verificado en tres variantes con control de puerto) ⇒ en S2 *instrumentado* llega la misma señal que en S1, **dinero incluido, y B1 aplica**. D16.1 marca B1 con `❌` para S2, y el estado 3 del mockup (`:618-622`) dibuja un único S2 degradado | **No se relitiga la firma: se declara la precisión que falta.** El spec **mantiene** RF-271 tal cual —B1 apagado con motivo cuando no hay `result` del stream-json— porque ese es el S2 que D16.1 firmó. Lo que se agrega es que la UI debe **distinguir los dos modos**: «corrió fuera de ArnesIA, sin instrumentar» ≠ «corrió fuera de ArnesIA, instrumentado». Son dos niveles de dato, no el mismo con otro nombre. **Dónde vive el bloque `env` es decisión de producto pendiente** (repo del arnés = sin fricción · proyecto del usuario = escribir settings de un tercero, choca con A8 y con el guardrail vigente ⇒ consentimiento explícito). **CORREGIDO 2026-07-26:** la pregunta «¿un plugin puede aportar `env`?» **ya está verificada y la respuesta es NO** (ANEXO **H10.1**: plugin instalado con bloque `env` completo ⇒ **0 payloads**, control positivo en la misma corrida ⇒ 2). No hay tercera vía que instrumente el arnés solo al instalarse: **la decisión sigue siendo del operador entre las dos opciones de arriba** (A20). La nota anterior decía «sigue sin verificar» y quedó stale el mismo día |

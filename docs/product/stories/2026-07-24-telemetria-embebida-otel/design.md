@@ -13,6 +13,14 @@
 > `map-bar.tsx` · `map-canvas.tsx` · `lane.tsx` · `arnes-node.tsx` · `inspector.tsx` ·
 > `portafolio-list.tsx`, y de sus `.css` scopeados. El mockup es la propuesta; el código vigente es
 > la línea base.
+>
+> **Cifras del copy = el juego ilustrativo de la ITERACIÓN 2 del mockup, y CIERRAN entre sí**
+> (hueco H-8): 61 corridas en la ventana · 58 con atribución (44 exactas + 9 por huella + 5 por
+> proceso; 3 sin dato no se atribuyen) · 12 sesiones · 4 cajas · USD 4,82 = 1,92 + 1,54 + 0,89 +
+> 0,47 · 40 + 32 + 18 + 10 = 100 % · 58 = 14 + 31 + 4 + 9. Los montos son ilustrativos y están
+> anclados en la medición propia de `verificacion-2026-07-26/`; **el literal que el test asserta es
+> la FORMA de la frase, no el número**, pero los números del copy no pueden contradecirse entre
+> superficies —&nbsp;esa fue exactamente la falla que la auditoría cazó.
 
 ## 0 · Cómo leer esto
 
@@ -154,7 +162,8 @@ barra + franja se leen como **un** bloque de chrome y no como dos.
 | 6 | **«qué guardamos»** (enlace) | Última, discreta, siempre presente |
 
 **Espaciado:** `padding: var(--space-3) var(--space-4)` · `gap: var(--space-3) var(--space-5)` ·
-`flex-wrap: wrap`. El mockup usa `10px 14px` / `10px 18px` hand-typed; **gana el token** (12/16 y
+`flex-wrap: wrap`. La iteración 1 del mockup usaba `10px 14px` / `10px 18px` hand-typed; **gana el
+token** y la iteración 2 ya los usa (`mockup-capa-mejora.html:183`) (12/16 y
 12/20) — la disciplina de token vale más que 2 px de fidelidad a un `.html`.
 
 **Jerarquía tipográfica:**
@@ -272,7 +281,8 @@ el cálculo`.
 Las tres tabs vigentes no se tocan. La cuarta reusa `<Section>` (`inspector.tsx:71`) para los cuatro
 títulos, así que hereda el patrón de la «i» doctrinal sin código nuevo.
 
-**Ancho: 340 px** (`inspector.css:13`), no los 380 que dibuja el mockup. Todo lo de abajo se
+**Ancho: 340 px** (`inspector.css:13`), no los 380 que dibujaba la iteración 1 del mockup — la
+iteración 2 ya dibuja contra 340 (`mockup-capa-mejora.html:291`). Todo lo de abajo se
 dimensiona contra 340. Con cuatro tabs, `.dw-tabs` ya tiene `overflow-x: auto` — a 340 px las
 cuatro etiquetas entran (`Resumen · Contenido · Corridas · Mejora` ≈ 300 px a `--text-sm` con
 `padding: 6px 10px`), así que **no** debe aparecer scroll horizontal en la tira de tabs; si
@@ -373,7 +383,7 @@ su propio bloque, con un separador rotulado. Nunca intercalados como si valieran
 | `cache · escritura 1 h` | `cache_escritura_1h` | ídem | **`0` es un dato válido** (el runtime tiene el concepto) |
 | `razonamiento` | `razonamiento` | ídem | `no aplica en este runtime` (`colspan=2`) |
 | `runtime` | `costo_reportado_micros` | `USD 1,92` | `este runtime no reporta costo` |
-| `nuestro catálogo` | `costo_calculado_micros` + `catalogo_version` | `USD 1,92` | `catálogo sin construir` (estado real hoy — ver traza del mockup, `:665`) |
+| `nuestro catálogo` | `costo_calculado_micros` + `catalogo_version` | `USD 1,92` | `catálogo sin construir` (estado real hoy — ver traza del mockup, `:1143`) |
 | `corridas` | `count` | entero | `0` es válido |
 | `rechazadas en el gate` | `resultado = rechazado` | entero | `sin señal de gate en estas corridas` |
 | `costo de las rechazadas` | suma sobre las rechazadas | `USD 0,27` | ídem |
@@ -426,8 +436,9 @@ su propio bloque, con un separador rotulado. Nunca intercalados como si valieran
 | marca de fuga · leve / confianza no exacta | **texto `--foreground`** · fondo `--warn-soft` · borde `color-mix(--warn 35%)` | Una atribución deducida es «revisá», no «error». D21: texto sobre tono siempre `--foreground` |
 | tarjeta · severidad atención | borde izquierdo `--warn`, fondo `color-mix(--warn 5%, --card)` | |
 | tarjeta · severidad crítica | borde izquierdo `--crit`, fondo `color-mix(--crit 5%, --card)` | |
-| paridad de costos · coinciden | `--ok` · `--ok-soft` | |
+| paridad de costos · coinciden | **texto `--foreground`** · fondo `--ok-soft` · borde `color-mix(--ok 45%)` · el `✓` en `--ok` | D21 también acá: `--ok` `#2e8f5e` sobre `--ok-soft` sobre blanco mide **3,45:1** y fallaría igual que el disclaimer. El glifo `✓` es decorativo y redundante con la palabra `coinciden` |
 | paridad de costos · difieren | **texto `--foreground`** · fondo `--warn-soft` · borde/punto `--warn` | Difieren ≠ roto: puede ser catálogo viejo. D21: texto sobre tono siempre `--foreground` |
+| chip del Portafolio · `✓ sin fugas detectadas` | **texto `--foreground`** · fondo `--ok-soft` · borde `color-mix(--ok 45%)` · el `✓` en `--ok` | Mismo caso que la paridad: el verde queda para el glifo y el borde |
 | detector activo · sin hallazgos · no disponible | `--warn` · `--ok` · `--border` | Ausencia = `--border`, **nunca** `--ok`: «no sé» ≠ «sano» (regla ya enforced en `.pf-dot-salud.sin-senal`) |
 | foco | `--ring`, `outline: 2px` + `outline-offset: 1px` | El mismo que ya usa el conmutador |
 | chip S1-only / chip neutro | `--secondary` + `--muted-foreground` | Es información, no señal |
@@ -468,7 +479,7 @@ bordes, puntos y rieles. Las dos filas que decían lo contrario (`disclaimer` y
 | daemon no respondió | tono `--warn`, copy propio, y **las cifras previas se conservan marcadas como posiblemente viejas**. Es distinto de «no hay datos» (H-6) |
 | vacío · nunca corrió | estado 1: `— —` + copy + qué hacer. La barra de cobertura no se dibuja |
 | vacío · sin corridas en esta ventana | copy propio con la fecha de la última corrida + botón `Ver todo` (H-9) |
-| cobertura parcial | estado 2: el denominador dice `de 5 corridas, 3` con el `3` en `--warn` |
+| cobertura parcial | estado 2: el denominador dice `de 5 corridas, 3`, **en `--foreground` y en negrita** — no en `--warn`: como texto sobre `--card`, `--warn` mide 3,76:1 y es la deuda que el `BACKLOG.md` ya tiene abierta (D21: este paquete no la agrava) |
 
 ### 5.3 Nodo con capa Mejora
 
@@ -556,7 +567,7 @@ La app corre en un WebView de escritorio; el diseño es desktop-first y **no** h
 
 ### 6.2 Desbordamiento del canvas — **corrección al mockup**
 
-El mockup usa `.procrow { overflow-x: auto }` (`:120`). **En el producto no existe esa caja.** Los
+El mockup usa `.procrow { overflow-x: auto }` (`:202`, iteración 2). **En el producto no existe esa caja.** Los
 carriles viven dentro del `stage` con `transform` que maneja `useViewport`
 (`map-canvas.tsx:81`, `map.css:15-31`): el Mapa se recorre con **pan y zoom**, no con scrollbar.
 
@@ -577,7 +588,7 @@ Las tres tablas nuevas **sí** scrollean, cada una en su propio contenedor con `
 
 | tabla | contenedor | mínimo antes de scrollear |
 |---|---|---|
-| buckets del inspector | `.arnesia-inspector .mej-scroll` | 3 columnas. El drawer real mide **340 px** (`inspector.css:13`), no los 380 del mockup: la tabla se dimensiona contra 340 y en modo normal **no** scrollea; en expandido, menos aún |
+| buckets del inspector | `.arnesia-inspector .mej-scroll` | 3 columnas. El drawer real mide **340 px** (`inspector.css:13`), no los 380 de la iteración 1 del mockup: la tabla se dimensiona contra 340 y en modo normal **no** scrollea; en expandido, menos aún |
 | join del inspector | ídem | 2 columnas, nunca scrollea |
 | Portafolio | `.pf-mej-scroll` | 7 columnas. Por debajo de ~980 px la columna `punto de mejora` se encoge primero (`1fr`), y recién después aparece el scroll |
 
@@ -611,9 +622,10 @@ regla que `AvisoChip`, BR-8 del paquete de marketplace).
 | rótulo de ventana | `ventana` · opciones `7 días` · `30 días` · `todo` |
 | disclaimer | `estimado por el runtime, no es facturación` |
 | rótulo de cobertura | `cobertura` |
-| texto de cobertura | `12 exactas · 3 por huella · 2 por proceso · 1 sin dato — sobre 18 corridas` |
-| `aria-label` de la barra | `Cobertura de la atribución: 12 corridas exactas, 3 por huella, 2 por proceso, 1 sin dato, sobre 18 corridas.` |
-| cobertura completa | `atribución exacta en las 18 corridas` |
+| denominador del total | `de 61 corridas, 58 con atribución · 12 sesiones · 4 cajas` |
+| texto de cobertura | `44 exactas · 9 por huella · 5 por proceso · 3 sin dato — sobre 61 corridas` |
+| `aria-label` de la barra | `Cobertura de la atribución: 44 corridas exactas, 9 por huella, 5 por proceso, 3 sin dato, sobre 61 corridas.` |
+| cobertura completa | `atribución exacta en las 61 corridas` |
 | enlace de privacidad | `qué guardamos` |
 | chip de reenvío (solo si está encendido) | `reenvío externo encendido → langfuse.local` |
 | cargando | `midiendo…` |
@@ -635,10 +647,11 @@ regla que `AvisoChip`, BR-8 del paquete de marketplace).
 | marca de confianza · `por-proceso` | chip `por proceso` · `title`: `Deducido por el directorio donde corrió. Si ahí corre más de un arnés, este número los mezcla.` |
 | sin dato · subagente | `sin dato atribuible — el subagente no se distingue en el turno` |
 | sin dato · regla | `sin dato atribuible — una regla no consume por sí misma` |
-| sin dato · MCP | `sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa` *(corrige el mockup `:404`, hueco H-10)* |
+| sin dato · MCP | `sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa` *(la iteración 1 decía solo «va en la caja que lo llama»; la iteración 2 ya trae este literal, `:597`, hueco H-10)* |
 | sin dato · hook | `sin dato atribuible — un hook informa, no consume` |
 | sin dato · resto | `sin dato atribuible — esta capa mide cajas` |
 | caja sin corridas en la ventana | `sin corridas en esta ventana` |
+| caja cuyas corridas no se pudieron atribuir (confianza `sin-dato`) | `sin dato atribuible — 3 corridas de esta ventana no se pudieron atribuir a ninguna caja` |
 
 ### 7.4 Lista y tarjeta de punto de mejora
 
@@ -654,8 +667,8 @@ regla que `AvisoChip`, BR-8 del paquete de marketplace).
 | titular P1 | `La caja «revisar el build» se rechaza en el gate 3 de cada 4 veces` |
 | lede P1 | `Las corridas rechazadas costaron USD 0,67 de los 0,89 de la caja (75 %): se paga el trabajo y se descarta el resultado.` |
 | rótulos `<dt>` | `Contrafactual` · `Umbral` · `Patrón` · `Confianza` · `Sesgo` |
-| contrafactual B1 | `Con TTL de 1 h, las mismas 14 corridas costaban USD 0,31 → diferencia USD 0,53 por corrida.` |
-| contrafactual P1 | `Si el gate pasara a la primera, el ciclo costaba USD 0,22 en vez de 0,89.` |
+| contrafactual B1 | `Con TTL de 1 h, las mismas 14 corridas costaban USD 0,31 → diferencia USD 0,53 en la ventana (USD 0,04 por corrida).` *(la iteración 1 decía «0,53 por corrida» sobre una caja de 14 corridas: no cerraba — RF-249 exige que la unidad sea inequívoca)* |
+| contrafactual P1 | `Si el gate pasara a la primera, el ciclo costaba USD 0,22 en vez de 0,89 → diferencia USD 0,67 en la ventana (USD 0,17 por corrida, sobre 4).` |
 | umbral B1 | `relectura 61 % > break-even (2−1,25)/(2−0,1) = 39,47 %` |
 | patrón P1 | `Los 3 rechazos citan el mismo motivo: «el veredicto no lista hallazgos».` |
 | confianza | `exacta · 14 de 14 corridas con atribución` |
@@ -709,7 +722,8 @@ regla que `AvisoChip`, BR-8 del paquete de marketplace).
 | nunca corrió | `nunca corrió con telemetría` |
 | pocas corridas | `pocas corridas para una tendencia` |
 | `aria-label` de tendencia | `Tendencia en alza en las últimas 5 corridas.` / `estable` / `a la baja` |
-| chip de punto de mejora | `⚠ re-warm de cache · USD 0,53/corrida` |
+| chip de punto de mejora | `⚠ re-warm de cache · USD 0,12/corrida` · variante en la ventana: `⚠ rechazo en gate · USD 0,67 en la ventana` |
+| — | ⚠️ **el monto del chip nunca puede superar el costo por corrida de la fila**: la iteración 1 ponía `USD 0,53/corrida` sobre una fila de `0,31` USD/corrida. El chip declara su unidad, y si es un total de ventana lo dice |
 | separador de sin-dato al ordenar | `Sin datos de telemetría` |
 | pie de tabla | `Costo estimado por el runtime, no es facturación. Los arneses sin datos lo dicen: no aparecen en cero.` |
 
@@ -751,7 +765,9 @@ Retención 90 días · qué guardamos
 | éxito | `Listo. Este arnés vuelve a estar sin datos de telemetría.` |
 
 > ⚠️ **`{N} = 90` es un valor PROPUESTO, no firmado** (J-6): D15.3 firmó «TTL por default» sin
-> número. La UI lee el valor de la configuración; el 90 del mockup es una propuesta al operador.
+> número. La UI lee el valor de la configuración; el 90 del mockup es una propuesta al operador —
+> y va rotulado como tal en las dos superficies que lo muestran (`mockup-capa-mejora.html:1012` y
+> `:1090-1094`).
 
 ---
 

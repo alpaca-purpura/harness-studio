@@ -1,11 +1,72 @@
+<meta charset="utf-8">
 <!--
-  ArnesIA — capa «Mejora» del Mapa · MOCKUP (propuesta, iteración 1) · 2026-07-26
+  ArnesIA — capa «Mejora» del Mapa · MOCKUP (propuesta, ITERACIÓN 2) · 2026-07-26
   Paquete: docs/product/stories/2026-07-24-telemetria-embebida-otel/
 
   FORK del baseline vigente `mockups/arnesia-mapa-baseline.html` (derivado de las stories
-  @a01d845). SSoT del UI = Storybook (map-bar.tsx · map-canvas.tsx · inspector.tsx).
+  @a01d845). SSoT del UI = Storybook (map-bar.tsx · map-canvas.tsx · lane.tsx · arnes-node.tsx ·
+  inspector.tsx · portafolio-list.tsx).
 
-  DOS DESVIACIONES DECLARADAS, ninguna silenciosa:
+  ═══ CHANGELOG DE LA ITERACIÓN 2 ═══════════════════════════════════════════════════════════
+  La iteración 1 se dibujó y el spec la auditó: 14 huecos (`spec.md` §I) + 10 contradicciones
+  (§J) + 2 contrastes que rompen el gate a11y (`plan-storybook.md` §2.18). Esta iteración los
+  cierra. Nada se quitó: todo lo de la iteración 1 sigue, con más superficie.
+
+  Huecos cerrados (14/14):
+   H-1  la tarjeta ya tiene puerta de entrada: LISTA de puntos de mejora DEBAJO del canvas (§4),
+        ordenada por ahorro contrafactual descendente. NO hay botón dentro del nodo — el nodo ya
+        es un <button> (arnes-node.tsx:52) y anidar controles es DOM inválido.
+   H-2  estado vacío propio de esa lista (§4, «hay datos y ningún punto que pase el corte»).
+   H-3  puente Portafolio → Mapa: columna «Abrir en Mapa» que aterriza con la capa Mejora activa
+        y la caja del punto de mejora seleccionada (§6).
+   H-4  «ver el cálculo» ya tiene destino: despliegue EN LÍNEA dentro de la tarjeta (§4, abierto).
+   H-5  «borrar la telemetría» sale del panel didáctico y vive en la franja, detrás del enlace
+        «qué guardamos» → diálogo con campos persistidos + retención + borrado (§2 y §8).
+   H-6  estados de TRANSPORTE, que no existían: cargando · error con motivo y reintento · daemon
+        caído distinguible de «no hay datos» (§7B).
+   H-7  indicador del forward OTLP (D13 lo exige visible): chip en la franja, solo cuando está
+        encendido (§2, segunda variante de la franja).
+   H-8  los números CIERRAN: 44+9+5+3 = 61 corridas = el denominador de la franja; 58 con
+        atribución; 1,92+1,54+0,89+0,47 = USD 4,82; 40+32+18+10 = 100 %; 14+31+4+9 = 58.
+        La barra de cobertura declara su unidad («sobre 61 corridas»).
+   H-9  ventana sin corridas ≠ nunca corrió: estado 1b propio con la fecha de la última (§7A).
+   H-10 el nodo MCP ya no promete un desglose que no existe: «está incluido en la caja que lo
+        llama; todavía no se desglosa» (B13 fuera de alcance).
+   H-11 rótulo «cobertura» SIEMPRE visible a la izquierda de la barra: al envolver no queda una
+        barra tricolor huérfana.
+   H-12 el Portafolio lleva el disclaimer al pie y la marca de confianza por fila.
+   H-13 son CUATRO niveles de confianza, no dos: 4 segmentos en la cobertura y 4 copys en el
+        canvas (exacta · por huella · por proceso · sin dato), con las cuatro marcas juntas.
+   H-14 el copy de «qué guardamos» promete sobre LO GUARDADO, no sobre el canal: el contenido
+        llega en claro por el canal de hooks y se descarta antes de escribirse (ANEXO H4).
+
+  Veredictos de §J aplicados (10/10):
+   J-1 la tarjeta P1 declara que su hook de gate NO existe todavía (se construye en este paquete).
+   J-2 la tarjeta B1 declara «solo con telemetría de ArnesIA» (B1 no aplica en S2 degradado).
+   J-3 una sola ventana, la de la capa: el inspector dice «7 días (14 corridas)», no «últimas 14».
+   J-4 «puesto» en las superficies nuevas; el MetaChip vigente se calca como lo emite el
+       componente real («reporta a», map-bar.tsx:79) y queda anotado como deuda de vocabulario.
+   J-5 gana el mockup: «Proponerlo en el chat» (D17.3 firmó «Aplicar») → DESVIACIÓN 3, declarada.
+   J-6 «Retención 90 días» va rotulado PROPUESTO: D15.3 firmó TTL sin número.
+   J-7 el estado 4 se rotula «estado previsto»: el MVP entrega UN adaptador (Claude Code).
+   J-8 el encabezado del carril CONSERVA el contador de nodos y suma el total al lado.
+   J-9 ninguna marca nueva es absoluta: van en el flujo del nodo y al pie (la esquina ya está
+       ocupada por .caja-badge/.prop-badge).
+   J-10 S2 tiene DOS modos y se rotulan distinto (sin instrumentar / instrumentado).
+
+  Contrastes reparados — fallaban SOLO en tema claro, y se arreglan sin romper el oscuro:
+   · disclaimer «estimado, no facturación»: era --warn sobre --warn-soft (3,24:1 ❌ claro /
+     6,11:1 oscuro). Ahora --foreground sobre --warn-soft → 13,14:1 claro. Misma regla aplicada a
+     TODO chip de texto sobre un fondo -soft (fuga leve, marca de confianza, tags del Portafolio,
+     paridad ✓): --warn/--ok quedan para bordes, puntos y glifos decorativos (requisito 3:1).
+   · marca de fuga grave: era --crit sobre --crit-soft (4,04:1 ❌ claro / 4,66:1 oscuro). Pierde el
+     fondo soft y queda --crit sobre --card → 4,75:1 claro / 5,33:1 oscuro.
+   Cero tokens nuevos: todo sale de web/src/app/styles/theme.css.
+
+  Otro arreglo: el archivo NO declaraba `<meta charset>` (mismo bug que ya se cazó en
+  mockup-actualizar.html y arnesia-portafolio.html). Ahora va en el byte 0.
+
+  ═══ DESVIACIONES DECLARADAS (3) — ninguna colada ═══════════════════════════════════════════
   1. TOKENS: el baseline del Mapa quedó en la paleta ÁMBAR pre-rebrand. Acá se usan los tokens
      PRENTER vigentes, copiados literal de web/src/app/styles/theme.css (mismo criterio que los
      mockups de voz-dictado y marketplace). Las familias tipográficas se copian con su cadena de
@@ -13,10 +74,16 @@
      igual que la app cuando la fuente no cargó.
   2. El slot `Tokens` del conmutador de capas pasa a llamarse «Mejora» (D17.1) — cambia una
      etiqueta de un baseline firmado. Va al gate como desviación, no colada.
+  3. El botón dice «Proponerlo en el chat»; D17.3 firmó «Aplicar» (J-5). Mismo comportamiento
+     firmado, mejor nombre — y por eso se declara igual que el renombre del slot.
 
-  CIFRAS: la FORMA es real; los montos son ilustrativos, anclados en la medición propia del
+  VALOR NO FIRMADO, rotulado como tal: retención «90 días» (J-6). D15.3 firmó «TTL por default»
+  sin número; el 90 es una propuesta al operador y la UI lo lee de la configuración.
+
+  CIFRAS: la FORMA es real; los montos son ILUSTRATIVOS, anclados en la medición propia del
   2026-07-26 (USD 0,0185 y USD 0,0126 por turno con claude-haiku-4-5, ver
-  verificacion-2026-07-26/INFORME.md). El grafo es el dogfood `dev-full-cycle` de las stories.
+  verificacion-2026-07-26/INFORME.md). Lo medido de verdad vive en verificacion-2026-07-26/.
+  El grafo es el dogfood `dev-full-cycle` de las stories.
 -->
 <style>
   /* ═══ tokens — copia literal de web/src/app/styles/theme.css (PRENTER) ═══ */
@@ -31,6 +98,7 @@
     --ok-soft:rgba(46,143,94,.13);--warn-soft:rgba(201,106,46,.13);--crit-soft:rgba(201,69,69,.12);
     --heat-1:rgba(205,105,55,.10);--heat-2:rgba(205,105,55,.22);--heat-3:rgba(205,105,55,.36);--heat-4:rgba(205,105,55,.50);
     --radius-sm:4px;--radius-md:8px;--radius-lg:14px;--radius-full:9999px;
+    --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;
     --text-xs:11px;--text-sm:12.5px;--text-base:14px;--text-lg:16px;--text-xl:20px;--text-2xl:26px;
     --font-display:Jost,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --font-sans:Mulish,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -86,11 +154,16 @@
   .panel-hd h2{font-family:var(--font-display);margin:0;font-size:var(--text-lg);font-weight:600;letter-spacing:-.005em}
   .panel-hd .why{flex:1 1 100%;margin:0;color:var(--muted-foreground);font-size:var(--text-sm);max-width:74ch}
   .panel-bd{padding:16px}
+  .sub{color:var(--muted-foreground);font-size:var(--text-xs);margin:12px 0 6px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
   .badge{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
          border-radius:var(--radius-full);padding:2px 8px;white-space:nowrap;border:1px solid}
   .badge.vig{color:var(--muted-foreground);border-color:var(--border);background:var(--secondary)}
   .badge.prop{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 45%,transparent);background:var(--accent-soft)}
-  .badge.desv{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft)}
+  .badge.desv{color:var(--foreground);border-color:color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warn-soft)}
+  .badge.it2{color:var(--foreground);border-color:color-mix(in srgb,var(--primary) 55%,transparent);background:var(--accent-soft)}
+  .cierra{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:6px 18px;margin:10px 0 0;padding:0;list-style:none;font-size:var(--text-sm)}
+  .cierra li{display:flex;gap:7px}
+  .cierra code{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--primary)}
 
   /* ═══ MapBar — calcado de map-bar.tsx ═══ */
   .mapbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);padding:10px 14px}
@@ -103,24 +176,34 @@
   .seg button[aria-selected="true"],.seg button[aria-pressed="true"]{background:var(--card);color:var(--foreground);font-weight:600;box-shadow:var(--shadow-sm)}
   .seg button:disabled{opacity:.4;cursor:not-allowed}
   .seg button:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
   /* ═══ franja de contexto de la capa (NUEVO) ═══ */
-  .ctxbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;border:1px solid var(--border);border-top:0;
-          border-radius:0 0 var(--radius-md) var(--radius-md);background:color-mix(in srgb,var(--primary) 4%,var(--card));padding:10px 14px}
+  .ctxbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);border:1px solid var(--border);border-top:0;
+          border-radius:0 0 var(--radius-md) var(--radius-md);background:color-mix(in srgb,var(--primary) 4%,var(--card));padding:var(--space-3) var(--space-4)}
   .ctx-total{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:700;letter-spacing:-.01em}
   .ctx-total .u{font-size:var(--text-xs);font-weight:600;color:var(--muted-foreground);margin-right:3px}
   .ctx-sub{font-size:var(--text-xs);color:var(--muted-foreground)}
-  .ctx-note{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);color:var(--warn);
-            border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);background:var(--warn-soft);border-radius:var(--radius-full);padding:2px 9px}
-  .cov{display:flex;align-items:center;gap:7px;font-size:var(--text-xs);color:var(--muted-foreground);margin-left:auto}
-  .covbar{display:flex;width:132px;height:7px;border-radius:var(--radius-full);overflow:hidden;border:1px solid var(--border)}
+  .ctx-note{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);color:var(--foreground);
+            border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft);border-radius:var(--radius-full);padding:2px 9px}
+  .ctx-note::before{content:"\26A0";color:var(--warn);font-size:10px}
+  .fwd{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);color:var(--foreground);font-family:var(--font-mono);
+       border:1px solid color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warn-soft);border-radius:var(--radius-full);padding:2px 9px}
+  .fwd::before{content:"\2197";color:var(--warn);font-weight:700}
+  .cov{display:flex;align-items:center;gap:7px;font-size:var(--text-xs);color:var(--muted-foreground);margin-inline-start:auto}
+  .cov-lbl{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground)}
+  .covbar{display:flex;gap:1px;width:132px;height:7px;border-radius:var(--radius-full);overflow:hidden;border:1px solid var(--border);background:var(--card)}
   .covbar i{display:block;height:100%}
+  .ctx-link{font-size:var(--text-xs);color:var(--primary);text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:var(--text-xs)}
+  .ctx-link:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+  .skel{display:inline-block;height:15px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--border) 75%,transparent)}
 
   /* ═══ Canvas — calcado de map-canvas.tsx ═══ */
   .procrow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:6px}
-  .lane{flex:none;width:232px;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+  .lane{flex:none;width:236px;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
   .lane-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--border);padding:9px 12px}
   .lane-hd h3{margin:0;font-size:var(--text-sm);font-weight:600}
+  .lane-hd .count{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted-foreground);margin-inline-end:auto}
   .lane-body{display:flex;flex-direction:column;gap:10px;padding:12px}
   .gutter{flex:none;width:76px;display:flex;flex-direction:column;gap:6px;padding:46px 8px 0}
   .artchip{display:flex;flex-direction:column;gap:1px;border:1px solid color-mix(in srgb,var(--c-knowledge) 40%,var(--border));
@@ -143,7 +226,7 @@
   .glyph.square{border-radius:3px}.glyph.circle{border-radius:50%}.glyph.shield{clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)}
   .glyph.hexagon{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
 
-  /* ═══ marcas de la capa Mejora (NUEVO) ═══ */
+  /* ═══ marcas de la capa Mejora (NUEVO) — todas EN EL FLUJO, ninguna absoluta (J-9) ═══ */
   .node.mej{padding-bottom:16px}
   .mej-cifra{display:flex;align-items:baseline;gap:6px;font-family:var(--font-mono);font-size:var(--text-sm);font-weight:700}
   .mej-cifra .pct{font-size:var(--text-xs);font-weight:600;color:var(--muted-foreground)}
@@ -151,33 +234,61 @@
   .share{position:absolute;left:0;right:0;bottom:0;height:5px;background:color-mix(in srgb,var(--border) 55%,transparent);border-radius:0 0 4px 4px;overflow:hidden}
   .share i{display:block;height:100%;background:var(--warn);opacity:.85}
   .fuga{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;font-family:var(--font-mono);font-size:9px;font-weight:700;
-        color:var(--crit);border:1px solid color-mix(in srgb,var(--crit) 45%,transparent);background:var(--crit-soft);border-radius:var(--radius-full);padding:1px 7px}
-  .fuga.leve{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft)}
+        color:var(--crit);border:1px solid color-mix(in srgb,var(--crit) 55%,transparent);background:var(--card);border-radius:var(--radius-full);padding:1px 7px}
+  .fuga.leve{color:var(--foreground);border-color:color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warn-soft)}
+  .marca-conf{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;font-family:var(--font-mono);font-size:9px;font-weight:700;
+              color:var(--foreground);border:1px solid color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warn-soft);
+              border-radius:var(--radius-full);padding:1px 7px;cursor:help}
   .node.sindato{opacity:.62;border-left-style:dotted}
-  .sindato-lbl{font-size:9px;font-style:italic;color:var(--muted-foreground)}
+  .sindato-lbl{font-size:var(--text-xs);font-style:italic;color:var(--muted-foreground)}
   .heat1{background:var(--heat-1)}.heat2{background:var(--heat-2)}.heat3{background:var(--heat-3)}.heat4{background:var(--heat-4)}
+  .cuatro{display:grid;grid-template-columns:repeat(auto-fit,minmax(222px,1fr));gap:10px;margin-top:6px}
+  .cuatro figcaption{font-size:var(--text-xs);color:var(--muted-foreground);margin-top:5px}
+  .cuatro figure{margin:0}
 
-  /* ═══ tarjeta de punto de mejora (NUEVO) ═══ */
+  /* ═══ lista y tarjeta de punto de mejora (NUEVO · H-1) ═══ */
+  .lista-hd{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border:1px solid var(--border);border-bottom:0;
+            border-radius:var(--radius-md) var(--radius-md) 0 0;background:color-mix(in srgb,var(--secondary) 55%,transparent);padding:9px 14px}
+  .lista-hd h3{margin:0;font-family:var(--font-display);font-size:var(--text-base);font-weight:600}
+  .lista-hd .cnt{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--muted-foreground)}
+  .lista-hd .orden{margin-inline-start:auto;font-size:var(--text-xs);color:var(--muted-foreground)}
+  .lista-bd{border:1px solid var(--border);border-radius:0 0 var(--radius-md) var(--radius-md);padding:14px;display:flex;flex-direction:column;gap:12px}
   .mejora{border:1px solid color-mix(in srgb,var(--warn) 42%,transparent);border-left:4px solid var(--warn);
           border-radius:var(--radius-md);background:color-mix(in srgb,var(--warn) 5%,var(--card));padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .mejora.crit{border-color:color-mix(in srgb,var(--crit) 42%,transparent);border-left-color:var(--crit);background:color-mix(in srgb,var(--crit) 5%,var(--card))}
+  .mejora.resaltada{border-left-width:6px;box-shadow:var(--shadow-sm)}
+  .mejora-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .sev{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:var(--radius-full);
+       padding:2px 8px;border:1px solid color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warn-soft);color:var(--foreground)}
+  .sev.crit{border-color:color-mix(in srgb,var(--crit) 55%,transparent);background:var(--card);color:var(--crit)}
+  .chip-neutro{font-size:var(--text-xs);border-radius:var(--radius-full);padding:2px 9px;border:1px solid var(--border);background:var(--secondary);color:var(--muted-foreground)}
+  .vinculo{margin-inline-start:auto;font-size:var(--text-xs);color:var(--muted-foreground)}
   .mejora h3{margin:0;font-size:var(--text-base);font-weight:700;line-height:1.35;text-wrap:balance}
   .mejora h3 .ic{color:var(--warn);margin-right:6px}
+  .mejora.crit h3 .ic{color:var(--crit)}
   .mejora .lede{margin:0;font-size:var(--text-sm);color:var(--foreground);max-width:72ch}
   .mejora dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:var(--text-sm)}
   .mejora dt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted-foreground);padding-top:3px}
   .mejora dd{margin:0}
   .mejora .calc{font-family:var(--font-mono);font-size:var(--text-xs)}
   .mejora .sesgo{color:var(--muted-foreground);font-style:italic}
+  .calcbox{margin-top:7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--secondary);padding:9px 11px;
+           font-family:var(--font-mono);font-size:var(--text-xs);display:flex;flex-direction:column;gap:3px}
   .fixrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:10px}
   .fixrow .fix{flex:1 1 260px;font-size:var(--text-sm)}
-  .fixrow code{font-family:var(--font-mono);font-size:var(--text-xs);background:var(--secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1px 5px}
+  .fixrow code,.calcbox code{font-family:var(--font-mono);font-size:var(--text-xs);background:var(--secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1px 5px}
   .btn{font:inherit;font-size:var(--text-sm);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);border-radius:var(--radius-md);padding:6px 12px}
   .btn.primary{border-color:var(--primary);color:var(--primary);background:var(--accent-soft);font-weight:600}
+  .btn.mini{padding:1px 8px;font-size:var(--text-xs)}
   .btn:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
   .scorev{font-family:var(--font-mono);font-size:9px;color:var(--muted-foreground)}
+  .vacio{border:1px dashed var(--border);border-radius:var(--radius-md);background:color-mix(in srgb,var(--secondary) 40%,transparent);padding:13px 15px;display:flex;flex-direction:column;gap:6px}
+  .vacio strong{font-size:var(--text-sm)}
+  .vacio p{margin:0;font-size:var(--text-xs);color:var(--muted-foreground)}
 
   /* ═══ Inspector — calcado de inspector.tsx ═══ */
-  .drawer{width:380px;max-width:100%;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);
+  .drawer{width:340px;max-width:100%;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);
           box-shadow:var(--shadow-md);display:flex;flex-direction:column;overflow:hidden}
   .dw-head{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border)}
   .dw-head .glyph{width:22px;height:22px;font-size:12px}
@@ -187,16 +298,18 @@
   .dw-tab{font:inherit;font-size:var(--text-sm);cursor:pointer;border:0;border-bottom:2px solid transparent;background:transparent;
           color:var(--muted-foreground);padding:6px 10px;white-space:nowrap}
   .dw-tab[aria-selected="true"]{color:var(--foreground);font-weight:600;border-bottom-color:var(--primary)}
+  .dw-tab:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
   .dw-body{padding:14px 15px;display:flex;flex-direction:column;gap:15px}
   .sec>h4{margin:0 0 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-foreground)}
   .tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
-  .tbl th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:0 0 5px;font-weight:700}
+  .tbl th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:0 0 5px}
   .tbl td{padding:3px 0;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
   .tbl td.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
   .tbl td.na{color:var(--muted-foreground);font-style:italic}
   .paridad{display:flex;justify-content:space-between;gap:10px;font-size:var(--text-sm);
-           border:1px solid color-mix(in srgb,var(--ok) 35%,transparent);background:var(--ok-soft);border-radius:var(--radius-md);padding:7px 10px}
-  .paridad .ok{color:var(--ok);font-weight:600}
+           border:1px solid color-mix(in srgb,var(--ok) 45%,transparent);background:var(--ok-soft);border-radius:var(--radius-md);padding:7px 10px}
+  .paridad .ok{color:var(--foreground);font-weight:600}
+  .paridad .ok::before{content:"\2713 ";color:var(--ok);font-weight:700}
   .det{display:flex;gap:8px;font-size:var(--text-sm);padding:4px 0;border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
   .det .dot{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px}
   .det .dot.on{background:var(--warn)}.det .dot.off{background:var(--border)}.det .dot.clean{background:var(--ok)}
@@ -210,12 +323,17 @@
   .pf .arn{font-family:var(--font-mono);font-weight:600}
   .pf .puesto{color:var(--muted-foreground);font-size:var(--text-xs)}
   .pf .n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pf .sep td{background:color-mix(in srgb,var(--secondary) 55%,transparent);font-size:9px;font-weight:700;text-transform:uppercase;
+              letter-spacing:.06em;color:var(--muted-foreground);padding:5px 10px 5px 0}
   .spark{display:inline-flex;align-items:flex-end;gap:2px;height:20px}
   .spark i{display:block;width:5px;background:color-mix(in srgb,var(--primary) 55%,transparent);border-radius:1px}
   .spark i.last{background:var(--primary)}
   .tag{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);border-radius:var(--radius-full);padding:2px 9px;border:1px solid}
-  .tag.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:var(--warn-soft)}
-  .tag.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:var(--ok-soft)}
+  .tag.warn{color:var(--foreground);border-color:color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warn-soft)}
+  .tag.warn::before{content:"\26A0";color:var(--warn)}
+  .tag.crit{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 55%,transparent);background:var(--card)}
+  .tag.ok{color:var(--foreground);border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:var(--ok-soft)}
+  .tag.ok::before{content:"\2713";color:var(--ok);font-weight:700}
   .tag.none{color:var(--muted-foreground);border-color:var(--border);background:var(--secondary)}
 
   /* ═══ estados honestos ═══ */
@@ -225,6 +343,19 @@
   .state .demo{border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--card);padding:8px 10px;font-size:var(--text-xs)}
   .state .demo .big{font-family:var(--font-mono);font-size:var(--text-base);font-weight:700}
   .state p{margin:0;font-size:var(--text-xs);color:var(--muted-foreground)}
+  .state .rot{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+              color:var(--foreground);background:var(--secondary);border:1px solid var(--border);border-radius:var(--radius-full);padding:1px 7px;align-self:flex-start}
+
+  /* ═══ diálogo de política de datos (NUEVO · H-5) ═══ */
+  .dlg{width:520px;max-width:100%;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--popover);box-shadow:var(--shadow-md);overflow:hidden}
+  .dlg-hd{padding:13px 16px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-weight:600}
+  .dlg-bd{padding:14px 16px;display:flex;flex-direction:column;gap:13px;font-size:var(--text-sm)}
+  .dlg-bd h4{margin:0 0 5px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-foreground)}
+  .dlg-bd p{margin:0}
+  .campos{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px}
+  .campos li{font-family:var(--font-mono);font-size:var(--text-xs);border:1px solid var(--border);background:var(--secondary);border-radius:var(--radius-sm);padding:1px 6px}
+  .dlg-ft{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--border);padding:12px 16px;background:color-mix(in srgb,var(--secondary) 40%,transparent)}
+  .btn.destructive{border-color:color-mix(in srgb,var(--crit) 55%,transparent);color:var(--crit);background:var(--card);font-weight:600}
 
   /* ═══ traza ═══ */
   .traza{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
@@ -237,15 +368,32 @@
 
 <div class="doc">
   <header class="doc-hd">
-    <h1>Capa «Mejora» del Mapa — propuesta de mockup</h1>
+    <h1>Capa «Mejora» del Mapa — propuesta de mockup · iteración 2</h1>
     <p>El entregable no es un contador de tokens: es la frase <em>«este arnés, en este puesto, quema
     $X — y el 60&nbsp;% se va en la caja Y, que falla el gate 3 de cada 4 veces»</em>. Todo lo que sigue
-    existe para poder decirla, o para admitir con precisión cuándo no se puede.</p>
+    existe para poder decirla, o para admitir con precisión cuándo no se puede. <strong>Iteración 2:</strong> cierra los 14 huecos de <code>spec.md</code> §I, aplica los 10 veredictos de §J y repara los 2 contrastes que rompían el gate a11y en tema claro. <strong>Las cifras son ilustrativas</strong> —&nbsp;la forma es real, los montos están anclados en la medición propia del 2026-07-26 (<code>verificacion-2026-07-26/</code>, USD 0,0185 por turno con haiku)—&nbsp;y <strong>cierran entre sí</strong>: 44+9+5+3 = 61 corridas · 1,92+1,54+0,89+0,47 = USD 4,82 · 40+32+18+10 = 100 %.</p>
     <div class="legend">
       <span class="badge vig">vigente · calcado del baseline</span>
       <span class="badge prop">propuesta</span>
       <span class="badge desv">desviación declarada</span>
+      <span class="badge it2">nuevo en la iteración 2</span>
     </div>
+    <ul class="cierra">
+      <li><code>H-1</code> la lista de puntos de mejora, debajo del canvas (§4)</li>
+      <li><code>H-2</code> su estado vacío, con las seis detecciones que corrieron (§4)</li>
+      <li><code>H-3</code> puente Portafolio → Mapa, con la capa ya activa (§6)</li>
+      <li><code>H-4</code> «ver el cálculo» desplegado en línea (§4)</li>
+      <li><code>H-5</code> «qué guardamos» y el borrado, en la franja (§2 · §8)</li>
+      <li><code>H-6</code> los tres estados de transporte (§7B)</li>
+      <li><code>H-7</code> el chip del reenvío OTLP, visible cuando está encendido (§2)</li>
+      <li><code>H-8</code> los números cierran: 44+9+5+3 = 61 corridas (§2)</li>
+      <li><code>H-9</code> «sin corridas en esta ventana» ≠ «nunca corrió» (§7A)</li>
+      <li><code>H-10</code> el MCP ya no promete un desglose que no existe (§3)</li>
+      <li><code>H-11</code> el rótulo «cobertura», siempre visible (§2)</li>
+      <li><code>H-12</code> el Portafolio con disclaimer y confianza por fila (§6)</li>
+      <li><code>H-13</code> los CUATRO niveles de confianza, no dos (§2 · §3)</li>
+      <li><code>H-14</code> el copy promete sobre lo guardado, no sobre el canal (§7A · §8)</li>
+    </ul>
   </header>
 
   <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -254,13 +402,18 @@
       <h2>1 · Lo vigente</h2><span class="badge vig">vigente</span>
       <p class="why">La barra tal como está hoy en <code>map-bar.tsx</code>. Tres capas
       deshabilitadas desde el MVP, con el tooltip «Necesita telemetría». Es el punto de partida:
-      la propuesta es superset de esto, no un rediseño.</p>
+      la propuesta es superset de esto, no un rediseño. El chip dice <code>reporta a</code> porque
+      <strong>eso</strong> es lo que emite el componente (<code>map-bar.tsx:79</code>); el
+      vocabulario firmado del paquete es «puesto» y se usa en las superficies nuevas, pero el chip
+      vigente <strong>no se renombra acá</strong> —&nbsp;sería una segunda desviación de baseline
+      (J-4). Queda como deuda de vocabulario.</p>
     </div>
     <div class="panel-bd">
       <div class="mapbar">
         <select class="picker" aria-label="Arnés"><option>dev-full-cycle</option></select>
         <div class="mchip">empresa <b>alpacapurpura</b></div>
-        <div class="mchip">rol <b>Ingeniería · Desarrollo full-cycle</b></div>
+        <div class="mchip">reporta a <b>Ingeniería · Desarrollo full-cycle</b></div>
+        <div class="mchip">⬡ <b>prenter-marketplace</b></div>
         <div class="seg" role="group" aria-label="Artefactos">
           <span class="lbl">artefactos</span>
           <button type="button" aria-pressed="false">off</button>
@@ -280,18 +433,20 @@
   <!-- 2 ─────────────────────────────────────────────────────────── -->
   <section class="panel">
     <div class="panel-hd">
-      <h2>2 · La barra con la capa activa</h2>
+      <h2>2 · La barra con la capa activa y la franja de contexto</h2>
       <span class="badge desv">renombra un slot firmado</span><span class="badge prop">propuesta</span>
       <p class="why">El slot <code>Tokens</code> pasa a llamarse <strong>Mejora</strong> y se enciende
       (D17.1). Los cuatro slots siguen existiendo: no se quita nada, cambia una etiqueta —&nbsp;y por eso
       va al gate declarada. <code>Desempeño</code> y <code>Proceso</code> siguen apagados, pero el
       tooltip ya no puede decir «necesita telemetría»: <strong>la señal llega</strong>, lo que falta es
-      el diseño.</p>
+      el diseño —&nbsp;y el motivo no vive solo en el <code>title</code>, va también en texto para el
+      lector de pantalla.</p>
     </div>
     <div class="panel-bd">
       <div class="mapbar" style="border-radius:var(--radius-md) var(--radius-md) 0 0">
         <select class="picker" aria-label="Arnés"><option>dev-full-cycle</option></select>
         <div class="mchip">empresa <b>alpacapurpura</b></div>
+        <div class="mchip">reporta a <b>Ingeniería · Desarrollo full-cycle</b></div>
         <div class="seg" role="group" aria-label="Artefactos">
           <span class="lbl">artefactos</span>
           <button type="button" aria-pressed="false">off</button>
@@ -301,8 +456,12 @@
         <div class="seg" role="tablist" aria-label="Capas del mapa">
           <button type="button" role="tab" aria-selected="false">Estructura</button>
           <button type="button" role="tab" aria-selected="true">Mejora</button>
-          <button type="button" role="tab" disabled title="La señal ya llega (duration_ms). Falta el diseño de qué es «desempeño» a nivel Mapa">Desempeño</button>
-          <button type="button" role="tab" disabled title="Entra parcialmente por la capa Mejora. Falta el mapeo completo de eventos a fases">Proceso</button>
+          <button type="button" role="tab" disabled aria-describedby="m-desemp"
+                  title="La señal ya llega —duración por request y por herramienta—. Falta decidir qué es «desempeño» a nivel Mapa.">Desempeño</button>
+          <button type="button" role="tab" disabled aria-describedby="m-proc"
+                  title="Entra en parte por la capa Mejora. Falta mapear todos los eventos a fases del arnés.">Proceso</button>
+          <span class="sr-only" id="m-desemp">La señal ya llega —duración por request y por herramienta—. Falta decidir qué es «desempeño» a nivel Mapa.</span>
+          <span class="sr-only" id="m-proc">Entra en parte por la capa Mejora. Falta mapear todos los eventos a fases del arnés.</span>
         </div>
       </div>
       <div class="ctxbar">
@@ -311,53 +470,87 @@
         </label>
         <div>
           <div class="ctx-total num"><span class="u">USD</span>4,82</div>
-          <div class="ctx-sub num">61 corridas · 12 sesiones · 4 cajas</div>
+          <div class="ctx-sub num">de 61 corridas, 58 con atribución · 12 sesiones · 4 cajas</div>
         </div>
         <span class="ctx-note">estimado por el runtime, no es facturación</span>
         <div class="cov">
-          <div class="covbar" role="img" aria-label="Cobertura: 12 exactas, 3 por huella, 2 sin dato">
-            <i class="heat4" style="flex:12"></i><i class="heat2" style="flex:3"></i><i style="flex:2;background:var(--border)"></i>
+          <span class="cov-lbl">cobertura</span>
+          <div class="covbar" role="img" aria-label="Cobertura de la atribución: 44 corridas exactas, 9 por huella, 5 por proceso, 3 sin dato, sobre 61 corridas.">
+            <i class="heat4" style="flex:44"></i><i class="heat3" style="flex:9"></i><i class="heat2" style="flex:5"></i><i style="flex:3;background:var(--border)"></i>
           </div>
-          <span class="num">12 exactas · 3 por huella · 2 sin dato</span>
+          <span class="num">44 exactas · 9 por huella · 5 por proceso · 3 sin dato — sobre 61 corridas</span>
         </div>
+        <button type="button" class="ctx-link">qué guardamos</button>
       </div>
+      <p class="ctx-sub" style="margin:12px 0 0">
+        <strong>Los números cierran</strong> (H-8): 44 + 9 + 5 + 3 = 61 corridas, que es el
+        denominador que muestra el total; las 58 con atribución son las que suman dinero; las 3 sin
+        dato no se suman a ninguna caja y <strong>tampoco desaparecen</strong>. El rótulo
+        <code>cobertura</code> está siempre visible (H-11): cuando la franja envuelve, la barra no
+        queda huérfana. El enlace <strong>«qué guardamos»</strong> es la puerta al detalle de
+        privacidad y al borrado (H-5, §8) —&nbsp;antes ese botón vivía suelto en un panel didáctico.
+      </p>
+
+      <p class="sub">la misma franja con el reenvío OTLP encendido <span class="badge it2">H-7</span></p>
+      <div class="ctxbar" style="border-top:1px solid var(--border);border-radius:var(--radius-md)">
+        <label class="picker" style="display:inline-flex;gap:6px;align-items:center">
+          ventana <select style="font:inherit;background:transparent;color:inherit;border:0"><option>7 días</option></select>
+        </label>
+        <div>
+          <div class="ctx-total num"><span class="u">USD</span>4,82</div>
+          <div class="ctx-sub num">de 61 corridas, 58 con atribución · 12 sesiones · 4 cajas</div>
+        </div>
+        <span class="ctx-note">estimado por el runtime, no es facturación</span>
+        <span class="fwd">reenvío externo encendido → langfuse.local</span>
+        <button type="button" class="ctx-link">qué guardamos</button>
+      </div>
+      <p class="ctx-sub" style="margin:10px 0 0">
+        D13 firmó que el forward del daemon es del operador, <strong>nace apagado</strong> y lleva
+        «indicador visible en la UI». Este chip es ese indicador: <strong>solo se dibuja cuando está
+        encendido</strong> y nombra el destino. Su pantalla de configuración queda fuera de alcance
+        —&nbsp;el indicador no.
+      </p>
     </div>
   </section>
 
   <!-- 3 ─────────────────────────────────────────────────────────── -->
   <section class="panel">
     <div class="panel-hd">
-      <h2>3 · El canvas — misma geografía, tres marcas nuevas</h2><span class="badge prop">propuesta</span>
+      <h2>3 · El canvas — misma geografía, marcas nuevas en el flujo</h2><span class="badge prop">propuesta</span>
       <p class="why">Nada se mueve de sitio. Solo <strong>las cajas</strong> llevan cifra: la
       granularidad que la telemetría permite de verdad es <code>arnés × caja × sesión × turno</code>.
       Un número sobre un nodo de conocimiento o una regla sería inventado —&nbsp;esos van
-      <strong>«sin dato atribuible»</strong>, nunca en cero.</p>
+      <strong>«sin dato atribuible»</strong>, nunca en cero. El encabezado del carril
+      <strong>conserva su contador de nodos</strong> y suma el total de la fase al lado (J-8), y
+      ninguna marca nueva es absoluta: la esquina del nodo ya está ocupada por
+      <code>.caja-badge</code>/<code>.prop-badge</code> (J-9).</p>
     </div>
     <div class="panel-bd scroll">
       <div class="procrow">
         <div class="lane">
-          <div class="lane-hd"><h3>spec</h3><span class="mchip num">USD 1,92</span></div>
+          <div class="lane-hd"><h3>spec</h3><span class="count">1</span><span class="mchip num">USD 1,92</span></div>
           <div class="lane-body">
             <div class="node caja mej" style="--tc:var(--c-skill)">
               <span class="caja-badge">caja</span>
               <div class="node-top"><span class="glyph square">S</span><span class="node-nm">escribir el spec</span></div>
               <span class="node-trans">idea → spec</span>
               <div class="mej-cifra num">USD 1,92 <span class="pct">40 %</span></div>
-              <span class="fuga">re-warm TTL</span>
-              <div class="share"><i style="width:40%"></i></div>
+              <span class="fuga leve">re-warm TTL</span>
+              <div class="share" role="img" aria-label="40 % del gasto del arnés en esta ventana."><i style="width:40%"></i></div>
             </div>
           </div>
         </div>
         <div class="gutter"><div class="artchip"><span class="a-nm">spec.md</span></div></div>
         <div class="lane">
-          <div class="lane-hd"><h3>build</h3><span class="mchip num">USD 1,54</span></div>
+          <div class="lane-hd"><h3>build</h3><span class="count">2</span><span class="mchip num">USD 1,54</span></div>
           <div class="lane-body">
             <div class="node caja mej" style="--tc:var(--c-skill)">
               <span class="caja-badge">caja</span>
               <div class="node-top"><span class="glyph square">S</span><span class="node-nm">construir contra el spec</span></div>
               <span class="node-trans">spec → construido</span>
-              <div class="mej-cifra num">USD 1,54 <span class="pct">32 %</span></div>
-              <div class="share"><i style="width:32%"></i></div>
+              <div class="mej-cifra inexacta num" title="5 de las 31 corridas se dedujeron por el directorio donde corrieron.">USD 1,54 <span class="pct">32 %</span></div>
+              <span class="marca-conf" title="Deducido por el directorio donde corrió. Si ahí corre más de un arnés, este número los mezcla.">por proceso</span>
+              <div class="share" role="img" aria-label="32 % del gasto del arnés en esta ventana."><i style="width:32%"></i></div>
             </div>
             <div class="node sindato" style="--tc:var(--c-agent)">
               <div class="node-top"><span class="glyph circle">A</span><span class="node-nm">escribir pruebas</span></div>
@@ -367,29 +560,29 @@
         </div>
         <div class="gutter"><div class="artchip"><span class="a-nm">código+tests</span></div></div>
         <div class="lane">
-          <div class="lane-hd"><h3>review</h3><span class="mchip num">USD 0,89</span></div>
+          <div class="lane-hd"><h3>review</h3><span class="count">1</span><span class="mchip num">USD 0,89</span></div>
           <div class="lane-body">
             <div class="node caja mej" style="--tc:var(--c-skill)">
               <span class="caja-badge">caja</span>
               <div class="node-top"><span class="glyph square">S</span><span class="node-nm">revisar el build</span></div>
               <span class="node-trans">construido → revisado</span>
               <div class="mej-cifra num">USD 0,89 <span class="pct">18 %</span></div>
-              <span class="fuga">3 de 4 rechazos en gate</span>
-              <div class="share"><i style="width:18%"></i></div>
+              <span class="fuga">rechazo en gate</span>
+              <div class="share" role="img" aria-label="18 % del gasto del arnés en esta ventana."><i style="width:18%"></i></div>
             </div>
           </div>
         </div>
         <div class="gutter"><div class="artchip"><span class="a-nm">veredicto</span></div></div>
         <div class="lane">
-          <div class="lane-hd"><h3>release</h3><span class="mchip num">USD 0,47</span></div>
+          <div class="lane-hd"><h3>release</h3><span class="count">1</span><span class="mchip num">USD 0,47</span></div>
           <div class="lane-body">
             <div class="node caja mej" style="--tc:var(--c-skill)">
               <span class="caja-badge">caja</span>
               <div class="node-top"><span class="glyph square">S</span><span class="node-nm">promover a prod</span></div>
               <span class="node-trans">revisado → liberado</span>
-              <div class="mej-cifra inexacta num" title="Atribuido por huella del arnés (plugin_id_hash): corrió fuera de ArnesIA">USD 0,47 <span class="pct">10 %</span></div>
-              <span class="fuga leve">por huella</span>
-              <div class="share"><i style="width:10%"></i></div>
+              <div class="mej-cifra inexacta num" title="Atribuido por la huella del arnés (plugin_id_hash): corrió fuera de ArnesIA.">USD 0,47 <span class="pct">10 %</span></div>
+              <span class="marca-conf" title="Identificado por la huella del arnés: el runtime redacta su nombre. Corrió fuera de ArnesIA.">por huella</span>
+              <div class="share" role="img" aria-label="10 % del gasto del arnés en esta ventana."><i style="width:10%"></i></div>
             </div>
           </div>
         </div>
@@ -401,13 +594,66 @@
         </div>
         <div class="node sindato" style="--tc:var(--c-mcp);width:222px">
           <div class="node-top"><span class="glyph hexagon">M</span><span class="node-nm">acceso a la API</span></div>
-          <span class="sindato-lbl">sin dato atribuible — el costo del MCP va en la caja que lo llama</span>
+          <span class="sindato-lbl">sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa</span>
+        </div>
+        <div class="node sindato" style="--tc:var(--c-knowledge);width:222px">
+          <div class="node-top"><span class="glyph square">K</span><span class="node-nm">glosario del dominio</span></div>
+          <span class="sindato-lbl">sin dato atribuible — el conocimiento se paga en la caja que lo carga</span>
         </div>
       </div>
+      <p class="ctx-sub" style="margin-top:10px">
+        <strong>H-10:</strong> el nodo MCP ya no promete una atribución que no se puede ver. El
+        desglose por MCP dentro de la caja es el detector <strong>B13</strong> y está
+        <strong>fuera del MVP</strong>: el copy lo dice —&nbsp;«incluido, todavía no se desglosa»—
+        en vez de dejar al operador buscando un desglose que no existe.
+      </p>
+
+      <p class="sub">los cuatro niveles de confianza, juntos <span class="badge it2">H-13</span></p>
+      <div class="cuatro">
+        <figure>
+          <div class="node caja mej" style="--tc:var(--c-skill)">
+            <span class="caja-badge">caja</span>
+            <div class="node-top"><span class="glyph square">S</span><span class="node-nm">escribir el spec</span></div>
+            <div class="mej-cifra num">USD 1,92 <span class="pct">40 %</span></div>
+            <div class="share" role="img" aria-label="40 % del gasto del arnés en esta ventana."><i style="width:40%"></i></div>
+          </div>
+          <figcaption><strong>exacta</strong> — atributos de recurso que inyectamos al spawnear. <strong>Sin marca</strong>: la ausencia de marca <em>es</em> la señal.</figcaption>
+        </figure>
+        <figure>
+          <div class="node caja mej" style="--tc:var(--c-skill)">
+            <span class="caja-badge">caja</span>
+            <div class="node-top"><span class="glyph square">S</span><span class="node-nm">promover a prod</span></div>
+            <div class="mej-cifra inexacta num">USD 0,47 <span class="pct">10 %</span></div>
+            <span class="marca-conf">por huella</span>
+            <div class="share" role="img" aria-label="10 % del gasto del arnés en esta ventana."><i style="width:10%"></i></div>
+          </div>
+          <figcaption><strong>por huella</strong> — <code>plugin_id_hash</code> contra la tabla local. «Identificado por la huella del arnés, no por su nombre. Corrió fuera de ArnesIA.»</figcaption>
+        </figure>
+        <figure>
+          <div class="node caja mej" style="--tc:var(--c-skill)">
+            <span class="caja-badge">caja</span>
+            <div class="node-top"><span class="glyph square">S</span><span class="node-nm">construir contra el spec</span></div>
+            <div class="mej-cifra inexacta num">USD 1,54 <span class="pct">32 %</span></div>
+            <span class="marca-conf">por proceso</span>
+            <div class="share" role="img" aria-label="32 % del gasto del arnés en esta ventana."><i style="width:32%"></i></div>
+          </div>
+          <figcaption><strong>por proceso</strong> — el <code>cwd</code> mapea a una instalación del Portafolio. «Deducido por el directorio donde corrió. <strong>Si ahí corre más de un arnés, este número los mezcla.</strong>»</figcaption>
+        </figure>
+        <figure>
+          <div class="node caja sindato" style="--tc:var(--c-skill)">
+            <span class="caja-badge">caja</span>
+            <div class="node-top"><span class="glyph square">S</span><span class="node-nm">publicar el changelog</span></div>
+            <span class="sindato-lbl">sin dato atribuible — 3 corridas de esta ventana no se pudieron atribuir a ninguna caja</span>
+          </div>
+          <figcaption><strong>sin dato</strong> — ninguna de las tres vías resolvió. <strong>No hay número que marcar</strong>: sin cifra, sin barra, sin 0. Suma al cuarto segmento de la cobertura.</figcaption>
+        </figure>
+      </div>
       <p class="ctx-sub" style="margin-top:12px">
-        La cifra de <strong>release</strong> va con subrayado punteado: su
-        <code>atribucion_confianza</code> no es <code>exacta</code>. Cada número carga cómo se
-        atribuyó —&nbsp;esa es la diferencia entre un tablero y un tablero honesto.
+        Los cuatro se distinguen por <strong>texto</strong>, no por tono: «por huella» y «por proceso»
+        comparten color a propósito —&nbsp;lo que cambia es la palabra y el motivo. Ninguno se pinta
+        como «atribución aproximada»: eso taparía tres cosas distintas bajo una. Un número deducido
+        del <strong>directorio</strong> no vale lo mismo que uno deducido de la <strong>huella del
+        arnés</strong>, y el operador tiene que poder distinguirlos antes de actuar sobre la cifra.
       </p>
     </div>
   </section>
@@ -415,61 +661,109 @@
   <!-- 4 ─────────────────────────────────────────────────────────── -->
   <section class="panel">
     <div class="panel-hd">
-      <h2>4 · La tarjeta de punto de mejora</h2><span class="badge prop">propuesta</span>
-      <p class="why">El corazón del entregable. Regla A4: una cifra entra solo si sale de dato propio,
-      está cotizada en dinero y viene con <strong>un</strong> fix. Y A3: el sesgo se declara, y va
-      <strong>en contra</strong> de la recomendación —&nbsp;si igual conviene, conviene de verdad.</p>
+      <h2>4 · La lista de puntos de mejora — debajo del canvas</h2>
+      <span class="badge it2">H-1 · H-2 · H-4</span><span class="badge prop">propuesta</span>
+      <p class="why">El corazón del entregable, <strong>con puerta de entrada</strong>. La lista vive
+      debajo del canvas —&nbsp;no es un panel flotante ni un modal—, ordenada por ahorro contrafactual
+      descendente. <strong>No hay botón dentro del nodo</strong>: el nodo ya es un
+      <code>&lt;button&gt;</code> (<code>arnes-node.tsx:52</code>) y anidar controles es DOM inválido;
+      seleccionar la caja <strong>resalta</strong> su tarjeta y la trae a la vista, y enfocar una
+      tarjeta resalta su caja. Regla A4: una cifra entra solo si sale de dato propio, está cotizada en
+      dinero y viene con <strong>un</strong> fix. Y A3: el sesgo se declara, y va <strong>en
+      contra</strong> de la recomendación —&nbsp;si igual conviene, conviene de verdad.</p>
     </div>
-    <div class="panel-bd" style="display:flex;flex-direction:column;gap:12px">
-      <div class="mejora">
-        <h3><span class="ic">⚠</span>La caja «escribir el spec» reescribe el cache en cada corrida</h3>
-        <p class="lede">Gasta <strong class="num">USD 0,84</strong> de los <span class="num">1,92</span> de la caja
-        (<span class="num">44 %</span>) escribiendo cache que se vence antes de volver a leerse.</p>
-        <dl>
-          <dt>Contrafactual</dt>
-          <dd class="num">con TTL de 1 h, las mismas 14 corridas costaban <strong>USD 0,31</strong> → diferencia <strong>USD 0,53</strong> por corrida</dd>
-          <dt>Umbral</dt>
-          <dd class="calc">relectura 61 % &gt; break-even (2−1,25)/(2−0,1) = 39,47 % &nbsp;<button type="button" class="btn" style="padding:1px 8px;font-size:var(--text-xs)">ver el cálculo</button></dd>
-          <dt>Confianza</dt>
-          <dd class="num">exacta · 14 de 14 corridas con atribución</dd>
-          <dt>Sesgo</dt>
-          <dd class="sesgo">asume 0 lecturas fuera de la ventana de 7 días → <strong>subestima</strong> el ahorro</dd>
-        </dl>
-        <div class="fixrow">
-          <span class="fix">Fijar <code>cache_ttl: 1h</code> en esta caja</span>
-          <span class="scorev">score v1</span>
-          <button type="button" class="btn">Descartar</button>
-          <button type="button" class="btn primary">Proponerlo en el chat</button>
-        </div>
+    <div class="panel-bd">
+      <div class="lista-hd">
+        <h3>Puntos de mejora</h3><span class="cnt num">2</span>
+        <span class="orden">ordenados por ahorro contrafactual, de mayor a menor</span>
       </div>
+      <div class="lista-bd">
+        <div class="mejora crit resaltada">
+          <div class="mejora-chips">
+            <span class="sev crit">crítico</span>
+            <span class="chip-neutro">requiere el hook de gate — se construye en este paquete</span>
+            <span class="vinculo">↔ caja seleccionada</span>
+          </div>
+          <h3><span class="ic" aria-hidden="true">⚠</span>La caja «revisar el build» se rechaza en el gate 3 de cada 4 veces</h3>
+          <p class="lede">Las corridas rechazadas costaron <strong class="num">USD 0,67</strong> de los
+          <span class="num">0,89</span> de la caja (<span class="num">75 %</span>): se paga el trabajo y se descarta el resultado.
+          <strong>Este es el join</strong> —&nbsp;el dinero sale de la telemetría, el rechazo sale del gate.</p>
+          <dl>
+            <dt>Contrafactual</dt>
+            <dd class="num">si el gate pasara a la primera, el ciclo costaba <strong>USD 0,22</strong> en vez de 0,89 → diferencia <strong>USD 0,67 en la ventana</strong> (USD 0,17 por corrida, sobre 4)</dd>
+            <dt>Patrón</dt>
+            <dd>los 3 rechazos citan el mismo motivo: <em>«el veredicto no lista hallazgos»</em></dd>
+            <dt>Confianza</dt>
+            <dd class="num">exacta · 4 de 4 corridas con atribución</dd>
+            <dt>Sesgo</dt>
+            <dd class="sesgo">no descuenta lo que la revisión aporta aunque rechace → <strong>sobreestima</strong> el desperdicio</dd>
+          </dl>
+          <div class="fixrow">
+            <span class="fix">El contrato de la caja no exige <code>hallazgos[]</code> en el entregable</span>
+            <span class="scorev">score v1</span>
+            <button type="button" class="btn">Descartar</button>
+            <button type="button" class="btn primary">Proponerlo en el chat</button>
+          </div>
+        </div>
 
-      <div class="mejora" style="border-left-color:var(--crit);border-color:color-mix(in srgb,var(--crit) 42%,transparent);background:color-mix(in srgb,var(--crit) 5%,var(--card))">
-        <h3><span class="ic" style="color:var(--crit)">⚠</span>La caja «revisar el build» se rechaza en el gate 3 de cada 4 veces</h3>
-        <p class="lede">Las corridas rechazadas costaron <strong class="num">USD 0,67</strong> de los
-        <span class="num">0,89</span> de la caja (<span class="num">75 %</span>): se paga el trabajo, se descarta el resultado.
-        <strong>Este es el join</strong> —&nbsp;el dinero sale de la telemetría, el rechazo sale del gate.</p>
-        <dl>
-          <dt>Contrafactual</dt>
-          <dd class="num">si el gate pasara a la primera, el ciclo costaba <strong>USD 0,22</strong> en vez de 0,89</dd>
-          <dt>Patrón</dt>
-          <dd>los 3 rechazos citan el mismo motivo: <em>«el veredicto no lista hallazgos»</em></dd>
-          <dt>Confianza</dt>
-          <dd class="num">exacta · 4 de 4 corridas</dd>
-          <dt>Sesgo</dt>
-          <dd class="sesgo">no descuenta lo que la revisión aporta aunque rechace → <strong>sobreestima</strong> el desperdicio</dd>
-        </dl>
-        <div class="fixrow">
-          <span class="fix">El contrato de la caja no exige <code>hallazgos[]</code> en el entregable</span>
-          <span class="scorev">score v1</span>
-          <button type="button" class="btn">Descartar</button>
-          <button type="button" class="btn primary">Proponerlo en el chat</button>
+        <div class="mejora">
+          <div class="mejora-chips">
+            <span class="sev">atención</span>
+            <span class="chip-neutro">solo con telemetría de ArnesIA</span>
+          </div>
+          <h3><span class="ic" aria-hidden="true">⚠</span>La caja «escribir el spec» reescribe el cache en cada corrida</h3>
+          <p class="lede">Gasta <strong class="num">USD 0,84</strong> de los <span class="num">1,92</span> de la caja
+          (<span class="num">44 %</span>) escribiendo cache que se vence antes de volver a leerse.</p>
+          <dl>
+            <dt>Contrafactual</dt>
+            <dd class="num">con TTL de 1 h, las mismas 14 corridas costaban <strong>USD 0,31</strong> → diferencia <strong>USD 0,53 en la ventana</strong> (USD 0,04 por corrida)</dd>
+            <dt>Umbral</dt>
+            <dd class="calc">relectura 61 % &gt; break-even (2−1,25)/(2−0,1) = 39,47 %
+              <button type="button" class="btn mini" aria-expanded="true" aria-controls="calc-b1">ocultar el cálculo</button>
+              <div class="calcbox" id="calc-b1">
+                <span>break-even = (escritura − lectura) / (escritura − relectura)</span>
+                <span>= (2,00 − 1,25) / (2,00 − 0,10) = 0,75 / 1,90 = <strong>39,47 %</strong></span>
+                <span>medido: 861 de 1 412 bloques releídos = <strong>61,0 %</strong></span>
+                <span>ventana: 7 días · corridas contadas: 14 de 14 con atribución exacta</span>
+                <span>múltiplos del catálogo <code>v2026-07-20</code>, no constantes tecleadas</span>
+              </div>
+            </dd>
+            <dt>Confianza</dt>
+            <dd class="num">exacta · 14 de 14 corridas con atribución</dd>
+            <dt>Sesgo</dt>
+            <dd class="sesgo">asume 0 lecturas fuera de la ventana de 7 días → <strong>subestima</strong> el ahorro</dd>
+          </dl>
+          <div class="fixrow">
+            <span class="fix">Fijar <code>cache_ttl: 1h</code> en esta caja</span>
+            <span class="scorev">score v1</span>
+            <button type="button" class="btn">Descartar</button>
+            <button type="button" class="btn primary">Proponerlo en el chat</button>
+          </div>
         </div>
       </div>
-      <p class="ctx-sub" style="margin:0">
-        <strong>«Proponerlo en el chat»</strong> (D17.3) no escribe archivos: abre el chat con el cambio
-        propuesto y lo aplica el camino ya firmado, con sus permisos y su gate. Nada de una segunda vía
-        de escritura hacia el paquete de un tercero.
+      <p class="ctx-sub" style="margin:12px 0 0">
+        <strong>«Proponerlo en el chat»</strong> (D17.3 · J-5) no escribe archivos: abre el chat con el
+        cambio propuesto y lo aplica el camino ya firmado, con sus permisos y su gate. Nada de una
+        segunda vía de escritura hacia el paquete de un tercero. Si el arnés queda fuera del alcance
+        del chat embebido, el botón va <code>disabled</code> y el motivo se dice en texto, no solo en
+        el <code>title</code>. <strong>J-1:</strong> la tarjeta crítica declara que su señal de gate
+        <strong>todavía no existe</strong> —&nbsp;el hook se construye en este paquete; si no se
+        construye, el detector nace apagado con motivo, jamás dibujado como si tuviera dato.
+        <strong>J-2:</strong> la tarjeta de re-warm declara que <strong>solo aplica con telemetría de
+        ArnesIA</strong>: en una instalación mayormente S2 degradado ese ejemplo no existe.
       </p>
+
+      <p class="sub">el estado vacío de la lista <span class="badge it2">H-2</span></p>
+      <div class="vacio">
+        <strong>Hay datos y ningún punto de mejora que pase el corte.</strong>
+        <p>Los seis detectores corrieron sobre 61 corridas. Ninguno encontró una fuga que se pueda
+        cotizar y arreglar.</p>
+        <p><span class="chip-neutro">re-warm por TTL</span> <span class="chip-neutro">rechazo en gate</span>
+        <span class="chip-neutro">costo de la rotación</span> <span class="chip-neutro">sesión abandonada</span>
+        <span class="chip-neutro">cambio de modelo</span> <span class="chip-neutro">gasto por arnés × puesto</span></p>
+        <p>Sin este copy, «no hay tarjetas» se lee como «la sección está rota». Y no se dibuja cuando
+        directamente no hay datos: ahí manda el estado 1 de la franja.</p>
+      </div>
     </div>
   </section>
 
@@ -478,7 +772,9 @@
     <div class="panel-hd">
       <h2>5 · Inspector — cuarta tab «Mejora»</h2><span class="badge prop">propuesta</span>
       <p class="why">Las tres tabs vigentes (Resumen · Contenido · Corridas) no se tocan. La cuarta
-      muestra, para la caja seleccionada, las cuatro cosas que no caben en el canvas.</p>
+      muestra, para la caja seleccionada, las cuatro cosas que no caben en el canvas. <strong>Una sola
+      ventana</strong>: la de la capa. El encabezado dice «7 días» y la cuenta de corridas es el
+      <em>denominador</em>, no una segunda ventana (J-3).</p>
     </div>
     <div class="panel-bd" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
       <div class="drawer">
@@ -497,7 +793,7 @@
         </div>
         <div class="dw-body">
           <div class="sec">
-            <h4>Tokens · últimas 14 corridas</h4>
+            <h4>Tokens · 7 días (14 corridas)</h4>
             <table class="tbl">
               <thead><tr><th>bucket</th><th style="text-align:right">tokens</th><th style="text-align:right">USD</th></tr></thead>
               <tbody>
@@ -509,18 +805,20 @@
                 <tr><td>razonamiento</td><td class="n na" colspan="2">no aplica en este runtime</td></tr>
               </tbody>
             </table>
-            <p class="ctx-sub" style="margin-top:6px">«no aplica» ≠ 0. Un cero donde el concepto no
-            existe sería mentira.</p>
+            <p class="ctx-sub" style="margin-top:6px">«No aplica» no es 0. Un cero donde el concepto no
+            existe sería mentira —&nbsp;y el 0 de la fila de 1 h sí es un dato: ese bucket existe y esta
+            ventana no escribió ninguno. Las cinco filas con número suman <span class="num">1,92</span>.</p>
           </div>
           <div class="sec">
             <h4>Costo — reportado vs. calculado</h4>
             <div class="paridad">
               <span>runtime <strong class="num">USD 1,92</strong></span>
               <span>nuestro catálogo <strong class="num">USD 1,92</strong></span>
-              <span class="ok">✓ coinciden</span>
+              <span class="ok">coinciden</span>
             </div>
-            <p class="ctx-sub" style="margin-top:6px">Guardamos los dos: si divergen, o el catálogo
-            está viejo o el runtime cambió su tarifa. Es el test de paridad corriendo a la vista.</p>
+            <p class="ctx-sub" style="margin-top:6px">Guardamos los dos. Si difieren, o nuestro catálogo
+            está viejo o el runtime cambió su tarifa —&nbsp;y la UI no elige por su cuenta. Es el test de
+            paridad corriendo a la vista.</p>
           </div>
           <div class="sec">
             <h4>El join — corridas de esta caja</h4>
@@ -535,11 +833,17 @@
           </div>
           <div class="sec">
             <h4>Detectores</h4>
-            <div class="det"><span class="dot on"></span><span class="txt">re-warm por TTL vencido <strong>· activo</strong></span></div>
+            <div class="det"><span class="dot on"></span><span class="txt">re-warm por TTL <strong>· activo</strong></span></div>
+            <div class="det"><span class="dot on"></span><span class="txt">gasto por arnés × puesto <strong>· activo</strong>
+              <span class="na">alimenta la fila del Portafolio</span></span></div>
+            <div class="det"><span class="dot clean"></span><span class="txt">rechazo en gate · sin hallazgos
+              <span class="na">2 de 14 rechazos: por debajo del corte de esta caja</span></span></div>
             <div class="det"><span class="dot clean"></span><span class="txt">cambio de modelo · sin hallazgos</span></div>
             <div class="det"><span class="dot clean"></span><span class="txt">sesión abandonada · sin hallazgos</span></div>
             <div class="det"><span class="dot off"></span><span class="txt">costo de la rotación
               <span class="na">no disponible: 2 de 3 rotaciones ocurrieron fuera de ArnesIA</span></span></div>
+            <div class="det"><span class="dot off"></span><span class="txt">los otros 7 detectores
+              <span class="na">no medido todavía — no pasan la regla A4 en este MVP</span></span></div>
           </div>
         </div>
       </div>
@@ -552,8 +856,13 @@
           <li><strong>El join, a nivel nodo</strong> — esta tabla sola es la mitad de la frase objetivo.
           Dinero y proceso en las mismas cuatro filas.</li>
           <li><strong>Detectores, con los que NO aplican</strong> — y el motivo. Un detector ausente
-          sin explicación se lee como «todo bien».</li>
+          sin explicación se lee como «todo bien». Se listan <strong>los seis del MVP</strong>, y los
+          otros siete se declaran <em>no medidos</em>, jamás «sin hallazgos».</li>
         </ol>
+        <p class="ctx-sub" style="margin-top:12px">El drawer real mide <strong>340 px</strong>
+        (<code>inspector.css:13</code>), no los 380 de la iteración 1: acá se dibuja contra el ancho
+        de verdad. Con cuatro tabs las etiquetas entran sin scroll horizontal —&nbsp;si apareciera,
+        se corrige la etiqueta, no el contenedor.</p>
       </div>
     </div>
   </section>
@@ -561,84 +870,177 @@
   <!-- 6 ─────────────────────────────────────────────────────────── -->
   <section class="panel">
     <div class="panel-hd">
-      <h2>6 · La tarjeta del Portafolio</h2><span class="badge prop">propuesta · amplía el alcance (D17.2)</span>
+      <h2>6 · La tarjeta del Portafolio</h2>
+      <span class="badge it2">H-3 · H-12</span><span class="badge prop">propuesta · amplía el alcance (D17.2)</span>
       <p class="why">El Mapa mira un arnés. «En este puesto» es comparación <em>entre</em> arneses, y eso
       vive en el Portafolio. Sin esta superficie el MVP no puede decir la frase objetivo completa. Es
       además el eje que nadie más cubre: ccusage, tokscale y Dynatrace agregan por herramienta, modelo,
-      proyecto y día —&nbsp;ninguno por unidad de trabajo.</p>
+      proyecto y día —&nbsp;ninguno por unidad de trabajo. Acá se usa <strong>puesto</strong>, el término
+      firmado (D9.8/D12.2), y cada fila lleva <strong>su marca de confianza</strong> y un botón que
+      <strong>cruza al Mapa</strong>.</p>
     </div>
     <div class="panel-bd scroll">
       <table class="pf">
-        <thead><tr><th>arnés · puesto</th><th class="n">USD/corrida</th><th>tendencia</th><th>punto de mejora</th></tr></thead>
+        <thead><tr><th>arnés · puesto</th><th class="n">USD/corrida</th><th>confianza</th><th>tendencia</th><th>punto de mejora</th><th></th></tr></thead>
         <tbody>
           <tr>
             <td><span class="arn">vitalia</span><br><span class="puesto">Producto · Product Owner</span></td>
             <td class="n">0,31</td>
-            <td><span class="spark" role="img" aria-label="tendencia en alza"><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i><i style="height:18px"></i><i class="last" style="height:15px"></i></span></td>
-            <td><span class="tag warn">⚠ re-warm de cache · USD 0,53/corrida</span></td>
+            <td><span class="marca-conf" title="Identificado por la huella del arnés: el runtime redacta su nombre. Corrió fuera de ArnesIA.">por huella</span></td>
+            <td><span class="spark" role="img" aria-label="Tendencia en alza en las últimas 5 corridas."><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i><i style="height:18px"></i><i class="last" style="height:15px"></i></span></td>
+            <td><span class="tag warn">re-warm de cache · USD 0,12/corrida</span></td>
+            <td><button type="button" class="btn mini">Abrir en Mapa</button></td>
           </tr>
           <tr>
             <td><span class="arn">dev-full-cycle</span><br><span class="puesto">Ingeniería · Desarrollo full-cycle</span></td>
-            <td class="n">0,12</td>
-            <td><span class="spark" role="img" aria-label="tendencia estable"><i style="height:7px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:7px"></i><i class="last" style="height:7px"></i></span></td>
-            <td><span class="tag ok">✓ sin fugas detectadas</span></td>
+            <td class="n">0,08</td>
+            <td><span class="puesto">exacta</span></td>
+            <td><span class="spark" role="img" aria-label="Tendencia estable en las últimas 5 corridas."><i style="height:7px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:7px"></i><i class="last" style="height:7px"></i></span></td>
+            <td><span class="tag crit">rechazo en gate · USD 0,67 en la ventana</span></td>
+            <td><button type="button" class="btn mini">Abrir en Mapa</button></td>
           </tr>
+          <tr>
+            <td><span class="arn">harness</span><br><span class="puesto">Ingeniería · Kit de construcción</span></td>
+            <td class="n">0,05</td>
+            <td><span class="puesto">exacta</span></td>
+            <td><span class="spark" role="img" aria-label="Tendencia estable en las últimas 5 corridas."><i style="height:5px"></i><i style="height:6px"></i><i style="height:5px"></i><i style="height:6px"></i><i class="last" style="height:5px"></i></span></td>
+            <td><span class="tag ok">sin fugas detectadas</span></td>
+            <td><button type="button" class="btn mini">Abrir en Mapa</button></td>
+          </tr>
+          <tr class="sep"><td colspan="6">Sin datos de telemetría</td></tr>
           <tr>
             <td><span class="arn">luana-feature-cycle</span><br><span class="puesto">Producto · Ciclo de feature</span></td>
             <td class="n" style="color:var(--muted-foreground)">sin dato</td>
             <td><span class="puesto">—</span></td>
+            <td><span class="puesto">pocas corridas para una tendencia</span></td>
             <td><span class="tag none">nunca corrió con telemetría</span></td>
+            <td><button type="button" class="btn mini" title="Sin telemetría, el Mapa abre en la capa Estructura.">Abrir en Mapa</button></td>
           </tr>
         </tbody>
       </table>
-      <p class="ctx-sub" style="margin-top:12px">La tercera fila es deliberada: un arnés sin datos
-      <strong>dice que no tiene datos</strong>. No aparece en cero, ni desaparece de la tabla.</p>
+      <p class="ctx-sub" style="margin-top:12px">
+        Costo estimado por el runtime, no es facturación. Los arneses sin datos lo dicen: no aparecen
+        en cero. <em>(H-12: sin esta línea al pie, un USD pelado en una tabla se lee como facturación
+        —&nbsp;justo lo que D10 prohíbe.)</em>
+      </p>
+      <p class="ctx-sub" style="margin-top:8px">
+        <strong>H-3 · el puente:</strong> «Abrir en Mapa» reusa la acción que el Portafolio ya tiene
+        (GAP-1) y le agrega un parámetro de capa: aterriza en el Mapa de ese arnés
+        <strong>con la capa Mejora ya activa</strong> y <strong>la caja del punto de mejora
+        seleccionada</strong>, que a su vez resalta su tarjeta en la lista de §4. Sin este puente, la
+        frase objetivo queda partida en dos pantallas sueltas. La última fila abre en
+        <strong>Estructura</strong> —&nbsp;no hay capa Mejora que mostrar— y lo dice antes de navegar.
+        La cuarta fila es deliberada: un arnés sin datos <strong>dice que no tiene datos</strong>, no
+        aparece en cero ni desaparece de la tabla, y al ordenar por costo <strong>queda agrupado
+        aparte</strong> bajo su propio rótulo, nunca intercalado como si valiera 0.
+      </p>
     </div>
   </section>
 
   <!-- 7 ─────────────────────────────────────────────────────────── -->
   <section class="panel">
     <div class="panel-hd">
-      <h2>7 · Los siete estados honestos</h2><span class="badge prop">propuesta</span>
-      <p class="why">Un mockup que solo dibuja el caso feliz no alcanza para firmar. Estos siete son
-      los que van a pasar de verdad, y cada uno tiene que verse antes de que exista el código.</p>
+      <h2>7 · Los estados honestos — 9 de dato + 3 de transporte</h2>
+      <span class="badge it2">H-6 · H-9 · H-14 · J-10</span><span class="badge prop">propuesta</span>
+      <p class="why">Un mockup que solo dibuja el caso feliz no alcanza para firmar. La iteración 1
+      dibujaba 7 estados de <em>dato</em> y <strong>ninguno de transporte</strong>: si el daemon no
+      responde, el Mapa quedaba sin nada que decir mientras el Portafolio ya tenía sus estados
+      (<code>portafolio-list.tsx:280-307</code>). Acá están los doce, y cada uno tiene que verse antes
+      de que exista el código.</p>
     </div>
     <div class="panel-bd">
+      <p class="sub">A · estados del dato</p>
       <div class="states">
         <div class="state">
           <h4>1 · Sin datos todavía</h4>
-          <div class="demo"><span class="big">— —</span><br>Este arnés nunca corrió con telemetría.</div>
+          <div class="demo"><span class="big">— —</span><br>Este arnés nunca corrió con telemetría.<br>
+          <span style="color:var(--muted-foreground)">Abrí una sesión desde ArnesIA y la medición arranca sola.</span></div>
           <p>Qué hacer, no un tablero en cero. El cero es una afirmación, y sería falsa.</p>
         </div>
         <div class="state">
+          <h4>1b · Sin corridas en esta ventana <span class="badge it2">H-9</span></h4>
+          <div class="demo">Sin corridas en los últimos 7 días. La última fue el 12/07.
+          <br><button type="button" class="btn mini" style="margin-top:5px">Ver todo</button></div>
+          <p>«Nunca corrió» y «no corrió en estos 7 días» son cosas distintas. El estado 1 solo cubre
+          la primera; sin este, cambiar la ventana devuelve un vacío mudo.</p>
+        </div>
+        <div class="state">
           <h4>2 · Cobertura parcial</h4>
-          <div class="demo"><span class="big num">USD 3,10</span> <span style="color:var(--warn)">de 5 corridas, 3</span><br>2 corridas sin atribución.</div>
+          <div class="demo"><span class="big num">USD 3,10</span> <strong>— de 5 corridas, 3</strong><br>2 corridas quedaron sin atribución.</div>
           <p>El total dice sobre cuántas corridas se calculó, o se lee como completo.</p>
         </div>
         <div class="state">
-          <h4>3 · Corrió fuera de ArnesIA (S2)</h4>
-          <div class="demo">re-warm por TTL<br><span style="color:var(--muted-foreground)">no disponible — sin el <code>result</code> del stream-json</span></div>
-          <p>El detector se muestra apagado <em>con el motivo</em>, no se esconde.</p>
+          <h4>3 · Corrió fuera de ArnesIA, sin instrumentar</h4>
+          <span class="rot">S2 degradado</span>
+          <div class="demo">re-warm por TTL<br><span style="color:var(--muted-foreground)">no disponible: sin el <code>result</code> del stream-json.</span></div>
+          <p>El detector se muestra apagado <em>con el motivo</em>, no se esconde. Los otros cinco
+          siguen funcionando.</p>
+        </div>
+        <div class="state">
+          <h4>3b · Corrió fuera de ArnesIA, instrumentado <span class="badge it2">J-10</span></h4>
+          <span class="rot">S2 instrumentado</span>
+          <div class="demo"><span class="big num">USD 0,74</span><br>Llega la misma señal que dentro de ArnesIA.</div>
+          <p>El bloque <code>env</code> de los settings del proyecto enciende el canal completo
+          (ANEXO H9, verificado en tres variantes con control de puerto): dinero incluido, y B1
+          aplica. <strong>Son dos niveles de dato distintos, no el mismo con otro nombre</strong>, y
+          por eso no comparten rótulo.</p>
         </div>
         <div class="state">
           <h4>4 · Otro runtime</h4>
-          <div class="demo"><span class="big num">USD 0,74</span><br><span style="color:var(--muted-foreground)">calculado con catálogo <code>v2026-07-20</code> — este runtime no reporta costo</span></div>
-          <p>Cuando el precio lo ponemos nosotros, se dice.</p>
+          <span class="rot">estado previsto</span>
+          <div class="demo"><span class="big num">USD 0,74</span><br><span style="color:var(--muted-foreground)">calculado con el catálogo <code>v2026-07-20</code> — este runtime no reporta costo</span></div>
+          <p>Cuando el precio lo ponemos nosotros, se dice. <strong>El MVP entrega un solo adaptador
+          (Claude Code)</strong>: el esquema es multi-runtime, la UI tiene que poder mostrar el estado,
+          y el paquete <em>no</em> promete un segundo runtime (J-7).</p>
         </div>
         <div class="state">
           <h4>5 · Catálogo viejo</h4>
-          <div class="demo" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent)">⚠ Precios del release, sin refrescar desde el 20/07.</div>
-          <p>Funciona sin internet —&nbsp;y avisa que está funcionando así.</p>
+          <div class="demo" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent)">⚠ Precios del release, sin refrescar desde el 20/07.<br>
+          <span style="color:var(--muted-foreground)">Funciona sin internet; te avisamos que está funcionando así.</span></div>
+          <p>El aviso va en la superficie, no en un tooltip.</p>
         </div>
         <div class="state">
           <h4>6 · Atribución por huella</h4>
-          <div class="demo">vitalia <span style="border-bottom:1px dotted currentColor">USD 0,47</span><br><span style="color:var(--muted-foreground)">identificado por huella del arnés, no por nombre</span></div>
-          <p>El runtime redacta el nombre del plugin; la huella es estable. Se dice cuál de las dos se usó.</p>
+          <div class="demo">vitalia <span style="border-bottom:1px dotted currentColor">USD 0,47</span><br><span style="color:var(--muted-foreground)">identificado por la huella del arnés, no por su nombre</span></div>
+          <p>El runtime redacta el nombre del plugin; la huella es estable. Se dice cuál de las dos se
+          usó. Si la huella no está en la tabla local, la cifra no se atribuye: suma al segmento «sin dato».</p>
         </div>
         <div class="state">
-          <h4>7 · Qué guardamos</h4>
-          <div class="demo">Nada de tu cuenta. Nada del contenido.<br><span style="color:var(--muted-foreground)">Retención 90 días · <span style="color:var(--primary)">borrar la telemetría de este arnés</span></span></div>
-          <p>La telemetría llega con email e ids de cuenta: los descartamos en la puerta. Se dice, y hay botón.</p>
+          <h4>7 · Qué guardamos <span class="badge it2">H-14</span></h4>
+          <div class="demo">Nada de tu cuenta. Nada de la conversación.<br>
+          <span style="color:var(--muted-foreground)">Lo que llega con contenido se descarta antes de escribirse.</span><br>
+          <span style="color:var(--muted-foreground)">Retención 90 días <span class="chip-neutro" style="font-size:9px">valor propuesto, sin firmar</span> · <span style="color:var(--primary)">qué guardamos</span></span></div>
+          <p>La telemetría llega con email e ids de cuenta por OTel, <strong>y con el prompt y la
+          respuesta en claro por el canal de hooks</strong> (ANEXO H4). Los descartamos en la puerta.
+          La promesa dejó de ser sobre el canal y pasó a ser sobre <em>lo guardado</em>: por eso el
+          detalle lista los campos que sí se guardan (§8). El 90 no está firmado (J-6).</p>
+        </div>
+      </div>
+
+      <p class="sub">B · estados del transporte <span class="badge it2">H-6</span></p>
+      <div class="states">
+        <div class="state">
+          <h4>10 · Cargando</h4>
+          <div class="demo"><span class="skel" style="width:78px"></span> <span style="color:var(--muted-foreground)">midiendo…</span><br>
+          <span class="skel" style="width:130px;height:11px;margin-top:5px"></span></div>
+          <p>La geografía del canvas se pinta <strong>completa</strong>; solo las cifras son skeleton, y
+          el selector de ventana sigue usable. El layout nunca se colapsa y vuelve a saltar.</p>
+        </div>
+        <div class="state">
+          <h4>11 · Error con motivo</h4>
+          <div class="demo" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent)">
+          No se pudo leer la telemetría — la base local está bloqueada por otro proceso.
+          <br><button type="button" class="btn mini" style="margin-top:5px">Reintentar</button></div>
+          <p>La franja <strong>no desaparece</strong>: desaparecer se leería como «no hay capa». Motivo
+          real y reintento, nunca «Error al obtener los datos».</p>
+        </div>
+        <div class="state">
+          <h4>12 · El daemon no respondió</h4>
+          <div class="demo" style="border-color:color-mix(in srgb,var(--warn) 45%,transparent)">
+          <span class="big num">USD 4,82</span> <span class="chip-neutro" style="font-size:9px">posiblemente vieja</span><br>
+          El daemon no respondió. Lo que ves es la última medición, del 26/07 10:12.</div>
+          <p><strong>Distinto de «no hay datos»</strong>: hay datos, lo que falta es el transporte. Se
+          conserva la última medición y se marca como tal, en vez de fingir un cero o un vacío.</p>
         </div>
       </div>
     </div>
@@ -647,25 +1049,106 @@
   <!-- 8 ─────────────────────────────────────────────────────────── -->
   <section class="panel">
     <div class="panel-hd">
-      <h2>8 · Traza — de dónde sale cada cosa</h2><span class="badge vig">verificado en vivo</span>
+      <h2>8 · Qué guardamos, y cómo se borra</h2>
+      <span class="badge it2">H-5 · H-14</span><span class="badge prop">propuesta</span>
+      <p class="why">En la iteración 1 «borrar la telemetría de este arnés» era una frase dentro de un
+      panel didáctico: sin ubicación, no es construible. Ahora vive detrás del enlace
+      <strong>«qué guardamos»</strong> de la franja (§2) y abre este diálogo: qué NO se guarda · qué SÍ
+      se guarda, por nombre · retención · borrado con confirmación. La lista de campos
+      <strong>es la misma allowlist que aplica la ingesta</strong>, no una redacción aparte —&nbsp;si
+      se separan, la promesa se vuelve marketing.</p>
+    </div>
+    <div class="panel-bd" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <div class="dlg" role="dialog" aria-modal="true" aria-label="Qué guardamos de la telemetría">
+        <div class="dlg-hd">Qué guardamos de la telemetría</div>
+        <div class="dlg-bd">
+          <div>
+            <h4>Qué NO se guarda</h4>
+            <p>No guardamos nada de tu cuenta: ni email, ni identificadores de usuario, ni de
+            organización.</p>
+            <p style="margin-top:5px">Y no guardamos nada del contenido: ni tu prompt, ni la respuesta,
+            ni lo que leyó o escribió una herramienta. Eso llega por el canal de hooks y
+            <strong>se descarta antes de escribirse en disco</strong>.</p>
+          </div>
+          <div>
+            <h4>Qué SÍ se guarda</h4>
+            <p>Guardamos, por turno: qué arnés, qué caja, qué sesión, qué modelo, cuántos tokens de
+            cada tipo, cuánto costó, cuánto tardó y si el gate lo aceptó o lo rechazó.</p>
+            <ul class="campos">
+              <li>session_id</li><li>prompt_id</li><li>arnes_id</li><li>caja_id</li><li>modelo</li>
+              <li>entrada</li><li>salida</li><li>cache_lectura</li><li>cache_escritura_5m</li>
+              <li>cache_escritura_1h</li><li>costo_reportado_micros</li><li>costo_calculado_micros</li>
+              <li>catalogo_version</li><li>atribucion_confianza</li><li>duration_ms</li>
+              <li>hook_event_name</li><li>tool_name</li><li>cwd normalizado</li>
+            </ul>
+            <p class="ctx-sub" style="margin-top:6px">Es la misma allowlist que aplica la ingesta, en
+            los <strong>dos</strong> caminos (receptor OTLP y hook). Un campo nuevo del runtime no se
+            cuela: se descarta, y el descarte queda contable.</p>
+          </div>
+          <div>
+            <h4>Retención</h4>
+            <p>Se borra solo a los <strong>90</strong> días.
+            <span class="chip-neutro">valor propuesto, sin firmar</span></p>
+            <p class="ctx-sub" style="margin-top:4px">D15.3 firmó «TTL por default» sin número (J-6). La
+            UI lee el valor de la configuración; el 90 es una propuesta al operador.</p>
+          </div>
+        </div>
+        <div class="dlg-ft">
+          <button type="button" class="btn destructive">Borrar la telemetría de este arnés</button>
+          <span class="ctx-sub">pide confirmación, y dice cuántas corridas se van</span>
+        </div>
+      </div>
+      <div style="flex:1 1 280px;min-width:260px">
+        <p class="sub" style="margin-top:0">segundo paso — confirmación</p>
+        <div class="vacio">
+          <strong>Borrar la telemetría de «vitalia»</strong>
+          <p>Se borran <span class="num">61</span> corridas medidas y los puntos de mejora que salieron
+          de ellas. No se puede deshacer.</p>
+          <p><button type="button" class="btn mini">Cancelar</button>
+          <button type="button" class="btn mini destructive" disabled title="Se habilita al confirmar que entendés el alcance">Borrar</button></p>
+          <p>El botón destructivo <strong>nace deshabilitado</strong>. Mientras borra, el diálogo no se
+          puede cerrar. Al terminar, las superficies pasan al estado 1 —&nbsp;sin agregados huérfanos
+          alimentando una cifra fantasma.</p>
+        </div>
+        <p class="ctx-sub" style="margin-top:12px">Borrar tiene que <strong>borrar</strong>: eventos,
+        agregados y hallazgos de detectores del arnés. Si quedara un agregado vivo, la cifra
+        reaparecería sin dato detrás —&nbsp;que es exactamente la clase de mentira que esta capa existe
+        para no cometer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 ─────────────────────────────────────────────────────────── -->
+  <section class="panel">
+    <div class="panel-hd">
+      <h2>9 · Traza — de dónde sale cada cosa</h2><span class="badge vig">verificado en vivo</span>
       <p class="why">Cada elemento del dibujo contra la señal real que lo alimenta, medida el
-      2026-07-26 contra <code>claude 2.1.220</code>. Lo que no tiene señal, no está dibujado.</p>
+      2026-07-26 contra <code>claude 2.1.220</code> (informe + ANEXO de hooks). Lo que no tiene señal,
+      no está dibujado.</p>
     </div>
     <div class="panel-bd scroll">
       <table class="traza">
         <thead><tr><th>superficie</th><th>señal</th><th>estado</th></tr></thead>
         <tbody>
           <tr><td>§2 total y cobertura</td><td><code>api_request.cost_usd_micros</code> + <code>arnesia.*</code> en cada log record</td><td>verificado</td></tr>
+          <tr><td>§2 chip de reenvío</td><td>config del daemon (D13) — nace apagado</td><td>decisión firmada, sin construir</td></tr>
           <tr><td>§3 cifra por caja</td><td><code>OTEL_RESOURCE_ATTRIBUTES</code> → copiado a cada punto</td><td>verificado</td></tr>
           <tr><td>§3 «por huella»</td><td><code>plugin_loaded.plugin_id_hash</code> — estable entre sesiones, distinto por plugin</td><td>verificado</td></tr>
+          <tr><td>§3 «por proceso»</td><td><code>cwd</code> en los 6 payloads de hook → instalación del Portafolio por <code>(home, id)</code></td><td>verificado — ANEXO H5</td></tr>
           <tr><td>§3 «sin dato atribuible»</td><td><code>skill_activated</code> no trae hash ⇒ por-skill no se recupera</td><td>verificado (por ausencia)</td></tr>
           <tr><td>§4 re-warm por TTL</td><td><code>result.usage.cache_creation.ephemeral_5m/1h</code> del stream-json</td><td>verificado</td></tr>
-          <tr><td>§4 rechazo en el gate</td><td>eventos del daemon + <code>hook_execution_complete</code></td><td>parcial — el hook de gate no existe todavía</td></tr>
+          <tr><td>§4 rechazo en el gate</td><td>eventos del daemon + <code>hook_execution_complete</code></td><td>parcial — el hook de gate no existe todavía (J-1)</td></tr>
+          <tr><td>§4 el join (llave)</td><td><code>(session_id, prompt_id)</code> en los DOS canales, mismo turno</td><td>verificado — ANEXO H1</td></tr>
           <tr><td>§5 desglose por bucket</td><td>los 4 buckets de <code>api_request</code></td><td>verificado</td></tr>
           <tr><td>§5 reportado vs. calculado</td><td><code>cost_usd_micros</code> + catálogo LiteLLM embebido</td><td>señal sí, catálogo sin construir</td></tr>
-          <tr><td>§7 estado 3 (S2)</td><td>el hook no ve el stream-json ⇒ B1 no aplica</td><td>verificado (por diseño)</td></tr>
-          <tr><td>§7 estado 7 (PII)</td><td><code>user.email</code>, <code>user.account_uuid</code>, <code>organization.id</code> en cada punto</td><td>verificado — hallazgo nuevo</td></tr>
-          <tr><td>capa Desempeño</td><td><code>duration_ms</code> ya llega</td><td><strong>no dibujada</strong> — falta el diseño, no la señal</td></tr>
+          <tr><td>§7A estado 3 (S2 degradado)</td><td>el hook no ve el stream-json ⇒ B1 no aplica</td><td>verificado (por diseño)</td></tr>
+          <tr><td>§7A estado 3b (S2 instrumentado)</td><td>bloque <code>env</code> en los settings del proyecto ⇒ misma señal que S1</td><td>verificado — ANEXO H9 (3 variantes, con control de puerto)</td></tr>
+          <tr><td>§7A estado 7 · PII por OTel</td><td><code>user.email</code>, <code>user.account_uuid</code>, <code>organization.id</code> en cada punto</td><td>verificado</td></tr>
+          <tr><td>§8 contenido por el hook</td><td><code>UserPromptSubmit.prompt</code> · <code>Stop.last_assistant_message</code> · <code>PostToolUse.tool_response</code>, en claro</td><td>verificado — ANEXO H4 (dos allowlists, no una)</td></tr>
+          <tr><td>§7B estados de transporte</td><td>patrón vigente del Portafolio (<code>portafolio-list.tsx:280-307</code>)</td><td>vigente — se promueve a <code>shared/ui</code></td></tr>
+          <tr><td>instrumentar S2 al instalar</td><td>bloque <code>env</code> dentro de <code>plugin.json</code></td><td><strong>descartado</strong> — ANEXO H10.1: el plugin NO puede aportar <code>env</code> (0 payloads vs. 2 del control)</td></tr>
+          <tr><td>token de ingesta por interpolación</td><td><code>${VAR}</code> dentro del bloque <code>env</code></td><td><strong>descartado</strong> — ANEXO H10.2: no se expande (sí en comandos de hook)</td></tr>
+          <tr><td>capa Desempeño</td><td><code>duration_ms</code> por request y <code>PostToolUse.duration_ms</code> por herramienta</td><td><strong>no dibujada</strong> — falta el diseño, no la señal</td></tr>
         </tbody>
       </table>
     </div>
