@@ -21,10 +21,12 @@ import {
   type SaludPortafolio,
   saludDe,
 } from "@/entities/portafolio"
+import type { FilaPortafolio } from "@/entities/telemetria"
 import { cn } from "@/shared/lib/cn"
 import { ErrorBody, Skeleton } from "@/shared/ui/estado-carga"
 import { FiltroDisclosure } from "@/shared/ui/filtro-disclosure"
 import { GrupoControl } from "@/shared/ui/grupo-control"
+import { CeldasMejoraFila, PieMejoraPortafolio } from "./celdas-mejora-fila"
 
 const SALUDES: readonly SaludPortafolio[] = ["ok", "atencion", "sin-senal"]
 
@@ -61,7 +63,7 @@ export interface PortafolioListProps {
   onAgregar: () => void
   onReintentar: () => void
   /** Capa «Mejora» por fila, keyeada por `clave` (T36). Opcional ⇒ superset estricto (BR-M16). */
-  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
+  mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
 }
 
 // ── Topbar: título + contadores REALES + Agregar (SIEMPRE presente — plan §2.6) ──
@@ -223,22 +225,6 @@ function BannerCorruptas({ corruptas }: { corruptas: EntradaCorrupta[] }) {
   )
 }
 
-/**
- * Las tres celdas de la capa «Mejora» para UNA fila (T36). Llegan YA compuestas por la página:
- * el widget del Portafolio no importa `entities/telemetria` para armarlas — recibe primitivos,
- * igual que el nodo del canvas (D18).
- *
- * **Opcionales ⇒ las 13 stories firmadas del Slice 1 no cambian**, y `SinMejoraDOMIntacto` es el
- * guardián: sin estas props la fila vuelve a sus 5 celdas exactas.
- */
-export interface MejoraDeFila {
-  /** El costo por corrida YA formateado, o `null` para «sin dato». Nunca `0,00` de relleno. */
-  costoPorCorrida: string | null
-  /** El sparkline y el chip llegan armados: la fila los ubica, no los calcula. */
-  tendencia?: React.ReactNode | undefined
-  punto?: React.ReactNode | undefined
-}
-
 // ── Fila: emblema · id+nombre/descr · presencia · chips honestos · [mejora] · dot de salud ──
 function Fila({
   entrada,
@@ -249,7 +235,7 @@ function Fila({
   entrada: EntradaPortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
-  mejora?: MejoraDeFila | undefined
+  mejora?: FilaPortafolio | undefined
 }) {
   const salud = saludDe(entrada)
   const registries = registriesDe(entrada)
@@ -297,13 +283,7 @@ function Fila({
         </span>
         {/* Las 3 celdas nuevas van ENTRE chips y dot: el dot de salud sigue CERRANDO la fila,
             que es el ancla visual que la PARIDAD del Slice 1 firmó. */}
-        {mejora !== undefined && (
-          <>
-            <span className="pf-mej-usd">{mejora.costoPorCorrida ?? "sin dato"}</span>
-            <span className="pf-mej-tend">{mejora.tendencia}</span>
-            <span className="pf-mej-punto">{mejora.punto}</span>
-          </>
-        )}
+        {mejora !== undefined && <CeldasMejoraFila fila={mejora} />}
         <DotSaludPortafolio salud={salud} />
       </button>
     </li>
@@ -344,7 +324,7 @@ function ListaPlana({
   entradas: EntradaPortafolio[]
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
-  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
+  mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
 }) {
   return (
     <ul className="pf-lista">
@@ -387,7 +367,7 @@ function ListaAgrupada({
   lente: LentePortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
-  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
+  mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
 }) {
   const grupos = agrupadorDe(lente)(entradas)
   return (
@@ -439,7 +419,7 @@ function Cuerpo({
   onAbrir: (clave: string) => void
   onReintentar: () => void
   onLimpiarTodo: () => void
-  mejora?: ReadonlyMap<string, MejoraDeFila> | undefined
+  mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
 }) {
   if (estado === "cargando") return <Skeleton label="Cargando portafolio" />
   if (estado === "error")
@@ -463,24 +443,32 @@ function Cuerpo({
   const filtradas = filtroSinOrigen ? filtrarSinOrigen(acotadas) : acotadas
   if (filtradas.length === 0) return <SinResultadosBody onLimpiar={onLimpiarTodo} />
 
+  const pie = mejora !== undefined && mejora.size > 0 ? <PieMejoraPortafolio /> : null
+
   if (lente === "plano") {
     return (
-      <ListaPlana
+      <>
+        <ListaPlana
+          entradas={filtradas}
+          seleccionada={seleccionada}
+          onAbrir={onAbrir}
+          mejora={mejora}
+        />
+        {pie}
+      </>
+    )
+  }
+  return (
+    <>
+      <ListaAgrupada
         entradas={filtradas}
+        lente={lente}
         seleccionada={seleccionada}
         onAbrir={onAbrir}
         mejora={mejora}
       />
-    )
-  }
-  return (
-    <ListaAgrupada
-      entradas={filtradas}
-      lente={lente}
-      seleccionada={seleccionada}
-      onAbrir={onAbrir}
-      mejora={mejora}
-    />
+      {pie}
+    </>
   )
 }
 

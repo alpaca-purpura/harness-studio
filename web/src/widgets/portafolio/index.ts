@@ -2,9 +2,14 @@
 // transporte (fe-transporte-independiente) — el fetch vive en pages/shell/ui/portafolio-view.tsx
 // (T7). Public API only; import via "@/widgets/portafolio", nunca deep paths (no-deep-import).
 
+export {
+  CeldasMejoraFila,
+  type CeldasMejoraFilaProps,
+  nuncaCorrio,
+  PieMejoraPortafolio,
+} from "./ui/celdas-mejora-fila"
 export { PortafolioDrawer, type PortafolioDrawerProps } from "./ui/portafolio-drawer"
 export {
-  type MejoraDeFila,
   PortafolioList,
   type PortafolioListProps,
 } from "./ui/portafolio-list"
@@ -13,7 +18,3 @@ export {
   ResolverOrigenDialog,
   type ResolverOrigenDialogProps,
 } from "./ui/resolver-origen-dialog"
-export {
-  TablaMejoraPortafolio,
-  type TablaMejoraPortafolioProps,
-} from "./ui/tabla-mejora-portafolio"

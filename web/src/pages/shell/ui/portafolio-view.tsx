@@ -21,11 +21,10 @@ import type {
   PortafolioListado,
   SaludPortafolio,
 } from "@/entities/portafolio"
-import { type FilaPortafolio, Sparkline, usd } from "@/entities/telemetria"
-import { ApiError, api, cn, isTauri, selectActive, useAppStore, useSessions } from "@/shared"
+import type { FilaPortafolio } from "@/entities/telemetria"
+import { ApiError, api, isTauri, selectActive, useAppStore, useSessions } from "@/shared"
 import { MarketplaceCatalogo, MarketplaceList } from "@/widgets/marketplace"
 import {
-  type MejoraDeFila,
   PortafolioDrawer,
   PortafolioList,
   PortafolioWizard,
@@ -159,35 +158,18 @@ export function PortafolioView() {
   }, [])
 
   /**
-   * Las 3 celdas por fila, YA compuestas: el widget recibe primitivos y nodos listos, no el
-   * dominio de telemetría (mismo criterio que D18 para el nodo del canvas).
+   * El wire CRUDO por clave. **La página ya no compone JSX**: hacerlo fue el crítico C-4 —
+   * quedaron dos implementaciones de las mismas tres celdas, y el fix de D24.4 se aplicó a la
+   * que la app no monta. Ahora las arma el widget, que tiene stories.
    *
-   * ⚠️ Se keyea por `clave`, que es lo que la lista tiene. El wire manda una fila por
-   * `(arnés, instalación)` y acá se toma **la primera** de cada clave: la lista del Portafolio
-   * agrupa por entrada, no por instalación. La tabla por instalación es
-   * `TablaMejoraPortafolio`, que sí las muestra todas.
+   * ⚠️ Se keyea por `clave` y se toma **la primera** fila de cada una: el wire manda una fila por
+   * `(arnés, instalación)` y la lista del Portafolio agrupa por entrada. Las instalaciones por
+   * separado quedan sin superficie — declarado en PARIDAD.
    */
   const mejoraPorClave = useMemo(() => {
-    const m = new Map<string, MejoraDeFila>()
+    const m = new Map<string, FilaPortafolio>()
     for (const f of telemetria) {
-      if (m.has(f.clave)) continue
-      m.set(f.clave, {
-        costoPorCorrida: usd(f.costo_por_corrida),
-        tendencia: <Sparkline puntos={f.serie} />,
-        punto:
-          f.costo_por_corrida === null ? (
-            <span className="pf-mej-chip pf-mej-chip-neutro">nunca corrió con telemetría</span>
-          ) : f.punto ? (
-            <span className={cn("pf-mej-chip", f.punto.grave && "grave")}>
-              <span aria-hidden="true">⚠</span> {f.punto.nombre} · USD {usd(f.punto.monto_micros)}
-              {f.punto.unidad === "corrida" ? "/corrida" : " en la ventana"}
-            </span>
-          ) : (
-            <span className="pf-mej-chip pf-mej-chip-ok">
-              <span aria-hidden="true">✓</span> sin fugas detectadas
-            </span>
-          ),
-      })
+      if (!m.has(f.clave)) m.set(f.clave, f)
     }
     return m
   }, [telemetria])

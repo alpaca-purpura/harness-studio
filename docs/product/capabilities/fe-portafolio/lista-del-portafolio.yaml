@@ -41,8 +41,9 @@ pointers:
   - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
   - "web/src/shared/ui/estado-carga.tsx#Skeleton"
   - "web/src/shared/ui/estado-carga.tsx#ErrorBody"
-  - "web/src/widgets/portafolio/ui/tabla-mejora-portafolio.tsx#TablaMejoraPortafolio"
-  - "web/src/widgets/portafolio/ui/portafolio-list.tsx#MejoraDeFila"
+  - "web/src/widgets/portafolio/ui/celdas-mejora-fila.tsx#CeldasMejoraFila"
+  - "web/src/widgets/portafolio/ui/celdas-mejora-fila.tsx#nuncaCorrio"
+  - "web/src/widgets/portafolio/ui/celdas-mejora-fila.tsx#PieMejoraPortafolio"
 valida:
   - "web/src/widgets/portafolio/ui/portafolio-list.stories.tsx"
   - "web/src/entities/portafolio/ui/chips.stories.tsx"
@@ -50,7 +51,6 @@ valida:
   - "web/src/shared/ui/grupo-control.stories.tsx"
   - "web/src/shared/ui/filtro-disclosure.stories.tsx"
   - "web/src/shared/ui/estado-carga.stories.tsx"
-  - "web/src/widgets/portafolio/ui/tabla-mejora-portafolio.stories.tsx"
 
 dev_preview:
   route: "#/portafolio"
@@ -210,6 +210,31 @@ change_log:
       Transporte lazy y NO bloqueante en `portafolio-view.tsx`, mismo patrón que
       `GET /api/marketplaces`: el Portafolio lista aunque la telemetría no conteste.
       11 + 2 stories nuevas.
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: fix
+    summary: >-
+      **C-4 · `TablaMejoraPortafolio` era CÓDIGO MUERTO y el fix de D24.4 se aplicó ahí.** La
+      auditoría del Tramo B lo verificó por grep: fuera de sus stories, la tabla solo aparecía en
+      el barrel y en un comentario. La superficie que el operador ve era una SEGUNDA
+      implementación de las mismas tres celdas, escrita a mano en `portafolio-view.tsx` y **sin el
+      guard**: con `puntos_de_mejora: 3` y sin punto principal pintaba `✓ sin fugas detectadas` en
+      verde, mintiendo «acá no hay nada que mirar» — la dirección que D24 nombra como la más cara.
+      Se BORRA la tabla (175 líneas) en vez de montarla: `design.md` §2.7 describe la FILA como la
+      superficie, y montar las dos habría dejado la misma información dos veces en pantalla. Las
+      celdas viven ahora en `celdas-mejora-fila.tsx`, una sola implementación, en el widget, con
+      stories sobre la superficie real. La página pasa el wire CRUDO y ya no compone JSX — que lo
+      hiciera es cómo nacieron las dos implementaciones.
+      Recupera además las tres garantías que la superficie real había perdido (A-6): el pie H-12,
+      la `MarcaConfianza` por fila y la unidad de la celda (`USD/corrida`, que sin encabezado de
+      columna tiene que viajar en la celda: un `0,03` pelado entre chips no dice ni moneda ni
+      período). Y corrige **A-5**: «nunca corrió con telemetría» se deriva de `corridas`, no de
+      `costo_por_corrida === null` — ese campo es null fuera de S1 por construcción, así que la
+      fila lo afirmaba sobre un arnés con 47 corridas medidas.
+      No se reconstruyeron el orden por costo, el separador «Sin datos de telemetría» ni el puente
+      H-3: son funciones de tabla que la lista agrupada por lente no tiene. Declarado en PARIDAD.
     merge_sha: null
 
 scenarios:

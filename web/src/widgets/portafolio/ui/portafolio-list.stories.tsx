@@ -2,6 +2,11 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactNode } from "react"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { type EntradaCorrupta, entradasDemo } from "@/entities/portafolio"
+import {
+  FILA_SIN_DATO,
+  FILAS_PORTAFOLIO_ILUSTRATIVAS,
+  type FilaPortafolio,
+} from "@/entities/telemetria"
 import { PortafolioList } from "./portafolio-list"
 
 // Story = test (fe-visual-fitness) — widget Lista del Portafolio (plan §2.6/§3 T4,
@@ -300,25 +305,25 @@ export const FiltroSinOrigenSeDeclara: Story = {
   },
 }
 
-// ══ Capa «Mejora» en la fila (paquete 2026-07-24, T36) ════════════════════════════════════
+// ══ Capa «Mejora» en la fila (T36 · reconstruido tras C-4) ════════════════════════════════
+//
+// 🔴 Estas stories reemplazan a las de `TablaMejoraPortafolio`, que era **código muerto**: la
+// tabla no se montaba en ningún lado y la superficie real era una segunda implementación de las
+// mismas celdas, escrita en la página y sin el guard de D24.4. Ahora hay UNA implementación, y
+// las stories corren sobre la que el operador ve.
 //
 // Las 3 celdas son OPCIONALES: las 13 stories firmadas del Slice 1 pasan sin tocarlas, y
-// `SinMejoraDOMIntacto` es el guardián de que sigan pasando.
+// `SinMejoraDomIntacto` es el guardián.
 
-const mejoraDemo = new Map(
-  entradasDemo.map((e, i) => [
-    e.clave,
-    {
-      costoPorCorrida: i === 0 ? "0,31" : null,
-      tendencia: <span className="spark-vacio">pocas corridas para una tendencia</span>,
-      punto: <span className="pf-mej-chip pf-mej-chip-neutro">nunca corrió con telemetría</span>,
-    },
-  ]),
-)
+const filaConDato: FilaPortafolio = {
+  ...(FILAS_PORTAFOLIO_ILUSTRATIVAS[0] as FilaPortafolio),
+  clave: entradasDemo[0]?.clave ?? "",
+}
+const mejoraDemo = new Map<string, FilaPortafolio>([[filaConDato.clave, filaConDato]])
 
 // RF-265 · BR-M16 — las 3 celdas se insertan **entre chips y dot de salud**: el dot sigue
-// CERRANDO la fila, que es el ancla visual que la PARIDAD del Slice 1 firmó. Y el
-// comportamiento de la fila no cambia: sigue siendo un `<button>` que llama `onAbrir(clave)`.
+// CERRANDO la fila, que es el ancla visual que la PARIDAD del Slice 1 firmó. Y el comportamiento
+// de la fila no cambia: sigue siendo un `<button>` que llama `onAbrir(clave)`.
 export const ConMejora: Story = {
   args: { entradas: entradasDemo, lente: "plano", mejora: mejoraDemo },
   play: async ({ canvasElement, args }) => {
@@ -330,11 +335,105 @@ export const ConMejora: Story = {
     await expect(iChips).toBeGreaterThanOrEqual(0)
     await expect(iUsd).toBeGreaterThan(iChips)
     await expect(iDot).toBeGreaterThan(iUsd)
-    // El dot CIERRA la fila.
     await expect(iDot).toBe(hijos.length - 1)
-    // El comportamiento de la fila no cambia.
     await userEvent.click(fila)
     await expect(args.onAbrir).toHaveBeenCalledWith(entradasDemo[0]?.clave)
+  },
+}
+
+// A-6 — la celda carga su UNIDAD. Sin encabezado de columna, un `0,31` pelado entre chips no
+// dice ni moneda, ni período, ni que es por corrida; y el pie H-12 impide que se lea como
+// facturación. Los dos se habían perdido al no montar la tabla.
+export const ConMejoraDeclaraUnidadPie: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    // `por-hash` a propósito: es el caso que H-12 nombra. Con `exacta` la marca NO se dibuja —
+    // la ausencia ES la señal (RF-242)— y el assert de abajo no probaría nada.
+    mejora: new Map([[filaConDato.clave, { ...filaConDato, confianza: "por-hash" as const }]]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("0,31")).toBeInTheDocument()
+    await expect(c.getByText("USD/corrida")).toBeInTheDocument()
+    await expect(
+      c.getByText(
+        "Costo estimado por el runtime, no es facturación. Los arneses sin datos lo dicen: no aparecen en cero.",
+      ),
+    ).toBeInTheDocument()
+    // D23 · H-12 — la MISMA marca de duda que el canvas, que la superficie real no tenía.
+    await expect(canvasElement.querySelector(".pf-fila [data-confianza]")).not.toBeNull()
+  },
+}
+
+// 🔴 **C-4 · el ✓ mentiroso.** Con `puntos_de_mejora: 3` y sin punto principal, la superficie
+// real pintaba `✓ sin fugas detectadas` en verde como el elemento más saliente del renglón —
+// mintiendo «acá no hay nada que mirar», la dirección que D24 nombra como la más cara.
+export const ConHallazgosNoPintaElTilde: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    mejora: new Map([
+      [filaConDato.clave, { ...filaConDato, puntos_de_mejora: 3, punto: undefined }],
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText(/3 punto\(s\) de mejora/)).toBeInTheDocument()
+    await expect(c.queryByText("sin fugas detectadas")).toBeNull()
+    await expect(canvasElement.querySelector(".pf-mej-chip-ok")).toBeNull()
+  },
+}
+
+// RF-267 — el ✓ SÍ aparece cuando el backend afirma que midió y no encontró nada. Control
+// positivo: sin esto, «nunca pintar el ✓» pasaría la story de arriba.
+export const SinFugasPintaElTilde: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    mejora: new Map([
+      [filaConDato.clave, { ...filaConDato, puntos_de_mejora: 0, punto: undefined }],
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("sin fugas detectadas")).toBeInTheDocument()
+    await expect(canvasElement.querySelector(".pf-mej-chip-ok")).not.toBeNull()
+  },
+}
+
+// 🔴 **A-5 · «nunca corrió» sobre un arnés con 47 corridas.** `costo_por_corrida` es null fuera
+// de S1 por construcción, así que derivarlo de ahí afirmaba lo contrario del payload. `corridas`
+// está en el wire y es el campo que responde la pregunta.
+export const CorridasSinCostoNoEsNuncaCorrio: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    mejora: new Map([
+      [filaConDato.clave, { ...filaConDato, corridas: 47, costo_por_corrida: null }],
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.queryByText("nunca corrió con telemetría")).toBeNull()
+    await expect(c.getByText("sin dato")).toBeInTheDocument()
+  },
+}
+
+// RF-268 — el que de verdad nunca corrió sí lo dice, y la celda de tendencia va marcada.
+export const NuncaCorrioLoDice: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    mejora: new Map([[filaConDato.clave, { ...FILA_SIN_DATO, clave: filaConDato.clave }]]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("nunca corrió con telemetría")).toBeInTheDocument()
+    await expect(
+      c.getByLabelText("sin tendencia: este arnés no registra corridas medidas"),
+    ).toBeInTheDocument()
+    await expect(c.queryByText("0,00")).toBeNull()
   },
 }
 
@@ -346,6 +445,7 @@ export const SinMejoraDomIntacto: Story = {
     await expect(canvasElement.querySelector(".pf-mej-usd")).toBeNull()
     await expect(canvasElement.querySelector(".pf-mej-tend")).toBeNull()
     await expect(canvasElement.querySelector(".pf-mej-punto")).toBeNull()
+    await expect(canvasElement.querySelector(".pf-mej-pie")).toBeNull()
     const fila = canvasElement.querySelector(".pf-fila") as HTMLElement
     await expect(fila.children).toHaveLength(5)
     await expect(fila).not.toHaveClass("con-mejora")

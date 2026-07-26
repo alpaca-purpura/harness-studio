@@ -57,6 +57,11 @@ pointers:
   - "web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas"
   - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
   - "web/src/widgets/map-canvas/model/capa-mejora.ts#hayDatosAtribuibles"
+  - "web/src/widgets/map-canvas/model/capa-mejora.ts#vistaCapaMejora"
+  - "web/src/widgets/map-canvas/model/capa-mejora.ts#denominadorDeBusqueda"
+  - "web/src/widgets/map-canvas/model/capa-mejora.test.ts#hayDatosAtribuibles"
+  - "web/src/widgets/map-canvas/model/props-de-mejora.ts#propsDeMejora"
+  - "web/src/widgets/map-canvas/ui/capa-mejora-stage.tsx#CapaMejoraStage"
   - "web/src/widgets/map-canvas/model/capa-mejora.ts#coberturaEsParcial"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
@@ -74,6 +79,8 @@ valida:
   - "web/src/widgets/map-canvas/ui/politica-datos-dialog.stories.tsx"
   - "web/src/widgets/map-canvas/ui/map-canvas.stories.tsx"
   - "web/src/widgets/map-canvas/ui/capa-mejora-coherencia.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/capa-mejora-stage.stories.tsx"
+  - "web/src/widgets/map-canvas/model/capa-mejora.test.ts"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -298,6 +305,32 @@ change_log:
       desde un solo `resumen` (patrón de `CopyConfianzaEsUnaSola`). Verificado como test:
       revirtiendo el fix las 3 stories de ausencia se ponen rojas y reproducen el texto del
       screenshot palabra por palabra, y el control positivo queda verde.
+    merge_sha: null
+
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: fix
+    summary: >-
+      **C-1 + C-2 de `auditoria-tramo-b.md`, y el refactor que los hace testeables.**
+      C-1: encender la capa destruía el Mapa — el canvas pasaba de 739 px a 257 con una tarjeta y
+      a **0 px con cuatro** (0 px con UNA a 200 % de zoom), porque la lista era hermana flex sin
+      tope ni scroll propio y el canvas solo tenía `min-h-0`. Ahora el canvas lleva piso y la
+      lista techo con scroll adentro: en una vista que se llama «Mapa», el mapa gana el reparto.
+      C-2: `corridas` NO es proxy de «hay datos». Fuera de S1 el wire lo manda en 0 por
+      construcción (`COUNT(DISTINCT corrida_id)`, `corrida_id` NULL), así que en el escenario que
+      PARIDAD declara MAYORITARIO la franja decía «nunca corrió» mientras el carril cobraba USD
+      1,08, la rama `s2-instrumentado` era inalcanzable y **el candado de D24 escondía la lista de
+      puntos de mejora** — el entregable central del paquete.
+      El refactor de fondo: **la composición sale de `pages/`**. Nace `CapaMejoraStage`, un widget
+      con stories que recibe el wire crudo y deriva todo con `vistaCapaMejora()` (pura,
+      unit-testeada). Los cuatro críticos vivían en el composition-root, que es el único lugar del
+      repo donde se componen las cinco superficies que hablan del mismo hecho y el único sin
+      stories — por eso el candado de D24, que montaba dos de cinco, no vio ninguno.
+      El candado nuevo (`capa-mejora-stage.stories.tsx`) monta el widget REAL y mide el alto del
+      canvas, que es lo que ninguna story de componente podía ver.
+      Un error propio cazado por los tests al hacerlo: le agregué a `hayDatosAtribuibles` un
+      fallback por `turnos > 0` «para cubrir S2» y rompió el invariante de D24; el test lo cazó y
+      el fallback se fue. No hacía falta: en s2 la cobertura viene poblada.
     merge_sha: null
 
 scenarios:
@@ -535,6 +568,25 @@ scenarios:
       chip del Portafolio pone ✓ solo cuando `puntos_de_mejora` es 0 como dato del backend, y con
       hallazgos sin punto principal dice cuántos hay en vez de afirmar que no hay nada que mirar
     verifica: "VaciaConDetectoresQueNoPudieron (puntos-mejora-list.stories.tsx) · ConHallazgosSinPuntoPrincipal · SinFugas (tabla-mejora-portafolio.stories.tsx)"
+
+  - id: mejora-la-capa-no-destruye-el-mapa
+    name: "Encender la capa conserva el Mapa (C-1 · RF-245 · BR-M16)"
+    given: "la capa «Mejora» activa con 1, 4 o 12 tarjetas, en viewport normal y corto"
+    when: "se renderiza CapaMejoraStage"
+    then: >-
+      el canvas conserva un alto mínimo real y sigue mostrando carriles y nodos; la lista se acota
+      y scrollea dentro de sí misma en vez de empujar al canvas fuera de la pantalla
+    verifica: "CapaEncendidaConservaElMapa · CuatroTarjetasNoAplastanElMapa · ZoomAltoConservaElMapa · CapaApagadaNoDejaRastro (capa-mejora-stage.stories.tsx)"
+  - id: mejora-s2-no-dice-nunca-corrio
+    name: "En s2-instrumentado los cinco bloques dicen lo mismo (C-2)"
+    given: "el wire de s2-instrumentado: `corridas: 0` con costo, cobertura y cajas poblados"
+    when: "se renderiza la capa entera"
+    then: >-
+      la franja NO dice «nunca corrió» y alcanza su rama de s2; el canvas muestra el dinero; la
+      lista de puntos de mejora NO se esconde; y ningún vacío dice «sobre 0 corridas». Con el
+      arnés que de verdad nunca corrió, en cambio, NINGÚN bloque afirma nada — ni la franja, ni
+      el carril, ni el nodo, ni la lista
+    verifica: "S2InstrumentadoNoDiceNuncaCorrio · SinDatosNingunBloqueAfirmaNada · ConDatosLosCincoBloquesAfirman (capa-mejora-stage.stories.tsx) · 15 tests de tabla (capa-mejora.test.ts)"
 
 business_rules: []
 related_capabilities:
