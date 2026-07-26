@@ -47,6 +47,7 @@ pointers:
   - "web/src/widgets/map-canvas/model/layers.ts#LAYERS"
   - "web/src/entities/arnes/ui/arnes-node.tsx#ArnesNode"
   - "web/src/widgets/map-canvas/ui/lane.tsx#Lane"
+  - "web/src/widgets/map-canvas/ui/franja-mejora.tsx#FranjaMejora"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
@@ -55,6 +56,7 @@ valida:
   - "web/src/widgets/map-canvas/ui/map-bar.stories.tsx"
   - "web/src/entities/arnes/ui/arnes-node.stories.tsx"
   - "web/src/widgets/map-canvas/ui/lane.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/franja-mejora.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -139,6 +141,29 @@ change_log:
       consecutivas también en camelCase. 13 + 2 stories nuevas; las 12 + 2 firmadas no se tocan.
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T32 — `FranjaMejora`: ningún número aparece sin su ventana, su denominador, su disclaimer y
+      su cobertura, y **nunca hay un tablero en cero**. El orden de izquierda a derecha ES el
+      orden de lectura del dato (el disclaimer va PEGADO al total: al pie se leería después de
+      haber creído el número). Los siete estados honestos + los dos de transporte:
+      1 «nunca corrió» ≠ 1b «no corrió en estos 7 días» (H-9, dos acciones distintas) ·
+      2 cobertura parcial · 3 s2-degradado ≠ 3b s2-instrumentado (J-10, rótulos que la story
+      asserta DISTINTOS) · 4 otro runtime (el número SÍ se muestra, rotulado como calculado) ·
+      5 catálogo viejo (avisado en la superficie, no en un `title`) · 7 «qué guardamos».
+      `Cargando` deja el `select` usable; `Error` NO hace desaparecer la franja (desaparecer se
+      leería como «no hay capa»); `DaemonCaido` conserva las cifras previas marcadas como
+      posiblemente viejas. Espaciado por token, no los `10px 14px` del mockup.
+      **Dos fixes de contraste, uno medido al construir:** el disclaimer va `--foreground` sobre
+      `--warn-soft` (D21) y el enlace «qué guardamos» **no puede usar `--primary` como color de
+      texto** — axe midió 2,41:1 sobre el fondo de la franja. La afordancia la carga el
+      subrayado. 22 stories (20 del plan + `ReenvioApagadoNoSeDibuja`, que separa el assert
+      espejo que una sola story no puede hacer, + `CoberturaCompletaEnLaFranja`), gate a11y en
+      `error`, con `ReposoDark` obligatoria: `preview.ts` renderiza en claro por default.
+    merge_sha: null
+
 scenarios:
   - id: mejora-cifra-un-solo-formateador
     name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
@@ -216,6 +241,34 @@ scenarios:
       `lane-hd` tiene tres hijos y el `.count` sigue ahí con su valor; sin costo atribuido dice
       «sin dato», nunca «USD 0,00» —que afirmaría que la fase corrió y no gastó
     verifica: "LaneConTotalMejora · LaneSinDato (lane.stories.tsx)"
+
+  - id: mejora-franja-nunca-un-tablero-en-cero
+    name: "Un arnés sin corridas no se pinta en cero: se dice qué pasó y qué hacer (RF-269 · A8)"
+    given: "un arnés sin ninguna corrida instrumentada, o sin corridas en la ventana elegida"
+    when: "se renderiza la franja"
+    then: >-
+      el texto completo NO contiene «0,00»; «nunca corrió» dice cómo empezar a medir y «sin
+      corridas en estos 7 días» trae la fecha de la última y el botón que amplía la ventana —
+      son dos situaciones distintas con dos acciones distintas
+    verifica: "Estado1SinDatos · Estado1bSinCorridasEnVentana · RuntimeNoSoportado (franja-mejora.stories.tsx)"
+  - id: mejora-franja-disclaimer-en-la-superficie
+    name: "El disclaimer de estimación se lee sin hover y con el gate a11y verde (RF-236 · D21)"
+    given: "la franja con datos"
+    when: "se busca «estimado por el runtime, no es facturación»"
+    then: >-
+      es visible, no vive en un `title` ni dentro de un `[hidden]` ni de un `details` cerrado, y
+      su texto es `--foreground` sobre `--warn-soft` — `--warn` sobre `--warn-soft` da 3,24:1 en
+      tema claro y rompería el gate
+    verifica: "DisclaimerEnSuperficie · Reposo · ReposoDark (franja-mejora.stories.tsx)"
+  - id: mejora-franja-transporte-no-borra-la-capa
+    name: "«No pude preguntar» no se confunde con «no hay nada» (H-6)"
+    given: "consulta en vuelo, consulta fallida, o daemon caído con medición previa"
+    when: "se renderiza la franja"
+    then: >-
+      cargando deja el `select` de ventana usable; el error muestra el motivo REAL y la franja
+      NO desaparece; con el daemon caído las cifras previas se conservan marcadas como
+      posiblemente viejas, y el estado es distinguible de «nunca corrió»
+    verifica: "Cargando · Error · DaemonCaido (franja-mejora.stories.tsx)"
 
 business_rules: []
 related_capabilities:

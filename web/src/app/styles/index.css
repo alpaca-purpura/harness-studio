@@ -8,6 +8,7 @@
 @import "./ajustes.css";
 @import "./portafolio.css";
 @import "./telemetria.css";
+@import "./mejora.css";
 
 /* Dark por atributo data-theme (decisión HS-05), no por .dark ni prefers-color-scheme.
    Habilita las utilidades `dark:` sobre el toggle del shell. */

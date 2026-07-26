@@ -1,0 +1,240 @@
+/* Capa «Mejora» del Mapa — franja de contexto, lista y tarjeta de punto de mejora, 4ª tab y
+   diálogo de política de datos (design.md §2.2, §2.4-2.6, §5, §7).
+
+   Scope `.arnesia-mejora`. Cero color literal (stylelint `strict-value`, dentro de `verify`).
+   Espaciado POR TOKEN, no los `10px 14px` hand-typed del mockup: la disciplina de token vale
+   más que 2 px de fidelidad a un `.html`.
+
+   D21 es NORMATIVA en todo el archivo: **todo texto sobre un tono `*-soft` usa `--foreground`**;
+   el color de acento queda para bordes, puntos y rieles, donde el mínimo es 3:1 y no 4,5:1. */
+
+/* ══ Franja de contexto (T32) ══════════════════════════════════════════════════════════════ */
+
+/* Se pega al borde inferior de la barra: barra + franja se leen como UN bloque de chrome. */
+.arnesia-mejora.fm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--foreground);
+}
+
+.arnesia-mejora .fm-ventana {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.arnesia-mejora .fm-ventana label {
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.arnesia-mejora .fm-ventana select {
+  font: inherit;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.arnesia-mejora .fm-cuerpo {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.arnesia-mejora .fm-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.arnesia-mejora .fm-usd {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.arnesia-mejora .fm-monto {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.arnesia-mejora .fm-total-vacio {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--muted-foreground);
+  letter-spacing: 0.1em;
+}
+.arnesia-mejora .fm-denominador,
+.arnesia-mejora .fm-mut {
+  color: var(--muted-foreground);
+}
+.arnesia-mejora .fm-denominador {
+  font-variant-numeric: tabular-nums;
+}
+.arnesia-mejora .fm-parcial {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+/* D21 · el contado de la cobertura parcial resalta en `--foreground` NEGRITA, no en `--warn`:
+   `--warn` sobre `--card` mide 3,76:1 y es la deuda que el BACKLOG ya tiene abierta. Este
+   paquete no la agrava. */
+.arnesia-mejora .fm-parcial-n {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+/* D21 · disclaimer: texto `--foreground` (13,14:1 en claro) sobre `--warn-soft`; `--warn` SOLO
+   en el borde. Texto `--warn` sobre `--warn-soft` da 3,24:1 en claro y rompe el gate a11y. */
+.arnesia-mejora .fm-disclaimer {
+  padding: 2px var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: var(--radius-full);
+  background: var(--warn-soft);
+  color: var(--foreground);
+}
+
+.arnesia-mejora .fm-vacio {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.arnesia-mejora .fm-vacio-titulo {
+  font-weight: 600;
+}
+
+.arnesia-mejora .fm-escenario,
+.arnesia-mejora .fm-catalogo {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.arnesia-mejora .fm-escenario-rotulo,
+.arnesia-mejora .fm-catalogo-titulo {
+  font-weight: 600;
+}
+
+/* Daemon caído: tono de aviso, texto `--foreground` (D21). Las cifras previas se conservan y
+   esto dice que pueden estar viejas — es distinto de «no hay datos». */
+.arnesia-mejora .fm-daemon {
+  padding: 2px var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  color: var(--foreground);
+}
+
+/* Reenvío externo encendido: un estado peligroso no se esconde a la derecha. */
+.arnesia-mejora .fm-forward {
+  padding: 2px var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--crit) 45%, transparent);
+  border-radius: var(--radius-full);
+  background: var(--card);
+  color: var(--crit);
+  font-weight: 600;
+}
+
+.arnesia-mejora .fm-cov {
+  margin-inline-start: auto;
+}
+
+.arnesia-mejora .fm-privacidad {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.arnesia-mejora .fm-priv-linea {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.arnesia-mejora .fm-propuesto {
+  font-style: italic;
+}
+/* D21 normativo — el enlace «qué guardamos» NO usa `--primary` como color de texto: `#00b7aa`
+   sobre el fondo de la franja mide **2,41:1** (medido por axe al construir, no estimado) y
+   rompe el gate. La afordancia de enlace la carga el SUBRAYADO, que no depende del color; el
+   acento queda para el foco. Misma regla que el disclaimer: texto sobre tono = `--foreground`. */
+.arnesia-mejora .fm-link {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.arnesia-mejora .fm-link:hover {
+  text-decoration-thickness: 2px;
+}
+.arnesia-mejora .fm-btn {
+  font: inherit;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+}
+.arnesia-mejora .fm-link:focus-visible,
+.arnesia-mejora .fm-btn:focus-visible,
+.arnesia-mejora .fm-ventana select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* Los estados de carga/error reusan las clases promovidas a `shared/ui` (T28, H-6): el Mapa
+   pinta los MISMOS estados que el Portafolio ya tiene firmados, con su propio espaciado. */
+.arnesia-mejora .pf-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+}
+.arnesia-mejora .pf-skeleton-fila {
+  display: block;
+  height: 22px;
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+}
+.arnesia-mejora .pf-estado-vacio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--foreground);
+}
+.arnesia-mejora .pf-mut {
+  color: var(--muted-foreground);
+}
+.arnesia-mejora .pf-btn-primary {
+  font: inherit;
+  padding: 4px var(--space-3);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--foreground);
+  font-weight: 600;
+  cursor: pointer;
+}
+.arnesia-mejora .pf-btn-primary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arnesia-mejora .pf-skeleton-fila {
+    transition: none;
+    animation: none;
+  }
+}

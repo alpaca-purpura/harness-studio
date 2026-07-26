@@ -43,6 +43,29 @@ export type {
   Ventana,
   VersionCatalogo,
 } from "./model/types"
+// Fixtures del dogfood, expuestas por la Public API igual que `devFullCycle` y `entradasDemo`
+// (steiger `fsd/no-public-api-sidestep` prohíbe el deep-import a `testing/`). Van en dos bloques
+// rotulados MEDIDO / ILUSTRATIVO: cuando un número no lo midió nadie, el archivo lo dice.
+export {
+  BUCKETS_MEDIDOS,
+  CAJAS_ILUSTRATIVAS,
+  CAMPOS_PERSISTIDOS_HOOK,
+  CATALOGO_MEDIDO,
+  COBERTURA_ILUSTRATIVA,
+  DETECTORES_MVP,
+  DETECTORES_NO_MEDIDOS,
+  FILA_SIN_DATO,
+  FILAS_PORTAFOLIO_ILUSTRATIVAS,
+  HUELLAS_MEDIDAS,
+  PARIDAD_COINCIDEN,
+  PARIDAD_DIVERGEN,
+  PII_QUE_LLEGA_Y_SE_DESCARTA,
+  PUNTO_B1,
+  PUNTO_B3,
+  PUNTO_P1,
+  RESUMEN_ILUSTRATIVO,
+  TURNO_MEDIDO,
+} from "./testing/telemetria"
 export { BarraCobertura, type BarraCoberturaProps } from "./ui/barra-cobertura"
 export { CifraUsd, type CifraUsdProps } from "./ui/cifra-usd"
 export { MarcaConfianza, type MarcaConfianzaProps } from "./ui/marca-confianza"
