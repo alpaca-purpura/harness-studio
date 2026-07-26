@@ -62,7 +62,12 @@ type AgentEvent struct {
 	Tool      string
 	Input     []byte
 	ToolUseID string
-	Raw       []byte
+	// Uso es el consumo del turno, poblado **solo** en EventResult (decisión A5, paquete de
+	// telemetría). Sale del frame `result` que este adaptador YA decodifica para el
+	// porcentaje de contexto — no de un segundo parser. `nil` cuando el frame no lo trajo:
+	// un uso en ceros se leería como «este turno no consumió nada».
+	Uso *domain.UsoDelTurno
+	Raw []byte
 }
 
 // SpawnOpts parameterizes a conductor. Resume, when non-empty, continues an existing

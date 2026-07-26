@@ -1,0 +1,98 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, §10.2 · ANEXO H10.4).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.conductor.spawn-inyecta-telemetria
+cap_num: CAP-135
+slug: spawn-inyecta-telemetria
+name: "Toda sesión que ArnesIA lanza nace instrumentada"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: conductor
+layer: adapter
+verb: crear
+functional_area: "telemetria.captura"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/agent/claudecode/conductor.go#SpawnEnv"
+  - "internal/adapters/agent/claudecode/conductor.go#AtribucionSpawn"
+  - "internal/adapters/agent/claudecode/conductor.go#Conductor.Spawn"
+valida:
+  - "TestSpawnInyectaTelemetria"
+  - "TestSpawnNoFiltraElTokenDeAPI"
+  - "TestSpawnSinReceptorNoInstrumenta"
+  - "TestSpawnNoMandaEtiquetasVacias"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /v1/logs"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §10.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Cada sesión que ArnesIA lanza sale midiendo, con las etiquetas que dicen a qué arnés y a qué paso pertenece. Hasta ahora el subproceso heredaba el entorno del daemon sin más: encenderlo es un cambio de código, no de configuración."
+    merge_sha: null
+scenarios:
+  - id: la-senal-del-dinero-no-se-apaga-sola
+    name: "Se lanza una sesión"
+    status: live
+    given: "un receptor local escuchando"
+    when: "se arma el entorno del subproceso"
+    then: "lleva todas las variables que la medición en vivo demostró necesarias, con sus valores exactos"
+    verifica: "TestSpawnInyectaTelemetria"
+  - id: el-permiso-grande-no-viaja
+    name: "El subproceso recibe su entorno"
+    status: live
+    given: "el daemon con su permiso de API en el ambiente"
+    when: "se arma el entorno del subproceso"
+    then: "viaja el permiso acotado de telemetría y no el de la API — ni su valor ni su nombre"
+    verifica: "TestSpawnNoFiltraElTokenDeAPI"
+  - id: sin-receptor-no-se-instrumenta
+    name: "No hay receptor local"
+    status: live
+    given: "un daemon sin punto de recepción"
+    when: "se lanza una sesión"
+    then: "no se inyecta nada: apuntar a la nada solo agregaría espera a cada petición del agente"
+    verifica: "TestSpawnSinReceptorNoInstrumenta"
+business_rules:
+  - id: sin-una-variable-no-llega-nada
+    rule: "El exportador de registros tiene que pedirse explícitamente. Se midió: sin esa variable llegan cero registros contra dos del control positivo, y como es el canal por donde viaja el dinero, omitirla apaga la señal entera sin un solo error visible."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: dos-permisos-no-se-mezclan
+    rule: "Al subproceso viaja el permiso de escribir mediciones, jamás el de conducir el agente."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: una-etiqueta-vacia-es-ruido
+    rule: "Las etiquetas de atribución sin valor no se mandan. Una etiqueta vacía llegaría al receptor como si hubiera un dato y la atribución diría que hay un paso cuando no lo hay."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.token-de-ingesta-acotado
+  enables:
+    - arnesia.telemetria.atribucion-y-confianza
+  similar: []
+  obsoletes: []
+---
+
+# El spawn nace instrumentado
+
+Cada sesión que ArnesIA lanza **sale midiendo**, y con las etiquetas que dicen a qué arnés, a qué
+instalación y a qué paso pertenece — lo que después permite atribuir el gasto sin ninguna heurística.
+
+Encenderlo fue un cambio de **código**, no de configuración: hasta acá el subproceso heredaba el
+entorno del daemon tal cual y no había forma de agregarle nada.
+
+**Una de esas variables está en la lista porque se midió, no porque el manual la mencione.** Sin
+ella llegan **cero** registros contra dos del control positivo, en la misma corrida y contra el
+mismo receptor. Y como es el canal por donde viaja el dinero, omitirla **apaga la señal entera sin
+un solo error visible** — el peor modo de falla posible de un módulo de medición. El test la asserta
+por nombre y por valor para que nadie la saque «porque parece redundante».

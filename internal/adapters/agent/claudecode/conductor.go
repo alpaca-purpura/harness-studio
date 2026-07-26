@@ -25,6 +25,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -41,6 +42,10 @@ const defaultContextWindow = 200_000
 // Conductor is the Claude Code adapter. bin is the path to the `claude` executable.
 type Conductor struct {
 	bin string
+	// EnvExtra son las variables que se AGREGAN al entorno de cada subproceso. Hoy `cmd.Env`
+	// es nil (el subproceso hereda el del daemon), así que esto es un cambio de CÓDIGO y no
+	// de configuración: sin él no hay forma de encender la telemetría del spawn.
+	EnvExtra []string
 }
 
 var _ ports.AgentPort = (*Conductor)(nil)
@@ -147,6 +152,77 @@ func permissionArgs(ps domain.PermissionSet) []string {
 	return append(args, "--permission-prompt-tool", "stdio")
 }
 
+// SpawnEnv arma las variables de entorno que instrumentan un subproceso de Claude Code (S1).
+//
+// 🔴 **`OTEL_LOGS_EXPORTER=otlp` es OBLIGATORIA, y está MEDIDA.** Sin ella llegan **0** log
+// events contra 2 del control positivo (ANEXO H10.4, misma corrida, mismo receptor,
+// marcadores distintos). Como el canal primario es `/v1/logs` —por donde viaja
+// `api_request`, o sea el dinero— omitirla **apaga la señal de dinero entera sin un solo
+// error visible**, que es el peor modo de falla posible de este módulo.
+//
+// Lo mismo vale, por otra razón, para `OTEL_EXPORTER_OTLP_PROTOCOL=http/json`: el default de
+// Claude Code es gRPC en el 4317, así que sin esa línea el exportador habla un protocolo que
+// nuestro receptor no entiende y tampoco llega nada.
+//
+// El token que viaja es el de INGESTA, jamás el de la API: filtrar el primero concede
+// «escribime telemetría»; filtrar el segundo concede «conducí un agente con acceso al
+// filesystem».
+func SpawnEnv(opts ports.SpawnOpts, tokenIngesta, endpoint string, atrib AtribucionSpawn) []string {
+	if endpoint == "" {
+		return nil // sin receptor no se instrumenta: apuntar a la nada solo agrega latencia.
+	}
+	env := []string{
+		"CLAUDE_CODE_ENABLE_TELEMETRY=1",
+		// OBLIGATORIA — verificada en vivo. Ver el comentario de arriba.
+		"OTEL_LOGS_EXPORTER=otlp",
+		"OTEL_METRICS_EXPORTER=otlp",
+		// http/json y NO http/protobuf: es lo que hace barato al decodificador
+		// (+0,49 MB contra +10,79 MB medidos) y lo que nuestro receptor habla.
+		"OTEL_EXPORTER_OTLP_PROTOCOL=http/json",
+		// SIN `/v1/...`: el exportador concatena la ruta por spec.
+		"OTEL_EXPORTER_OTLP_ENDPOINT=" + endpoint,
+		"OTEL_METRIC_EXPORT_INTERVAL=10000",
+		"OTEL_LOGS_EXPORT_INTERVAL=5000",
+	}
+	if tokenIngesta != "" {
+		// Por header, nunca por query string: un query string va a los logs de cualquier
+		// proxy que se interponga.
+		env = append(env, "OTEL_EXPORTER_OTLP_HEADERS=x-arnesia-token="+tokenIngesta)
+	}
+	// El vector de atribución: viaja COPIADO en cada log record y en cada punto (verificado),
+	// que es lo que hace posible la atribución exacta sin heurísticas.
+	if ra := atrib.recursoOTel(); ra != "" {
+		env = append(env, "OTEL_RESOURCE_ATTRIBUTES="+ra)
+	}
+	return env
+}
+
+// AtribucionSpawn son las etiquetas que identifican QUÉ se está corriendo. `Caja` y `Corrida`
+// solo se llenan en el spawn del conductor de una caja; en el chat quedan vacías y la
+// atribución es a nivel de sesión — que es la verdad, no una degradación.
+type AtribucionSpawn struct {
+	ArnesID       string
+	InstalacionID string
+	CajaID        string
+	CorridaID     string
+}
+
+func (a AtribucionSpawn) recursoOTel() string {
+	var partes []string
+	for _, p := range []struct{ k, v string }{
+		{"arnesia.arnes", a.ArnesID},
+		{"arnesia.instalacion", a.InstalacionID},
+		{"arnesia.caja", a.CajaID},
+		{"arnesia.corrida", a.CorridaID},
+	} {
+		if p.v == "" {
+			continue // una etiqueta vacía no se manda: sería ruido con forma de dato.
+		}
+		partes = append(partes, p.k+"="+p.v)
+	}
+	return strings.Join(partes, ",")
+}
+
 // Spawn starts a persistent conductor in streaming stream-json mode and returns the
 // live session. The subprocess stays alive across turns until Close.
 func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.AgentSession, error) {
@@ -155,6 +231,11 @@ func (c *Conductor) Spawn(ctx context.Context, opts ports.SpawnOpts) (ports.Agen
 	cmd := exec.CommandContext(ctx, c.bin, SpawnArgs(opts)...) //nolint:gosec // G204: c.bin is local daemon configuration (the --claude flag), never external input.
 	if opts.Cwd != "" {
 		cmd.Dir = opts.Cwd
+	}
+	// El entorno del subproceso: el del daemon MÁS lo nuestro. Se agrega, no se reemplaza —
+	// el subproceso necesita PATH, HOME y lo demás para funcionar.
+	if len(c.EnvExtra) > 0 {
+		cmd.Env = append(os.Environ(), c.EnvExtra...)
 	}
 
 	stdin, err := cmd.StdinPipe()
@@ -405,6 +486,7 @@ type rawFrame struct {
 	Result     string          `json:"result"`
 	Usage      *usage          `json:"usage"`
 	ModelUsage map[string]cwin `json:"modelUsage"`
+	TotalCost  float64         `json:"total_cost_usd"`
 	RequestID  string          `json:"request_id"`
 	Request    *ctrlRequest    `json:"request"`
 }
@@ -434,12 +516,29 @@ type innerEvent struct {
 
 type usage struct {
 	InputTokens              int `json:"input_tokens"`
+	OutputTokens             int `json:"output_tokens"`
 	CacheReadInputTokens     int `json:"cache_read_input_tokens"`
 	CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+	// 🔴 CacheCreation es EL split por vencimiento, y el `result` lo trae desde siempre —
+	// hasta hoy se tiraba. Es la única fuente del dato: no viaja por OTel, así que solo se ve
+	// cuando ArnesIA es el proceso padre. Sin él, el costo del cache write no se puede cotizar
+	// al tramo correcto (y asumir el barato subestima un 33 %, medido).
+	CacheCreation *struct {
+		Ephemeral5m int `json:"ephemeral_5m_input_tokens"`
+		Ephemeral1h int `json:"ephemeral_1h_input_tokens"`
+	} `json:"cache_creation"`
+	ServiceTier string `json:"service_tier"`
+	Speed       string `json:"speed"`
 }
 
 type cwin struct {
 	ContextWindow int `json:"contextWindow"`
+	// Lo que el `result` ya trae por modelo y hasta hoy se tiraba.
+	CostUSD        float64 `json:"costUSD"`
+	CanonicalModel string  `json:"canonicalModel"`
+	Provider       string  `json:"provider"`
+	InputTokens    int     `json:"inputTokens"`
+	OutputTokens   int     `json:"outputTokens"`
 }
 
 // pump reads stdout NDJSON, translates each frame, and fans it out on events. It uses
@@ -535,7 +634,10 @@ func translate(line []byte, lastUsage **usage) []ports.AgentEvent {
 		if lastUsage != nil {
 			last = *lastUsage
 		}
-		return []ports.AgentEvent{{Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype, CtxPct: ctxPct(f, last), Raw: line}}
+		return []ports.AgentEvent{{
+			Kind: ports.EventResult, Text: f.Result, Subtype: f.Subtype,
+			CtxPct: ctxPct(f, last), Uso: parseResult(f, last), Raw: line,
+		}}
 
 	case "control_request":
 		// Forward can_use_tool VERBATIM instead of discarding it (Fase E): the daemon —
@@ -606,6 +708,61 @@ func blanco(input json.RawMessage) string {
 		}
 	}
 	return ""
+}
+
+// parseResult extrae el uso del turno del frame `result`.
+//
+// **Se extrae con este nombre a propósito**: es el único lugar del árbol que decodifica ese
+// frame, y no se crea un segundo parser de stream-json en `adapters/telemetria/` (decisión
+// A5). Dos decodificadores del mismo frame driftan por separado, y el adaptador del agente es
+// el dueño del protocolo — un adaptador de agente por runtime, no dos.
+//
+// Devuelve nil cuando el frame no trae uso: **no se fabrica un uso en ceros**, que se leería
+// como «este turno no consumió nada».
+func parseResult(f rawFrame, last *usage) *domain.UsoDelTurno {
+	u := f.Usage
+	if u == nil {
+		u = last
+	}
+	if u == nil {
+		return nil
+	}
+	uso := &domain.UsoDelTurno{
+		Entrada:        int64(u.InputTokens),
+		Salida:         int64(u.OutputTokens),
+		CacheLectura:   int64(u.CacheReadInputTokens),
+		CacheEscritura: int64(u.CacheCreationInputTokens),
+		ServiceTier:    u.ServiceTier,
+		Speed:          u.Speed,
+		CostoUSD:       f.TotalCost,
+		Modelo:         f.Model,
+	}
+	if u.CacheCreation != nil {
+		// El split. Un 0 acá es un DATO —el runtime lo dijo—, no una ausencia: por eso los
+		// campos no son punteros y por eso `ephemeral_5m = 0` con `ephemeral_1h = 8257` es
+		// información, no un hueco.
+		uso.Ephemeral5m = int64(u.CacheCreation.Ephemeral5m)
+		uso.Ephemeral1h = int64(u.CacheCreation.Ephemeral1h)
+	}
+	// `modelUsage` trae el costo, el nombre canónico y el proveedor por modelo.
+	if cw, ok := f.ModelUsage[f.Model]; ok {
+		aplicarModelUsage(uso, cw)
+	} else {
+		for _, cw := range f.ModelUsage {
+			aplicarModelUsage(uso, cw)
+			break
+		}
+	}
+	return uso
+}
+
+func aplicarModelUsage(uso *domain.UsoDelTurno, cw cwin) {
+	uso.ContextWindow = cw.ContextWindow
+	uso.ModeloCanonico = cw.CanonicalModel
+	uso.Proveedor = cw.Provider
+	if uso.CostoUSD == 0 && cw.CostUSD > 0 {
+		uso.CostoUSD = cw.CostUSD
+	}
 }
 
 // ctxPct estimates context-window usage (0–100). Prefiere el usage del ÚLTIMO API call

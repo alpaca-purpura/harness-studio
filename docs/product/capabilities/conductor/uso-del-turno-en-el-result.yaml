@@ -1,0 +1,87 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A5 · §4.2).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.conductor.uso-del-turno-en-el-result
+cap_num: CAP-136
+slug: uso-del-turno-en-el-result
+name: "El uso del turno que el cierre del subproceso ya traía y se tiraba"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: conductor
+layer: adapter
+verb: observar
+functional_area: "telemetria.captura"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/agent/claudecode/conductor.go#parseResult"
+  - "internal/domain/telemetria.go#UsoDelTurno"
+  - "internal/ports/agent.go#AgentEvent"
+valida:
+  - "TestResultTraeUsoDelTurno"
+  - "TestSplitTTLLlegaDelStreamJSON"
+  - "TestResultSinUsoNoFabricaCeros"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §4.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El cierre de turno del subproceso ya traía el detalle del consumo —incluido el desglose del cache por vencimiento, que no viaja por ningún otro canal— y hasta hoy se descartaba. Ahora sube al evento normalizado, sin un segundo decodificador del mismo formato."
+    merge_sha: null
+scenarios:
+  - id: el-desglose-por-vencimiento-llega
+    name: "Termina un turno lanzado por ArnesIA"
+    status: live
+    given: "el cierre de turno real de una corrida medida"
+    when: "el adaptador lo traduce"
+    then: "el desglose del cache por vencimiento llega entero, y el cero de uno de los tramos es un dato, no una ausencia"
+    verifica: "TestSplitTTLLlegaDelStreamJSON"
+  - id: sin-consumo-no-se-fabrican-ceros
+    name: "Un cierre de turno sin detalle de consumo"
+    status: live
+    given: "un cierre que no reporta uso"
+    when: "se traduce"
+    then: "el consumo viaja vacío; un consumo en ceros diría que el turno no gastó nada"
+    verifica: "TestResultSinUsoNoFabricaCeros"
+business_rules:
+  - id: un-decodificador-por-formato
+    rule: "El adaptador del agente es el único dueño del formato del subproceso. No se construye un segundo decodificador del mismo cierre de turno: dos decodificadores del mismo dato driftan por separado."
+    enforcement: ["docs/architecture/boundaries/conductor-no-parsea-jsonl.md", "docs/architecture/boundaries/adaptadores-de-agente-intercambiables.md"]
+    severity: critical
+  - id: el-desglose-solo-existe-aca
+    rule: "El desglose del cache por vencimiento no viaja por el canal de telemetría: solo aparece en el cierre de turno, y solo cuando ArnesIA es el proceso padre. Sin él, el costo del cache no se puede cotizar al tramo correcto."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables:
+    - arnesia.telemetria.costeo-de-doble-fuente
+  similar: []
+  obsoletes: []
+---
+
+# El uso del turno que ya venía y se tiraba
+
+El cierre de turno del subproceso **ya traía** el detalle del consumo: los cuatro buckets, el costo
+que el runtime calculó, el modelo canónico, el proveedor y —lo que más importa— **el desglose del
+cache por vencimiento**. Hasta hoy se leía solo para estimar el llenado de la ventana de contexto y
+el resto se descartaba.
+
+Ese desglose **no viaja por ningún otro canal**. El de telemetría manda un solo número agregado sin
+decir a qué vencimiento se escribió, y asumirlo subestima el costo un tercio. Por eso solo se puede
+cotizar bien lo que ArnesIA lanzó: es la diferencia real entre los niveles de instrumentación, y la
+razón por la que uno de los detectores solo puede existir ahí.
+
+**No se construyó un segundo decodificador.** El adaptador del agente es el dueño del formato, y dos
+decodificadores del mismo dato driftan por separado. Se extrajo la función que ya existía embebida y
+se le puso nombre.
