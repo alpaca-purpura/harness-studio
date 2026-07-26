@@ -105,6 +105,30 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 | **G4** | cert de firma de código (USD 150-300/año + HSM) | no para Linux; **sí** para Windows/macOS |
 | — | ~~**D8**~~ | **cerrada por inexistencia del dilema** (V2) |
 
+## Retomar aquí (2026-07-26, Tramo 0 + Tramo A CONSTRUIDOS — falta T22, T27 y el gate)
+
+**Construido y verde: T1-T21 y T23-T26.** El módulo corre de punta a punta contra el payload
+MEDIDO, con HOME de prueba y puerto efímero. `go test ./... -race` verde · fitness 86 tests ·
+`conformance --todo` 311 checks, **fail 0** · `bin/arnesia` 17,43 MB (línea base 17,0; presupuesto
++1,5).
+
+**Lo que NO se construyó, y por qué:**
+
+| ticket | estado | motivo |
+|---|---|---|
+| **T22** · eventos de proceso del daemon (rotación · corrida · gate · `turno_esperado`) | **abierto** | Toca `session_service.go` y `run_service.go`, que tienen su propia suite. El almacén, el puerto (`EsperarTurno`) y la conciliación **ya están construidos y probados**: falta solo el productor. Mientras tanto, `Cobertura.Esperados` viaja `null` fuera de S1 —que es la verdad— y B2/P1 salen en `no_aplican` con su motivo. |
+| **T27** · los 5 checks de conformance del arnés | **abierto** | Necesita la rama `static-scan` sobre el paquete del arnés en `conformance/mechanism`. Las filas del boundary existen; el mecanismo no. |
+| **Tramo B** (T28-T37) | **bloqueado, como manda P0** | El mockup no tiene su 🧑‍⚖️. `spec.md` §Estado: *«ningún RF 🎨 se construye antes de su firma»*. |
+
+**Un defecto REAL encontrado al correr el módulo, no razonando** (corregido en `3144db9`): el canal
+OTLP manda la escritura de cache **sin decir a qué vencimiento**, y se estaba plegando al tramo
+barato. Daba 12 280 micros contra los 18 473 reportados — el bug `phoenix#14314` entrando por la
+puerta de atrás, con el número marcado como «completo». Ahora un tier desconocido **se declara**, y
+la divergencia entre los dos costos es un chequeo del sistema (`divergencia_sospechosa`), no de una
+persona por casualidad. **El oráculo de doble costo funcionó exactamente para lo que se diseñó.**
+
+<details><summary>Retomar aquí anterior (arranque de la construcción)</summary>
+
 ## Retomar aquí (2026-07-26, EN CONSTRUCCIÓN — Tramo 0 + Tramo A)
 
 **El constructor está ejecutando [`plan-desarrollo.md`](plan-desarrollo.md) T1→T27** (Tramo 0 +
@@ -119,6 +143,8 @@ Las tres paradas, al día de hoy:
   [`decisiones.md`](decisiones.md) §🛑. Se construyó todo lo que no depende de ella.
 - **P2 · el TTL** ⇒ flag con default 90 **rotulado PROPUESTO**; el número lo pone el operador.
 - **P3 · `OTEL_LOGS_EXPORTER`** ⇒ **CERRADA** en vivo (ANEXO H10.4): es obligatoria.
+
+</details>
 
 <details><summary>Retomar aquí anterior (tras el plan de desarrollo)</summary>
 
