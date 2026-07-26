@@ -132,6 +132,63 @@ canal esté encendido por esta vía.
 > puerto 4318 y se quedaba con el tráfico. Se detectó con un control (`pgrep` + una corrida de
 > referencia) antes de escribir ninguna conclusión. **Un negativo sin control no es un resultado.**
 
+## H10 · Tres huecos del plan, cerrados en vivo (2026-07-26, tercera tanda)
+
+El plan de arquitectura (`arquitectura-modulo.md` §13) dejó tres verificaciones de 10-15 min como
+`ABIERTO`. Se corrieron. **Las tres con control positivo en la misma corrida**, después de que las
+dos primeras tandas se contaminaran por un receptor viejo pegado al puerto.
+
+### H10.1 — ❌ Un PLUGIN **no** puede aportar bloque `env` ⇒ **A20 no desaparece**
+
+Se armó un marketplace local con un plugin cuyo `plugin.json` declara un bloque `env` completo de
+telemetría, se instaló (`claude plugin install`) y se corrió con las env vars del shell desarmadas:
+
+| corrida | resultado |
+|---|---|
+| solo el plugin instalado | **0 payloads** |
+| control positivo, mismo receptor, acto seguido | **2 payloads** |
+
+El receptor estaba vivo y recibía. **El bloque `env` de `plugin.json` se ignora.**
+
+⇒ **La decisión A20 sigue en pie y es del operador**: el bloque `env` vive en el repo del propio
+arnés (opción A) o en el proyecto del usuario (opción B, con consentimiento explícito por A8). No
+hay una tercera vía que instrumente el arnés solo al instalarse.
+*(El plugin y el marketplace de prueba se desinstalaron; la config del operador quedó como estaba.)*
+
+### H10.2 — ❌ Claude Code **no** expande `${VAR}` dentro del bloque `env`
+
+Con `MARCA_PROPIA=valor-literal` definida en el mismo bloque y
+`OTEL_RESOURCE_ATTRIBUTES=arnesia.expand=${MARCA_PROPIA},arnesia.home=${HOME}`, llegó:
+
+```
+arnesia.expand = ${MARCA_PROPIA}      ← literal, sin expandir
+arnesia.home   = ${HOME}              ← literal, sin expandir
+arnesia.via    = T10                  ← control positivo, llegó bien
+```
+
+⚠️ **Matiz que importa:** en los **comandos de hook** la expansión **sí** funciona
+(`${CLAUDE_PLUGIN_ROOT}` es de uso corriente, p. ej. en el plugin `caveman`). La limitación es
+específica del bloque `env`.
+
+⇒ **El token de ingesta no se puede inyectar por interpolación** en `s2-instrumentado`. O va
+literal en el archivo de settings —que entonces contiene un secreto y necesita permisos `0600` y
+una política de rotación—, o ese camino no lleva token y se apoya en otro control. **Decisión para
+el `spec.md`/tickets, no la resuelve este anexo.**
+
+### H10.3 — ✅ Un comando de hook inexistente **no rompe nada** (fail-open confirmado)
+
+Settings con un `Stop` apuntando a `/ruta/que/no/existe/jamas.sh` y un `UserPromptSubmit` válido
+como control:
+
+```
+exit = 0 · is_error = false · stderr vacío · duración normal (8 s)
+control: el hook válido SÍ se ejecutó (1 payload)
+```
+
+⇒ La propiedad fail-open que **A7** necesita (el hook es el propio binario `arnesia hook proceso`,
+que puede no estar si ArnesIA se desinstaló) **está garantizada por el runtime**, no hay que
+construirla. Igual el hook debe salir 0 por su cuenta: esto cubre que *falte*, no que *falle*.
+
 ---
 
 ## Qué cambia en el diseño
