@@ -1,0 +1,113 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D11 + A11).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.catalogo-de-precios-embebido
+cap_num: CAP-125
+slug: catalogo-de-precios-embebido
+name: "Catálogo de precios embebido (cero post-install, con procedencia declarada)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: observar
+functional_area: "telemetria.costeo"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/catalogo/catalogo.go#Embebido"
+  - "internal/adapters/telemetria/catalogo/catalogo.go#Catalogo.Precio"
+  - "internal/adapters/telemetria/catalogo/catalogo.go#Catalogo.Canonizar"
+  - "internal/adapters/telemetria/catalogo/catalogo.go#Catalogo.Version"
+  - "internal/adapters/telemetria/catalogo/catalogo.go#TamanoEmbebido"
+  - "internal/adapters/telemetria/catalogo/gen.go#revLiteLLM"
+  - "internal/adapters/telemetria/catalogo/cmd/bajar-catalogo/main.go#main"
+valida:
+  - "TestModeloDesconocido"
+  - "TestTarifaParcial"
+  - "TestAliasBedrockVertex"
+  - "TestCatalogoConservaElTierDeUnaHora"
+  - "TestCatalogoNoAplanaLosTiers"
+  - "TestCatalogoEmbebidoBajoPresupuesto"
+  - "TestVersionDeclaraSuProcedencia"
+  - "TestRefrescoFallidoNoRompe"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria catalogo"
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/salud"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §8"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El binario sabe cuánto cuesta un modelo sin pedirle nada a internet, y DICE con qué catálogo lo supo: fecha, revisión de origen y huella del archivo. 694 tarifas en 64 KB, con los tramos de precio conservados enteros."
+    merge_sha: null
+scenarios:
+  - id: modelo-desconocido-no-vale-cero
+    name: "Aparece un modelo que el catálogo no conoce"
+    status: live
+    given: "un runtime que reporta un modelo nuevo"
+    when: "se pide su tarifa"
+    then: "el catálogo dice que no lo conoce; no devuelve una tarifa en cero, que cotizaría todo gratis en silencio"
+    verifica: "TestModeloDesconocido"
+  - id: el-tramo-largo-sobrevive
+    name: "Un modelo cobra distinto arriba de cierto tamaño de prompt"
+    status: live
+    given: "una familia con tramo de precio largo"
+    when: "se lee del catálogo embebido"
+    then: "el tramo viaja entero, no promediado con el tramo base"
+    verifica: "TestCatalogoNoAplanaLosTiers"
+  - id: nombre-de-nube-resuelve
+    name: "El mismo modelo llega con nombre de otra nube"
+    status: live
+    given: "un id con prefijo de región o sufijo de fecha"
+    when: "se canoniza"
+    then: "resuelve a la misma tarifa; y un nombre que no reconocemos se devuelve tal cual, sin inventarle una equivalencia"
+    verifica: "TestAliasBedrockVertex"
+business_rules:
+  - id: cero-post-install
+    rule: "El catálogo viaja compilado en el binario. Ninguna pieza se descarga al instalar ni al arrancar."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: procedencia-declarada
+    rule: "El catálogo declara su fecha, su revisión de origen y la huella del archivo. Un precio sin procedencia no se puede auditar cuando alguien discute la cifra."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+  - id: refresco-apagado-por-default
+    rule: "Refrescar precios es tráfico saliente del daemon, y eso lo decide el operador. Va apagado; si se enciende y falla, se sigue con el embebido y se dice desde cuándo no se refresca."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+  - id: presupuesto-del-embebido
+    rule: "El catálogo embebido no puede pasar los 256 KB: el binario entero tiene presupuesto y este archivo es el más fácil de dejar crecer sin darse cuenta."
+    enforcement: ["docs/architecture/boundaries/peso-del-binario-es-presupuesto.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables:
+    - arnesia.telemetria.costeo-de-doble-fuente
+  similar: []
+  obsoletes: []
+---
+
+# Catálogo de precios embebido
+
+El binario sabe cuánto cuesta un modelo **sin pedirle nada a internet**, y **dice con qué catálogo lo
+supo**: fecha, revisión de origen y huella del archivo. Un precio sin procedencia no se puede
+auditar el día que alguien discute la cifra.
+
+Tres cosas que no son detalles:
+
+- **Un modelo desconocido no vale cero.** Vale «no sé». Una tarifa en ceros cotizaría todo gratis y
+  el número saldría bonito.
+- **Los tramos de precio no se aplanan.** La herramienta más popular del rubro colapsa los tramos de
+  escritura de cache y pierde justo el dato que permite detectar el desperdicio por vencimiento —
+  acá viaja entero.
+- **El refresco va apagado.** Es tráfico saliente del daemon, y eso lo decide el operador. Si se
+  enciende y falla, no pasa nada: se sigue con el embebido y la pantalla dice desde cuándo no se
+  refresca.
