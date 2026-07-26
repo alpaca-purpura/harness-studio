@@ -210,7 +210,7 @@ Escenario: una caja lleva su cifra
 
 Escenario: un nodo que no es caja jamás lleva cifra
   Dado la capa Mejora activa
-  Cuando se pinta un nodo de clase rule, mcp, knowledge, subagent, hook, command o settings
+  Cuando se pinta un nodo que no es caja (`isCaja(box) === false`)   # D19: `knowledge` no es una clase, es una banda
   Entonces ese nodo NO muestra ninguna cifra
   Y NO muestra 0
 ```
@@ -646,6 +646,13 @@ Escenario: la ventana de la tab es la de la capa
 > D17.2 · sin esta superficie el MVP no puede decir «en este puesto», que es el eje diferencial.
 
 ### RF-265 — Una fila por arnés × puesto, con costo por corrida 🎨
+
+> **D20 (FIRMADA 2026-07-26):** no existe `puesto` en `EntradaPortafolio`. La fila se agrupa por
+> **`(identidad, instalacion_id)`** —la unidad que el Portafolio sí modela— y la etiqueta de puesto
+> sale del **`rol` del arnés indexado**, resuelto **server-side** en `GET /api/telemetria/portafolio`
+> y viajando como `puesto *string`. Sin `rol` viaja **`null`** y la UI dice `puesto sin declarar`.
+> «Un arnés en dos puestos» se cumple **por instalación**: dos instalaciones ⇒ dos filas.
+> `domain.EntradaPortafolio` y el wire de `GET /api/portafolio` **no se tocan**.
 `mockup-capa-mejora.html:571-578`.
 
 ```gherkin
@@ -1134,7 +1141,7 @@ stories. **Prohibido mock donde hay dato real disponible.**
 | **RF-282** (el contenido no se persiste) | probar «no hay contenido» es probar una ausencia, y un test de structs solo prueba que **ese** camino no lo escribe | **Test de texto sobre el almacén real**: se corre el hook con un prompt que contiene un marcador único y se busca ese marcador en el archivo SQLite. Si aparece, falla. Es la única forma de asertar la ausencia sin confiar en la forma del código |
 | **RF-283** (borrado) | el test asserta que la consulta no devuelve nada; no que el byte se fue | test de integración sobre el archivo SQLite real + verificación de que no queda agregado huérfano. La destrucción física del dato no se promete en la UI |
 | **RF-284** (el arnés ni egresa ni guarda de más) | no se puede probar la ausencia por muestreo | **dos checks duros de conformance sobre el arnés** (ya en alcance por D12.1): `telemetria-no-egresa` (destino) + su hermano de **proyección de campos** (qué escribe). El primero solo no alcanza — ANEXO H4 |
-| **T-21** (a11y) | vitest-browser **no corre en background** (Chromium no headless) | `pnpm --dir web run verify` y las stories en sesión interactiva — gotcha conocido de la casa |
+| **T-21** (a11y) | ~~vitest-browser no corre en background~~ **DEROGADA 2026-07-26** | Corre **headless**: `npx vitest run --project=storybook <archivo>` (~4 s/archivo). `web/vitest.config.ts` declara `headless: true` |
 
 ## 4 · Trazabilidad y cierre
 

@@ -24,7 +24,7 @@
 
 | | |
 |---|---|
-| Stories planificadas | **124** en **17 archivos** (12 nuevos · 5 supersets de archivos firmados) |
+| Stories planificadas | **125** en **17 archivos** (12 nuevos · 5 supersets de archivos firmados) — 124 + `ConDatoDark` (D21 ítem 3) |
 | Componentes nuevos | 11 (4 en `entities/telemetria`, 6 en `widgets/map-canvas`, 1 en `widgets/portafolio`) + 1 promoción a `shared/ui` |
 | Componentes extendidos | 6 (`arnes-node` · `map-bar` · `lane` · `inspector` · `map-canvas` · `portafolio-list`) |
 | RF 🎨 con cobertura de story | 44 de 50 |
@@ -382,9 +382,9 @@ Tres riesgos **medidos**, no intuidos (tokens de `web/src/app/styles/theme.css`,
 
 | # | dónde | medición | veredicto |
 |---|---|---|---|
-| **A11Y-1** 🔴 | **disclaimer «estimado, no facturación»** — `design.md` §4.2 lo pinta `texto --warn` sobre `fondo --warn-soft` | `--warn` `#c96a2e` sobre el compuesto de `--warn-soft` `rgba(201,106,46,.13)` sobre `--card` `#ffffff` = **3,26 : 1**. Mínimo axe para texto: 4,5 : 1 | **falla el gate.** Y contradice al propio `design.md` §4 fin: *«todo texto nuevo sobre `--warn-soft` usa `--foreground`, no `--warn`»*. **La tabla §4.2 gana mal: hay que corregirla a `--foreground`** antes de codear el disclaimer. Es el mismo bug que ya está en `BACKLOG.md` (`.text-warn` a 3,76 : 1 sobre blanco, rompe 4 stories de `new-session-picker`) — este paquete **no lo puede agravar** |
-| **A11Y-2** 🔴 | **marca de fuga grave** — `design.md` §4.2: `texto --crit` sobre `--crit-soft` | `--crit` `#c94545` sobre el compuesto de `--crit-soft` `rgba(201,69,69,.12)` sobre blanco = **4,03 : 1** | **falla el gate** por poco. Sobre `--card` puro daría 4,75 : 1 y pasaría. Fix: el texto de la marca en `--foreground`; `--crit` queda para borde y punto (requisito 3 : 1, que sí cumple) |
-| **A11Y-3** ⚠️ | **barra de cobertura, segmentos contiguos** — `--heat-4` vs `--heat-3` | compuestos sobre blanco: **1,20 : 1** entre segmentos adyacentes | **axe NO lo caza** (su regla `color-contrast` solo mira texto), así que el gate pasaría con una barra ilegible. Por eso `design.md` §2.2 mete el separador de 1 px de `--card` — y por eso **el assert de verdad es el texto**: `CuatroSegmentos` (§2.3) asserta el `aria-label` completo y el texto de al lado, no los colores. La barra nunca es el único portador (RF-237: *«distinguibles sin depender del color»*) |
+| **A11Y-1** ✅ **RESUELTO en D21** | **disclaimer «estimado, no facturación»** — `design.md` §4.2 lo pinta `texto --warn` sobre `fondo --warn-soft` | `--warn` `#c96a2e` sobre el compuesto de `--warn-soft` `rgba(201,106,46,.13)` sobre `--card` `#ffffff` = **3,24 : 1** en tema **claro** (recálculo D21 con composición alpha correcta; en **oscuro** da 6,11 : 1 y pasa). **Fix firmado: texto `--foreground` (13,14 : 1), `--warn` solo en el borde**. Mínimo axe para texto: 4,5 : 1 | **falla el gate.** Y contradice al propio `design.md` §4 fin: *«todo texto nuevo sobre `--warn-soft` usa `--foreground`, no `--warn`»*. **La tabla §4.2 gana mal: hay que corregirla a `--foreground`** antes de codear el disclaimer. Es el mismo bug que ya está en `BACKLOG.md` (`.text-warn` a 3,76 : 1 sobre blanco, rompe 4 stories de `new-session-picker`) — este paquete **no lo puede agravar** |
+| **A11Y-2** ✅ **RESUELTO en D21** | **marca de fuga grave** — `design.md` §4.2: `texto --crit` sobre `--crit-soft` | `--crit` `#c94545` sobre el compuesto de `--crit-soft` `rgba(201,69,69,.12)` sobre blanco = **4,04 : 1** en tema **claro** (en oscuro 4,66 : 1, pasa raspando). **Fix firmado D21: fondo `--card` — 4,75 : 1 claro / 5,33 : 1 oscuro**, sin tokens nuevos | **falla el gate** por poco. Sobre `--card` puro daría 4,75 : 1 y pasaría. Fix: el texto de la marca en `--foreground`; `--crit` queda para borde y punto (requisito 3 : 1, que sí cumple) |
+| **A11Y-3** ⚠️ | **barra de cobertura, segmentos contiguos** — `--heat-4` vs `--heat-3` | compuestos sobre blanco: **1,37 : 1** entre segmentos adyacentes (recálculo D21; el 1,20 estaba mal y no cambia la conclusión) | **axe NO lo caza** (su regla `color-contrast` solo mira texto), así que el gate pasaría con una barra ilegible. Por eso `design.md` §2.2 mete el separador de 1 px de `--card` — y por eso **el assert de verdad es el texto**: `CuatroSegmentos` (§2.3) asserta el `aria-label` completo y el texto de al lado, no los colores. La barra nunca es el único portador (RF-237: *«distinguibles sin depender del color»*) |
 
 Riesgos menores a vigilar, sin veredicto todavía (medir al construir):
 `--muted-foreground` `#4d5555` sobre blanco da **7,65 : 1** — pasa, incluso a 9 px (los `dt` de la
@@ -395,7 +395,7 @@ así que el gate solo ve el claro. **Acción**: agregar una story de tema oscuro
 (franja y tarjeta) con `globals: { theme: "dark" }`, o aceptar por escrito que el oscuro queda sin
 gate automático. **Se propone lo primero** y se cuenta dentro del presupuesto (no suma stories
 nuevas de contenido: se aplica a `Reposo` y `CompletaB1Atencion` duplicándolas —
-`ReposoDark` y `CompletaB1AtencionDark`, **+2 stories**, contadas en el total de 124).
+`ReposoDark`, `CompletaB1AtencionDark` y **`ConDatoDark`** (D21 ítem 3), **+3 stories**, contadas en el total de **125**).
 
 Regla dura para el constructor: **ninguna story nueva nace con `a11y: { test: "todo" }`**. Si una
 falla, se arregla el color o el marcado. El único `todo` heredado es el de
@@ -629,7 +629,7 @@ taxonomía, no mal testeado.
 | `widgets/portafolio/ui/tabla-mejora-portafolio.stories.tsx` | 9 | nuevo |
 | `widgets/portafolio/ui/portafolio-list.stories.tsx` | 2 | superset (12 firmadas intactas) |
 | `shared/ui/estado-carga.stories.tsx` | 2 | nuevo (promoción) |
-| **TOTAL** | **124** | 12 archivos nuevos · 5 supersets |
+| **TOTAL** | **125** | 12 archivos nuevos · 5 supersets (124 + `ConDatoDark`, D21) |
 
 ### Mapa de los 7 estados honestos → story dueña (ninguno queda huérfano)
 
@@ -661,7 +661,7 @@ el operador los va a ver.
 | 1 | **BLOQ-1** — cross-import `entities/arnes → entities/telemetria` (§1.3). Opción A propuesta, falta firma | `decisiones.md` de este paquete |
 | 2 | **BLOQ-2** — `Clase` no tiene `knowledge`; `design.md` §7.3 tiene copy para un nodo que no existe | `design.md` §7.3 (borrar la fila) |
 | 3 | **BLOQ-3** — `EntradaPortafolio` no tiene `puesto`; RF-265 lo pide | `BACKLOG.md` + `spec.md` §4 |
-| 4 | **A11Y-1 / A11Y-2** — `design.md` §4.2 elige combinaciones que fallan axe (3,26:1 y 4,03:1) y contradicen su propio §4 | `design.md` §4.2 (corregir a `--foreground`) |
+| 4 | ~~**A11Y-1 / A11Y-2**~~ **RESUELTOS en D21** (3,24:1 y 4,04:1, los dos **solo en tema claro**) | `design.md` §4.2 ya corregido: disclaimer `--foreground` sobre `--warn-soft`; fuga grave `--crit` sobre `--card` |
 | 5 | **Nota derogada** — `design.md` §8 y `spec.md` §3 (T-21) dicen que vitest-browser no corre headless. **Es falso**, verificado hoy | los dos archivos, mismo commit |
 | 6 | **H-8 abierto** — el `aria-label` de la cobertura (17) no cierra con el denominador (61). Este plan usa 18 y declara la unidad; el mockup tiene que cerrarlo | iteración 2 del mockup |
 | 7 | **`inspector.stories.tsx:92`** — `toHaveLength(3)` pasa a `4`. Único cambio a una story firmada | `PARIDAD.md`, declarado |

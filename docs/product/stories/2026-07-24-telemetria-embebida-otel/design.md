@@ -164,7 +164,7 @@ barra + franja se leen como **un** bloque de chrome y no como dos.
 | total | `--font-mono` | `--text-lg` | 700 |
 | prefijo `USD` | `--font-mono` | `--text-xs` | 600, `--muted-foreground` |
 | denominador | `--font-sans` | `--text-xs` | 400, `--muted-foreground` |
-| disclaimer | `--font-sans` | `--text-xs` | 400, tono `--warn` sobre `--warn-soft` |
+| disclaimer | `--font-sans` | `--text-xs` | 400, **texto `--foreground`** sobre `--warn-soft` (D21; `--warn` solo en el borde) |
 | cobertura | `--font-sans` | `--text-xs` | 400, `--muted-foreground` |
 
 **Barra de cobertura — cuatro segmentos (RF-237 · H-13).** `width: 132px` · `height: 7px` ·
@@ -291,7 +291,7 @@ columnas numéricas con `colspan=2`, en itálica y `--muted-foreground` — **no
 celda, que se leería como cero.
 
 **Caja de paridad:** `display: flex; justify-content: space-between` · borde y fondo `--ok` /
-`--ok-soft` cuando coinciden, `--warn` / `--warn-soft` cuando difieren. El veredicto es **texto**
+`--ok-soft` cuando coinciden, `--foreground` sobre `--warn-soft` cuando difieren (D21). El veredicto es **texto**
 (`✓ coinciden` / `⚠ difieren en USD 0,18`), no solo el tono.
 
 **Detectores:** una fila por detector: punto de 7 px + texto. Tres estados de punto (`on` `--warn`,
@@ -421,13 +421,13 @@ su propio bloque, con un separador rotulado. Nunca intercalados como si valieran
 | separador entre segmentos | `--card`, 1 px | Sin él, `heat-3` y `heat-2` no se cuentan de un vistazo |
 | barra de participación (relleno) | `--warn` a `opacity: .85` | Proporción de gasto = atención, no error |
 | barra de participación (riel) | `color-mix(in srgb, var(--border) 55%, transparent)` | |
-| disclaimer «estimado» | texto `--warn` · fondo `--warn-soft` · borde `color-mix(--warn 35%)` | |
-| marca de fuga · grave | texto `--crit` · fondo `--crit-soft` · borde `color-mix(--crit 45%)` | |
-| marca de fuga · leve / confianza no exacta | texto `--warn` · fondo `--warn-soft` | Una atribución deducida es «revisá», no «error» |
+| disclaimer «estimado» | **texto `--foreground`** · fondo `--warn-soft` · borde `color-mix(--warn 35%)` | **D21**: `--warn` sobre `--warn-soft` da **3,24:1** en claro (6,11:1 en oscuro) ⇒ falla el gate. Con `--foreground` da **13,14:1**. `--warn` queda **solo** para el borde (mínimo 3:1) |
+| marca de fuga · grave | texto `--crit` · **fondo `--card`** · borde `color-mix(--crit 45%)` | **D21**: `--crit` sobre `--crit-soft` da **4,04:1** en claro ⇒ falla. Sobre `--card` da **4,75:1** claro / **5,33:1** oscuro. `--crit-soft` sobrevive como relleno de superficies **sin texto encima** (el punto, el riel) |
+| marca de fuga · leve / confianza no exacta | **texto `--foreground`** · fondo `--warn-soft` · borde `color-mix(--warn 35%)` | Una atribución deducida es «revisá», no «error». D21: texto sobre tono siempre `--foreground` |
 | tarjeta · severidad atención | borde izquierdo `--warn`, fondo `color-mix(--warn 5%, --card)` | |
 | tarjeta · severidad crítica | borde izquierdo `--crit`, fondo `color-mix(--crit 5%, --card)` | |
 | paridad de costos · coinciden | `--ok` · `--ok-soft` | |
-| paridad de costos · difieren | `--warn` · `--warn-soft` | Difieren ≠ roto: puede ser catálogo viejo |
+| paridad de costos · difieren | **texto `--foreground`** · fondo `--warn-soft` · borde/punto `--warn` | Difieren ≠ roto: puede ser catálogo viejo. D21: texto sobre tono siempre `--foreground` |
 | detector activo · sin hallazgos · no disponible | `--warn` · `--ok` · `--border` | Ausencia = `--border`, **nunca** `--ok`: «no sé» ≠ «sano» (regla ya enforced en `.pf-dot-salud.sin-senal`) |
 | foco | `--ring`, `outline: 2px` + `outline-offset: 1px` | El mismo que ya usa el conmutador |
 | chip S1-only / chip neutro | `--secondary` + `--muted-foreground` | Es información, no señal |
@@ -436,6 +436,11 @@ su propio bloque, con un separador rotulado. Nunca intercalados como si valieran
 en el `BACKLOG.md`. Este paquete **no la arregla y no la agrava**: todo texto nuevo sobre
 `--warn-soft` usa `--foreground`, no `--warn`. `--warn` queda reservado para bordes, puntos y
 barras — donde el requisito es 3:1, no 4.5:1.
+
+**D21 — esto es NORMATIVA de la tabla §4.2, no una nota al pie que la tabla contradice.**
+Todo texto nuevo sobre un tono `*-soft` usa `--foreground`; el color de acento queda para
+bordes, puntos y rieles. Las dos filas que decían lo contrario (`disclaimer` y
+`marca de fuga · grave`) están corregidas arriba con sus cifras por tema.
 
 ---
 
@@ -631,7 +636,6 @@ regla que `AvisoChip`, BR-8 del paquete de marketplace).
 | sin dato · subagente | `sin dato atribuible — el subagente no se distingue en el turno` |
 | sin dato · regla | `sin dato atribuible — una regla no consume por sí misma` |
 | sin dato · MCP | `sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa` *(corrige el mockup `:404`, hueco H-10)* |
-| sin dato · conocimiento | `sin dato atribuible — el conocimiento se paga en la caja que lo carga` |
 | sin dato · hook | `sin dato atribuible — un hook informa, no consume` |
 | sin dato · resto | `sin dato atribuible — esta capa mide cajas` |
 | caja sin corridas en la ventana | `sin corridas en esta ventana` |
@@ -759,7 +763,7 @@ Retención 90 días · qué guardamos
 | `biome` | DOM válido (nada de botón dentro de botón), reglas a11y de base | `pnpm --dir web run lint` |
 | `stylelint` + `strict-value` | **cero color literal** en `mejora.css` y en las extensiones | dentro de `verify` |
 | `depcruise` + `steiger` | `entities/telemetria` no importa widgets, no importa otra entity, no importa transporte (`fe-transporte-independiente`, `fe-taxonomia-componentes` v1.1) | `pnpm --dir web run fsd` |
-| Storybook + `vitest-browser` | una story por estado de §5, con `play()`; gate a11y en `error` (ya en `.storybook/preview.ts`) | ⚠️ **no corre en background** (Chromium no headless): `pnpm --dir web run verify` en sesión interactiva |
+| Storybook + `vitest-browser` | una story por estado de §5, con `play()`; gate a11y en `error` (ya en `.storybook/preview.ts`) | **corre headless** — `npx vitest run --project=storybook <archivo>`, verificado 2026-07-26; `web/vitest.config.ts` tiene `headless: true` explícito. *(La nota vieja «no corre en background / Chromium no headless» queda **DEROGADA**.)* |
 | conformance | capabilities nuevas (R1 · R2 · R3 · R4) + `arnesia conformance --todo` sin regresión | `make` / hook `pre-commit` |
 
 **Stories obligatorias** (una por estado, no una por componente):
