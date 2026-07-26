@@ -206,6 +206,34 @@ Va en el contrato del spawn como obligatoria, y `TestSpawnInyectaTelemetria` deb
 nombre y valor. `OTEL_LOGS_EXPORT_INTERVAL` no se probó por separado: es afinado de latencia, y su
 ausencia solo cambia cuándo llega, no si llega.
 
+### H10.5 — ✅ El catálogo embebido reproduce el costo MEDIDO, exacto
+
+Validación de punta a punta de la capa de costeo (L4) contra dato real, no contra un fixture:
+se tomaron los tokens de la corrida medida (`evidencia/result-envelope.json`) y se costearon con
+los precios que quedaron **embebidos en el binario**
+(`internal/adapters/telemetria/catalogo/precios.json`, LiteLLM MIT, rev `b439a9a78864`).
+
+```
+tokens medidos : entrada 10 · salida 39 · cache lectura 17 536 · cache escritura 1h 8 257
+precios        : in 1e-06 · out 5e-06 · cr 1e-07 · cw5 1,25e-06 · cw1h 2e-06
+
+calculado con nuestro catálogo = 0,0184726000
+reportado por Claude Code      = 0,0184726000   ⇒ coinciden EXACTO (Δ < 1e-12)
+```
+
+**Es el oracle de paridad de A6 funcionando**, y confirma dos cosas que estaban supuestas: que
+Claude Code cobró el tier de **1 hora** (2×) en esa corrida, y que guardar los dos costos permite
+detectar divergencias sin construir un segundo sistema.
+
+**Y cuantifica los dos bugs ajenos que E8 mandaba testear**, con nuestros propios números:
+
+| si el costeo… | da | error |
+|---|---:|---:|
+| olvida el **cache write** (`langfuse#14249`) | 0,001959 | **−89,4 %** |
+| **aplana el tier** a 5 m (`phoenix#14314`) | 0,012280 | **−33,5 %** |
+
+No son errores teóricos: sobre esta corrida real, el primero factura el 10 % de lo que costó.
+
 ---
 
 ## Qué cambia en el diseño
