@@ -57,11 +57,17 @@ func New(repo string) (*Updater, error) {
 // del PROPIO proceso, ruta real del ejecutable, escribibilidad del directorio y repo
 // configurado.
 func (u *Updater) Version() ports.VersionInfo {
+	repo := u.repoAtual()
 	v := ports.VersionInfo{
 		Huella:      "dev",
 		InstaladoEn: u.exePath,
-		Repo:        u.repoAtual(),
+		Repo:        repo,
 		Escribible:  dirEscribible(filepath.Dir(u.exePath)),
+		// La identidad del BUILD (semver + sello) es aparte de la del COMMIT (huella): dos
+		// compilaciones del mismo árbol comparten huella y no comparten sello — RF-231.
+		Version:    VersionCompleta(),
+		Compilado:  Compilado,
+		AvisoBuild: avisoDeBuildViejo(u.exePath, repo),
 	}
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		v.Huella, v.Fecha, v.Sucio = huellaDeSettings(bi.Settings)

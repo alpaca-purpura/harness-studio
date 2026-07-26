@@ -22,6 +22,17 @@ type VersionInfo struct {
 	Escribible bool
 	// Sucio refleja vcs.modified del build corriente (aditivo al RF-107, decisión #7).
 	Sucio bool
+	// Version es el identificador completo del build: `0.2.21.2607260225` (semver + sello de
+	// compilación AAMMDDHHMM). "dev" en un binario sin identidad inyectada. RF-231.
+	//
+	// Existe porque la Huella —el commit— NO distingue dos compilaciones del mismo árbol, que
+	// es justo la pregunta del operador: «¿corro lo último que compilé?».
+	Version string
+	// Compilado es el sello en formato legible (`2026-07-26 02:25`); vacío en un build de dev.
+	Compilado string
+	// AvisoBuild dice, en una línea accionable, que en disco hay un build MÁS NUEVO que el que
+	// está corriendo (RF-231). Vacío = el que corre es el último que se compiló.
+	AvisoBuild string
 }
 
 // SelfUpdater es el puerto del self-update sin sudo (RF-104): cada paso devuelve el
