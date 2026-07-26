@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -101,6 +102,13 @@ type Store struct {
 	cerrar  chan struct{}
 	drenado sync.WaitGroup
 	unaVez  sync.Once
+	// encolados/escritos son la BARRERA real de `Sincronizar`. Antes era un sleep de
+	// `LoteEspera + 50 ms`, que no es una barrera: es una apuesta a que el lote termine en
+	// ese rato. Con 600 filas bajo `-race` la apuesta se pierde y el test falla por el
+	// reloj, no por el código — la peor clase de test intermitente, porque enseña a
+	// re-correr en vez de a mirar.
+	encolados atomic.Int64
+	escritos  atomic.Int64
 
 	// archivada es el nombre del `.db` que se archivó al abrir, si hubo. Viaja a la salud:
 	// una historia archivada que nadie menciona es una pérdida silenciosa.
@@ -214,6 +222,7 @@ func (s *Store) Ingerir(ctx context.Context, evs []domain.EventoTelemetria) (int
 	}
 	select {
 	case s.cola <- buenos:
+		s.encolados.Add(int64(len(buenos)))
 		return len(buenos), nil
 	default:
 		s.sumarSalud(ctx, SaludColaLlena, int64(len(buenos)))
@@ -221,23 +230,19 @@ func (s *Store) Ingerir(ctx context.Context, evs []domain.EventoTelemetria) (int
 	}
 }
 
-// Sincronizar espera a que la cola se vacíe y el lote en curso termine. Existe para los tests
-// y para el shutdown ordenado; el camino caliente nunca la llama.
+// Sincronizar espera a que TODO lo encolado esté escrito. Existe para los tests y para el
+// shutdown ordenado; el camino caliente nunca la llama.
+//
+// Es una barrera de verdad —compara un contador de encolados contra uno de escritos— y no un
+// sleep: un sleep es una apuesta a que el lote termine a tiempo, y una apuesta que se pierde
+// bajo carga produce un test intermitente, que es peor que un test que falla.
 func (s *Store) Sincronizar(ctx context.Context) error {
 	for {
-		if len(s.cola) == 0 {
-			// Un lote puede estar en vuelo: se le da una vuelta de reloj del writer.
-			select {
-			case <-time.After(s.opts.LoteEspera + 50*time.Millisecond):
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-			if len(s.cola) == 0 {
-				return nil
-			}
+		if s.escritos.Load() >= s.encolados.Load() {
+			return nil
 		}
 		select {
-		case <-time.After(10 * time.Millisecond):
+		case <-time.After(2 * time.Millisecond):
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -269,6 +274,11 @@ func (s *Store) drenar() {
 		if len(lote) == 0 {
 			return
 		}
+		// El contador sube pase lo que pase: un lote que no se pudo escribir es una pérdida
+		// contada (`errores_escritura`), no una razón para que la barrera espere para siempre.
+		// `n` se captura ACÁ: más abajo `lote` se vacía, y un `len(lote)` diferido sumaría 0.
+		n := int64(len(lote))
+		defer func() { s.escritos.Add(n) }()
 		if err := s.escribirLote(context.Background(), lote); err != nil {
 			// **El daemon NO se cae por esto** (disco lleno, base bloqueada): se pierde
 			// telemetría, no la sesión del usuario. Y se cuenta, para que la pérdida sea
