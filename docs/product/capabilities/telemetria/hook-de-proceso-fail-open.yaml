@@ -1,0 +1,108 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A7 · RF-284).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.hook-de-proceso-fail-open
+cap_num: CAP-131
+slug: hook-de-proceso-fail-open
+name: "Hook de proceso que nunca rompe un turno (el hook es el propio binario)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: cli
+verb: observar
+functional_area: "telemetria.ingesta"
+user_visible: false
+nature: feature
+pointers:
+  - "cmd/arnesia/hook.go#runHook"
+  - "cmd/arnesia/hook.go#hookProceso"
+  - "cmd/arnesia/hook.go#topeHook"
+  - "internal/adapters/telemetria/hooks/proyecta.go#Proyectar"
+valida:
+  - "TestHookStdoutVacio"
+  - "TestHookSaleCeroEnTodasSusRamas"
+  - "TestHookFailOpenSinDaemon"
+  - "TestHookFichaHuerfana"
+  - "TestHookNoTardaNiFalla"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia hook proceso  (el payload va por stdin)"
+  main_component: null
+  api_endpoints:
+    - "POST /api/telemetria/proceso"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §7.1"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El hook que viaja dentro de un arnés es el propio binario de ArnesIA: cero intérpretes que asumir, cero runtimes que shipear, y la misma proyección de campos que el daemon usa y prueba. Sale bien SIEMPRE, no imprime nada y tiene un cuarto de segundo de presupuesto."
+    merge_sha: null
+scenarios:
+  - id: nunca-rompe-un-turno
+    name: "Algo sale mal dentro del hook"
+    status: live
+    given: "entrada vacía, entrada corrupta, sin daemon, o el daemon devolviendo error"
+    when: "el hook corre"
+    then: "en los cuatro casos termina bien y sin imprimir nada"
+    verifica: "TestHookSaleCeroEnTodasSusRamas"
+  - id: sin-daemon-no-pasa-nada
+    name: "El daemon no está corriendo"
+    status: live
+    given: "ninguna ficha publicada"
+    when: "el hook corre con un marcador"
+    then: "no llega nada y no tarda; y con el daemon levantado en otro puerto y otro marcador, llega exactamente una medición"
+    verifica: "TestHookFailOpenSinDaemon"
+  - id: ficha-que-quedo-colgada
+    name: "El daemon murió sin cerrar"
+    status: live
+    given: "una ficha que nombra un puerto muerto"
+    when: "el hook corre"
+    then: "falla rápido dentro de su presupuesto y termina bien"
+    verifica: "TestHookFichaHuerfana"
+business_rules:
+  - id: siempre-termina-bien
+    rule: "El hook termina bien en todas sus ramas, sin excepción. Un hook que termina mal al empezar un turno bloquea el turno del usuario."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: no-imprime
+    rule: "La salida estándar queda vacía. Un hook que imprime inyecta texto al contexto del agente."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: nunca-reenvia-su-entrada
+    rule: "Manda la medición ya proyectada, jamás su entrada. Un hook que postea su entrada entera a la máquina local cumple «no egresa» y aun así filtra la conversación al almacén."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+  - id: silencioso-no-es-invisible
+    rule: "Cuando no puede reportar, no reintenta, no escribe a disco y no avisa. El hueco aparece después en la cobertura, nunca como un cero."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.allowlist-de-ingesta
+    - arnesia.telemetria.ficha-de-descubrimiento-del-daemon
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Hook de proceso que nunca rompe un turno
+
+El hook que viaja dentro de un arnés **es el propio binario de ArnesIA**. No hay intérprete que
+asumir —no se puede contar con Python en Windows, ni con Node— ni runtime nuevo que shipear, ni un
+segundo lugar donde la lista de campos permitidos se pueda olvidar de uno: es **el mismo código** que
+el daemon usa y prueba.
+
+**Termina bien siempre.** Sin excepciones, en todas sus ramas. Un hook que termina mal al empezar un
+turno bloquea el turno del usuario, y la instrumentación no puede degradar el trabajo que mide. La
+salida estándar queda vacía por la misma razón: lo que un hook imprime se le inyecta al agente.
+
+**Proyecta antes de mirar si hay a quién mandarle.** El contenido de la conversación no existe en
+memoria más allá de esa línea.
+
+Y cuando no puede reportar —no hay daemon, la ficha quedó colgada, el destino responde error— **no
+reintenta, no escribe a disco y no avisa**. Silencioso hacia el usuario, no invisible: el hueco
+aparece después en la cobertura. Nunca como un cero.

@@ -25,8 +25,29 @@ type errorBody struct {
 // arneses (Slice 0, S0-D9 — superficie observable sin FE); events is the SSE broker
 // mounted at /events. auth confines the whole surface (Host+Origin+token, boundary
 // superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, portafolio *usecase.PortafolioService, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, portafolio *usecase.PortafolioService, marketplaces *usecase.MarketplaceService, dictado *usecase.DictadoService, telemetria *usecase.TelemetriaService, otlp http.Handler, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
+
+	// Telemetría embebida (paquete 2026-07-24-telemetria-embebida-otel). El receptor OTLP
+	// entra **inyectado como http.Handler**, igual que el broker SSE: este paquete NO importa
+	// `telemetria/otlp` — go-arch-lint lo prohíbe y no hace falta.
+	//
+	// `/v1/logs` y `/v1/metrics` viven fuera de `/api` porque la ruta la fija la spec del
+	// protocolo, no nosotros. Quedan igual bajo los gates (isAPIPath los cubre).
+	if otlp != nil {
+		mux.Handle("POST /v1/logs", otlp)
+		mux.Handle("POST /v1/metrics", otlp)
+	}
+	if telemetria != nil {
+		mux.HandleFunc("GET /api/telemetria/resumen", getResumen(telemetria))
+		mux.HandleFunc("GET /api/telemetria/salud", getSalud(telemetria))
+		mux.HandleFunc("GET /api/telemetria/portafolio", getPortafolio(telemetria))
+		mux.HandleFunc("GET /api/telemetria/arneses/{clave}/cajas", getCajas(telemetria))
+		mux.HandleFunc("GET /api/telemetria/arneses/{clave}/cajas/{cajaId}", getDetalleCaja(telemetria))
+		mux.HandleFunc("GET /api/telemetria/arneses/{clave}/mejoras", getMejoras(telemetria))
+		mux.HandleFunc("DELETE /api/telemetria/arneses/{clave}", deleteTelemetriaArnes(telemetria))
+		mux.HandleFunc("POST /api/telemetria/proceso", postProceso(telemetria, nil))
+	}
 
 	// UI embebida (HS-11): el daemon sirve la SPA en "/" cuando el build la trae
 	// (scripts/bundle.sh compila web/dist ANTES del daemon). Queda DENTRO de withAuth:
@@ -82,6 +103,22 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/mapa", postObservarEnMapa(portafolio))
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/identificar", postIdentificar(portafolio))
 
+	// Plano Marketplaces + catálogo (paquete 2026-07-23-portafolio-agregar-marketplace, AG-D8):
+	// el estante de lo que vendemos y el espejo de si el cliente coincide. Lectura de catálogo
+	// CACHEADA con refresco explícito (BR-3); `entradas: null` cuando no se pudo leer (BR-4).
+	mux.HandleFunc("GET /api/marketplaces", listMarketplaces(marketplaces))
+	mux.HandleFunc("POST /api/marketplaces", postRegistrarMarketplace(marketplaces))
+	mux.HandleFunc("POST /api/marketplaces/validaciones", postValidarMarketplace(marketplaces))
+	mux.HandleFunc("DELETE /api/marketplaces/{nombre}", deleteOlvidarMarketplace(marketplaces))
+	mux.HandleFunc("GET /api/marketplaces/{nombre}/catalogo", getCatalogoMarketplace(marketplaces))
+	mux.HandleFunc("POST /api/marketplaces/{nombre}/lecturas", postLeerCatalogo(marketplaces))
+	// `↧ Traer canónico` (AG-D17): materializa una fila del catálogo como canónico editable en
+	// `~/.arnesia/checkouts/`. Nunca escribe en `~/.claude` (BR-13).
+	mux.HandleFunc("POST /api/marketplaces/{nombre}/traidos", postTraerCanonico(marketplaces))
+	// Reconciliación de origen (S7): actúa sobre un ARNÉS, por eso vive bajo /portafolio.
+	mux.HandleFunc("GET /api/portafolio/arneses/{clave}/origen/candidatos", getCandidatosOrigen(marketplaces))
+	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/origen", postAsignarOrigen(portafolio))
+
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))
 	mux.HandleFunc("GET /api/sessions/cerradas/{id}/historial", historialCerrada(sessions))
@@ -92,6 +129,19 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	mux.HandleFunc("POST /api/sessions/{id}/turn", sessionTurn(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/permission", resolvePermission(sessions))
 	mux.HandleFunc("POST /api/sessions/{id}/interrupt", sessionInterrupt(sessions))
+
+	// Dictado por voz (paquete 2026-07-25-spike-voz-dictado, RF-222/RF-223). El
+	// `disponibilidad` NO cuelga de una sesión: el FE lo consulta al montar el composer
+	// para saber si ofrece el botón, antes de que haya nada que dictar.
+	if dictado != nil {
+		mux.HandleFunc("POST /api/sessions/{id}/dictado", postDictado(dictado))
+		mux.HandleFunc("GET /api/dictado/disponibilidad", getDisponibilidad(dictado))
+	}
+
+	// Diagnóstico del FE (RF-230). NO va condicionado a ningún servicio: es la vía por la que
+	// el WebView —que no tiene devtools ni escribe a disco— deja rastro de sus fallos, y el
+	// primero que hay que poder diagnosticar es el arranque, cuando todavía no hay nada más.
+	mux.HandleFunc("POST /api/diagnostico", postDiagnostico())
 
 	return withAuth(auth, mux)
 }

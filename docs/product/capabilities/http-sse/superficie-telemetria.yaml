@@ -1,0 +1,110 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, §3.2).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.http-sse.superficie-telemetria
+cap_num: CAP-137
+slug: superficie-telemetria
+name: "Superficie HTTP de telemetría (donde `null` y `0` no se confunden)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: http-sse
+layer: adapter
+verb: observar
+functional_area: "telemetria.api"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/transport/http/telemetria.go#getResumen"
+  - "internal/adapters/transport/http/telemetria.go#getCajas"
+  - "internal/adapters/transport/http/telemetria.go#getDetalleCaja"
+  - "internal/adapters/transport/http/telemetria.go#getMejoras"
+  - "internal/adapters/transport/http/telemetria.go#getPortafolio"
+  - "internal/adapters/transport/http/telemetria.go#deleteTelemetriaArnes"
+  - "internal/adapters/transport/http/telemetria.go#getSalud"
+  - "internal/adapters/transport/http/telemetria.go#postProceso"
+  - "internal/adapters/transport/http/telemetria.go#ventanaDeQuery"
+  - "internal/adapters/transport/http/router.go#NewHandler"
+valida:
+  - "TestNoAplicaNoEsCeroEnElWireHTTP"
+  - "TestCajasSinDatoNoSeOmiten"
+  - "TestPortafolioPuestoNullSinRol"
+  - "TestVentanaIlegibleNoSeIgnora"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/resumen"
+    - "GET /api/telemetria/salud"
+    - "GET /api/telemetria/portafolio"
+    - "GET /api/telemetria/arneses/{clave}/cajas"
+    - "GET /api/telemetria/arneses/{clave}/cajas/{cajaId}"
+    - "GET /api/telemetria/arneses/{clave}/mejoras"
+    - "DELETE /api/telemetria/arneses/{clave}"
+    - "POST /api/telemetria/proceso"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §3.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Las ocho rutas que la pantalla consume, con el contrato duro de que «no se pudo medir» y «midió cero» viajan distinto en todas ellas."
+    merge_sha: null
+scenarios:
+  - id: nulo-no-se-vuelve-cero
+    name: "Un bucket que el runtime no reportó"
+    status: live
+    given: "una medición sin cierto bucket"
+    when: "se pide por la API"
+    then: "la clave no aparece; y en particular no aparece en cero"
+    verifica: "TestNoAplicaNoEsCeroEnElWireHTTP"
+  - id: las-cajas-sin-dato-viajan
+    name: "Un arnés con cajas que no reportaron"
+    status: live
+    given: "cuatro cajas y gasto atribuido a dos"
+    when: "se pide el desglose"
+    then: "vienen las cuatro; las dos sin dato traen su motivo y el costo vacío, no en cero"
+    verifica: "TestCajasSinDatoNoSeOmiten"
+  - id: ventana-ilegible-no-se-ignora
+    name: "La pantalla pide un rango con formato equivocado"
+    status: live
+    given: "una fecha que no se puede interpretar"
+    when: "llega la petición"
+    then: "se responde error; ignorarla devolvería un rango distinto del pedido y el usuario leería cifras de otro período creyendo que son del suyo"
+    verifica: "TestVentanaIlegibleNoSeIgnora"
+business_rules:
+  - id: nulo-y-cero-son-distintos
+    rule: "«No se pudo medir» y «midió cero» viajan distinto en toda la superficie. Convertir uno en otro es fabricar un dato."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: las-ausencias-viajan-explicitas
+    rule: "Una caja sin dato viaja con su motivo, no se omite. Omitirla obligaría a la pantalla a inventar por qué falta."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: el-transporte-no-importa-el-receptor
+    rule: "El receptor de telemetría entra inyectado como manejador, igual que el canal de eventos: este paquete no conoce el formato del protocolo."
+    enforcement: ["docs/architecture/boundaries/dominio-independiente-de-transporte.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.atribucion-y-confianza
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Superficie HTTP de telemetría
+
+Las ocho rutas que la pantalla consume, con un contrato que atraviesa todas: **«no se pudo medir» y
+«midió cero» viajan distinto**. Los montos son opcionales y las ausencias viajan explícitas — una
+caja sin dato llega con su motivo, no se omite, porque omitirla obligaría a la pantalla a inventar
+por qué falta y ponerle cero diría que corrió gratis.
+
+Un rango con formato equivocado **se rechaza en vez de ignorarse**: ignorarlo devolvería un período
+distinto del pedido, y el usuario leería cifras de otro rango creyendo que son del suyo.
+
+El receptor del protocolo entra **inyectado como manejador**, igual que el canal de eventos: este
+paquete no conoce el formato y no tiene por qué.

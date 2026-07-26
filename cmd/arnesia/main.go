@@ -11,6 +11,7 @@ import (
 	"fmt"
 	iofs "io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -28,12 +29,16 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/history"
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
+	"github.com/alpacapurpura/arnesia/internal/adapters/logfile"
+	"github.com/alpacapurpura/arnesia/internal/adapters/marketplace"
 	"github.com/alpacapurpura/arnesia/internal/adapters/permission"
 	"github.com/alpacapurpura/arnesia/internal/adapters/portafolio"
 	"github.com/alpacapurpura/arnesia/internal/adapters/provision"
 	"github.com/alpacapurpura/arnesia/internal/adapters/publish"
 	"github.com/alpacapurpura/arnesia/internal/adapters/selfupdate"
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
+	stt "github.com/alpacapurpura/arnesia/internal/adapters/stt/local"
+	"github.com/alpacapurpura/arnesia/internal/adapters/traer"
 	httpapi "github.com/alpacapurpura/arnesia/internal/adapters/transport/http"
 	"github.com/alpacapurpura/arnesia/internal/adapters/transport/sse"
 	"github.com/alpacapurpura/arnesia/internal/adapters/watch"
@@ -62,6 +67,13 @@ func main() {
 		err = runConformance(os.Args[2:])
 	case "portafolio":
 		err = runPortafolio(os.Args[2:])
+	case "telemetria":
+		err = runTelemetria(os.Args[2:])
+	case "hook":
+		// `arnesia hook proceso` es la instrumentación, no una vía de inspección: su
+		// contrato (stdout vacío, exit 0 SIEMPRE) es incompatible con un subcomando que
+		// imprime, y por eso queda fuera de la familia `telemetria`.
+		err = runHook(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -88,6 +100,8 @@ commands:
   publish   publish a harness to its marketplace repo (stub)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
   portafolio   escanear/listar/agregar/desvincular arneses del Portafolio (Slice 0)
+  telemetria   resumen/mejoras/salud/purgar/catalogo — verificación del módulo sin FE
+  hook         hook de instrumentación: 'arnesia hook proceso' (stdin -> loopback, exit 0 siempre)
 `)
 }
 
@@ -108,8 +122,29 @@ func runServe(args []string) error {
 		"capability token required on the API (default $ARNESIA_AUTH_TOKEN; empty = Host+Origin only, dev)")
 	repo := fs.String("repo", os.Getenv("ARNESIA_REPO"),
 		"ruta del repo para el self-update (default $ARNESIA_REPO; vacío = botón Actualizar deshabilitado)")
+	logPath := fs.String("log", os.Getenv("ARNESIA_LOG"),
+		"archivo de log del daemon (default ~/.arnesia/logs/arnesia.log; '-' = solo stderr)")
+	// ── Telemetría embebida (paquete 2026-07-24-telemetria-embebida-otel) ──
+	// ⚠️ El 90 de la retención es un valor **PROPUESTO, no firmado** (J-6 · parada P2 del
+	// plan): D15.3 firmó «TTL por default» SIN número. Viaja rotulado como propuesto en
+	// `arnesia telemetria salud` y en `GET /api/telemetria/salud`.
+	telRetencion := fs.Int("telemetria-retencion", usecase.RetencionDefaultDias,
+		"días de retención del detalle de telemetría (PROPUESTO, sin firmar — J-6)")
+	telForward := fs.String("telemetria-forward", os.Getenv("ARNESIA_TELEMETRIA_FORWARD"),
+		"endpoint externo al que reenviar la telemetría YA PROYECTADA (vacío = apagado, que es el default)")
+	telRefresco := fs.Bool("telemetria-catalogo-refresco", false,
+		"refrescar el catálogo de precios por red (A11: apagado por default — es egreso del daemon)")
+	telEstricta := fs.Bool("telemetria-ingesta-token-obligatorio", false,
+		"exigir token también en /v1/* (A22; consecuencia honesta: s2-instrumentado deja de reportar)")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	// Log a archivo (RF-230). Va PRIMERO: todo lo que sigue puede fallar, y hasta acá el
+	// daemon solo escribía a stderr — que en la app instalada, lanzada desde el `.desktop`
+	// del `.deb`, no lo lee nadie. Sin esto un incidente no deja rastro.
+	if cerrar := activarLog(*logPath); cerrar != nil {
+		defer cerrar()
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -263,9 +298,16 @@ func runServe(args []string) error {
 	// físico READ-ONLY + evaluador de deriva local + wrapper del loader real. Mismo wiring
 	// que usa el subcomando `portafolio` — newPortafolioService lo factoriza para no
 	// duplicarlo.
-	portafolioSvc, err := newPortafolioService(idx)
+	portafolioSvc, pfStore, derivaEval, err := newPortafolioService(idx)
 	if err != nil {
 		return fmt.Errorf("portafolio service: %w", err)
+	}
+	// Plano Marketplaces + catálogo + `↧ Traer canónico` (paquete
+	// 2026-07-23-portafolio-agregar-marketplace): comparte el store del Portafolio (el cruce
+	// catálogo × portafolio lo necesita) y la MISMA instancia del evaluador de deriva.
+	marketplaceSvc, err := newMarketplaceService(pfStore, derivaEval)
+	if err != nil {
+		return fmt.Errorf("marketplace service: %w", err)
 	}
 	// Tarjeta de identidad por sesión (RF-189): cada spawn sabe qué arnés es, qué copia
 	// edita (canónico/instalación/suelto) y su rol — cerrada sobre el Portafolio real.
@@ -300,7 +342,36 @@ func runServe(args []string) error {
 		}
 	})
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, embeddedUI(), broker, httpapi.AuthConfigFor(*addr, *authToken))
+	// Dictado por voz (paquete 2026-07-25-spike-voz-dictado). El motor de STT es el que el
+	// operador tenga instalado (V-D1: adaptador por PATH) — si no hay ninguno, el servicio
+	// reporta NO-disponible con motivo y el botón queda gris con la razón a la vista, en vez
+	// de aceptar un dictado que después no se podría transcribir. La limpieza reusa el mismo
+	// `claude` del Dock, pero spawneado ENDURECIDO (V-D7): 1 turno, tools negadas.
+	dictadoSvc := usecase.NewDictadoService(
+		stt.New(),
+		claudecode.NewLimpiador(resolveClaudeBin(*claudeBin)),
+		sessionSvc,
+	)
+
+	// ── Telemetría embebida: composition root del módulo (§10.1) ──
+	// Todo lo de acá degrada honesto: si el almacén no abre, el daemon SIGUE sirviendo la
+	// API y la salud dice que la telemetría no está disponible, con motivo. Se pierde
+	// telemetría, nunca la sesión del usuario.
+	tokenIngesta := mintTokenIngesta()
+	telSvc, telHandler, cerrarTel := cablearTelemetria(ctx, cablesTelemetria{
+		retencionDias:    *telRetencion,
+		forwardEndpoint:  *telForward,
+		refrescoCatalogo: *telRefresco,
+		idx:              mapSvc,
+		portafolio:       portafolioSvc,
+		roleFor:          roleFor,
+	})
+	if cerrarTel != nil {
+		defer cerrarTel()
+	}
+
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, marketplaceSvc, dictadoSvc, telSvc, telHandler, embeddedUI(), broker,
+		httpapi.AuthConfigConIngesta(*addr, *authToken, tokenIngesta, *telEstricta))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus
 	// (RF-210, decisiones.md D5): SOLO el arnés dueño del path que cambió se recarga —
@@ -323,6 +394,21 @@ func runServe(args []string) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
+	// Listener EXPLÍCITO (A8, variante recomendada por §10.1): la ficha del daemon se
+	// publica **después** de que el socket acepta, nunca antes. Una ficha que nombra un
+	// puerto donde no escucha nadie es una mentira que el hook cobra en timeouts.
+	ln, err := net.Listen("tcp", *addr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", *addr, err)
+	}
+	fichaDaemon, retirarFicha := publicarFicha(ctx, ln, tokenIngesta)
+	if retirarFicha != nil {
+		defer retirarFicha()
+	}
+	if telSvc != nil {
+		telSvc.SetDescubrimiento(fichaDaemon)
+	}
+
 	go func() {
 		<-ctx.Done()
 		// WithoutCancel: the parent ctx is already done (that is why we are here); the
@@ -334,11 +420,67 @@ func runServe(args []string) error {
 		}
 	}()
 
-	slog.Info("arnesia serve", "addr", *addr)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	slog.Info("arnesia serve", "addr", ln.Addr().String())
+	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
+}
+
+// activarLog manda el log del daemon a stderr **y** a un archivo rotativo (RF-230).
+//
+// Los dos destinos formatean distinto a propósito: el operador que corre `arnesia serve` en
+// una terminal quiere texto, y el archivo —que es el que se lee después de un incidente—
+// quiere JSON, porque los diagnósticos del FE traen un `detalle` anidado que el handler de
+// texto aplasta a algo ilegible.
+//
+// Un archivo que no se puede abrir NO tumba el daemon: se avisa y queda solo stderr. Devuelve
+// el cierre, o nil si no hay archivo que cerrar.
+func activarLog(path string) func() {
+	if path == "-" {
+		return nil
+	}
+	w, err := logfile.Abrir(path, 0)
+	if err != nil {
+		slog.Warn("log: no pude abrir el archivo — el daemon queda solo con stderr", "err", err)
+		return nil
+	}
+	slog.SetDefault(slog.New(dosDestinos{
+		a: slog.NewTextHandler(os.Stderr, nil),
+		b: slog.NewJSONHandler(w, nil),
+	}))
+	// Se nombra el archivo al arrancar: un log que nadie sabe dónde está no se lee.
+	slog.Info("log", "archivo", w.Path())
+	return func() { _ = w.Close() }
+}
+
+// dosDestinos reparte cada registro entre dos handlers.
+//
+// `slog` no trae fan-out y un `io.MultiWriter` no sirve acá: obligaría a un solo formato para
+// los dos destinos, que es justo lo que no queremos.
+type dosDestinos struct{ a, b slog.Handler }
+
+func (d dosDestinos) Enabled(ctx context.Context, l slog.Level) bool {
+	return d.a.Enabled(ctx, l) || d.b.Enabled(ctx, l)
+}
+
+func (d dosDestinos) Handle(ctx context.Context, r slog.Record) error {
+	if d.a.Enabled(ctx, r.Level) {
+		// Clone: cada handler consume los atributos del registro por su cuenta.
+		_ = d.a.Handle(ctx, r.Clone())
+	}
+	if d.b.Enabled(ctx, r.Level) {
+		return d.b.Handle(ctx, r)
+	}
+	return nil
+}
+
+func (d dosDestinos) WithAttrs(as []slog.Attr) slog.Handler {
+	return dosDestinos{a: d.a.WithAttrs(as), b: d.b.WithAttrs(as)}
+}
+
+func (d dosDestinos) WithGroup(n string) slog.Handler {
+	return dosDestinos{a: d.a.WithGroup(n), b: d.b.WithGroup(n)}
 }
 
 // brokerPublisher adapts the SSE broker (whose Publish returns the stored event) to
@@ -510,12 +652,41 @@ func runPublish(args []string) error {
 // indice es el 5° puerto (S1-D1, Observar en Mapa): `serve` pasa el `idx` real que ya
 // construyó; el subcomando CLI pasa nil — no necesita indexar (ObservarEnMapa con índice
 // nil da el error honesto «requiere el daemon», jamás un nil-pointer panic).
-func newPortafolioService(indice ports.IndexPort) (*usecase.PortafolioService, error) {
+func newPortafolioService(indice ports.IndexPort) (*usecase.PortafolioService, ports.PortafolioStore, ports.DerivaEvaluator, error) {
 	st, err := portafolio.NewStore("")
 	if err != nil {
-		return nil, fmt.Errorf("portafolio store: %w", err)
+		return nil, nil, nil, fmt.Errorf("portafolio store: %w", err)
 	}
-	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), &portafolio.Referencias{}, indice), nil
+	// El evaluador de deriva se devuelve para REUSAR LA MISMA INSTANCIA en el servicio de
+	// marketplaces (§12.2 riesgo 15): una segunda duplicaría la resolución de RutaReferencia y
+	// podrían divergir.
+	refs := &portafolio.Referencias{}
+	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), refs, indice), st, refs, nil
+}
+
+// newMarketplaceService cablea el plano Marketplaces (paquete
+// 2026-07-23-portafolio-agregar-marketplace, design.md §3.9) a sus 7 puertos de lectura + los 3 de
+// `↧ Traer canónico`. `remoto` se cablea SIEMPRE (el lector decide en runtime si tiene gh/PAT y
+// degrada honesto) — un nil acá convertiría «no puedo leer» en «no existe la función», que es peor.
+// El store del Portafolio y el evaluador de deriva se COMPARTEN con `portafolioSvc`.
+func newMarketplaceService(pfStore ports.PortafolioStore, deriva ports.DerivaEvaluator) (*usecase.MarketplaceService, error) {
+	st, err := marketplace.NewStore("")
+	if err != nil {
+		return nil, fmt.Errorf("marketplace store: %w", err)
+	}
+	cache, err := marketplace.NewCache("")
+	if err != nil {
+		return nil, fmt.Errorf("marketplace cache: %w", err)
+	}
+	token := os.Getenv("ARNESIA_GH_TOKEN")
+	remoto := &marketplace.LectorRemoto{Token: token}
+	svc := usecase.NewMarketplaceService(
+		st, &marketplace.DetectorCC{}, &marketplace.LectorLocal{}, remoto, remoto, cache, pfStore,
+	)
+	// `↧ Traer canónico`: camino A sin red, camino B por `git` con `gh` como credential helper
+	// (ArnesIA nunca ve el token, BR-18). raizArnesia "" ⇒ ~/.arnesia.
+	svc.SetTraer(&traer.CopiadorLocal{}, &traer.ClonadorExterno{GHBin: "gh", Token: token}, deriva, "")
+	return svc, nil
 }
 
 // runPortafolio es la vía de verificación E2E del Portafolio sin FE (S0-D9): reusa el
@@ -540,7 +711,7 @@ func runPortafolio(args []string) error {
 	}
 
 	// nil: el CLI no observa en Mapa (esa vía es HTTP-only, S1-D1) — no necesita el 5° puerto.
-	svc, err := newPortafolioService(nil)
+	svc, _, _, err := newPortafolioService(nil)
 	if err != nil {
 		return err
 	}

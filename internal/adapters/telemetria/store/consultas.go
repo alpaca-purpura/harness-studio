@@ -287,10 +287,14 @@ func (s *Store) PorCaja(ctx context.Context, q ports.ConsultaTelemetria) ([]doma
 		}
 		g.Corridas += corridas
 		if domain.Confianza(atrib) == domain.ConfianzaSinDato {
+			g.SinAtribucion = true
 			continue // A15: no suma al total. Se cuenta aparte, no se descarta.
 		}
-		g.Atribuible = true
 		if rep.Valid {
+			// `Atribuible` significa «hay una cifra que mostrar acá», no «hubo actividad».
+			// Una caja con actividad registrada y SIN dinero es un estado honesto distinto
+			// —el normal en modo degradado— y merece su propio motivo.
+			g.Atribuible = true
 			v := rep.Int64
 			if g.CostoMicros == nil {
 				g.CostoMicros = &v
@@ -308,12 +312,17 @@ func (s *Store) PorCaja(ctx context.Context, q ports.ConsultaTelemetria) ([]doma
 	for _, k := range orden {
 		g := acc[k]
 		if !g.Atribuible {
-			// El motivo es OBLIGATORIO cuando no es atribuible: un «sin dato» sin razón es
-			// un gap escondido.
-			if g.CajaID == "" {
+			// El motivo es OBLIGATORIO cuando no hay cifra: un «sin dato» sin razón es un
+			// gap escondido. Y los tres casos son DISTINTOS — decirlos igual sería tapar
+			// tres cosas bajo una.
+			switch {
+			case g.CajaID == "":
 				g.Motivo = "gasto sin caja: la corrida no declaró a qué caja pertenece"
-			} else {
+			case g.SinAtribucion:
 				g.Motivo = "sin dato atribuible: ningún evento de esta ventana pudo asignarse a esta caja"
+			default:
+				g.Motivo = "esta caja tuvo actividad pero ningún evento con costo: " +
+					"el arnés no reporta dinero en esta ventana"
 			}
 		}
 		if total > 0 && g.CostoMicros != nil {

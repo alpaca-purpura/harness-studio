@@ -70,15 +70,18 @@ type MarcaDeFuga struct {
 // GastoCaja es una fila del desglose por caja. Las cajas SIN dato viajan igual, con
 // `Atribuible:false` + `Motivo`: omitirlas obligaría al FE a inventar por qué faltan.
 type GastoCaja struct {
-	CajaID      string        `json:"caja_id"`
-	Nombre      string        `json:"nombre"`
-	Atribuible  bool          `json:"atribuible"`       // false ⇒ el FE pinta «sin dato atribuible»
-	Motivo      string        `json:"motivo,omitempty"` // OBLIGATORIO si Atribuible=false
-	CostoMicros *int64        `json:"costo_micros"`     // null, no 0, cuando no es atribuible
-	Parte       *float64      `json:"parte,omitempty"`
-	Confianza   Confianza     `json:"confianza"`
-	Corridas    int           `json:"corridas"`
-	Marcas      []MarcaDeFuga `json:"marcas,omitempty"`
+	CajaID      string    `json:"caja_id"`
+	Nombre      string    `json:"nombre"`
+	Atribuible  bool      `json:"atribuible"`       // false ⇒ el FE pinta «sin dato atribuible»
+	Motivo      string    `json:"motivo,omitempty"` // OBLIGATORIO si Atribuible=false
+	CostoMicros *int64    `json:"costo_micros"`     // null, no 0, cuando no es atribuible
+	Parte       *float64  `json:"parte,omitempty"`
+	Confianza   Confianza `json:"confianza"`
+	Corridas    int       `json:"corridas"`
+	// SinAtribucion distingue «no se pudo asignar a esta caja» de «se asignó pero no hubo
+	// dinero». Son dos ausencias distintas y la UI las dice distinto.
+	SinAtribucion bool          `json:"sin_atribucion,omitempty"`
+	Marcas        []MarcaDeFuga `json:"marcas,omitempty"`
 }
 
 // TurnoUnido es el resultado del join dinero×proceso por `(SesionID, TurnoID)` — igualdad

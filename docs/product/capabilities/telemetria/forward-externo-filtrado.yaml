@@ -1,0 +1,97 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D13 · C2).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.forward-externo-filtrado
+cap_num: CAP-134
+slug: forward-externo-filtrado
+name: "Forward externo filtrado (apagado por default, y solo el operador lo enciende)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: crear
+functional_area: "telemetria.egreso"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/forward/forward.go#Forward"
+  - "internal/adapters/telemetria/forward/forward.go#New"
+  - "internal/adapters/telemetria/forward/forward.go#Forward.Enviar"
+  - "internal/adapters/telemetria/forward/forward.go#Forward.Activo"
+  - "internal/usecase/telemetria_service.go#TelemetriaService.Forward"
+  - "internal/ports/telemetria.go#ForwardOTLP"
+valida:
+  - "TestForwardApagadoPorDefault"
+  - "TestForwardNoReenviaCrudo"
+  - "TestForwardSoloPorFlagDelOperador"
+  - "TestForwardQueFallaNoRompeLaTelemetriaLocal"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia serve --telemetria-forward <endpoint>"
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/salud"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §6.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "La salida hacia un destino externo existe, va apagada, la enciende solo el operador desde la configuración del daemon, y lo que sale es la medición ya filtrada — nunca el cuerpo crudo, que llevaría el correo de quien corra el arnés."
+    merge_sha: null
+scenarios:
+  - id: apagado-no-abre-un-socket
+    name: "Nadie encendió la salida externa"
+    status: live
+    given: "el daemon con la salida apagada, que es el default"
+    when: "se ingieren cincuenta mediciones"
+    then: "no se abre ni una conexión saliente; y encendiéndola, se abre exactamente una"
+    verifica: "TestForwardApagadoPorDefault"
+  - id: sale-lo-filtrado
+    name: "La salida externa está encendida"
+    status: live
+    given: "una medición para reenviar"
+    when: "se envía"
+    then: "el cuerpo lleva los identificadores de trabajo y ningún dato de cuenta ni de conversación"
+    verifica: "TestForwardNoReenviaCrudo"
+  - id: un-arnes-no-puede-tocarlo
+    name: "Se busca cambiar el destino en caliente"
+    status: live
+    given: "una salida ya construida"
+    when: "se intenta cambiarle el destino"
+    then: "no hay forma: el destino se fija al arrancar, desde la configuración del daemon"
+    verifica: "TestForwardSoloPorFlagDelOperador"
+business_rules:
+  - id: apagado-por-default
+    rule: "La salida externa va apagada. Sin una decisión explícita del operador, cero conexiones salientes."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: nunca-el-cuerpo-crudo
+    rule: "Lo que sale es la medición ya filtrada. Reenviar el cuerpo crudo exportaría el correo y los identificadores de cuenta de quien corra el arnés, que llegan en cada punto."
+    enforcement: ["docs/architecture/boundaries/ingesta-por-allowlist-declarada.md"]
+    severity: critical
+  - id: solo-el-operador
+    rule: "Se enciende desde la configuración del daemon, nunca desde la API ni desde un arnés. Los dos niveles de egreso son distintos y no se mezclan."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.allowlist-de-ingesta
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Forward externo filtrado
+
+La salida hacia un destino externo **existe y va apagada**. Sin una decisión explícita del operador
+—flag o variable de entorno del daemon— no se abre ni una conexión saliente. Ni la API ni un arnés
+pueden alcanzarla: el destino se fija al arrancar y no hay forma de cambiarlo en caliente.
+
+**Lo que sale es la medición ya filtrada, nunca el cuerpo crudo.** Reenviar crudo exportaría el
+correo y los identificadores de cuenta de quien corra el arnés, que llegan en cada punto del
+original. Y mientras esté encendida, la pantalla lo dice: un egreso silencioso es exactamente lo que
+este módulo existe para no hacer.

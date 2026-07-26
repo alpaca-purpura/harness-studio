@@ -43,10 +43,11 @@ type TelemetriaService struct {
 
 	// Retención (T14). El TTL en días es un valor PROPUESTO, no firmado (J-6): viaja por
 	// flag y se muestra rotulado como tal.
-	purga         purgador
-	recomputa     recomputador
-	retencionDias int
-	rollupMeses   int
+	purga          purgador
+	recomputa      recomputador
+	retencionDias  int
+	rollupMeses    int
+	descubrimiento string
 }
 
 // FilaInstalacion es lo mínimo que el servicio necesita del Portafolio para armar la tabla.
@@ -90,6 +91,11 @@ func (s *TelemetriaService) SetPortafolio(
 	s.rolResolver = rol
 	s.instalaciones = instalaciones
 }
+
+// SetDescubrimiento registra dónde quedó publicada la ficha del daemon (o el motivo de no
+// haberla publicado), para que la salud lo diga. Una ficha ausente que nadie menciona
+// convertiría «el hook nunca reporta» en un misterio.
+func (s *TelemetriaService) SetDescubrimiento(ruta string) { s.descubrimiento = ruta }
 
 var _ ports.TelemetriaSink = (*TelemetriaService)(nil)
 
@@ -362,6 +368,7 @@ func (s *TelemetriaService) Salud(ctx context.Context) (domain.SaludTelemetria, 
 	if s.catalogo != nil {
 		sal.Catalogo = s.catalogo.Version()
 	}
+	sal.Descubrimiento = s.descubrimiento
 	// El TTL que se muestra es el de la CONFIG, no un número escrito en la UI (J-6).
 	sal.RetencionDias = s.RetencionDias()
 	sal.RollupMeses = s.RollupMeses()

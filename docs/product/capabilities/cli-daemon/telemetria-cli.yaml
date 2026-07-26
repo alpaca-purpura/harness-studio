@@ -1,0 +1,77 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, A17).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.cli-daemon.telemetria-cli
+cap_num: CAP-138
+slug: telemetria-cli
+name: "CLI de telemetría (la superficie observable sin pantalla)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: cli-daemon
+layer: cli
+verb: observar
+functional_area: "telemetria.cli"
+user_visible: true
+nature: feature
+pointers:
+  - "cmd/arnesia/telemetria.go#runTelemetria"
+  - "cmd/arnesia/telemetria.go#servicioTelemetriaCLI"
+  - "cmd/arnesia/telemetria_wiring.go#cablearTelemetria"
+  - "cmd/arnesia/telemetria_wiring.go#publicarFicha"
+  - "cmd/arnesia/telemetria_wiring.go#mintTokenIngesta"
+valida:
+  - "TestTelemetriaCLIReusaElUsecase"
+  - "TestCLICatalogoNoAbreLaBase"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia telemetria resumen|cajas|mejoras|portafolio|salud|purgar|catalogo"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §10.3"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Se puede ver todo lo que el módulo mide sin abrir la aplicación: mismo caso de uso que la API, cero lógica propia. Es lo que demuestra que el backend entrega valor mientras el diseño de la pantalla espera su firma, y después queda como vía de verificación."
+    merge_sha: null
+scenarios:
+  - id: la-linea-de-comandos-y-la-api-dicen-lo-mismo
+    name: "Se compara la salida del comando con la de la API"
+    status: live
+    given: "la misma base de mediciones"
+    when: "se pide el resumen por las dos vías"
+    then: "coinciden campo a campo; no hay dos implementaciones de la misma consulta"
+    verifica: "TestTelemetriaCLIReusaElUsecase"
+business_rules:
+  - id: cero-logica-propia
+    rule: "El comando reusa el mismo caso de uso que la API. Dos implementaciones de la misma consulta divergen el día que alguien arregla una sola."
+    enforcement: ["docs/architecture/boundaries/dominio-independiente-de-transporte.md"]
+    severity: critical
+  - id: el-plazo-viaja-rotulado
+    rule: "El plazo de retención que el comando muestra sale de la configuración y viaja rotulado como propuesto mientras el número no esté firmado."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.atribucion-y-confianza
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# CLI de telemetría
+
+Todo lo que el módulo mide se puede ver **sin abrir la aplicación**: el total con su cobertura, el
+desglose por caja, los puntos de mejora con los que no aplican y los que todavía no medimos, el
+estado del módulo y la procedencia del catálogo de precios.
+
+**Reusa el mismo caso de uso que la API, con cero lógica propia.** Dos implementaciones de la misma
+consulta divergen el día que alguien arregla una sola.
+
+Existe por dos razones, y las dos importan: mientras el diseño de la pantalla espera su firma, esto
+es lo que demuestra que el backend entrega valor de verdad; y después sigue siendo la vía por la que
+se verifica el módulo de punta a punta contra una instalación real.
