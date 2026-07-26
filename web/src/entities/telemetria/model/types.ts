@@ -122,14 +122,29 @@ export interface PuntoMejora {
   caja_nombre: string
   gasto_micros: number
   parte_del_total: number
-  /** El mundo alternativo con las MISMAS corridas (A2). Sin él la tarjeta no existe. */
-  contrafactual: string
+  /**
+   * El mundo alternativo con las MISMAS corridas (A2), redactado con su UNIDAD explícita
+   * («por corrida» / «en la ventana»): RF-249 lo exige porque «USD 0,53» sobre una caja de 14
+   * corridas se leyó de dos maneras distintas en la iteración 1 del mockup.
+   *
+   * **`null` ⇒ la tarjeta NO EXISTE** (regla A4). No se pinta degradada: la lista la filtra y
+   * el inspector la lista como «sin fix propuesto». Una tarjeta sin contrafactual es un
+   * reproche, no una recomendación.
+   */
+  contrafactual: string | null
+  /** El ahorro, en micros. Es la clave de orden de la lista: lo de más plata primero. */
+  diferencia_micros: number
+  /** El desglose de la confianza cuando NO es exacta (design §7.4). */
+  confianza_detalle?: string | undefined
   /** La desigualdad algebraica CITADA (A1). Ausente ⇒ se pinta `patron` en su lugar. */
   umbral?: string | undefined
   /** Lo que reemplaza al umbral cuando el detector no se decide por uno (P1). */
   patron?: string | undefined
   /** Se declara y va EN CONTRA de la recomendación (A3). `null` ⇒ la fila lo DICE igual. */
   sesgo: string | null
+  /** «subestima» | «sobreestima». Va en negrita dentro del sesgo: es la palabra que decide si
+   *  el número es un piso o un techo. Vacío solo cuando `sesgo` es `null` (RF-252). */
+  direccion_sesgo: string
   fix: string
   /** El ajuste concreto, en `<code>`. */
   fix_codigo?: string | undefined

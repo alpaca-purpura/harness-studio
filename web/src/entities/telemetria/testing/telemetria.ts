@@ -225,8 +225,10 @@ export const PUNTO_B1: PuntoMejora = {
   parte_del_total: 0.44,
   contrafactual:
     "Con TTL de 1 h, las mismas 14 corridas costaban USD 0,31 → diferencia USD 0,53 en la ventana (USD 0,04 por corrida).",
+  diferencia_micros: 530_000,
   umbral: "relectura 61 % > break-even (2−1,25)/(2−0,1) = 39,47 %",
   sesgo: "Asume 0 lecturas fuera de la ventana de 7 días → subestima el ahorro.",
+  direccion_sesgo: "subestima",
   fix: "Fijar cache_ttl: 1h en esta caja",
   fix_codigo: "cache_ttl: 1h",
   confianza: "exacta",
@@ -251,8 +253,10 @@ export const PUNTO_P1: PuntoMejora = {
   parte_del_total: 0.75,
   contrafactual:
     "Si el gate pasara a la primera, el ciclo costaba USD 0,22 en vez de 0,89 → diferencia USD 0,67 en la ventana (USD 0,17 por corrida, sobre 4).",
+  diferencia_micros: 670_000,
   patron: "Los 3 rechazos citan el mismo motivo: «el veredicto no lista hallazgos».",
   sesgo: "No descuenta lo que la revisión aporta aunque rechace → sobreestima el desperdicio.",
+  direccion_sesgo: "sobreestima",
   fix: "El contrato de la caja no exige hallazgos[] en el entregable",
   fix_codigo: "hallazgos[]",
   confianza: "exacta",
@@ -275,8 +279,11 @@ export const PUNTO_B3: PuntoMejora = {
   parte_del_total: 0.14,
   contrafactual:
     "Con un solo modelo, las mismas 31 corridas costaban USD 1,33 → diferencia USD 0,21 en la ventana (USD 0,01 por corrida).",
+  diferencia_micros: 210_000,
+  confianza_detalle: "no exacta · 28 de 31 exactas, 3 por huella",
   umbral: "2 modelos distintos en la misma sesión ≥ 1",
   sesgo: null,
+  direccion_sesgo: "",
   fix: "Fijar el modelo de la caja en su contrato",
   fix_codigo: "model: claude-sonnet-4-6",
   confianza: "por-hash",

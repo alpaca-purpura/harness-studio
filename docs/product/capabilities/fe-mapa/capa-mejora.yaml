@@ -48,6 +48,8 @@ pointers:
   - "web/src/entities/arnes/ui/arnes-node.tsx#ArnesNode"
   - "web/src/widgets/map-canvas/ui/lane.tsx#Lane"
   - "web/src/widgets/map-canvas/ui/franja-mejora.tsx#FranjaMejora"
+  - "web/src/widgets/map-canvas/ui/punto-mejora-card.tsx#PuntoMejoraCard"
+  - "web/src/widgets/map-canvas/ui/puntos-mejora-list.tsx#PuntosMejoraList"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
@@ -57,6 +59,8 @@ valida:
   - "web/src/entities/arnes/ui/arnes-node.stories.tsx"
   - "web/src/widgets/map-canvas/ui/lane.stories.tsx"
   - "web/src/widgets/map-canvas/ui/franja-mejora.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/punto-mejora-card.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/puntos-mejora-list.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -164,6 +168,27 @@ change_log:
       `error`, con `ReposoDark` obligatoria: `preview.ts` renderiza en claro por default.
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T33 — el corazón del entregable. `PuntoMejoraCard`: una tarjeta = una caja × un detector,
+      con la anatomía en orden ESTRICTO porque **el orden es el argumento** (qué pasa → cuánto →
+      cuánto se ahorra → por qué lo creemos → contra qué → qué hacer). Las cinco cosas de A4 son
+      obligatorias; `Umbral` NO se pinta cuando el detector no se decide por uno (P1 usa
+      `Patrón`) y la fila `Sesgo` **nunca se omite** — si no se identificó ninguno, lo dice.
+      «ver el cálculo» es un despliegue EN LÍNEA con `aria-expanded`/`aria-controls`, no un modal
+      (H-4). La severidad es TEXTO (`atención`/`crítico`), el ⚠ es `aria-hidden` y el borde de
+      color es refuerzo (RF-257 · RF-280). 🔴 `Proponerlo en el chat` **no escribe archivos**: no
+      existe ninguna prop de escritura y la story lo asserta por ausencia (D17.3 · BR-M12).
+      `PuntosMejoraList` resuelve H-1 (la lista vive debajo del canvas, ordenada por ahorro
+      descendente; no puede ser un botón dentro del nodo porque el nodo YA es un `<button>`) y
+      H-2 (el vacío honesto lista los seis detectores que corrieron: «no encontramos nada» y «no
+      buscamos» son conclusiones opuestas). **Una tarjeta sin contrafactual no existe** (A4): la
+      lista la filtra, no la pinta degradada. 15 + 7 stories, gate a11y en `error`, con
+      `CompletaB1AtencionDark` obligatoria (D21 ítem 3).
+    merge_sha: null
+
 scenarios:
   - id: mejora-cifra-un-solo-formateador
     name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
@@ -269,6 +294,34 @@ scenarios:
       NO desaparece; con el daemon caído las cifras previas se conservan marcadas como
       posiblemente viejas, y el estado es distinguible de «nunca corrió»
     verifica: "Cargando · Error · DaemonCaido (franja-mejora.stories.tsx)"
+
+  - id: mejora-tarjeta-cinco-cosas-o-nada
+    name: "Una tarjeta sin contrafactual no existe, y la fila Sesgo nunca se omite (RF-246 · RF-252 · A4)"
+    given: "hallazgos con y sin contrafactual computable, con y sin sesgo identificado"
+    when: "se renderiza la lista"
+    then: >-
+      el hallazgo sin contrafactual NO aparece como tarjeta degradada: la lista lo filtra (y el
+      inspector lo lista como «sin fix propuesto», así no se pierde). La fila `Sesgo` aparece
+      SIEMPRE — con el supuesto y su dirección en negrita, o diciendo que no se identificó
+      ninguno; omitirla se leería como «no hay sesgo», que es otra afirmación
+    verifica: "DescartaSinContrafactual (puntos-mejora-list.stories.tsx) · SesgoSubestima · SesgoSobreestima · SinSesgoIdentificado (punto-mejora-card.stories.tsx)"
+  - id: mejora-proponer-no-escribe
+    name: "«Proponerlo en el chat» abre el chat y NO escribe archivos (RF-255 · BR-M12 · D17.3)"
+    given: "una tarjeta con su fix propuesto"
+    when: "se usa el botón de proponer"
+    then: >-
+      se llama `onProponer` UNA vez con `{ puntoId, textoPropuesto }` y **no existe ninguna prop
+      de escritura** en el componente (assert por ausencia: si alguien agrega `onAplicar`, la
+      story se pone roja). La nota al pie lo dice antes de que el operador apriete
+    verifica: "ProponerAbreChatNoEscribe · ProponerDeshabilitadoFueraDeAlcance (punto-mejora-card.stories.tsx) · NotaAlPie (puntos-mejora-list.stories.tsx)"
+  - id: mejora-vacio-honesto-lista-quien-corrio
+    name: "«No encontramos nada» se distingue de «no buscamos» (H-2)"
+    given: "una ventana con datos y cero puntos que pasen el corte"
+    when: "se renderiza la lista"
+    then: >-
+      no es una sección vacía: dice que los seis detectores corrieron, sobre cuántas corridas, y
+      los lista uno por uno con «sin hallazgos»
+    verifica: "VaciaConDatos (puntos-mejora-list.stories.tsx)"
 
 business_rules: []
 related_capabilities:
