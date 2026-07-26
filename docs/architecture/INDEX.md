@@ -54,7 +54,7 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/conductor-no-parsea-jsonl.md`](./boundaries/conductor-no-parsea-jsonl.md) | El conductor consume stream-json/OTel, no parsea JSONL | 🌱 vivo | 1.0 | 4 | depguard · arch_test.go |
 | [`boundaries/permisos-gui-human-in-the-loop.md`](./boundaries/permisos-gui-human-in-the-loop.md) | Deny-by-default; el GUI aprueba cada write vía diff · **+ sesión aislada por cwd** | 🌱 vivo | 1.1 | 7 | arch_test.go |
 | [`boundaries/superficie-local-confinada.md`](./boundaries/superficie-local-confinada.md) | La API local está confinada (Host+Origin) y autenticada (token del shell) · + eje config-source del spawn | 🌳 enforced | 1.3 | 9 | arch_test.go · auth_test.go |
-| [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana | 🌳 enforced | 1.0 | 4 | arch_test.go |
+| [`boundaries/sesion-viva-consistente.md`](./boundaries/sesion-viva-consistente.md) | El pipe conductor↔dock: guardado · sin pérdida · idempotente · auto-sana · **+ la transición de conversación es atómica** | 🌳 enforced | 1.2 | 5 | arch_test.go (4/5 verdes; `TestTransicionDeConversacionEsAtomica` declarado, sin escribir) |
 | [`boundaries/contrato-de-caja-es-fitness-function.md`](./boundaries/contrato-de-caja-es-fitness-function.md) | Validar el `contract:` de caja contra su schema + composición del cableado (huérfanos·dead-ends·rutas·refina) | 🌳 enforced | 1.3 | 7 | schema · arch_test.go:TestBoxContractValidatesAgainstSchema · domain.Verificar{SinHuerfanos,DeadEnds,RutaExiste,RefinaCoherente} (ruta `--arnes`) |
 | [`boundaries/fe-topologia-fsd.md`](./boundaries/fe-topologia-fsd.md) | La SPA se estructura por FSD (import direccional) | 🌱 vivo | 1.0 | 5 | dependency-cruiser · steiger |
 | [`boundaries/fe-taxonomia-componentes.md`](./boundaries/fe-taxonomia-componentes.md) | Taxonomía por dirección/pureza, no ladder atómico (canvas⊥chrome · widget⊥widget) | 🌳 enforced | 1.2 | 5 | dependency-cruiser (verde: 122 módulos / 0 violaciones) |
@@ -73,9 +73,31 @@ check llega con HS-08, ver runner unificado arriba).
 | [`boundaries/no-aplica-no-es-cero.md`](./boundaries/no-aplica-no-es-cero.md) | «No aplica» y «no lo sé» son valores; `0` y `[]` son afirmaciones | 🌱 vivo | 1.0 | 6 | 3/6 REALES ya verdes: usecase/marketplace_test.go:TestCatalogoIlegibleNoFabricaVacio · domain/marketplace_situacion_test.go:TestSituacionNoComparableSinVersionEstante · portafolio/deriva_test.go:TestEvaluarDerivaNoEvaluable |
 | [`boundaries/cifra-viaja-con-su-confianza.md`](./boundaries/cifra-viaja-con-su-confianza.md) | Ninguna cifra viaja sola: lleva cómo se atribuyó y, si hay dos fuentes del mismo número, las dos | 🌱 vivo | 1.0 | 6 | (pendiente — nace con el módulo `telemetria/`) |
 | [`boundaries/peso-del-binario-es-presupuesto.md`](./boundaries/peso-del-binario-es-presupuesto.md) | El peso del binario es un presupuesto; una dependencia se MIDE antes de adoptarse y un formato ajeno se decodifica con subconjunto propio | 🌱 vivo | 1.0 | 5 | (pendiente — job de CI + tests del decodificador) |
+| [`boundaries/archivo-durable-declara-su-esquema.md`](./boundaries/archivo-durable-declara-su-esquema.md) | Un archivo durable declara su esquema y se migra con respaldo; uno derivado se puede tirar, uno durable jamás | 🌱 vivo | 1.0 | 6 | (pendiente — `internal/adapters/store/` no tiene un solo test hoy) |
+| [`boundaries/ruta-servida-esta-declarada.md`](./boundaries/ruta-servida-esta-declarada.md) | Una ruta que el daemon sirve está declarada en el contrato, o exenta con razón escrita (ratchet) | 🌱 vivo | 1.0 | 5 | (pendiente — `openapi_contract_test.go`; drift medido hoy: 11 rutas `/api` sin declarar) |
 
 Leyenda de estado: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 enforced
-(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 26 · 136 checks**
+(código + check corriendo) · 🔍 en-revisión. **Total boundaries: 28 · 148 checks**
+
+> **+2 boundaries · +12 checks el 2026-07-26** (paquete
+> [`stories/2026-07-26-conversaciones-del-panel/`](../product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md),
+> etapa de arquitectura): nacen `archivo-durable-declara-su-esquema` (6) y
+> `ruta-servida-esta-declarada` (5), y `sesion-viva-consistente` sube **v1.1→v1.2** con
+> `transicion-de-conversacion-atomica` (+1). **Los dos nodos nuevos nacen `proposed` con TODOS sus
+> checks sin enforcer escrito** — el código llega con el paquete; declararlos `enforced` sería el
+> pass fabricado (mismo criterio que `indice-desechable-jsonl-es-verdad` v1.3). Los dos salen de
+> hallazgos **medidos**, no de intuición: `store.Registry` hace `json.Unmarshal` desnudo sobre
+> `[]domain.Session` sin versión ni envelope y `internal/adapters/store` reporta `[no test files]`
+> (un cambio de forma pierde el registro entero del operador); y `grep -c cerradas openapi.yaml` →
+> **0** con dos endpoints en producción, sin nada en CI que lo cace porque el paso
+> `openapi-gen-check` es condicional sobre un directorio generado que no existe (`ci.yml:73`). El
+> conteo exacto del drift de contrato — **50 rutas servidas · 39 declaradas · 11 sin declarar · 0
+> fantasma** — se generó antes de escribir la fila. `sesion-viva-consistente` **conserva
+> `enforced`** (sus 4 checks originales siguen verdes) y su quinto queda declarado pendiente. Un
+> tercer candidato se **descartó como nodo propio, con razón escrita**: «el buscador entra al texto
+> del transcript» es producto, no arquitectura — vive en un capability (`buscar-en-el-transcript`),
+> y generalizado sin sujeto se leería como una licencia para indexar contenido del operador, que es
+> justo lo que `ingesta-por-allowlist-declarada` acota.
 
 > **+4 boundaries · +24 checks el 2026-07-26** (paquete
 > [`stories/2026-07-24-telemetria-embebida-otel/`](../product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md),

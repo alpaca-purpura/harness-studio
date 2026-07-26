@@ -184,7 +184,9 @@
   .ctxchip { display: inline-flex; align-items: center; gap: 5px; flex: none; font: inherit; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-foreground); background: transparent; border: 1px solid transparent; border-radius: var(--radius-full); padding: 2px 6px; cursor: pointer; margin-left: auto; }
   .ctxchip:hover { background: var(--secondary); border-color: var(--border); color: var(--foreground); }
   .ctxchip.open { background: var(--secondary); border-color: var(--border); color: var(--foreground); }
-  .ctxchip.hot { color: var(--warn); }
+  /* ctx alto: el TEXTO no se tiñe (--warn sobre --card da 3,76:1 en claro, bajo el 4,5:1 de
+     texto). La señal va por la barra y el borde, que son no-textuales y sí cumplen 3:1. */
+  .ctxchip.hot { color: var(--foreground); border-color: var(--warn); background: var(--warn-soft); }
   .ctxchip.hot .ctxbar i { background: var(--warn); }
   .convrow .acts { margin-left: 0; }
 
@@ -884,8 +886,8 @@
           <span class="acts"><button type="button" class="iconbtn">🔍</button><button type="button" class="iconbtn nueva">＋</button></span>
         </div>
         <div class="clist">
-          <div class="empty" style="color:var(--warn)">
-            No se pudieron leer las conversaciones — <b style="color:var(--warn)">daemon no responde</b>.
+          <div class="empty" style="border-left:3px solid var(--warn); background:var(--warn-soft); border-radius:var(--radius-md); text-align:left">
+            No se pudieron leer las conversaciones — <b>daemon no responde</b>.
             <div style="margin-top:8px"><button type="button" class="btn-ghost">Reintentar</button></div>
           </div>
           <div class="listfoot"><button type="button" class="btn-ghost">Cancelar</button></div>
@@ -897,6 +899,10 @@
         </div>
       </div>
       <p class="note">
+        <b>Corregido en sitio tras el spec (2026-07-26, C-3):</b> el motivo iba en texto
+        <code>--warn</code>, que da <b>3,76:1</b> sobre <code>--card</code> en tema claro y no llega
+        al 4,5:1 de texto. Ahora el texto va en <code>--foreground</code> y <code>--warn</code>
+        queda como señal <b>no textual</b> (borde izquierdo + fondo), donde 3,76 ≥ 3:1 sí cumple.
         El motivo va <b>en la superficie</b>, no en un tooltip ni en la consola — y con Reintentar,
         igual que el picker (<code>onReintentar</code>, L143-156). <b>No</b> se degrada a «0
         conversaciones»: eso sería un pass fabricado.

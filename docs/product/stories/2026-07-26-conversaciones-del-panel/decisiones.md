@@ -19,7 +19,8 @@
    `GET /api/sessions?arnes=sin-home~vitalia~vitalia&cerradas=1` → **0**. El picker consulta con la
    clave calificada (`new-session-picker.tsx:111`, `cargar(e.clave)`) pero
    `~/.arnesia/sesiones-cerradas.json` guarda las 3 cerradas con el **id pelado** (`vitalia`,
-   `dev-full-cycle`). El re-key `cca314a` migró las vivas, no las cerradas.
+   `dev-full-cycle`). ⚠ **Corregido por F-1**: acá se decía que el re-key `cca314a` «migró las
+   vivas» — es falso, no migró ninguna, y 4 de 5 vivas también tienen id pelado.
 
 ## CV-D1 · `Hist` es el historial del ARNÉS, no de la conversación
 
@@ -180,6 +181,72 @@ inventado. La palabra «colapsar» y el `title` se conservan.
 
 ---
 
+## Correcciones de hecho y enmiendas (post-relevamiento, 2026-07-26)
+
+El relevamiento as-is (`relevamiento-as-is.md`) desmintió tres cosas que este archivo afirmaba y
+destapó dos requisitos que ninguna decisión cubría. Se corrigen acá, sin reescribir la historia:
+las decisiones firmadas siguen firmadas, lo que cambia es el hecho que las fundamentaba.
+
+### F-1 · El re-key `cca314a` NO migró nada — el bug es más grande
+
+Arriba, en §«Lo que se verificó en vivo», este archivo decía que el re-key «migró las vivas, no las
+cerradas». **Falso**: el commit no migró ninguna, y verificado contra el daemon vivo **4 de 5
+sesiones VIVAS también tienen id pelado**. La consulta `?arnes=sin-home~vitalia~vitalia` esconde
+**3 vivas además de las 2 cerradas**.
+
+Consecuencia sobre CV-D6: borrar `sesiones-cerradas.json` **no cura `sessions.json`**. Ver P-1.
+
+### F-2 · CV-D8 se apoyaba en una cifra vieja
+
+«90 turnos = 9,4 KB» era la medición del momento. Medido hoy: **12 095 bytes**. La conclusión no
+cambia (100 conversaciones ≈ 1,2 MB, sigue siendo scan en memoria sin FTS5); el número sí.
+
+### F-3 · Archivar destruye `Conv` **y `Checkpoint`** — y hay una capability que lo afirma
+
+`session_historial.go:56-58` hace `cerrada.Conv = nil; cerrada.Checkpoint = ""`, con un test que lo
+cementa (`session_historial_test.go:73`) y **CAP-98 afirmándolo como ley de negocio**.
+
+CV-D8 ya decidió persistir `Conv`. Lo que **ninguna decisión cubría** es el `Checkpoint`: CV-D11
+promete retomar con el checkpoint intacto, pero hoy se borra. Enmienda: **CV-D8 se extiende al
+`Checkpoint`** — sin él, retomar una conversación rotada arranca sin el digest de su propia
+rotación, que es exactamente el estado que RF-196 existe para no perder. Implica **modificar CAP-98
+y su test**: no es un bug, es una ley que deja de valer bajo CV-D3, y el cambio tiene que ser
+explícito y trazado, jamás un test borrado en silencio.
+
+### F-4 · Todo el estado in-flight es por-SESIÓN, no por-conversación
+
+12 campos en `sessionRuntime` (`session_service.go:85-109`: `live`, `curRun`, `resumeRetried`,
+`pendingPerm`, `grants`…) y 6 mapas en el FE indexados por `session.id`. Toca el boundary
+`sesion-viva-consistente` (**enforced, high**) y sus 4 tests. Ninguna decisión lo cubre porque es
+diseño, no producto — **lo resuelve la arquitectura**, y es el tramo más denso del paquete.
+
+---
+
+## CV-D16 · Las sesiones vivas con llave vieja se RE-KEY, no se borran 🧑‍⚖️ FIRMADA 2026-07-26
+
+CV-D6 borra las 3 cerradas por no importantes. Las **vivas** con id pelado son otra cosa: son
+conversaciones que el operador sí quiere, y 3 quedan invisibles cuando la UI pregunta por clave
+calificada. Estado verificado contra el daemon vivo:
+
+| sesión | `arnes` en disco | |
+|---|---|---|
+| `s25123a2c` | `vitalia` | pelado |
+| `s6165ac75` | `sin-home~vitalia~vitalia` | ok |
+| `s0fec7798` | `vitalia` | pelado |
+| `sfc512b15` | `vitalia` | pelado |
+| `s78b3aeeb` | `arnesia` | pelado |
+
+**Decisión:** el mismo paso que estrena el esquema versionado (problema B de la arquitectura)
+**re-key las vivas** a clave calificada `(home,id,scope)`. Nada se borra. **Copia previa
+obligatoria** (`~/.arnesia/sessions.json.bak-<sello>`) y el paso tiene que ser **reversible**.
+
+Sin esto, CV-D4 («solo las conversaciones de mi sesión actual») seguiría mintiendo para esas 3.
+
+Alternativa **descartada** por el operador: borrarlas como a las cerradas. Habría ahorrado el
+migrador de llaves a costa de perder transcripts vivos.
+
+---
+
 ## Abierto
 
-Ninguno. Decisiones COMPLETAS — el mockup las materializa todas.
+Ninguno. CV-D1..CV-D16 firmadas; F-1..F-4 son correcciones de hecho, no decisiones nuevas.
