@@ -217,3 +217,55 @@ export const ReenvioExternoSeDeclara: Story = {
     await expect(c.getByText("reenvío externo encendido → otlp.datadoghq.com")).toBeInTheDocument()
   },
 }
+
+// 🔴 **C-3 · un GET de detalle que falla NO se pinta como dato.** El test vive acá y no en las
+// stories de `InspectorMejora` a propósito: el componente ya tenía su rama de error y su story
+// **y aun así el defecto existía**, porque la decisión —«¿esto es un error o son datos?»— la
+// tomaba la página. Reverti el cableado y la story del componente seguía verde; ésta no.
+export const DetalleRotoNoAfirmaSobreElRuntime: Story = {
+  args: {
+    cajaSeleccionada: { esCaja: true, motivoNoCaja: "" },
+    detalle: null,
+    detalleError: "Failed to fetch",
+    inspector: (cuerpo) => <div data-testid="tab-mejora">{cuerpo}</div>,
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const tab = canvasElement.querySelector("[data-testid='tab-mejora']") as HTMLElement
+    await expect(tab).not.toBeNull()
+    // El motivo REAL y el reintento.
+    await expect(within(tab).getByText(/Failed to fetch/)).toBeInTheDocument()
+    await expect(within(tab).getByRole("button", { name: "Reintentar" })).toBeEnabled()
+    // Y ninguna de las ocho afirmaciones que inventaba: seis «no aplica», el catálogo y las 0
+    // corridas. `detalle == null` ≠ «este runtime no tiene estos conceptos».
+    await expect(within(tab).queryByText("no aplica en este runtime")).toBeNull()
+    await expect(within(tab).queryByText("catálogo sin construir")).toBeNull()
+    await expect(tab.textContent).not.toContain("0 corridas")
+    await expect(c.queryByText(/«No aplica» no es 0/)).toBeNull()
+  },
+}
+
+// ✅ Control positivo del anterior: con detalle bueno, la 4ª tab SÍ afirma.
+export const DetalleBuenoSiAfirma: Story = {
+  args: {
+    cajaSeleccionada: { esCaja: true, motivoNoCaja: "" },
+    detalle: {
+      turnos_totales: 14,
+      tokens: { entrada: 12_400, salida: 8_900 },
+      paridad: {
+        reportado_micros: 1_920_000,
+        calculado_micros: 1_920_000,
+        divergencia_pct: 0,
+        completo: true,
+        catalogo_version: "2026-07-20",
+      },
+      detectores: [],
+    },
+    inspector: (cuerpo) => <div data-testid="tab-mejora">{cuerpo}</div>,
+  },
+  play: async ({ canvasElement }) => {
+    const tab = canvasElement.querySelector("[data-testid='tab-mejora']") as HTMLElement
+    await expect(within(tab).getByText("Tokens · 7 días (14 corridas)")).toBeInTheDocument()
+    await expect(within(tab).queryByText(/Reintentar/)).toBeNull()
+  },
+}

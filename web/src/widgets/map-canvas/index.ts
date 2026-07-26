@@ -15,6 +15,7 @@ export {
   type VistaCapaMejora,
   vistaCapaMejora,
 } from "./model/capa-mejora"
+export { bucketsDe, type DetalleCajaWire, ETIQUETA_VENTANA } from "./model/detalle-caja"
 export type { Capa, LayerDef } from "./model/layers"
 export { LAYERS } from "./model/layers"
 export { CapaMejoraStage, type CapaMejoraStageProps } from "./ui/capa-mejora-stage"

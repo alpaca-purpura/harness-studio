@@ -479,6 +479,11 @@
   background: var(--ok-soft);
   border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
 }
+/* Sin dos números que comparar no hay veredicto, y sin veredicto no hay tono: neutro. */
+.arnesia-inspector .mej-paridad.sin-veredicto {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+}
 .arnesia-inspector .mej-paridad.difieren {
   background: var(--warn-soft);
   border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);

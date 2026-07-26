@@ -61,6 +61,8 @@ pointers:
   - "web/src/widgets/map-canvas/model/capa-mejora.ts#denominadorDeBusqueda"
   - "web/src/widgets/map-canvas/model/capa-mejora.test.ts#hayDatosAtribuibles"
   - "web/src/widgets/map-canvas/model/props-de-mejora.ts#propsDeMejora"
+  - "web/src/widgets/map-canvas/model/detalle-caja.ts#bucketsDe"
+  - "web/src/widgets/map-canvas/model/detalle-caja.ts#DetalleCajaWire"
   - "web/src/widgets/map-canvas/ui/capa-mejora-stage.tsx#CapaMejoraStage"
   - "web/src/widgets/map-canvas/model/capa-mejora.ts#coberturaEsParcial"
 valida:
@@ -333,6 +335,27 @@ change_log:
       el fallback se fue. No hacía falta: en s2 la cobertura viene poblada.
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: fix
+    summary: >-
+      **C-3 · un GET de detalle que falla se pintaba como dato.** La página se tragaba el error y
+      nunca pasaba `estado="error"`, así que los defaults hacían el resto: la 4ª tab afirmaba
+      **ocho cosas falsas** —«0 corridas», seis «no aplica en este runtime» y «catálogo sin
+      construir»— **con la nota «"No aplica" no es 0» desplegada EN DEFENSA de la mentira**,
+      mientras el nodo de al lado mostraba USD 1,08 y `/salud` devolvía 694 modelos. Es la
+      inversión exacta de RF-260/RF-286: una ausencia etiquetada como «no aplica».
+      Lo revelador: **`InspectorMejora` YA tenía su rama de error y su story, y el defecto existía
+      igual**, porque la decisión «¿esto es un error o son datos?» la tomaba la página. Verificado:
+      revirtiendo el cableado, la story del componente seguía VERDE. Por eso el cuerpo de la 4ª
+      tab lo arma ahora `CapaMejoraStage` y el test vive ahí — con el cableado revertido, se pone
+      rojo.
+      Dos del mismo bloque: la caja de paridad tomaba la clase `difieren` con
+      `divergencia === null` —se pintaba ámbar **sin una palabra que lo explicara**, porque el
+      veredicto está guardado por `divergencia !== null`— y ahora sin veredicto no hay tono; y
+      `catálogo v` quedaba colgando cuando no llegaba la versión (M-7).
+    merge_sha: null
+
 scenarios:
   - id: mejora-cifra-un-solo-formateador
     name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
@@ -587,6 +610,16 @@ scenarios:
       arnés que de verdad nunca corrió, en cambio, NINGÚN bloque afirma nada — ni la franja, ni
       el carril, ni el nodo, ni la lista
     verifica: "S2InstrumentadoNoDiceNuncaCorrio · SinDatosNingunBloqueAfirmaNada · ConDatosLosCincoBloquesAfirman (capa-mejora-stage.stories.tsx) · 15 tests de tabla (capa-mejora.test.ts)"
+
+  - id: mejora-un-fetch-fallido-no-es-un-dato
+    name: "Un GET de detalle que falla no afirma nada sobre el runtime (C-3 · RF-260 · RF-286)"
+    given: "el detalle de la caja responde 500 y todo lo demás responde 200"
+    when: "se abre la 4ª tab con esa caja seleccionada"
+    then: >-
+      la tab muestra el motivo REAL y `Reintentar`, y **no** afirma «0 corridas», ni «no aplica en
+      este runtime» ×6, ni «catálogo sin construir»; la nota «"No aplica" no es 0» no aparece
+      defendiendo una ausencia de transporte. Con detalle bueno, la tab sí afirma (control positivo)
+    verifica: "DetalleRotoNoAfirmaSobreElRuntime · DetalleBuenoSiAfirma (capa-mejora-stage.stories.tsx) · ErrorNoSePintaComoNoAplica · ParidadSinVeredictoNoSePintaComoDivergencia · SinVersionDeCatalogoNoQuedaColgando (inspector-mejora.stories.tsx)"
 
 business_rules: []
 related_capabilities:

@@ -185,13 +185,26 @@ export function InspectorMejora({
       </Sec>
 
       <Sec titulo="Costo — reportado vs. calculado">
-        <div className={cn("mej-paridad", divergencia === 0 ? "coinciden" : "difieren")}>
+        {/* 🔴 C-3 (bonus) · el tono seguía a `divergencia === 0 ? coinciden : difieren`, así que
+            con `divergencia === null` —no hay dos números que comparar— la caja se pintaba ÁMBAR
+            «difieren» y **sin una sola palabra que lo explicara**, porque el veredicto está
+            guardado por `divergencia !== null`. El encabezado de este archivo dice que el
+            veredicto es TEXTO, no un tono: sin veredicto no hay tono. */}
+        <div
+          className={cn(
+            "mej-paridad",
+            divergencia === null ? "sin-veredicto" : divergencia === 0 ? "coinciden" : "difieren",
+          )}
+        >
           <span>
             runtime{" "}
             {paridad.reportado_micros === null ? (
+              // M-7 · sin `catalogo_version` el texto quedaba en «catálogo v» colgando: React
+              // no imprime `undefined` y la frase prometía una versión que no llegó.
               <em>
-                este runtime no reporta costo — calculado con el catálogo v
-                {paridad.catalogo_version}
+                {paridad.catalogo_version
+                  ? `este runtime no reporta costo — calculado con el catálogo v${paridad.catalogo_version}`
+                  : "este runtime no reporta costo — y no llegó la versión del catálogo"}
               </em>
             ) : (
               <CifraUsd micros={paridad.reportado_micros} />

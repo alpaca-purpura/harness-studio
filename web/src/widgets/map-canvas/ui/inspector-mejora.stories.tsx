@@ -391,3 +391,76 @@ export const ErrorDeConsulta: Story = {
     await expect(c.getByRole("button", { name: "Reintentar" })).toBeEnabled()
   },
 }
+
+// 🔴 **C-3 · un GET que falla NO se pinta como dato.** La página se tragaba el error del detalle
+// y nunca pasaba `estado="error"`, así que los defaults hacían el resto: la 4ª tab afirmaba
+// **ocho cosas falsas** —«0 corridas», seis «no aplica en este runtime» y «catálogo sin
+// construir»— con la nota «"No aplica" no es 0» desplegada EN DEFENSA de la mentira, mientras el
+// nodo de al lado mostraba USD 1,08 y /salud devolvía 694 modelos.
+export const ErrorNoSePintaComoNoAplica: Story = {
+  args: {
+    estado: "error",
+    error: "Failed to fetch",
+    corridas: 0,
+    buckets: BUCKETS_ILUSTRATIVOS.map((b) => ({ ...b, tokens: null, costo_micros: null })),
+    paridad: {
+      reportado_micros: null,
+      calculado_micros: null,
+      divergencia_pct: null,
+      completo: false,
+      catalogo_sin_construir: true,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // El motivo real, y el reintento.
+    await expect(c.getByText(/Failed to fetch/)).toBeInTheDocument()
+    await expect(c.getByRole("button", { name: "Reintentar" })).toBeEnabled()
+    // Y NINGUNA de las ocho afirmaciones falsas.
+    await expect(c.queryByText("no aplica en este runtime")).toBeNull()
+    await expect(c.queryByText("catálogo sin construir")).toBeNull()
+    await expect(canvasElement.textContent).not.toContain("0 corridas")
+    await expect(canvasElement.textContent).not.toContain("«No aplica» no es 0")
+  },
+}
+
+// C-3 (bonus) · sin dos números que comparar no hay veredicto, y **sin veredicto no hay tono**.
+// Antes la caja se pintaba ámbar «difieren» sin una palabra que lo explicara.
+export const ParidadSinVeredictoNoSePintaComoDivergencia: Story = {
+  args: {
+    paridad: {
+      reportado_micros: 1_920_000,
+      calculado_micros: null,
+      divergencia_pct: null,
+      completo: false,
+      catalogo_sin_construir: true,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const caja = canvasElement.querySelector(".mej-paridad") as HTMLElement
+    await expect(caja).toHaveClass("sin-veredicto")
+    await expect(caja).not.toHaveClass("difieren")
+    await expect(canvasElement.querySelector(".mej-veredicto")).toBeNull()
+    await expect(c.queryByText(/difieren/)).toBeNull()
+  },
+}
+
+// M-7 · `catálogo v` colgante: sin versión no se promete una.
+export const SinVersionDeCatalogoNoQuedaColgando: Story = {
+  args: {
+    paridad: {
+      reportado_micros: null,
+      calculado_micros: 740_000,
+      divergencia_pct: null,
+      completo: true,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(
+      c.getByText("este runtime no reporta costo — y no llegó la versión del catálogo"),
+    ).toBeInTheDocument()
+    await expect(canvasElement.textContent).not.toMatch(/catálogo v(?![0-9])/)
+  },
+}

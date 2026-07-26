@@ -8,7 +8,9 @@ import type {
   Ventana,
 } from "@/entities/telemetria"
 import { vistaCapaMejora } from "../model/capa-mejora"
+import { bucketsDe, type DetalleCajaWire, ETIQUETA_VENTANA } from "../model/detalle-caja"
 import { FranjaMejora } from "./franja-mejora"
+import { InspectorMejora } from "./inspector-mejora"
 import { MapCanvas } from "./map-canvas"
 import { PuntosMejoraList } from "./puntos-mejora-list"
 
@@ -59,8 +61,19 @@ export interface CapaMejoraStageProps {
   /** Motivo por el que no se puede proponer (guardrail de alcance del chat, CH-D6). */
   proponerDeshabilitado?: string | undefined
 
-  /** El drawer del Slice anterior. Es estructura, no capa: entra como slot. */
-  inspector?: ReactNode | undefined
+  // ── 4ª tab del inspector. El CUERPO lo arma este widget (C-3): que lo armara la página es
+  // cómo un GET fallido terminó pintándose como dato. ──
+  /** El nodo seleccionado, si lo hay: decide si la tab muestra tabla o el motivo de «no es caja». */
+  cajaSeleccionada?: { esCaja: boolean; motivoNoCaja: string } | undefined
+  detalle?: DetalleCajaWire | null | undefined
+  /** Motivo REAL del fallo del detalle. Presente ⇒ la tab muestra su estado de ERROR. */
+  detalleError?: string | undefined
+  noMedidos?: readonly EstadoDetector[] | undefined
+  /**
+   * El drawer del Slice anterior. Es estructura, no capa, así que lo monta la página — pero
+   * recibe el cuerpo de la 4ª tab YA decidido por este widget.
+   */
+  inspector?: ((cuerpoMejora: ReactNode | undefined) => ReactNode) | undefined
   /** Estados de carga/error del GRAFO (no de la telemetría), que la página ya resuelve. */
   cuerpoAlternativo?: ReactNode | undefined
 }
@@ -87,6 +100,10 @@ export function CapaMejoraStage({
   onDescartar,
   onProponer,
   proponerDeshabilitado,
+  cajaSeleccionada,
+  detalle,
+  detalleError,
+  noMedidos,
   inspector,
   cuerpoAlternativo,
 }: CapaMejoraStageProps) {
@@ -94,6 +111,43 @@ export function CapaMejoraStage({
   // TODA la derivación, en una función pura y unit-testeada. Que la página no pueda tomar
   // ninguna de estas decisiones es el punto del refactor.
   const vista = vistaCapaMejora({ resumen, cajas, graph, activa })
+
+  // 🔴 C-3 · un GET que falla es estado de TRANSPORTE, no dato. Tragarlo hacía que la 4ª tab
+  // afirmara ocho cosas falsas —«0 corridas», seis «no aplica en este runtime» y «catálogo sin
+  // construir»— con la nota «"No aplica" no es 0» desplegada EN DEFENSA de la mentira.
+  const cuerpoMejora =
+    activa && cajaSeleccionada ? (
+      <InspectorMejora
+        estado={detalleError !== undefined ? "error" : "datos"}
+        error={detalleError}
+        esCaja={cajaSeleccionada.esCaja}
+        motivoNoCaja={cajaSeleccionada.motivoNoCaja}
+        ventanaLabel={ETIQUETA_VENTANA[ventana]}
+        corridas={detalle?.turnos_totales ?? 0}
+        buckets={bucketsDe(detalle ?? null)}
+        totalMicros={detalle?.paridad?.reportado_micros ?? null}
+        paridad={
+          detalle?.paridad ?? {
+            reportado_micros: null,
+            calculado_micros: null,
+            divergencia_pct: null,
+            completo: false,
+            catalogo_sin_construir: true,
+          }
+        }
+        join={{
+          corridas: detalle?.turnos_totales ?? 0,
+          // `null`, no 0: sin señal de gate, «ninguna se rechazó» sería una afirmación sobre el
+          // proceso que nadie midió (T22 sigue abierto).
+          rechazadas: null,
+          costo_rechazadas_micros: null,
+          rotaciones: null,
+        }}
+        detectores={detalle?.detectores ?? []}
+        noMedidos={noMedidos ?? []}
+        onReintentar={onReintentar}
+      />
+    ) : undefined
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -129,7 +183,7 @@ export function CapaMejoraStage({
                 totalesPorFase={vista.totalesPorFase}
                 motivosSinDato={vista.motivosPorNodo}
               />
-              {inspector}
+              {inspector?.(cuerpoMejora)}
             </>
           ))}
       </div>
