@@ -369,6 +369,56 @@ func (s *Store) PorCaja(ctx context.Context, q ports.ConsultaTelemetria) ([]doma
 	return out, nil
 }
 
+// AgregadoCaja suma la ventana ENTERA en SQL, no la página que `Turnos` devuelve.
+//
+// 🔴 Existe por el defecto C4: `Turnos` recorta a `Limite` (500 por default) y el detalle
+// sumaba **sobre esa lista recortada**, presentando el resultado como total de la caja. Con
+// 600 turnos, el resumen decía 600 000 micros y el detalle 500 000 — dos pantallas del mismo
+// dato que no coinciden, y ninguna diciendo por qué. Un total parcial presentado como total
+// es exactamente lo que la doctrina de honestidad prohíbe.
+func (s *Store) AgregadoCaja(ctx context.Context, q ports.ConsultaTelemetria) (domain.AgregadoVentana, error) {
+	var a domain.AgregadoVentana
+	where, args := filtro(q)
+	where = conjuntar(where, "tipo_evento <> '"+string(domain.EventoMetrica)+"'")
+	row := s.reader.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT COALESCE(turno_id, 'sin-turno:' || id)),
+		        SUM(tok_entrada), SUM(tok_salida), SUM(tok_cache_lectura),
+		        SUM(tok_cache_5m), SUM(tok_cache_1h), SUM(tok_razonamiento), SUM(tok_cache_sin_tier),
+		        SUM(costo_reportado_micros), SUM(costo_calculado_micros),
+		        MIN(COALESCE(costo_completo, 1)),
+		        SUM(CASE WHEN costo_calculado_micros IS NOT NULL THEN 1 ELSE 0 END),
+		        SUM(CASE WHEN tok_cache_sin_tier IS NOT NULL AND tok_cache_sin_tier > 0 THEN 1 ELSE 0 END)
+		   FROM evento`+where, args...)
+	var e, sal, cr, c5, c1h, raz, sinTier, rep, calc sql.NullInt64
+	var completoMin, conCalculo, conSinTier sql.NullInt64
+	if err := row.Scan(&a.Turnos, &e, &sal, &cr, &c5, &c1h, &raz, &sinTier, &rep, &calc,
+		&completoMin, &conCalculo, &conSinTier); err != nil {
+		return a, fmt.Errorf("store: agregado de caja: %w", err)
+	}
+	ptr := func(v sql.NullInt64) *int64 {
+		if !v.Valid {
+			return nil // el NULL sobrevive: nadie reportó el bucket, no es que midiera 0.
+		}
+		n := v.Int64
+		return &n
+	}
+	a.Tokens = domain.Tokens{
+		Entrada: ptr(e), Salida: ptr(sal), CacheLectura: ptr(cr),
+		CacheEscritura5m: ptr(c5), CacheEscritura1h: ptr(c1h), Razonamiento: ptr(raz),
+		CacheEscrituraSinTier: ptr(sinTier),
+	}
+	a.CostoReportadoMicros = ptr(rep)
+	a.CostoCalculadoMicros = ptr(calc)
+	if conCalculo.Valid && conCalculo.Int64 > 0 {
+		completo := !completoMin.Valid || completoMin.Int64 == 1
+		a.CostoCompleto = &completo
+		if !completo && conSinTier.Valid && conSinTier.Int64 > 0 {
+			a.SinTarifa = append(a.SinTarifa, "cache_escritura_sin_tier")
+		}
+	}
+	return a, nil
+}
+
 // Turnos hace el JOIN dinero×proceso por `(sesion_id, turno_id)` — igualdad de dos campos,
 // **sin heurística de tiempo ni de orden** (ANEXO H1). Es el drill-down: toca la tabla cruda,
 // no el rollup.
@@ -385,7 +435,7 @@ func (s *Store) Turnos(ctx context.Context, q ports.ConsultaTelemetria) ([]domai
 		`SELECT sesion_id, COALESCE(turno_id,''), COALESCE(arnes_id,''), COALESCE(instalacion_id,''),
 		        COALESCE(caja_id,''), COALESCE(corrida_id,''), ts_recibido, COALESCE(modelo,''),
 		        tok_entrada, tok_salida, tok_cache_lectura, tok_cache_5m, tok_cache_1h, tok_razonamiento,
-		        costo_reportado_micros, costo_calculado_micros, duracion_ms,
+		        tok_cache_sin_tier, costo_reportado_micros, costo_calculado_micros, duracion_ms,
 		        atribucion, escenario, tipo_evento, COALESCE(resultado,''), COALESCE(gate,''),
 		        COALESCE(herramienta,''), COALESCE(aritmetica,'')
 		   FROM evento`+where+` ORDER BY ts_recibido`, args...)
@@ -400,11 +450,11 @@ func (s *Store) Turnos(ctx context.Context, q ports.ConsultaTelemetria) ([]domai
 		var (
 			sesion, turno, arnes, inst, caja, corrida, ts, modelo string
 			atrib, esc, tipo, res, gate, herr, arit               string
-			e, sal, cr, c5, c1h, raz                              sql.NullInt64
+			e, sal, cr, c5, c1h, raz, sinTier                     sql.NullInt64
 			rep, calc, dur                                        sql.NullInt64
 		)
 		if serr := rows.Scan(&sesion, &turno, &arnes, &inst, &caja, &corrida, &ts, &modelo,
-			&e, &sal, &cr, &c5, &c1h, &raz, &rep, &calc, &dur,
+			&e, &sal, &cr, &c5, &c1h, &raz, &sinTier, &rep, &calc, &dur,
 			&atrib, &esc, &tipo, &res, &gate, &herr, &arit); serr != nil {
 			return nil, fmt.Errorf("store: turnos scan: %w", serr)
 		}
@@ -438,6 +488,9 @@ func (s *Store) Turnos(ctx context.Context, q ports.ConsultaTelemetria) ([]domai
 		acumularToken(&t.Tokens.CacheEscritura5m, c5)
 		acumularToken(&t.Tokens.CacheEscritura1h, c1h)
 		acumularToken(&t.Tokens.Razonamiento, raz)
+		// A3: el bucket que explica la divergencia tiene que ser VISIBLE en el drill-down.
+		// Sin él, quien mire el inspector no tiene con qué justificar la cifra incompleta.
+		acumularToken(&t.Tokens.CacheEscrituraSinTier, sinTier)
 		acumularToken(&t.CostoReportadoMicros, rep)
 		acumularToken(&t.CostoCalculadoMicros, calc)
 		acumularToken(&t.DuracionMs, dur)

@@ -149,18 +149,38 @@ type ParidadCosto struct {
 
 // DetalleCaja es la 4ª tab del inspector: el desglose de UNA caja.
 type DetalleCaja struct {
-	CajaID     string                 `json:"caja_id"`
-	Nombre     string                 `json:"nombre"`
-	Atribuible bool                   `json:"atribuible"`
-	Motivo     string                 `json:"motivo,omitempty"`
-	Desde      time.Time              `json:"desde"`
-	Hasta      time.Time              `json:"hasta"`
-	Tokens     Tokens                 `json:"tokens"` // los buckets nil NO serializan: «no aplica» ≠ 0
-	Paridad    ParidadCosto           `json:"paridad"`
-	Confianza  Confianza              `json:"confianza"`
-	Turnos     []TurnoUnido           `json:"turnos"`
-	Detectores []EstadoDetector       `json:"detectores"`
-	Catalogo   VersionCatalogoPrecios `json:"catalogo"`
+	CajaID     string       `json:"caja_id"`
+	Nombre     string       `json:"nombre"`
+	Atribuible bool         `json:"atribuible"`
+	Motivo     string       `json:"motivo,omitempty"`
+	Desde      time.Time    `json:"desde"`
+	Hasta      time.Time    `json:"hasta"`
+	Tokens     Tokens       `json:"tokens"` // los buckets nil NO serializan: «no aplica» ≠ 0
+	Paridad    ParidadCosto `json:"paridad"`
+	Confianza  Confianza    `json:"confianza"`
+	// Turnos es una PÁGINA, no la lista completa. `TurnosTotales` dice cuántos hay de verdad
+	// y `Truncado` lo declara: una degradación que no se declara es un total parcial
+	// disfrazado de total (defecto C4 de la auditoría). Los agregados de arriba salen de la
+	// ventana ENTERA, no de esta página.
+	Turnos        []TurnoUnido           `json:"turnos"`
+	TurnosTotales int                    `json:"turnos_totales"`
+	Truncado      bool                   `json:"truncado"`
+	Detectores    []EstadoDetector       `json:"detectores"`
+	Catalogo      VersionCatalogoPrecios `json:"catalogo"`
+}
+
+// AgregadoVentana es la suma de una ventana ENTERA, calculada en el almacén.
+//
+// Existe para que el detalle no sume sobre la página que le devolvieron: con más turnos que el
+// límite, sumar la página daría un total parcial presentado como total — y dos pantallas del
+// mismo dato mostrando cifras distintas.
+type AgregadoVentana struct {
+	Turnos               int      `json:"turnos"`
+	Tokens               Tokens   `json:"tokens"`
+	CostoReportadoMicros *int64   `json:"costo_reportado_micros"`
+	CostoCalculadoMicros *int64   `json:"costo_calculado_micros"`
+	CostoCompleto        *bool    `json:"costo_completo"`
+	SinTarifa            []string `json:"sin_tarifa,omitempty"`
 }
 
 // EstadoDetector es un detector con su veredicto de aplicabilidad. `Motivo` es obligatorio

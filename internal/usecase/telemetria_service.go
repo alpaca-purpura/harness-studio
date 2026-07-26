@@ -272,51 +272,63 @@ func (s *TelemetriaService) Turnos(ctx context.Context, q ports.ConsultaTelemetr
 
 // DetalleCaja arma la 4ª tab del inspector: buckets con sus nulos, los dos costos y su
 // divergencia, el join a nivel nodo y el estado de cada detector.
+//
+// 🔴 **Los agregados salen de SQL sobre la ventana ENTERA, no de la página de turnos.** Antes
+// se sumaba la lista ya recortada a 500 y se presentaba como total de la caja: con 600 turnos,
+// el resumen decía 600 000 micros y esta pantalla 500 000 (defecto C4). Ahora la página se
+// declara como página —`TurnosTotales` y `Truncado`— y el total es el total.
 func (s *TelemetriaService) DetalleCaja(ctx context.Context, q ports.ConsultaTelemetria) (domain.DetalleCaja, error) {
 	v := s.ventana(q)
 	out := domain.DetalleCaja{CajaID: q.CajaID, Nombre: q.CajaID, Desde: v.Desde, Hasta: v.Hasta}
+
+	// El agregado, de SQL y sobre todo el rango.
+	ag, err := s.agregado(ctx, v)
+	if err != nil {
+		return out, err
+	}
+	out.Tokens = ag.Tokens
+	out.TurnosTotales = ag.Turnos
+	out.Paridad.ReportadoMicros = ag.CostoReportadoMicros
+	out.Paridad.CalculadoMicros = ag.CostoCalculadoMicros
+	// C3 · `Completo` significa «el costo cotizó todos sus buckets», lo MISMO que en el
+	// resumen. Antes era `hayRep && hayCalc` («existen los dos números»), así que esta
+	// pantalla declaraba completo un número 94 % por debajo del reportado justamente porque
+	// NO lo estaba. Dos rutas del mismo dato no pueden dar veredictos contrarios.
+	out.Paridad.Completo = ag.CostoCompleto != nil && *ag.CostoCompleto
+	out.Paridad.SinTarifa = ag.SinTarifa
+	if ag.CostoReportadoMicros != nil && ag.CostoCalculadoMicros != nil && *ag.CostoReportadoMicros != 0 {
+		d := (float64(*ag.CostoCalculadoMicros) - float64(*ag.CostoReportadoMicros)) /
+			float64(*ag.CostoReportadoMicros) * 100
+		out.Paridad.DivergenciaPct = &d
+	}
+
+	// La página de turnos, para el drill-down.
 	turnos, err := s.store.Turnos(ctx, v)
 	if err != nil {
 		return out, err
 	}
 	out.Turnos = turnos
-	out.Confianza = domain.ConfianzaSinDato
-	var rep, calc int64
-	var hayRep, hayCalc bool
+	out.Truncado = out.TurnosTotales > len(turnos)
+
+	// A1 · la confianza se siembra VACÍA y toma la primera. Sembrarla en `sin-dato` —que es
+	// el piso de `PeorConfianza`— la dejaba clavada en `sin-dato` para siempre: una insignia
+	// que siempre dice lo mismo no informa, entrena a ignorarla.
+	confianza := domain.Confianza("")
 	for _, t := range turnos {
 		out.Atribuible = out.Atribuible || t.Atribucion != domain.ConfianzaSinDato
-		out.Confianza = domain.PeorConfianza(out.Confianza, t.Atribucion)
-		sumarPtr(&out.Tokens.Entrada, t.Tokens.Entrada)
-		sumarPtr(&out.Tokens.Salida, t.Tokens.Salida)
-		sumarPtr(&out.Tokens.CacheLectura, t.Tokens.CacheLectura)
-		sumarPtr(&out.Tokens.CacheEscritura5m, t.Tokens.CacheEscritura5m)
-		sumarPtr(&out.Tokens.CacheEscritura1h, t.Tokens.CacheEscritura1h)
-		sumarPtr(&out.Tokens.Razonamiento, t.Tokens.Razonamiento)
-		if t.CostoReportadoMicros != nil {
-			rep += *t.CostoReportadoMicros
-			hayRep = true
+		if confianza == "" {
+			confianza = t.Atribucion
+			continue
 		}
-		if t.CostoCalculadoMicros != nil {
-			calc += *t.CostoCalculadoMicros
-			hayCalc = true
-		}
+		confianza = domain.PeorConfianza(confianza, t.Atribucion)
 	}
+	if confianza == "" {
+		confianza = domain.ConfianzaSinDato
+	}
+	out.Confianza = confianza
 	if !out.Atribuible {
 		out.Motivo = "sin dato atribuible: ningún evento de esta ventana pudo asignarse a esta caja"
 	}
-	if hayRep {
-		out.Paridad.ReportadoMicros = &rep
-	}
-	if hayCalc {
-		out.Paridad.CalculadoMicros = &calc
-	}
-	// La divergencia solo existe cuando hay DOS números. Con uno solo viaja nil, no 0: un 0
-	// diría «coinciden», que es otra afirmación.
-	if hayRep && hayCalc && rep != 0 {
-		d := (float64(calc) - float64(rep)) / float64(rep) * 100
-		out.Paridad.DivergenciaPct = &d
-	}
-	out.Paridad.Completo = hayRep && hayCalc
 
 	mejoras, merr := s.Mejoras(ctx, q)
 	if merr == nil {
@@ -340,6 +352,23 @@ func (s *TelemetriaService) DetalleCaja(ctx context.Context, q ports.ConsultaTel
 		out.Catalogo = s.catalogo.Version()
 	}
 	return out, nil
+}
+
+// agregador es lo que el servicio necesita del almacén para sumar una ventana entera en SQL.
+// Interfaz mínima en el consumidor: no se pide el store completo para sumar.
+type agregador interface {
+	AgregadoCaja(ctx context.Context, q ports.ConsultaTelemetria) (domain.AgregadoVentana, error)
+}
+
+// agregado suma la ventana entera. Si el almacén no sabe hacerlo, se dice — **no se cae al
+// atajo de sumar la página**, que es el defecto que este método existe para no repetir.
+func (s *TelemetriaService) agregado(ctx context.Context, q ports.ConsultaTelemetria) (domain.AgregadoVentana, error) {
+	ag, ok := s.store.(agregador)
+	if !ok {
+		return domain.AgregadoVentana{}, fmt.Errorf(
+			"telemetria: el almacén no puede agregar la ventana entera; sumar la página daría un total parcial")
+	}
+	return ag.AgregadoCaja(ctx, q)
 }
 
 // Portafolio arma una fila por **(arnés, instalación)** — la unidad que el Portafolio modela

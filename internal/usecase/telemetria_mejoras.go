@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -59,6 +60,28 @@ func (s *TelemetriaService) Mejoras(ctx context.Context, q ports.ConsultaTelemet
 		return out, err
 	}
 	out.Escenario = resumen.Escenario
+
+	// 🔴 Defecto C4: `Turnos` devuelve una PÁGINA. Si hay más turnos que el límite, los
+	// detectores tendrían el numerador recortado y el denominador completo — y una caja se
+	// llevaría el 83 % cuando se lleva el 100 %. Antes que producir un porcentaje falso, se
+	// **declara que no se puede evaluar** y se dice por qué.
+	ag, aerr := s.agregado(ctx, v)
+	if aerr == nil && ag.Turnos > len(turnos) {
+		motivo := fmt.Sprintf("la ventana tiene %d turnos y la consulta devuelve %d: "+
+			"evaluar sobre la página daría porcentajes calculados con numerador recortado y "+
+			"denominador completo. Acotá la ventana con --desde/--hasta", ag.Turnos, len(turnos))
+		for _, d := range s.detectores {
+			out.NoAplican = append(out.NoAplican, domain.EstadoDetector{
+				Detector: d.ID(), Nombre: d.Nombre(), Aplica: false, Motivo: motivo,
+			})
+		}
+		for _, nm := range detectoresNoMedidos {
+			out.NoMedidos = append(out.NoMedidos, domain.EstadoDetector{
+				Detector: nm.ID, Nombre: nm.Nombre, Aplica: false, Motivo: "no medido todavía",
+			})
+		}
+		return out, nil
+	}
 
 	ventana := domain.Ventana{
 		Desde: v.Desde, Hasta: v.Hasta, ArnesID: v.ArnesID, Turnos: turnos,

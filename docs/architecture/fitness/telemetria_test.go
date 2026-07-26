@@ -1011,3 +1011,108 @@ func TestUnCostoQueNoSePudoCotizarNoViajaComoCero(t *testing.T) {
 		t.Fatalf("control positivo: el costo REPORTADO tiene que seguir estando: %v", r.CostoReportadoMicros)
 	}
 }
+
+// TestElTotalDeLaCajaEsElTotal — **C4 de la auditoría**: el truncado silencioso.
+//
+// `Store.Turnos` devuelve una PÁGINA (500 por default) y el detalle sumaba **sobre esa lista
+// recortada**, presentando el resultado como total de la caja. Con 600 turnos de 1 000 micros:
+//
+//	resumen  → 600 000 micros · 600 turnos
+//	detalle  → 500 000 micros · 500 turnos · **sin ningún campo que avisara**
+//
+// Y el detector reportaba `parte_del_total = 0,8333` para una caja que se lleva el **100 %**,
+// con «500 corridas totales» donde hubo 600 — numerador recortado, denominador completo.
+//
+// Dos pantallas del mismo dato mostrando cifras distintas, y ninguna diciendo por qué, es
+// exactamente lo que la doctrina de honestidad de este paquete prohíbe.
+func TestElTotalDeLaCajaEsElTotal(t *testing.T) {
+	svc, st := servicioFitness(t)
+	ctx := context.Background()
+
+	const n = 600
+	evs := make([]domain.EventoTelemetria, 0, n)
+	base := time.Now().UTC()
+	for i := 0; i < n; i++ {
+		micros := int64(1000)
+		ts := base.Add(-time.Duration(i) * time.Second)
+		evs = append(evs, domain.EventoTelemetria{
+			LlaveJoin: domain.LlaveJoin{
+				SesionID: "s-masiva", TurnoID: fmt.Sprintf("t-%04d", i),
+				ArnesID: "masivo", CajaID: "caja-unica",
+			},
+			Emisor: domain.EmisorOTLP, Runtime: "claude-code",
+			TSRecibido: ts, TSEmisor: &ts,
+			TipoEvento: domain.EventoAPIRequest, Escenario: domain.EscenarioS2Instrumentado,
+			CostoReportadoMicros: &micros,
+		})
+	}
+	if _, err := svc.Ingerir(ctx, evs); err != nil {
+		t.Fatal(err)
+	}
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+
+	q := ports.ConsultaTelemetria{ArnesID: "masivo"}
+	resumen, err := svc.Resumen(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumen.Turnos != n {
+		t.Fatalf("control positivo: el resumen tiene que ver los %d turnos, ve %d", n, resumen.Turnos)
+	}
+
+	q.CajaID = "caja-unica"
+	det, err := svc.DetalleCaja(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 1 · el total del detalle es EL TOTAL, no el de la página.
+	if det.Paridad.ReportadoMicros == nil {
+		t.Fatal("el detalle tiene que traer el costo")
+	}
+	if *det.Paridad.ReportadoMicros != *resumen.CostoReportadoMicros {
+		t.Errorf("dos pantallas del mismo dato no coinciden: resumen %d, detalle %d",
+			*resumen.CostoReportadoMicros, *det.Paridad.ReportadoMicros)
+	}
+	if det.TurnosTotales != n {
+		t.Errorf("turnos_totales = %d, hubo %d", det.TurnosTotales, n)
+	}
+	// 2 · y el recorte se DECLARA.
+	if len(det.Turnos) >= n {
+		t.Skip("la página no se recortó; el resto del test no aplica")
+	}
+	if !det.Truncado {
+		t.Errorf("la página trae %d de %d turnos y no lo declara — una degradación que no se "+
+			"declara es un total parcial disfrazado de total", len(det.Turnos), det.TurnosTotales)
+	}
+
+	// 3 · los detectores no producen porcentajes con numerador recortado.
+	mej, err := svc.Mejoras(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range mej.Puntos {
+		if p.ParteDelTotal > 0 && p.ParteDelTotal < 0.99 {
+			t.Errorf("%s: parte_del_total = %.4f sobre una caja que se lleva el 100 %% — "+
+				"numerador recortado, denominador completo", p.Detector, p.ParteDelTotal)
+		}
+		if p.CorridasTotales < n && p.CorridasTotales > 0 {
+			t.Errorf("%s: declara %d corridas totales donde hubo %d", p.Detector, p.CorridasTotales, n)
+		}
+	}
+	// ── control positivo: los detectores se declararon apagados CON MOTIVO ──
+	if len(mej.Puntos) == 0 {
+		conMotivo := 0
+		for _, na := range mej.NoAplican {
+			if na.Motivo != "" {
+				conMotivo++
+			}
+		}
+		if conMotivo == 0 {
+			t.Fatal("si no hay puntos, los detectores tienen que estar declarados apagados con motivo — " +
+				"callarlos sería el hueco escondido que el paquete prohíbe")
+		}
+		t.Logf("con la ventana truncada los %d detectores se declaran apagados con motivo", conMotivo)
+	}
+}
