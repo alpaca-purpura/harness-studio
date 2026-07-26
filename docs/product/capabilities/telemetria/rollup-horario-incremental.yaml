@@ -1,0 +1,116 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, §5.5 + A3).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.rollup-horario-incremental
+cap_num: CAP-123
+slug: rollup-horario-incremental
+name: "Rollup horario incremental (el «no aplica» sobrevive a la suma)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: mejorar
+functional_area: "telemetria.persistencia"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/store/rollup.go#Rollup"
+  - "internal/adapters/telemetria/store/rollup.go#NewRollup"
+  - "internal/adapters/telemetria/store/rollup.go#Rollup.Actualizar"
+  - "internal/adapters/telemetria/store/rollup.go#Rollup.Recomputar"
+  - "internal/adapters/telemetria/store/rollup.go#sumaPreservandoNULL"
+  - "internal/adapters/telemetria/store/rollup.go#Store.HorasAfectadas"
+valida:
+  - "TestNoAplicaSobreviveAlRollup"
+  - "TestNULLSeVuelveDatoCuandoAlguienLoMide"
+  - "TestRollupReanudaDesdeElCursor"
+  - "TestRollupColapsaCardinalidad"
+  - "TestTurnoCruzaHora"
+  - "TestRecomputarTrasBorrado"
+  - "TestRollupYCrudoDicenLoMismo"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/resumen"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §5.5"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "Una proyección por hora, reanudable por cursor, que hace que el tablero cueste milisegundos en vez de cientos — y que preserva la diferencia entre «midió cero» y «no tiene el concepto» a través de la suma, que es donde esa diferencia se pierde sola."
+    merge_sha: null
+scenarios:
+  - id: el-vacio-sobrevive-a-la-suma
+    name: "Una hora donde nadie reportó cierto bucket"
+    status: live
+    given: "eventos que no traen el bucket de escritura de cache de una hora"
+    when: "se actualiza el agregado, incluso dos veces"
+    then: "esa columna del agregado sigue vacía, no en cero"
+    verifica: "TestNoAplicaSobreviveAlRollup"
+  - id: el-agregado-reanuda
+    name: "El agregado se interrumpe a mitad"
+    status: live
+    given: "un agregado ya calculado hasta cierto punto"
+    when: "se vuelve a correr"
+    then: "agrega solo lo nuevo; correrlo dos veces seguidas no cambia nada"
+    verifica: "TestRollupReanudaDesdeElCursor"
+  - id: el-sesgo-va-en-contra
+    name: "Un turno cruza la frontera de la hora"
+    status: live
+    given: "un turno con eventos a un lado y otro de la hora"
+    when: "se agrega"
+    then: "el turno se cuenta en las dos horas, lo que baja el costo por turno que mostramos — el sesgo va en contra de recomendar un cambio, nunca a favor"
+    verifica: "TestTurnoCruzaHora"
+  - id: demasiadas-cajas
+    name: "Un arnés genera cajas sin límite"
+    status: live
+    given: "un agregado que llegó a su tope de filas"
+    when: "entra una caja más"
+    then: "la dimensión de caja colapsa a una etiqueta visible y la fila queda marcada como degradada"
+    verifica: "TestRollupColapsaCardinalidad"
+business_rules:
+  - id: nulo-sobrevive-a-la-agregacion
+    rule: "Sumar no puede convertir una ausencia en un cero. Si los dos lados están vacíos, el resultado sigue vacío; solo se suma tratando el vacío como cero cuando hay al menos una medición real."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: sesgo-declarado-y-en-contra
+    rule: "El sesgo que no se puede eliminar se declara y va en contra de la recomendación. Contar un turno a caballo en dos horas infla el denominador y baja el costo por turno que mostramos."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+  - id: degradacion-declarada
+    rule: "Al superar el tope de filas, la dimensión de caja colapsa a una etiqueta visible y la fila se marca. Perder una dimensión sin decirlo sería mostrar un desglose incompleto como si fuera completo."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: error
+  - id: agregado-reproducible
+    rule: "El agregado y el detalle tienen que dar el mismo total. Un agregado que diverge muestra un número que nadie puede reproducir mirando las filas."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: critical
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.almacen-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Rollup horario incremental
+
+El tablero no puede recorrer la tabla cruda cada vez que alguien mira una cifra. La proyección por
+hora la reemplaza, y es **incremental y reanudable**: un cursor guarda hasta dónde se agregó, así que
+una caída a mitad no obliga a recalcular todo ni cuenta nada dos veces.
+
+**La regla que define este código: el vacío sobrevive a la suma.** Sumar un grupo donde nadie reportó
+cierto bucket da vacío, no cero — y al acumular con el grupo siguiente, si los dos siguen vacíos,
+sigue vacío. Un `cero` apurado en esa línea convertiría cada ausencia en una medición y la diferencia
+ya no se podría recuperar aguas abajo.
+
+**El sesgo va declarado y en contra.** Un turno que cruza la frontera de la hora se cuenta en las
+dos. Eso infla el denominador, o sea **baja** el costo por turno que mostramos — el sesgo empuja
+contra recomendar un cambio, que es la única dirección aceptable para un sesgo que no se puede
+eliminar.
