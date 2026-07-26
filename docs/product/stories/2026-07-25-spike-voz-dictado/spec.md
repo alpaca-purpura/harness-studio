@@ -8,11 +8,9 @@
 
 | | |
 |---|---|
-| ✅ **Firmado** | **V-D3** (toggle + tope de duración) |
-| 🔬 **Medido, decisión abierta** | **V-D1** (motor STT) — hay números (§1.8): A2 local cuesta ~2.2 s. **La elección de motor no bloquea este spec**: todos los RF están escritos contra `TranscriptionPort`, no contra un motor |
-| ⏳ **Abiertas, asumidas como default** | **V-D4** (limpieza por defecto + escape a crudo) · **V-D5** (no persistir audio) — no se seleccionaron en la ronda del 2026-07-25, **no se rechazaron**. Este spec las asume; si se firman al revés, el delta es acotado y está marcado en cada RF |
-| ⏳ **Abierta** | **V-D2** (shape exacto del contexto) — RF-224 lo especifica *parametrizado* |
-| ⚠️ **Falta antes del build de UI** | **No hay mockup en este paquete.** §10 exige que cada RF de superficie trace a `mockup:línea`, y `mockups/INDEX.md` exige forkear del baseline vigente (SSoT = Storybook). Los RF marcados 🎨 **no se construyen hasta que exista el mockup firmado** — están escritos en términos de comportamiento, no de pixeles, justamente para que el mockup no los tenga que re-inventar |
+| ✅ **TODAS las decisiones FIRMADAS 🧑‍⚖️** | Ronda del 2026-07-25 (2ª): **V-D1** (A2 local `base`, **adaptador por PATH**) · **V-D2** (glosario global + 2-3 turnos) · **V-D3** (toggle + tope) · **V-D4** (limpieza por defecto + escape a crudo) · **V-D5** (no persistir audio) · **V-D6/V-D7** (por no-objeción). **Ningún RF cambió** — era el punto de escribirlos contra `TranscriptionPort` |
+| 📌 **Deuda VISIBLE, no bloqueante** | **T7** — qué motor STT se **empaqueta** en los instaladores. El adaptador detecta por `$PATH`; si no hay motor, degrada visible (RF-227). No se decide hoy porque no hay evidencia: se midió `faster-whisper` sobre WAV, no `whisper.cpp` ni el `audio/mp4` real |
+| 🎨 **Mockup** | Forkeado del baseline vigente y registrado en `mockups/INDEX.md`: `mockup-voz-dictado.html`. Los RF marcados 🎨 trazan ahí |
 
 **Orden obligatorio de construcción:** RF-215 (puente Rust) **antes que todo lo demás**. Sin él el
 botón funciona en `pnpm dev` y se cuelga mudo en la app instalada (`spike-spec.md` §1.6 b/d).
@@ -102,7 +100,7 @@ Escenario: se graba en un formato que el motor soporta
   Y NUNCA se asume webm/opus (no existe en este motor)
 ```
 
-### RF-221 — El audio no se persiste *(V-D5, asumida — si se firma al revés, cambia solo este RF)*
+### RF-221 — El audio no se persiste *(V-D5 FIRMADA)*
 ```gherkin
 Escenario: ciclo de vida del audio
   Cuando termina la grabación
@@ -123,7 +121,7 @@ Escenario: llega un dictado
   Y la respuesta indica si el texto está LIMPIO o es CRUDO (fallback)
 ```
 
-### RF-223 — El motor de STT vive detrás de un puerto *(cierra V-D1 sin bloquearlo)*
+### RF-223 — El motor de STT vive detrás de un puerto *(V-D1 FIRMADA: A2 local + adaptador por PATH)*
 ```gherkin
 Escenario: cambiar de motor no es rehacer la feature
   Dado que la transcripción se consume por un puerto (TranscriptionPort)
@@ -131,11 +129,32 @@ Escenario: cambiar de motor no es rehacer la feature
   Entonces solo se reemplaza el adaptador
   Y ningún RF de este spec cambia
 ```
+```gherkin
+Escenario: el adaptador local elige el motor que hay instalado
+  Dado el adaptador local de transcripción
+  Cuando se le pide transcribir
+  Entonces busca en $PATH los motores que conoce, en orden de preferencia
+  Y usa el primero que encuentra
+
+Escenario: no hay ningún motor STT instalado
+  Dado que ningún motor conocido está en $PATH
+  Cuando el FE consulta si el dictado está disponible
+  Entonces la respuesta dice que NO, con el motivo y qué instalar
+  Y el botón de micrófono queda deshabilitado con ese motivo visible
+  Y NUNCA se acepta un dictado que después no se va a poder transcribir
+```
+
 - Medido (§1.8): local `base` = **~2.2 s** para 47 s de audio. **El STT no es el cuello de botella.**
 - Si el motor elegido no come `audio/mp4` (caso `whisper.cpp`, que quiere WAV 16 kHz mono), el
-  transcodificado es **responsabilidad del adaptador**, no del dominio ni del FE.
+  transcodificado es **responsabilidad del adaptador**, no del dominio ni del FE. `ffmpeg` ausente =
+  otro motivo de degradación visible, jamás un panic.
+- **V-D5 acota el archivo temporal:** un motor por PATH necesita un archivo para leer. Se permite un
+  temporal de vida acotada (crear → transcribir → borrar en `defer`); nada persistente, nada en el
+  árbol del arnés.
+- **T7 (deuda abierta):** qué motor se **bundlea** en `.deb`/`.AppImage`/`.rpm`. El instalador **no
+  promete STT** hasta que se cierre.
 
-### RF-224 — La limpieza recibe contexto de dominio *(V-D2 parametrizada)*
+### RF-224 — La limpieza recibe contexto de dominio *(V-D2 FIRMADA)*
 El hallazgo central del spike: lo que desenreda un dictado no es más transcripción, es **contexto de
 dominio compacto** — y además **corrige errores del STT** (§1.8).
 
@@ -147,8 +166,10 @@ Escenario: limpieza con contexto
   Y los errores de transcripción de términos del dominio quedan corregidos
   Y la salida es el pedido en orden, sin preámbulo ni invenciones
 ```
-- **Insumo del contexto (recomendado, V-D2):** glosario estático corto + últimos 2-3 turnos de
-  `Session.Conv`. **NO** la conversación entera ni el `CLAUDE.md` completo.
+- **Insumo del contexto (V-D2 FIRMADA):** glosario estático corto **global** + últimos **2-3 turnos**
+  de `Session.Conv`. **NO** la conversación entera ni el `CLAUDE.md` completo — el hallazgo fue que
+  desenreda el contexto *chico y de dominio*; más volumen empeora y encima paga latencia sobre el paso
+  que ya es el 87 % del costo.
 - Costo real medido: **13-17 s** — es el 87 % de la latencia total del flujo.
 
 ### RF-225 — El spawn de limpieza va endurecido *(V-D7, doctrina)*
@@ -198,8 +219,14 @@ Escenario: la limpieza falla o tarda de más
   Y se marca visiblemente que quedó sin ordenar
   Y el dictado NO se pierde por una falla del paso opcional
 ```
-- El último escenario es también el "escape a crudo" de **V-D4**: si esa decisión se firma como
-  "limpieza opcional", el escape ya está construido acá.
+- El último escenario es también el "escape a crudo" de **V-D4 (FIRMADA)**: un solo camino de código,
+  dos motivos para entrar (falla de la limpieza · el operador quiere el crudo).
+
+```gherkin
+Escenario: no hay motor de STT instalado (V-D1, adaptador por PATH)
+  Entonces el botón queda deshabilitado
+  Y el motivo visible dice que falta el motor de transcripción y cuál instalar
+```
 
 ### RF-228 — Nada tapa un cuelgue
 Derivado del peor modo de falla encontrado (§1.6 b): la promesa que nunca resuelve.
@@ -219,8 +246,10 @@ Escenario: algo se cuelga río arriba
 
 - **Capabilities** (doctrina `codigo-traza-a-capability`, R2): `fe-chat/` (botón · estados · composer
   poblado) · `http-sse/` (endpoint) · el módulo del motor (STT + limpieza). **Tres, no una.**
-- **Mockup pendiente** para los RF 🎨 (RF-216, 219, 226): forkear del baseline vigente
-  (`mockups/INDEX.md`), superset estricto, sin re-inventar lo firmado.
+- **Mockup** para los RF 🎨 (RF-216, 219, 226): `mockup-voz-dictado.html`, forkeado del baseline
+  vigente y registrado en `mockups/INDEX.md`.
 - **`PARIDAD.md`** se llena fila por fila durante la implementación.
 - **T6 sigue abierto:** E2E con la **voz real del operador** por el **micrófono real**, contra el
   **binario instalado**. Lo medido en §1.8 usa voz sintética y entrada WAV — no lo reemplaza.
+- **T7 sigue abierto:** qué motor STT se **empaqueta**. El adaptador por PATH usa lo que el operador
+  tenga; el instalador no promete STT hasta que se cierre.

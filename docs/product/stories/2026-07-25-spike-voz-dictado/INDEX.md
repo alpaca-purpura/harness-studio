@@ -1,8 +1,9 @@
 # Spike · Dictado por voz en el composer (STT + limpieza con contexto)
 
-> `tipo: spike` — investigación acotada. Estados: abierto · investigando · cerrado. **Vig: activo · NO
-> firmado.** Detonante: el operador quiere hablarle a ArnesIA en vez de escribir — grabar, transcribir,
-> y que un paso "entienda" el pedido (se enreda al hablar, pero el contexto de dominio lo desenreda).
+> `tipo: spike` — investigación acotada. Estados: abierto · investigando · cerrado. **Vig: activo ·
+> DECISIONES FIRMADAS 🧑‍⚖️ 2026-07-25 (2ª ronda) · en construcción.** Detonante: el operador quiere
+> hablarle a ArnesIA en vez de escribir — grabar, transcribir, y que un paso "entienda" el pedido (se
+> enreda al hablar, pero el contexto de dominio lo desenreda).
 
 ## Pregunta del spike
 
@@ -44,16 +45,16 @@ de solo sacarle las muletillas?
   genéricas o sin resolver. Confirma la intuición del operador: lo que desenreda no es más transcripción,
   es contexto de dominio compacto.
 
-## Decisiones abiertas → [`decisiones.md`](./decisiones.md)
+## Decisiones — TODAS FIRMADAS 🧑‍⚖️ → [`decisiones.md`](./decisiones.md)
 
-| # | Qué se decide | Estado · recomendación |
+| # | Qué se decide | Estado |
 |---|---|---|
-| **V-D1** | Motor STT (A1 cloud · A2 local · A3 nativo ❌ · A0 Claude ❌) | 🔬 **MEDIDO** → nueva recomendación **A2 local con modelo `base`**; abierta la sub-decisión `whisper.cpp` vs `faster-whisper` |
-| **V-D2** | Shape del contexto de la limpieza | ⏳ Glosario corto + últimos 2-3 turnos de `Session.Conv` |
-| **V-D3** | Gesto: toggle vs push-to-talk | ✅ **FIRMADA** — toggle + tope duro de duración |
-| **V-D4** | ¿Limpieza obligatoria u opcional? | ⏳ Por defecto, con escape a crudo *(asumida en el spec)* |
-| **V-D5** | ¿Se persiste el audio? | ⏳ No — memoria, se manda, se descarta *(asumida en el spec)* |
-| **V-D6/D7** | T0 primero · spawn de limpieza endurecido | ⏳ Derivadas de evidencia/doctrina — se firman salvo objeción |
+| **V-D1** | Motor STT (A1 cloud · A2 local · A3 nativo ❌ · A0 Claude ❌) | ✅ **FIRMADA** — **A2 local, modelo `base`**; sub-decisión resuelta como **adaptador por PATH** (detecta el motor instalado, degrada visible si no hay). Deuda **T7** = qué motor se bundlea |
+| **V-D2** | Shape del contexto de la limpieza | ✅ **FIRMADA** — glosario **global** corto + últimos 2-3 turnos de `Session.Conv`; NO la conversación entera |
+| **V-D3** | Gesto: toggle vs push-to-talk | ✅ **FIRMADA** (1ª ronda) — toggle + tope duro de duración |
+| **V-D4** | ¿Limpieza obligatoria u opcional? | ✅ **FIRMADA** — por defecto, con escape a crudo (mismo camino que RF-227) |
+| **V-D5** | ¿Se persiste el audio? | ✅ **FIRMADA** — no; solo temporal de vida acotada si el motor por PATH lo exige |
+| **V-D6/D7** | T0 primero · spawn de limpieza endurecido | ✅ **FIRMADAS por no-objeción** |
 
 ## Estado
 
@@ -61,30 +62,31 @@ de solo sacarle las muletillas?
 - [x] Núcleo (limpieza con contexto) probado end-to-end con evidencia
 - [x] **T0bis ejecutado** — Fork A2 medido con voz real sintetizada (§1.8)
 - [x] Probes + banco de medición reproducibles versionados en el paquete
-- [x] `decisiones.md` con V-D0..V-D8 · **V-D3 firmada 🧑‍⚖️**
+- [x] `decisiones.md` con V-D0..V-D8 — **las 7 decisiones FIRMADAS 🧑‍⚖️**
 - [x] `spec.md` — **RF-215…RF-228** con Gherkin
-- [ ] 🧑‍⚖️ **Firma de V-D1, V-D2, V-D4, V-D5**
+- [x] Paquete versionado en `main` (estaba untracked entero)
 - [ ] 🎨 **Mockup** forkeado del baseline (`mockups/INDEX.md`) — bloquea los RF de superficie
+- [ ] Capabilities (doctrina R2: `fe-chat/` · `http-sse/` · motor STT)
 - [ ] Implementación (RF-215 primero, siempre)
 - [ ] `PARIDAD.md` + 🧑‍⚖️ gate final
 
 ## Retomar aquí
 
-**Investigación CERRADA, `spec.md` ESCRITO.** El spec está redactado para no depender del motor (todo
-contra `TranscriptionPort`), así que **V-D1 no lo bloquea**. Lo que falta, en orden:
+**Investigación CERRADA · decisiones FIRMADAS · construcción DESBLOQUEADA.** El spec está redactado
+contra `TranscriptionPort`, así que la elección de motor no lo toca. Lo que falta, en orden:
 
-1. **Firmar V-D1** con los números ya sobre la mesa (§1.8): A2 local con `base` es la recomendación
-   nueva — el rendimiento dejó de ser el argumento; queda solo el peso del empaquetado.
-   Sub-decisión que aparece si se firma A2: `whisper.cpp` (C++, hay que compilar) vs `faster-whisper`
-   (Python, es lo que se midió).
-2. **Firmar V-D2 · V-D4 · V-D5** — el spec las asume como default y marca dónde impacta si se firman
-   al revés.
-3. **Mockup** del botón + estados, forkeado del baseline vigente, antes de construir los RF marcados 🎨.
-4. **Construir empezando por RF-215** (puente Rust). Nunca al revés: sin él, el resto "anda" en dev y se
+1. **Mockup** del botón + estados, forkeado del baseline vigente, antes de construir los RF 🎨.
+2. **Capabilities** — tres (`fe-chat/`, `http-sse/`, motor STT). Sin ellas el gate-commit R3 bloquea.
+3. **Construir empezando por RF-215** (puente Rust). Nunca al revés: sin él, el resto "anda" en dev y se
    cuelga mudo instalado.
+4. **Test de fitness** del spawn endurecido (RF-225) — un enforcement sin test es una promesa.
 
-**Lo que sigue abierto y no se puede cerrar solo:** **T6** — dictado con la **voz real del operador**
-por el **micrófono real**, contra el **binario instalado**. Lo medido usa voz sintética y entrada WAV.
+**Lo que sigue abierto y no se puede cerrar solo:**
+
+- **T6** — dictado con la **voz real del operador** por el **micrófono real**, contra el **binario
+  instalado**. Lo medido usa voz sintética y entrada WAV.
+- **T7** — qué motor STT se **empaqueta** en `.deb`/`.AppImage`/`.rpm`. Necesita medir `whisper.cpp`
+  (pide `cmake`/sudo) y medir ambos sobre el `audio/mp4` real, no sobre WAV.
 
 ## Archivos
 
