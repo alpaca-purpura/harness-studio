@@ -1116,3 +1116,105 @@ func TestElTotalDeLaCajaEsElTotal(t *testing.T) {
 		t.Logf("con la ventana truncada los %d detectores se declaran apagados con motivo", conMotivo)
 	}
 }
+
+// TestNingunIdentificadorEsUnaRutaDelUsuario — **S1 de la auditoría**, y la clase de fuga que
+// la allowlist NO puede atrapar.
+//
+// El campo `instalacion_id` es legítimo y está en la lista de permitidos; lo que estaba mal era
+// su **contenido**: se le asignaba `inst.ProyectoPath`, un path del filesystem del usuario
+// (`/home/<usuario>/Proyectos/<lo-que-sea>`), que se persistía crudo y **egresaba por el
+// forward**. Contradecía el comentario de A14 tres líneas más arriba de la propia función.
+//
+// La allowlist protege por NOMBRE de campo. Esto protege por FORMA del valor: ningún
+// identificador que se persiste puede parecerse a una ruta absoluta ni contener el nombre de
+// un usuario. Es la única barrera que atrapa «campo permitido con contenido prohibido».
+func TestNingunIdentificadorEsUnaRutaDelUsuario(t *testing.T) {
+	svc, st := servicioFitness(t)
+	ctx := context.Background()
+
+	// Los dos caminos que producen un identificador de instalación: el hook (que ya usaba
+	// huella) y el Portafolio (que usaba la ruta cruda).
+	const rutaReal = "/home/un-usuario-real/Proyectos/vitalia"
+	svc.SetPortafolio(
+		func(ctx context.Context, arnesID string) string { return "" },
+		func(ctx context.Context) []usecase.FilaInstalacion {
+			// Se simula lo que el composition root arma. Si alguien vuelve a poner el path
+			// crudo acá, el assert de abajo lo caza.
+			return []usecase.FilaInstalacion{{
+				ArnesID: "vitalia", InstalacionID: hooks.HuellaCWD(rutaReal), Clave: "k1",
+			}}
+		},
+	)
+	if _, err := svc.Ingerir(ctx, []domain.EventoTelemetria{{
+		LlaveJoin: domain.LlaveJoin{
+			SesionID: "s-1", TurnoID: "t-1", ArnesID: "vitalia",
+			InstalacionID: hooks.HuellaCWD(rutaReal),
+		},
+		Emisor: domain.EmisorOTLP, Runtime: "claude-code",
+		TSRecibido: time.Now().UTC(), TipoEvento: domain.EventoAPIRequest,
+		Escenario: domain.EscenarioS2Instrumentado,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if serr := st.Sincronizar(ctx); serr != nil {
+		t.Fatal(serr)
+	}
+
+	// La FORMA de cada identificador persistido: ninguno puede parecer una ruta.
+	rows, err := st.ReaderParaTest().QueryContext(ctx,
+		`SELECT COALESCE(instalacion_id,''), COALESCE(cwd_huella,''), COALESCE(arnes_id,''),
+		        COALESCE(caja_id,'') FROM evento`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	filas := 0
+	for rows.Next() {
+		var inst, huella, arnes, caja string
+		if serr := rows.Scan(&inst, &huella, &arnes, &caja); serr != nil {
+			t.Fatal(serr)
+		}
+		filas++
+		for campo, v := range map[string]string{
+			"instalacion_id": inst, "cwd_huella": huella, "arnes_id": arnes, "caja_id": caja,
+		} {
+			if v == "" {
+				continue
+			}
+			if strings.HasPrefix(v, "/") || strings.HasPrefix(v, "~") ||
+				strings.Contains(v, `:\`) || strings.Count(v, "/") > 1 {
+				t.Errorf("%s = %q tiene forma de RUTA: un campo permitido con contenido "+
+					"prohibido es la fuga que la allowlist no atrapa (A14)", campo, v)
+			}
+			for _, marca := range []string{"/home/", "/Users/", "Proyectos", "un-usuario-real"} {
+				if strings.Contains(v, marca) {
+					t.Errorf("%s = %q contiene %q: la ruta del usuario nunca entra al almacén", campo, v, marca)
+				}
+			}
+		}
+	}
+	if filas == 0 {
+		t.Fatal("no se leyó ninguna fila: el test no verificó nada")
+	}
+
+	// ── control positivo: el identificador SÍ existe y agrupa ──
+	// No alcanza con que no sea una ruta: tiene que servir para agrupar corridas del mismo
+	// lugar, o lo habríamos «arreglado» borrando el dato.
+	var conInstalacion int
+	if qerr := st.ReaderParaTest().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM evento WHERE instalacion_id = ?`, hooks.HuellaCWD(rutaReal)).
+		Scan(&conInstalacion); qerr != nil {
+		t.Fatal(qerr)
+	}
+	if conInstalacion == 0 {
+		t.Fatal("control positivo: la huella tiene que estar y agrupar — si no, el arreglo " +
+			"habría sido borrar el dato, no protegerlo")
+	}
+	// Y la huella es estable y no reversible.
+	if hooks.HuellaCWD(rutaReal) == hooks.HuellaCWD(rutaReal+"-otro") {
+		t.Error("dos lugares distintos no pueden compartir huella")
+	}
+	if strings.Contains(hooks.HuellaCWD(rutaReal), "vitalia") {
+		t.Error("la huella no puede contener el nombre del proyecto")
+	}
+}

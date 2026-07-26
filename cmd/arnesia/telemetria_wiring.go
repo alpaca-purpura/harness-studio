@@ -192,8 +192,18 @@ func instalacionesDelPortafolio(ctx context.Context, pf *usecase.PortafolioServi
 			continue
 		}
 		for _, inst := range e.Instalaciones {
+			// 🔴 A14 · el identificador de instalación es la HUELLA de la ruta, jamás la ruta.
+			//
+			// Antes se usaba `inst.ProyectoPath` crudo, que es un path del filesystem del
+			// usuario (`/home/<usuario>/Proyectos/<lo-que-sea>`): se persistía en
+			// `evento.instalacion_id` y **egresaba por el forward**. La allowlist no lo
+			// atrapaba porque el campo es legítimo — lo que estaba mal era su CONTENIDO.
+			//
+			// Usar la misma huella que el hook tiene además un beneficio: los dos caminos de
+			// atribución producen el mismo identificador para el mismo lugar, así que un
+			// evento de hook y uno de spawn del mismo proyecto se agrupan solos.
 			out = append(out, usecase.FilaInstalacion{
-				ArnesID: e.Identidad.ID, InstalacionID: inst.ProyectoPath,
+				ArnesID: e.Identidad.ID, InstalacionID: hooks.HuellaCWD(inst.ProyectoPath),
 				Clave: clave, Nombre: e.Nombre, Empresas: e.Empresas,
 			})
 		}
@@ -216,8 +226,9 @@ func resolverHuella(ctx context.Context, pf *usecase.PortafolioService, huella s
 	}
 	for _, e := range entradas {
 		for _, inst := range e.Instalaciones {
-			if hooks.HuellaCWD(inst.ProyectoPath) == huella {
-				return e.Identidad.ID, inst.ProyectoPath, true
+			if h := hooks.HuellaCWD(inst.ProyectoPath); h == huella {
+				// Se devuelve la HUELLA, no la ruta: resolverla no es excusa para guardarla.
+				return e.Identidad.ID, h, true
 			}
 		}
 	}
