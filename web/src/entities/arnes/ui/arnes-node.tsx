@@ -25,7 +25,39 @@ import type { Box } from "../model/types"
 type NodeStyle = CSSProperties & { "--tc"?: string }
 type GateStyle = CSSProperties & { "--gate"?: string }
 
-interface ArnesNodeProps {
+// ── Capa «Mejora» (paquete 2026-07-24, T31) ────────────────────────────────────────────────
+//
+// 🔴 **`entities/arnes` NO importa `entities/telemetria`. Nunca, por ningún escape** (D18).
+// `steiger fsd/no-cross-imports` corre dentro de `verify` y lo rechazaría; el escape `@x/**`
+// existe pero `steiger.config.ts` declara su enforcement INCIERTO, y degradar un gate por una
+// prop es mal negocio.
+//
+// Por eso el nodo recibe **primitivos**, y es el widget `map-canvas` —que sí puede importar las
+// dos entities, porque widgets→entities es la dirección legal— el que compone `CifraCaja` en
+// estas props. Lo que se duplica es el TIPO (una unión de 4 literales), que es lo que `tsc` sí
+// puede cuidar; **el copy NO se duplica**: `etiquetaConfianza`/`tituloConfianza` llegan por prop
+// desde el widget, que las lee de `entities/telemetria`. La igualdad literal la ata la story
+// `CopyConfianzaEsUnaSola` (map-canvas.stories.tsx, candado 1 de D18).
+//
+// **Superset estricto (BR-M16):** todas son opcionales y sin ellas el DOM es IDÉNTICO al de hoy.
+// El guardián es la story `EstructuraIntacta`.
+interface MejoraProps {
+  /** El monto YA formateado por `CifraUsd`/`usd()`. El nodo no formatea dinero (RF-281). */
+  cifraUsd?: string | undefined
+  /** Participación en el total del arnés, 0..100 entero. */
+  participacionPct?: number | undefined
+  confianza?: "exacta" | "por-hash" | "por-proceso" | "sin-dato" | undefined
+  /** El literal del chip de confianza, resuelto por el widget. `exacta` ⇒ undefined. */
+  etiquetaConfianza?: string | undefined
+  tituloConfianza?: string | undefined
+  /** El detector NOMBRADO de mayor ahorro. Cero o uno, nunca dos (RF-241). */
+  marcaFuga?: string | undefined
+  marcaFugaGrave?: boolean | undefined
+  /** Por qué este nodo no lleva cifra. El texto ES el portador (RF-280), no la opacidad. */
+  motivoSinDato?: string | undefined
+}
+
+interface ArnesNodeProps extends MejoraProps {
   box: Box
   // Positional/interaction flags owned by the canvas (not derivable from the node alone).
   support?: boolean | undefined
@@ -35,7 +67,22 @@ interface ArnesNodeProps {
   onSelect?: ((id: string) => void) | undefined
 }
 
-export function ArnesNode({ box, support, compact, dim, selected, onSelect }: ArnesNodeProps) {
+export function ArnesNode({
+  box,
+  support,
+  compact,
+  dim,
+  selected,
+  onSelect,
+  cifraUsd,
+  participacionPct,
+  confianza,
+  etiquetaConfianza,
+  tituloConfianza,
+  marcaFuga,
+  marcaFugaGrave,
+  motivoSinDato,
+}: ArnesNodeProps) {
   const k = KIND[box.clase]
   const caja = isCaja(box)
   const puesto = isDelPuesto(box.id)
@@ -47,6 +94,9 @@ export function ArnesNode({ box, support, compact, dim, selected, onSelect }: Ar
   const perfil = box.contract?.perfil_harness
   const gate = box.contract?.gate?.tipo
   const style: NodeStyle = { "--tc": k.color }
+  // Capa Mejora: el nodo gana alto solo cuando efectivamente hay algo que decir.
+  const conMejora =
+    cifraUsd !== undefined || marcaFuga !== undefined || participacionPct !== undefined
 
   return (
     <button
@@ -64,6 +114,8 @@ export function ArnesNode({ box, support, compact, dim, selected, onSelect }: Ar
         compact && "compact",
         dim && "dim",
         selected && "selected",
+        motivoSinDato !== undefined && "sindato",
+        conMejora && "conmejora",
       )}
     >
       {caja && <span className="caja-badge">caja</span>}
@@ -109,6 +161,46 @@ export function ArnesNode({ box, support, compact, dim, selected, onSelect }: Ar
           )}
         </span>
       )}
+
+      {/* ── Capa «Mejora» — SIEMPRE al final del flujo, jamás en absoluto ────────────────────
+          La esquina superior derecha ya está ocupada dos veces (`.caja-badge` y `.prop-badge`
+          comparten `top:8px; right:8px`, map.css:310/:329): un tercer badge ahí se superpondría
+          con el de «propuesto» (J-9).
+
+          Y el nodo ES un `<button>`: estas marcas son `<span>`, jamás controles. Anidar un botón
+          en un botón es DOM inválido. Abrir la tarjeta de un punto de mejora no se hace desde
+          acá — seleccionar la caja lleva el foco a su tarjeta en la lista de abajo. */}
+      {cifraUsd !== undefined && (
+        <span className="mej-cifra">
+          <span className="mej-usd">USD</span>
+          <span className="mej-monto">{cifraUsd}</span>
+          {participacionPct !== undefined && <span className="mej-pct">{participacionPct} %</span>}
+          {etiquetaConfianza !== undefined && (
+            <span className="mej-conf" data-confianza={confianza} title={tituloConfianza}>
+              {etiquetaConfianza}
+            </span>
+          )}
+        </span>
+      )}
+      {marcaFuga !== undefined && (
+        // D21 · la marca GRAVE va con `color: --crit` sobre `background: --card` (4,75:1 claro /
+        // 5,33:1 oscuro), NO sobre `--crit-soft` (4,04:1 en claro: falla el gate). El ⚠ es
+        // decorativo y el nombre del detector es el portador (RF-241): un ⚠ sin nombre obliga a
+        // adivinar qué te están señalando.
+        <span className={cn("mej-fuga", marcaFugaGrave && "grave")}>
+          <span aria-hidden="true">⚠</span> {marcaFuga}
+        </span>
+      )}
+      {participacionPct !== undefined && (
+        <span
+          className="mej-share"
+          role="img"
+          aria-label={`${participacionPct} % del gasto del arnés en esta ventana.`}
+        >
+          <span className="mej-share-fill" style={{ width: `${participacionPct}%` }} />
+        </span>
+      )}
+      {motivoSinDato !== undefined && <span className="mej-motivo">{motivoSinDato}</span>}
     </button>
   )
 }

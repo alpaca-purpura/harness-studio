@@ -751,3 +751,133 @@
   color: var(--foreground);
   border-color: var(--c-mcp);
 }
+
+/* ══ Capa «Mejora» — marcas dentro del nodo (paquete 2026-07-24, T31) ══════════════════════
+   design.md §2.3 · D18 (props primitivas) · D21 (contraste por tema) · J-8 · J-9.
+
+   Regla que gobierna el bloque: **ninguna marca nueva es `position: absolute`**. La esquina
+   superior derecha ya está ocupada dos veces (`.caja-badge` y `.prop-badge` comparten
+   `top:8px; right:8px`) y un tercer badge ahí se superpondría con el de «propuesto». Todo va
+   en el flujo de la tarjeta; la barra de participación es el pie. */
+
+/* El nodo con capa activa gana sitio para la barra de 5 px sin comerse el `.node-meta`. */
+.arnesia-map .node.conmejora {
+  padding-bottom: var(--space-4);
+}
+
+.arnesia-map .node .mej-cifra {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) 6px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.arnesia-map .node .mej-usd {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.arnesia-map .node .mej-monto {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.arnesia-map .node .mej-pct {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+/* Marca de confianza dentro del nodo. Mismo tratamiento que `.conf` de la entity — el copy es
+   EL MISMO string (llega por prop desde el widget, D18) y la story CopyConfianzaEsUnaSola lo
+   asserta. Texto `--foreground` sobre `--warn-soft` (D21): `--warn` solo en el borde. */
+.arnesia-map .node .mej-conf {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: var(--radius-full);
+  padding: 0 5px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* Marca de fuga: el detector NOMBRADO. Leve = texto `--foreground` sobre `--warn-soft`. */
+.arnesia-map .node .mej-fuga {
+  align-self: flex-start;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+}
+/* D21 · GRAVE: texto `--crit` sobre `--card` (4,75:1 claro / 5,33:1 oscuro). **Nunca sobre
+   `--crit-soft`**, que da 4,04:1 en claro y falla el mínimo de 4,5:1. `--crit-soft` sobrevive
+   como relleno de superficies SIN texto encima (el punto, el riel). */
+.arnesia-map .node .mej-fuga.grave {
+  color: var(--crit);
+  background: var(--card);
+  border-color: color-mix(in srgb, var(--crit) 45%, transparent);
+}
+
+/* Barra de participación: el pie del nodo. `--warn` a .85 es proporción de gasto = atención,
+   no error. Es no-texto ⇒ el requisito es 3:1, y el portador real es el `aria-label`. */
+.arnesia-map .node .mej-share {
+  display: block;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--border) 55%, transparent);
+  overflow: hidden;
+}
+.arnesia-map .node .mej-share-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--warn);
+  opacity: 0.85;
+}
+
+/* Nodos sin dato atribuible: **la opacidad sola no alcanza (RF-280)**. El texto del motivo es
+   el portador; la opacidad y el borde punteado son refuerzo. Y el motivo ENVUELVE — jamás
+   `text-overflow: ellipsis`: un motivo truncado es peor que no tenerlo (design §6.3). */
+.arnesia-map .node.sindato {
+  opacity: 0.62;
+  border-left-style: dotted;
+}
+.arnesia-map .node .mej-motivo {
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--muted-foreground);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+/* Total de la fase en el encabezado del carril (RF-244). Tercer hijo: el `.count` se conserva
+   entre el `<h3>` y esto (J-8). */
+.arnesia-map .lane-hd .lane-usd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+.arnesia-map .lane-hd .lane-usd-pfx {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+/* Carril sin cajas con dato: se DICE. Nunca `USD 0,00`. */
+.arnesia-map .lane-hd .lane-usd-sindato {
+  font-family: var(--font-sans);
+  font-variant-numeric: normal;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--muted-foreground);
+}

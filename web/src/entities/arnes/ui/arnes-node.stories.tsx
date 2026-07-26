@@ -172,3 +172,257 @@ export const NoReconocido: Story = {
     await expect(within(canvasElement).getByText("misterio (no reconocido)")).toBeInTheDocument()
   },
 }
+
+// ══ Capa «Mejora» (paquete 2026-07-24, T31) ═══════════════════════════════════════════════
+//
+// Las props son PRIMITIVAS (D18): `entities/arnes` no importa `entities/telemetria`, nunca. El
+// widget `map-canvas` —que sí puede importar las dos— compone `CifraCaja → props`. El copy de
+// confianza NO se duplica: llega por prop, y la story `CopyConfianzaEsUnaSola` del widget
+// asserta la igualdad literal contra `entities/telemetria`.
+//
+// Este archivo hereda `a11y: { test: "todo" }` del `meta` y **no se amplía** (regla vigente):
+// las marcas nuevas se pintan con `--foreground`, no con `--warn`. Como ahí axe no corre,
+// `MejoraConMarcaDeFuga` lleva un assert COMPUTADO del `backgroundColor` — es la única forma de
+// que el fix de D21 no se pierda en un archivo sin gate.
+
+const CONF_HASH =
+  "Identificado por la huella del arnés: el runtime redacta su nombre. Corrió fuera de ArnesIA."
+const CONF_PROC =
+  "Deducido por el directorio donde corrió. Si ahí corre más de un arnés, este número los mezcla."
+
+// RF-238 · RF-239 · RF-240 · RF-242 — el caso completo: cifra, participación, barra con su
+// aria-label, y NINGUNA marca de duda porque la atribución es exacta (la ausencia ES la señal).
+export const MejoraCifraExacta: Story = {
+  args: {
+    box: cajaBox,
+    cifraUsd: "1,92",
+    participacionPct: 40,
+    confianza: "exacta",
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("USD")).toBeInTheDocument()
+    await expect(c.getByText("1,92")).toBeInTheDocument()
+    await expect(c.getByText("40 %")).toBeInTheDocument()
+    const barra = c.getByRole("img", { name: "40 % del gasto del arnés en esta ventana." })
+    await expect(barra).toBeInTheDocument()
+    await expect((barra.querySelector(".mej-share-fill") as HTMLElement).style.width).toBe("40%")
+    // exacta ⇒ cero marca de duda.
+    await expect(c.queryByText("por huella")).toBeNull()
+    await expect(canvasElement.querySelector("[data-confianza]")).toBeNull()
+    // Las 5 marcas de hoy siguen intactas (superset estricto, BR-M16).
+    await expect(c.getByText("caja")).toBeInTheDocument()
+    await expect(c.getByText("idea → spec")).toBeInTheDocument()
+    await expect(c.getByText("T2")).toBeInTheDocument()
+    await expect(c.getByText("≈")).toBeInTheDocument()
+    await expect(c.getByLabelText(/gate/)).toBeInTheDocument()
+  },
+}
+
+// RF-242 · RF-274 — la cifra por huella SE SUMA al total igual: es un número real, solo que
+// identificado por el hash del plugin en vez de por el nombre que el runtime redacta.
+export const MejoraPorHuella: Story = {
+  args: {
+    box: cajaBox,
+    cifraUsd: "1,92",
+    participacionPct: 40,
+    confianza: "por-hash",
+    etiquetaConfianza: "por huella",
+    tituloConfianza: CONF_HASH,
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("por huella")).toHaveAttribute("title", CONF_HASH)
+    await expect(c.getByText("1,92")).toBeInTheDocument()
+  },
+}
+
+// RF-242 · H-13 — «por proceso» advierte la MEZCLA. No es lo mismo que «por huella» y el chip
+// lo dice con otro texto y otro title.
+export const MejoraPorProceso: Story = {
+  args: {
+    box: cajaBox,
+    cifraUsd: "0,47",
+    participacionPct: 10,
+    confianza: "por-proceso",
+    etiquetaConfianza: "por proceso",
+    tituloConfianza: CONF_PROC,
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const chip = c.getByText("por proceso")
+    await expect(chip).toHaveAttribute("title", expect.stringContaining("los mezcla"))
+    await expect(c.queryByText("por huella")).toBeNull()
+  },
+}
+
+// RF-240 · RF-243 — una caja sin corridas en la ventana NO vale 0: no tiene cifra, no tiene
+// barra, y dice por qué. Un `USD 0,00` afirmaría que corrió y no gastó.
+export const MejoraCajaSinCorridas: Story = {
+  args: { box: cajaBox, motivoSinDato: "sin corridas en esta ventana" },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("sin corridas en esta ventana")).toBeInTheDocument()
+    await expect(c.queryByText(/USD/)).toBeNull()
+    await expect(c.queryByText("0,00")).toBeNull()
+    await expect(canvasElement.querySelector(".mej-share")).toBeNull()
+  },
+}
+
+// RF-241 · D21 — el detector va NOMBRADO (un ⚠ sin nombre obliga a adivinar) y el ⚠ es
+// `aria-hidden`. El assert COMPUTADO del fondo es el que sostiene el fix de contraste en un
+// archivo donde axe no corre: `--card`, no `--crit-soft`.
+export const MejoraConMarcaDeFuga: Story = {
+  args: {
+    box: cajaBox,
+    cifraUsd: "1,92",
+    participacionPct: 40,
+    confianza: "exacta",
+    marcaFuga: "re-warm TTL",
+    marcaFugaGrave: true,
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("re-warm TTL")).toBeInTheDocument()
+    const warn = canvasElement.querySelector(".mej-fuga [aria-hidden='true']")
+    await expect(warn).not.toBeNull()
+    await expect(warn?.textContent).toBe("⚠")
+    // D21: fondo --card (#ffffff en claro), NO --crit-soft (rgba(201,69,69,.12)).
+    const fuga = canvasElement.querySelector(".mej-fuga.grave") as HTMLElement
+    const fondo = getComputedStyle(fuga).backgroundColor
+    const card = getComputedStyle(document.documentElement).getPropertyValue("--card").trim()
+    await expect(fondo).toBe("rgb(255, 255, 255)")
+    await expect(card).toBe("#ffffff")
+    await expect(fondo).not.toContain("201, 69, 69")
+  },
+}
+
+// RF-241 — con dos detectores se pinta UNA sola marca: la de mayor ahorro (el wire ya viene
+// ordenado). Dos ⚠ en un nodo de 232 px no se leen, se acumulan.
+export const MejoraDosDetectores: Story = {
+  args: {
+    box: cajaBox,
+    cifraUsd: "1,92",
+    participacionPct: 40,
+    confianza: "exacta",
+    marcaFuga: "re-warm TTL",
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(canvasElement.querySelectorAll(".mej-fuga")).toHaveLength(1)
+    await expect(c.getByText("re-warm TTL")).toBeInTheDocument()
+    await expect(c.queryByText("modelo cambiado")).toBeNull()
+  },
+}
+
+// ── RF-243 · BR-M2 — los CINCO motivos de «sin dato atribuible». Son cinco y no seis porque
+// D19 borró el de «conocimiento»: en este árbol el conocimiento es una BANDA (`selectBase`) y un
+// token (`--c-knowledge`), no una clase de nodo — `Clase` no tiene `knowledge` (box.go:27, y el
+// valor legacy pliega a `rule`). El copy de un nodo de la Base es el de `rule`.
+const SIN_DATO_ASSERTS = async (canvasElement: HTMLElement, texto: string) => {
+  const c = within(canvasElement)
+  await expect(c.getByText(texto)).toBeInTheDocument()
+  await expect(c.queryByText(/USD/)).toBeNull()
+  await expect(c.queryByText("0")).toBeNull()
+  await expect(canvasElement.querySelector(".node")).toHaveClass("sindato")
+}
+
+export const SinDatoSubagente: Story = {
+  args: {
+    box: { id: "test-author", clase: "subagent", nombre: "escribir pruebas", banda: "fase" },
+    motivoSinDato: "sin dato atribuible — el subagente no se distingue en el turno",
+  },
+  play: async ({ canvasElement }) =>
+    SIN_DATO_ASSERTS(
+      canvasElement,
+      "sin dato atribuible — el subagente no se distingue en el turno",
+    ),
+}
+
+export const SinDatoRegla: Story = {
+  args: {
+    box: { id: "std-spec", clase: "rule", nombre: "estándar de spec", banda: "base" },
+    motivoSinDato: "sin dato atribuible — una regla no consume por sí misma",
+  },
+  play: async ({ canvasElement }) =>
+    SIN_DATO_ASSERTS(canvasElement, "sin dato atribuible — una regla no consume por sí misma"),
+}
+
+// H-10 — el literal CORREGIDO de la iteración 2: dice además que todavía no se desglosa. La
+// iteración 1 decía solo «va en la caja que lo llama», que se leía como «ya está resuelto».
+export const SinDatoMcp: Story = {
+  args: {
+    box: { id: "api-mcp", clase: "mcp", nombre: "acceso a la API", banda: "base" },
+    motivoSinDato:
+      "sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa",
+  },
+  play: async ({ canvasElement }) =>
+    SIN_DATO_ASSERTS(
+      canvasElement,
+      "sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa",
+    ),
+}
+
+export const SinDatoHook: Story = {
+  args: {
+    box: { id: "hook-stop", clase: "hook", nombre: "cierre de turno", banda: "guardia" },
+    motivoSinDato: "sin dato atribuible — un hook informa, no consume",
+  },
+  play: async ({ canvasElement }) =>
+    SIN_DATO_ASSERTS(canvasElement, "sin dato atribuible — un hook informa, no consume"),
+}
+
+// D19 — el motivo genérico cubre el hueco que dejó borrar la fila de «conocimiento».
+export const SinDatoResto: Story = {
+  args: {
+    box: { id: "spec-review", clase: "command", nombre: "/spec-review", banda: "fase" },
+    motivoSinDato: "sin dato atribuible — esta capa mide cajas",
+  },
+  play: async ({ canvasElement }) =>
+    SIN_DATO_ASSERTS(canvasElement, "sin dato atribuible — esta capa mide cajas"),
+}
+
+// design §6.3 — nada desborda la celda de 232 px, y el motivo ENVUELVE: `text-overflow:
+// ellipsis` está prohibido porque un motivo truncado es peor que no tenerlo.
+export const MejoraDesbordamiento: Story = {
+  args: {
+    box: {
+      ...cajaBox,
+      nombre:
+        "escribir el spec ejecutable del paquete de trabajo con todos sus criterios de aceptación",
+    },
+    cifraUsd: "123 456,78",
+    participacionPct: 100,
+    confianza: "por-hash",
+    etiquetaConfianza: "por huella",
+    tituloConfianza: CONF_HASH,
+    marcaFuga: "re-warm TTL",
+    motivoSinDato:
+      "sin dato atribuible — el costo del MCP está incluido en la caja que lo llama; todavía no se desglosa",
+  },
+  play: async ({ canvasElement }) => {
+    for (const sel of [".mej-cifra", ".mej-fuga", ".mej-motivo"]) {
+      const el = canvasElement.querySelector(sel) as HTMLElement
+      await expect(el).not.toBeNull()
+      await expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth + 1)
+    }
+    const motivo = canvasElement.querySelector(".mej-motivo") as HTMLElement
+    await expect(getComputedStyle(motivo).textOverflow).not.toBe("ellipsis")
+  },
+}
+
+// RF-245 · BR-M16 — **el guardián del superset**: sin ninguna prop de mejora el DOM es el de
+// hoy, carácter por carácter. La capa apagada no deja rastro.
+export const EstructuraIntacta: Story = {
+  args: { box: cajaBox },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(canvasElement.querySelector(".mej-cifra")).toBeNull()
+    await expect(canvasElement.querySelector(".mej-fuga")).toBeNull()
+    await expect(canvasElement.querySelector(".mej-share")).toBeNull()
+    await expect(canvasElement.querySelector(".mej-motivo")).toBeNull()
+    await expect(canvasElement.querySelector(".node")).not.toHaveClass("conmejora")
+    await expect(canvasElement.querySelector(".node")).not.toHaveClass("sindato")
+    await expect(c.queryByText(/sin dato atribuible/)).toBeNull()
+  },
+}

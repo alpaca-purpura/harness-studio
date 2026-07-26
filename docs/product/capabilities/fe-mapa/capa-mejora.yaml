@@ -45,12 +45,16 @@ pointers:
   - "web/src/entities/telemetria/ui/sparkline.tsx#Sparkline"
   - "web/src/shared/api/client.ts#api"
   - "web/src/widgets/map-canvas/model/layers.ts#LAYERS"
+  - "web/src/entities/arnes/ui/arnes-node.tsx#ArnesNode"
+  - "web/src/widgets/map-canvas/ui/lane.tsx#Lane"
 valida:
   - "web/src/entities/telemetria/ui/cifra-usd.stories.tsx"
   - "web/src/entities/telemetria/ui/marca-confianza.stories.tsx"
   - "web/src/entities/telemetria/ui/barra-cobertura.stories.tsx"
   - "web/src/entities/telemetria/ui/sparkline.stories.tsx"
   - "web/src/widgets/map-canvas/ui/map-bar.stories.tsx"
+  - "web/src/entities/arnes/ui/arnes-node.stories.tsx"
+  - "web/src/widgets/map-canvas/ui/lane.stories.tsx"
   - "web/src/entities/telemetria/model/selectors.test.ts"
 
 dev_preview:
@@ -111,6 +115,30 @@ change_log:
       🔴 Desviación declarada de un baseline firmado (mockups/INDEX.md regla 3 · D17.1).
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: extend
+    summary: >-
+      T31 — las marcas dentro del nodo y el total del carril. `ArnesNode` gana SIETE props
+      PRIMITIVAS (`cifraUsd` · `participacionPct` · `confianza` · `etiquetaConfianza` ·
+      `tituloConfianza` · `marcaFuga` · `marcaFugaGrave` · `motivoSinDato`): **cero import de
+      `entities/telemetria`** (D18), el widget compone `CifraCaja → props`. Las tres marcas van
+      al FINAL DEL FLUJO, ninguna en `position:absolute` — la esquina superior derecha ya está
+      ocupada dos veces y un tercer badge se superpondría con «propuesto» (J-9) — y son `<span>`
+      porque el nodo ES un `<button>` y anidar un botón en un botón es DOM inválido.
+      Nodos sin dato: opacidad + borde punteado **y la línea de motivo**, porque la opacidad sola
+      no alcanza (RF-280) — son CINCO motivos, no seis: D19 borró el de «conocimiento» (en este
+      árbol es una BANDA y un token, no una clase; `Clase` no tiene `knowledge`).
+      `lane-hd` pasa a tres hijos y el `.count` SE CONSERVA (J-8); un carril sin cajas con dato
+      dice `sin dato`, nunca `USD 0,00`.
+      D21: la marca de fuga grave va `--crit` sobre `--card` (4,75:1 claro / 5,33:1 oscuro), no
+      sobre `--crit-soft` (4,04:1 en claro, falla). Como este archivo hereda `a11y: "todo"` y ahí
+      axe no corre, la story lleva un assert COMPUTADO del `backgroundColor`.
+      **Desviación declarada:** las props son `cifraUsd`/`totalUsd`, no `cifraUSD`/`totalUSD`
+      como fijaba D18 — `biome useNamingConvention` con `strictCase` rechaza dos mayúsculas
+      consecutivas también en camelCase. 13 + 2 stories nuevas; las 12 + 2 firmadas no se tocan.
+    merge_sha: null
+
 scenarios:
   - id: mejora-cifra-un-solo-formateador
     name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
@@ -159,6 +187,35 @@ scenarios:
       `title` como en un `sr-only` con el MISMO texto (assert de igualdad para que no driften).
       El literal viejo «Necesita telemetría (indexer JSONL)» no aparece en ningún `title`
     verifica: "CapaMejoraDisponible · CapaMejoraActiva · MotivosHonestos · MotivoAccesible (map-bar.stories.tsx)"
+
+  - id: mejora-solo-las-cajas-llevan-cifra
+    name: "Solo las cajas llevan cifra; todo lo demás dice por qué no (RF-238 · RF-243 · RF-280)"
+    given: "un nodo con o sin props de mejora, caja o no caja"
+    when: "se renderiza ArnesNode con la capa activa"
+    then: >-
+      una caja con dato muestra cifra, participación con su `aria-label` y —solo si la
+      atribución no es exacta— su marca de duda; un nodo que no es caja muestra la LÍNEA DE
+      MOTIVO (el texto es el portador, no la opacidad) y **ni un 0, ni un «USD 0,00», ni un «—»
+      suelto**; sin ninguna prop de mejora el DOM es idéntico al de hoy
+    verifica: "MejoraCifraExacta · MejoraCajaSinCorridas · SinDatoSubagente · SinDatoRegla · SinDatoMcp · SinDatoHook · SinDatoResto · EstructuraIntacta (arnes-node.stories.tsx)"
+  - id: mejora-marca-de-fuga-nombrada-y-legible
+    name: "La marca de fuga NOMBRA al detector y pasa contraste en los dos temas (RF-241 · D21)"
+    given: "una caja con uno o dos hallazgos"
+    when: "se renderiza su marca de fuga"
+    then: >-
+      se pinta UNA sola marca (la de mayor ahorro; el wire ya viene ordenado), con el nombre del
+      detector —jamás un ⚠ suelto, que obliga a adivinar— y el ⚠ es `aria-hidden`. La variante
+      grave usa `--crit` sobre `--card`, no sobre `--crit-soft`, y el assert es COMPUTADO porque
+      este archivo hereda `a11y: "todo"` y axe no corre ahí
+    verifica: "MejoraConMarcaDeFuga · MejoraDosDetectores (arnes-node.stories.tsx)"
+  - id: mejora-total-del-carril-conserva-el-conteo
+    name: "El total de la fase se suma al encabezado sin sustituir el conteo (RF-244 · J-8)"
+    given: "un carril con o sin costo atribuido"
+    when: "se renderiza Lane con `totalUsd`"
+    then: >-
+      `lane-hd` tiene tres hijos y el `.count` sigue ahí con su valor; sin costo atribuido dice
+      «sin dato», nunca «USD 0,00» —que afirmaría que la fase corrió y no gastó
+    verifica: "LaneConTotalMejora · LaneSinDato (lane.stories.tsx)"
 
 business_rules: []
 related_capabilities:

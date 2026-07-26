@@ -10,7 +10,7 @@
 | Etapa | Estado |
 |---|---|
 | decisiones | ✅ **completas** — CV-D1..D13, cero puntos abiertos |
-| mockup | 🟡 **en curso** (arranca leyendo [`mockups/INDEX.md`](../../../../mockups/INDEX.md)) |
+| mockup | ⏳ **escrito, esperando firma 🧑‍⚖️** — [`mockup-conversaciones-panel.html`](./mockup-conversaciones-panel.html), 7 secciones, registrado en [`mockups/INDEX.md`](../../../../mockups/INDEX.md) |
 | spec | ⬜ |
 | implementar | ⬜ |
 | PARIDAD | ⬜ |
@@ -45,9 +45,20 @@
 
 ## Retomar aquí
 
-Cerrar los **3 puntos abiertos** de `decisiones.md` §Abierto con el operador. Recién después:
-mockup (leyendo primero `mockups/INDEX.md` — la línea base vigente es el Storybook, la propuesta
-es superset estricto).
+**Gate 1 🧑‍⚖️: mirar el mockup y firmarlo o pedir iteración.** Abrir
+[`mockup-conversaciones-panel.html`](./mockup-conversaciones-panel.html) en el navegador (alterna
+tema con el botón de arriba). Recién con la firma sigue la etapa 3 (`spec.md` + `design.md` +
+`plan-pruebas.md`).
+
+Lo que el mockup deja abierto a propósito, para resolver en spec: ancho de la lista con el dock
+estirado (CH-D5) · búsqueda incremental o con Enter · orden de la lista · qué pasa con permisos
+pendientes de la conversación que se desactiva.
+
+Dos gaps del modelo que la spec tiene que construir, no dibujar:
+
+1. **«última interacción» no existe** — `session.go` no guarda timestamp por turno.
+2. **`Conv` se tira al desactivar** — sin persistirlo no hay búsqueda por texto (CV-D8) ni repintado
+   al retomar (CV-D11).
 
 El bug de llave que motivó el paquete (cerradas por id pelado vs consulta por clave calificada)
 **ya no se arregla**: CV-D6 borra esos datos y CV-D5 impide que reaparezca.
