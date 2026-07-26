@@ -1,0 +1,120 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D14.2 + V5).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.decodificador-otlp-json
+cap_num: CAP-119
+slug: decodificador-otlp-json
+name: "Decodificador OTLP/JSON con la stdlib (+0,49 MB, no +10,79 MB)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: observar
+functional_area: "telemetria.ingesta"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/telemetria/otlp/decodifica.go#DecodificarLogs"
+  - "internal/adapters/telemetria/otlp/decodifica.go#DecodificarMetricas"
+  - "internal/adapters/telemetria/otlp/decodifica.go#Atributos"
+  - "internal/adapters/telemetria/otlp/decodifica.go#RegistroLog"
+  - "internal/adapters/telemetria/otlp/decodifica.go#PuntoMetrica"
+valida:
+  - "TestDecodificaLosGoldenReales"
+  - "TestIntValueComoNumeroYComoString"
+  - "TestCamposDesconocidosNoRompen"
+  - "TestPayloadMalformado"
+  - "TestAtributoNumericoIlegible"
+  - "TestSumaDelta"
+  - "TestCumulativeNoSeAdivina"
+  - "TestReinicioDelEmisorNoDuplica"
+  - "TestTimestampIlegibleNoEsEpoch"
+  - "TestElCuerpoDelLogRecordNoSeUsa"
+  - "FuzzDecodificarLogs"
+  - "FuzzDecodificarMetricas"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "POST /v1/logs"
+    - "POST /v1/metrics"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/arquitectura-modulo.md §4.3"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "El daemon entiende el formato de telemetría que el runtime emite, con la biblioteca estándar y medio megabyte de binario en vez de once. Tolera las dos desviaciones que el runtime real tiene respecto de la especificación, ignora lo que no conoce y rechaza un lote malo entero en vez de guardarlo a medias."
+    merge_sha: null
+scenarios:
+  - id: numero-o-texto-da-lo-mismo
+    name: "El runtime manda los enteros fuera de especificación"
+    status: live
+    given: "el mismo payload real, una vez como lo manda el runtime y otra como manda la especificación"
+    when: "se decodifican los dos"
+    then: "producen exactamente el mismo resultado"
+    verifica: "TestIntValueComoNumeroYComoString"
+  - id: lote-malo-no-entra-a-medias
+    name: "Llega un cuerpo corrupto"
+    status: live
+    given: "un payload sintácticamente roto"
+    when: "se decodifica"
+    then: "se rechaza entero y no queda ningún registro parcial"
+    verifica: "TestPayloadMalformado"
+  - id: acumulado-no-se-adivina
+    name: "Una métrica llega acumulada en vez de por incremento"
+    status: live
+    given: "un punto cuya temporalidad no es la que sabemos sumar"
+    when: "se decodifica"
+    then: "queda marcado como no soportado; no se lo convierte inventando el estado previo"
+    verifica: "TestCumulativeNoSeAdivina"
+  - id: version-nueva-del-runtime-no-rompe
+    name: "El runtime agrega campos que no conocíamos"
+    status: live
+    given: "un payload con campos y atributos nuevos"
+    when: "se decodifica"
+    then: "entra lo declarado y lo nuevo se descarta, sin error"
+    verifica: "TestCamposDesconocidosNoRompen"
+business_rules:
+  - id: lote-entero-o-nada
+    rule: "Un cuerpo con forma inválida se rechaza completo. Guardar la mitad de un lote deja un total que parece medido y está incompleto."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: critical
+  - id: no-se-adivina-una-conversion
+    rule: "Un valor que no se puede leer no vale cero: vale «sin dato». Un cero fabricado por un atributo roto se sumaría a un total como si fuera una medición."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: peso-del-decodificador
+    rule: "El decodificador se hace con la biblioteca estándar. La alternativa del ecosistema cuesta veinte veces más binario para el mismo subconjunto."
+    enforcement: ["docs/architecture/boundaries/peso-del-binario-es-presupuesto.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables:
+    - arnesia.telemetria.allowlist-de-ingesta
+  similar: []
+  obsoletes: []
+---
+
+# Decodificador OTLP/JSON
+
+El daemon entiende el formato de telemetría **con la biblioteca estándar**: medio megabyte de
+binario, contra los once que costaría la biblioteca del ecosistema para el mismo subconjunto. Está
+medido, no estimado.
+
+**Dos desviaciones del runtime real, encontradas midiendo y no leyendo documentación:**
+
+1. Los enteros de los atributos llegan como número JSON, cuando la especificación manda texto. Un
+   decodificador escrito según la spec revienta con el payload real; uno escrito según el payload
+   real reventaría con un runtime que cumple. Este acepta los dos.
+2. Los **conteos de tokens llegan como decimales**, no como enteros. Convertirlos a ciegas a entero
+   perdería el costo, que sí es decimal de verdad.
+
+Y tres reglas de honestidad: lo que no conocemos se descarta sin error (así una versión nueva del
+runtime no tumba el receptor), un lote malo se rechaza **entero** (nunca a medias), y un valor que no
+se puede leer **no vale cero** — vale «sin dato».
