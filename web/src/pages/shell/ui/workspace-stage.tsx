@@ -428,8 +428,10 @@ export function WorkspaceStage() {
               }
               onPolitica={() => setPoliticaAbierta(true)}
               onReintentar={() => setNonce((n) => n + 1)}
-              onDescartar={() => setNonce((n) => n + 1)}
-              onProponer={() => setNonce((n) => n + 1)}
+              // A-1 · NO se pasan handlers: no existe endpoint de descarte y esta superficie no
+              // abre el chat. Un `() => refetch()` hacía que los botones parecieran funcionar —
+              // el refetch remontaba la tarjeta y el anuncio quedaba vacío. Sin handler, la
+              // tarjeta los deshabilita y dice qué falta (patrón `BotoneraStaged`).
               cuerpoAlternativo={
                 loadErr ? (
                   <ComingSoon

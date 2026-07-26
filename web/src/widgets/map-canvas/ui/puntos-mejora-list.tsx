@@ -48,8 +48,9 @@ export interface PuntosMejoraListProps {
   cajaSeleccionada?: string | undefined
   /** El arnés está fuera del alcance del chat embebido (guardrail vigente). */
   proponerDeshabilitado?: string | undefined
-  onDescartar: (puntoId: string) => void
-  onProponer: (p: { puntoId: string; textoPropuesto: string }) => void
+  /** Opcionales (A-1): sin handler los botones nacen deshabilitados con su motivo. */
+  onDescartar?: ((puntoId: string) => void) | undefined
+  onProponer?: ((p: { puntoId: string; textoPropuesto: string }) => void) | undefined
   onReintentar: () => void
   error?: string | undefined
 }

@@ -17,14 +17,30 @@ import { cn } from "@/shared/lib/cn"
 // escritura en este componente, y la story lo asserta por ausencia: abre el chat con el cambio
 // propuesto, y el cambio se aplica por el camino de siempre, con sus permisos y su gate.
 
+/** A-1 · lo que falta para que el botón haga lo que dice. Se DICE; no se finge. */
+export const MOTIVO_DESCARTE_SIN_CABLEAR =
+  "Descartar todavía no se guarda: falta el endpoint de descarte en el daemon."
+export const MOTIVO_PROPONER_SIN_CABLEAR =
+  "Todavía no abre el chat desde acá: falta cablear el Dock a esta superficie."
+
 export interface PuntoMejoraCardProps {
   punto: PuntoMejora
   /** Su caja está seleccionada en el canvas. La señal lleva TEXTO, no solo un borde de 6 px. */
   resaltada?: boolean | undefined
   /** Motivo por el que no se puede proponer. Va en `title` **y** en texto visible (design §5.4). */
   proponerDeshabilitado?: string | undefined
-  onDescartar: (puntoId: string) => void
-  onProponer: (p: { puntoId: string; textoPropuesto: string }) => void
+  /**
+   * **Opcionales a propósito (A-1).** Sin handler, el botón nace `disabled` con su motivo — el
+   * patrón `BotoneraStaged` que este repo ya usa en el inspector: *«rotuladas con la fase que
+   * las cablea, jamás fingiendo funcionar»*.
+   *
+   * Hoy la página NO puede cablearlos: **no existe endpoint de descarte** (nada en `router.go`,
+   * nada en `client.ts`) y esta superficie no abre el chat. Pasarles un `() => refetch()` hacía
+   * que el botón pareciera funcionar: el refetch remontaba la tarjeta, el `aria-live` quedaba
+   * vacío y el descarte no se persistía en ningún lado.
+   */
+  onDescartar?: ((puntoId: string) => void) | undefined
+  onProponer?: ((p: { puntoId: string; textoPropuesto: string }) => void) | undefined
   // 🔴 NO HAY `onAplicar` NI `onEscribir`. Su ausencia es el contrato (BR-M12).
 }
 
@@ -145,19 +161,32 @@ export function PuntoMejoraCard({
         <button
           type="button"
           className="mej-btn"
-          onClick={() => {
-            setDescartado(true)
-            onDescartar(punto.id)
-          }}
+          disabled={onDescartar === undefined}
+          title={onDescartar === undefined ? MOTIVO_DESCARTE_SIN_CABLEAR : undefined}
+          onClick={
+            onDescartar === undefined
+              ? undefined
+              : () => {
+                  setDescartado(true)
+                  onDescartar(punto.id)
+                }
+          }
         >
           Descartar
         </button>
         <button
           type="button"
           className="mej-btn mej-btn-primary"
-          disabled={proponerDeshabilitado !== undefined}
-          title={proponerDeshabilitado}
-          onClick={() => onProponer({ puntoId: punto.id, textoPropuesto: punto.fix })}
+          disabled={proponerDeshabilitado !== undefined || onProponer === undefined}
+          title={
+            proponerDeshabilitado ??
+            (onProponer === undefined ? MOTIVO_PROPONER_SIN_CABLEAR : undefined)
+          }
+          onClick={
+            onProponer === undefined
+              ? undefined
+              : () => onProponer({ puntoId: punto.id, textoPropuesto: punto.fix })
+          }
         >
           Proponerlo en el chat
         </button>
@@ -166,9 +195,16 @@ export function PuntoMejoraCard({
       {/* El motivo del deshabilitado también en TEXTO: un `title` no llega por teclado ni por
           touch, y un botón muerto sin explicación se lee como un bug. */}
       {proponerDeshabilitado !== undefined && <p className="mej-mut">{proponerDeshabilitado}</p>}
+      {proponerDeshabilitado === undefined && onProponer === undefined && (
+        <p className="mej-mut">{MOTIVO_PROPONER_SIN_CABLEAR}</p>
+      )}
+      {onDescartar === undefined && <p className="mej-mut">{MOTIVO_DESCARTE_SIN_CABLEAR}</p>}
 
       <div className="mej-live" aria-live="polite">
-        {descartado && "Descartado. Se puede volver a mostrar desde la tab Mejora de esa caja."}
+        {/* A-1 · el copy firmado prometía «se puede volver a mostrar desde la tab Mejora de esa
+            caja» y **esa afordancia no existe** (`grep "volver a mostrar"` devolvía solo esta
+            promesa). Se dice lo que sí pasa. Desviación de design §7.4, declarada. */}
+        {descartado && "Descartado. Vuelve a aparecer al recargar la ventana."}
       </div>
     </article>
   )

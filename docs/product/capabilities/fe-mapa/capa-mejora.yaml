@@ -356,6 +356,24 @@ change_log:
       `catálogo v` quedaba colgando cuando no llegaba la versión (M-7).
     merge_sha: null
 
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: fix
+    summary: >-
+      **A-1 · `Descartar` y `Proponerlo en el chat` no hacían nada, y lo disimulaban.** Los dos
+      handlers eran `() => refetch()`: el refetch remontaba la tarjeta, el `descartado` local se
+      reseteaba, el anuncio `aria-live` quedaba VACÍO y el descarte no se persistía en ningún
+      lado — **no existe endpoint de descarte** (nada en `router.go`, nada en `client.ts`) y esta
+      superficie no abre ningún chat, mientras la nota al pie 40 px más abajo dice «abre el chat
+      con el cambio propuesto».
+      Ahora los handlers son OPCIONALES y, sin ellos, los botones nacen `disabled` con su motivo
+      **en texto visible** — el patrón `BotoneraStaged` que este repo ya usa en el inspector:
+      *«rotuladas con la fase que las cablea, jamás fingiendo funcionar»*. La página no los pasa.
+      También se corrige el anuncio del descarte: prometía «se puede volver a mostrar desde la tab
+      Mejora de esa caja» y **esa afordancia no existe** (`grep` devolvía solo la promesa). Dice
+      lo que sí pasa. Desviación de design §7.4, declarada.
+    merge_sha: null
+
 scenarios:
   - id: mejora-cifra-un-solo-formateador
     name: "El dinero se formatea en un solo lugar, y 0,004 no se redondea a 0,00 (RF-281)"
@@ -620,6 +638,16 @@ scenarios:
       este runtime» ×6, ni «catálogo sin construir»; la nota «"No aplica" no es 0» no aparece
       defendiendo una ausencia de transporte. Con detalle bueno, la tab sí afirma (control positivo)
     verifica: "DetalleRotoNoAfirmaSobreElRuntime · DetalleBuenoSiAfirma (capa-mejora-stage.stories.tsx) · ErrorNoSePintaComoNoAplica · ParidadSinVeredictoNoSePintaComoDivergencia · SinVersionDeCatalogoNoQuedaColgando (inspector-mejora.stories.tsx)"
+
+  - id: mejora-acciones-no-fingen-funcionar
+    name: "Una acción sin cablear se declara, no se disimula (A-1)"
+    given: "la tarjeta sin handlers de descarte ni de proponer"
+    when: "se renderiza"
+    then: >-
+      los dos botones nacen `disabled` y su motivo aparece en TEXTO visible (no solo en `title`),
+      diciendo qué falta para que funcionen. Con handlers, siguen llamándolos con su payload
+      exacto (control positivo)
+    verifica: "AccionesSinCablearSeDeclaran · DescartarLlamaHandler · ProponerAbreChatNoEscribe (punto-mejora-card.stories.tsx)"
 
 business_rules: []
 related_capabilities:

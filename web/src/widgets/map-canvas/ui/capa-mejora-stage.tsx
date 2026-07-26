@@ -56,8 +56,10 @@ export interface CapaMejoraStageProps {
   forwardDestino?: string | undefined
   onPolitica: () => void
   onReintentar: () => void
-  onDescartar: (puntoId: string) => void
-  onProponer: (p: { puntoId: string; textoPropuesto: string }) => void
+  /** Opcionales (A-1): sin handler los botones nacen deshabilitados con su motivo, en vez de
+   *  fingir que funcionan. Hoy la página no puede cablearlos. */
+  onDescartar?: ((puntoId: string) => void) | undefined
+  onProponer?: ((p: { puntoId: string; textoPropuesto: string }) => void) | undefined
   /** Motivo por el que no se puede proponer (guardrail de alcance del chat, CH-D6). */
   proponerDeshabilitado?: string | undefined
 

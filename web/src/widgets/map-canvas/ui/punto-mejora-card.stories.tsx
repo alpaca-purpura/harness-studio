@@ -1,7 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { PUNTO_B1, PUNTO_B3, PUNTO_P1 } from "@/entities/telemetria"
-import { PuntoMejoraCard } from "./punto-mejora-card"
+import {
+  MOTIVO_DESCARTE_SIN_CABLEAR,
+  MOTIVO_PROPONER_SIN_CABLEAR,
+  PuntoMejoraCard,
+} from "./punto-mejora-card"
 
 // Story = test (fe-visual-fitness). La tarjeta es el corazón del entregable: RF-246…257.
 // Gate a11y en `error`, con `CompletaB1AtencionDark` obligatoria (D21 ítem 3).
@@ -177,9 +181,8 @@ export const DescartarLlamaHandler: Story = {
     await expect(args.onDescartar).toHaveBeenCalledWith("b1-spec-writer")
     await expect(args.onDescartar).toHaveBeenCalledTimes(1)
     const live = canvasElement.querySelector("[aria-live='polite']") as HTMLElement
-    await expect(live.textContent).toBe(
-      "Descartado. Se puede volver a mostrar desde la tab Mejora de esa caja.",
-    )
+    // A-1 · el copy firmado prometía una afordancia que no existe; se asserta la que sí.
+    await expect(live.textContent).toBe("Descartado. Vuelve a aparecer al recargar la ventana.")
   },
 }
 
@@ -240,5 +243,23 @@ export const TitularSinJerga: Story = {
     const titular = canvasElement.querySelector(".mej-titular") as HTMLElement
     await expect(titular.textContent).not.toMatch(/\bB1\b/)
     await expect(titular.textContent).not.toMatch(/ephemeral|cache_creation|TTL_/)
+  },
+}
+
+// 🔴 **A-1 · sin handler, los botones NO fingen funcionar.** La página no puede cablearlos: no
+// existe endpoint de descarte y esta superficie no abre el chat. Pasarles un `() => refetch()`
+// los hacía parecer vivos —el refetch remontaba la tarjeta y el anuncio quedaba vacío— así que
+// ahora nacen deshabilitados y dicen QUÉ falta, que es el patrón `BotoneraStaged` de este repo.
+export const AccionesSinCablearSeDeclaran: Story = {
+  // `render` en vez de `args`: con `exactOptionalPropertyTypes` no se puede pasar `undefined`
+  // explícito sobre un arg tipado por `fn()`. Omitir la prop ES el caso que se prueba.
+  render: (args) => <PuntoMejoraCard punto={args.punto} />,
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("button", { name: "Descartar" })).toBeDisabled()
+    await expect(c.getByRole("button", { name: "Proponerlo en el chat" })).toBeDisabled()
+    // El motivo, en TEXTO visible: un `title` no llega por teclado ni por touch.
+    await expect(c.getByText(MOTIVO_DESCARTE_SIN_CABLEAR)).toBeVisible()
+    await expect(c.getByText(MOTIVO_PROPONER_SIN_CABLEAR)).toBeVisible()
   },
 }
