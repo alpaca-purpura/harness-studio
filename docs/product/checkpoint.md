@@ -12,6 +12,29 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 
 ## Paquete de trabajo activo
 
+- **Las conversaciones viven en el panel de conversación — TRAMOS 0 y 1 CERRADOS Y VERDES
+  (2026-07-26), 14 de 33 tickets.** Paquete
+  [`stories/2026-07-26-conversaciones-del-panel/`](./stories/2026-07-26-conversaciones-del-panel/INDEX.md)
+  — **arrancar por su «Retomar aquí»**, que dice el siguiente ticket exacto (**T15**, la transición
+  atómica) y las 4 cosas del tramo 1 que cambian su punto de partida.
+  **Origen:** el operador pidió ver el historial de una conversación y crear otra, y no encontró
+  ninguna de las dos. Detrás había un problema de modelo: `Session` **era** la conversación.
+  **Tramo 1 (T8-T14):** los 9 campos del diálogo bajan a `Conversacion`; el registro pasa a viajar en
+  un **sobre versionado** con migración forward-only, copia previa obligatoria, cuarentena del
+  ilegible y modo solo-lectura ante un esquema del futuro; las **4 llaves de arnés a medias** se
+  recalibran (CV-D16) con dry-run previo y dos reversiones probadas a mano; y **una ley se invierte**
+  — archivar deja de tirar el transcript y el checkpoint (CAP-98 reescrita + `ledger/HS-29.md`).
+  **3 hallazgos que ningún documento preveía**, los tres arreglados: la copia que salía del candado
+  compartía memoria con el registro vivo (carrera real, la cazó `-race`); leer un registro de la
+  versión anterior tiraba en silencio lo que había cambiado de lugar (**costó 90 turnos** en una
+  prueba sobre copia); un array truncado se veía igual que uno sano.
+  **Gate verde con cifras propias** — se construyó en un worktree aislado, que es la salida al
+  bloqueo N-6 (dos constructores sobre el mismo working copy). ⚠ **El trabajo del tramo 1 vive en la
+  rama `worktree-agent-a12f73cab8f2b13b1` y todavía NO está integrado a `main`.**
+  ⚠ CI sin observar (no se pushea) · gate 🧑‍⚖️ de PARIDAD **sin firmar**: sigue sin haber superficie
+  visible que comparar contra el mockup.
+
+
 - **Dictado por voz en el composer — CONSTRUIDO Y VERIFICADO POR TESTS, falta el gate en vivo
   (2026-07-26).** El spike cerró y se ejecutó completo el mismo hilo. **Las 7 decisiones FIRMADAS 🧑‍⚖️**
   (2ª ronda): V-D1 = **A2 local `base`** con la sub-decisión resuelta como **adaptador por PATH**

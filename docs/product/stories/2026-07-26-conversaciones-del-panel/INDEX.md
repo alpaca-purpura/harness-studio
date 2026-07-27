@@ -17,8 +17,8 @@
 | **plan de tickets** | ✅ [`plan-desarrollo.md`](./plan-desarrollo.md) — **33 tickets · 6 tramos** + cobertura E-01…E-50 → ticket |
 | **plan de pruebas** | ✅ [`plan-pruebas.md`](./plan-pruebas.md) — pirámide · **circuito E2E contra la app instalada** (6 guiones) · datos de prueba aislados · 26 criterios de salida |
 | GATE 2 🧑‍⚖️ (specs+arquitectura) | ✅ **AUTORIZADO POR DIRECTIVA 2026-07-26** — ver nota abajo |
-| **implementar** | 🚧 **tramo 0 CERRADO y verde** (T1-T6) · **tramo 1 abierto: T7 ✅, T8-T14 detenidos por N-6** — ver [`PARIDAD.md`](./PARIDAD.md) §0 y §1.7 |
-| PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) abierta con la evidencia del tramo 0; **gate 🧑‍⚖️ SIN FIRMAR** (no hay superficie nueva que comparar) |
+| **implementar** | 🚧 **tramos 0 y 1 CERRADOS y verdes** (T1-T14) · tramos 2-5 sin empezar — ver [`PARIDAD.md`](./PARIDAD.md) §0, §1.8 y §1.9 |
+| PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) con la evidencia de los tramos 0 y 1; **gate 🧑‍⚖️ SIN FIRMAR** (sigue sin haber superficie visible que comparar) |
 
 ## GATE 1 🧑‍⚖️ — FIRMADO 2026-07-26
 
@@ -95,100 +95,95 @@ con el paquete (T5, T9-T11, T15). Declararlos `enforced` antes sería el pass fa
 
 ## Retomar aquí
 
-### 🔴 LEELO ANTES DE TOCAR NADA — el working copy tiene DOS constructores
+### Dónde vive el trabajo del tramo 1 — LEELO PRIMERO
 
-**Es la condición de arranque, no una nota al pie.** Mientras se construía T7 se observó, con marca
-de tiempo (tabla completa en `PARIDAD.md` §1.7), que **otra sesión de Claude estaba escribiendo en
-este mismo directorio**: el paquete `2026-07-24-telemetria-embebida-otel`, 18 archivos en vuelo
-(`internal/domain/telemetria_*.go`, `internal/usecase/telemetria_*.go`, `web/src/entities/telemetria/**`,
-capabilities y un fitness nuevo). `ps aux` muestra **4 procesos `claude`** sobre el repo.
+**El tramo 1 NO está en `main`.** Se construyó en un **worktree propio** para salir del bloqueo N-6
+(dos constructores sobre el mismo working copy), y ahí sigue:
 
-Consecuencia mecánica, verificada tres veces: **`lefthook` escanea el árbol entero, no lo staged.**
-`golangci-lint run --new-from-rev=HEAD ./...` y `TestCapabilityCoverage` fallan por archivos ajenos
-a medio escribir y **rechazan un commit propio impecable**. Y `go test ./... -race` deja de ser
-evidencia de nada, porque mide trabajo de dos.
+- **worktree:** `/home/chalreme/Proyectos/harness-studio/.claude/worktrees/agent-a12f73cab8f2b13b1`
+- **rama:** `worktree-agent-a12f73cab8f2b13b1` (parte de `657054d`, que es `main`)
+- **6 commits**, sin pushear y **sin integrar**
 
-**Antes de arrancar T8, asegurate de una de estas dos:**
+Integrarlo a `main` es un `merge --ff-only` mientras `main` no avance. Si avanzó, rebase.
 
-1. la otra sesión terminó y commiteó (`git status` limpio salvo lo tuyo), **o**
-2. tu trabajo vive en un **worktree propio** (`git worktree add`).
-
-Sin eso, T8 —que deja `internal/usecase` y `transport/http` sin compilar hasta el último
-call-site— rompe el build de la otra sesión durante toda su ventana, y no vas a poder certificar
-verde lo tuyo sin fabricarlo.
-
-### Lo hecho — TRAMO 0 CERRADO Y VERDE · TRAMO 1 ABIERTO EN T7
-
-Commits locales en `main`, **sin pushear** (los ~83 previos tampoco: es decisión del operador):
+### Lo hecho — TRAMOS 0 y 1 CERRADOS Y VERDES
 
 | commit | ticket | qué |
 |---|---|---|
-| `bc9d1d4` | — | los artefactos de spec/diseño/arquitectura/planes + los 2 boundaries nuevos, `proposed` con `enforced_by: []` |
-| `56fdda1` | T2 · T3 | baseline del dock (3 stories) + contraste del picker ⇒ `--project=storybook` **386/386** |
-| `eda01f0` | T4 · T5 | `_sin-declarar.yaml` (15 entradas con razón) + los 4 enforcers ⇒ `ruta-servida-esta-declarada` **`enforced` 4/5** |
-| `7113dd1` | — | cierre documental del tramo 0 |
-| `a15a6d1` | **T7** | `domain.Conversacion` + las 4 operaciones puras + la invariante · **CAP-140** · 8 tests verdes |
+| `bc9d1d4` … `657054d` | T1-T7 | tramo 0 completo + `domain.Conversacion` (ya en `main`) |
+| `cd7571f` | **T8** | `Session` se parte: los 9 campos bajan · `Instantanea` (carrera real) · CAP-14 reescrita |
+| `4cb4999` | **T9** | sobre versionado + cadena de migradores · CAP-141 · los primeros tests de `store` |
+| `4949a9b` | **T10** | cuarentena · esquema futuro · `persistLocked` que devuelve el error y revierte |
+| `a62208f` | **T11** | CV-D16, el re-key + `arnesia sesiones recalibrar-llaves` · CAP-142 |
+| `d67200a` | **T12** | la ley se invierte: `Conv` y `Checkpoint` sobreviven · CAP-98 + `ledger/HS-29.md` |
+| `edd17c4` | **T13/T14** | `AbrirRegistro` cableado + `Informe` en el log · el benchmark de H-7 |
 
-**Gate del tramo 0: local completo y verde** (los 9 comandos de los 3 jobs de CI, tabla en
-`PARIDAD.md` §1 T6). ⚠ **CI NO SE OBSERVÓ**: T6 exige `git push` + `gh run watch`, y no se pusheó.
-El rojo conocido (job `ts`, paso `fitness visual`) tiene su causa corregida y medida, pero eso es
-una **inferencia, no una corrida vista**.
+**Gate del tramo 1: los 9 comandos verdes, y las cifras son PROPIAS** (tabla en `PARIDAD.md` §1.9)
+— es la diferencia con la corrida anterior, que medía dos sesiones a la vez. ⚠ **CI sigue sin
+observarse**: no se pushea, es decisión del operador.
 
-**T7 cerrado** — evidencia completa en `PARIDAD.md` §1 T7. Tres cosas que el que siga tiene que
-saber porque cambian el punto de partida de T8:
+### Cuatro cosas que cambian el punto de partida de T15
 
-1. **`Session.Conversaciones` YA EXISTE** (se adelantó de T8 a T7: sin el campo, los métodos no
-   compilan). Lo que T8 tiene que hacer es **quitar los 9 campos que bajan** y arreglar call-sites.
-2. **`domain.NuevoConvID()`** existe y es el generador de ids `cv<8hex>`: úsalo desde `usecase`, no
-   escribas otro.
-3. **`Conversacion.DerivarTitulo(titulo) bool`** es el guard de RF-303 CA-1. El derivador sigue
-   siendo `deriveFrente` del usecase; el usecase llama `conv.DerivarTitulo(deriveFrente(text))`.
+1. **`Session.Instantanea()` existe y hay que usarla.** Toda sesión que cruza el candado sale como
+   instantánea. Si T15 agrega un método que devuelve una sesión, tiene que hacer lo mismo — devolver
+   `*r.meta` reintroduce la carrera N-8 que `-race` ya cazó una vez.
+2. **`persistLocked` DEVUELVE error.** El camino del operador (crear/retomar/renombrar) propaga y
+   **revierte**; el camino del stream usa `persistOSeguir()`, que loguea y sigue. T15 está del lado
+   del operador: su transición tiene que revertir el snapshot si el disco falla (`arquitectura.md`
+   §4.2 paso 7).
+3. **`usecase.ErrSoloLectura` existe y `SessionService.SoloLectura()` es el guard.** `Create` ya lo
+   consulta antes de tocar memoria. Las 3 transiciones de T15 tienen que hacer lo mismo, y **T18 es
+   el que mapea ese error a 503** — hoy no está mapeado, y está declarado.
+4. **`Turnos` ya no existe en `Session`.** La cuenta es `Conversacion.NumTurnos()`. El DTO del wire
+   la manda calculada.
 
 ### Lo siguiente, exacto
 
-**Arrancá por T8** (`plan-desarrollo.md` línea 235) — **y sólo si se cumple la condición del bloque
-rojo de arriba**. Es el ticket 🔴 más riesgoso del paquete.
+**Arrancá por T15** (`plan-desarrollo.md` línea 475) — la transición atómica.
 
-- **Ticket:** T8 · `Session` se parte, y el árbol vuelve a compilar.
-- **Qué queda por hacer, exacto:** quitar de `internal/domain/session.go` los 9 campos
-  (`ClaudeSessionID`, `Model`, `CtxPct`, `CtxHist`, `RotacionPendiente`, `CadenaCC`, `Checkpoint`,
-  `Conv`, `Turnos`) y traducir cada `r.meta.X` a `r.meta.Activa().X`.
-- **Archivos:** `internal/usecase/session_service.go` (`consume` `:452+`, `spawnLocked`
-  `:390`/`:406-408`/`:431`, `Turn` `:347-355`) · `internal/usecase/session_rotacion.go` (`:57-63`) ·
-  `internal/usecase/session_historial.go` (`:46-58`, `:112`) ·
-  `internal/adapters/transport/http/sessions.go`.
-- **Los 2 puntos que NO son mecánicos** (`arquitectura.md` §4.6): `spawnLocked:406-408` (el
-  `Checkpoint` de la tarjeta sale de `r.meta.Activa().Checkpoint`) y `session_historial.go:112`
-  (`HistorialCerrada` recorre las `CadenaCC` de las **conversaciones**, no la de la sesión).
-- **`Session` NO se renombra a `Sesion`** (`arquitectura.md` §1.3): rompería el `#Símbolo` de 9
-  capabilities sin comprar nada.
-- **El canario:** los 5 tests de `sesion-viva-consistente` (`TestOneTurnAtATime:1911`,
-  `TestFramesCarryRunID:1924`, `TestResumeAutoSana:1957`, `TestNoSilentEventDrop:1699`,
-  `TestSessionSpawnsInArnesPath:1891`) tienen que seguir verdes **sin tocarles el cuerpo**.
-- **Capability:** modifica **CAP-14** (hoy con `valida`/`scenarios`/`business_rules` **vacíos**) +
-  punteros de **CAP-53/CAP-59/CAP-97**.
+- **Ticket:** T15 · crear · retomar · renombrar, con `transicionLocked`.
+- **Archivo nuevo:** `internal/usecase/session_conversaciones.go`.
+- **El orden exacto de los 8 pasos** está en `arquitectura.md` §4.2 y **no se improvisa**: guard →
+  snapshot → operación pura del dominio → denegar los permisos pendientes de la que se desactiva →
+  resetear el estado de vuelo (`runSeq` NO se toca) → mover `live` → persistir (con rollback del
+  snapshot si falla) → armar frames. Y **fuera del lock**: `viejo.Close()` y después `publish`.
+- **El precedente literal del paso 4** es `Interrupt` (`session_service.go`, los `permission_result`
+  con `decision: deny`).
+- **Capability:** el bloque de la arquitectura §7.3 nombra CAP-141/142/143 para estas hojas, pero
+  **esos números YA ESTÁN USADOS** (141 = migración de esquema, 142 = recalibración de llaves). La
+  próxima libre se verifica contra `docs/product/capabilities/` real —hoy **CAP-143**—, nunca contra
+  la prosa de los documentos.
+- **Cierra el 5.º check de `sesion-viva-consistente`** (`transicion-de-conversacion-atomica`), que
+  hoy está declarado pendiente y por eso el boundary sigue en **4/5**.
 
 ### Cosas del entorno que ya no hace falta re-descubrir
 
-- **`lefthook` YA está instalado** en este working copy (T1). Los 8 jobs `pre-commit` disparan de
-  verdad — cazaron 5 hallazgos propios en el commit de T5. `estado-cifras` tarda ~55 s por commit y
-  regenera + `git add` del checkpoint solo.
-- **`golangci-lint` local (v2.12.2) es MÁS RUIDOSO que el de CI**: ~25 hallazgos preexistentes en
-  telemetría/logfile/selfupdate que el job `go` de CI **acepta** (última corrida: `go` ✓). No los
-  persigas; sí atendé lo que el hook marque en TUS archivos.
-- **El browser runner de vitest corre headless y rápido** (~4 s por archivo, 43 archivos en ~12 s).
-- **`~/.arnesia/` NO se tocó**: las 3 cerradas de CV-D6 (`s1b38a066`, `s408bb085`, `s020210e3`)
-  siguen enteras. El borrado es T32 y es **procedimiento manual del operador**.
+- **El worktree resuelve N-6 de verdad.** El `pre-commit` rechazó **4 commits** por lint propio (12,
+  1, 8 y 1 hallazgos) y todos se arreglaron: **cero `--no-verify`**. En el árbol compartido esos
+  rechazos habrían sido de archivos ajenos y no habrían significado nada.
+- **N-10 · el symlink de `node_modules` NO alcanza para el runner de navegador.** Sirve para `tsc`,
+  `biome` y `vitest --project=unit`; con storybook, los 43 archivos fallan con «Failed to fetch
+  dynamically imported module» porque los módulos resuelven fuera de la raíz que Vite sirve. La
+  salida es `pnpm install --frozen-lockfile` real en el worktree: **1,2 s**, store compartido.
+- **`vitest --project=storybook` corre headless en ~11 s** (43 archivos, 386 tests).
+- **N-5 sigue vigente:** `golangci-lint` local (v2.12.2) es más ruidoso que el de CI sobre archivos
+  preexistentes. Lo que el hook marca en TUS archivos sí es tuyo — y en este tramo lo fue las 4
+  veces.
+- **`~/.arnesia/` NO se tocó.** `sessions.json` conserva su md5 `b1689d15…` tras seis corridas del
+  comando de re-key, todas contra copias en el scratchpad. Las 3 cerradas de CV-D6 siguen enteras:
+  el borrado es T32 y es **procedimiento manual del operador**.
 
 ### Lo que sigue abierto del propio paquete
 
-- **GATE 2** sigue siendo *autorizado por directiva, no por lectura* (ver arriba). Si el operador
-  lee los specs y rechaza algo, lo construido sobre esa parte se rehace.
-- **El gate de T6** (CI 3/3 verde) queda **abierto** hasta que se pushee.
-- 7 hallazgos nuevos que ningún documento preveía, todos declarados en `PARIDAD.md` §3.4. Los dos
-  que condicionan lo que sigue: **N-6**, los dos constructores en el mismo working copy (bloque rojo
-  de «Retomar aquí»), y **N-1**, el dock con una violación de contraste (2,21:1) en producción hoy
-  que nadie había visto porque el widget no tenía story.
-- **N-7 (nuevo, barato de arreglar):** `docs/product/capabilities/INDEX.md` es generado por
-  `cap_doctor.py --index` pero **ningún hook ni job de CI lo corre**, así que driftea en silencio —
-  estaba stale desde el paquete de telemetría. Candidato a fila del `pre-commit`.
+- **GATE 2** sigue siendo *autorizado por directiva, no por lectura*. Si el operador lee los specs y
+  rechaza algo, lo construido sobre esa parte se rehace.
+- **El gate de T6** (CI 3/3 verde) sigue **abierto** hasta que se pushee.
+- **`archivo-durable-declara-su-esquema` va 5 de 6** y sigue `proposed`. El que falta es
+  `durable-no-se-wipea` (`TestDurableNuncaSeWipea`), y su celda lo dice. Gradúa con los seis.
+- **`sesion-viva-consistente` sigue `enforced` 4/5** — el quinto es T15.
+- **N-1 vigente:** el dock viola contraste en producción hoy (`SessionLine`, 2,21:1). Se corrige en
+  **T23**, no antes.
+- **11 hallazgos** declarados en `PARIDAD.md` §3.4. Los que condicionan lo que sigue: **N-8** (la
+  copia que salía del candado no era una copia) y **N-9** (leer un registro viejo tiraba lo que
+  había cambiado de lugar) — los dos ya arreglados, pero los dos son el tipo de error que T15 puede
+  reintroducir si devuelve el agregado vivo o si persiste sin mirar el error.

@@ -36,7 +36,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-11 · FSM determinista de caja (T3)** `vivo` · dominio-l0/fsm-determinista-de-caja.yaml — `internal/domain/caja_fsm.go#AvanzarCaja`
 - **CAP-12 · Spine + 5 categorías fijas (interop I-77)** `vivo` · dominio-l0/spine-5-categorias-fijas.yaml — `internal/domain/graph.go#Spine`
 - **CAP-13 · Permisos derivados del rol (deny>ask>allow, TTL)** `vivo·nc` · dominio-l0/permisos-derivados-del-rol.yaml — `internal/domain/permission.go#PermissionSet.Decide`
-- **CAP-14 · Sesión = frente de trabajo** `vivo·nc` · dominio-l0/sesion-frente-de-trabajo.yaml — `internal/domain/session.go#Session`
+- **CAP-14 · Sesión = frente de trabajo** `vivo` · dominio-l0/sesion-frente-de-trabajo.yaml — `internal/domain/session.go#Session`
 - **CAP-140 · La conversación es una entidad, y la sesión la contiene** `vivo` · dominio-l0/conversacion-como-entidad.yaml — `internal/domain/conversacion.go#Conversacion`
 
 ### `loader` (6)
@@ -48,13 +48,15 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-19 · Derivar edges (necesita→lee/invoca)** `vivo` · loader/derivar-edges.yaml — `internal/adapters/loader/edges.go#derivarEdges`
 - **CAP-20 · Reconciliación honesta (no-reconocido visible)** `vivo` · loader/reconciliacion-honesta.yaml — `internal/adapters/loader/loader.go#nodoNoReconocido`
 
-### `indice-persistencia` (5)
+### `indice-persistencia` (7)
 
+- **CAP-141 · El archivo durable declara su esquema y sabe migrarse** `vivo` · indice-persistencia/migracion-de-esquema-en-disco.yaml — `internal/adapters/store/esquema.go#EsquemaActual`
+- **CAP-142 · Las sesiones con llave pelada se recalibran, y nada se borra** `vivo` · indice-persistencia/recalibracion-de-llaves-de-sesion.yaml — `internal/adapters/store/rekey.go#ClaveCalificada`
 - **CAP-21 · Índice de arneses en memoria** `vivo` · indice-persistencia/indice-de-arneses-en-memoria.yaml — `internal/adapters/index/store.go#Store`
 - **CAP-22 · Reconstrucción del índice (ArnesRegistry)** `vivo` · indice-persistencia/reconstruccion-del-indice.yaml — `internal/adapters/index/store.go#Store.Rebuild`
 - **CAP-23 · Observar cambios del corpus (watcher)** `parcial` · indice-persistencia/observar-cambios-del-corpus.yaml — `internal/adapters/watch/watcher.go#Watcher`
 - **CAP-24 · Registro arnés→working-dir (confinamiento cwd + denylist)** `vivo·nc` · indice-persistencia/registro-arnesworking-dir.yaml — `internal/adapters/store/arnes_registry.go#Register`
-- **CAP-25 · Persistencia (sesiones + arnés→path, JSON atómico)** `vivo·nc` · indice-persistencia/persistencia.yaml — `internal/adapters/store/registry.go#Save`
+- **CAP-25 · Persistencia (sesiones + arnés→path, JSON atómico)** `vivo` · indice-persistencia/persistencia.yaml — `internal/adapters/store/registry.go#Save`
 
 ### `conformance` (7)
 
@@ -117,7 +119,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-59 · Gestión de sesiones CRUD** `vivo·nc` · usecases/gestion-de-sesiones-crud.yaml — `internal/usecase/session_service.go#Create`
 - **CAP-94 · Reindex del Mapa tras cada turno del chat** `vivo` · usecases/reindex-tras-turno.yaml — `internal/usecase/session_reindex.go`
 - **CAP-97 · Rotación de contexto invisible (conversación infinita)** `vivo` · usecases/rotacion-de-contexto.yaml — `internal/usecase/session_rotacion.go`
-- **CAP-98 · Historial de conversaciones por arnés (B2: JSONL nativa = verdad)** `vivo` · usecases/historial-de-conversaciones.yaml — `internal/usecase/session_historial.go`
+- **CAP-98 · Historial de conversaciones archivadas (transcript propio + JSONL de fallback)** `vivo` · usecases/historial-de-conversaciones.yaml — `internal/usecase/session_historial.go`
 - **CAP-99 · Paquete cerrado: el gate deniega el árbol propio de arnesia** `vivo` · usecases/paquete-cerrado-en-el-gate.yaml — `internal/usecase/session_service.go#ProtegerPaqueteCerrado`
 
 ### `self-update` (1)
