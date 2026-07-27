@@ -984,7 +984,49 @@ gate a11y (las dos del contraste + la de N-1) y una por contradicción ya firmad
 la marca). **Ninguna es una simplificación.**
 
 Lo que la tabla NO cubre, porque el dibujo no lo dibuja: el borrado de las 3 conversaciones
-cerradas (T32) y el E2E contra el binario instalado (T31). Los dos siguen abiertos.
+cerradas (T32), que sigue abierto. **El E2E contra el binario instalado (T31) ya no está
+abierto: §2.1 lo cierra.**
+
+### 2.1 · Las filas que SÓLO la app instalada puede cerrar (T31)
+
+Las de §2 se verificaron contra **Storybook**. Storybook no tiene daemon, no tiene disco y no
+tiene SSE: hay filas del mockup que ahí **no se pueden afirmar**, sólo simular. Estas se
+midieron contra `~/.local/bin/arnesia` **sello `0.2.24.2607262315`** sirviendo su SPA embebida
+—cuyo bundle es **byte a byte idéntico** (`af7104b5…`) al `web/dist` de esta rama—, con el
+`~/.arnesia` del operador **intacto** (md5 `b1689d15…` antes y después).
+
+Evidencia completa: [`verificacion-e2e/INFORME.md`](./verificacion-e2e/INFORME.md) · 21
+capturas · **98 aserciones: 92 ok · 3 fallas · 3 n/c**.
+
+| § del mockup / contrato | qué sólo la app real prueba | evidencia | veredicto |
+|---|---|---|---|
+| §2A | las **2 filas de cromo** medidas en el DOM del producto, no en una story | E2E-1.1a · `e2e1-01` | ✅ igual |
+| §2A | `» colapsar` y **ausencia de `⟩`** en el binario servido | E2E-1.1e/1f · bundle | ✅ igual |
+| §2C | «Alcance:» **no existe** en reposo con datos reales | E2E-1.1b | ✅ igual |
+| §2B detalle | el `cwd` **real** del proceso (`◍ cc-id · arnés · modelo · cwd`) — Storybook sólo puede inventarlo | E2E-6.5b · `e2e6-01` | ✅ igual |
+| §3A | la lista **en sitio**: 0 `<dialog>`, 0 backdrop, **composer visible**, contra el daemon | E2E-1.4c/4d/4e · `e2e1-04` | ✅ igual |
+| §3B | `N de M coinciden` **sin Enter** y `<mark>` sobre el **transcript real** de 90 turnos migrado | E2E-1.5a/5b · `e2e1-05` | ✅ igual |
+| §3C | el vacío que nombra el término, contra datos reales | E2E-1.6a-d · `e2e1-06` | ✅ igual |
+| §3D | **sin buscador con una sola conversación** — confirmado que es `total > 1` en el producto | E2E-5.0 · `conversaciones-panel.tsx:168` | ✅ igual |
+| §4A | la franja de retoma **con un `--resume` real de 8 chars**, cazada en vivo | E2E-1.7a/7b · `e2e1-07` | ✅ igual |
+| §4A | el detalle **se abre solo** al retomar de verdad | E2E-1.7e | ✅ igual |
+| §4B | chip a `0%` **visible** en una conversación recién creada por el daemon | E2E-1.3d · `e2e1-03` | ✅ igual |
+| §4C | **la marca de rotación llega SIN RECARGAR** — lo único que ninguna story puede probar | E2E-3.3b (**5 mutaciones del DOM**) · `e2e3-02` | ✅ igual — **cierra C-6/H-8** |
+| §4C | forma de la marca **en el producto**: centrada · punteada · sin cola | E2E-3.3c/3d/3e | ✅ igual |
+| §4C | el detalle se abre solo al rotar **con el cc-id nuevo** | E2E-3.5a/5b · `e2e3-03` | ✅ igual |
+| C-3 | **la barra caliente y el número NO** — medido con `getComputedStyle` sobre el producto | E2E-3.2c/2d · `e2e3-01` | ✅ igual |
+| C-2 | **2 filas en reposo, 3 con nodo** (criterio 19: «medido en la app, no en una story») | E2E-1.1a + §2 A-06 | ✅ igual |
+| RF-302 CA-1 | **0 ocurrencias de «cerrada» en copy** — verificado en el **JS servido** | bundle `index-CUTbg9Li.js` | ✅ igual |
+| §2A `＋` bloqueado | el `title` del `＋` con turno en vuelo | E2E-2.2b/2c · `e2e2-01` | ⚠️ **dice «esperá a que termine el turno en vuelo»; el spec (E-07, spec.md:347) manda «…el turno (■ para interrumpir)»**. Falta la salida. **N-19** |
+| §2A `＋` bloqueado | el `title` con permiso pendiente | E2E-2.6b · `e2e2-03` | ✅ igual — «esperá tu decisión de permiso» |
+| §4C | la marca de rotación **al reabrir el dock colapsado** | E2E-3.6c | ❌ **pantalla 1 · servidor 3** — se pierde en silencio si la copia local divergió. **N-21** |
+| RF-348 CA-1 | marca `⟳ hilo reiniciado · checkpoint` tras el heal | E2E-6.4 | ❌ **no construida** — 0 ocurrencias del literal; el heal es «silent on success». **N-22** |
+
+**Resumen §2.1: 17 ✅ · 1 ⚠️ · 2 ❌.**
+
+**Y la condición que no está en ninguna tabla** (`plan-pruebas.md` §5.4) — el operador abre la
+app, aprieta `＋`, ve la conversación anterior en la lista, busca una palabra y vuelve a ese
+hilo: **se corrió entera contra el binario instalado y pasa** (E2E-1, 31/31).
 
 ## 3 · Desviaciones y huecos declarados
 
@@ -1048,6 +1090,12 @@ as-code: figura como celda `(pendiente — juicio)` en el boundary y fuera de su
 | N-15 | 🔴 **el panel re-renderizaba el transcript entero en cada tecla.** `useConversaciones()` sin selector devuelve el objeto del store, cuya identidad cambia en cada `set`: el dock entero —transcript incluido— se re-renderizaba con cada letra del buscador y con cada frame. Es exactamente lo que `arquitectura.md` §6.3 manda evitar y lo que el plan de T22 prohíbe para los selectores del store compartido; nadie lo dijo del store del widget. Corregido leyendo de a un primitivo | §1.13 T25 |
 | N-16 | ⚠ **`aria-controls` apuntando a la nada rompe axe cuando `aria-expanded="true"`.** Lo cazó el gate en la PRIMERA corrida de B-02: la story medía una composición imposible (la fila declara controlar un panel que la story no montaba). Es el comportamiento correcto de axe —con `aria-expanded="false"` lo tolera, porque el panel todavía no existe— y la story se arregló montando el contenedor, no bajando el gate | §1.13 T24 |
 | N-17 | ⚠ **el contrato `<ul role="listbox">`/`<li role="option">` de `design.md` §8.2 no compila contra el linter del repo.** `noNoninteractiveElementToInteractiveRole` (biome, `recommended`) prohíbe el rol interactivo sobre `li`/`ul`. Se realiza sobre `<div>` con los mismos roles: el contrato ARIA queda idéntico y `useSemanticElements` está apagado justamente porque este repo prefiere el rol explícito. **El diseño no lo previó** | §1.13 T27/T28 |
+| **N-18** | ⚠ **el dry-run de CV-D16 no puede correr ANTES del daemon, y no lo dice.** `cmdSesiones` (`cmd/arnesia/sesiones.go:131-142`) abre **sólo** `~/.arnesia/sesiones.json` (el v2) con `store.NewRegistry`; antes del primer arranque ese archivo no existe y el comando contesta «no hay sesiones en el registro» — que el operador lee como «tu registro está vacío». `plan-pruebas.md` §3.3 lo pide en ese orden imposible. **Orden correcto: daemon → dry-run → `--aplicar`** | §2.1 · INFORME E2E-0 |
+| **N-19** | 🔴 **el `＋` bloqueado no ofrece la salida.** `spec.md:347` y **E-07** fijan «esperá a que termine el turno **(■ para interrumpir)**»; el código dice «esperá a que termine el turno **en vuelo**» (`conversacion-row.tsx:19`). El paréntesis es la mitad que convierte «apagado» en «apagado con salida»: hoy el operador no se entera de que `■` existe. **No se corrigió**: el gate 2 está autorizado por directiva y no por lectura, y elegir cuál de los dos textos gana es del operador | §2.1 · INFORME E2E-2 |
+| **N-20** | ⚠ **el 409 del servidor no distingue `await` de `streaming`**: `session_conversaciones.go:262` devuelve `ErrBusy` para los dos, así que el cuerpo habla de un turno en vuelo aunque lo que bloquee sea un permiso (E-08 nombra otro motivo). **Impacto bajo**: la UI ya diferencia (`motivoBloqueo`), verificado en vivo | §2.1 · INFORME E2E-2 |
+| **N-21** | 🔴 **la marca de rotación se PIERDE EN SILENCIO si la copia local del transcript divergió.** Repro: dock abierto → turno desde OTRO cliente → colapsar → rotación → reabrir ⇒ **pantalla 1 marca, servidor 3** (un `reload` muestra las 3). El frame de rotación se appendea sólo si la copia local mide exactamente `TurnoIdx` (`session_rotacion.go:81-84`, guard de idempotencia para el replay), pero el turno ajeno **nunca entra en la copia local**, así que la longitud queda corta **para siempre** y toda marca posterior se descarta. Es pérdida silenciosa — justo lo que `sesion-viva-consistente`/`sin-perdida-silenciosa` prohíbe. **No se arregló a las apuradas**: tocar el guard no es un arreglo chico | §2.1 · INFORME E2E-3 · BACKLOG |
+| **N-22** | 🔴 **RF-348 CA-1 no está construido.** El literal `hilo reiniciado` tiene **0 ocurrencias en todo el árbol**, y no es un olvido de copy: `tryHealResume` está documentado como *«The heal is silent on success»* (`session_service.go:755`). El `cc-id` cambia por debajo y la única forma de enterarse es abrir el detalle y acordarse del anterior. **Es trabajo sin hacer, necesita su ticket** | §2.1 · INFORME E2E-6 |
+| **N-23** | ⚠ **el re-key de CV-D16 no corre solo ni avisa tras migrar**: `main.go:202` pasa `clave = nil` y `migracion.go:224` sólo recalibra `if inf.Migro && clave != nil`. Es **deliberado** (no atar el arranque a que el Portafolio responda, `main.go:198-200`), pero la consecuencia hay que decírsela al operador: **3 de sus 5 sesiones siguen invisibles hasta que corra `arnesia sesiones recalibrar-llaves --aplicar` a mano** | §2.1 · INFORME E2E-0 |
 | N-14 | ⚠ **`sessionWire` no estaba en ningún ticket.** La sesión del wire tiene que proyectar sólo su conversación activa (`arquitectura.md` §6.1 lo dibuja, la validación de T20 lo exige), pero ni T18 ni T19 ni T20 lo listaban en sus «Archivos». Se construyó en T18 y se declara. Sin él, `GET /api/sessions` mandaría el transcript de cada conversación de cada sesión | §1.10 T18 |
 
 ---
@@ -1058,9 +1106,9 @@ Se listan para que nadie los lea como verdes:
 
 | criterio (plan-pruebas §5) | estado |
 |---|---|
-| 13 · los **6 guiones E2E** contra el binario instalado | 🔴 **NO CORRIDOS.** Es T31, tramo 5. Validan una superficie que no existe; correrlos hoy sólo mediría el arreglo de contraste, a costa de reemplazar el binario instalado del operador (`make dev-sync`) y matarle el daemon. Se decidió **no hacerlo**: cero valor probatorio, costo real |
-| 14 · Modo B (ventana Tauri, gate humano) | 🔴 no corrido — depende del 13 |
-| 15 · los 50 escenarios E-01…E-50 | ⚠ **~44 de 50**: a los ~28 del tramo 2, los tramos 3-4 suman la mitad de superficie de E-02, E-04, E-05, E-06, E-10, E-13, E-16, E-21, E-24, E-28, E-32, E-34, E-38, E-40, E-41, E-42, E-48. **Ninguno verificado contra el daemon vivo**: hay API y hay UI, pero se probaron por separado. Los 6 que faltan van a T31 (E2E) y T32 (E-46) |
+| 13 · los **6 guiones E2E** contra el binario instalado | ✅ **CORRIDOS** (T31) contra `~/.local/bin/arnesia` sello **`0.2.24.2607262315`**, cuyo bundle servido es **byte a byte idéntico** al `web/dist` de esta rama. **98 aserciones: 92 ok · 3 fallas (N-19, N-21, N-22) · 3 n/c declaradas.** El `~/.arnesia` del operador quedó **intacto** (md5 `b1689d15…` antes y después). Evidencia + 21 capturas: [`verificacion-e2e/INFORME.md`](./verificacion-e2e/INFORME.md); reproducible con `bash verificacion-e2e/correr.sh` |
+| 14 · Modo B (ventana Tauri, gate humano) | 🔴 **no corrido.** Exige `make installer`, que depende de `bump-patch` — prohibido en este encargo (no se publica una versión sin que el operador lo decida). Lo que sí se probó es **el mismo binario** que esa ventana ejecuta: el shell instalado prefiere siempre `~/.local/bin/arnesia` sobre el sidecar (`Makefile:27-32`). Queda para el operador, junto con el corte de red real de E2E-4 y el segundo fallo de E2E-6 |
+| 15 · los 50 escenarios E-01…E-50 | ⚠ **~44 de 50**, y ahora **17 de ellos verificados contra el daemon vivo** (E-01/02/03/06/07/08/10/11/13/14/18/19/22/24/28/39/40/41/43/49 por los 6 guiones). Lo que sigue abierto es E-46 (T32). Antes decía «ninguno verificado contra el daemon vivo»: a los ~28 del tramo 2, los tramos 3-4 suman la mitad de superficie de E-02, E-04, E-05, E-06, E-10, E-13, E-16, E-21, E-24, E-28, E-32, E-34, E-38, E-40, E-41, E-42, E-48. **Ninguno verificado contra el daemon vivo**: hay API y hay UI, pero se probaron por separado. Los 6 que faltan van a T31 (E2E) y T32 (E-46) |
 | 16 · las 56 stories | ✅ **61 stories** en 5 archivos + el assert F-01 en el 6.º. El plan preveía 56; la cuenta real de sus propias tablas (A17+B11+C10+D14+E9) da 61, y están las 61. Más 17 tests unitarios (7 del store compartido + 10 del store del panel) |
 | — · el FE contra el backend nuevo | ✅ **REPARADO** — `tsc` pasó a 18 errores con T21 y volvió a 0 con T22-T25. La forma del wire y la del daemon coinciden campo por campo (§1.13 T21) |
 | 22 · la tabla de 5 filas del **dry-run de CV-D16** | ✅ **CORRIDA y transcrita** (§1.8 T11), contra una copia del registro real. 3 de 5 se mueven; `arnesia` sale `sin-candidata` — honesto, y la arquitectura ya lo declaraba imposible de prometer. R1 y R2 probadas a mano |
@@ -1072,16 +1120,30 @@ Se listan para que nadie los lea como verdes:
 
 ## 5 · Gate 🧑‍⚖️
 
-**SIN FIRMAR.** Ahora sí hay superficie que comparar —§2 la compara, fila por fila, con 30 ✅ y 5 ⚠️
-motivadas— pero la firma es del operador y **el ejecutor no la fabrica**. Van 29 de 33 tickets
-(88 %); faltan T30 (mudanza — su mitad de transporte ya se adelantó), **T31** (E2E contra el binario
-instalado), **T32** (el borrado de CV-D6, procedimiento manual del operador) y T33 (cierre).
+**SIN FIRMAR.** La firma es del operador y **el ejecutor no la fabrica**. Lo que cambió respecto
+del cierre del tramo 4: §2 comparó el dibujo contra el **Storybook** (30 ✅ · 5 ⚠️ · 0 ❌) y §2.1
+comparó la mitad que sólo la app real puede cerrar (**17 ✅ · 1 ⚠️ · 2 ❌**), contra el **binario
+instalado** sello `0.2.24.2607262315`.
 
-Lo que el operador tiene para mirar antes de firmar: las **26 capturas** de `verificacion-tramo3/`
-en los dos temas, y la app en vivo con `pnpm --dir web run dev` contra su daemon. Lo que **todavía
-no se puede afirmar** son los dos criterios que exigen el binario instalado (13 y 14) y el rastro
-de E-46.
+**Van 31 de 33 tickets.** T30 y T31 cerrados; quedan **T32** (borrado de CV-D6, procedimiento
+manual del operador) y **T33** (cierre).
 
-Lo único que sí admite firma parcial es el **gate de línea base de T6**, y también queda abierto:
-el local está completo y verde, pero **CI no se observó** porque pushear es decisión del operador.
-Lo mismo vale para los 4 commits de los tramos 3 y 4.
+### Lo que el operador tiene que saber ANTES de firmar
+
+1. **Sus datos sobreviven.** 5 sesiones → 5, el transcript de 90 turnos → 90, el archivo v1
+   **intacto** (volver a un binario anterior es gratis). Verificado sobre una copia; el
+   `~/.arnesia` real conserva su md5 `b1689d15…`.
+2. **Pero 3 de sus 5 sesiones siguen invisibles** hasta que corra a mano
+   `arnesia sesiones recalibrar-llaves --aplicar`. El arranque **no lo hace ni lo avisa** (N-23),
+   y el dry-run **no funciona antes del primer arranque** (N-18).
+3. **Tres cosas no están como el spec dice**: N-19 (falta `(■ para interrumpir)`), N-22 (RF-348
+   CA-1 sin construir) y **N-21, la única grave**: la marca de rotación se pierde en silencio
+   cuando hay dos vistas. Ninguna se arregló a las apuradas — **N-19 en particular espera que el
+   operador LEA el spec**, porque el gate 2 sigue *autorizado por directiva, no por lectura*.
+4. **CV-D17 sigue sin leerse.**
+
+### Lo que sigue sin poder afirmarse
+
+El **Modo B** (ventana Tauri del `.deb`), la **reconexión del navegador tras un corte real de
+red**, el **segundo fallo consecutivo del `--resume`**, el rastro de **E-46** (T32) y **CI**
+(no se pushea: es decisión del operador). Los cinco están declarados, no maquillados.

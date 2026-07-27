@@ -33,6 +33,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El buscador del panel entra al TEXTO de la conversación, no sólo al título: encuentra por lo que se dijo, ignora acentos y mayúsculas, y muestra el pedazo donde coincidió.
 - El daemon expone las conversaciones de una sesión: listarlas, buscarlas, crear una nueva, retomar una anterior y renombrarla.
 - El panel de conversación muestra las conversaciones de su sesión: se listan, se buscan por lo que se dijo adentro, se crean y se retoman sin salir del dock
+- Verificación de punta a punta contra la aplicación instalada: los seis guiones del plan corren contra el binario que el operador ejecuta, con los datos de sesiones aislados en una copia, y dejan su informe con capturas
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
@@ -56,6 +57,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - Leer un registro de sesiones escrito por una versión anterior ya no tira en silencio lo que cambió de lugar — le costaba los 90 turnos de la conversación más larga en disco.
 - La marca de «contexto rotado» ahora aparece en el diálogo sin recargar la aplicación. Antes se guardaba en disco y el operador no la veía hasta reabrir.
 - El identificador de la sesión de Claude Code dejó de pintarse con un color que no llegaba al contraste mínimo de texto sobre el fondo del dock
+- La migración del registro de sesiones se probó sobre el archivo real del operador (en copia): las cinco sesiones y la conversación de noventa turnos sobreviven, el archivo de la versión anterior queda intacto y volver a arrancar no vuelve a migrar
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

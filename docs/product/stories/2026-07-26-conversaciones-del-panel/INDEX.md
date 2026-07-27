@@ -17,7 +17,8 @@
 | **plan de tickets** | ✅ [`plan-desarrollo.md`](./plan-desarrollo.md) — **33 tickets · 6 tramos** + cobertura E-01…E-50 → ticket |
 | **plan de pruebas** | ✅ [`plan-pruebas.md`](./plan-pruebas.md) — pirámide · **circuito E2E contra la app instalada** (6 guiones) · datos de prueba aislados · 26 criterios de salida |
 | GATE 2 🧑‍⚖️ (specs+arquitectura) | ✅ **AUTORIZADO POR DIRECTIVA 2026-07-26** — ver nota abajo |
-| **implementar** | 🚧 **tramos 0-3 CERRADOS y verdes + el tramo 4 casi entero** (T1-T29, **29 de 33**) · faltan T30 (su transporte ya se adelantó), T31, T32, T33 — ver [`PARIDAD.md`](./PARIDAD.md) §1.13 y §1.14 |
+| **implementar** | 🚧 **tramos 0-4 CERRADOS + T30/T31 del tramo 5** (**31 de 33**) · faltan **T32** (manual del operador) y **T33** (cierre) — ver [`PARIDAD.md`](./PARIDAD.md) §1.13, §1.14 y §2.1 |
+| **verificación E2E contra el binario INSTALADO (T31)** | ✅ [`verificacion-e2e/INFORME.md`](./verificacion-e2e/INFORME.md) — los **6 guiones** contra `~/.local/bin/arnesia` sello **`0.2.24.2607262315`** · **98 aserciones: 92 ok · 3 fallas · 3 n/c** · 21 capturas · reproducible con `bash verificacion-e2e/correr.sh`. **`~/.arnesia` del operador INTACTO** (md5 `b1689d15…` antes y después) |
 | PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) — **§2 ya compara el dibujo contra el producto: 30 ✅ · 5 ⚠️ · 0 ❌**, con 26 capturas en `verificacion-tramo3/` (13 escenas × 2 temas). **Gate 🧑‍⚖️ SIN FIRMAR**: es del operador |
 
 ## GATE 1 🧑‍⚖️ — FIRMADO 2026-07-26
@@ -140,16 +141,30 @@ y crear · retomar · renombrar están cableados contra el daemon.
 
 ### Lo siguiente, exacto
 
-**Arrancá por T30** (`plan-desarrollo.md` línea 935) y ojo: **su mitad de transporte YA ESTÁ HECHA**
-(CV-D17). Lo que queda de T30 es la nota en `mockups/INDEX.md` y el gate humano de la mudanza.
+**T30 y T31 están CERRADOS** (tramo 5, worktree `.claude/worktrees/tramo5`, rama
+`tramo5-conversaciones`, partida de `508b9b4`). Lo que queda:
 
-Después:
+1. **Leer** [`verificacion-e2e/INFORME.md`](./verificacion-e2e/INFORME.md) §3 («lo que el
+   operador va a ver cuando instale») y §5 (los 6 hallazgos nuevos, N-18…N-23).
+2. **Decidir N-19** — es el único que espera una decisión de contenido: el `＋` bloqueado dice
+   «esperá a que termine el turno **en vuelo**» y el spec manda «…el turno **(■ para
+   interrumpir)**». No se tocó porque el gate 2 sigue *autorizado por directiva, no por lectura*.
+3. **T32 · el borrado de CV-D6 (E-46)** — **procedimiento manual del operador, con el daemon
+   detenido y copia previa.** Los 3 ids (`s1b38a066`, `s408bb085`, `s020210e3`) siguen
+   **intactos** en `~/.arnesia/sesiones-cerradas.json`. NO se ejecutó acá, a propósito.
+4. **N-21 al BACKLOG** (pérdida silenciosa de la marca de rotación con dos vistas) — es el
+   hallazgo grave y su arreglo NO es chico: toca el guard de idempotencia por `turno_idx`.
+5. **T33 · cierre** + gate 🧑‍⚖️ de PARIDAD.
 
-- **T31 · E2E contra el binario instalado.** Es el que falta de verdad. ⚠ `make dev-sync` reemplaza
-  el binario del operador y le mata el daemon: **coordinarlo con él**, no hacerlo de sorpresa.
-- **T32 · el borrado de CV-D6** (E-46): procedimiento **manual del operador**, con el daemon
-  detenido y copia previa. Los 3 ids siguen intactos en `~/.arnesia/sesiones-cerradas.json`.
-- **T33 · cierre.**
+### ⚠ Antes de tocar nada en esta máquina
+
+- **El binario instalado del operador FUE REEMPLAZADO** por `make dev-sync` (sello
+  `0.2.24.2607262315`). Respaldo del estado previo:
+  `~/.local/bin/arnesia.respaldo-20260726-231513` (md5 `090bb5d6…`). Para volver:
+  `pkill -f "$HOME/.local/bin/[a]rnesia serve" && cp -p ~/.local/bin/arnesia.respaldo-20260726-231513 ~/.local/bin/arnesia`
+- **`~/.arnesia/` NO se tocó.** md5 `b1689d1513e8d3c3fa21692c511ed793` verificado al abrir y al
+  cerrar el tramo. Todo el E2E corrió con `HOME` apuntando a un sandbox.
+- **`make installer` NO se corrió** (depende de `bump-patch`) y **no se pusheó nada**.
 
 ### Lo que sigue abierto del propio paquete
 
@@ -160,8 +175,11 @@ Después:
   del baseline **dejaron de apagar `color-contrast`**.
 - **C-13 sigue abierta**: el anillo de foco mide 2,51:1 en claro. Se conservó el precedente del
   repo, como manda su propio veredicto; la deuda del token vive en `BACKLOG.md`.
-- **17 hallazgos** en `PARIDAD.md` §3.4. Los de este tramo: **N-15** (el panel re-renderizaba el
-  transcript en cada tecla), **N-16** (`aria-controls` a la nada rompe axe con `aria-expanded=true`
-  — lo cazó el gate en la primera corrida) y **N-17** (el contrato `<ul role="listbox">` del diseño
-  no compila contra el linter; se realiza sobre `<div>`, contrato ARIA idéntico).
-- **`~/.arnesia/` NO se tocó.** md5 `b1689d15…` verificado al abrir y al cerrar el tramo.
+- **23 hallazgos** en `PARIDAD.md` §3.4. Los del tramo 5 (todos del E2E contra el binario
+  instalado): **N-18** (el dry-run de CV-D16 miente si corre antes del daemon), **N-19** (el `＋`
+  bloqueado no ofrece `(■ para interrumpir)`), **N-20** (el 409 no distingue `await` de
+  `streaming`), **N-21** 🔴 (**la marca de rotación se pierde en silencio con dos vistas** — el
+  grave), **N-22** (RF-348 CA-1 sin construir) y **N-23** (el re-key no corre solo ni avisa).
+- **Lo que el E2E CERRÓ:** la rotación **llega en vivo por SSE** (5 mutaciones del DOM medidas,
+  sin recargar) — **C-6/H-8 dejan de estar abiertos**; y C-3 se confirmó en el producto (barra
+  caliente, número no).
