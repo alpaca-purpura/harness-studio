@@ -22,10 +22,17 @@ valida:
   - "TestHistorialCerradaCoseCadena"
   - "TestTurnosLeeCorpus"
   - "TestDirParaCwd"
+  - "TestCerradas1Devuelve400ConPuntero"
+  - "TestElMuxNoAmbiguaEntreSesionYConversaciones"
   - "conversaciones-store.test.ts"
 last_modified: 2026-07-26
 source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-200..RF-203)"
 change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "Las dos rutas del historial por arnés se retiran: el parámetro que sumaba las conversaciones cerradas a la lista de sesiones ahora responde con el puntero a su reemplazo, y la ruta que reconstruía los turnos desde el corpus nativo ya no se sirve —bajo la ley nueva el diálogo de una conversación archivada viaja en su propio registro y no hay nada que reconstruir—. La CAPACIDAD se conserva sin ruta: sigue siendo el único camino para lo archivado ANTES de la migración, que no tiene diálogo propio. Retirarla y conservarla a la vez es deliberado: borrarla dejaría ilegible lo viejo."
+    merge_sha: null
   - story_id: 2026-07-26-conversaciones-del-panel
     date: 2026-07-26
     type: derive

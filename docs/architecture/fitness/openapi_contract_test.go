@@ -80,18 +80,40 @@ func rutasDelRouter(t *testing.T) map[string]bool {
 	return out
 }
 
+// paramDoc es un parámetro declarado, sea inline o por `$ref`.
+type paramDoc struct {
+	Name string `yaml:"name"`
+	In   string `yaml:"in"`
+	Ref  string `yaml:"$ref"`
+}
+
+// opDoc es una operación (get/post/…) con sus parámetros propios.
+type opDoc struct {
+	Parameters []paramDoc `yaml:"parameters"`
+}
+
+// pathDoc separa las dos cosas que conviven bajo un path: los `parameters:` COMUNES a todas
+// sus operaciones y las operaciones en sí.
+//
+// ⚠ Esta separación es un arreglo, no una elegancia. La primera versión modelaba el path como
+// `map[verbo]operación` a secas, y con eso un `parameters:` a nivel de path —que es una
+// secuencia, no una operación— hacía FALLAR el parseo del contrato entero, con los cuatro
+// enforcers cayéndose juntos por «cannot unmarshal !!seq». El propio
+// `TestQueryParamEstaDeclarado` ya traía la rama que junta los parámetros comunes: código que
+// no podía ejecutarse nunca, porque el documento que lo habría ejercitado no parseaba. Se
+// destapó al declarar las rutas del panel de conversaciones, que usan `$ref` a un parámetro
+// de path compartido para no repetir el mismo `{id}` en tres lugares.
+type pathDoc struct {
+	Parameters []paramDoc       `yaml:"parameters"`
+	Ops        map[string]opDoc `yaml:",inline"`
+}
+
 // docOpenAPI es la porción del contrato que este enforcer mira.
 type docOpenAPI struct {
 	Servers []struct {
 		URL string `yaml:"url"`
 	} `yaml:"servers"`
-	Paths map[string]map[string]struct {
-		Parameters []struct {
-			Name string `yaml:"name"`
-			In   string `yaml:"in"`
-			Ref  string `yaml:"$ref"`
-		} `yaml:"parameters"`
-	} `yaml:"paths"`
+	Paths map[string]pathDoc `yaml:"paths"`
 }
 
 var verbosHTTP = map[string]bool{
@@ -128,8 +150,8 @@ func rutasDelContrato(t *testing.T) map[string]bool {
 	t.Helper()
 	doc, prefijo := leerOpenAPI(t)
 	out := map[string]bool{}
-	for p, ops := range doc.Paths {
-		for verbo := range ops {
+	for p, pd := range doc.Paths {
+		for verbo := range pd.Ops {
 			if !verbosHTTP[strings.ToLower(verbo)] {
 				continue
 			}
@@ -235,18 +257,14 @@ func TestQueryParamEstaDeclarado(t *testing.T) {
 	// `$ref` a components/parameters se cuenta como declarado: resolverlo entero es otro
 	// enforcer, y acá lo que importa es que el autor lo haya nombrado.
 	declarados := map[string]map[string]bool{}
-	for p, ops := range doc.Paths {
+	for p, pd := range doc.Paths {
 		comunes := map[string]bool{}
-		for verbo, op := range ops {
-			if strings.EqualFold(verbo, "parameters") {
-				for _, par := range op.Parameters {
-					if par.In == "query" || par.Ref != "" {
-						comunes[par.Name] = true
-					}
-				}
+		for _, par := range pd.Parameters {
+			if par.In == "query" || par.Ref != "" {
+				comunes[par.Name] = true
 			}
 		}
-		for verbo, op := range ops {
+		for verbo, op := range pd.Ops {
 			if !verbosHTTP[strings.ToLower(verbo)] {
 				continue
 			}

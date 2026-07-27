@@ -1106,8 +1106,14 @@ func newID() string {
 	return "s" + hex.EncodeToString(b[:])
 }
 
+// ErrSesionNoEncontrada — el id de sesión no está en el registro. El transporte lo mapea a
+// 404. Existe como sentinela y no como texto suelto porque los handlers nuevos tienen que
+// distinguir «esta sesión no existe» de «esta conversación no es de esta sesión» y de «el
+// disco falló», y comparar mensajes sería atar el código de estado a una cadena de texto.
+var ErrSesionNoEncontrada = errors.New("la sesión no está en el registro")
+
 func errNotFound(id string) error {
-	return fmt.Errorf("session %q not found", id)
+	return fmt.Errorf("%w: %q", ErrSesionNoEncontrada, id)
 }
 
 // seedSessions returns illustrative work-fronts shown on first run (empty registry) so

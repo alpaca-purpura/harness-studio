@@ -87,9 +87,11 @@ func resumenDe(c domain.Conversacion) ConversacionResumen {
 	}
 }
 
-// conActiva proyecta una conversación con sus turnos. `Conv` nunca sale `nil`: una
+// ConversacionActivaDe proyecta una conversación con sus turnos. `Conv` nunca sale `nil`: una
 // conversación sin turnos tiene una lista vacía, que es un dato distinto de «no la cargué».
-func conActiva(c domain.Conversacion) ConversacionActiva {
+// Exportada porque el transporte la necesita para proyectar la sesión al wire — la sesión que
+// viaja lleva SU activa, no sus N conversaciones con los transcripts completos.
+func ConversacionActivaDe(c domain.Conversacion) ConversacionActiva {
 	turnos := c.Conv
 	if turnos == nil {
 		turnos = []domain.Turn{}
@@ -147,7 +149,7 @@ func (s *SessionService) operarConversacion(id string, aplicar func(*domain.Sess
 		s.mu.Unlock()
 		return ConversacionActiva{}, "", fmt.Errorf("%w: %q", ErrSinConversacionActiva, id)
 	}
-	salida := conActiva(*activa)
+	salida := ConversacionActivaDe(*activa)
 	s.mu.Unlock()
 
 	// Fuera del candado, y en este orden: el proceso viejo muere DESPUÉS de que el disco
@@ -188,7 +190,7 @@ func (s *SessionService) RenombrarConversacion(id, cid, titulo string) (Conversa
 		return ConversacionResumen{}, err
 	}
 	c, _ := r.meta.BuscarConversacion(cid)
-	salida := conActiva(*c)
+	salida := ConversacionActivaDe(*c)
 	s.mu.Unlock()
 
 	s.publish(dockFrame{
@@ -348,7 +350,7 @@ func (s *SessionService) transicionLocked(
 	if !antes[nueva.ID] {
 		evento = eventoCreada
 	}
-	resultado := conActiva(*nueva)
+	resultado := ConversacionActivaDe(*nueva)
 	frames = append(frames, dockFrame{
 		SessionID:          r.meta.ID,
 		Kind:               kindConversacion,

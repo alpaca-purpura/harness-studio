@@ -106,7 +106,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-49 · Router + montaje** `vivo·nc` · http-sse/router-montaje.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-50 · UI embebida servida por daemon** `vivo·nc` · http-sse/ui-embebida-servida-por-daemon.yaml — `embed_webdist.go#WebDist`
 - **CAP-51 · SSE multiplexado (map/dock/run, replay)** `vivo·nc` · http-sse/sse-multiplexado.yaml — `internal/adapters/transport/sse/broker.go#Publish`
-- **CAP-52 · Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
+- **CAP-52 · Superficie REST (58 rutas servidas · 43 declaradas · 14 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 
 ### `usecases` (14)
 

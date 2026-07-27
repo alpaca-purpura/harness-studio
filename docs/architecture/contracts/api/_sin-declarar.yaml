@@ -46,12 +46,11 @@ exenciones:
   - ruta: "DELETE /api/telemetria/arneses/{clave}"
     razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
 
-  # ── Deuda con fecha de retiro (1) ───────────────────────────────────────────────────
-  - ruta: "GET /api/sessions/cerradas/{id}/historial"
-    razon: >-
-      se RETIRA en T18 del paquete 2026-07-26-conversaciones-del-panel: bajo CV-D8 el
-      transcript de una conversación archivada viaja en su propio `conv` y no hay nada que
-      reconstruir. Esta entrada desaparece de la lista en el mismo commit que retira la ruta.
+  # ── Deuda con fecha de retiro: RETIRADA el 2026-07-26 ───────────────────────────────
+  # `GET /api/sessions/cerradas/{id}/historial` ya no está: la retiró T18 del paquete
+  # 2026-07-26-conversaciones-del-panel, en el mismo commit que sacó su registro del router.
+  # La lista pasa de 15 a 14 entradas. El ratchet SÓLO se achica, y esta es la prueba de que
+  # se puede: la entrada no se «resolvió» declarando la ruta, se resolvió no sirviéndola.
 
   # ── Deuda pura (1) ──────────────────────────────────────────────────────────────────
   - ruta: "POST /api/portafolio/arneses/{clave}/identificar"

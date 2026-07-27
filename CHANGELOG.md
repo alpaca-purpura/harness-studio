@@ -31,15 +31,18 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El arranque del daemon dice qué le hizo al registro de sesiones: qué migró, dónde quedó la copia previa, qué reparó y qué llaves movió. Un arranque sin novedades no imprime nada.
 - Las conversaciones de una sesión: crear una nueva y retomar una anterior sin perder ninguna de las dos. Cambiar de hilo es una sola transición — o pasa entera, o el estado anterior queda intacto.
 - El buscador del panel entra al TEXTO de la conversación, no sólo al título: encuentra por lo que se dijo, ignora acentos y mayúsculas, y muestra el pedazo donde coincidió.
+- El daemon expone las conversaciones de una sesión: listarlas, buscarlas, crear una nueva, retomar una anterior y renombrarla.
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
 - Cerrar un frente de trabajo ya no tira el transcript ni el checkpoint de sus conversaciones: se archiva lo que el operador vio, que es lo único que sobrevive a una limpieza del corpus de Claude Code y lo único sobre lo que se puede buscar.
 - Toda sesión nace con su conversación activa. Antes nacía sin ninguna y la primera lectura la creaba avisando de una «reparación» de algo que nunca estuvo roto.
+- `GET /api/sessions` vuelve a devolver SIEMPRE un arreglo y cada sesión lleva su conversación activa en vez de todas sus conversaciones con los diálogos completos.
 
 ### Deprecado
 
 ### Eliminado
+- Se retiran las rutas del historial por arnés: el parámetro `cerradas` de la lista de sesiones ahora responde con el puntero a su reemplazo, y la ruta que reconstruía turnos desde el corpus nativo ya no se sirve. La capacidad se conserva para lo archivado antes de la migración.
 
 ### Corregido
 - declarada la violación a11y preexistente del dock: el cc-id de la SessionLine va en --primary sobre --secondary (2,21:1)

@@ -624,19 +624,29 @@ paths:
         - name: cerradas
           in: query
           required: false
+          deprecated: true
           schema: { type: string, enum: ["1"] }
           description: >-
-            Con `1`, la respuesta deja de ser un array y pasa a ser
-            `{sesiones, cerradas}` — la única respuesta BIMORFA conocida del daemon, y el
-            motivo de que esta operación no se pueda describir con un solo schema.
+            RETIRADO el 2026-07-26 (RF-345 CA-1). Hasta este paquete, con `1` la respuesta
+            dejaba de ser un array y pasaba a ser `{sesiones, cerradas}` — la única respuesta
+            BIMORFA conocida del daemon, y el motivo de que esta operación no se pudiera
+            describir con un solo schema. Ahora responde **400 con el puntero** a
+            `GET /sessions/{id}/conversaciones`. Se declara para que el retiro sea visible en
+            el contrato en vez de ser un 400 sorpresa; se borra cuando ningún cliente lo mande.
       responses:
         "200":
           description: >-
-            Sesiones en orden estable de creación. ⚠ Con `?cerradas=1` la forma cambia a
-            `{sesiones, cerradas}`; el schema de abajo describe la forma SIN ese parámetro.
+            Sesiones en orden estable de creación. SIEMPRE un array: la forma dejó de depender
+            de un query. Cada sesión lleva su conversación ACTIVA con el transcript; las demás
+            conversaciones se piden a `GET /sessions/{id}/conversaciones`, sin transcript.
           content:
             application/json:
               schema: { type: array, items: { $ref: "#/components/schemas/Session" } }
+        "400":
+          description: >-
+            Se mandó `?cerradas=`. El cuerpo trae el puntero al endpoint que lo reemplaza.
+            Un 400 con destino es mejor que ignorar el parámetro (el cliente cree que preguntó
+            bien) o devolver 200 vacío (el cliente cree que no hay nada).
     post:
       operationId: createSession
       summary: Abre un frente. `path` opcional registra la ruta del arnés en la misma llamada (S2).
@@ -687,6 +697,97 @@ paths:
       responses:
         "204": { description: Cerrada. }
         "404": { description: No existe. }
+  /sessions/{id}/conversaciones:
+    parameters:
+      - { $ref: "#/components/parameters/SessionId" }
+    get:
+      operationId: listConversaciones
+      summary: Conversaciones de una sesión (CV-D3/CV-D4 — sólo las de ESTA sesión).
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+          description: >-
+            Filtra por título Y por el texto de cada turno, insensible a mayúsculas y acentos.
+            En blanco ≡ sin filtro. Con `q`, cada entrada suma `fragmento` y `total` SIGUE
+            SIENDO EL TOTAL de la sesión — es el denominador del «N de M coinciden», no la
+            cuenta de coincidencias. El filtro corre en el daemon: la lista no manda los
+            turnos, así que mandarlos sólo para que el cliente filtre costaría ~12 KB por
+            conversación por apertura.
+      responses:
+        "200":
+          description: La lista. NUNCA trae `conv` — el tipo del resumen ni siquiera lo declara.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversacionesListado" }
+        "404": { description: "La sesión no existe. Jamás 200 con lista vacía: «vacío» y «no existe» son cosas distintas." }
+    post:
+      operationId: crearConversacion
+      summary: Crear una conversación (desactiva la anterior — UNA transición, BR-CV-4).
+      responses:
+        "201":
+          description: Creada y activa. La anterior queda inactiva conservando todo lo suyo.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nueva, desactivada]
+                properties:
+                  nueva: { $ref: "#/components/schemas/ConversacionActiva" }
+                  desactivada:
+                    type: string
+                    nullable: true
+                    description: "id de la que quedó inactiva; `null` si no había ninguna. Siempre presente: su ausencia y su nulo dirían lo mismo."
+        "404": { description: La sesión no existe. }
+        "409": { description: "Hay un turno en vuelo (streaming/await) — mismo criterio y mismo código que `POST /sessions/{id}/turn`." }
+        "500": { description: No se pudo persistir; el estado anterior queda intacto. }
+        "503": { description: "Registro en solo-lectura (el archivo en disco lo escribió un binario más nuevo)." }
+  /sessions/{id}/conversaciones/{cid}:
+    parameters:
+      - { $ref: "#/components/parameters/SessionId" }
+      - { name: cid, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: renombrarConversacion
+      summary: Renombrar (RF-344) — los títulos duplicados son legales, no hay unicidad que validar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo]
+              properties: { titulo: { type: string } }
+      responses:
+        "200":
+          description: Renombrada; queda marcada como editada por el operador.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Conversacion" } } }
+        "400": { description: "Título vacío o sólo espacios, o `titulo` ausente. El título NO cambia." }
+        "404": { description: "La conversación no pertenece a esta sesión (nunca se busca global)." }
+        "500": { description: No se pudo persistir. }
+        "503": { description: Registro en solo-lectura. }
+  /sessions/{id}/conversaciones/{cid}/activar:
+    parameters:
+      - { $ref: "#/components/parameters/SessionId" }
+      - { name: cid, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: activarConversacion
+      summary: Retomar (CV-D11) — NO spawnea; el --resume ocurre en el turno siguiente.
+      responses:
+        "200":
+          description: "Activada. Sobre la que ya estaba activa es un no-op: `desactivada` viene `null` y nada cambia."
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [activada, desactivada]
+                properties:
+                  activada: { $ref: "#/components/schemas/ConversacionActiva" }
+                  desactivada: { type: string, nullable: true }
+        "404": { description: La conversación no pertenece a esta sesión. }
+        "409": { description: Hay un turno en vuelo. }
+        "500": { description: No se pudo persistir; el estado anterior queda intacto. }
+        "503": { description: Registro en solo-lectura. }
   /sessions/{id}/turn:
     post:
       operationId: sendTurn
@@ -877,13 +978,24 @@ components:
       in: query
       name: token
       description: Variante para el EventSource (que no puede setear headers).
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: "id estable de la sesión (`s` + 8 hex), distinto del id de Claude Code."
   schemas:
     Session:
       type: object
-      required: [id, frente, arnes, status, view]
+      # La sesión es el FRENTE DE TRABAJO, no la conversación (CV-D3). Los campos que
+      # describían el diálogo —claude_session_id, model, ctx_pct, conv, turnos, cadena_cc—
+      # BAJARON a la conversación y ya no están acá. Lo que viaja es la conversación ACTIVA;
+      # las demás se piden a GET /sessions/{id}/conversaciones, sin transcript.
+      required: [id, frente, arnes, status, view, activa]
       properties:
         id: { type: string }
-        frente: { type: string }
+        frente: { type: string, description: "nombre del FRENTE. Es otro nombre que el de la conversación, y los dos existen." }
         arnes: { type: string }
         empresa: { type: string }
         puesto: { type: string }
@@ -891,16 +1003,68 @@ components:
         status: { type: string, enum: [streaming, await, idle] }
         view: { type: string }
         parked: { type: string }
+        reparacion: { type: boolean, description: "la sesión edita una INSTALACIÓN del Portafolio (ley A4)." }
+        cwd: { type: string, description: "directorio real del conductor. Es de la SESIÓN: sus N conversaciones corren en el mismo." }
+        cerrada_en: { type: string, description: "RFC3339 — la SESIÓN se archivó. Las conversaciones no se cierran, se desactivan (CV-D12)." }
+        activa:
+          allOf: [{ $ref: "#/components/schemas/ConversacionActiva" }]
+          description: >-
+            La conversación con conductor. NO es opcional: la invariante garantiza que existe
+            (una sesión tiene N ≥ 1 conversaciones y exactamente una activa), y declararla
+            opcional invitaría al chequeo defensivo que escondería el día en que no exista.
+    Turn:
+      type: object
+      required: [rol, text]
+      properties:
+        rol:
+          type: string
+          # `act` existe desde que el dock pinta los pasos del turno; el contrato decía tres
+          # roles y el dominio tenía cuatro. Se corrige acá, no se «documenta el bug».
+          enum: [user, assistant, sys, act]
+          description: "user/assistant son burbujas; `sys` es una marca inline (rotación, hand-off); `act` es un paso de actividad del turno."
+        text: { type: string }
+    Conversacion:
+      type: object
+      # El RESUMEN: lo que viaja en la lista. No declara `conv` — y no por omisión: el tipo no
+      # lo tiene, así que «no lo cargué» ni siquiera es expresable.
+      required: [id, titulo, titulo_editado, activa, turnos, ctx_pct, rotacion_pendiente, creada_en]
+      properties:
+        id: { type: string }
+        titulo: { type: string }
+        titulo_editado: { type: boolean, description: "el operador lo escribió a mano; con esto puesto ningún turno vuelve a derivarlo." }
+        activa: { type: boolean }
+        turnos: { type: integer, description: "derivado del transcript. NO se persiste aparte: un campo que duplica un largo es drift esperando ocurrir." }
+        ctx_pct: { type: integer, description: "0 es un dato, no una ausencia." }
+        rotacion_pendiente: { type: boolean, description: "el insumo del chip «caliente». El umbral vive en el daemon; el cliente no lo conoce ni lo teclea." }
+        ultima_interaccion: { type: string, description: "RFC3339. Vacío ⟺ 0 turnos — no se inventa una fecha para poder ordenar." }
+        creada_en: { type: string, description: "RFC3339. Es el desempate de orden de las de 0 turnos." }
         claude_session_id: { type: string }
         model: { type: string }
-        ctx_pct: { type: integer }
-        conv:
+        fragmento: { type: string, description: "sólo con `?q=`: el PRIMER pedazo que coincidió, en texto plano — el resaltado es del cliente." }
+    ConversacionActiva:
+      allOf:
+        - $ref: "#/components/schemas/Conversacion"
+        - type: object
+          required: [conv]
+          properties:
+            conv:
+              type: array
+              description: "el registro liviano de turnos. Sin `omitempty`: `[]` y «no lo cargué» no pueden viajar igual."
+              items: { $ref: "#/components/schemas/Turn" }
+            cadena_cc:
+              type: array
+              description: "los ids de Claude Code previos de ESTE hilo (sus rotaciones)."
+              items: { type: string }
+    ConversacionesListado:
+      type: object
+      required: [conversaciones, total]
+      properties:
+        conversaciones:
           type: array
-          items:
-            type: object
-            properties:
-              rol: { type: string, enum: [user, assistant, sys] }
-              text: { type: string }
+          items: { $ref: "#/components/schemas/Conversacion" }
+        total:
+          type: integer
+          description: "el TOTAL de la sesión, no el de coincidencias: es el denominador del «N de M coinciden»."
     NewSession:
       type: object
       required: [arnes]
@@ -921,11 +1085,12 @@ components:
         run_id: { type: string, description: "el turno al que pertenece el frame (idempotencia)." }
         kind:
           type: string
-          enum: [status, init, delta, message, result, error, permission, permission_result]
+          enum: [status, init, delta, message, act, result, error, permission, permission_result, conversacion]
           description: >-
             permission = tarjeta ask→UI de un control_request (lleva request_id + tool + input crudo
             para pintar el diff; la sesión pasa a `await`); permission_result la cierra con la
-            decisión efectiva.
+            decisión efectiva. `act` es un paso de actividad del turno. `conversacion` es el
+            frame del panel: creada|activada|renombrada|rotada.
         text: { type: string }
         status: { type: string, enum: [streaming, await, idle] }
         ctx_pct: { type: integer }
@@ -935,6 +1100,23 @@ components:
         tool: { type: string, description: "el tool que Claude Code pide correr." }
         input: { type: object, description: "input crudo del tool (file_path/old_string/new_string…) — el GUI pinta el diff de aquí." }
         decision: { type: string, enum: [allow, deny], description: "decisión efectiva (kind=permission_result)." }
+        conversacion_id: { type: string, description: "kind=conversacion: a qué conversación se refiere." }
+        conversacion_evento:
+          type: string
+          enum: [creada, activada, renombrada, rotada]
+          description: >-
+            kind=conversacion. Este frame NO lleva `run_id` —no pertenece a un turno—, así que
+            su idempotencia va por otro camino: creada/activada/renombrada traen el estado
+            final (aplicarlas dos veces da lo mismo) y `rotada` trae `turno_idx`.
+        turno_idx:
+          type: integer
+          description: >-
+            sólo en `rotada`: el índice donde quedó la marca en el transcript. El cliente la
+            agrega SÓLO si su copia tiene exactamente ese largo — un replay por Last-Event-ID
+            llega con la copia más larga y se descarta solo.
+        conversacion:
+          allOf: [{ $ref: "#/components/schemas/ConversacionActiva" }]
+          description: "kind=conversacion (menos `rotada`): el estado POST-transición, para que el cliente repinte sin una segunda vuelta."
     StartRunResult:
       type: object
       required: [run_id]
