@@ -779,32 +779,212 @@ No es un descuido: es la forma del plan, que pone todo el backend en el tramo 2 
 **Nada de esto llegó al operador:** no se pusheó, no se corrió `make dev-sync` y no se tocó el
 binario instalado. La app instalada del operador sigue corriendo el daemon de antes.
 
+
+---
+
+## 1.13 · Tramo 3 (T21-T25) + la mayor parte del 4 (T26-T29) — el frente
+
+Construido en `.claude/worktrees/tramo3`, rama `tramo3-conversaciones`, sobre `4c32a4d`. **Sin
+pushear.** El worktree resuelve N-6 igual que en el tramo 2: los 4 commits pasaron el `pre-commit`
+completo, **cero `--no-verify`**.
+
+### T21 · los tipos del wire — verde · el compilador se volvió el inventario
+
+El tipo se escribió contra `sessionWire` **campo por campo**, no contra la prosa del diseño, y las
+tres diferencias se declaran porque la prosa se equivocaba:
+
+| `design.md` §3.1/§7.1 dice | el daemon manda | qué se hizo |
+|---|---|---|
+| `ctx_pct?: number \| undefined` | `json:"ctx_pct"` **sin** `omitempty` | `ctx_pct: number` — 0 es dato (BR-CV-9), y un `?` invitaba al `?? 0` que borra la distinción |
+| no menciona `rotacion_pendiente` ni `creada_en` | los manda siempre | se agregan: el primero ES el `caliente` del chip, el segundo el desempate del orden (RF-320 CA-2) |
+| `activarConversacion` devuelve `Conversacion` | `{activada, desactivada}` | gana el backend |
+
+**El efecto medido:** `tsc` pasó de 0 errores a **18**, en dos archivos (`sessions-store.ts` 10 ·
+`chat-dock.tsx` 8). Eso es lo que el ticket existía para producir: hasta acá el FE leía campos que
+el daemon había dejado de mandar y el compilador no veía nada.
+
+**Consecuencia no prevista, y es un cambio de plan (CV-D17):** retirar `conversacionesDeArnes` e
+`historialCerrada` deja sin compilar a su único consumidor. Se **adelantó RF-333/RF-334** (era T30,
+tramo 5): el store del rail y el bloque `ConversacionesDelArnes` del picker salieron del árbol. Ver
+`decisiones.md` §CV-D17.
+
+### T22 · el store — verde · 7 tests donde no había ninguno
+
+`appendConv` escribe en `s.activa.conv`; los 6 mapas conservan la llave por sesión. La rama
+`case "conversacion"` con sus tres formas de idempotencia y el `default:` con `console.warn`.
+
+Tres de los 7 tests existen para **prohibir** algo, no para afirmarlo: `finalizedRun` NO se limpia
+en la transición, `scope` NO se limpia, y el breadcrumb de `rotada` NO se duplica con `turno_idx`
+repetido. Los tres serían regresiones plausibles por «simetría».
+
+**Dos campos que ningún documento pedía y el dibujo sí exigía**, declarados: `desactivadaTitulo`
+(el vacío del transcript nuevo NOMBRA la desactivada, RF-307 CA-1 — sale de la copia local, no del
+wire) y `detalleForzado` (RF-314: el detalle se abre solo al retomar y al rotar).
+
+### T23 · `CtxChip` + `IdentidadDetalle` — verde · **N-1 CERRADO**
+
+10 stories. **C-3 realizado**: el número del chip caliente en `--foreground`, la barra en `--warn`.
+El assert de estilo —el único del plan— resuelve el token con una sonda en vivo en vez de comparar
+contra un hex tecleado, y por eso **vale igual en oscuro**, donde `--warn` es otro valor.
+
+**N-1 cerrado, con una desviación del dibujo que se declara:** el mockup pinta `.detalle .cc` en
+`--primary`. Se realiza en `--foreground`. Es la misma familia que C-3 —un token de acento usado
+como color de TEXTO— y el vigente medía **2,21:1**. Consecuencia verificable: las 3 stories del
+baseline **dejaron de apagar `color-contrast`**; el gate a11y corre entero sobre todo el dock.
+
+### T24 · `ConversacionRow` — verde · 11 stories
+
+El renombrado calca `session-rail.tsx:256-273` en sus **cuatro** caminos (Enter · vacío · Escape ·
+blur), uno por story. El `＋` deshabilitado siempre con `title`.
+
+**Desviación declarada, y es la única del dibujo en este componente:** el `✎` **existe y es
+visible**. El mockup describe el gesto (§2D: «✎ → input → Enter confirma») pero **nunca dibuja su
+disparador**, y el precedente del rail lo esconde tras `group-hover:flex`, que lo deja fuera del
+alcance del teclado. Se prefirió un tercer botón de 24 px a copiar una barrera de accesibilidad
+conocida.
+
+### T26 · `useConversaciones` — verde · 10 tests
+
+**Adelantado del tramo 4**: sin él, el `＋` y el `✎` del cromo nuevo serían botones muertos, y un
+control que se ve habilitado y no hace nada es peor que uno que no está.
+
+**Desviación de `design.md` §3.6, declarada:** `retomaFallo` se llama `fallo`. Los tres fallos
+posibles —crear, retomar, renombrar— fallan por lo mismo (el daemon no está, o hay un turno en
+vuelo) y pintan la MISMA franja. Dos campos para una superficie serían dos campos que se separan.
+
+### T27/T28 · `ConversacionFila` + `ConversacionesPanel` — verde · 23 stories
+
+**Desviación de `design.md` §8.2, declarada:** la estructura es `role="listbox"`/`role="option"`
+sobre `<div>`, no sobre `<ul>`/`<li>`. Biome prohíbe darle rol interactivo a un `<li>`
+(`noNoninteractiveElementToInteractiveRole`) y `useSemanticElements` está **apagado** en
+`biome.json` justamente porque este repo prefiere el rol explícito. **El contrato ARIA de §8.2 es
+idéntico**, que es lo que C-8 pedía.
+
+El `<mark>` es un `<mark>` real **con clases propias** — resuelve la tensión entre C-8 (el elemento
+significa «esto coincidió») y §9 (el aspecto no puede depender del reset del navegador). El
+resaltado pliega diacríticos con **la misma tabla que el daemon**: buscar «vacio» resalta «vacío».
+
+La fecha usa tabla de meses propia y **recibe el instante de referencia por prop**. `Intl` y un
+`Date.now()` implícito harían que el formato dependiera del runner; así los cuatro formatos del
+dibujo dan lo mismo en CI y en la máquina del operador.
+
+### T25/T29 · el dock recompuesto — verde · **la app vuelve a funcionar**
+
+17 stories en `chat-dock.stories.tsx` (las 3 del baseline **ajustadas al superset** + 14 nuevas).
+Las 3 viejas ya no miden las 4 filas de cromo: miden lo que **no se podía tocar** — composer,
+burbujas, tarjeta de actividad, tarjeta de permiso. Que sigan verdes ES la evidencia de BR-CV-11.
+
+Los 6 símbolos de «NO se tocan» (`Composer`, `fitComposer`, `Bubble`, `ActivityCard`, `agrupar`,
+`rotulo`) tienen **diff vacío**, verificable con `git diff 4c32a4d -- web/src/widgets/chat-dock/ui/chat-dock.tsx`.
+
+**Un hallazgo de rendimiento, N-15:** `useConversaciones()` sin selector devuelve el objeto entero
+del store, cuya identidad cambia en cada `set` — con eso, **cada tecla del buscador
+re-renderizaba el transcript completo**. Se corrigió leyendo de a un primitivo, que es lo que
+`arquitectura.md` §6.3 manda y lo que el plan de T22 prohíbe explícitamente para los selectores.
+
+### 1.14 · El gate de los tramos 3 y 4, completo — cifras PROPIAS
+
+Corridas en `.claude/worktrees/tramo3`, `pnpm install --frozen-lockfile` real (1,2 s):
+
+| comando | resultado |
+|---|---|
+| `go build ./...` | ✅ sin salida |
+| `go test ./... -race` | ✅ **todo verde** (incluye los 4 enforcers del contrato y los 5 de `sesion-viva-consistente`) |
+| `go-arch-lint check` | ⚠ **NO CORRIDO** — el binario no está en el `PATH` de este entorno ni hay target en el `Makefile`. Declarado, no fingido |
+| `arnesia conformance --todo` | ✅ **323 · pass 91 · fail 0 · error 0 · deferred 232** — idéntico al tramo 2 |
+| `pnpm exec tsc --noEmit` | ✅ **0 errores** (venía de 18, provocados por T21) |
+| `pnpm exec biome check .` | ✅ 178 archivos, 0 errores |
+| `pnpm run depcruise` | ✅ 0 violaciones · **194 módulos** (eran 192) |
+| `pnpm run fsd` (steiger) | ✅ «No problems found!» |
+| `pnpm run stylelint` | ✅ sin salida (cero CSS nuevo — §9 se cumplió) |
+| `pnpm exec vitest --project=unit run` | ✅ **136 tests** (eran 126: +7 del store compartido, +10 del store del panel, −3 del store del rail eliminado) |
+| `pnpm exec vitest --project=storybook run` | ✅ **444 tests / 47 archivos** (eran 386 / 43) — **+58 stories**, headless, ~12 s |
+| `bash scripts/estado.sh --check` | ✅ en sync (regenerado: capabilities **145 → 146**) |
+
+**Lo que el gate NO cubre y se dice:** `go-arch-lint` (arriba) y **CI**, que sigue sin observarse
+porque no se pushea — decisión del operador.
+
+**`~/.arnesia/` NO se tocó.** md5 de `sessions.json`: `b1689d1513e8d3c3fa21692c511ed793`,
+verificado al abrir y al cerrar el tramo. No se corrió `make dev-sync`.
+
+### 1.15 · Lo que se miró con los ojos, en los dos temas
+
+Storybook levantado en `:6007` y capturado con Playwright headless (`chromium.launch()`,
+`waitUntil:"load"` — `networkidle` nunca resuelve con el SSE abierto). **26 capturas** en
+[`verificacion-tramo3/`](./verificacion-tramo3/): 13 escenas × 2 temas.
+
+| captura | qué confirma a ojo |
+|---|---|
+| `01-cromo-2-filas` | **dos filas** entre el borde y el primer mensaje. El transcript arranca ~46 px más arriba |
+| `02-detalle-identidad` | `◍ 4b046945 · vitalia · claude-opus-5[1m]` + `cwd ~/Proyectos/luana-vitalia/vitalia` — los 4 datos de la fila retirada **más** el cwd |
+| `03-con-nodo-3-filas` | la fila de alcance aparece **sólo** con nodo, con su chip y su `✕` |
+| `04-lista-en-sitio` | buscador · rótulo con el frente · 4 filas con radio/meta/`ACTIVA` · pie `Cancelar` · **el composer sigue visible** |
+| `05-recien-creada` | el vacío nombra la desactivada; el chip dice `0%` y **no se esconde** |
+| `06-rotacion-inline` | la marca centrada y punteada, con el texto del CÓDIGO (C-5), no el del dibujo |
+| `07-turno-en-vuelo` | `＋` apagado; `🔍` encendido |
+| `08-retomando` | la franja con `--resume d303a93f` y el detalle abierto solo |
+| `09-buscador-fragmentos` | `2 de 4 coinciden` + `<mark>` sobre `--accent-soft` en las dos filas |
+| `10-sin-coincidencias` | el vacío dice el término, dónde buscó y **cuántas miró** |
+| `11-una-sola` | **sin buscador**, con el mensaje de «esta sesión recién arranca» |
+| `12-error-de-lista` | motivo en `--foreground` con regla `--warn` a la izquierda — **C-3 a la vista** |
+| `13-ctx-caliente` | la barra en `--warn`, el número **no** |
+
+Los 13 se revisaron en claro **y** en oscuro. Nada quedó ilegible en ninguno de los dos.
+
 ---
 
 ## 2 · Mockup §panel → producto
 
-**Ninguna fila se puede marcar ✅ todavía: la superficie nueva no existe.** La tabla se deja armada
-con su trazabilidad para que el que siga la complete ticket a ticket, y para que quede claro que
-está vacía **por no construida**, no por no mirada.
+**Ya se puede comparar.** Los tramos 3 y 4 construyeron toda la superficie del dibujo salvo la
+mudanza del picker, que se adelantó y por eso también está. Cada fila se miró contra su captura en
+[`verificacion-tramo3/`](./verificacion-tramo3/), en los dos temas.
 
-| § del mockup | qué dibuja | componente destino | ticket | veredicto |
+Leyenda: ✅ igual · ⚠️ desviación **con motivo** · ❌ falta.
+
+| § del mockup | qué dibuja | dónde vive hoy | evidencia | veredicto |
 |---|---|---|---|---|
-| §1 `vigente` | el dock de hoy, 4 filas, `⟩ colapsar` | `chat-dock.tsx` (as-is) | T2 | ✅ **fijado por A-01..A-03** |
-| §2A/§2C | cromo de **2 filas** en reposo, **3** con nodo | `ChatDock` + `ScopeRow` | T25 | ❌ no construido |
-| §2 fila 2 | `▶ título · chip ctx · 🔍 · ＋` | `ConversacionRow` | T24 | ❌ no construido |
-| §2 chip | ctx como chip-disclosure | `CtxChip` | T23 | ❌ no construido |
-| §2 detalle | `cc-id · arnés · modelo · cwd` | `IdentidadDetalle` | T23 | ❌ no construido |
-| §3A | lista en sitio, 4 conversaciones | `ConversacionesPanel` | T28 | ❌ no construido |
-| §3 fila | título · última interacción · turnos · ctx | `ConversacionFila` | T27 | ❌ no construido |
-| §3D | una sola conversación, sin buscador | `ConversacionesPanel` | T28 | ❌ no construido |
-| §4A | buscador con `<mark>` | `ConversacionesPanel` | T28 | ❌ no construido |
-| §4B | sin coincidencias, dice dónde buscó | `ConversacionesPanel` | T28 | ❌ no construido |
-| §4C | marca de rotación inline | `Messages` + frame `conversacion` | T16/T29 | ❌ no construido |
-| §5 | la mudanza declarada | `new-session-picker.tsx` | T30 | ❌ no construido |
-| §6B | error de lectura con Reintentar | `ConversacionesPanel` | T28 | ❌ no construido |
-| §glifo | `⟩` → `»` | `chat-dock.tsx` | T25 | ❌ no construido |
+| §1 `vigente` | el dock de hoy, 4 filas, `⟩ colapsar` | — (es el ANTES) | A-01..A-03 | ✅ fijado en T2 y **superado a propósito** |
+| §2A | cromo de **2 filas** en reposo | `ChatDock` | A-04/A-05 · `01-cromo-2-filas-*` | ✅ igual |
+| §2A | `» colapsar` (CV-D15) | `chat-dock.tsx` | A-04 asserta el `»` **y la ausencia del `⟩`** | ✅ igual |
+| §2A fila 2 | `▶ título · chip ctx · 🔍 · ＋` | `ConversacionRow` | B-01 · `01-*` | ⚠️ **hay un control más: `✎`**. El dibujo describe el gesto de renombrado (§2D) pero nunca dibuja su disparador; el precedente del rail lo esconde tras `:hover`, fuera del alcance del teclado. Superset, no reinterpretación |
+| §2A | el título trunca con elipsis | `ConversacionRow` | B-03 · `01-*` | ✅ igual |
+| §2B | ctx como chip-disclosure, `44×5` + `N%` | `CtxChip` | C-01/C-04 · `02-*` | ✅ igual |
+| §2B detalle | `◍ cc-id · arnés · modelo` + `cwd` | `IdentidadDetalle` | C-06 · A-07 · `02-*` | ⚠️ **el `◍ cc-id` va en `--foreground`, no en `--primary`**. El dibujo lo pinta en el acento: medido **2,21:1**, bajo el 4,5 de texto (N-1). Misma regla que C-3, ya firmada |
+| §2B | sin cc-id ⇒ `◍ sin sesión CC` | `IdentidadDetalle` | C-07 | ✅ igual (literal vigente conservado) |
+| §2C | fila de alcance **sólo con nodo**, chip literal + `✕` | `ScopeRow` | A-06 · `03-*` | ✅ igual — y las 3 filas de C-2 se confirman |
+| §2C | se caen «Alcance:», el chip punteado y el hint | `ScopeRow` | A-04 asserta las 3 ausencias | ✅ igual |
+| §2D | renombrar toma la fila entera; `Enter`/`Escape` | `ConversacionRow` | B-08..B-11 | ✅ igual (los 4 caminos del rail) |
+| §3A | lista **en sitio**, 4 conversaciones | `ConversacionesPanel` | A-08/A-17 · D-04 · `04-*` | ✅ igual — cero `<dialog>`, cero backdrop, cero portal |
+| §3A | rótulo `N conversaciones de la sesión «X»` | `ConversacionesPanel` | D-04 · `04-*` | ✅ igual |
+| §3A fila | título · última interacción · turnos · ctx | `ConversacionFila` | E-01s · `04-*` | ✅ igual — cuatro datos y ninguno más |
+| §3A fila | activa = borde + fondo + radio relleno + `activa` | `ConversacionFila` | E-02s · `04-*` | ✅ igual (rótulo en `--foreground`, como el propio mockup ya resolvió) |
+| §3A | los 4 formatos de fecha | `ConversacionFila` | E-01s/E-02s · `04-*`, `09-*` | ✅ igual (`hace 4 min` · `ayer 18:02` · `24 jul` · `23 jul`) |
+| §3A | 0 turnos ⇒ `sin turnos todavía · ctx 0 %` | `ConversacionFila` | E-03s · `11-*` | ✅ igual |
+| §3B | buscador con `<mark>` en el fragmento | `ConversacionesPanel` | D-06 · `09-*` | ✅ igual — `<mark>` real, con clases propias |
+| §3B | rótulo `N de M coinciden` | `ConversacionesPanel` | D-06 · `09-*` | ✅ igual (M = total de la SESIÓN) |
+| §3C | sin coincidencias: término + dónde buscó + cuántas | `ConversacionesPanel` | D-08 · `10-*` | ✅ igual, literal |
+| §3C | `Limpiar búsqueda` + el pie `Cancelar` se conserva | `ConversacionesPanel` | D-08/D-09 · `10-*` | ✅ igual |
+| §3D | una sola conversación ⇒ **sin buscador** | `ConversacionesPanel` | D-05 · `11-*` | ✅ igual |
+| §3D | el mensaje «Esta sesión recién arranca…» | `ConversacionesPanel` | D-05 · `11-*` | ✅ igual |
+| §3 pie | **sólo** `Cancelar` (C-9) | `ConversacionesPanel` | D-08 · `04-*` | ✅ igual — nadie agregó un «Retomar» por simetría |
+| §4A | franja de retoma + `--resume <cc8>` | `ChatDock` | A-11/A-12 · `08-*` | ✅ igual — sin cc-id no se dibuja el `--resume` (E-16) |
+| §4A | el detalle se abre solo al retomar | `ConversacionRow` + store | A-11 · `08-*` | ✅ igual |
+| §4B | vacío que nombra la desactivada | `Messages` | A-09/A-10 · `05-*` | ✅ igual, literal |
+| §4B | chip a `0%`, no se esconde | `CtxChip` | C-03 · A-09 · `05-*` | ✅ igual |
+| §4C | marca de rotación inline, centrada y punteada | `Messages` (`RolSys`) | A-14 · `06-*` | ⚠️ **el texto es el del código** (`— contexto rotado, seguimos —`), no el del dibujo (`⟳ contexto rotado · checkpoint`). Es **C-5, ya resuelta a favor del código**: el string ya está persistido en transcripts vivos y reescribirlo dejaría dos marcas para lo mismo. El **aspecto** sí es el del dibujo |
+| §4C | el detalle se abre solo al rotar, con el cc-id nuevo | store + `ConversacionRow` | A-14 · `06-*` | ✅ igual |
+| §5 | la mudanza: el picker pierde el bloque | `new-session-picker.tsx` | F-01 (assert por ausencia) | ✅ igual — **adelantado** del tramo 5 (CV-D17) |
+| §6A | esqueleto de carga, 3 barras | `ConversacionesPanel` | D-01 | ✅ igual — contrato ARIA de `PickerSkeleton`, sin las clases `pf-*` (C-4) |
+| §6B | error de lectura + `Reintentar` | `ConversacionesPanel` | D-02/D-03 · `12-*` | ⚠️ **el motivo va en `--foreground` con regla `--warn` a la izquierda**, no en `--warn`. Es **C-3**, ya firmada: `--warn` como texto mide 3,76:1 |
+| §6 | `.resumebar.bad` (definido y sin usar en el dibujo) | `ChatDock` | A-13 | ✅ **usado** — C-11 autorizaba el superset; texto en `--foreground` sobre `--crit-soft` |
+| §2A | «no hay botón de cerrar», a propósito | `ConversacionRow` | B-01 (no existe tal control) | ✅ igual |
 
----
+**Resumen: 30 ✅ · 5 ⚠️ · 0 ❌.** Las cinco desviaciones son: una superset (el `✎`), tres por el
+gate a11y (las dos del contraste + la de N-1) y una por contradicción ya firmada (C-5, el texto de
+la marca). **Ninguna es una simplificación.**
+
+Lo que la tabla NO cubre, porque el dibujo no lo dibuja: el borrado de las 3 conversaciones
+cerradas (T32) y el E2E contra el binario instalado (T31). Los dos siguen abiertos.
 
 ## 3 · Desviaciones y huecos declarados
 
@@ -818,8 +998,29 @@ está vacía **por no construida**, no por no mirada.
 
 ### 3.2 Las 13 contradicciones de `design.md` §2
 
-Las 13 conservan el veredicto del documento. **Realizadas hasta ahora: C-3** (T3, sobre el picker).
-Las otras 12 se realizan en los tramos 2-5 y se anotan acá cuando ocurran.
+Las 13 conservan el veredicto del documento. **Realizadas: 11 de 13.**
+
+| id | dónde se realizó | cómo |
+|---|---|---|
+| C-1 | T24 · T27 | `＋` y filas deshabilitados **con `title`**; B-07 y E-08s prueban que el handler no corre |
+| C-2 | T25 | 2 filas en reposo (A-04), **3** con nodo (A-06) — el conteo se declara, no se discute |
+| C-3 | T3 · **T23 · T28** | el número del chip y el motivo del error en `--foreground`; `--warn` sólo como barra y regla |
+| C-4 | T28 | el esqueleto calca el **contrato ARIA** de `PickerSkeleton` en Tailwind, sin las clases `pf-*` |
+| C-5 | T25 | el texto de la marca es el del código; el **aspecto**, el del dibujo (A-14) |
+| C-6 | T16 (tramo 2) · T22 | la rotación emite frame y el FE lo appendea por `turno_idx` |
+| C-8 | T27/T28 | contrato `listbox`/`option`, con la desviación de elemento declarada en §1.13 |
+| C-9 | T28 | el pie lleva **sólo** `Cancelar` |
+| C-10 | T24 | dos controles, dos destinos de foco (B-04/B-05) |
+| C-11 | T25 | `.resumebar.bad` **usado** (A-13), texto en `--foreground` sobre `--crit-soft` |
+| C-12 | T19 (tramo 2) | el schema `Session` del OpenAPI corregido |
+| C-7 | — | no es contradicción: es el antes y el después. §1 del mockup conserva el `⟩` a propósito |
+| C-13 | ⚠ **abierta** | el anillo de foco sigue en `outline-primary` (2,51:1 en claro). Se conservó el precedente del repo, como manda el veredicto; la deuda del token sigue en `BACKLOG.md` |
+
+**Sub-cláusula de C-10 diferida, declarada:** «con una sola conversación el `🔍` se oculta». El
+`🔍` vive en `ConversacionRow`, que **no conoce cuántas conversaciones hay** — `ConversacionRowProps`
+(`design.md` §3.2) no tiene ese dato y agregárselo era inventar contrato. Hoy el `🔍` siempre está;
+abre una lista que, con una sola, ya no dibuja buscador (RF-325 CA-2, D-05). El costo es un click
+que abre algo poco útil, no un error.
 
 ### 3.3 Los 9 huecos de `arquitectura.md` §9 (H-A…H-I)
 
@@ -844,6 +1045,9 @@ as-code: figura como celda `(pendiente — juicio)` en el boundary y fuera de su
 | N-11 | la arquitectura §7.6 punto 1 afirma que `esquema.go` cae bajo `TestNoJSONLSchemaParsing`. **No cae**: ese scan cubre `usecase`, `domain` y `adapters/telemetria`, y `esquema.go` vive en `adapters/store`. Sin efecto práctico | §1.8 T9 |
 | N-12 | 🔴 **el enforcer del contrato tenía una rama que no podía ejecutarse nunca.** `docOpenAPI` modelaba un path como `map[verbo]operación`, así que un `parameters:` a nivel de path hacía fallar el parseo del yaml ENTERO y los 4 enforcers caían juntos. `TestQueryParamEstaDeclarado` ya traía el código que junta los parámetros comunes: muerto, porque el documento que lo habría ejercitado no parseaba. Reparado (`pathDoc` con `yaml:",inline"`) y **verificado por fallo inducido** | §1.10 T19 |
 | N-13 | ⚠ **los `s.publish` de `consume` están FUERA del guard `r.live == live`** (preexistente, 7 tramos). Tras una transición o una rotación, un evento tardío del proceso viejo **no muta estado** —eso lo fija `TestFramesDelConductorViejoSeDescartan`— pero **sí sale por el SSE**, con `run_id` vacío. Ventana angosta (el proceso se cierra al soltar el candado) y **preexistente**: no lo introduce este paquete y moverlo tocaría 7 caminos. **Declarado, no tapado** — es pariente del hueco de `frames-idempotentes-run-id` que el boundary ya anota | §1.10 T15 · BACKLOG |
+| N-15 | 🔴 **el panel re-renderizaba el transcript entero en cada tecla.** `useConversaciones()` sin selector devuelve el objeto del store, cuya identidad cambia en cada `set`: el dock entero —transcript incluido— se re-renderizaba con cada letra del buscador y con cada frame. Es exactamente lo que `arquitectura.md` §6.3 manda evitar y lo que el plan de T22 prohíbe para los selectores del store compartido; nadie lo dijo del store del widget. Corregido leyendo de a un primitivo | §1.13 T25 |
+| N-16 | ⚠ **`aria-controls` apuntando a la nada rompe axe cuando `aria-expanded="true"`.** Lo cazó el gate en la PRIMERA corrida de B-02: la story medía una composición imposible (la fila declara controlar un panel que la story no montaba). Es el comportamiento correcto de axe —con `aria-expanded="false"` lo tolera, porque el panel todavía no existe— y la story se arregló montando el contenedor, no bajando el gate | §1.13 T24 |
+| N-17 | ⚠ **el contrato `<ul role="listbox">`/`<li role="option">` de `design.md` §8.2 no compila contra el linter del repo.** `noNoninteractiveElementToInteractiveRole` (biome, `recommended`) prohíbe el rol interactivo sobre `li`/`ul`. Se realiza sobre `<div>` con los mismos roles: el contrato ARIA queda idéntico y `useSemanticElements` está apagado justamente porque este repo prefiere el rol explícito. **El diseño no lo previó** | §1.13 T27/T28 |
 | N-14 | ⚠ **`sessionWire` no estaba en ningún ticket.** La sesión del wire tiene que proyectar sólo su conversación activa (`arquitectura.md` §6.1 lo dibuja, la validación de T20 lo exige), pero ni T18 ni T19 ni T20 lo listaban en sus «Archivos». Se construyó en T18 y se declara. Sin él, `GET /api/sessions` mandaría el transcript de cada conversación de cada sesión | §1.10 T18 |
 
 ---
@@ -856,9 +1060,9 @@ Se listan para que nadie los lea como verdes:
 |---|---|
 | 13 · los **6 guiones E2E** contra el binario instalado | 🔴 **NO CORRIDOS.** Es T31, tramo 5. Validan una superficie que no existe; correrlos hoy sólo mediría el arreglo de contraste, a costa de reemplazar el binario instalado del operador (`make dev-sync`) y matarle el daemon. Se decidió **no hacerlo**: cero valor probatorio, costo real |
 | 14 · Modo B (ventana Tauri, gate humano) | 🔴 no corrido — depende del 13 |
-| 15 · los 50 escenarios E-01…E-50 | ⚠ **~28 de 50, dominio + disco + API**: a los ~12 del tramo 1 el tramo 2 suma E-01, E-03, E-07, E-08, E-09, E-11, E-15, E-19, E-20, E-22, E-23, E-25, E-26, E-27, E-29, E-30, E-35, E-36, E-37, E-39. Ninguno verificado **de punta a punta**: hay API, **no hay UI** — los que hablan de lo que el operador VE siguen fuera de alcance |
-| 16 · las 56 stories | ⚠ **3 de 56** (las A-01..A-03 del baseline, que no son de la superficie nueva) — el tramo 2 **no toca el FE**, así que no las mueve |
-| — · el FE contra el backend nuevo | 🔴 **ROTO A PROPÓSITO** hasta T21-T22 — ver §1.12. `tsc` pasa igual, y eso es justamente el problema |
+| 15 · los 50 escenarios E-01…E-50 | ⚠ **~44 de 50**: a los ~28 del tramo 2, los tramos 3-4 suman la mitad de superficie de E-02, E-04, E-05, E-06, E-10, E-13, E-16, E-21, E-24, E-28, E-32, E-34, E-38, E-40, E-41, E-42, E-48. **Ninguno verificado contra el daemon vivo**: hay API y hay UI, pero se probaron por separado. Los 6 que faltan van a T31 (E2E) y T32 (E-46) |
+| 16 · las 56 stories | ✅ **61 stories** en 5 archivos + el assert F-01 en el 6.º. El plan preveía 56; la cuenta real de sus propias tablas (A17+B11+C10+D14+E9) da 61, y están las 61. Más 17 tests unitarios (7 del store compartido + 10 del store del panel) |
+| — · el FE contra el backend nuevo | ✅ **REPARADO** — `tsc` pasó a 18 errores con T21 y volvió a 0 con T22-T25. La forma del wire y la del daemon coinciden campo por campo (§1.13 T21) |
 | 22 · la tabla de 5 filas del **dry-run de CV-D16** | ✅ **CORRIDA y transcrita** (§1.8 T11), contra una copia del registro real. 3 de 5 se mueven; `arnesia` sale `sin-candidata` — honesto, y la arquitectura ya lo declaraba imposible de prometer. R1 y R2 probadas a mano |
 | 23 · el **número** del benchmark de `persistLocked` | ✅ **MEDIDO**: `345 286 ns/op` con 20 conversaciones reales (~292 KB). 0,35 ms contra 15 ms de presupuesto — **43× de margen**, el corte no se dispara |
 | 24 · el rastro de **E-46** (borrado CV-D6) | 🔴 no ejecutado — es T32, **procedimiento manual del operador**. Los 3 ids (`s1b38a066`, `s408bb085`, `s020210e3`) siguen en `~/.arnesia/sesiones-cerradas.json`, **intactos**. `~/.arnesia/` NO se tocó en todo el tramo 1: `sessions.json` conserva su md5 `b1689d15…` tras seis corridas del comando de re-key, todas contra copias |
@@ -868,12 +1072,16 @@ Se listan para que nadie los lea como verdes:
 
 ## 5 · Gate 🧑‍⚖️
 
-**SIN FIRMAR, y no corresponde firmarlo.** El paquete está en el 61 % de sus tickets (20 de 33) y
-**sigue sin tener superficie visible** que comparar contra el dibujo firmado: los tramos 0, 1 y 2
-construyeron la línea base, el modelo, el disco, el usecase y la API. La firma de PARIDAD es del
-operador y se pide cuando los 26 criterios estén verdes o declarados; hoy quedan 3 que ni siquiera
-son evaluables (los E2E, el modo B y las 56 stories) — el cuarto, la transición atómica, **cerró en
-el tramo 2**.
+**SIN FIRMAR.** Ahora sí hay superficie que comparar —§2 la compara, fila por fila, con 30 ✅ y 5 ⚠️
+motivadas— pero la firma es del operador y **el ejecutor no la fabrica**. Van 29 de 33 tickets
+(88 %); faltan T30 (mudanza — su mitad de transporte ya se adelantó), **T31** (E2E contra el binario
+instalado), **T32** (el borrado de CV-D6, procedimiento manual del operador) y T33 (cierre).
+
+Lo que el operador tiene para mirar antes de firmar: las **26 capturas** de `verificacion-tramo3/`
+en los dos temas, y la app en vivo con `pnpm --dir web run dev` contra su daemon. Lo que **todavía
+no se puede afirmar** son los dos criterios que exigen el binario instalado (13 y 14) y el rastro
+de E-46.
 
 Lo único que sí admite firma parcial es el **gate de línea base de T6**, y también queda abierto:
 el local está completo y verde, pero **CI no se observó** porque pushear es decisión del operador.
+Lo mismo vale para los 4 commits de los tramos 3 y 4.

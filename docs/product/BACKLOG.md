@@ -62,15 +62,21 @@
   Failed to fetch», `new-session-picker.tsx:273`). **No se arregló dentro del paquete de voz a
   propósito** — toca `web/tokens/base.tokens.json` (o el tamaño/peso de ese span) y merece su propio
   paquete. Ver `stories/2026-07-25-spike-voz-dictado/PARIDAD.md` §Hallazgos.
-- [ ] **Contraste a11y de `--primary` como color de TEXTO en el dock.** `state: bug`. Destapado por
-  el baseline T2 de `2026-07-26-conversaciones-del-panel`, al darle su **primera story** a
-  `chat-dock.tsx` (H-1): `SessionLine` pinta el `◍ <cc-id>` con `text-primary` sobre `bg-secondary`
-  — **2,21:1** medido por axe (`#00b7aa` sobre `#eef1f1`), contra el mínimo 4,5. Es una violación
-  **preexistente del dock que se envía hoy**, invisible hasta ahora porque el widget no tenía story.
-  Misma familia que la deuda de `--warn`: un token de acento usado como color de texto. Las 3
-  stories del baseline apagan **sólo** la regla `color-contrast` y lo declaran; la superficie nueva
-  (`IdentidadDetalle`, RF-328) nace con el texto en `--foreground`. **Queda abierto** el barrido del
-  resto de los `text-primary` del árbol.
+- [ ] **Barrido del resto de los `text-primary` del árbol.** `state: bug`. **La mitad del dock
+  YA SE CERRÓ** (T23 de `2026-07-26-conversaciones-del-panel`): `SessionLine` pintaba el
+  `◍ <cc-id>` con `text-primary` sobre `bg-secondary` — **2,21:1** medido por axe (`#00b7aa` sobre
+  `#eef1f1`), contra el mínimo 4,5 — y al mudarse su cuerpo a `IdentidadDetalle` (RF-328) el texto
+  pasó a `--foreground`. Evidencia: las 3 stories del baseline **dejaron de apagar
+  `color-contrast`** y el gate a11y corre entero sobre todo el dock. Lo que queda abierto es el
+  **resto del árbol**: nadie barrió los otros `text-primary` usados como color de texto, y son de
+  la misma familia que la deuda de `--warn` de arriba (un token de acento leído como tipografía).
+- [ ] **El anillo de foco no llega a 3:1 en tema claro.** `state: bug`. Medido en
+  `2026-07-26-conversaciones-del-panel` (C-13): `--primary` (`#00b7aa`) sobre `--card` da **2,51:1**
+  y `--ring` (`#1fc6b8`) **2,14:1**, contra el 3:1 de SC 2.4.11. **No rompe el gate** porque esa
+  regla no está en el ruleset por defecto de axe, y por eso mismo no se ve sola. El paquete conservó
+  el precedente del repo (`focus:outline-2 focus:outline-primary`) en vez de inventar un anillo
+  propio sólo para el dock: dos vocabularios de foco en la misma app son peores que una deuda
+  declarada. Mismo origen que las dos de arriba — **valores de token**, y por eso van juntas.
 
 ## Identidad de build en Ajustes (CONSTRUIDO + REFINADO 2026-07-26, falta el gate en vivo)
 

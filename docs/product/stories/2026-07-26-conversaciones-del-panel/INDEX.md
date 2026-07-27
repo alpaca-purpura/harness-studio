@@ -17,8 +17,8 @@
 | **plan de tickets** | ✅ [`plan-desarrollo.md`](./plan-desarrollo.md) — **33 tickets · 6 tramos** + cobertura E-01…E-50 → ticket |
 | **plan de pruebas** | ✅ [`plan-pruebas.md`](./plan-pruebas.md) — pirámide · **circuito E2E contra la app instalada** (6 guiones) · datos de prueba aislados · 26 criterios de salida |
 | GATE 2 🧑‍⚖️ (specs+arquitectura) | ✅ **AUTORIZADO POR DIRECTIVA 2026-07-26** — ver nota abajo |
-| **implementar** | 🚧 **tramos 0, 1 y 2 CERRADOS y verdes** (T1-T20, 20 de 33) · tramos 3-5 sin empezar — ver [`PARIDAD.md`](./PARIDAD.md) §0, §1.8, §1.10 y §1.11 |
-| PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) con la evidencia de los tramos 0 y 1; **gate 🧑‍⚖️ SIN FIRMAR** (sigue sin haber superficie visible que comparar) |
+| **implementar** | 🚧 **tramos 0-3 CERRADOS y verdes + el tramo 4 casi entero** (T1-T29, **29 de 33**) · faltan T30 (su transporte ya se adelantó), T31, T32, T33 — ver [`PARIDAD.md`](./PARIDAD.md) §1.13 y §1.14 |
+| PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) — **§2 ya compara el dibujo contra el producto: 30 ✅ · 5 ⚠️ · 0 ❌**, con 26 capturas en `verificacion-tramo3/` (13 escenas × 2 temas). **Gate 🧑‍⚖️ SIN FIRMAR**: es del operador |
 
 ## GATE 1 🧑‍⚖️ — FIRMADO 2026-07-26
 
@@ -60,6 +60,9 @@ construido sobre esa parte se rehace. El ejecutor no puede presentar esto como �
 - **CV-D15** — el glifo de colapsar pasa de `⟩` a `»`, el que el rail ya usa.
 - **CV-D16** — las sesiones **vivas** con id pelado se **re-key** a clave calificada, no se borran.
   Paso 4 de la migración versionada, con respaldo y dos caminos de reversión.
+- **CV-D17** — la mudanza del picker (RF-333/RF-334) **se adelanta del tramo 5 al 3**: retirar los
+  dos métodos del cliente deja a su único consumidor sin compilar, y conservarlo sólo garantizaba
+  un error a la vista del operador. 🧑‍⚖️ **pendiente de lectura**.
 
 ## Radio de impacto (relevado, no estimado)
 
@@ -97,101 +100,68 @@ con el paquete (T5, T9-T11, T15). Declararlos `enforced` antes sería el pass fa
 
 ### Dónde vive el trabajo — LEELO PRIMERO
 
-**Nada de esto está en `main`.** Hay **dos** worktrees encadenados y ninguno se pusheó:
+**Nada de esto está en `main`.** Hay **tres** worktrees encadenados y ninguno se pusheó:
 
 | tramo | worktree | rama | parte de | commits |
 |---|---|---|---|---|
 | 1 (T8-T14) | `.claude/worktrees/agent-a12f73cab8f2b13b1` | `worktree-agent-a12f73cab8f2b13b1` | `657054d` | 6 |
-| **2 (T15-T20)** | **`.claude/worktrees/tramo2`** | **`tramo2-conversaciones`** | `68515ec` (cierre del tramo 1) | **4** |
+| 2 (T15-T20) | `.claude/worktrees/tramo2` | `tramo2-conversaciones` | `68515ec` | 4 |
+| **3 + 4 (T21-T29)** | **`.claude/worktrees/tramo3`** | **`tramo3-conversaciones`** | `4c32a4d` (cierre del tramo 2) | **5** |
 
-`tramo2-conversaciones` **ya contiene** todo el tramo 1: parte de su commit de cierre. Integrar a
-`main` es un `merge --ff-only` de `tramo2-conversaciones` mientras `main` no avance; si avanzó,
-rebase.
+`tramo3-conversaciones` **ya contiene** los tramos 1 y 2: parte del commit de cierre del 2.
+Integrar a `main` es un `merge --ff-only` mientras `main` no avance; si avanzó, rebase.
 
-### Lo hecho — TRAMOS 0, 1 y 2 CERRADOS Y VERDES (20 de 33 tickets)
+### Lo hecho — TRAMOS 0-3 CERRADOS + EL 4 CASI ENTERO (29 de 33 tickets)
 
 | commit | ticket | qué |
 |---|---|---|
-| `bc9d1d4` … `657054d` | T1-T7 | tramo 0 completo + `domain.Conversacion` (ya en `main`) |
-| `cd7571f` … `edd17c4` | T8-T14 | el modelo partido, el sobre versionado, la cuarentena, CV-D16, la ley invertida, el cableado y el benchmark |
-| `4bbe40e` | **T20/T15** | la sesión nace con su hilo · la transición atómica · el 5.º check con enforcer real · CAP-143 |
-| `a08451c` | **T16** | la rotación emite su frame · CAP-144 |
-| `b8c5c2a` | **T17** | el buscador entra al texto, fixture real de 90 turnos · CAP-145 |
-| `e041aa7` | **T18/T19** | las 4 rutas + el contrato que las declara · el parser del enforcer reparado |
+| `bc9d1d4` … `657054d` | T1-T7 | tramo 0 + `domain.Conversacion` (ya en `main`) |
+| `cd7571f` … `edd17c4` | T8-T14 | el modelo partido, el sobre versionado, la cuarentena, CV-D16, la ley invertida |
+| `4bbe40e` … `e041aa7` | T15-T20 | la transición atómica, la rotación que emite, el buscador, las rutas y el contrato |
+| `d36417e` | **T21** | los tipos del wire · el cliente · **RF-333/RF-334 adelantado (CV-D17)** |
+| `f96453c` | **T22** | el store: `activa`, `convRev`, la rama del frame, el `default:` · 7 tests |
+| `0073fec` | **T23/T24/T26/T27/T28** | las 4 piezas del panel + el transporte del widget · 44 stories · 10 tests |
+| `55f5612` | **T25/T29** | el dock recompuesto · 17 stories · **la app vuelve a funcionar** |
+| (este) | — | PARIDAD, CV-D17, capabilities, cifras, changelog |
 
-**Gate del tramo 2: los 11 comandos verdes y las cifras son PROPIAS** (tabla en `PARIDAD.md` §1.11).
-`conformance --todo` → `323 · pass 91 · fail 0 · **error 0** · deferred 232`. ⚠ **CI sigue sin
-observarse**: no se pushea, es decisión del operador.
+**Gate de los tramos 3 y 4: 11 de 12 comandos verdes, cifras PROPIAS** (tabla en `PARIDAD.md`
+§1.14). `conformance --todo` → `323 · pass 91 · fail 0 · **error 0** · deferred 232`.
+⚠ **`go-arch-lint` NO se corrió**: el binario no está en el `PATH` de este entorno y no hay target
+en el `Makefile`. ⚠ **CI sigue sin observarse**: no se pushea, es decisión del operador.
 
-### 🔴 Lo primero que tenés que saber: el FE está roto a propósito
+### 🟢 La app volvió a funcionar, y ahora tiene la superficie del dibujo
 
-Con estos 4 commits **la app no funcionaría**, y no es un descuido — es la forma del plan (backend
-en el tramo 2, FE en el 3). `PARIDAD.md` §1.12 lo detalla. En corto:
+Lo que §1.12 declaraba roto está reparado: `tsc` pasó a **18 errores** con T21 —que era el objetivo
+del ticket: volver al compilador el inventario— y volvió a **0** con T22-T25. El cromo tiene 2
+filas, el chip de contexto abre la identidad con el `cwd`, la lista abre en sitio con su buscador,
+y crear · retomar · renombrar están cableados contra el daemon.
 
-- `GET /api/sessions` ya **no** trae `claude_session_id`, `model`, `ctx_pct`, `conv`, `turnos` ni
-  `cadena_cc` en la raíz: bajaron a `activa`. `sessions-store.ts` los lee de la raíz ⇒ el dock
-  pintaría **transcript vacío y ctx 0**.
-- `client.ts` conserva `conversacionesDeArnes` (ahora **400**) e `historialCerrada` (ahora **404**).
-- **`tsc` pasa igual**, y eso es el problema: `types.ts` no cambió, así que el compilador no ve nada.
-  T21 existe justamente para que el compilador se vuelva el inventario de call-sites rotos.
-
-Nada llegó al operador: no se pusheó, no se corrió `make dev-sync`, el binario instalado es el de
-antes.
+**26 capturas** en `verificacion-tramo3/`, 13 escenas × 2 temas, revisadas a ojo.
 
 ### Lo siguiente, exacto
 
-**Arrancá por T21** (`plan-desarrollo.md` línea 673) — los tipos del wire y los 5 métodos del
-cliente. Es el ticket que destapa la cascada; los cuatro que le siguen (T22-T25) la cierran.
+**Arrancá por T30** (`plan-desarrollo.md` línea 935) y ojo: **su mitad de transporte YA ESTÁ HECHA**
+(CV-D17). Lo que queda de T30 es la nota en `mockups/INDEX.md` y el gate humano de la mudanza.
 
-- El backend YA responde con la forma de `arquitectura.md` §6.1. Comprobalo antes de escribir el
-  tipo: `curl` contra el daemon, o leé `sessionWire` en
-  `internal/adapters/transport/http/sessions.go` — es la proyección real, campo por campo.
-- **`Session.activa` NO es opcional** y `conv` va **sin `?`**: el tipo tiene que hacer imposible el
-  `if (!activa)` defensivo. El backend lo garantiza (el `activa` del wire siempre está presente, y
-  si faltara el daemon loguea `error` en vez de inventar una).
-- `client.ts` **pierde** `conversacionesDeArnes` y `historialCerrada` (sus rutas ya no existen) y
-  **gana** `conversaciones(id, q?)` **con `signal`** (teclear rápido pisa peticiones),
-  `crearConversacion`, `activarConversacion` y `renombrarConversacion` **sin `signal`**.
-- El frame nuevo: `kind: "conversacion"` con `conversacion_id`, `conversacion_evento`
-  (`creada|activada|renombrada|rotada`), `turno_idx?` (sólo en `rotada`) y `conversacion?` (el
-  estado post-transición, para repintar sin una segunda vuelta). **Sin `run_id`**, a propósito.
-- ⚠ `cadena_cc` sigue **sin consumidor**. Si T23 no lo pinta, **se borra**.
+Después:
 
-### Cuatro cosas del tramo 2 que cambian el punto de partida
-
-1. **La respuesta de `POST …/conversaciones` y de `…/activar` trae `desactivada` SIEMPRE**, con
-   `null` cuando no había ninguna. No lo deduzcas de la lista anterior.
-2. **`total` de la lista es el total de la SESIÓN**, no el de coincidencias: es el denominador del
-   «N de M coinciden». Hay un test que prohíbe confundirlos.
-3. **El fragmento llega en texto plano.** El `<mark>` es del FE (T27). El daemon no manda marcado.
-4. **`?cerradas=` responde 400 con puntero**, no 200 vacío. Si algo del FE lo manda, lo vas a ver.
-
-### Cosas del entorno que ya no hace falta re-descubrir
-
-- **El worktree resuelve N-6.** El `pre-commit` corrió limpio en los 4 commits del tramo 2 (`go-lint`
-  0 issues, `capabilities`, `capabilities-index`, `estado-cifras` regenerando solo): **cero
-  `--no-verify`**.
-- **`pnpm install --frozen-lockfile` real en el worktree, 1,2 s.** El symlink de `node_modules` NO
-  sirve para `vitest --project=storybook` (N-10): 43 rojos por «Failed to fetch dynamically imported
-  module». Con install real: **386/386 en 12,3 s**, headless.
-- **`estado-cifras` del `pre-commit` cuesta ~2 min** por commit (3× `go run`). Es el precio de que
-  las cifras se regeneren solas; no lo saltees.
-- **N-5 sigue vigente:** `golangci-lint` local (v2.12.2) es más ruidoso que el de CI sobre archivos
-  preexistentes. `--new-from-rev=HEAD` sobre lo tuyo: **0 issues** en los 4 commits.
-- **`~/.arnesia/` NO se tocó.** `sessions.json` conserva su md5 `b1689d15…`, verificado al abrir y
-  al cerrar el tramo. La única lectura fue la extracción del fixture de T17.
+- **T31 · E2E contra el binario instalado.** Es el que falta de verdad. ⚠ `make dev-sync` reemplaza
+  el binario del operador y le mata el daemon: **coordinarlo con él**, no hacerlo de sorpresa.
+- **T32 · el borrado de CV-D6** (E-46): procedimiento **manual del operador**, con el daemon
+  detenido y copia previa. Los 3 ids siguen intactos en `~/.arnesia/sesiones-cerradas.json`.
+- **T33 · cierre.**
 
 ### Lo que sigue abierto del propio paquete
 
-- **GATE 2** sigue siendo *autorizado por directiva, no por lectura*.
+- **GATE 2** sigue siendo *autorizado por directiva, no por lectura*. **CV-D17 tampoco fue leída.**
 - **El gate de T6** (CI 3/3 verde) sigue **abierto** hasta que se pushee.
-- **`archivo-durable-declara-su-esquema` va 5 de 6** y sigue `proposed`. Falta
-  `durable-no-se-wipea` (`TestDurableNuncaSeWipea`). Gradúa con los seis.
-- **`sesion-viva-consistente` pasa a `enforced` 5/5** — cerrado en T15.
-- **N-1 vigente:** el dock viola contraste en producción hoy (`SessionLine`, 2,21:1). Se corrige en
-  **T23**, no antes.
-- **14 hallazgos** declarados en `PARIDAD.md` §3.4. Los del tramo 2: **N-12** (el enforcer del
-  contrato tenía código muerto), **N-13** (los `publish` de `consume` están fuera del guard —
-  preexistente, declarado, no tapado) y **N-14** (`sessionWire` no estaba en ningún ticket).
-- **El E2E contra el binario instalado es T31 (tramo 5).** No lo adelantes: `make dev-sync`
-  reemplaza el binario del operador y le mata el daemon.
+- **`archivo-durable-declara-su-esquema` va 5 de 6** y sigue `proposed`. Falta `durable-no-se-wipea`.
+- **N-1 CERRADO** en T23: el `◍ <cc-id>` pasó a `--foreground` al mudarse al detalle. Las 3 stories
+  del baseline **dejaron de apagar `color-contrast`**.
+- **C-13 sigue abierta**: el anillo de foco mide 2,51:1 en claro. Se conservó el precedente del
+  repo, como manda su propio veredicto; la deuda del token vive en `BACKLOG.md`.
+- **17 hallazgos** en `PARIDAD.md` §3.4. Los de este tramo: **N-15** (el panel re-renderizaba el
+  transcript en cada tecla), **N-16** (`aria-controls` a la nada rompe axe con `aria-expanded=true`
+  — lo cazó el gate en la primera corrida) y **N-17** (el contrato `<ul role="listbox">` del diseño
+  no compila contra el linter; se realiza sobre `<div>`, contrato ARIA idéntico).
+- **`~/.arnesia/` NO se tocó.** md5 `b1689d15…` verificado al abrir y al cerrar el tramo.
