@@ -171,30 +171,75 @@ func SpawnEnv(opts ports.SpawnOpts, tokenIngesta, endpoint string, atrib Atribuc
 	if endpoint == "" {
 		return nil // sin receptor no se instrumenta: apuntar a la nada solo agrega latencia.
 	}
-	env := []string{
-		"CLAUDE_CODE_ENABLE_TELEMETRY=1",
-		// OBLIGATORIA — verificada en vivo. Ver el comentario de arriba.
-		"OTEL_LOGS_EXPORTER=otlp",
-		"OTEL_METRICS_EXPORTER=otlp",
-		// http/json y NO http/protobuf: es lo que hace barato al decodificador
-		// (+0,49 MB contra +10,79 MB medidos) y lo que nuestro receptor habla.
-		"OTEL_EXPORTER_OTLP_PROTOCOL=http/json",
-		// SIN `/v1/...`: el exportador concatena la ruta por spec.
-		"OTEL_EXPORTER_OTLP_ENDPOINT=" + endpoint,
-		"OTEL_METRIC_EXPORT_INTERVAL=10000",
-		"OTEL_LOGS_EXPORT_INTERVAL=5000",
+	var env []string
+	for _, kv := range VariablesTelemetria(endpoint, atrib) {
+		env = append(env, kv.K+"="+kv.V)
 	}
 	if tokenIngesta != "" {
 		// Por header, nunca por query string: un query string va a los logs de cualquier
 		// proxy que se interponga.
 		env = append(env, "OTEL_EXPORTER_OTLP_HEADERS=x-arnesia-token="+tokenIngesta)
 	}
+	return env
+}
+
+// VarTelemetria es una variable del contrato de instrumentación, con su nombre y su valor.
+type VarTelemetria struct{ K, V string }
+
+// VariablesTelemetria es **la fuente única** del juego de variables que enciende la telemetría
+// de Claude Code (D26.2 · A20 opción A).
+//
+// Existe porque hay DOS caminos para el mismo contrato y tienen que decir lo mismo:
+//
+//  1. **S1** — ArnesIA lanza el subproceso y le pasa el entorno (`SpawnEnv`);
+//  2. **S2 instrumentado** — el arnés lleva su propio `.claude/settings.json` y quien corre
+//     Claude Code a mano queda instrumentado igual (`BloqueEnvSettings`).
+//
+// Si los dos juegos divergen, uno de los dos escenarios manda una señal que el receptor no
+// entiende **y no hay ningún error visible**: simplemente no llega nada. Por eso hay una sola
+// lista y un test que compara el archivo shipeado contra ella.
+//
+// 🔴 **El token de ingesta NO está acá.** No es un olvido: Claude Code no expande `${VAR}`
+// dentro del bloque `env` (H10.2), y un token literal en un archivo versionado es publicar un
+// secreto. La salida es A22 — `/v1/*` acepta sin token bajo Host loopback. `SpawnEnv` sí lo
+// agrega porque ahí el valor no se versiona: viaja en memoria al subproceso.
+func VariablesTelemetria(endpoint string, atrib AtribucionSpawn) []VarTelemetria {
+	vs := []VarTelemetria{
+		{"CLAUDE_CODE_ENABLE_TELEMETRY", "1"},
+		// OBLIGATORIA — verificada en vivo. Ver el comentario de `SpawnEnv`.
+		{"OTEL_LOGS_EXPORTER", "otlp"},
+		{"OTEL_METRICS_EXPORTER", "otlp"},
+		// http/json y NO http/protobuf: es lo que hace barato al decodificador
+		// (+0,49 MB contra +10,79 MB medidos) y lo que nuestro receptor habla.
+		{"OTEL_EXPORTER_OTLP_PROTOCOL", "http/json"},
+		// SIN `/v1/...`: el exportador concatena la ruta por spec.
+		{"OTEL_EXPORTER_OTLP_ENDPOINT", endpoint},
+		{"OTEL_METRIC_EXPORT_INTERVAL", "10000"},
+		{"OTEL_LOGS_EXPORT_INTERVAL", "5000"},
+	}
 	// El vector de atribución: viaja COPIADO en cada log record y en cada punto (verificado),
 	// que es lo que hace posible la atribución exacta sin heurísticas.
 	if ra := atrib.recursoOTel(); ra != "" {
-		env = append(env, "OTEL_RESOURCE_ATTRIBUTES="+ra)
+		vs = append(vs, VarTelemetria{"OTEL_RESOURCE_ATTRIBUTES", ra})
 	}
-	return env
+	return vs
+}
+
+// BloqueEnvSettings arma el bloque `env` de un `.claude/settings.json` — la vía VERIFICADA
+// (ANEXO H9) para instrumentar a quien corre Claude Code a mano sobre el árbol del arnés.
+//
+// **A20 = opción A** (D26.2): el archivo vive en el repo del propio arnés y viaja en el
+// paquete. La opción B —escribirlo en el proyecto del usuario— no se construye: es escritura
+// en árbol ajeno, y eso se pide, no se hace.
+//
+// ⚡ Un `plugin.json` **no** puede aportar este bloque: medido, 0 payloads contra 2 del control
+// positivo (H10.1). No existe la auto-instrumentación al instalar.
+func BloqueEnvSettings(endpoint string, atrib AtribucionSpawn) map[string]string {
+	out := map[string]string{}
+	for _, kv := range VariablesTelemetria(endpoint, atrib) {
+		out[kv.K] = kv.V
+	}
+	return out
 }
 
 // AtribucionSpawn son las etiquetas que identifican QUÉ se está corriendo. `Caja` y `Corrida`

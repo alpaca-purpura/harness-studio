@@ -490,15 +490,14 @@ func sumarSaludTx(ctx context.Context, tx *sql.Tx, clave string, n int64, ahora 
 	return nil
 }
 
-// Salud arma el reporte. `RetencionPropuesta` viaja en true mientras el número no esté
-// firmado (J-6): la UI y el CLI lo rotulan como propuesto en vez de presentarlo como política.
+// Salud arma el reporte. El TTL sale de la config del almacén, no de una constante: es un
+// número firmado (D26.3), no uno clavado.
 func (s *Store) Salud(ctx context.Context) (domain.SaludTelemetria, error) {
 	out := domain.SaludTelemetria{
-		AlmacenDisponible:  true,
-		RetencionDias:      s.opts.RetencionDias,
-		RetencionPropuesta: true,
-		RollupMeses:        s.opts.RollupMeses,
-		HistoriaArchivada:  s.archivada,
+		AlmacenDisponible: true,
+		RetencionDias:     s.opts.RetencionDias,
+		RollupMeses:       s.opts.RollupMeses,
+		HistoriaArchivada: s.archivada,
 	}
 	rows, err := s.reader.QueryContext(ctx, `SELECT clave, valor FROM salud`)
 	if err != nil {
@@ -563,15 +562,32 @@ func (s *Store) Purgar(ctx context.Context, p ports.PurgaTelemetria) (int64, err
 	var n int64
 	switch {
 	case p.ArnesID != "":
-		res, eerr := tx.ExecContext(ctx, `DELETE FROM evento WHERE arnes_id = ?`, p.ArnesID)
+		// D26.5 — el borrado por arnés acepta ventana. Sin ventana borra todo, que es el caso
+		// que ya existía; con ventana borra **exactamente lo que la confirmación declara**.
+		cond, args := ventanaSQL("ts_recibido", p.Desde, p.Hasta)
+		//nolint:gosec // G202: `ventanaSQL` emite SQL constante con placeholders `?`; el arnés y
+		// los instantes viajan por `args`. Es un DELETE: la revisión de esta línea importa, y por
+		// eso el motivo está escrito y no es un silenciador genérico.
+		res, eerr := tx.ExecContext(ctx,
+			`DELETE FROM evento WHERE arnes_id = ?`+cond, append([]any{p.ArnesID}, args...)...)
 		if eerr != nil {
 			return 0, fmt.Errorf("store: purga por arnés: %w", eerr)
 		}
 		n, _ = res.RowsAffected()
-		if _, eerr := tx.ExecContext(ctx, `DELETE FROM rollup_hora WHERE arnes_id = ?`, p.ArnesID); eerr != nil {
-			return 0, fmt.Errorf("store: purga rollup por arnés: %w", eerr)
+		// El agregado se borra en bloque SOLO cuando el borrado es total. Con ventana, las
+		// horas afectadas se **recomputan** desde la tabla cruda (`Recomputar`), que es lo
+		// único que deja el agregado coherente con lo que quedó: borrarlo entero se llevaría
+		// puestas horas que el usuario no pidió borrar.
+		if p.Desde.IsZero() && p.Hasta.IsZero() {
+			if _, eerr := tx.ExecContext(ctx, `DELETE FROM rollup_hora WHERE arnes_id = ?`, p.ArnesID); eerr != nil {
+				return 0, fmt.Errorf("store: purga rollup por arnés: %w", eerr)
+			}
 		}
-		if _, eerr := tx.ExecContext(ctx, `DELETE FROM turno_esperado WHERE arnes_id = ?`, p.ArnesID); eerr != nil {
+		condT, argsT := ventanaSQL("ts", p.Desde, p.Hasta)
+		//nolint:gosec // G202: mismo caso que arriba — SQL constante con placeholders `?`.
+		if _, eerr := tx.ExecContext(ctx,
+			`DELETE FROM turno_esperado WHERE arnes_id = ?`+condT,
+			append([]any{p.ArnesID}, argsT...)...); eerr != nil {
 			return 0, fmt.Errorf("store: purga turnos por arnés: %w", eerr)
 		}
 	case !p.AntesDe.IsZero():
@@ -751,4 +767,24 @@ func boolOpcional(b *bool) any {
 		return 1
 	}
 	return 0
+}
+
+// ventanaSQL arma el predicado de ventana para un borrado acotado (D26.5). Devuelve cadena
+// vacía cuando no hay ventana: **sin ventana el borrado es total**, y eso es explícito, no un
+// descuido de construcción de query.
+//
+// El borde es `>= desde` y `< hasta`, el mismo que usan las lecturas: dos rangos contiguos no
+// pueden reclamar el mismo instante.
+func ventanaSQL(col string, desde, hasta time.Time) (string, []any) {
+	var cond string
+	var args []any
+	if !desde.IsZero() {
+		cond += " AND " + col + " >= ?"
+		args = append(args, desde.UTC().Format(time.RFC3339Nano))
+	}
+	if !hasta.IsZero() {
+		cond += " AND " + col + " < ?"
+		args = append(args, hasta.UTC().Format(time.RFC3339Nano))
+	}
+	return cond, args
 }

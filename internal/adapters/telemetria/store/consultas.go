@@ -93,6 +93,7 @@ func (s *Store) Resumen(ctx context.Context, q ports.ConsultaTelemetria) (domain
 	row := s.reader.QueryRowContext(ctx,
 		`SELECT SUM(costo_reportado_micros), SUM(costo_calculado_micros),
 		        COUNT(DISTINCT corrida_id), COUNT(DISTINCT sesion_id), COUNT(DISTINCT turno_id),
+		        COUNT(DISTINCT caja_id),
 		        -- El agregado es completo solo si TODAS sus partes lo son. Basta un evento
 		        -- que no se pudo cotizar entero para que el total sea una cota inferior.
 		        MIN(COALESCE(costo_completo, 1)),
@@ -103,7 +104,7 @@ func (s *Store) Resumen(ctx context.Context, q ports.ConsultaTelemetria) (domain
 		   FROM evento`+whereAtrib, args...)
 	var rep, calc sql.NullInt64
 	var completoMin, conCalculo, sinTier sql.NullInt64
-	if err := row.Scan(&rep, &calc, &out.Corridas, &out.Sesiones, &out.Turnos,
+	if err := row.Scan(&rep, &calc, &out.Corridas, &out.Sesiones, &out.Turnos, &out.Cajas,
 		&completoMin, &conCalculo, &sinTier); err != nil {
 		return out, fmt.Errorf("store: resumen: %w", err)
 	}
@@ -132,7 +133,46 @@ func (s *Store) Resumen(ctx context.Context, q ports.ConsultaTelemetria) (domain
 	out.Cobertura = cob
 	out.Escenario = esc
 	out.Confianza = conf
+
+	// D26.4 (estado 1b) — la última corrida se busca **IGNORANDO la ventana**. Es todo el
+	// punto: sin este dato, «0 corridas en los últimos 7 días» y «este arnés nunca corrió» se
+	// dicen igual, y sobre un arnés con dos años de historial la segunda es falsa.
+	if ultima, rt, uerr := s.ultimaCorridaYRuntime(ctx, q); uerr != nil {
+		return out, uerr
+	} else {
+		out.UltimaCorrida = ultima
+		out.Runtime = rt
+		out.RuntimeSoportado = domain.RuntimeSoportado(rt)
+	}
 	return out, nil
+}
+
+// ultimaCorridaYRuntime mira TODO el historial del arnés, sin la ventana. Devuelve `nil`
+// cuando de verdad no hay nada — ese es el estado «nunca corrió», y es distinto de «no corrió
+// en estos 7 días».
+func (s *Store) ultimaCorridaYRuntime(ctx context.Context, q ports.ConsultaTelemetria) (*time.Time, string, error) {
+	sinVentana := q
+	sinVentana.Desde, sinVentana.Hasta = time.Time{}, time.Time{}
+	where, args := filtro(sinVentana)
+	//nolint:gosec // G202: lo concatenado es SQL CONSTANTE (`filtro`/`ventanaSQL` solo emiten
+	// literales con placeholders `?`); todo valor viaja por `args`. No hay interpolación de dato.
+	row := s.reader.QueryRowContext(ctx,
+		`SELECT MAX(ts_recibido), runtime FROM evento`+where+` ORDER BY ts_recibido DESC`, args...)
+	var ts, rt sql.NullString
+	if err := row.Scan(&ts, &rt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, "", nil
+		}
+		return nil, "", fmt.Errorf("store: última corrida: %w", err)
+	}
+	var ultima *time.Time
+	if ts.Valid && ts.String != "" {
+		if t, perr := time.Parse(time.RFC3339Nano, ts.String); perr == nil {
+			u := t.UTC()
+			ultima = &u
+		}
+	}
+	return ultima, rt.String, nil
 }
 
 // cobertura cuenta los turnos por confianza y los concilia contra los esperados (A9).
@@ -548,4 +588,46 @@ func acumularToken(dst **int64, v sql.NullInt64) {
 		return
 	}
 	**dst += v.Int64
+}
+
+// Descartar registra que el operador no quiere volver a ver un punto (D26.4). Es idempotente:
+// descartar dos veces lo mismo no es un error, es la misma decisión.
+func (s *Store) Descartar(ctx context.Context, arnesID, puntoID string, ahora time.Time) error {
+	_, err := s.writer.ExecContext(ctx,
+		`INSERT OR REPLACE INTO punto_descartado (arnes_id, punto_id, ts) VALUES (?, ?, ?)`,
+		arnesID, puntoID, ahora.UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return fmt.Errorf("store: descartar %s/%s: %w", arnesID, puntoID, err)
+	}
+	return nil
+}
+
+// Recuperar deshace un descarte. Existe porque un descarte sin vuelta atrás convierte un clic
+// distraído en pérdida permanente de un hallazgo que costó dinero producir.
+func (s *Store) Recuperar(ctx context.Context, arnesID, puntoID string) error {
+	_, err := s.writer.ExecContext(ctx,
+		`DELETE FROM punto_descartado WHERE arnes_id = ? AND punto_id = ?`, arnesID, puntoID)
+	if err != nil {
+		return fmt.Errorf("store: recuperar %s/%s: %w", arnesID, puntoID, err)
+	}
+	return nil
+}
+
+// Descartados lista los puntos que el operador descartó para un arnés.
+func (s *Store) Descartados(ctx context.Context, arnesID string) (map[string]bool, error) {
+	rows, err := s.reader.QueryContext(ctx,
+		`SELECT punto_id FROM punto_descartado WHERE arnes_id = ?`, arnesID)
+	if err != nil {
+		return nil, fmt.Errorf("store: descartados: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	out := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if serr := rows.Scan(&id); serr != nil {
+			return nil, fmt.Errorf("store: descartados scan: %w", serr)
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
 }

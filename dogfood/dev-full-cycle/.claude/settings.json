@@ -1,0 +1,13 @@
+{
+  "$comment": "A20 opción A (D26.2) — el bloque `env` que instrumenta este arnés cuando se lo trabaja a mano, con Claude Code corriendo sobre ESTE árbol y no lanzado por ArnesIA. Es la vía VERIFICADA en vivo (ANEXO-hooks.md H9): un plugin.json NO puede aportar `env` (H10.1: 0 payloads contra 2 del control positivo), así que no existe la auto-instrumentación al instalar. NO lleva token: Claude Code no expande ${VAR} dentro de `env` (H10.2) y un secreto literal en un archivo versionado es un secreto publicado — /v1/* acepta sin token bajo Host loopback (A22). El endpoint es el default del daemon; con el daemon en otro puerto esto no manda nada y no avisa, que es el límite conocido de un archivo versionado. Fuente única del juego de variables: claudecode.VariablesTelemetria — el test TestElBloqueEnvDelArnesNoDriftea falla si este archivo se separa de ella.",
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://127.0.0.1:4200",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORT_INTERVAL": "5000",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_METRIC_EXPORT_INTERVAL": "10000",
+    "OTEL_RESOURCE_ATTRIBUTES": "arnesia.arnes=dev-full-cycle"
+  }
+}

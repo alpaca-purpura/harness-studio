@@ -153,9 +153,16 @@ func getPortafolio(svc *usecase.TelemetriaService) http.HandlerFunc {
 // borradoResponse es lo que devuelve el botón de borrado.
 type borradoResponse struct {
 	Borrados int64 `json:"borrados"`
+	// Ventana dice si el borrado fue acotado. Sin este campo, «borrados: 61» no distingue
+	// «borré los 61 de la ventana» de «borré 61, que era todo lo que había».
+	Ventana bool `json:"ventana"`
 }
 
 // deleteTelemetriaArnes borra la telemetría de un arnés — detalle **y** agregado.
+//
+// Acepta `desde`/`hasta` (D26.5 · A-4): **el borrado se acota a la ventana que la confirmación
+// declara**. Sin ellos borra todo el historial, que es el comportamiento anterior y sigue
+// siendo válido — pero ahora es una elección del llamador, no la única opción.
 func deleteTelemetriaArnes(svc *usecase.TelemetriaService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clave := r.PathValue("clave")
@@ -163,12 +170,19 @@ func deleteTelemetriaArnes(svc *usecase.TelemetriaService) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, errorBody{Error: "falta la clave del arnés"})
 			return
 		}
-		n, err := svc.BorrarArnes(r.Context(), clave)
+		q, qerr := ventanaDeQuery(r)
+		if qerr != nil {
+			// Una ventana ilegible en un borrado **no se ignora**: ignorarla borraría todo
+			// cuando el usuario pidió una parte.
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: qerr.Error()})
+			return
+		}
+		n, err := svc.BorrarArnes(r.Context(), clave, q.Desde, q.Hasta)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, borradoResponse{Borrados: n})
+		writeJSON(w, http.StatusOK, borradoResponse{Borrados: n, Ventana: !q.Desde.IsZero() || !q.Hasta.IsZero()})
 	}
 }
 
@@ -209,5 +223,48 @@ func postProceso(svc *usecase.TelemetriaService, revalidar func(domain.EventoTel
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+// descarteResponse confirma la decisión. Lleva el estado resultante y no solo un 200: la UI
+// tiene que poder pintar el botón de vuelta atrás sin adivinar en qué quedó la cosa.
+type descarteResponse struct {
+	Punto      string `json:"punto"`
+	Descartado bool   `json:"descartado"`
+}
+
+// postDescartarPunto guarda que el operador no quiere volver a ver un punto (D26.4).
+//
+// Hasta acá el botón nacía `disabled` y lo decía —honesto, pero no era la afordancia (A-1)—
+// porque **no existía dónde guardar el descarte**. Ahora existe, y persiste: un descarte que
+// se pierde al reiniciar no es un descarte.
+func postDescartarPunto(svc *usecase.TelemetriaService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clave, punto := r.PathValue("clave"), r.PathValue("puntoId")
+		if clave == "" || punto == "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "falta el arnés o el punto"})
+			return
+		}
+		if err := svc.DescartarPunto(r.Context(), clave, punto); err != nil {
+			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, descarteResponse{Punto: punto, Descartado: true})
+	}
+}
+
+// deleteDescartarPunto deshace el descarte. Es la vuelta atrás que la tarjeta promete.
+func deleteDescartarPunto(svc *usecase.TelemetriaService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clave, punto := r.PathValue("clave"), r.PathValue("puntoId")
+		if clave == "" || punto == "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "falta el arnés o el punto"})
+			return
+		}
+		if err := svc.RecuperarPunto(r.Context(), clave, punto); err != nil {
+			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, descarteResponse{Punto: punto, Descartado: false})
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/agent/claudecode"
 	telcatalogo "github.com/alpacapurpura/arnesia/internal/adapters/telemetria/catalogo"
 	"github.com/alpacapurpura/arnesia/internal/adapters/telemetria/hooks"
 	"github.com/alpacapurpura/arnesia/internal/adapters/telemetria/otlp"
@@ -115,8 +116,10 @@ func TestAllowlistNoPersistePII(t *testing.T) {
 		t.Fatal(err)
 	}
 	texto := string(crudo)
-	for _, m := range []string{marcaEmail, marcaCta, marcaUUID, marcaUser, marcaOrg,
-		"user.email", "account_uuid", "organization.id", "REDACTADO"} {
+	for _, m := range []string{
+		marcaEmail, marcaCta, marcaUUID, marcaUser, marcaOrg,
+		"user.email", "account_uuid", "organization.id", "REDACTADO",
+	} {
 		if strings.Contains(texto, m) {
 			t.Errorf("la identidad llegó al almacén: %q aparece como subcadena del .db", m)
 		}
@@ -306,8 +309,12 @@ func TestNoAplicaNoEsCeroEnElWire(t *testing.T) {
 // Si no, la cifra podría viajar sola hasta la pantalla.
 func TestCifraLlevaConfianza(t *testing.T) {
 	tipos := []any{
-		domain.EventoTelemetria{}, domain.ResumenTelemetria{}, domain.GastoCaja{},
-		domain.TurnoUnido{}, domain.DetalleCaja{}, domain.FilaPortafolio{},
+		domain.EventoTelemetria{},
+		domain.ResumenTelemetria{},
+		domain.GastoCaja{},
+		domain.TurnoUnido{},
+		domain.DetalleCaja{},
+		domain.FilaPortafolio{},
 		domain.PuntoDeMejora{},
 	}
 	revisados := 0
@@ -660,10 +667,13 @@ func TestDetectorQueNoAplicaTraeMotivo(t *testing.T) {
 			t.Errorf("%s: Motivo es OBLIGATORIO cuando no aplica", d.ID())
 		}
 	}
-	// Control positivo: con señal completa, los seis aplican.
+	// Control positivo: con señal completa, los seis aplican. `CatalogoDisponible` entra por
+	// D26.1: B1 y B3 cotizan con el catálogo, y sin él prefieren declararse antes que devolver
+	// un número en tokens disfrazado de dinero.
 	completo := domain.ContextoDeteccion{
 		Runtime: "claude-code", TieneCosto: true, TieneSplitTTL: true, TieneSenalProceso: true,
 		TieneGateHumano: true, TieneEventoRotacion: true, ModelosDistintos: 2,
+		CatalogoDisponible: true,
 	}
 	for _, d := range ds {
 		if !d.Aplica(completo).Aplica {
@@ -1408,4 +1418,59 @@ func TestElOraculoApuntaALoInexplicado(t *testing.T) {
 	}
 	t.Logf("explicada: %.1f %% (no suena, motivo %v) · inexplicada: %.1f %% (SUENA)",
 		*expl.DivergenciaPct, expl.SinTarifa, *inex.DivergenciaPct)
+}
+
+// TestElBloqueEnvDelArnesNoDriftea — A20 opción A (D26.2), y el candado de que las DOS vías
+// de instrumentación digan lo mismo.
+//
+// Hay dos caminos para el mismo contrato: ArnesIA lanza el subproceso con el entorno puesto
+// (S1), o el arnés lleva su propio `.claude/settings.json` y quien corre Claude Code a mano
+// queda instrumentado igual (s2-instrumentado). **Si divergen, uno de los dos manda una señal
+// que el receptor no entiende y no hay ningún error visible**: simplemente no llega nada —
+// que es el peor modo de falla de este módulo y el que H10.4 midió con control positivo.
+//
+// 🔴 Y asserta la AUSENCIA del token: `${VAR}` no se expande dentro del bloque `env` (H10.2),
+// así que la única forma de meterlo sería el valor literal, o sea un secreto versionado.
+func TestElBloqueEnvDelArnesNoDriftea(t *testing.T) {
+	const endpoint = "http://127.0.0.1:4200"
+	ruta := filepath.Join(repoRoot(), "dogfood/dev-full-cycle/.claude/settings.json")
+	b, err := os.ReadFile(ruta) //nolint:gosec // ruta del propio árbol del repo
+	if err != nil {
+		t.Fatalf("el arnés tiene que shipear su bloque env (A20 opción A): %v", err)
+	}
+	var archivo struct {
+		Env map[string]string `json:"env"`
+	}
+	if uerr := json.Unmarshal(b, &archivo); uerr != nil {
+		t.Fatalf("settings.json del arnés ilegible: %v", uerr)
+	}
+	esperado := claudecode.BloqueEnvSettings(endpoint,
+		claudecode.AtribucionSpawn{ArnesID: "dev-full-cycle"})
+
+	if !reflect.DeepEqual(archivo.Env, esperado) {
+		t.Errorf("el bloque env del arnés se separó de `VariablesTelemetria`:\n  archivo:  %v\n  esperado: %v",
+			archivo.Env, esperado)
+	}
+	// Las tres que, si faltan, apagan la señal EN SILENCIO. Se nombran una por una para que el
+	// error diga cuál, en vez de un DeepEqual que obliga a comparar a ojo.
+	for _, k := range []string{
+		"OTEL_LOGS_EXPORTER", "OTEL_EXPORTER_OTLP_PROTOCOL",
+		"OTEL_EXPORTER_OTLP_ENDPOINT",
+	} {
+		if archivo.Env[k] == "" {
+			t.Errorf("falta %s: sin ella no llega NADA y no hay error visible (H10.4)", k)
+		}
+	}
+	// El token no viaja en un archivo versionado. Ni por nombre.
+	for k, v := range archivo.Env {
+		if strings.Contains(strings.ToLower(k+v), "token") {
+			t.Errorf("%s=%s: el token de ingesta no puede vivir en un archivo versionado (A22)", k, v)
+		}
+	}
+	// ── Control positivo: el candado detecta una diferencia real ──
+	otro := claudecode.BloqueEnvSettings(endpoint,
+		claudecode.AtribucionSpawn{ArnesID: "otro-arnes"})
+	if reflect.DeepEqual(archivo.Env, otro) {
+		t.Error("el comparador no distingue dos bloques distintos: no está probando nada")
+	}
 }

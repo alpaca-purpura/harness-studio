@@ -17,11 +17,43 @@ func ventanaBase(turnos []TurnoUnido, c ContextoDeteccion) Ventana {
 		Desde:   time.Date(2026, 7, 20, 0, 0, 0, 0, time.UTC),
 		Hasta:   time.Date(2026, 7, 26, 0, 0, 0, 0, time.UTC),
 		ArnesID: "vitalia", Turnos: turnos, TotalMicros: total, Contexto: c,
+		Precios: preciosDeTest(turnos),
 	}
 }
 
+// preciosDeTest le da precio a los modelos de la ventana, como hace el servicio (D26.1). Las
+// tarifas son redondas a propósito —1 micro por token de escritura a 5 min, 1,6 a 1 h— para
+// que el assert diga qué se está probando y no dependa del catálogo real.
+//
+// Un modelo que un test NO quiera cotizar simplemente no entra acá: la ausencia es el caso
+// «no está en el catálogo», y el detector la declara en vez de cobrarla a cero.
+func preciosDeTest(turnos []TurnoUnido) map[string]PrecioModelo {
+	tarifa := func(v float64) *float64 { return &v }
+	out := map[string]PrecioModelo{}
+	for _, t := range turnos {
+		if t.Modelo == "" {
+			continue
+		}
+		out[t.Modelo] = PrecioModelo{
+			ModeloCanonico:   t.Modelo,
+			Entrada:          tarifa(0.0000008),
+			Salida:           tarifa(0.000004),
+			CacheLectura:     tarifa(0.0000001),
+			CacheEscritura5m: tarifa(0.000001),
+			CacheEscritura1h: tarifa(0.0000016),
+		}
+	}
+	return out
+}
+
 func turno(id string, mod func(*TurnoUnido)) TurnoUnido {
-	t := TurnoUnido{SesionID: "s-1", TurnoID: id, ArnesID: "vitalia", Atribucion: ConfianzaExacta}
+	// `Modelo` viene con default porque desde D26.1 **cotizar exige saber de qué modelo se
+	// habla**: un turno sin modelo no tiene tarifa, y eso es un caso de borde propio, no el
+	// caso base.
+	t := TurnoUnido{
+		SesionID: "s-1", TurnoID: id, ArnesID: "vitalia",
+		Modelo: "claude-haiku-4-5", Atribucion: ConfianzaExacta,
+	}
 	if mod != nil {
 		mod(&t)
 	}
@@ -118,6 +150,7 @@ func TestS2InstrumentadoTieneDineroYNoTieneSplit(t *testing.T) {
 	c := ContextoDeteccion{
 		Runtime: "claude-code", Escenario: EscenarioS2Instrumentado,
 		TieneCosto: true, TieneSplitTTL: false, TieneSenalProceso: true, ModelosDistintos: 2,
+		CatalogoDisponible: true,
 	}
 	encendidos := map[DetectorID]bool{DetB4: true, DetB6: true, DetB3: true}
 	for _, d := range DetectoresMVP() {
@@ -159,14 +192,25 @@ func TestB1BreakEvenTTL(t *testing.T) {
 			b1 = d
 		}
 	}
-	v := ventanaBase([]TurnoUnido{
-		turno("t-1", func(t *TurnoUnido) {
+	// **DOS escrituras del mismo contexto**: eso es lo que el vencimiento largo evita. Con una
+	// sola no hay re-warm y no hay punto — es la condición de existencia de B1 desde D26.1.
+	ctx := ContextoDeteccion{
+		Runtime: "claude-code", TieneCosto: true, TieneSplitTTL: true,
+		CatalogoDisponible: true,
+	}
+	turnoQueEscribe := func(id string) TurnoUnido {
+		return turno(id, func(t *TurnoUnido) {
 			t.Tokens.CacheEscritura5m = ptr(10_000)
 			t.Tokens.CacheEscritura1h = ptr(0)
 			t.CostoReportadoMicros = ptr(20_000)
-		}),
-	}, ContextoDeteccion{Runtime: "claude-code", TieneCosto: true, TieneSplitTTL: true})
+		})
+	}
+	// Control negativo primero: UNA escritura no es un hallazgo chico, no es un hallazgo.
+	if p := b1.Evaluar(ventanaBase([]TurnoUnido{turnoQueEscribe("t-1")}, ctx)); len(p) != 0 {
+		t.Errorf("con una sola escritura no hay re-warm que evitar: %+v", p)
+	}
 
+	v := ventanaBase([]TurnoUnido{turnoQueEscribe("t-1"), turnoQueEscribe("t-2")}, ctx)
 	puntos := b1.Evaluar(v)
 	if len(puntos) != 1 {
 		t.Fatalf("se esperaba 1 punto, hay %d", len(puntos))
@@ -178,9 +222,21 @@ func TestB1BreakEvenTTL(t *testing.T) {
 			t.Errorf("el umbral debe citar la desigualdad entera; falta %q en %q", frag, p.Umbral)
 		}
 	}
-	// El contrafactual NO es «gastaste X»: es «con el cambio habrías gastado Y».
-	if p.ContrafactualMicros == 0 {
-		t.Error("B1 tiene contrafactual: lo que costaría el mismo trabajo a vencimiento largo")
+	// El contrafactual NO es «gastaste X»: es «con el cambio habrías gastado Y» — y desde
+	// D26.1 es un mundo MÁS BARATO, cotizado con el catálogo.
+	//
+	// La aritmética que el assert fija: 2 × 10 000 tokens a 5 min = 20 000 micros; con 1 h se
+	// escribe UNA sola vez (10 000 tokens) a 1,6 = 16 000 micros. Ahorro 4 000.
+	if p.GastoMicros != 20_000 {
+		t.Errorf("gasto = %d micros, se esperaba 20000 (2 × 10 000 tokens × 1 micro)", p.GastoMicros)
+	}
+	if p.ContrafactualMicros != 16_000 {
+		t.Errorf("contrafactual = %d micros, se esperaba 16000 (una sola escritura a 1 h)",
+			p.ContrafactualMicros)
+	}
+	if p.DiferenciaMicros <= 0 {
+		t.Errorf("el ahorro de B1 tiene que ser POSITIVO: %d — un mundo alternativo más caro "+
+			"no es una recomendación", p.DiferenciaMicros)
 	}
 	if p.Fix == "" {
 		t.Error("regla A4: un punto sin fix concreto no se muestra")
@@ -231,9 +287,15 @@ func TestSesgoTieneDireccion(t *testing.T) {
 			if strings.TrimSpace(p.Sesgo) == "" {
 				t.Errorf("%s: el sesgo se declara con texto, no solo con una etiqueta", p.Detector)
 			}
-			// Regla A4 completa: sin las cinco cosas el punto no se muestra.
-			if p.Umbral == "" {
-				t.Errorf("%s: sin umbral citado", p.Detector)
+			// Regla A4 completa: sin las cinco cosas el punto no se muestra. El «por qué lo
+			// creemos» es el umbral **o** el patrón (RF-250): P1 no se decide por una
+			// desigualdad, y pintarle una inventada sería fabricarle rigor. Lo que no se
+			// permite es que falten los dos.
+			if p.Umbral == "" && p.Patron == "" {
+				t.Errorf("%s: sin umbral citado ni patrón", p.Detector)
+			}
+			if p.Umbral != "" && p.Patron != "" {
+				t.Errorf("%s: umbral y patrón a la vez — la tarjeta pinta uno solo", p.Detector)
 			}
 			if p.Fix == "" {
 				t.Errorf("%s: sin fix concreto", p.Detector)
@@ -371,8 +433,15 @@ func TestB6SesionAbandonada(t *testing.T) {
 
 func TestB3CambioDeModelo(t *testing.T) {
 	d := detectorPorID(t, DetB3)
-	if ap := d.Aplica(ContextoDeteccion{TieneCosto: true, ModelosDistintos: 1}); ap.Aplica {
+	if ap := d.Aplica(ContextoDeteccion{
+		TieneCosto: true, ModelosDistintos: 1,
+		CatalogoDisponible: true,
+	}); ap.Aplica {
 		t.Error("con un solo modelo no hubo cambio que invalidara el cache")
+	}
+	// Sin catálogo NO corre: el número saldría en tokens y se mostraría como dinero (D26.1).
+	if ap := d.Aplica(ContextoDeteccion{TieneCosto: true, ModelosDistintos: 2}); ap.Aplica {
+		t.Error("sin catálogo B3 no puede poner un monto: cotizar es la mitad del hallazgo")
 	}
 	v := ventanaBase([]TurnoUnido{
 		turno("t-1", func(t *TurnoUnido) {
@@ -384,10 +453,16 @@ func TestB3CambioDeModelo(t *testing.T) {
 			t.Tokens.CacheEscritura5m = ptr(9_000)
 			t.CostoReportadoMicros = ptr(5_000)
 		}),
-	}, ContextoDeteccion{TieneCosto: true, ModelosDistintos: 2})
+	}, ContextoDeteccion{TieneCosto: true, ModelosDistintos: 2, CatalogoDisponible: true})
 	puntos := d.Evaluar(v)
+	// 9 000 tokens de re-escritura **cotizados**, no contados: × 1 micro/token = 9 000 micros.
+	// El número coincide con el conteo viejo por la tarifa redonda del fixture, y esa
+	// coincidencia es a propósito: hace visible que lo que cambió es la UNIDAD, no la magnitud.
 	if len(puntos) != 1 || puntos[0].GastoMicros != 9_000 {
 		t.Fatalf("B3 cuantifica la re-escritura tras el cambio: %+v", puntos)
+	}
+	if !strings.Contains(puntos[0].Calculo, "catálogo") {
+		t.Errorf("el cálculo tiene que decir que el monto se cotizó: %q", puntos[0].Calculo)
 	}
 }
 
@@ -423,9 +498,10 @@ func TestNingunPuntoSinContrafactualNiFix(t *testing.T) {
 		}
 		for _, p := range d.Evaluar(v) {
 			vistos++
-			if p.Umbral == "" || p.Sesgo == "" || p.DireccionSesgo == "" || p.Fix == "" || p.Titulo == "" {
-				t.Errorf("%s: punto incompleto (A4 pide número, contrafactual, umbral, sesgo y UN fix): %+v",
-					p.Detector, p)
+			if (p.Umbral == "" && p.Patron == "") || p.Sesgo == "" || p.DireccionSesgo == "" ||
+				p.Fix == "" || p.Titulo == "" {
+				t.Errorf("%s: punto incompleto (A4 pide número, contrafactual, umbral o patrón, "+
+					"sesgo y UN fix): %+v", p.Detector, p)
 			}
 			if p.Confianza == "" {
 				t.Errorf("%s: un número sin su confianza no se muestra", p.Detector)
@@ -446,4 +522,53 @@ func detectorPorID(t *testing.T, id DetectorID) Detector {
 	}
 	t.Fatalf("detector %q no está en el MVP", id)
 	return nil
+}
+
+// TestElMontoDelCacheSaleDeLaTarifaNoDelConteo — el candado del defecto M2 (D26.1).
+//
+// B1 y B3 sumaban **conteos de tokens** en campos `micros` y la tarjeta mostraba ese número
+// como dinero. La forma de probar que ahora se COTIZA es cambiar la tarifa dejando los tokens
+// iguales: si el monto no se mueve, el número no es dinero.
+func TestElMontoDelCacheSaleDeLaTarifaNoDelConteo(t *testing.T) {
+	b1 := detectorPorID(t, DetB1)
+	ctx := ContextoDeteccion{
+		Runtime: "claude-code", TieneCosto: true, TieneSplitTTL: true,
+		CatalogoDisponible: true,
+	}
+	turnos := []TurnoUnido{
+		turno("t-1", func(t *TurnoUnido) { t.Tokens.CacheEscritura5m = ptr(10_000) }),
+		turno("t-2", func(t *TurnoUnido) { t.Tokens.CacheEscritura5m = ptr(10_000) }),
+	}
+
+	conTarifa := func(mult float64) int64 {
+		v := ventanaBase(turnos, ctx)
+		for m, p := range v.Precios {
+			e5 := 0.000001 * mult
+			e1 := 0.0000016 * mult
+			p.CacheEscritura5m, p.CacheEscritura1h = &e5, &e1
+			v.Precios[m] = p
+		}
+		puntos := b1.Evaluar(v)
+		if len(puntos) != 1 {
+			t.Fatalf("mult %.1f: se esperaba 1 punto, hay %d", mult, len(puntos))
+		}
+		return puntos[0].GastoMicros
+	}
+
+	base, doble := conTarifa(1), conTarifa(2)
+	if base <= 0 {
+		t.Fatal("el monto base es 0: el test no comparó nada")
+	}
+	if doble != base*2 {
+		t.Errorf("con la tarifa al doble el monto tiene que duplicarse: %d vs %d — si no se "+
+			"mueve, el número son tokens disfrazados de dinero", doble, base)
+	}
+
+	// Control negativo: un modelo fuera del catálogo **no vale cero**. Sin tarifa no hay
+	// hallazgo cotizable, y el detector no inventa uno.
+	v := ventanaBase(turnos, ctx)
+	v.Precios = nil
+	if puntos := b1.Evaluar(v); len(puntos) != 0 {
+		t.Errorf("sin catálogo el detector no puede poner un monto y no lo inventa: %+v", puntos)
+	}
 }

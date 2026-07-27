@@ -298,9 +298,18 @@ GROUP BY 1,2,3,4,5,6,7,8`
 
 // HorasAfectadas devuelve las horas (UTC, `2006-01-02T15`) que tienen eventos de un arnés.
 // Se llama ANTES de borrarlo, para saber qué recomputar después.
-func (s *Store) HorasAfectadas(ctx context.Context, arnesID string) ([]string, error) {
+// HorasAfectadas lista las horas que un borrado va a tocar. Se consulta ANTES de borrar:
+// después, las horas ya no se pueden deducir de los datos.
+//
+// Acepta ventana (D26.5): con un borrado acotado, recomputar TODAS las horas del arnés sería
+// trabajo de más, y —peor— pediría rehacer horas que el borrado no tocó.
+func (s *Store) HorasAfectadas(ctx context.Context, arnesID string, desde, hasta time.Time) ([]string, error) {
+	cond, args := ventanaSQL("ts_recibido", desde, hasta)
+	//nolint:gosec // G202: `ventanaSQL` emite SQL constante con placeholders `?`; los instantes
+	// viajan por `args`.
 	rows, err := s.reader.QueryContext(ctx,
-		`SELECT DISTINCT substr(ts_recibido,1,13) FROM evento WHERE arnes_id = ?`, arnesID)
+		`SELECT DISTINCT substr(ts_recibido,1,13) FROM evento WHERE arnes_id = ?`+cond,
+		append([]any{arnesID}, args...)...)
 	if err != nil {
 		return nil, fmt.Errorf("store: horas afectadas: %w", err)
 	}

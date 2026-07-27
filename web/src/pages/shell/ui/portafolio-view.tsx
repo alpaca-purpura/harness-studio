@@ -162,15 +162,24 @@ export function PortafolioView() {
    * quedaron dos implementaciones de las mismas tres celdas, y el fix de D24.4 se aplicó a la
    * que la app no monta. Ahora las arma el widget, que tiene stories.
    *
-   * ⚠️ Se keyea por `clave` y se toma **la primera** fila de cada una: el wire manda una fila por
-   * `(arnés, instalación)` y la lista del Portafolio agrupa por entrada. Las instalaciones por
-   * separado quedan sin superficie — declarado en PARIDAD.
+   * Se keyea por `clave` y se toma la primera fila de cada una: el wire manda una fila por
+   * `(arnés, instalación)` (D20) y la lista del Portafolio agrupa por entrada.
+   *
+   * 🔴 **Y se cuenta cuántas hay** (D26.4). Antes las demás desaparecían en silencio y la celda
+   * mostraba el costo de UNA instalación donde se leía el del arnés. Ahora la fila declara su
+   * alcance: una cifra parcial que no dice que es parcial es una cifra falsa.
    */
   const mejoraPorClave = useMemo(() => {
     const m = new Map<string, FilaPortafolio>()
     for (const f of telemetria) {
       if (!m.has(f.clave)) m.set(f.clave, f)
     }
+    return m
+  }, [telemetria])
+
+  const instalacionesPorClave = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const f of telemetria) m.set(f.clave, (m.get(f.clave) ?? 0) + 1)
     return m
   }, [telemetria])
 
@@ -841,6 +850,7 @@ export function PortafolioView() {
             onAgregar={onAbrirWizard}
             onReintentar={cargar}
             mejora={mejoraPorClave.size > 0 ? mejoraPorClave : undefined}
+            instalacionesPorClave={instalacionesPorClave}
           />
         )}
 

@@ -36,7 +36,7 @@ func runTelemetria(args []string) error {
 	desde := fs.String("desde", "", "inicio de la ventana (RFC3339)")
 	hasta := fs.String("hasta", "", "fin de la ventana (RFC3339)")
 	dias := fs.Int("retencion", usecase.RetencionDefaultDias,
-		"días de retención al purgar (PROPUESTO, sin firmar — J-6)")
+		"días de retención al purgar (firmado: 90 — D26.3)")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -121,9 +121,6 @@ func runTelemetria(args []string) error {
 			"borrados":       n,
 			"arnes":          *arnes,
 			"retencion_dias": svc.RetencionDias(),
-			// ⚠️ El número no está firmado (J-6 · parada P2): se rotula, no se presenta
-			// como política.
-			"retencion_propuesta": true,
 		})
 
 	default:
@@ -190,6 +187,6 @@ flags:
   --arnes X        acotar a un arnés
   --instalacion X  acotar a una instalación
   --desde / --hasta  ventana en RFC3339
-  --retencion N    días de retención al purgar (PROPUESTO, sin firmar)
+  --retencion N    días de retención al purgar (firmado: 90)
 `)
 }

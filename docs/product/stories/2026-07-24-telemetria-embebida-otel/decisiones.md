@@ -858,6 +858,196 @@ palabra; el **control positivo** (`ConDatosLaListaSiAfirmaBusqueda`) queda verde
 una story de coherencia sobre el DOM completo. Un assert por componente no puede ver una mentira
 por composición.
 
+## D25 — El contrato del punto de mejora: **la prosa se arma en el dominio** (2026-07-26) · ✅ FIRMADA por la regla que ya existía
+
+> Cierra **V-5** de [`PARIDAD.md`](PARIDAD.md), el hueco que la propia hoja marcaba como
+> *«el más grande de este tramo y no se puede cerrar desde el FE»*. Bloqueaba el E2E real de la
+> tarjeta, que es la pieza central del entregable.
+
+### D25.1 — No era una decisión abierta: era una regla firmada que la implementación se salteó
+
+`design.md` §1.3, firmado, dice textualmente:
+
+> *«**Presenta; no calcula.** El join, los detectores y **el contrafactual** se resuelven en el
+> dominio Go y viajan resueltos en el wire.»*
+
+El Tramo B se construyó al revés: el FE tipó `contrafactual` como prosa —más `id`,
+`caja_nombre`, `patron`, `fix_codigo`, `calculo`, `solo_s1` y `confianza_detalle`— y el Go siguió
+mandando `ContrafactualMicros`/`DiferenciaMicros`. Nadie lo vio porque **`tsc` validaba el FE
+entero contra fixtures del propio FE**: el tipo podía prometer campos que ningún productor
+existía, y todos los gates quedaban verdes.
+
+**Se ejecuta la regla firmada, no se relitiga.** Los tres argumentos por los que sigue siendo la
+correcta:
+
+1. La frase necesita **el monto alternativo, la diferencia, su unidad y el denominador de
+   corridas**. Los cuatro salen del mismo cálculo que produjo el punto.
+2. En `entities` esos cuatro números llegan sueltos, **sin el umbral y sin el sesgo que los
+   sostienen**. Redactar ahí es afirmar sin la evidencia al lado.
+3. El precedente ya estaba en el código: `Titulo`, `Lede`, `Umbral`, `Sesgo` y `Fix` **ya son
+   prosa escrita por los detectores**. El contrafactual era el único que se había quedado en
+   micros — una excepción, no un criterio.
+
+### D25.2 — Qué cambió, lado por lado
+
+| dónde | qué |
+|---|---|
+| `internal/domain/telemetria_prosa.go` (nace) | `Redactar()` — el único lugar donde se arma la frase; `MontoMicros`/`UsdMicros` — el único formateador de dinero del Go |
+| `PuntoDeMejora` | + `id` · `contrafactual` (prosa) · `patron` · `calculo` · `fix_codigo` · `solo_s1` · `confianza_detalle`; `umbral` pasa a `omitempty` y `lede` deja de serlo |
+| los 6 detectores | cada uno aporta su cláusula «con el arreglo» (`BaseContrafactual`, que **no viaja**) y su cálculo resuelto. P1 estrena `Patron` y deja `Umbral` vacío (RF-250); B1 estrena `FixCodigo` y `SoloS1` |
+| `DetectoresMVP()` | devuelve los seis **envueltos**: ningún punto sale sin redactar, tampoco por el camino de los tests de dominio |
+| `EstadoDetector` | + `sin_fix` — el detector que encontró y no puede proponer |
+| `web/.../model/types.ts` | −`caja_nombre` (no tiene productor ni consumidor: el wire no trae nombre humano de caja, §4 ítem 4) · +`contrafactual_micros` · `caja_id` pasa a opcional (B1/B2/B3/B6 agregan la ventana, no una caja) |
+
+### D25.3 — El dinero se formatea una vez, y ahora hay algo que lo verifica
+
+RF-281 dice «un solo formato». Con la frase armada en Go hay **dos formateadores**
+(`MontoMicros` en la prosa, `usd()`/`CifraUsd` en las cifras sueltas) y eso es inevitable: la
+frase viaja hecha. Lo que no puede haber son **dos formatos**.
+
+Los ata una sola tabla de casos versionada en el árbol —`web/src/entities/telemetria/testing/montos.golden.json`—
+que **los dos lados asertan**: `TestElFormatoDeDineroEsUnoSolo` (Go) y el `describe` homónimo de
+`selectors.test.ts` (FE). Dos tablas separadas se editan por separado y divergen sin que nada se
+ponga rojo; una sola, no.
+
+### D25.4 — 🔴 La consecuencia que esto destapa: **B1 no tiene contrafactual, y su tarjeta no se dibuja**
+
+Al redactar la frase de los seis, uno no pudo armarla. `detB1` cotiza **las mismas escrituras de
+cache** a dos tarifas, y la larga es más cara (2,0 contra 1,25): `DiferenciaMicros` es **negativa
+por construcción, siempre**. Su «mundo alternativo» dice *«con el arreglo habrías gastado más»*.
+
+El ahorro real de B1 viene de las re-escrituras que el vencimiento largo **evita**, y esa cuenta
+no está modelada: falta el número de re-warms. El álgebra del umbral —`(2−1,25)/(2−0,1) = 39,47 %`,
+que la tarjeta cita— es correcta; **lo que no existe es la medición de la fracción evitada** que
+esa desigualdad compara.
+
+**No se corrige acá, a propósito:** cambiar la fórmula obliga a bumpear `ScoreVersionMVP` (A7) y a
+decidir cómo se cuentan los re-warms evitados. Es ticket propio, con su gate.
+
+**Qué hace el sistema mientras tanto** — la regla A4 aplicada donde se puede aplicar: sin ahorro
+positivo no hay frase, sin frase no hay tarjeta, y el detector **se declara** `sin_fix` con su
+motivo y con cuántos hallazgos tuvo. No desaparece: «no lo mostramos» leído como «no hay» es
+exactamente el hueco que este módulo existe para no dejar (`no-aplica-no-es-cero`).
+
+⚠️ **Impacto de producto que el gate humano tiene que mirar:** B1 es *la tarjeta insignia* del
+mockup firmado, y hoy **no se va a ver** contra dato real. La alternativa era dibujarla diciendo
+que el arreglo sale más caro. Ninguna de las dos es buena; la segunda además es falsa.
+
+### D25.5 — El candado que faltaba
+
+`docs/architecture/fitness/telemetria_contrato_fe_test.go` — **todo campo que el FE tipa tiene que
+existir en el JSON del Go**. La dirección importa: al revés no se exige (que el dominio mande más
+de lo que una superficie usa es normal), y exigir simetría convertiría cada campo nuevo del
+dominio en una edición obligatoria del FE.
+
+**Verificado con control positivo, no asumido:** reintroduciendo `caja_nombre` en `types.ts` el
+test se pone rojo nombrando el campo; sacándolo, verde.
+
+Lo acompaña `TestLaProsaSeArmaEnElDominio`: ningún archivo de `web/src` fuera del propio tipo lee
+`contrafactual_micros`. Es la forma de que «la prosa se arma en Go» sea una FORMA verificable y no
+una intención escrita en un comentario.
+
+## D26 — Las seis respuestas del operador (2026-07-27) · ✅ FIRMADAS
+
+> **Elección del operador, no recomendación del constructor.** Cierra las paradas **P1** (A20) y
+> **P2** (TTL) del `plan-desarrollo.md` §8, más las tres decisiones que la ejecución de D25 y las
+> dos auditorías dejaron sobre la mesa. Con esto **no queda ninguna pregunta abierta en el
+> paquete**.
+
+| # | pregunta | respuesta | recomendación del constructor |
+|---|---|---|---|
+| 1 | B1: ¿qué se hace con la fórmula del ahorro? | **A — arreglar los dos defectos ahora** | era 1-D (declarar y diferir) |
+| 2 | A20: ¿dónde vive el bloque `env`? | **A — en el repo del propio arnés** | A ✅ |
+| 3 | El número del TTL de retención | **90 días** | 90 ✅ |
+| 4 | Las 10 filas «no alcanzable» | **A — cablear las diez** | era 4-B (solo las baratas) |
+| 5 | A-4, el alcance del borrado | **B — el `DELETE` acepta ventana** | era 5-A (arreglar el copy) |
+| 6 | La firma de PARIDAD | **firmada**, con **D-1 ok** y **D-2 ok** | — |
+
+**En tres de las seis el operador eligió por encima de la recomendación** (1, 4 y 5): las tres
+veces hacia el lado de arreglar en vez de declarar. Queda escrito porque cambia el criterio con
+el que se lee el resto del paquete: **acá los huecos se cierran, no se rotulan**.
+
+### D26.1 — B1: se arreglan los DOS defectos, no uno
+
+Son dos y son distintos:
+
+1. **La unidad (M2).** B1 y B3 metían **conteos de tokens** en campos `micros`. Se cotizan con el
+   catálogo embebido (`CalcularCosto`), que ya sabe cobrar los dos tramos del cache por separado
+   —es justo lo que hace posible a B1— y que **no cobra a cero un bucket sin tarifa**.
+2. **El signo.** El contrafactual comparaba las mismas escrituras a dos tarifas, y la larga es más
+   cara. El ahorro real son **las re-escrituras que el vencimiento largo evita**: `W` escrituras a
+   1,25× contra **una** a 2,0×. Ahorra desde `W ≥ 2`, que es lo que la desigualdad citada
+   `(2−1,25)/(2−0,1) = 39,47 %` siempre quiso decir.
+
+Consecuencias que esto arrastra, todas queridas:
+
+- **`ScoreVersionMVP` pasa de 1 a 2** (A7): cambió cómo se calcula, así que dos cifras de antes y
+  después **no son comparables** y la tarjeta lo dice.
+- **B1 y B3 exigen catálogo.** Sin precios no se cotiza, y sin cotizar el número saldría en tokens.
+  Pasan a `no_aplica` con motivo — no a un número en la unidad equivocada.
+- **Con una sola escritura de cache en la ventana no hay tarjeta**, y es correcto: no hay
+  re-escritura que evitar.
+
+### D26.2 — A20 = A: el bloque viaja en el paquete, no se escribe en árbol ajeno
+
+`<arnés>/.claude/settings.json` con el bloque verificado en H9. **Cobertura parcial y declarada**:
+cubre las corridas cuyo `cwd` es el árbol del arnés —el operador iterando su propio arnés—, no el
+uso del arnés sobre un proyecto de tercero. Ese caso sigue en `s2-degradado`, que **muestra
+proceso y dice por qué no hay dinero**, en vez de un cero.
+
+La opción B (escribir en el proyecto del usuario) **no se construye**: es escritura en árbol ajeno
+y la doctrina de la casa dice que eso se pide, no se hace (A8 + el guardrail del chat embebido).
+Queda disponible a pedido explícito, con el diseño mínimo ya escrito en `arquitectura-modulo.md`
+§7.5 (diff a la vista → backup → escritura → botón inverso).
+
+### D26.3 — TTL = 90 días, FIRMADO
+
+El número deja de ser propuesto. `retencion_propuesta` **sale del wire** y el rótulo «propuesto»
+sale de la UI: un rótulo que dice «esto todavía no se decidió» sobre algo decidido es ruido que
+entrena a ignorar los rótulos que sí importan.
+
+Se conserva `--telemetria-retencion` configurable: firmar el default no es clavarlo.
+
+⚠️ **La objeción del plan §9.4 queda registrada y respondida**: el default *ya* había creado el
+hecho consumado —hay bases con 90 días— y la firma lo ratifica en vez de disimularlo. Bajar el
+número más adelante **borra datos que hoy existen**; subirlo no los recupera.
+
+### D26.4 — Las 10 filas se cablean
+
+La columna «¿alcanzable?» de `PARIDAD.md` §1 era **transparencia sobre un hueco**, no una
+solución: diez superficies construidas, testeadas y que la app no alcanza. Se cablean las diez.
+
+El criterio que queda: **una story verde no acredita superficie**. Una fila solo pasa a `sí`
+cuando un composition-root la alimenta con dato real, y eso se prueba donde vive la decisión —no
+en la story del componente, que fue exactamente la lección de C-3.
+
+### D26.5 — El borrado acepta ventana
+
+El `DELETE` pasa a aceptar `desde`/`hasta` y **borra lo que la confirmación declara**. Es la única
+acción irreversible de la superficie y su alcance declarado tenía que ser su alcance real; la
+salida barata era corregir el copy, y se eligió corregir el poder.
+
+Regla que queda: **una confirmación de acción irreversible enuncia el alcance que la llamada
+ejecuta**, y eso se prueba por los dos bordes (con ventana y sin ventana).
+
+## 🧑‍⚖️ GATE HUMANO DE PARIDAD — **FIRMADO** (2026-07-27)
+
+**Firma del operador, transcrita.** El gate de [`PARIDAD.md`](PARIDAD.md) §7 queda firmado con:
+
+- **D-1 ok** — el slot `Tokens` del conmutador pasa a `Mejora`. Desviación sobre superficie
+  firmada (`mockups/INDEX.md` regla 3), autorizada por D17.1 y ahora ratificada.
+- **D-2 ok** — la story firmada `Tabs` pasa de `toHaveLength(3)` a `4`. Única modificación
+  permitida a una story firmada en este paquete.
+- **V-5** cerrada por D25; su consecuencia (B1) resuelta por D26.1 en vez de declarada.
+- **§4** — los huecos que quedaban como estado visible: los que D26 decidió arreglar se arreglan;
+  el resto sigue declarado en pantalla, que es lo que el gate aceptó.
+
+**Alcance de esta firma, explícito para que no se estire:** cubre el Tramo B tal como está
+construido **más la ejecución de las seis decisiones de D26**, que es lo que el operador decidió
+en el mismo acto. **No cubre nada que aparezca fuera de eso.** Si al ejecutar D26 se destapa algo
+que no está en la lista —como D25 destapó a B1—, se declara y vuelve al gate; no se cuela bajo
+esta firma.
+
 ## 🛑 PREGUNTAS ABIERTAS PARA EL OPERADOR (paradas del plan-desarrollo §8)
 
 ### P1 · A20 — ¿Dónde vive el bloque `env` que instrumenta `s2-instrumentado`? **ABIERTA**

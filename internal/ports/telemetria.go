@@ -36,11 +36,21 @@ type ConsultaTelemetria struct {
 	Limite        int
 }
 
-// PurgaTelemetria parametriza un borrado. Los dos modos son excluyentes: AntesDe aplica la
-// retención por TTL, ArnesID borra todo lo de un arnés (D15.3, el botón de la UI).
+// PurgaTelemetria parametriza un borrado. `AntesDe` aplica la retención por TTL; `ArnesID`
+// borra lo de un arnés (D15.3, el botón de la UI).
+//
+// **Desde/Hasta acotan el borrado por arnés a una ventana** (D26.5 · A-4). Antes no existían y
+// el `DELETE` era siempre total, mientras la confirmación de la UI declaraba el conteo **de la
+// ventana activa**: con la ventana en 7 días sobre dos años de historial, la confirmación
+// subdeclaraba la destrucción. Es la única acción irreversible de la superficie, así que su
+// alcance declarado tiene que ser su alcance real.
+//
+// Las dos en cero = todo el historial del arnés, que sigue siendo un caso legítimo y explícito.
 type PurgaTelemetria struct {
 	AntesDe time.Time
 	ArnesID string
+	Desde   time.Time
+	Hasta   time.Time
 }
 
 // TelemetriaStore es el almacén. Extiende el sink porque el mismo adaptador escribe y lee,
@@ -64,6 +74,12 @@ type TelemetriaStore interface {
 	// Recomputa el rollup de las horas afectadas dentro de la MISMA transacción: si no,
 	// quedaría una cifra agregada huérfana alimentándose de filas que ya no existen.
 	Purgar(ctx context.Context, p PurgaTelemetria) (int64, error)
+	// Descartar / Recuperar / Descartados son las DECISIONES del operador sobre los puntos de
+	// mejora (D26.4). Viven en el almacén y no en memoria porque un descarte que se pierde al
+	// reiniciar no es un descarte: el punto vuelve solo y el operador vuelve a descartarlo.
+	Descartar(ctx context.Context, arnesID, puntoID string, ahora time.Time) error
+	Recuperar(ctx context.Context, arnesID, puntoID string) error
+	Descartados(ctx context.Context, arnesID string) (map[string]bool, error)
 	// Salud son los contadores del receptor + el estado del almacén. Persistidos, no en
 	// memoria: «cuántos descarté» es dato de honestidad y tiene que sobrevivir al reinicio.
 	Salud(ctx context.Context) (domain.SaludTelemetria, error)

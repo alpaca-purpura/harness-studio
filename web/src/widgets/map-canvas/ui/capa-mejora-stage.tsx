@@ -7,7 +7,7 @@ import type {
   ResumenTelemetria,
   Ventana,
 } from "@/entities/telemetria"
-import { vistaCapaMejora } from "../model/capa-mejora"
+import { estadosDeLaFranja, vistaCapaMejora } from "../model/capa-mejora"
 import { bucketsDe, type DetalleCajaWire, ETIQUETA_VENTANA } from "../model/detalle-caja"
 import { FranjaMejora } from "./franja-mejora"
 import { InspectorMejora } from "./inspector-mejora"
@@ -52,8 +52,13 @@ export interface CapaMejoraStageProps {
   onVentana: (v: Ventana) => void
   /** Retención y reenvío salen de `GET /api/telemetria/salud`; sin ese dato NO se inventan. */
   retencionDias?: number | undefined
-  retencionPropuesta?: boolean | undefined
   forwardDestino?: string | undefined
+  /** Cuándo se refrescó el catálogo de precios, de `/salud`. `null` = NUNCA (estado 5). */
+  catalogoRefrescado?: string | null | undefined
+  /** Con el daemon caído se conservan las cifras previas, marcadas como posiblemente viejas
+   *  (estado B3). La página lo sabe porque la consulta falló sin respuesta, no por adivinanza. */
+  daemonCaido?: boolean | undefined
+  fechaUltimaMedicion?: string | undefined
   onPolitica: () => void
   onReintentar: () => void
   /** Opcionales (A-1): sin handler los botones nacen deshabilitados con su motivo, en vez de
@@ -95,8 +100,10 @@ export function CapaMejoraStage({
   ventana,
   onVentana,
   retencionDias,
-  retencionPropuesta,
   forwardDestino,
+  catalogoRefrescado,
+  daemonCaido,
+  fechaUltimaMedicion,
   onPolitica,
   onReintentar,
   onDescartar,
@@ -155,17 +162,18 @@ export function CapaMejoraStage({
     <div className="flex h-full min-h-0 flex-col">
       {activa && (
         <FranjaMejora
-          estado={estado}
+          estado={daemonCaido === true ? "daemon-caido" : estado}
           ventana={ventana}
           onVentana={onVentana}
           resumen={vista.resumenParaFranja}
           escenario={resumen?.escenario}
           retencionDias={retencionDias}
-          retencionPropuesta={retencionPropuesta}
           forwardDestino={forwardDestino}
           onPolitica={onPolitica}
           onReintentar={onReintentar}
           error={error}
+          fechaUltimaMedicion={fechaUltimaMedicion}
+          {...estadosDeLaFranja(resumen, catalogoRefrescado)}
         />
       )}
 

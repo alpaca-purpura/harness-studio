@@ -356,8 +356,30 @@ export const api = {
 
   // El borrado del operador (RF-275). No es idempotente-silencioso: el diálogo espera su
   // respuesta antes de decir «listo», y un fallo deja el dato intacto y lo dice.
-  telemetriaBorrarArnes: <T = unknown>(clave: string) =>
-    req<T>(`/api/telemetria/arneses/${encodeURIComponent(clave)}`, { method: "DELETE" }),
+  //
+  // **Acepta ventana** (D26.5 · A-4). Sin ella borra TODO el historial; con ella borra
+  // exactamente lo que la confirmación declaró. Es la única llamada irreversible del cliente,
+  // así que la ventana se pasa explícita — nunca por default silencioso.
+  telemetriaBorrarArnes: <T = unknown>(clave: string, q?: VentanaQuery) =>
+    req<T>(`/api/telemetria/arneses/${encodeURIComponent(clave)}${qsVentana(q)}`, {
+      method: "DELETE",
+    }),
+
+  // D26.4 — el descarte de un punto de mejora y su vuelta atrás. Hasta acá el botón nacía
+  // deshabilitado porque **no existía endpoint** (A-1): decirlo era honesto, pero no era la
+  // afordancia. Son dos llamadas y no un toggle: el servidor guarda una decisión, no un
+  // estado que el cliente pueda dar vuelta por su cuenta.
+  telemetriaDescartarPunto: <T = unknown>(clave: string, puntoId: string) =>
+    req<T>(
+      `/api/telemetria/arneses/${encodeURIComponent(clave)}/mejoras/${encodeURIComponent(puntoId)}/descartar`,
+      { method: "POST" },
+    ),
+
+  telemetriaRecuperarPunto: <T = unknown>(clave: string, puntoId: string) =>
+    req<T>(
+      `/api/telemetria/arneses/${encodeURIComponent(clave)}/mejoras/${encodeURIComponent(puntoId)}/descartar`,
+      { method: "DELETE" },
+    ),
 
   telemetriaProceso: <T = unknown>(evento: unknown) =>
     req<T>("/api/telemetria/proceso", {

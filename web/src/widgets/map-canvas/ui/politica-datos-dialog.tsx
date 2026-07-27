@@ -33,11 +33,19 @@ export interface PoliticaDatosDialogProps {
    * El DOM refleja exactamente este array, ni uno más ni uno menos.
    */
   camposPersistidos: readonly string[]
-  /** El TTL vigente, de la config. ⚠️ El `90` del mockup es PROPUESTO, no firmado (J-6). */
+  /** El TTL vigente, de la config. **Firmado en 90 días** (D26.3); sigue viniendo del wire
+   *  porque es configurable, no porque esté sin decidir. */
   retencionDias: number
-  retencionPropuesta?: boolean | undefined
   /** Cuántas corridas se van a borrar. Se dice antes, no después. */
   corridasPorBorrar: number
+  /**
+   * El alcance REAL del borrado, en palabras del usuario («los últimos 7 días» · «todo el
+   * historial»). **No es decoración**: hasta D26.5 el conteo era el de la ventana activa y el
+   * `DELETE` era total, así que la confirmación subdeclaraba la destrucción (A-4). Ahora el
+   * borrado se acota a la misma ventana, y la frase la nombra para que las dos cosas se lean
+   * juntas.
+   */
+  alcance: string
   estado?: EstadoBorrado | undefined
   error?: string | undefined
   onBorrar: () => void
@@ -48,8 +56,8 @@ export function PoliticaDatosDialog({
   arnes,
   camposPersistidos,
   retencionDias,
-  retencionPropuesta,
   corridasPorBorrar,
+  alcance,
   estado = "reposo",
   error,
   onBorrar,
@@ -98,7 +106,7 @@ export function PoliticaDatosDialog({
         <>
           <h2 id={tituloId} className="pol-titulo">{`Borrar la telemetría de «${arnes}»`}</h2>
           <p>
-            {`Se borran ${corridasPorBorrar.toLocaleString("es-AR").replace(/\./gu, " ")} corridas medidas y los puntos de mejora que salieron de ellas. No se puede deshacer.`}
+            {`Se borran ${corridasPorBorrar.toLocaleString("es-AR").replace(/\./gu, " ")} corridas medidas de ${alcance} y los puntos de mejora que salieron de ellas. No se puede deshacer.`}
           </p>
           <label className="pol-confirm">
             <input
@@ -183,12 +191,7 @@ export function PoliticaDatosDialog({
 
           <section className="pol-bloque">
             <h3>Retención</h3>
-            <p>
-              {`Se borra solo a los ${retencionDias} días.`}
-              {retencionPropuesta && (
-                <em className="pol-propuesto"> Valor propuesto, sin firmar.</em>
-              )}
-            </p>
+            <p>{`Se borra solo a los ${retencionDias} días.`}</p>
             <div className="pol-acciones">
               <button type="button" className="pol-btn" onClick={onCerrar}>
                 Cerrar

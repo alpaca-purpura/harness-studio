@@ -5,6 +5,7 @@ import { CAJAS_ILUSTRATIVAS, RESUMEN_ILUSTRATIVO } from "@/entities/telemetria"
 import {
   coberturaEsParcial,
   denominadorDeBusqueda,
+  estadosDeLaFranja,
   hayDatosAtribuibles,
   vistaCapaMejora,
 } from "./capa-mejora"
@@ -34,6 +35,9 @@ const S2_INSTRUMENTADO: ResumenTelemetria = {
 const NUNCA_CORRIO: ResumenTelemetria = {
   ...RESUMEN_ILUSTRATIVO,
   corridas: 0,
+  // D26.4 — «nunca corrió» EXIGE no haber corrido nunca. Con historial fuera de la ventana
+  // el estado correcto es el 1b, y decir «nunca corrió» sería falso.
+  ultima_corrida: null,
   turnos: 0,
   sesiones: 0,
   cajas: 0,
@@ -184,5 +188,48 @@ describe("vistaCapaMejora — los cinco bloques desde una sola fuente", () => {
       activa: true,
     })
     for (const total of v.totalesPorFase?.values() ?? []) expect(total).toBeNull()
+  })
+})
+
+// D26.4 — los cuatro estados que estaban STORIADOS Y MUERTOS. Cada uno sale de un hecho del
+// wire, y cada uno se prueba con su control negativo al lado: un derivador que enciende
+// siempre pasaría un test de un solo lado.
+describe("estadosDeLaFranja — los cuatro estados que la app no alcanzaba (D26.4)", () => {
+  it("1b · con historial fuera de la ventana NO dice «nunca corrió»", () => {
+    const r = { ...NUNCA_CORRIO, ultima_corrida: "2026-07-01T10:00:00Z" }
+    expect(estadosDeLaFranja(r, undefined).ultimaCorridaFuera).toBe("01/07/2026")
+    // Control negativo: sin historial, el estado correcto es el 1 y este no aplica.
+    expect(estadosDeLaFranja(NUNCA_CORRIO, undefined).ultimaCorridaFuera).toBeUndefined()
+    // Y con corridas DENTRO de la ventana tampoco: no hay nada que explicar.
+    expect(
+      estadosDeLaFranja({ ...RESUMEN_ILUSTRATIVO, corridas: 61 }, undefined).ultimaCorridaFuera,
+    ).toBeUndefined()
+  })
+
+  it("4 · el dinero que puso nuestro catálogo se declara como tal", () => {
+    const r = { ...RESUMEN_ILUSTRATIVO, costo_reportado_micros: null, costo_calculado_micros: 4820 }
+    expect(estadosDeLaFranja(r, undefined).costoDelCatalogo).toBe(true)
+    // Control negativo: con costo del runtime, la cifra NO es nuestra estimación.
+    expect(estadosDeLaFranja(RESUMEN_ILUSTRATIVO, undefined).costoDelCatalogo).toBeUndefined()
+  })
+
+  it("5 · un catálogo que nunca se refrescó lo dice, con su versión", () => {
+    const r = {
+      ...RESUMEN_ILUSTRATIVO,
+      catalogo: { ...RESUMEN_ILUSTRATIVO.catalogo, refrescado: null },
+    }
+    expect(estadosDeLaFranja(r, undefined).catalogoSinRefrescar).toBe(r.catalogo.version)
+    // Control negativo: refrescado ⇒ no hay aviso.
+    expect(estadosDeLaFranja(r, "2026-07-26T00:00:00Z").catalogoSinRefrescar).toBeUndefined()
+  })
+
+  it("runtime no soportado · se DICE, no se muestra un cero", () => {
+    const r = { ...RESUMEN_ILUSTRATIVO, runtime: "aider", runtime_soportado: false }
+    expect(estadosDeLaFranja(r, undefined).runtimeNoSoportado).toBe("aider")
+    // Control negativo doble: soportado, y sin runtime declarado.
+    expect(estadosDeLaFranja(RESUMEN_ILUSTRATIVO, undefined).runtimeNoSoportado).toBeUndefined()
+    expect(
+      estadosDeLaFranja({ ...RESUMEN_ILUSTRATIVO, runtime: "" }, undefined).runtimeNoSoportado,
+    ).toBeUndefined()
   })
 })

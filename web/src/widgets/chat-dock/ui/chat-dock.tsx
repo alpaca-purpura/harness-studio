@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import type { Resultado, Session, Turn } from "@/shared"
-import { selectActive, selectPendingPerms, selectScope, useSessions } from "@/shared"
+import { selectActive, selectPendingPerms, selectScope, useAppStore, useSessions } from "@/shared"
 import { cn } from "@/shared/lib/cn"
 import { Pip } from "@/shared/ui/indicators"
 import { DictadoAviso, DictadoButton, VoiceBar } from "./dictado-button"
@@ -270,6 +270,8 @@ function Composer() {
   const interrupt = useSessions((s) => s.interrupt)
   const active = useSessions(selectActive)
   const [value, setValue] = useState("")
+  const propuestaChat = useAppStore((st) => st.propuestaChat)
+  const setPropuestaChat = useAppStore((st) => st.setPropuestaChat)
   const taRef = useRef<HTMLTextAreaElement>(null)
   // crudoMotivo marca que el texto de abajo vino SIN ordenar (RF-227). Se limpia en cuanto
   // el operador toca el campo: a partir de ahí el texto es suyo, no el crudo del dictado.
@@ -299,6 +301,25 @@ function Composer() {
     setCrudoMotivo(undefined)
     void sendTurn(text)
   }
+
+  // D26.4 · RF-255 — «Proponerlo en el chat» llega por acá. Es el MISMO trato que el dictado
+  // y por la misma razón: **puebla el composer y no envía**. Un clic en una tarjeta no puede
+  // convertirse en un turno real contra el código del operador; el fix se aplica por el camino
+  // de siempre, con sus permisos y su gate (BR-M12 · D17.3).
+  //
+  // El buzón se consume UNA vez y se limpia — patrón `mapaPeek`. Sin limpiarlo, volver a abrir
+  // el Dock repondría una propuesta vieja encima de lo que el operador estuviera escribiendo.
+  useEffect(() => {
+    if (propuestaChat === null) return
+    setValue(propuestaChat)
+    setPropuestaChat(null)
+    requestAnimationFrame(() => {
+      const ta = taRef.current
+      if (!ta) return
+      ta.focus()
+      ta.setSelectionRange(ta.value.length, ta.value.length)
+    })
+  }, [propuestaChat, setPropuestaChat])
 
   // recibirDictado puebla el composer con lo dictado (RF-226). Lo que NO hace, y es el
   // punto: **no envía**. Auto-enviar convertiría un error de transcripción en un turno real

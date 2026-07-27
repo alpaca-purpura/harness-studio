@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,13 +12,14 @@ import (
 
 // telemetria_retencion.go es el TTL y el botón «borrar la telemetría de este arnés».
 //
-// ⚠️ **El número del TTL NO está firmado** (J-6 · parada P2 del plan): D15.3 firmó «TTL por
-// default» **sin número**. El 90 de acá es un valor **PROPUESTO**: viaja por flag, la config
-// lo lleva rotulado y `arnesia telemetria salud` lo muestra como propuesto. **La UI nunca lo
-// hardcodea.** El número lo pone el operador.
+// El número del TTL está **FIRMADO en 90 días** (D26.3, 2026-07-27). D15.3 había firmado «TTL
+// por default» sin número y el 90 viajaba rotulado «propuesto»; el rótulo salió del wire y de
+// la UI. **Firmarlo no lo clava:** sigue viajando por flag, y **la UI nunca lo hardcodea** —
+// lo lee de `GET /api/telemetria/salud`, que es lo que arregló A-2.
+//
+// ⚠️ Bajar este número más adelante **borra datos que hoy existen**; subirlo no los recupera.
 
-// RetencionDefaultDias es el TTL propuesto de la tabla cruda. Ver el aviso de arriba: es
-// PROPUESTO, no firmado.
+// RetencionDefaultDias es el TTL de la tabla cruda: 90 días, firmado.
 const RetencionDefaultDias = 90
 
 // RollupDefaultMeses es el TTL del agregado. El agregado sobrevive al detalle a propósito:
@@ -30,7 +32,9 @@ const RollupDefaultMeses = 24
 type purgador interface {
 	Purgar(ctx context.Context, p ports.PurgaTelemetria) (int64, error)
 	PurgarRollup(ctx context.Context, antesDe time.Time) (int64, error)
-	HorasAfectadas(ctx context.Context, arnesID string) ([]string, error)
+	HorasAfectadas(ctx context.Context, arnesID string, desde, hasta time.Time) ([]string, error)
+	Descartar(ctx context.Context, arnesID, puntoID string, ahora time.Time) error
+	Recuperar(ctx context.Context, arnesID, puntoID string) error
 }
 
 // recomputador rehace el agregado de las horas que un borrado dejó huérfanas.
@@ -60,7 +64,7 @@ func (s *TelemetriaService) Purgar(ctx context.Context, p ports.PurgaTelemetria)
 		return 0, fmt.Errorf("telemetria: retención sin almacén cableado")
 	}
 	if p.ArnesID != "" {
-		return s.BorrarArnes(ctx, p.ArnesID)
+		return s.BorrarArnes(ctx, p.ArnesID, p.Desde, p.Hasta)
 	}
 	if p.AntesDe.IsZero() {
 		dias := s.retencionDias
@@ -85,13 +89,19 @@ func (s *TelemetriaService) Purgar(ctx context.Context, p ports.PurgaTelemetria)
 	return n, nil
 }
 
-// BorrarArnes borra TODO lo de un arnés: el detalle **y el agregado**, en una transacción, y
-// después rehace las horas afectadas.
+// BorrarArnes borra la telemetría de un arnés: el detalle **y el agregado**, en una
+// transacción, y después rehace las horas afectadas.
 //
 // Borrar solo el detalle dejaría una cifra huérfana en el tablero alimentándose de filas que
 // ya no existen — y esa cifra sobreviviría a la operación que el usuario pidió justamente
 // para hacerla desaparecer.
-func (s *TelemetriaService) BorrarArnes(ctx context.Context, arnesID string) (int64, error) {
+//
+// **`desde`/`hasta` acotan el borrado** (D26.5 · A-4). En cero, borra todo el historial del
+// arnés — que sigue siendo un caso legítimo, ahora explícito. La razón de que exista la
+// ventana: la confirmación de la UI declara el conteo de la ventana activa, y una acción
+// irreversible cuyo alcance declarado no es su alcance real es la peor clase de mentira que
+// esta superficie podía tener.
+func (s *TelemetriaService) BorrarArnes(ctx context.Context, arnesID string, desde, hasta time.Time) (int64, error) {
 	if s.purga == nil {
 		return 0, fmt.Errorf("telemetria: retención sin almacén cableado")
 	}
@@ -100,11 +110,11 @@ func (s *TelemetriaService) BorrarArnes(ctx context.Context, arnesID string) (in
 	}
 	// Se anotan ANTES de borrar: después de borrar, las horas afectadas ya no se pueden
 	// deducir de los datos.
-	horas, err := s.purga.HorasAfectadas(ctx, arnesID)
+	horas, err := s.purga.HorasAfectadas(ctx, arnesID, desde, hasta)
 	if err != nil {
 		return 0, err
 	}
-	n, err := s.purga.Purgar(ctx, ports.PurgaTelemetria{ArnesID: arnesID})
+	n, err := s.purga.Purgar(ctx, ports.PurgaTelemetria{ArnesID: arnesID, Desde: desde, Hasta: hasta})
 	if err != nil {
 		return 0, err
 	}
@@ -131,4 +141,32 @@ func (s *TelemetriaService) RollupMeses() int {
 		return RollupDefaultMeses
 	}
 	return s.rollupMeses
+}
+
+// DescartarPunto y RecuperarPunto son las decisiones del operador sobre un punto de mejora
+// (D26.4). Están acá, con el borrado, porque son la misma clase de cosa: **lo que el operador
+// decide sobre sus datos**, no lo que el sistema mide.
+//
+// Un descarte se guarda; no se recuerda en memoria. Un descarte que se pierde al reiniciar no
+// es un descarte: el punto vuelve solo y el operador vuelve a descartarlo, para siempre.
+func (s *TelemetriaService) DescartarPunto(ctx context.Context, arnesID, puntoID string) error {
+	if arnesID == "" || puntoID == "" {
+		return errors.New("telemetria: descartar exige arnés y punto")
+	}
+	if s.purga == nil {
+		return errors.New("telemetria: descartes sin almacén cableado")
+	}
+	return s.purga.Descartar(ctx, arnesID, puntoID, s.reloj().UTC())
+}
+
+// RecuperarPunto deshace un descarte. Existe porque un descarte sin vuelta atrás convierte un
+// clic distraído en la pérdida permanente de un hallazgo que costó dinero producir.
+func (s *TelemetriaService) RecuperarPunto(ctx context.Context, arnesID, puntoID string) error {
+	if arnesID == "" || puntoID == "" {
+		return errors.New("telemetria: recuperar exige arnés y punto")
+	}
+	if s.purga == nil {
+		return errors.New("telemetria: descartes sin almacén cableado")
+	}
+	return s.purga.Recuperar(ctx, arnesID, puntoID)
 }

@@ -221,13 +221,21 @@ func TestVentanaIlegibleNoSeIgnora(t *testing.T) {
 }
 
 // TestSaludRotulaElTTLComoPropuesto — J-6: el número no está firmado y el wire lo dice.
-func TestSaludRotulaElTTLComoPropuesto(t *testing.T) {
+func TestElTTLViajaFirmadoYSinRotulo(t *testing.T) {
 	h := handlerConTelemetria(t, nil)
 	w := get(t, h, "/api/telemetria/salud")
 	if w.Code != http.StatusOK {
 		t.Fatalf("código %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), `"retencion_propuesta":true`) {
-		t.Errorf("mientras el TTL no esté firmado, el wire lo rotula: %s", w.Body.String())
+	cuerpo := w.Body.String()
+	// El número viaja, porque la UI lo lee de acá y **nunca** lo hardcodea (A-2).
+	if !strings.Contains(cuerpo, `"retencion_dias":90`) {
+		t.Errorf("el TTL firmado tiene que viajar en el wire: %s", cuerpo)
+	}
+	// Y viaja SIN rótulo: el número está firmado (D26.3). Un «(propuesto)» sobre algo decidido
+	// entrena a ignorar los rótulos que sí importan — y este es el único lugar donde el FE
+	// podía sacarlo, así que el candado va acá.
+	if strings.Contains(cuerpo, "retencion_propuesta") {
+		t.Errorf("el TTL está firmado: el wire no lo rotula como propuesto: %s", cuerpo)
 	}
 }

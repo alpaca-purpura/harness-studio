@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ArtefactosMode, ConformanceResult, Graph } from "@/entities/arnes"
 import { isCaja } from "@/entities/arnes"
 import type {
@@ -36,6 +36,12 @@ const viewGlyph = (v: string) => VIEWS.find((x) => x[0] === v)?.[1] ?? "◵"
 // La «Mapa» view renderiza la REAL Map surface — fetches the
 // arnés graph from the daemon (transport lives here, not in the entity/canvas — fe-transporte-
 // independiente) and hands it to <MapCanvas>. Other views stay «próximamente». Picker = RF-72.
+const ALCANCE_BORRADO: Record<Ventana, string> = {
+  "7d": "los últimos 7 días",
+  "30d": "los últimos 30 días",
+  todo: "todo el historial",
+}
+
 export function WorkspaceStage() {
   const s = useSessions(selectActive)
   const arnesId = s?.arnes
@@ -82,6 +88,11 @@ export function WorkspaceStage() {
   // derecha; no dibujarlo es peor que esconderlo — la pantalla repite «Nada de tu cuenta. Nada
   // de la conversación.» sin poder saber si los datos se están reenviando afuera.
   const [salud, setSalud] = useState<SaludTelemetria | null>(null)
+  // El último resumen bueno, para poder distinguir «se cayó y tengo cifras viejas» de «se cayó
+  // y nunca tuve nada». Va en ref y no en estado: se lee dentro del catch del efecto, y leerlo
+  // del estado ahí daría el valor de la corrida anterior.
+  const resumenRef = useRef<ResumenTelemetria | null>(null)
+  const [daemonCaido, setDaemonCaido] = useState(false)
   const [detalle, setDetalle] = useState<DetalleCajaWire | null>(null)
   const [detalleError, setDetalleError] = useState<string>()
   const [nonce, setNonce] = useState(0)
@@ -206,6 +217,7 @@ export function WorkspaceStage() {
   // siguen intactos).
   const mapaPeek = useAppStore((st) => st.mapaPeek)
   const setMapaPeek = useAppStore((st) => st.setMapaPeek)
+  const setPropuestaChat = useAppStore((st) => st.setPropuestaChat)
   useEffect(() => {
     if (!mapaPeek || !isMapa) return
     let alive = true
@@ -232,6 +244,9 @@ export function WorkspaceStage() {
   // La ventana en instantes: el wire recibe `desde`/`hasta` en RFC3339, no un enum
   // (`ventanaDeQuery`, telemetria.go:25). Un valor ilegible da 400 en vez de devolver en
   // silencio una ventana distinta de la pedida.
+  // El alcance en palabras del usuario. Vive al lado de `rangoDeVentana` a propósito: la
+  // frase que la confirmación dice y el rango que el `DELETE` recibe **salen del mismo enum**,
+  // así que no pueden divergir sin que alguien toque las dos.
   const rangoDeVentana = useCallback((v: Ventana) => {
     if (v === "todo") return {}
     const dias = v === "30d" ? 30 : 7
@@ -263,6 +278,8 @@ export function WorkspaceStage() {
         // sobre un arnés con dinero medido. Quién muestra qué lo decide `vistaCapaMejora()`,
         // una sola vez, para los cinco bloques.
         setResumen(r ?? null)
+        resumenRef.current = r ?? null
+        setDaemonCaido(false)
         setCajas(c.cajas ?? [])
         setPuntos(m.puntos ?? [])
         setNoAplican(m.no_aplican ?? [])
@@ -271,7 +288,13 @@ export function WorkspaceStage() {
       })
       .catch((e: unknown) => {
         if (!alive) return
-        setMejError(e instanceof Error ? e.message : String(e))
+        const msg = e instanceof Error ? e.message : String(e)
+        setMejError(msg)
+        // D26.4 · estado B3 — **«el daemon no contestó» y «el daemon contestó un error» son
+        // cosas distintas.** La primera deja las cifras previas en pantalla y las marca como
+        // posiblemente viejas; borrarlas perdería el último dato bueno por un corte de red.
+        // Un `fetch` que no llega tira TypeError sin status; uno que llega trae su código.
+        setDaemonCaido(e instanceof TypeError && resumenRef.current !== null)
         setMejEstado("error")
       })
     return () => {
@@ -422,16 +445,39 @@ export function WorkspaceStage() {
               ventana={ventana}
               onVentana={setVentana}
               retencionDias={salud?.retencion_dias}
-              retencionPropuesta={salud?.retencion_propuesta}
+              catalogoRefrescado={salud?.catalogo?.refrescado}
+              daemonCaido={daemonCaido}
+              fechaUltimaMedicion={
+                resumen?.ultima_corrida === null || resumen?.ultima_corrida === undefined
+                  ? undefined
+                  : resumen.ultima_corrida.slice(0, 10)
+              }
               forwardDestino={
                 salud?.forward ? (salud.forward_destino ?? "destino no declarado") : undefined
               }
               onPolitica={() => setPoliticaAbierta(true)}
               onReintentar={() => setNonce((n) => n + 1)}
-              // A-1 · NO se pasan handlers: no existe endpoint de descarte y esta superficie no
-              // abre el chat. Un `() => refetch()` hacía que los botones parecieran funcionar —
-              // el refetch remontaba la tarjeta y el anuncio quedaba vacío. Sin handler, la
-              // tarjeta los deshabilita y dice qué falta (patrón `BotoneraStaged`).
+              // D26.4 — los DOS botones cableados. `Descartar` persiste contra el endpoint
+              // nuevo (antes no existía: por eso nacía deshabilitado, A-1) y el refetch trae la
+              // lista sin ese punto. `Proponerlo en el chat` abre el Dock con el texto del fix
+              // **y no escribe nada** (BR-M12 · D17.3): el cambio se aplica por el camino de
+              // siempre, con sus permisos y su gate.
+              onDescartar={(puntoId) => {
+                if (!viewedId) return
+                api
+                  .telemetriaDescartarPunto(viewedId, puntoId)
+                  .then(() => setNonce((n) => n + 1))
+                  .catch(() => undefined)
+              }}
+              onProponer={({ textoPropuesto }) => setPropuestaChat(textoPropuesto)}
+              // CH-D6 — el alcance del chat embebido excluye los arneses que no son el de la
+              // sesión. Se dice en texto, no solo en un `title`: un botón muerto sin
+              // explicación se lee como un bug.
+              proponerDeshabilitado={
+                viewedId !== arnesId
+                  ? "Este arnés está fuera del alcance del chat embebido."
+                  : undefined
+              }
               cuerpoAlternativo={
                 loadErr ? (
                   <ComingSoon
@@ -478,11 +524,14 @@ export function WorkspaceStage() {
                 arnes={viewedId}
                 camposPersistidos={CAMPOS_PERSISTIDOS_HOOK}
                 retencionDias={salud?.retencion_dias ?? 0}
-                retencionPropuesta={salud?.retencion_propuesta ?? true}
                 corridasPorBorrar={resumen?.corridas ?? 0}
+                alcance={ALCANCE_BORRADO[ventana]}
                 onBorrar={() => {
+                  // D26.5 · A-4 — **la MISMA ventana que se contó es la que se borra.** Antes
+                  // el conteo era de la ventana activa y el `DELETE` era total: con «7 días»
+                  // sobre dos años de historial, la confirmación subdeclaraba la destrucción.
                   api
-                    .telemetriaBorrarArnes(viewedId)
+                    .telemetriaBorrarArnes(viewedId, rangoDeVentana(ventana))
                     .finally(() => {
                       setPoliticaAbierta(false)
                       setNonce((n) => n + 1)

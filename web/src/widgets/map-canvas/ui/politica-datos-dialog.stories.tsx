@@ -17,8 +17,8 @@ const meta = {
     arnes: "vitalia",
     camposPersistidos: CAMPOS_PERSISTIDOS_HOOK,
     retencionDias: 90,
-    retencionPropuesta: true,
     corridasPorBorrar: 1284,
+    alcance: "los últimos 7 días",
     onBorrar: fn(),
     onCerrar: fn(),
   },
@@ -80,14 +80,17 @@ export const CamposDesplegados: Story = {
   },
 }
 
-// RF-283 · J-6 — el `{N}` sale de la CONFIG. El `90` del mockup es PROPUESTO, no firmado:
-// hardcodearlo lo convertiría en decisión por omisión.
+// RF-283 · J-6 — el `{N}` sale de la CONFIG, **no** de una constante de la UI. El número está
+// firmado en 90 (D26.3) y sigue siendo configurable: firmarlo no lo clava. Esta story monta 45
+// justamente para probar que el 90 no está hardcodeado en ningún lado — y que el rótulo
+// «propuesto» ya no existe.
 export const RetencionDesdeConfig: Story = {
-  args: { retencionDias: 45, retencionPropuesta: false },
+  args: { retencionDias: 45 },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     await expect(c.getByText("Se borra solo a los 45 días.")).toBeInTheDocument()
     await expect(c.queryByText(/90 días/)).toBeNull()
+    await expect(c.queryByText(/propuesto/i)).toBeNull()
   },
 }
 
@@ -98,15 +101,31 @@ export const Confirmacion: Story = {
     const c = within(canvasElement)
     await userEvent.click(c.getByRole("button", { name: "Borrar la telemetría de este arnés" }))
     await expect(c.getByText("Borrar la telemetría de «vitalia»")).toBeInTheDocument()
+    // D26.5 · A-4 — la frase NOMBRA el alcance. Hasta D26.5 el conteo era el de la ventana
+    // activa y el `DELETE` era total: la confirmación subdeclaraba la destrucción.
     await expect(
       c.getByText(
-        /Se borran 1 284 corridas medidas y los puntos de mejora que salieron de ellas\. No se puede deshacer\./,
+        /Se borran 1 284 corridas medidas de los últimos 7 días y los puntos de mejora que salieron de ellas\. No se puede deshacer\./,
       ),
     ).toBeInTheDocument()
     const borrar = c.getByRole("button", { name: "Borrar" })
     await expect(borrar).toBeDisabled()
     await userEvent.click(c.getByRole("checkbox"))
     await expect(borrar).toBeEnabled()
+  },
+}
+
+// D26.5 · A-4 — el otro alcance, para que el candado no pase con un literal hardcodeado. Si la
+// frase no leyera la prop, esta story diría «los últimos 7 días» sobre un borrado total.
+export const ConfirmacionDeTodoElHistorial: Story = {
+  args: { alcance: "todo el historial", corridasPorBorrar: 47_912 },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await userEvent.click(c.getByRole("button", { name: "Borrar la telemetría de este arnés" }))
+    await expect(
+      c.getByText(/Se borran 47 912 corridas medidas de todo el historial/),
+    ).toBeInTheDocument()
+    await expect(c.queryByText(/últimos 7 días/)).toBeNull()
   },
 }
 

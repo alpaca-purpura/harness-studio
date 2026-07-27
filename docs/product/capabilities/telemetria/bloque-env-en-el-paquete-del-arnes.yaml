@@ -1,0 +1,97 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D26.2 · A20 opción A).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.bloque-env-en-el-paquete-del-arnes
+cap_num: CAP-142
+slug: bloque-env-en-el-paquete-del-arnes
+name: "El arnés lleva su propia instrumentación (y no escribe en el árbol de nadie)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: adapter
+verb: observar
+functional_area: "telemetria.instrumentacion"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/agent/claudecode/conductor.go#VariablesTelemetria"
+  - "internal/adapters/agent/claudecode/conductor.go#BloqueEnvSettings"
+  - "internal/adapters/agent/claudecode/conductor.go#VarTelemetria"
+valida:
+  - "TestElBloqueEnvDelArnesNoDriftea"
+  - "TestSpawnInyectaTelemetria"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-27
+last_modified: 2026-07-27
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/decisiones.md §D26.2 · arquitectura-modulo.md §7.5 · verificacion-2026-07-26/ANEXO-hooks.md H9/H10.1/H10.2"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-27
+    type: new
+    summary: "Un arnés viaja con su propia instrumentación adentro: quien lo trabaja a mano queda medido igual que si ArnesIA lo hubiera lanzado. Y no se escribe nada en el proyecto de nadie — eso se pide, no se hace."
+    merge_sha: null
+scenarios:
+  - id: dos-caminos-un-solo-contrato
+    name: "El arnés se corre a mano en vez de lanzarlo ArnesIA"
+    status: live
+    given: "un arnés que viaja con su bloque de instrumentación"
+    when: "alguien corre el runtime sobre el árbol del arnés, sin pasar por ArnesIA"
+    then: "la medición llega igual, con exactamente las mismas variables que usa el lanzamiento propio"
+    verifica: "TestElBloqueEnvDelArnesNoDriftea"
+  - id: el-secreto-no-se-versiona
+    name: "El bloque viaja en un archivo del repositorio"
+    status: live
+    given: "un archivo de configuración versionado"
+    when: "se arma el bloque de instrumentación"
+    then: "no lleva ningún token: el receptor acepta sin credencial porque solo escucha a la máquina local"
+    verifica: "TestElBloqueEnvDelArnesNoDriftea"
+business_rules:
+  - id: no-se-escribe-en-arbol-ajeno
+    rule: "La instrumentación viaja en el paquete del arnés, nunca escribiendo archivos en el proyecto de un tercero. Escribir en el árbol de otro se pide con consentimiento explícito, backup y botón inverso; no se hace de oficio."
+    enforcement: ["docs/architecture/boundaries/superficie-local-confinada.md"]
+    severity: critical
+  - id: un-solo-juego-de-variables
+    rule: "Los dos caminos de instrumentación salen de la misma lista. Si divergen, uno manda una señal que nadie entiende y no hay ningún error visible: simplemente no llega nada."
+    enforcement: ["docs/architecture/boundaries/telemetria-de-nacimiento.md"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.evento-canonico-de-telemetria
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# El arnés lleva su propia instrumentación
+
+Un arnés se puede correr de dos maneras: lanzado por ArnesIA, o a mano sobre su propio árbol. La
+primera está medida desde siempre —ArnesIA arma el entorno del subproceso—. La segunda no lo
+estaba, y es la que ocurre cada vez que alguien trabaja *en* el arnés.
+
+Ahora el arnés **viaja con su instrumentación adentro**. Es un archivo del paquete, nuestro, que
+no toca nada de nadie.
+
+La alternativa era escribir ese archivo en el proyecto del usuario, lo que daría cobertura
+completa. **No se hace.** Escribir en el árbol de un tercero se pide —con el cambio a la vista,
+con copia de resguardo y con un botón que lo deshaga—, y hasta que alguien lo pida, la cobertura
+parcial y declarada es preferible a la escritura silenciosa. Lo que queda afuera no se disimula:
+sin el bloque, se ve el proceso y **se dice por qué no se ve el dinero**.
+
+Dos cosas que se midieron y cerraron el diseño, en vez de razonarse:
+
+- **Un plugin no puede aportar el bloque.** Se armó uno que lo declaraba completo, se instaló y
+  no llegó nada; el control positivo de la misma corrida sí llegó. No existe la
+  auto-instrumentación al instalar, y por eso hay que elegir dónde vive el archivo.
+- **La indirección no funciona.** El runtime no expande variables dentro de ese bloque, así que
+  meter una credencial ahí solo se podría con el valor literal — un secreto versionado. La
+  salida es que el receptor no pida credencial: solo escucha a la máquina local.
+
+Y los dos caminos salen de **una sola lista de variables**. Si se separan, uno de los dos manda
+una señal que el receptor no entiende y no hay ningún error: simplemente no llega nada. Eso ya se
+midió una vez; el candado existe para que no vuelva a pasar por descuido.

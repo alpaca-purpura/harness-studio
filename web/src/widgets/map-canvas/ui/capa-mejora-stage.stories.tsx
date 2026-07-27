@@ -42,6 +42,9 @@ const S2_INSTRUMENTADO: ResumenTelemetria = {
 const NUNCA_CORRIO: ResumenTelemetria = {
   ...RESUMEN_ILUSTRATIVO,
   corridas: 0,
+  // D26.4 — «nunca corrió» ahora EXIGE no haber corrido nunca. Con historial fuera de la
+  // ventana el estado correcto es el 1b, y decir «nunca corrió» sería falso.
+  ultima_corrida: null,
   turnos: 0,
   sesiones: 0,
   cajas: 0,
@@ -76,7 +79,6 @@ const meta = {
     noAplican: [],
     ventana: "7d",
     retencionDias: 90,
-    retencionPropuesta: true,
     onVentana: fn(),
     onPolitica: fn(),
     onReintentar: fn(),

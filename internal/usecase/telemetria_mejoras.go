@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
@@ -86,6 +87,7 @@ func (s *TelemetriaService) Mejoras(ctx context.Context, q ports.ConsultaTelemet
 	ventana := domain.Ventana{
 		Desde: v.Desde, Hasta: v.Hasta, ArnesID: v.ArnesID, Turnos: turnos,
 		Contexto: s.contextoDe(turnos, resumen),
+		Precios:  s.preciosDe(turnos),
 	}
 	if resumen.CostoReportadoMicros != nil {
 		ventana.TotalMicros = *resumen.CostoReportadoMicros
@@ -110,7 +112,26 @@ func (s *TelemetriaService) Mejoras(ctx context.Context, q ports.ConsultaTelemet
 				CoberturaParcial: true, Motivo: ap.Motivo, Hallazgos: len(puntos),
 			})
 		}
-		out.Puntos = append(out.Puntos, puntos...)
+		// Regla A4 en la puerta de salida (D25): **un punto sin contrafactual no es tarjeta.**
+		// Pero tampoco desaparece: el detector que encontró algo y no puede proponer un
+		// arreglo se declara `sin_fix` con su motivo. Filtrarlo en silencio dejaría el mismo
+		// hueco que este módulo existe para no dejar — «no lo mostramos» leído como «no hay».
+		var conFix []domain.PuntoDeMejora
+		var sinFix int
+		for _, p := range puntos {
+			if p.Contrafactual == "" {
+				sinFix++
+				continue
+			}
+			conFix = append(conFix, p)
+		}
+		if sinFix > 0 {
+			out.NoAplican = append(out.NoAplican, domain.EstadoDetector{
+				Detector: d.ID(), Nombre: d.Nombre(), Aplica: true,
+				SinFix: true, Hallazgos: sinFix, Motivo: domain.MotivoSinContrafactual,
+			})
+		}
+		out.Puntos = append(out.Puntos, conFix...)
 	}
 
 	for _, nm := range detectoresNoMedidos {
@@ -118,6 +139,24 @@ func (s *TelemetriaService) Mejoras(ctx context.Context, q ports.ConsultaTelemet
 			Detector: nm.ID, Nombre: nm.Nombre, Aplica: false,
 			Motivo: "no medido todavía",
 		})
+	}
+
+	// D26.4 — los puntos que el operador ya descartó no vuelven a la lista. Se filtran ACÁ y
+	// no en el FE: filtrar en la pantalla dejaría el contador y el «✓ sin fugas» del
+	// Portafolio contando cosas que el operador ya dijo que no quiere ver.
+	if desc, derr := s.store.Descartados(ctx, v.ArnesID); derr == nil && len(desc) > 0 {
+		vivos := out.Puntos[:0]
+		for _, p := range out.Puntos {
+			if !desc[p.ID] {
+				vivos = append(vivos, p)
+			}
+		}
+		out.Descartados = len(out.Puntos) - len(vivos)
+		out.Puntos = vivos
+	} else if derr != nil {
+		// Si no se pueden leer los descartes, se muestran TODOS los puntos. Esconder por un
+		// error de lectura sería esconder hallazgos por una falla de infraestructura.
+		slog.Warn("telemetria: descartes no legibles — se muestran todos los puntos", "err", derr)
 	}
 
 	// Orden estable por impacto: lo más caro primero. Empates por id, para que dos corridas
@@ -165,4 +204,42 @@ func (s *TelemetriaService) contextoDe(turnos []domain.TurnoUnido, r domain.Resu
 	}
 	c.ModelosDistintos = len(modelos)
 	return c
+}
+
+// preciosDe arma el catálogo aplicable a los modelos de ESTA ventana (D26.1).
+//
+// Existe porque un detector **no conoce puertos**: no puede consultar el catálogo. Antes de
+// esto, B1 y B3 se las arreglaban sumando conteos de tokens en campos `micros` — una cifra que
+// no era dinero y se mostraba como si lo fuera.
+//
+// Un modelo que el catálogo no conoce **no entra al mapa**, y eso es deliberado: un
+// `PrecioModelo` en cero costearía todo gratis en silencio, que es exactamente lo que
+// `ports.CatalogoPrecios` evita al devolver `ok=false`. El detector ve la ausencia y la
+// declara en su sesgo.
+//
+// La clave es el nombre CANÓNICO y también el crudo cuando difieren: el turno guarda el nombre
+// tal como lo dijo el runtime, y `PrecioDe` busca por ese.
+func (s *TelemetriaService) preciosDe(turnos []domain.TurnoUnido) map[string]domain.PrecioModelo {
+	if s.catalogo == nil {
+		return nil
+	}
+	out := map[string]domain.PrecioModelo{}
+	for _, t := range turnos {
+		if t.Modelo == "" {
+			continue
+		}
+		if _, ya := out[t.Modelo]; ya {
+			continue
+		}
+		canonico := s.catalogo.Canonizar(t.Modelo)
+		precio, ok := s.catalogo.Precio(canonico)
+		if !ok {
+			continue // desconocido ≠ gratis: se omite y el detector lo declara.
+		}
+		out[t.Modelo] = precio
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

@@ -53,7 +53,6 @@ function Vista({
         ultimaCorridaFuera={ultimaCorridaFuera}
         escenario={resumen?.escenario}
         retencionDias={90}
-        retencionPropuesta
         onPolitica={fn()}
         onReintentar={fn()}
       />

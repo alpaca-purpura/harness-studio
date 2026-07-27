@@ -157,9 +157,6 @@
   align-items: baseline;
   gap: 2px;
 }
-.arnesia-mejora .fm-propuesto {
-  font-style: italic;
-}
 /* D21 normativo — el enlace «qué guardamos» NO usa `--primary` como color de texto: `#00b7aa`
    sobre el fondo de la franja mide **2,41:1** (medido por axe al construir, no estimado) y
    rompe el gate. La afordancia de enlace la carga el SUBRAYADO, que no depende del color; el
@@ -521,9 +518,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-.arnesia-mejora .pol-propuesto {
-  color: var(--muted-foreground);
 }
 .arnesia-mejora .pol-confirm {
   display: flex;

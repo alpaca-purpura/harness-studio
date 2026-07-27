@@ -24,10 +24,20 @@ interface AppState {
   // WorkspaceStage lo lee una vez (apunta viewedId al id efectivo devuelto por
   // observarEnMapa) y lo limpia. NO más lógica que esto, es solo un buzón.
   mapaPeek: string | null
+  // propuestaChat (D26.4 · RF-255 · BR-M12): el buzón de «Proponerlo en el chat». Mismo patrón
+  // de un solo consumo que `mapaPeek` — la tarjeta lo escribe, el Dock lo lee UNA vez y lo
+  // limpia.
+  //
+  // 🔴 **Puebla el composer; NO envía.** Auto-enviar convertiría un clic en un turno real
+  // contra el código del operador, y el fix se aplica por el camino de siempre, con sus
+  // permisos y su gate. Es exactamente la razón por la que la tarjeta no tiene ninguna prop
+  // de escritura.
+  propuestaChat: string | null
   toggleTheme: () => void
   setView: (view: string) => void
   syncFromHash: () => void
   setMapaPeek: (id: string | null) => void
+  setPropuestaChat: (texto: string | null) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -37,6 +47,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   theme: "dark",
   view: readView(),
   mapaPeek: null,
+  propuestaChat: null,
   toggleTheme: () => {
     const next: Theme = get().theme === "light" ? "dark" : "light"
     if (typeof document !== "undefined") document.documentElement.setAttribute("data-theme", next)
@@ -48,6 +59,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   syncFromHash: () => set({ view: readView() }),
   setMapaPeek: (id) => set({ mapaPeek: id }),
+  setPropuestaChat: (texto) => set({ propuestaChat: texto }),
 }))
 
 /** Cablea el store al hashchange del navegador. Llamar una vez en el arranque (app layer). */

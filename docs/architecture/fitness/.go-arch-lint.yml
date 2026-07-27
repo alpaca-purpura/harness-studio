@@ -22,6 +22,12 @@ exclude:
   - docs/architecture/fitness          # meta-tests de arquitectura: no son componente del producto
   - docs/product/stories  # artefactos de paquetes de trabajo (sondas), no producto
   - web                   # FE + node_modules (hay .go de terceros dentro de node_modules)
+  # `.claude/worktrees/` son COPIAS del árbol que el arnés crea para trabajar en paralelo (una
+  # por rama en curso). No son el producto: son el mismo producto otra vez, en otro commit.
+  # Sin esta línea, el grafo de imports de main se rompía **por tener trabajo en curso al
+  # lado** —tres checks en rojo por un archivo de una rama ajena—, y un gate que se pone rojo
+  # por algo que no es el código que se está midiendo entrena a ignorarlo.
+  - .claude
 
 excludeFiles:
   - "_test\\.go$"         # los tests cablean concretos a propósito; la regla aplica a producción

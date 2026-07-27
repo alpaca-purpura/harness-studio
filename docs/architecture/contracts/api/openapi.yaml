@@ -24,7 +24,13 @@ info:
   #   (b) un 200 de …/traidos puede traer `deriva: "en-deriva"` o `"deriva-no-evaluable"`: BR-17
   #       dice que la deriva se muestra TAL CUAL salga, y un veredicto incómodo no es un fallo de
   #       la operación. Agregar una validación que exija `al-hilo` rompe BR-17.
-  version: 0.7.0-marketplaces
+  # 0.8.0-telemetria: + las 10 rutas de /api/telemetria/* (paquete
+  # 2026-07-24-telemetria-embebida-otel). Se declaran AL CERRAR el paquete, que es lo que su
+  # exención prometía — y con el cierre entran DOS decisiones que el contrato tiene que
+  # cargar: (a) el DELETE acepta ventana y borra lo que la confirmación declara (D26.5,
+  # única acción irreversible); (b) `contrafactual` viaja como prosa YA redactada por el
+  # dominio (D25) — la UI presenta, no calcula.
+  version: 0.8.0-telemetria
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -863,6 +869,141 @@ paths:
               schema:
                 description: "Frames `event: dock` con este payload:"
                 $ref: "#/components/schemas/DockFrame"
+
+  # ── Telemetría (10) — la capa «Mejora» del Mapa ──────────────────────────────────────
+  #
+  # Se declaran AL CERRAR el paquete (D26 · gate de PARIDAD firmado 2026-07-27), que es lo
+  # que su exención en `_sin-declarar.yaml` prometía: «declara su contrato al cerrar».
+  #
+  # DOS puntos que un implementador «prolijo» rompería sin darse cuenta:
+  #   (a) los campos de dinero son NULLABLE a propósito. `null` = «no se pudo medir» y `0` =
+  #       «costó cero». Convertir el null en 0 es el pass fabricado que este módulo entero
+  #       existe para no cometer (boundary no-aplica-no-es-cero).
+  #   (b) `DELETE /arneses/{clave}` ACEPTA ventana y borra exactamente lo que la confirmación
+  #       de la UI declara (D26.5). Ignorar `desde`/`hasta` borraría todo el historial cuando
+  #       el usuario pidió una parte — es la única acción irreversible de la superficie.
+  /telemetria/resumen:
+    get:
+      operationId: getTelemetriaResumen
+      summary: La franja del Mapa — gasto de la ventana, con su cobertura y su confianza.
+      parameters:
+        - { name: arnes, in: query, required: false, schema: { type: string } }
+        - { name: instalacion, in: query, required: false, schema: { type: string } }
+        - { name: desde, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: >-
+            Resumen de la ventana. `costo_reportado_micros`/`costo_calculado_micros` son
+            NULLABLE: `null` = ningún turno lo trajo. `ultima_corrida` mira TODO el historial
+            e ignora la ventana — es lo que separa «no corrió en estos 7 días» de «nunca
+            corrió».
+        "400": { description: "`desde`/`hasta` no son RFC3339. Una ventana ilegible NO se ignora." }
+  /telemetria/salud:
+    get:
+      operationId: getTelemetriaSalud
+      summary: Contadores del receptor + estado del almacén + TTL vigente.
+      responses:
+        "200":
+          description: >-
+            `retencion_dias` es el TTL FIRMADO (90, D26.3) y viene de la config, no de una
+            constante: la UI lo lee de acá y nunca lo hardcodea.
+  /telemetria/portafolio:
+    get:
+      operationId: getTelemetriaPortafolio
+      summary: Una fila por arnés × instalación — USD/corrida, tendencia y puntos de mejora.
+      parameters:
+        - { name: desde, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: >-
+            `costo_por_corrida` es `null` para el que nunca corrió — JAMÁS 0. `puntos_de_mejora`
+            en 0 SÍ es un dato: «se midió y no se encontró nada».
+  /telemetria/arneses/{clave}/cajas:
+    get:
+      operationId: getTelemetriaCajas
+      summary: Desglose por caja para pintar las cifras del canvas.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+        - { name: desde, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: >-
+            Las cajas SIN dato viajan igual, con `atribuible:false` + `motivo`. Omitirlas
+            obligaría al FE a inventar por qué faltan.
+  /telemetria/arneses/{clave}/cajas/{cajaId}:
+    get:
+      operationId: getTelemetriaDetalleCaja
+      summary: La 4ª tab del inspector — buckets de token, paridad de costo y el join.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+        - { name: cajaId, in: path, required: true, schema: { type: string } }
+        - { name: desde, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200": { description: "Detalle de la caja. La paridad muestra los DOS costos y su divergencia; con uno solo, `divergencia_pct` es `null` — un 0 diría «coinciden»." }
+  /telemetria/arneses/{clave}/mejoras:
+    get:
+      operationId: getTelemetriaMejoras
+      summary: Los puntos de mejora + los detectores que no aplican + los que no medimos.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+        - { name: desde, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: >-
+            Las TRES listas viajan SIEMPRE, aunque vacías (A16): omitir `no_aplican` obligaría
+            al FE a elegir entre no mostrar nada —un hueco escondido— o mostrar 0, que es una
+            mentira. `contrafactual` viaja como PROSA ya redactada por el dominio (D25): la UI
+            presenta, no calcula.
+  /telemetria/arneses/{clave}/mejoras/{puntoId}/descartar:
+    post:
+      operationId: descartarPuntoMejora
+      summary: El operador no quiere volver a ver este punto. Persiste (D26.4).
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+        - { name: puntoId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "Descartado. Idempotente: descartar dos veces lo mismo es la misma decisión, no un error." }
+        "400": { description: Falta el arnés o el punto. }
+    delete:
+      operationId: recuperarPuntoMejora
+      summary: La vuelta atrás del descarte.
+      description: >-
+        Existe porque un descarte sin vuelta atrás convierte un clic distraído en la pérdida
+        permanente de un hallazgo que costó dinero producir.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+        - { name: puntoId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: El punto vuelve a la lista. }
+        "400": { description: Falta el arnés o el punto. }
+  /telemetria/arneses/{clave}:
+    delete:
+      operationId: borrarTelemetriaArnes
+      summary: Borra la telemetría de un arnés — detalle Y agregado.
+      description: >-
+        🔴 Única acción irreversible de la superficie. **Acepta ventana** (D26.5): sin
+        `desde`/`hasta` borra todo el historial; con ellos borra exactamente lo que la
+        confirmación de la UI declara. Una ventana ilegible devuelve 400 — ignorarla borraría
+        todo cuando el usuario pidió una parte.
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+        - { name: desde, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: hasta, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200": { description: "`borrados` y `ventana` (si el borrado fue acotado). Sin `ventana`, «borrados: 61» no distingue «los 61 de la ventana» de «61, que era todo»." }
+        "400": { description: "`desde`/`hasta` no son RFC3339." }
+  /telemetria/proceso:
+    post:
+      operationId: postTelemetriaProceso
+      summary: La puerta del hook — eventos de proceso del runtime.
+      responses:
+        "200": { description: Aceptado. El receptor NUNCA bloquea al emisor ni finge haber guardado. }
+        "400": { description: Payload ilegible. }
 
 components:
   securitySchemes:

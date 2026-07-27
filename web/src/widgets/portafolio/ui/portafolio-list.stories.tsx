@@ -341,6 +341,40 @@ export const ConMejora: Story = {
   },
 }
 
+// D20 · D26.4 — con el arnés instalado más de una vez, la cifra es de UNA instalación y la fila
+// **lo dice**. Antes el wire mandaba una fila por (arnés, instalación), la lista se quedaba con
+// la primera y las demás desaparecían: la celda mostraba el costo de una y se leía como el del
+// arnés entero. Una cifra parcial que no declara que es parcial es una cifra falsa.
+export const ConMejoraDosInstalaciones: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    mejora: mejoraDemo,
+    instalacionesPorClave: new Map([[entradasDemo[0]?.clave ?? "", 2]]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByText("1 de 2 instalac.")).toBeInTheDocument()
+  },
+}
+
+// Control negativo del de arriba: con UNA instalación no se dibuja nada. El aviso tiene que
+// aparecer cuando hay algo que avisar, no siempre — si no, deja de leerse.
+export const ConMejoraUnaSolaInstalacionNoAvisa: Story = {
+  args: {
+    entradas: entradasDemo,
+    lente: "plano",
+    mejora: mejoraDemo,
+    instalacionesPorClave: new Map([[entradasDemo[0]?.clave ?? "", 1]]),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // El patrón es «1 de N instalac.» — no cualquier «instalac.», que la fila ya usa para
+    // el chip de cuántas instalaciones tiene el arnés.
+    await expect(c.queryByText(/\d+ de \d+ instalac\./)).toBeNull()
+  },
+}
+
 // A-6 — la celda carga su UNIDAD. Sin encabezado de columna, un `0,31` pelado entre chips no
 // dice ni moneda, ni período, ni que es por corrida; y el pie H-12 impide que se lea como
 // facturación. Los dos se habían perdido al no montar la tabla.

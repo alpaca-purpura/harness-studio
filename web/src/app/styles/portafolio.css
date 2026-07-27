@@ -1574,6 +1574,14 @@
   font-variant-numeric: normal;
   color: var(--muted-foreground);
 }
+/* D20 · D26.4 — el alcance de la cifra cuando el arnés está instalado más de una vez. Tono
+   atenuado y no de alarma: es información, no un problema. */
+.arnesia-portafolio .pf-fila .pf-mej-alcance {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-variant-numeric: normal;
+  color: var(--muted-foreground);
+}
 .arnesia-portafolio .pf-mej-vacia-txt {
   font-family: var(--font-sans);
   font-size: var(--text-xs);

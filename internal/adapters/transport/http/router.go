@@ -46,6 +46,13 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 		mux.HandleFunc("GET /api/telemetria/arneses/{clave}/cajas/{cajaId}", getDetalleCaja(telemetria))
 		mux.HandleFunc("GET /api/telemetria/arneses/{clave}/mejoras", getMejoras(telemetria))
 		mux.HandleFunc("DELETE /api/telemetria/arneses/{clave}", deleteTelemetriaArnes(telemetria))
+		// D26.4 — el descarte de un punto de mejora, con su vuelta atrás. Son DOS rutas
+		// porque son dos decisiones distintas del operador, y la segunda existe para que un
+		// clic distraído no borre para siempre un hallazgo que costó dinero producir.
+		mux.HandleFunc("POST /api/telemetria/arneses/{clave}/mejoras/{puntoId}/descartar",
+			postDescartarPunto(telemetria))
+		mux.HandleFunc("DELETE /api/telemetria/arneses/{clave}/mejoras/{puntoId}/descartar",
+			deleteDescartarPunto(telemetria))
 		mux.HandleFunc("POST /api/telemetria/proceso", postProceso(telemetria, nil))
 	}
 

@@ -1,0 +1,42 @@
+[
+  {
+    "micros": 0,
+    "texto": "0,00",
+    "porque": "el cero REAL es un dato y se escribe como cero"
+  },
+  {
+    "micros": 1,
+    "texto": "0,000001",
+    "porque": "un micro existe: los decimales suben hasta la precisión real del dato (6)"
+  },
+  {
+    "micros": 4000,
+    "texto": "0,004",
+    "porque": "USD 0,004 — el caso literal de RF-281; jamás «0,00»"
+  },
+  {
+    "micros": 18473,
+    "texto": "0,02",
+    "porque": "el turno MEDIDO de verificacion-2026-07-26/evidencia/result-envelope.json"
+  },
+  {
+    "micros": 530000,
+    "texto": "0,53",
+    "porque": "la diferencia del contrafactual B1 del mockup firmado"
+  },
+  {
+    "micros": 1920000,
+    "texto": "1,92",
+    "porque": "el total de caja del juego ilustrativo: dos decimales, coma decimal"
+  },
+  {
+    "micros": 1234567890,
+    "texto": "1 234,57",
+    "porque": "miles agrupados con espacio fino U+202F, nunca con coma ni con espacio normal"
+  },
+  {
+    "micros": -530000,
+    "texto": "−0,53",
+    "porque": "negativo con el menos tipográfico U+2212, no el guion ASCII"
+  }
+]

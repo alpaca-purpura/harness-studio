@@ -111,6 +111,63 @@ export interface EntradaVistaCapaMejora {
   activa: boolean
 }
 
+/**
+ * Los cuatro estados que estaban STORIADOS Y MUERTOS hasta D26.4: la story probaba que el
+ * componente los pinta, y ningún composition-root le pasaba jamás la prop. Se derivan acá —una
+ * sola vez, junto a todo lo demás— porque derivarlos en la página es cómo nacieron los cuatro
+ * críticos del Tramo B.
+ *
+ * Cada uno sale de un HECHO del wire, no de una config:
+ *  · **1b** — hay historial pero cae fuera de la ventana ⇒ NO es «nunca corrió».
+ *  · **4**  — el dinero lo puso nuestro catálogo porque el runtime no reportó ninguno.
+ *  · **5**  — el catálogo nunca se refrescó desde el release.
+ *  · **runtime no soportado** — llegó señal de un runtime que todavía no sabemos medir.
+ */
+export function estadosDeLaFranja(
+  resumen: ResumenTelemetria | null,
+  catalogoRefrescado: string | null | undefined,
+): {
+  ultimaCorridaFuera?: string | undefined
+  costoDelCatalogo?: boolean | undefined
+  catalogoSinRefrescar?: string | undefined
+  runtimeNoSoportado?: string | undefined
+} {
+  if (resumen === null) return {}
+  const out: {
+    ultimaCorridaFuera?: string | undefined
+    costoDelCatalogo?: boolean | undefined
+    catalogoSinRefrescar?: string | undefined
+    runtimeNoSoportado?: string | undefined
+  } = {}
+  // 1b — SOLO cuando no hubo corridas en la ventana pero sí las hubo antes. Con corridas
+  // adentro el estado no aplica, y sin historial el estado correcto es el 1 («nunca corrió»).
+  if (resumen.corridas === 0 && resumen.ultima_corrida !== null) {
+    out.ultimaCorridaFuera = fechaCorta(resumen.ultima_corrida)
+  }
+  // 4 — el runtime no dijo cuánto costó y el número salió de nuestro catálogo. Es una
+  // estimación NUESTRA y la franja lo dice; presentarla como dato del runtime sería mentir
+  // sobre la fuente.
+  if (resumen.costo_reportado_micros === null && resumen.costo_calculado_micros !== null) {
+    out.costoDelCatalogo = true
+  }
+  // 5 — el catálogo es el del release. `null` = NUNCA se refrescó, que no es «hace 0 h».
+  if (catalogoRefrescado === null || catalogoRefrescado === undefined) {
+    if (resumen.catalogo.refrescado === null) out.catalogoSinRefrescar = resumen.catalogo.version
+  }
+  // Runtime desconocido: se DICE. Un cero se leería como «este arnés no gasta».
+  if (resumen.runtime !== undefined && resumen.runtime !== "" && !resumen.runtime_soportado) {
+    out.runtimeNoSoportado = resumen.runtime
+  }
+  return out
+}
+
+/** Fecha corta y estable para el copy. No usa la locale del navegador: el literal se asserta. */
+function fechaCorta(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`
+}
+
 export function vistaCapaMejora({
   resumen,
   cajas,

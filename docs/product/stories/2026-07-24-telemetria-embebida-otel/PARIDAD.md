@@ -14,6 +14,39 @@
 > humano las lee como “la superficie hace esto”»*. Los cuatro críticos están corregidos; la
 > objeción está atendida con la **columna «¿alcanzable?»** que ahora lleva cada fila de §1.
 
+## 0-bis · Ejecución de D26 (2026-07-27) — las 6 decisiones, aplicadas
+
+El gate se firmó **junto con** las seis decisiones (§7). Esto es lo que cambió al ejecutarlas, y
+**la columna «¿alcanzable?» de §1 ya no tiene ningún `no`**.
+
+| # | decisión | qué cambió |
+|---|---|---|
+| 1-A | B1 y B3 | los buckets de cache se **cotizan** (antes eran conteos de tokens en campos `micros`, defecto M2) y el contrafactual de B1 compara contra **una sola escritura a 1 h**, que es de donde sale el ahorro. `ScoreVersionMVP` 1 → **2** (A7). Sin catálogo, los dos pasan a `no_aplica` con motivo |
+| 2-A | A20 | el bloque `env` viaja en `dogfood/dev-full-cycle/.claude/settings.json`, y `VariablesTelemetria` es la **fuente única** de los dos caminos (spawn y settings). No se escribe en árbol ajeno |
+| 3 | TTL | **90 días, firmado**: `retencion_propuesta` salió del wire, del CLI y de la UI |
+| 4-A | las 10 filas | cableadas. Hizo falta wire nuevo: `ultima_corrida`, `runtime`/`runtime_soportado`, `cajas`, `descartados`, y **dos endpoints de descarte** que no existían |
+| 5-B | A-4 | el `DELETE` acepta ventana y **borra lo que la confirmación declara**; una ventana ilegible da 400 |
+| 6 | firma | transcrita en §7, con alcance acotado |
+
+Y el contrato dejó de ser deuda: **las 10 rutas de `/api/telemetria/*` están declaradas en
+`openapi.yaml` (0.8.0-telemetria)** y sus exenciones salieron del allowlist — que es exactamente
+lo que la exención prometía, «declara su contrato al cerrar».
+
+**Dos huecos nuevos que la ejecución destapó** —ninguno estaba en la lista, los dos corregidos—:
+
+1. 🔴 **`cajas` no existía en el wire.** El denominador de la franja («… · 4 cajas»), que es copy
+   firmado, se pintaba desde un campo que el FE tipaba y el Go nunca mandaba. **Misma clase exacta
+   que V-5**, y lo cazó el candado de contrato al extenderse a `ResumenTelemetria`.
+2. **El gate de arquitectura se ponía rojo por tener trabajo en curso al lado**: go-arch-lint medía
+   los `.go` de las copias del árbol en `.claude/worktrees/` como si fueran el producto. Excluido —
+   un gate que se pone rojo por algo que no es el código que se mide entrena a ignorarlo.
+
+**Gates al cerrar (2026-07-27):** `go test ./... -race` verde · fitness verde ·
+`conformance --todo` **323 checks, fail 0** · `npm run verify` verde · `npx vitest run`
+**524 / 524**. ⚠️ La flakiness de V-7 sigue viva y se manifestó: dos corridas de la suite completa
+dieron 5 y 8 rojos dispersos —en archivos que este trabajo no tocó— y las mismas pasan en
+aislamiento y en la corrida siguiente. **No está arreglada; está declarada.**
+
 ## 0 · Cifras, generadas
 
 | | |
@@ -79,8 +112,8 @@
 | chip S1-only | ídem | `S1Only` | J-2 | sí |
 | «ver el cálculo» desplegado en línea | ídem | `CalculoCerrado` · `CalculoAbierto` | H-4 | sí |
 | tarjeta resaltada por su caja | ídem | `Resaltada` | design §5.4 · RF-280 | sí |
-| `Descartar` con vuelta atrás | ídem | `DescartarLlamaHandler` | RF-256 | **no** · A-1: sin endpoint, el botón nace disabled y lo dice |
-| `Proponerlo en el chat` **no escribe** | ídem | `ProponerAbreChatNoEscribe` · `ProponerDeshabilitadoFueraDeAlcance` · `NotaAlPie` | RF-255 · BR-M12 · D17.3 | **no** · A-1: no abre chat desde acá; disabled + motivo |
+| `Descartar` con vuelta atrás | ídem | `DescartarLlamaHandler` | RF-256 | **sí** · **desde D26.4**: `POST\|DELETE …/mejoras/{puntoId}/descartar` + tabla `punto_descartado` |
+| `Proponerlo en el chat` **no escribe** | ídem | `ProponerAbreChatNoEscribe` · `ProponerDeshabilitadoFueraDeAlcance` · `NotaAlPie` | RF-255 · BR-M12 · D17.3 | **sí** · **desde D26.4**: buzón `propuestaChat` en `app-store`, el Dock lo consume UNA vez y **puebla el composer sin enviar** |
 | severidad legible sin color | ídem | `SeveridadSinColor` · `TitularSinJerga` | RF-247 · RF-257 · RF-280 | sí |
 | estado vacío con los 6 detectores | `puntos-mejora-list.tsx` | `VaciaConDatos` | H-2 | sí |
 | sin contrafactual no hay tarjeta | ídem | `DescartaSinContrafactual` | RF-246 · A4 | sí |
@@ -105,14 +138,14 @@
 | qué dibuja el mockup | componente real | story = test | RF | ¿alcanzable? |
 |---|---|---|---|---|
 | `USD/corrida` · `tendencia` · `punto de mejora` | `widgets/portafolio/ui/tabla-mejora-portafolio.tsx` | `ConDato` · `ConDatoDark` | RF-265 · D21 | sí |
-| un arnés en dos instalaciones | ídem | `UnArnesDosPuestos` | RF-265 · D20 | **no** · la lista agrupa por entrada; se toma la 1ª fila |
+| un arnés en dos instalaciones | `celdas-mejora-fila.tsx` (la tabla se borró en C-4) | `ConMejoraDosInstalaciones` · `ConMejoraUnaSolaInstalacionNoAvisa` | RF-265 · D20 | **sí** · **desde D26.4**: la fila DICE «1 de N instalac.» — la cifra sigue siendo de una, pero ya no se lee como la del arnés |
 | «puesto sin declarar» | ídem | `SinPuestoDeclarado` | RF-265 · D20 | sí |
 | sparkline + texto equivalente | `entities/telemetria/ui/sparkline.tsx` | `EnAlza` · `Estable` · `HaciaLaBaja` · `PocasCorridas` (×2: entity y tabla) | RF-266 · RF-279 | sí (siempre el copy de ausencia: el wire no manda serie) |
 | «✓ sin fugas» ≠ «sin dato» | `tabla-mejora-portafolio.tsx` | `SinFugas` · `SinDato` | RF-267 · RF-268 · RF-280 | sí · **desde C-4** |
-| orden por costo, sin-dato al final | ídem | `OrdenadaSinDatoAlFinal` | RF-268 | **no** · era de la tabla borrada (C-4) |
+| orden por costo, sin-dato al final | — | — (story borrada con C-4) | RF-268 | **n/a** · la superficie que ordenaba **ya no existe**: las celdas viven en la fila del Portafolio, que tiene su propio orden. Reordenar el Portafolio entero por costo es una decisión de producto que nadie tomó — no se hace de oficio |
 | pie de tabla + confianza por fila | ídem | `PieConDisclaimerDeEstimacion` | H-12 | sí · **desde C-4** |
 | desbordamiento y scroll accesible | ídem | `NombresLargosNumerosGrandes` | design §6.3 | parcial · M-5 abierto |
-| H-3 · el puente al Mapa | ídem + `portafolio-view.tsx` | `AbreElMapaDeEsaInstalacion` | H-3 | **no** · era de la tabla borrada (C-4) |
+| H-3 · el puente al Mapa | `portafolio-drawer.tsx` + `app-store#mapaPeek` | (afordancia vigente «Abrir en Mapa») | H-3 | **sí** · el puente existe y está cableado desde Slice 1; lo que se había borrado con C-4 era una SEGUNDA entrada al mismo puente |
 | las 3 celdas en la fila de la lista | `ui/portafolio-list.tsx` (superset) | `ConMejora` · `SinMejoraDomIntacto` | RF-265 · BR-M16 | sí |
 
 ### §7 del mockup — Los estados honestos
@@ -120,17 +153,17 @@
 | # | estado | story = test | RF | ¿alcanzable? |
 |---|---|---|---|---|
 | 1 | nunca corrió | `Estado1SinDatos` | RF-269 | sí |
-| 1b | sin corridas en la ventana | `Estado1bSinCorridasEnVentana` | H-9 · T-15 | **no** · A-3: `ultimaCorridaFuera` no la pasa nadie, así que dice «nunca corrió» sobre un arnés con historial fuera de la ventana |
+| 1b | sin corridas en la ventana | `Estado1bSinCorridasEnVentana` + `estadosDeLaFranja` (4 tests de tabla) | H-9 · T-15 | **sí** · **desde D26.4**: el wire trae `ultima_corrida`, que mira TODO el historial e ignora la ventana |
 | 2 | cobertura parcial | `Estado2CoberturaParcial` | RF-270 | sí |
 | 3 | S2 sin instrumentar | `Estado3S2SinInstrumentar` | RF-271 · J-10 | sí · **desde C-2** |
 | 3b | S2 instrumentado | `Estado3bS2Instrumentado` | RF-271 · ANEXO H9 | sí · **desde C-2** (era inalcanzable) |
-| 4 | otro runtime | `Estado4OtroRuntime` | RF-272 | **no** · `costoDelCatalogo` no la pasa nadie |
-| 5 | catálogo viejo | `Estado5CatalogoViejo` | RF-273 | **no** · `catalogoSinRefrescar` no la pasa nadie (el dato está en `/salud`) |
+| 4 | otro runtime | `Estado4OtroRuntime` + test de tabla con control negativo | RF-272 | **sí** · **desde D26.4**: se deriva de «el runtime no reportó costo y el catálogo sí» |
+| 5 | catálogo viejo | `Estado5CatalogoViejo` + test de tabla con control negativo | RF-273 | **sí** · **desde D26.4**: sale de `/salud`, que la página ya consume |
 | 6 | por huella | `PorHash` · `MejoraPorHuella` | RF-274 | sí |
-| — | runtime no soportado | `RuntimeNoSoportado` | escenarios A5 | **no** · `runtimeNoSoportado` no la pasa nadie |
+| — | runtime no soportado | `RuntimeNoSoportado` + test de tabla (doble control negativo) | escenarios A5 | **sí** · **desde D26.4**: el wire trae `runtime` + `runtime_soportado`, derivados del dato real |
 | B1 | cargando | `Cargando` (franja · lista · inspector) | H-6 | sí |
 | B2 | error de consulta | `ErrorDeConsulta` | H-6 | sí |
-| B3 | daemon caído, cifras viejas | `DaemonCaido` | H-6 | **no** · el estado de la página ni siquiera tipa `"daemon-caido"`; ver M-2 |
+| B3 | daemon caído, cifras viejas | `DaemonCaido` | H-6 | **sí** · **desde D26.4**: la página distingue «no contestó» (`TypeError`, sin status) de «contestó un error», y solo la primera conserva las cifras viejas marcadas |
 | — | promoción de los estados a `shared/ui` | `SkeletonHonesto` · `SkeletonConMedidaPropia` · `ErrorConMotivoReintentable` | H-6 | n/a |
 
 ### §8 del mockup — Qué guardamos y cómo se borra
@@ -197,8 +230,9 @@ la alimenta tiene huecos declarados.** Ninguno se tapó.
 | 4 | **`GastoCaja.Nombre = CajaID`** (auditoría §UX ítem 3) | El canvas pinta el nombre del NODO (que sí es humano) y no el del wire, así que este hueco no se ve en el Mapa; sí se vería en cualquier superficie que liste cajas por el wire |
 | 5 | **A2 — «detalle purgado, resumen conservado» no existe** | **No se dibujó ese estado.** El diálogo de borrado dice «Este arnés vuelve a estar sin datos de telemetría», que es lo que el backend realmente produce |
 | 6 | **M1 — B6 dispara siempre en `s2-instrumentado`** | La lista de mejoras nunca estará vacía contra ese escenario, y su primer ítem será un falso positivo estructural. `VaciaConDatos` existe y es correcta, pero **hoy no se va a alcanzar en S2** |
-| 7 | **M2 — B1 y B3 ponen conteos de tokens en campos `micros`** | Cualquier cifra de dinero de esas dos tarjetas está mal **en el backend**. La UI la formatea correctamente; el número es el que el dominio manda |
+| ~~7~~ | ~~M2 — B1 y B3 ponen conteos de tokens en campos `micros`~~ | ✅ **CERRADO por D26.1**: los dos cotizan con el catálogo. El candado es `TestElMontoDelCacheSaleDeLaTarifaNoDelConteo` — duplica la tarifa con los mismos tokens y exige que el monto se duplique; si no se mueve, el número son tokens disfrazados de dinero |
 | 8 | **`RespuestaMejoras` no trae la lista de detectores que corrieron y no encontraron nada.** Trae `no_aplican` (no pudieron correr) y `no_medidos` (fuera del MVP); un detector que aplicó y salió limpio **no está en ninguna** | H-2 pide esa lista. **Parcialmente resuelto en D24.4**: el CONTEO sí es derivable (`6 − no_aplican.length`), así que el vacío dice cuántos corrieron y enumera los que no pudieron con su motivo. Lo que sigue faltando es poder **nombrar** a los que salieron limpios |
+| ~~10~~ | ~~B1 no puede emitir contrafactual~~ | ✅ **CERRADO por D26.1**: el contrafactual compara contra **una sola escritura a 1 h** —de ahí sale el ahorro— y el monto se cotiza con el catálogo. `ScoreVersionMVP` 1 → 2. Con una sola escritura en la ventana no hay tarjeta, y es correcto: no hay re-warm que evitar |
 | 9 | 🔴 **`DetalleCaja` no trae el costo POR BUCKET.** Trae `Tokens` (los seis punteros) y `Paridad` (los dos totales), pero no un desglose de dinero por bucket | La columna `USD` de la tabla del inspector viaja **`null` — «no aplica»** contra el wire real. Calcularla en el FE sería costear en la UI, que es justo lo que `design.md` §1.3 prohíbe («entities presenta; no calcula»). **El assert de «la suma cierra» (`Completo`) corre contra fixture, no contra el wire**, y no puede correr contra el wire hasta que este campo exista |
 
 ---
@@ -211,15 +245,20 @@ la alimenta tiene huecos declarados.** Ninguno se tapó.
 | V-2 | **El aspecto real de la capa en el navegador** | No se levantó el daemon ni se sacó captura. Las stories corren en Chromium headless y assertan DOM, contraste (axe) y `getComputedStyle`, pero **nadie miró la pantalla** |
 | V-3 | **`fitView` con los nodos ~26 px más altos** (design §6.2) | Es comportamiento de layout con el canvas montado a tamaño real; las stories lo montan a 620 px de alto. El razonamiento está escrito (overview-first, RF-50) pero no medido |
 | V-4 | **El tema oscuro más allá de las 3 stories espejo** | `ReposoDark`, `CompletaB1AtencionDark` y `ConDatoDark` cubren franja, tarjeta y Portafolio. El inspector, la lista y el diálogo **solo tienen gate en claro** |
-| V-5 | **El wire real de `puntos`** | El FE tipa `PuntoMejora` con campos que el Go **no manda con esos nombres** (`contrafactual` como prosa, `patron`, `fix_codigo`, `calculo`, `caja_nombre`, `id`, `solo_s1`, `confianza_detalle`). El dominio Go tiene `ContrafactualMicros`/`DiferenciaMicros`/`Umbral`/`Sesgo`/`Fix`. **Falta el adaptador que arme la prosa** — hoy la composición está escrita contra el tipo del FE y ningún test la ata al JSON real |
+| ~~V-5~~ | ~~**El wire real de `puntos`**~~ | ✅ **CERRADA por D25** (2026-07-26). La prosa se arma en el dominio (`telemetria_prosa.go#Redactar`), los 7 campos que el FE tipaba sin productor ahora existen o se borraron (`caja_nombre`), y **el JSON real está atado al tipo del FE** por `telemetria_contrato_fe_test.go`, con control positivo. Lo que la decisión destapó está abajo, en el ítem 10 de §4 |
 | V-7 | **La suite tiene flakiness intermitente bajo carga** — no introducida por este paquete | En 7 corridas completas seguidas, 5 cerraron **exactamente** en los 4 rojos preexistentes y 2 sumaron fallos intermitentes. Los archivos afectados incluyen `shared/ui/buscador-filtro.stories.tsx` y `entities/marketplace/ui/chips.stories.tsx`, **que este paquete nunca tocó** — así que es del runner (browser mode en paralelo), no del diff. Ninguno de los archivos nuevos falló dos veces seguidas, y los 4 archivos nuevos corridos en aislamiento pasan 3/3. **Vale la pena abrirlo en el BACKLOG**: una suite que falla 2 de cada 7 veces por razones de infraestructura entrena a re-correr, y eso es exactamente lo que hace que un rojo real pase desapercibido |
 | V-6 | **La 4ª tab contra el wire real** | Está cableada (`workspace-stage.tsx` pide `GET …/cajas/{cajaId}` al seleccionar una caja con la capa encendida), pero la columna USD por bucket llega `null` (§4 ítem 9) y el join llega con `null` en las tres filas de proceso (T22 abierto). **Lo que se ve contra el wire real es una tabla de tokens y una paridad**, no el desglose completo del mockup |
 
-> 🔴 **V-5 es el hueco más grande de este tramo y no se puede cerrar desde el FE.** El
-> `PuntoDeMejora` de Go entrega piezas (`ContrafactualMicros`, `DiferenciaMicros`) y la tarjeta
-> necesita **frases con su unidad declarada** (RF-249). O el backend arma la prosa —donde están
-> los números y el sesgo— o hay que decidir que la arma el FE, que es exactamente el cálculo que
-> `design.md` §1.3 prohíbe en `entities`. **Es una decisión de contrato, no de píxeles.**
+> ✅ **V-5 está cerrada (D25).** No era una decisión abierta: `design.md` §1.3 —firmado— ya decía
+> *«el contrafactual se resuelve en el dominio Go y viaja resuelto en el wire»*, y la
+> implementación se lo salteó. El dominio arma la frase; el FE dejó de tipar campos sin
+> productor; un fitness test ata los dos lados y falla si vuelven a separarse.
+>
+> 🔴 **Lo que cerrar V-5 destapó, y el gate humano tiene que decidir:** al redactar la frase de
+> los seis detectores, **B1 —la tarjeta insignia— no la pudo armar**. Su contrafactual cotiza las
+> mismas escrituras de cache a la tarifa larga, que es más cara, así que su «ahorro» es negativo
+> por construcción. Hoy sale declarado `sin_fix` con su motivo en vez de dibujar una tarjeta que
+> dice que el arreglo cuesta más. Detalle en `decisiones.md` §D25.4.
 
 ---
 
@@ -235,7 +274,25 @@ go test ./docs/architecture/fitness/...  # verde (R1 · R1-símbolo · R2 · R4)
 
 ---
 
-## 7 · 🧑‍⚖️ Gate humano — PENDIENTE
+## 7 · 🧑‍⚖️ Gate humano — **FIRMADO 2026-07-27**
+
+**Firmado por el operador**, con **D-1 ok** y **D-2 ok**, junto con las seis decisiones de
+[`decisiones.md`](decisiones.md) §D26. El alcance de la firma está acotado ahí y se repite acá
+porque importa: cubre el Tramo B construido **más la ejecución de D26**, y **nada más** — lo que
+se destape al ejecutar vuelve al gate, no se cuela bajo esta firma.
+
+Los seis ítems que el gate recorrió, con lo que el operador resolvió en cada uno:
+
+| # | ítem | resuelto |
+|---|---|---|
+| 1 | D-1 y D-2, las dos desviaciones 🔴 sobre superficie firmada | **ok las dos** |
+| 2 | §4 — los huecos del backend que la UI declara en pantalla | los que D26 decidió arreglar se arreglan; el resto sigue declarado |
+| 3 | V-5, el contrato `PuntoDeMejora` Go ↔ FE | cerrado por **D25**; su consecuencia (B1) **se arregla** (D26.1), no se declara |
+| 4 | El TTL de retención | **90 días, firmado** (D26.3). Sale el rótulo «propuesto» |
+| 5 | Las 10 filas «no alcanzable» de §1 | **se cablean las diez** (D26.4) |
+| 6 | A-4, la única acción irreversible | **el `DELETE` acepta ventana** (D26.5): se corrige el poder, no el copy |
+
+<details><summary>Lo que esta sección decía antes de la firma</summary>
 
 Este tramo **no está firmado**, y la auditoría independiente del Tramo B dijo **no firmar** (§9).
 Los 4 críticos están corregidos; lo que queda abierto está en §9 y en §4-§5.
@@ -244,7 +301,10 @@ Para firmarlo hay que mirar, como mínimo:
 1. **D-1 y D-2**, las dos desviaciones marcadas 🔴 sobre superficie firmada.
 2. **§4 completo**: siete huecos del backend que la UI declara en pantalla. Si alguno no es
    aceptable como estado visible, cambia el diseño, no el código.
-3. **V-5**: el contrato de `PuntoDeMejora` entre Go y el FE. Bloquea el E2E real de la tarjeta.
+3. ~~**V-5**: el contrato de `PuntoDeMejora` entre Go y el FE.~~ **Cerrado (D25).** Lo que queda
+   para el gate es su consecuencia: **§4 ítem 10 — B1, la tarjeta insignia, no se dibuja** porque
+   su contrafactual da un ahorro negativo. Decidir si se corrige la fórmula (bump de
+   `ScoreVersionMVP`) o si el mockup deja de tener a B1 como insignia.
 4. **El TTL de retención** sigue **PROPUESTO** (J-6 · parada P2). La UI **ahora sí** lo lee de
    `GET /api/telemetria/salud` (antes estaba hardcodeado en 90 — la afirmación anterior de esta
    hoja era falsa, A-2) y lo rotula según `retencion_propuesta`; el número lo pone el operador.
@@ -252,6 +312,8 @@ Para firmarlo hay que mirar, como mínimo:
    testeadas que la app no alcanza — hay que decidir si se cablean o se declaran fuera de alcance.
 6. **A-4**, la única acción irreversible: el conteo que la confirmación declara es de la ventana y
    el borrado es de todo el historial. Es decisión de producto.
+
+</details>
 
 ---
 
@@ -376,9 +438,9 @@ fix y los controles positivos quedan verdes.
 
 | # | qué | por qué no se hizo acá |
 |---|---|---|
-| **A-3** | Estado 1b inalcanzable: «nunca corrió» sobre un arnés con historial fuera de la ventana | Necesita la fecha de la última corrida, que el resumen no trae. **Es un hueco de wire**, no de UI |
-| **A-4** | «Se borran 61 corridas» — el conteo es de la ventana, el `DELETE` es de todo | Se arregla en el wire (que el `DELETE` acepte ventana) o en el copy (que diga «todo el historial»). **Es decisión de producto sobre la única acción irreversible** |
-| **M-1** | Nueve estados storiados e inalcanzables | Atendido **como transparencia** (la columna «¿alcanzable?» de §1), no como implementación: 10 filas dicen `no` |
+| ~~**A-3**~~ | ~~Estado 1b inalcanzable~~ | ✅ **CERRADO por D26.4**: el resumen trae `ultima_corrida`, que mira todo el historial e ignora la ventana |
+| ~~**A-4**~~ | ~~«Se borran 61 corridas» — el conteo es de la ventana, el `DELETE` es de todo~~ | ✅ **CERRADO por D26.5**: el `DELETE` acepta ventana. Se eligió arreglar el poder, no el copy |
+| ~~**M-1**~~ | ~~Nueve estados storiados e inalcanzables~~ | ✅ **CERRADO por D26.4**: se cablearon las diez. La transparencia (la columna «¿alcanzable?») fue el paso intermedio, no la solución — el operador eligió arreglar en vez de declarar |
 | **M-2** | Un error de consulta deja el dinero viejo en el canvas | Relacionado con B3, que la página no tipa |
 | **M-3** | «pocas corridas para una tendencia» nombra una causa que no es la causa | El wire no manda serie (§4 ítem 1); el copy honesto sería «todavía no calculamos la serie» |
 | **M-4** | `por-proceso` avisa de la mezcla **solo por `title`** | Cambia copy firmado de `design.md` §7.3 |

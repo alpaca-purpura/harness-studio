@@ -65,15 +65,35 @@ type ResumenTelemetria struct {
 	// que caza los errores de costeo** —catálogo viejo, bucket perdido, tramo equivocado— que
 	// ningún test de tabla ve venir, porque un test de tabla solo conoce los casos que su
 	// autor imaginó. Esto es lo que hace que el sistema lo MIRE.
-	DivergenciaPct        *float64               `json:"divergencia_pct"`
-	DivergenciaSospechosa bool                   `json:"divergencia_sospechosa"`
-	Corridas              int                    `json:"corridas"`
-	Sesiones              int                    `json:"sesiones"`
-	Turnos                int                    `json:"turnos"`
-	Escenario             Escenario              `json:"escenario"`
-	Confianza             Confianza              `json:"confianza"`
-	Cobertura             Cobertura              `json:"cobertura"`
-	Catalogo              VersionCatalogoPrecios `json:"catalogo"`
+	DivergenciaPct        *float64 `json:"divergencia_pct"`
+	DivergenciaSospechosa bool     `json:"divergencia_sospechosa"`
+	Corridas              int      `json:"corridas"`
+	Sesiones              int      `json:"sesiones"`
+	Turnos                int      `json:"turnos"`
+	// Cajas es cuántas cajas distintas tuvieron actividad atribuida en la ventana.
+	//
+	// 🔴 Lo destapó el candado de contrato al extenderse a este struct (D26.4): **el FE lo
+	// tipaba y el Go nunca lo mandaba**, así que el denominador de la franja —«… · 4 cajas»,
+	// que es parte del copy firmado— se pintaba desde un campo que nadie producía. Misma
+	// clase exacta que V-5.
+	Cajas     int                    `json:"cajas"`
+	Escenario Escenario              `json:"escenario"`
+	Confianza Confianza              `json:"confianza"`
+	Cobertura Cobertura              `json:"cobertura"`
+	Catalogo  VersionCatalogoPrecios `json:"catalogo"`
+	// UltimaCorrida es la última medición del arnés **ignorando la ventana** (D26.4, estado
+	// 1b). Sin este campo, «0 corridas en los últimos 7 días» y «este arnés nunca corrió» se
+	// dicen igual — y sobre un arnés con dos años de historial la segunda es falsa.
+	//
+	// `nil` = nunca hubo una. Ese sí es el estado 1.
+	UltimaCorrida *time.Time `json:"ultima_corrida"`
+	// Runtime es con qué corre este arnés, tomado del dato REAL de la ventana (no de una
+	// config). Vacío = no llegó ningún evento que lo diga.
+	//
+	// RuntimeSoportado dice si sabemos medirlo. `false` con `Runtime` no vacío es el estado
+	// «todavía no medimos ese runtime», que se DICE en vez de mostrar un cero.
+	Runtime          string `json:"runtime,omitempty"`
+	RuntimeSoportado bool   `json:"runtime_soportado"`
 }
 
 // MarcaDeFuga NOMBRA el detector, nunca es un ⚠ genérico: un signo de admiración sin
@@ -195,6 +215,11 @@ type EstadoDetector struct {
 	// Viaja como matiz explícito, jamás como un ✅ liso.
 	CoberturaParcial bool `json:"cobertura_parcial,omitempty"`
 	Hallazgos        int  `json:"hallazgos"`
+	// SinFix es la contraparte de la regla A4: el detector corrió, encontró algo cotizable y
+	// **no puede proponer un arreglo**. No genera tarjeta —una tarjeta sin contrafactual es un
+	// reproche— pero tampoco se esconde: el inspector lo lista con su motivo. Sin este campo,
+	// «encontró y no sabe qué hacer» se leería igual que «no encontró nada».
+	SinFix bool `json:"sin_fix,omitempty"`
 }
 
 // RespuestaMejoras lleva las TRES listas SIEMPRE (decisión A16). Omitir `no_aplican`
@@ -204,7 +229,11 @@ type RespuestaMejoras struct {
 	NoAplican []EstadoDetector `json:"no_aplican"`
 	NoMedidos []EstadoDetector `json:"no_medidos"`
 	Escenario Escenario        `json:"escenario"`
-	Ventana   struct {
+	// Descartados es cuántos puntos se ocultaron porque el operador los descartó (D26.4).
+	// Viaja para que la lista pueda decir «hay 2 descartados» en vez de mostrarse más corta
+	// sin explicación — que se leería como «no encontramos nada más».
+	Descartados int `json:"descartados"`
+	Ventana     struct {
 		Desde time.Time `json:"desde"`
 		Hasta time.Time `json:"hasta"`
 	} `json:"ventana"`
@@ -249,10 +278,9 @@ type SaludTelemetria struct {
 	TamanoBytes             int64      `json:"tamano_bytes"`
 	AvisoTamano             bool       `json:"aviso_tamano"`
 	HistoriaArchivada       string     `json:"historia_archivada,omitempty"`
-	// RetencionDias es el TTL vigente. `RetencionPropuesta` marca que el número NO está
-	// firmado (J-6 · parada P2 del plan): D15.3 firmó «TTL por default» SIN número.
+	// RetencionDias es el TTL vigente, **firmado en 90 días** (D26.3). Sigue viniendo de la
+	// config y no de una constante en la UI: firmar el default no es clavarlo.
 	RetencionDias        int                    `json:"retencion_dias"`
-	RetencionPropuesta   bool                   `json:"retencion_propuesta"`
 	RollupMeses          int                    `json:"rollup_meses"`
 	Catalogo             VersionCatalogoPrecios `json:"catalogo"`
 	Forward              bool                   `json:"forward"`

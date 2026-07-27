@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +22,14 @@ func i64(v int64) *int64 { return &v }
 // escribir eventos de prueba en la base real contaminaría los totales que la feature muestra.
 func nuevoServicio(t *testing.T) (*usecase.TelemetriaService, *telstore.Store) {
 	t.Helper()
+	return nuevoServicioConDetectores(t, domain.DetectoresMVP())
+}
+
+// nuevoServicioConDetectores es el mismo servicio con la lista de detectores inyectada. Los
+// detectores son un puerto del servicio, así que un test puede probar el MOTOR sin depender
+// del comportamiento de ninguno de los seis reales.
+func nuevoServicioConDetectores(t *testing.T, ds []domain.Detector) (*usecase.TelemetriaService, *telstore.Store) {
+	t.Helper()
 	st, err := telstore.New(filepath.Join(t.TempDir(), "telemetria.db"), telstore.Opciones{
 		LoteEspera: 10 * time.Millisecond,
 		Reloj:      func() time.Time { return ahoraFijo },
@@ -35,8 +44,7 @@ func nuevoServicio(t *testing.T) (*usecase.TelemetriaService, *telstore.Store) {
 		func(huella string) (string, string, bool) { return "", "", false },
 		func(ctx context.Context, h, a, i, c string) error { return st.AprenderHash(ctx, h, a, i, c) },
 	)
-	svc := usecase.NewTelemetriaService(st, catalogo.Embebido(), reg, nil,
-		domain.DetectoresMVP(),
+	svc := usecase.NewTelemetriaService(st, catalogo.Embebido(), reg, nil, ds,
 		domain.PerfilRuntime{Runtime: "claude-code", Aritmetica: domain.AritmeticaDisjunta},
 		func() time.Time { return ahoraFijo })
 	return svc, st
@@ -644,5 +652,171 @@ func TestS2DegradadoElResumenNoTraeCeros(t *testing.T) {
 	}
 	if vistos != 3 {
 		t.Errorf("B4, B6 y B3 tienen que salir en no_aplican: hay %d de 3", vistos)
+	}
+}
+
+// detectorSinFix es un detector de prueba que ENCUENTRA algo y no puede proponer nada: emite
+// un punto sin contrafactual. Existe porque desde D26.1 **ningún detector real produce ese
+// caso** —B1 se arregló—, y el invariante que se prueba acá es del MOTOR, no de un detector:
+// un punto sin recomendación se declara, no se borra.
+//
+// Un test que dependiera de que B1 esté roto se pondría verde por la razón equivocada y se
+// caería el día que B1 se arregle. Eso ya pasó una vez en este paquete.
+type detectorSinFix struct{}
+
+func (detectorSinFix) ID() domain.DetectorID { return "x9-encuentra-y-no-propone" }
+func (detectorSinFix) Nombre() string        { return "encuentra y no propone" }
+func (detectorSinFix) Aplica(domain.ContextoDeteccion) domain.Aplicabilidad {
+	return domain.Aplicabilidad{Aplica: true}
+}
+
+func (detectorSinFix) Evaluar(v domain.Ventana) []domain.PuntoDeMejora {
+	if len(v.Turnos) == 0 {
+		return nil
+	}
+	return []domain.PuntoDeMejora{{
+		Detector: "x9-encuentra-y-no-propone", ScoreVersion: domain.ScoreVersionMVP,
+		Titulo: "algo cotizable, sin arreglo que proponer", Lede: "se midió; no hay fix",
+		GastoMicros: 50_000, Umbral: "≥ 1", Sesgo: "n/a en prueba", DireccionSesgo: "subestima",
+		Fix: "—", Confianza: domain.ConfianzaExacta, CorridasUsadas: 1, CorridasTotales: 1,
+		// Sin `BaseContrafactual` y sin ahorro ⇒ `Redactar()` no arma prosa (regla A4).
+	}}
+}
+
+// TestUnPuntoSinContrafactualSeDeclaraNoSeBorra — D25 en la puerta de salida del wire.
+//
+// La regla A4 dice que una tarjeta sin contrafactual es un reproche, no una recomendación; y el
+// boundary `no-aplica-no-es-cero` dice que lo que no se puede mostrar **se declara**. Juntas: el
+// punto no viaja como tarjeta, y el detector viaja con `sin_fix` y su motivo. Si solo se filtrara,
+// «no lo mostramos» se leería como «no encontró nada» — el hueco exacto que este módulo existe
+// para no dejar.
+func TestUnPuntoSinContrafactualSeDeclaraNoSeBorra(t *testing.T) {
+	svc, st := nuevoServicioConDetectores(t, []domain.Detector{detectorSinFix{}})
+	ingerir(t, svc, st, ev("s-1", "t-1", func(e *domain.EventoTelemetria) {
+		e.ArnesID = "vitalia"
+		e.CajaID = "paso-3"
+		e.Modelo = "claude-haiku-4-5"
+		e.CostoReportadoMicros = i64(20_000)
+	}))
+	r, err := svc.Mejoras(context.Background(), ports.ConsultaTelemetria{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Puntos) != 0 {
+		t.Errorf("un punto sin contrafactual no se publica como tarjeta: %+v", r.Puntos)
+	}
+	var declarado *domain.EstadoDetector
+	for i := range r.NoAplican {
+		if r.NoAplican[i].SinFix {
+			declarado = &r.NoAplican[i]
+		}
+	}
+	if declarado == nil {
+		t.Fatal("encontró y no puede proponer: tiene que viajar con sin_fix, no desaparecer")
+	}
+	if declarado.Motivo == "" {
+		t.Error("sin_fix sin motivo es un gap escondido")
+	}
+	if !declarado.Aplica {
+		t.Error("SÍ aplicó — decir lo contrario confundiría «no pudo correr» con «corrió y no propone»")
+	}
+	if declarado.Hallazgos == 0 {
+		t.Error("un detector sin fix igual dice CUÁNTOS hallazgos tuvo: 0 se leería como «no encontró»")
+	}
+}
+
+// TestTodoPuntoPublicadoLlevaSuProsa — el control positivo del test de arriba, y el candado de
+// V-5: **ningún punto sale al wire con las piezas numéricas y sin la frase**. Es la forma de que
+// el FE no pueda volver a quedarse tipando un campo que nadie manda.
+func TestTodoPuntoPublicadoLlevaSuProsa(t *testing.T) {
+	svc, st := nuevoServicio(t)
+	ingerir(t, svc, st,
+		ev("s-1", "t-1", func(e *domain.EventoTelemetria) {
+			e.ArnesID = "vitalia"
+			e.CajaID = "paso-3"
+			e.Modelo = "claude-haiku-4-5"
+			e.CostoReportadoMicros = i64(90_000)
+		}),
+		ev("s-1", "t-2", func(e *domain.EventoTelemetria) {
+			e.ArnesID = "vitalia"
+			e.CajaID = "paso-4"
+			e.Modelo = "claude-haiku-4-5"
+			e.CostoReportadoMicros = i64(1_000)
+		}),
+	)
+	r, err := svc.Mejoras(context.Background(), ports.ConsultaTelemetria{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Puntos) == 0 {
+		t.Fatal("el control positivo no produjo ningún punto: el test no comparó nada")
+	}
+	for _, p := range r.Puntos {
+		if p.ID == "" {
+			t.Errorf("%s: punto sin id — la superficie no puede descartar «el tercero de la lista»", p.Detector)
+		}
+		if p.Contrafactual == "" {
+			t.Errorf("%s: punto publicado sin contrafactual en prosa (D25 · RF-249)", p.Detector)
+		}
+		if p.DiferenciaMicros <= 0 {
+			t.Errorf("%s: punto publicado con ahorro %d", p.Detector, p.DiferenciaMicros)
+		}
+		if !strings.Contains(p.Contrafactual, "en la ventana") {
+			t.Errorf("%s: el contrafactual no declara su unidad: %q", p.Detector, p.Contrafactual)
+		}
+		if p.Calculo == "" {
+			t.Errorf("%s: sin cálculo resuelto no hay «ver el cálculo» que auditar (H-4)", p.Detector)
+		}
+	}
+}
+
+// TestUltimaCorridaIgnoraLaVentana — D26.4, estado 1b. **«No corrió en estos 7 días» y «nunca
+// corrió» son afirmaciones distintas**, y sobre un arnés con historial la segunda es falsa.
+//
+// El dato que las separa es la última corrida mirando TODO el historial, no la ventana. Se
+// prueba por los dos lados: con historial fuera de la ventana viaja la fecha; sin ningún
+// evento viaja `nil`, que es el estado 1 de verdad.
+func TestUltimaCorridaIgnoraLaVentana(t *testing.T) {
+	svc, st := nuevoServicio(t)
+	ctx := context.Background()
+
+	// Sin un solo evento: «nunca corrió» es cierto y viaja como nil.
+	vacio, err := svc.Resumen(ctx, ports.ConsultaTelemetria{ArnesID: "vitalia"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vacio.UltimaCorrida != nil {
+		t.Errorf("sin eventos la última corrida es nil, no %v — nil es «nunca corrió»", vacio.UltimaCorrida)
+	}
+
+	viejo := ahoraFijo.AddDate(0, 0, -30)
+	e := ev("s-1", "t-1", func(e *domain.EventoTelemetria) {
+		e.ArnesID = "vitalia"
+		e.Modelo = "claude-haiku-4-5"
+		e.TSRecibido = viejo
+		e.CostoReportadoMicros = i64(1_000)
+	})
+	ingerir(t, svc, st, e)
+
+	// Ventana de 7 días: 0 corridas adentro, PERO la última corrida existe y viaja.
+	r, err := svc.Resumen(ctx, ports.ConsultaTelemetria{
+		ArnesID: "vitalia", Desde: ahoraFijo.AddDate(0, 0, -7), Hasta: ahoraFijo,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Corridas != 0 {
+		t.Errorf("la ventana de 7 días no puede contener la corrida de hace 30: corridas = %d", r.Corridas)
+	}
+	if r.UltimaCorrida == nil {
+		t.Fatal("hay historial fuera de la ventana: decir «nunca corrió» sería falso")
+	}
+	if !r.UltimaCorrida.Equal(viejo.UTC()) {
+		t.Errorf("última corrida = %v, se esperaba %v", r.UltimaCorrida, viejo.UTC())
+	}
+	// Y el runtime viaja con su veredicto: sabemos medir este, y lo decimos.
+	if r.Runtime != "claude-code" || !r.RuntimeSoportado {
+		t.Errorf("runtime = %q soportado = %v — el veredicto sale del dato, no de una config",
+			r.Runtime, r.RuntimeSoportado)
 	}
 }

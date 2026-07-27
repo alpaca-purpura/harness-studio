@@ -288,7 +288,7 @@ func TestRecomputarTrasBorrado(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	horas, err := s.HorasAfectadas(ctx, "arnes-a")
+	horas, err := s.HorasAfectadas(ctx, "arnes-a", time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}

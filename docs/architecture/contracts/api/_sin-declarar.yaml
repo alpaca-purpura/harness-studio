@@ -25,27 +25,6 @@ medido_en: 2026-07-26
 medido_por: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §5.4"
 
 exenciones:
-  # ── El módulo de telemetría (8) ─────────────────────────────────────────────────────
-  # Nace en stories/2026-07-24-telemetria-embebida-otel/ y todavía está abierto: su
-  # superficie sigue moviéndose. Declara su contrato AL CERRAR, no antes — declarar hoy un
-  # contrato que va a cambiar la semana que viene es peor que declararlo deuda.
-  - ruta: "GET /api/telemetria/resumen"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "GET /api/telemetria/salud"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "GET /api/telemetria/portafolio"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "GET /api/telemetria/arneses/{clave}/cajas"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "GET /api/telemetria/arneses/{clave}/cajas/{cajaId}"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "GET /api/telemetria/arneses/{clave}/mejoras"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "POST /api/telemetria/proceso"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-  - ruta: "DELETE /api/telemetria/arneses/{clave}"
-    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
-
   # ── Deuda con fecha de retiro (1) ───────────────────────────────────────────────────
   - ruta: "GET /api/sessions/cerradas/{id}/historial"
     razon: >-

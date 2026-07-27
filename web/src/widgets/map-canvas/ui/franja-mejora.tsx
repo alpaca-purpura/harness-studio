@@ -64,9 +64,9 @@ export interface FranjaMejoraProps {
   runtimeNoSoportado?: string | undefined
   /** Chip de reenvío externo. Un estado peligroso no se esconde a la derecha (D13 · H-7). */
   forwardDestino?: string | undefined
-  /** El TTL vigente. ⚠️ El `90` es PROPUESTO, no firmado (J-6): sale de la config, no de acá. */
+  /** El TTL vigente, **firmado en 90 días** (D26.3). Sale de `GET /api/telemetria/salud`, no
+   *  de acá: firmarlo no lo vuelve una constante de la UI. */
   retencionDias?: number | undefined
-  retencionPropuesta?: boolean | undefined
   onPolitica: () => void
   onReintentar: () => void
   /** El motivo REAL del fallo de consulta. Jamás «Error al obtener los datos». */
@@ -87,7 +87,6 @@ export function FranjaMejora({
   runtimeNoSoportado,
   forwardDestino,
   retencionDias,
-  retencionPropuesta,
   onPolitica,
   onReintentar,
   error,
@@ -266,7 +265,6 @@ export function FranjaMejora({
           {retencionDias !== undefined && (
             <>
               {`Retención ${retencionDias} días`}
-              {retencionPropuesta && <span className="fm-propuesto"> (propuesto)</span>}
               {" · "}
             </>
           )}

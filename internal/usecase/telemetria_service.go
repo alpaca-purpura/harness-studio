@@ -442,10 +442,10 @@ func (s *TelemetriaService) Salud(ctx context.Context) (domain.SaludTelemetria, 
 		sal.Catalogo = s.catalogo.Version()
 	}
 	sal.Descubrimiento = s.descubrimiento
-	// El TTL que se muestra es el de la CONFIG, no un número escrito en la UI (J-6).
+	// El TTL que se muestra es el de la CONFIG, no un número escrito en la UI (J-6). El
+	// número está firmado (D26.3); que esté firmado no lo vuelve una constante.
 	sal.RetencionDias = s.RetencionDias()
 	sal.RollupMeses = s.RollupMeses()
-	sal.RetencionPropuesta = true
 	if s.forward != nil {
 		sal.Forward = s.forward.Activo()
 		if sal.Forward {

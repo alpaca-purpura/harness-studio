@@ -118,10 +118,12 @@ export interface PuntoMejora {
   score_version: number
   titulo: string
   lede: string
-  caja_id: string
-  caja_nombre: string
+  /** Ausente cuando el detector agrega la ventana entera y no una caja (B1 · B2 · B3 · B6). */
+  caja_id?: string | undefined
   gasto_micros: number
   parte_del_total: number
+  /** Qué habría costado el mundo alternativo, en micros. La prosa de abajo es su lectura. */
+  contrafactual_micros: number
   /**
    * El mundo alternativo con las MISMAS corridas (A2), redactado con su UNIDAD explícita
    * («por corrida» / «en la ventana»): RF-249 lo exige porque «USD 0,53» sobre una caja de 14
@@ -130,6 +132,11 @@ export interface PuntoMejora {
    * **`null` ⇒ la tarjeta NO EXISTE** (regla A4). No se pinta degradada: la lista la filtra y
    * el inspector la lista como «sin fix propuesto». Una tarjeta sin contrafactual es un
    * reproche, no una recomendación.
+   *
+   * **La arma el dominio Go** (`internal/domain/telemetria_prosa.go#PuntoDeMejora.Redactar`),
+   * jamás el FE — D25, y antes de D25 lo decía `design.md` §1.3. Contra el wire real llega
+   * siempre presente: el backend no publica el punto cuando no la puede armar. El `null` sigue
+   * tipado porque las fixtures storian ese caso y el filtro de la lista es la regla.
    */
   contrafactual: string | null
   /** El ahorro, en micros. Es la clave de orden de la lista: lo de más plata primero. */
@@ -162,6 +169,16 @@ export interface PuntoMejora {
  * `domain.EstadoDetector` — un detector con su veredicto de aplicabilidad. `motivo` es
  * OBLIGATORIO cuando `aplica` es false: un detector apagado sin razón es un gap escondido.
  */
+export interface RespuestaMejoras {
+  puntos: readonly PuntoMejora[]
+  no_aplican: readonly EstadoDetector[]
+  no_medidos: readonly EstadoDetector[]
+  escenario: Escenario
+  /** Cuántos puntos se ocultaron porque el operador los descartó (D26.4). Viaja para que la
+   *  lista pueda decirlo: una lista más corta sin explicación se lee como «no hay más». */
+  descartados: number
+}
+
 export interface EstadoDetector {
   detector: string
   nombre: string
@@ -193,6 +210,17 @@ export interface ResumenTelemetria {
   confianza: Confianza
   cobertura: Cobertura
   catalogo: VersionCatalogo
+  /**
+   * La última medición del arnés **ignorando la ventana** (D26.4, estado 1b). `null` = nunca
+   * hubo una, y ese sí es «este arnés nunca corrió». Sin este campo, «0 corridas en 7 días» y
+   * «nunca corrió» se decían igual — y sobre un arnés con historial la segunda es falsa.
+   */
+  ultima_corrida: string | null
+  /** Con qué corre, del dato real de la ventana. Vacío = ningún evento lo dijo. */
+  runtime?: string | undefined
+  /** Si sabemos medir ese runtime. `false` con `runtime` presente = «todavía no lo medimos»,
+   *  que se DICE en vez de mostrar un cero. */
+  runtime_soportado: boolean
 }
 
 /** `domain.FilaPortafolio` — una fila = arnés × instalación (D20). */
@@ -234,7 +262,6 @@ export interface FilaPortafolio {
 export interface SaludTelemetria {
   retencion_dias: number
   /** El número NO está firmado (J-6 · parada P2): la UI lo rotula como propuesto. */
-  retencion_propuesta: boolean
   forward: boolean
   forward_destino?: string | undefined
   catalogo: VersionCatalogo

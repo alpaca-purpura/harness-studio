@@ -329,3 +329,15 @@ var (
 	// nombre del campo y nunca con su valor.
 	ErrCampoProhibido = errors.New("telemetria: campo prohibido en el evento canónico")
 )
+
+// runtimesSoportados son los runtimes cuya señal sabemos leer HOY. La lista es corta a
+// propósito: `investigacion-runtimes.md` relevó 13 y el canal universal —el stream-json por
+// turno— todavía no está construido para los otros.
+//
+// Un runtime fuera de la lista **no se mide en cero**: se DICE que no lo medimos (D26.4,
+// estado «runtime no soportado»). Un cero se leería como «este arnés no gasta».
+var runtimesSoportados = map[string]bool{"claude-code": true}
+
+// RuntimeSoportado dice si sabemos medir ese runtime. El vacío es false: sin saber qué runtime
+// es, no podemos afirmar que lo medimos.
+func RuntimeSoportado(runtime string) bool { return runtimesSoportados[runtime] }

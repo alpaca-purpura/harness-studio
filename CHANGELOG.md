@@ -27,8 +27,15 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - story baseline del panel de conversación (chat-dock.stories.tsx): el widget que no tenía ninguna ahora fija sus 4 filas de cromo, su tarjeta de permiso y su turno en vuelo
 - gate de contrato del daemon: una ruta que se sirve está declarada en openapi.yaml o exenta con razón escrita (4 enforcers + allowlist de 15 entradas)
 - La conversación pasa a ser una entidad propia del dominio, con su título editable, su marca de activa y su ciclo de vida: una sesión contiene N conversaciones y exactamente una activa, y esa invariante se repara al cargar diciendo qué reparó.
+- Telemetría · «Descartar» un punto de mejora ahora guarda la decisión, con vuelta atrás: el botón dejó de nacer deshabilitado porque no había dónde guardarla.
+- Telemetría · «Proponerlo en el chat» abre el chat con el cambio propuesto escrito en el campo — y no lo envía. El fix se aplica por el camino de siempre, con sus permisos y su gate.
+- Telemetría · un arnés viaja con su propia instrumentación adentro: quien lo trabaja a mano queda medido igual que si ArnesIA lo hubiera lanzado, y no se escribe nada en el proyecto de nadie.
+- El contrato del daemon declara las 10 rutas de telemetría (0.8.0-telemetria): dejaron de estar exentas «hasta que el paquete cierre».
 
 ### Cambiado
+- Telemetría · un detector que encuentra algo y no puede proponer un arreglo se declara «sin fix propuesto» con su motivo, en vez de mostrar una tarjeta que reprocha sin proponer.
+- Telemetría · borrar la telemetría de un arnés borra exactamente lo que la confirmación declara: si estabas mirando 7 días, se borran esos 7 días. Antes decía «se borran 61 corridas» y se llevaba todo el historial.
+- Telemetría · la retención quedó firmada en 90 días y el cartel «(propuesto)» desapareció de la pantalla. Sigue siendo configurable.
 
 ### Deprecado
 
@@ -38,6 +45,12 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - declarada la violación a11y preexistente del dock: el cc-id de la SessionLine va en --primary sobre --secondary (2,21:1)
 - el error de historial del picker deja de pintarse en --warn (3,76:1, bajo el mínimo de axe): el texto va en --foreground y la alarma en un borde no textual — con eso el job visual-fitness de CI vuelve a verde
 - declarados ?arnes= y ?cerradas= de GET /api/sessions, que se servían sin figurar en el contrato
+- Telemetría · la tarjeta de un punto de mejora dice su contrafactual en una frase con la unidad declarada: la escribe el dominio junto al número que la sostiene, no la pantalla. El frontend dejó de tipar siete campos que nadie producía, y un chequeo nuevo rompe el build si los dos lados del contrato vuelven a separarse.
+- Telemetría · el detector de re-escritura de cache dejó de decir que el arreglo sale más caro: ahora compara contra escribir una sola vez, que es de donde sale el ahorro. Y los dos detectores de cache cotizan con el catálogo — antes mostraban un conteo de tokens donde decía dinero.
+- El chequeo de arquitectura dejó de ponerse rojo por tener trabajo en curso al lado: las copias del árbol que el arnés crea para trabajar en paralelo ya no se miden como si fueran el producto.
+- Telemetría · «este arnés nunca corrió» dejó de decirse sobre arneses con historial fuera de la ventana; ahora dice cuándo fue la última vez. Y el runtime que todavía no sabemos medir se declara, en vez de mostrar un cero.
+- Telemetría · la franja mostraba «N cajas» leyendo un campo que el daemon nunca mandó. Ahora lo manda.
+- Portafolio · un arnés instalado dos veces mostraba el costo de una sola instalación como si fuera el del arnés. Ahora la fila dice de cuál es la cifra.
 
 ### Seguridad
 

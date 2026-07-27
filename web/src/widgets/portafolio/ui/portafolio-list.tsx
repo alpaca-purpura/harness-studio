@@ -64,6 +64,10 @@ export interface PortafolioListProps {
   onReintentar: () => void
   /** Capa «Mejora» por fila, keyeada por `clave` (T36). Opcional ⇒ superset estricto (BR-M16). */
   mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
+  /** Cuántas filas del wire trae cada clave (D20): una fila = arnés × instalación. Con más de
+   *  una, la celda DICE que la cifra es de una sola — antes se tomaba la 1ª y las demás
+   *  desaparecían sin aviso. */
+  instalacionesPorClave?: ReadonlyMap<string, number> | undefined
 }
 
 // ── Topbar: título + contadores REALES + Agregar (SIEMPRE presente — plan §2.6) ──
@@ -231,11 +235,13 @@ function Fila({
   seleccionada,
   onAbrir,
   mejora,
+  instalacionesPorClave,
 }: {
   entrada: EntradaPortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
   mejora?: FilaPortafolio | undefined
+  instalacionesPorClave?: ReadonlyMap<string, number> | undefined
 }) {
   const salud = saludDe(entrada)
   const registries = registriesDe(entrada)
@@ -283,7 +289,12 @@ function Fila({
         </span>
         {/* Las 3 celdas nuevas van ENTRE chips y dot: el dot de salud sigue CERRANDO la fila,
             que es el ancla visual que la PARIDAD del Slice 1 firmó. */}
-        {mejora !== undefined && <CeldasMejoraFila fila={mejora} />}
+        {mejora !== undefined && (
+          <CeldasMejoraFila
+            fila={mejora}
+            instalaciones={instalacionesPorClave?.get(entrada.clave)}
+          />
+        )}
         <DotSaludPortafolio salud={salud} />
       </button>
     </li>
@@ -320,11 +331,13 @@ function ListaPlana({
   seleccionada,
   onAbrir,
   mejora,
+  instalacionesPorClave,
 }: {
   entradas: EntradaPortafolio[]
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
   mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
+  instalacionesPorClave?: ReadonlyMap<string, number> | undefined
 }) {
   return (
     <ul className="pf-lista">
@@ -335,6 +348,7 @@ function ListaPlana({
           seleccionada={seleccionada}
           onAbrir={onAbrir}
           mejora={mejora?.get(e.clave)}
+          instalacionesPorClave={instalacionesPorClave}
         />
       ))}
     </ul>
@@ -362,12 +376,14 @@ function ListaAgrupada({
   seleccionada,
   onAbrir,
   mejora,
+  instalacionesPorClave,
 }: {
   entradas: EntradaPortafolio[]
   lente: LentePortafolio
   seleccionada: string | undefined
   onAbrir: (clave: string) => void
   mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
+  instalacionesPorClave?: ReadonlyMap<string, number> | undefined
 }) {
   const grupos = agrupadorDe(lente)(entradas)
   return (
@@ -383,6 +399,7 @@ function ListaAgrupada({
                 seleccionada={seleccionada}
                 onAbrir={onAbrir}
                 mejora={mejora?.get(e.clave)}
+                instalacionesPorClave={instalacionesPorClave}
               />
             ))}
           </ul>
@@ -406,6 +423,7 @@ function Cuerpo({
   onReintentar,
   onLimpiarTodo,
   mejora,
+  instalacionesPorClave,
 }: {
   estado: PortafolioListProps["estado"]
   error: string | undefined
@@ -420,6 +438,7 @@ function Cuerpo({
   onReintentar: () => void
   onLimpiarTodo: () => void
   mejora?: ReadonlyMap<string, FilaPortafolio> | undefined
+  instalacionesPorClave?: ReadonlyMap<string, number> | undefined
 }) {
   if (estado === "cargando") return <Skeleton label="Cargando portafolio" />
   if (estado === "error")
@@ -453,6 +472,7 @@ function Cuerpo({
           seleccionada={seleccionada}
           onAbrir={onAbrir}
           mejora={mejora}
+          instalacionesPorClave={instalacionesPorClave}
         />
         {pie}
       </>
@@ -466,6 +486,7 @@ function Cuerpo({
         seleccionada={seleccionada}
         onAbrir={onAbrir}
         mejora={mejora}
+        instalacionesPorClave={instalacionesPorClave}
       />
       {pie}
     </>
@@ -492,6 +513,7 @@ export function PortafolioList({
   onAgregar,
   onReintentar,
   mejora,
+  instalacionesPorClave,
 }: PortafolioListProps) {
   const marketplaces = marketplacesDisponibles(entradas)
   const sinOrigenActivo = filtroSinOrigen ?? false
@@ -546,6 +568,7 @@ export function PortafolioList({
           onReintentar={onReintentar}
           onLimpiarTodo={onLimpiarTodo}
           mejora={mejora}
+          instalacionesPorClave={instalacionesPorClave}
         />
       </div>
     </div>

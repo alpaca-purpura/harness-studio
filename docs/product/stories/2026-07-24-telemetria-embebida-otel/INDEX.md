@@ -55,7 +55,7 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
       [`verificacion-2026-07-26/`](verificacion-2026-07-26/INFORME.md): 7 hallazgos, evidencia cruda
       versionada (PII redactada), USD 0,044 de costo
 - [x] refinamiento pre-mockup: detectores del MVP · evento canónico · renombre (D16)
-- [ ] **🧑‍⚖️ firma del bloque D9 + D11 + D13 + D14 + D15 + D16** ← *acá estamos*
+- [x] **🧑‍⚖️ firma del bloque D9 + D11 + D13 + D14 + D15 + D16**
 - [~] **propuesta de mockup escrita** → [`propuesta-mockup.md`](propuesta-mockup.md) — 2 superficies
       (capa Mejora del Mapa + tarjeta del Portafolio), tarjeta de punto de mejora con contrafactual,
       4ª tab del inspector, **7 estados honestos**. 3 decisiones pendientes del operador antes de dibujar
@@ -92,18 +92,76 @@ boundary [`telemetria-de-nacimiento.md`](../../../architecture/boundaries/teleme
 - [x] **cadena E2E probada antes de codear** →
       [`verificacion-2026-07-26/CADENA-E2E.md`](verificacion-2026-07-26/CADENA-E2E.md) +
       `evidencia/baseline-mapa-antes.png` (el «antes» del gate)
-- [ ] 🧑‍⚖️ firma del mockup ← **bloquea el Tramo B entero**
-- [ ] implementación
-- [ ] PARIDAD
+- [x] 🧑‍⚖️ firma del mockup (iteración 2)
+- [x] implementación (Tramo 0 · A · B) + las 6 decisiones de **D26** ejecutadas
+- [x] **PARIDAD firmada 2026-07-27** — matriz sin ningún `no` en «¿alcanzable?»
+- [ ] **T22** (eventos de proceso del daemon) y **T27** (los 5 checks de conformance del arnés) ← *lo que queda*
 
 ## Decisiones abiertas
 
 | # | qué | ¿bloquea el MVP? |
 |---|---|---|
 | **D9.9** | ¿parser propio o shell-out a `ccusage`? | no — posterior al MVP |
-| **D15** | privacidad/retención: TTL, borrado, filtrado en el forward | **sí** — antes de persistir nada |
 | **G4** | cert de firma de código (USD 150-300/año + HSM) | no para Linux; **sí** para Windows/macOS |
 | — | ~~**D8**~~ | **cerrada por inexistencia del dilema** (V2) |
+| — | ~~**D15**~~ privacidad/retención | **cerrada**: allowlist en la ingesta · filtrado en el forward · TTL **firmado en 90 días** (D26.3) · borrado con ventana (D26.5) |
+| — | ~~**A20**~~ · ~~**TTL**~~ · ~~**las 10 filas**~~ · ~~**A-4**~~ · ~~**B1**~~ | **cerradas por D26** (2026-07-27) — no queda ninguna pregunta abierta del paquete |
+
+## Retomar aquí (2026-07-27 · **D26 EJECUTADA · gate FIRMADO** — el paquete cierra)
+
+**Las seis decisiones del operador están tomadas y ejecutadas** ([`decisiones.md`](decisiones.md)
+§D26) y el gate de [`PARIDAD.md`](PARIDAD.md) §7 está **firmado** (D-1 ok · D-2 ok). El detalle de
+qué cambió con cada una está en `PARIDAD.md` §0-bis.
+
+Lo que eso significa, concreto:
+
+- **La columna «¿alcanzable?» de §1 ya no tiene ningún `no`.** Las diez filas se cablearon; hizo
+  falta wire nuevo (`ultima_corrida`, `runtime`, `cajas`, `descartados`) y dos endpoints de
+  descarte que no existían.
+- **B1 volvió**: su contrafactual compara contra una sola escritura a 1 h y el monto se cotiza con
+  el catálogo. `ScoreVersionMVP` 1 → **2**.
+- **El TTL son 90 días, firmados**; el rótulo «propuesto» salió de todos lados.
+- **El `DELETE` acepta ventana**: la única acción irreversible borra lo que la confirmación dice.
+- **El arnés viaja con su bloque `env`** (A20 = A), con fuente única compartida con el spawn.
+- **`openapi.yaml` 0.8.0-telemetria**: las 10 rutas declaradas, exenciones retiradas.
+
+**Gates:** `go test ./... -race` · fitness · `conformance --todo` **323 · fail 0** ·
+`npm run verify` · `npx vitest run` **524/524**. ⚠️ La flakiness de V-7 **sigue viva** (dos corridas
+completas dieron rojos dispersos en archivos ajenos, verdes en aislamiento y en la corrida
+siguiente): declarada, no arreglada.
+
+**Lo que sigue abierto del paquete** (nada de esto lo decidió D26): **T22** (eventos de proceso del
+daemon: sin ellos la frase «falla el gate 3 de cada 4 veces» no tiene fuente) · **T27** (los 5
+checks de conformance del arnés) · los **medios y altos** restantes de las dos auditorías · la
+deuda estructural de `pages/` sin stories.
+
+<details><summary>Retomar aquí anterior (V-5 cerrada, 3 decisiones abiertas)</summary>
+
+## Retomar aquí (2026-07-26 · **V-5 CERRADA** — quedan 3 decisiones del operador y el gate)
+
+**Se cerró el bloqueante de contrato (D25).** La prosa del punto de mejora se arma en el dominio
+—como `design.md` §1.3 ya mandaba y la implementación se había salteado—, el FE dejó de tipar 7
+campos sin productor, y `telemetria_contrato_fe_test.go` **rompe el build si los dos lados vuelven
+a separarse** (verificado con control positivo). El E2E real de la tarjeta ya no está bloqueado.
+
+Verde al cerrar: `go test ./... -race` · fitness · `conformance --todo` **323 checks, fail 0** ·
+`npm run verify` · `npx vitest run` **517/517** (los 4 rojos preexistentes de `new-session-picker`
+ya no están).
+
+**🔴 Lo que cerrar V-5 destapó, y hay que decidir:** al redactar la frase de los seis detectores,
+**B1 —la tarjeta insignia— no la pudo armar**. Su contrafactual cotiza las mismas escrituras de
+cache a la tarifa larga, que es más cara ⇒ ahorro negativo por construcción. Hoy sale declarado
+`sin_fix` con su motivo, en vez de dibujar una tarjeta que dice que el arreglo cuesta más.
+Corregir la fórmula obliga a bumpear `ScoreVersionMVP` (A7) ⇒ ticket propio.
+Detalle: [`decisiones.md`](decisiones.md) §D25.4 · [`PARIDAD.md`](PARIDAD.md) §4 ítem 10.
+
+**Las 3 decisiones que siguen abiertas, en orden:** A20 (dónde vive el bloque `env`, §🛑 P1) ·
+el número del TTL (§🛑 P2) · firmar [`PARIDAD.md`](PARIDAD.md) (su §7 lista lo mínimo a mirar,
+empezando por las 10 filas «no alcanzable» de §1).
+
+</details>
+
+<details><summary>Retomar aquí anterior (Tramo 0 + Tramo A construidos)</summary>
 
 ## Retomar aquí (2026-07-26, Tramo 0 + Tramo A CONSTRUIDOS — falta T22, T27 y el gate)
 
@@ -126,6 +184,8 @@ barato. Daba 12 280 micros contra los 18 473 reportados — el bug `phoenix#1431
 puerta de atrás, con el número marcado como «completo». Ahora un tier desconocido **se declara**, y
 la divergencia entre los dos costos es un chequeo del sistema (`divergencia_sospechosa`), no de una
 persona por casualidad. **El oráculo de doble costo funcionó exactamente para lo que se diseñó.**
+
+</details>
 
 <details><summary>Retomar aquí anterior (arranque de la construcción)</summary>
 

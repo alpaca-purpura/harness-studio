@@ -17,7 +17,6 @@ const meta = {
     ventana: "7d",
     resumen: RESUMEN_ILUSTRATIVO,
     retencionDias: 90,
-    retencionPropuesta: true,
     onVentana: fn(),
     onPolitica: fn(),
     onReintentar: fn(),
@@ -242,13 +241,15 @@ export const RuntimeNoSoportado: Story = {
 }
 
 // RF-275 · H-5 — el resumen de privacidad es lo que se ve SIN abrir nada, y el enlace lleva al
-// diálogo. El `90` sale de la config y va rotulado como PROPUESTO (J-6): no está firmado.
+// diálogo. El `90` sale de la config, no de la UI (A-2), y **ya no lleva rótulo**: el número está
+// firmado (D26.3) y un «(propuesto)» sobre algo decidido entrena a ignorar los rótulos que sí
+// importan. El assert de ausencia es el candado de esa decisión.
 export const ResumenQueGuardamos: Story = {
   play: async ({ canvasElement, args }) => {
     const c = within(canvasElement)
     await expect(c.getByText("Nada de tu cuenta. Nada de la conversación.")).toBeInTheDocument()
     await expect(canvasElement.textContent).toContain("Retención 90 días")
-    await expect(c.getByText("(propuesto)")).toBeInTheDocument()
+    await expect(c.queryByText("(propuesto)")).toBeNull()
     await userEvent.click(c.getByRole("button", { name: "qué guardamos" }))
     await expect(args.onPolitica).toHaveBeenCalledTimes(1)
   },

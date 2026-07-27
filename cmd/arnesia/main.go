@@ -126,10 +126,10 @@ func runServe(args []string) error {
 		"archivo de log del daemon (default ~/.arnesia/logs/arnesia.log; '-' = solo stderr)")
 	// ── Telemetría embebida (paquete 2026-07-24-telemetria-embebida-otel) ──
 	// ⚠️ El 90 de la retención es un valor **PROPUESTO, no firmado** (J-6 · parada P2 del
-	// plan): D15.3 firmó «TTL por default» SIN número. Viaja rotulado como propuesto en
-	// `arnesia telemetria salud` y en `GET /api/telemetria/salud`.
+	// plan): firmado en 90 días por D26.3. Sigue siendo configurable — firmar el default no
+	// es clavarlo — y la UI lo lee de `GET /api/telemetria/salud`, nunca de una constante.
 	telRetencion := fs.Int("telemetria-retencion", usecase.RetencionDefaultDias,
-		"días de retención del detalle de telemetría (PROPUESTO, sin firmar — J-6)")
+		"días de retención del detalle de telemetría (firmado: 90)")
 	telForward := fs.String("telemetria-forward", os.Getenv("ARNESIA_TELEMETRIA_FORWARD"),
 		"endpoint externo al que reenviar la telemetría YA PROYECTADA (vacío = apagado, que es el default)")
 	telRefresco := fs.Bool("telemetria-catalogo-refresco", false,

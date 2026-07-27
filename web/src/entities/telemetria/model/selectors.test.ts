@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import montos from "../testing/montos.golden.json"
 import {
   ariaTendencia,
   direccionTendencia,
@@ -167,5 +168,27 @@ describe("detectores", () => {
     expect(marcaPrincipal(undefined)).toBeNull()
     expect(marcaPrincipal([])).toBeNull()
     expect(marcaPrincipal([{ n: 1 }, { n: 2 }])).toEqual({ n: 1 })
+  })
+})
+
+describe("un solo formato de dinero de los dos lados del wire (RF-281 · D25)", () => {
+  // El contrafactual de una tarjeta lo redacta el dominio Go —con el monto YA formateado
+  // adentro de la frase— y el resto de la superficie lo formatea acá con `usd()`. Si los dos
+  // formateadores se separan, la misma cifra se escribe distinto en la misma tarjeta.
+  //
+  // Un test de tabla por lado no alcanzaría: dos tablas distintas se editan por separado y
+  // divergen sin que nada se ponga rojo. Por eso la tabla es **una sola** y vive en el árbol.
+  it.each(montos)("$micros → $texto ($porque)", ({ micros, texto }) => {
+    expect(usd(micros)).toBe(texto)
+  })
+
+  it("cubre los bordes que RF-281 nombra, no solo el caso feliz", () => {
+    expect(montos.length).toBeGreaterThanOrEqual(6)
+    // El cero real, el sub-centavo, la agrupación de miles y el negativo tienen que estar:
+    // sin ellos la tabla pasaría con un formateador que redondea a «0,00».
+    expect(montos.some((c) => c.micros === 0)).toBe(true)
+    expect(montos.some((c) => c.micros > 0 && c.micros < 10_000)).toBe(true)
+    expect(montos.some((c) => c.micros > 1_000_000_000)).toBe(true)
+    expect(montos.some((c) => c.micros < 0)).toBe(true)
   })
 })

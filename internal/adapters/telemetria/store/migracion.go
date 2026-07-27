@@ -173,6 +173,20 @@ var migraciones = []Migracion{
 		`ALTER TABLE evento ADD COLUMN tok_cache_sin_tier INTEGER`,
 		`ALTER TABLE rollup_hora ADD COLUMN tok_cache_sin_tier INTEGER`,
 	}},
+	// D26.4 — el botón «Descartar» necesitaba un lugar donde guardar el descarte. Hasta acá
+	// nacía deshabilitado y lo decía (A-1), que era honesto pero no era la afordancia.
+	//
+	// La tabla es de DECISIONES del operador, no de datos medidos: por eso vive aparte de
+	// `evento` y **sobrevive a la purga por TTL**. Que el detalle se borre a los 90 días no
+	// hace que el operador vuelva a querer ver un punto que ya descartó.
+	{Version: 3, SQL: []string{
+		`CREATE TABLE IF NOT EXISTS punto_descartado (
+  arnes_id TEXT NOT NULL,
+  punto_id TEXT NOT NULL,
+  ts       TEXT NOT NULL,
+  PRIMARY KEY (arnes_id, punto_id)
+) STRICT`,
+	}},
 }
 
 // Migraciones expone la lista para el test que verifica que son aditivas. Devuelve una copia
@@ -183,8 +197,10 @@ func Migraciones() []Migracion { return append([]Migracion(nil), migraciones...)
 func GeneracionActual() int { return generacionActual }
 
 // patronesDestructivos son las formas de SQL que una migración aditiva NO puede tener.
-var patronesDestructivos = []string{"drop table", "drop index", "drop column", "rename to",
-	"rename column", "delete from", "truncate"}
+var patronesDestructivos = []string{
+	"drop table", "drop index", "drop column", "rename to",
+	"rename column", "delete from", "truncate",
+}
 
 // EsAditiva reporta si una sentencia es aditiva. Se expone porque el test la usa sobre la
 // lista real Y sobre un control positivo: un escáner que no encuentra nada daría verde por

@@ -24,6 +24,16 @@ import { cn } from "@/shared/lib/cn"
 
 export interface CeldasMejoraFilaProps {
   fila: FilaPortafolio
+  /**
+   * Cuántas instalaciones del MISMO arnés trae el wire (D20 · D26.4). Una fila del wire es
+   * `arnés × instalación`; la lista del Portafolio es por arnés. Con dos instalaciones se
+   * tomaba **la primera y las demás desaparecían**, así que la celda mostraba el costo de una
+   * y se leía como el del arnés.
+   *
+   * Ahora la fila lo DICE. Mostrar una cifra parcial sin decir que es parcial es la clase de
+   * mentira barata que este paquete existe para no cometer.
+   */
+  instalaciones?: number | undefined
 }
 
 /**
@@ -38,10 +48,21 @@ export function nuncaCorrio(fila: FilaPortafolio): boolean {
   return fila.corridas <= 0
 }
 
-export function CeldasMejoraFila({ fila }: CeldasMejoraFilaProps) {
+export function CeldasMejoraFila({ fila, instalaciones }: CeldasMejoraFilaProps) {
   const sinCorridas = nuncaCorrio(fila)
+  const varias = instalaciones !== undefined && instalaciones > 1
   return (
     <>
+      {/* D20 · D26.4 — con más de una instalación, la cifra es de UNA y se dice cuál alcance
+          tiene. Callarlo dejaba leer el costo de una instalación como el del arnés entero. */}
+      {varias && (
+        <span
+          className="pf-mej-alcance"
+          title={`Este arnés está instalado ${instalaciones} veces; la cifra es de «${fila.instalacion_id}».`}
+        >
+          {`1 de ${instalaciones} instalac.`}
+        </span>
+      )}
       {/* Sin encabezado de columna en la lista, la celda TIENE que cargar su unidad: un `0,03`
           pelado entre chips no dice ni moneda, ni período, ni que es por corrida (A-6). */}
       <span className="pf-mej-usd">

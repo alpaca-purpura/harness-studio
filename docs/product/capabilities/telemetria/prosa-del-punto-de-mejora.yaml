@@ -1,0 +1,108 @@
+---
+# Capability nueva (paquete 2026-07-24-telemetria-embebida-otel, D25).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.telemetria.prosa-del-punto-de-mejora
+cap_num: CAP-141
+slug: prosa-del-punto-de-mejora
+name: "La frase del punto de mejora se arma en el dominio (y el dinero se formatea una sola vez)"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: telemetria
+layer: domain
+verb: mejorar
+functional_area: "telemetria.deteccion"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/domain/telemetria_prosa.go#PuntoDeMejora.Redactar"
+  - "internal/domain/telemetria_prosa.go#MontoMicros"
+  - "internal/domain/telemetria_prosa.go#UsdMicros"
+  - "internal/domain/telemetria_prosa.go#MotivoSinContrafactual"
+valida:
+  - "TestElContrafactualDeclaraSuUnidad"
+  - "TestSinAhorroPositivoNoHayContrafactual"
+  - "TestElFormatoDeDineroEsUnoSolo"
+  - "TestElFeNoTipaCamposQueElWireNoManda"
+  - "TestUnPuntoSinContrafactualSeDeclaraNoSeBorra"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints:
+    - "GET /api/telemetria/arneses/{clave}/mejoras"
+  e2e_test: null
+created_in_story: 2026-07-24-telemetria-embebida-otel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/decisiones.md §D25 · design.md §1.3 · spec.md RF-249/RF-250/RF-281"
+change_log:
+  - story_id: 2026-07-24-telemetria-embebida-otel
+    date: 2026-07-26
+    type: new
+    summary: "La tarjeta de un punto de mejora dice su contrafactual en una frase con la unidad declarada, y esa frase la escribe el dominio junto al número que la sostiene — no la pantalla. Cuando el mundo alternativo no sale más barato, no hay frase y no hay tarjeta: el detector se declara «sin fix propuesto» con su motivo, en vez de reprochar sin proponer."
+    merge_sha: null
+scenarios:
+  - id: el-contrafactual-declara-su-unidad
+    name: "La diferencia dice sobre qué está calculada"
+    status: live
+    given: "un punto de mejora con su mundo alternativo y sus corridas"
+    when: "se redacta la frase que la tarjeta muestra"
+    then: "la frase dice cuánto costaba el mismo trabajo, cuánto es la diferencia en la ventana y cuánto por corrida, con su denominador"
+    verifica: "TestElContrafactualDeclaraSuUnidad"
+  - id: sin-ahorro-no-hay-tarjeta
+    name: "El arreglo propuesto no sale más barato"
+    status: live
+    given: "un detector cuyo mundo alternativo cuesta igual o más que el actual"
+    when: "se le pide la frase"
+    then: "no hay frase y no hay tarjeta; el detector viaja declarado con su motivo y cuántos hallazgos tuvo"
+    verifica: "TestUnPuntoSinContrafactualSeDeclaraNoSeBorra"
+  - id: un-solo-formato-de-dinero
+    name: "El mismo monto en la frase y en la cifra suelta"
+    status: live
+    given: "un monto en micros"
+    when: "lo escribe el dominio dentro de una frase y lo escribe la pantalla como cifra suelta"
+    then: "sale idéntico: misma coma decimal, mismos decimales, misma agrupación, mismo signo"
+    verifica: "TestElFormatoDeDineroEsUnoSolo"
+business_rules:
+  - id: la-prosa-vive-donde-viven-los-numeros
+    rule: "El contrafactual se resuelve en el dominio y viaja resuelto en el wire. Armarlo en la pantalla sería calcular en la UI, y sería armarlo donde el umbral y el sesgo que lo sostienen ya no están."
+    enforcement: ["docs/architecture/boundaries/cifra-viaja-con-su-confianza.md"]
+    severity: error
+  - id: sin-contrafactual-no-hay-tarjeta
+    rule: "Un punto sin mundo alternativo más barato no se muestra como recomendación. No se esconde: se declara con su motivo. «No lo mostramos» leído como «no hay» es el hueco que este módulo existe para no dejar."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: critical
+  - id: el-fe-no-tipa-lo-que-nadie-manda
+    rule: "Todo campo que el frontend declara tiene que existir en el JSON que el dominio produce. Un tipo que promete campos inexistentes deja verdes todos los gates y rojo el producto."
+    enforcement: ["docs/architecture/fitness/telemetria_contrato_fe_test.go"]
+    severity: error
+related_capabilities:
+  depends_on:
+    - arnesia.telemetria.motor-de-detectores
+    - arnesia.telemetria.los-seis-detectores-del-mvp
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# La prosa del punto de mejora
+
+Un punto de mejora es cinco cosas: un número, su contrafactual, su umbral citado, su sesgo
+declarado en contra y **un** arreglo. Cuatro de las cinco ya se escribían donde se calculan. La
+quinta —el contrafactual— viajaba como dos enteros en micros, y la pantalla los tipaba como una
+frase que nadie producía.
+
+**La frase se escribe donde viven los números.** Necesita el monto alternativo, la diferencia, su
+unidad y el denominador de corridas: los cuatro salen del mismo cálculo que produjo el punto.
+Armarla en la pantalla sería calcular en la UI, y sería armarla en un lugar donde el umbral y el
+sesgo que la sostienen ya no están.
+
+De eso sale una consecuencia que no es cosmética: **cuando el mundo alternativo no sale más
+barato, no hay frase**. Y sin frase no hay tarjeta — porque una tarjeta que dice «esto está mal» y
+no propone nada es un reproche, no una recomendación. El detector no desaparece por eso: viaja
+declarado, con su motivo y con cuántos hallazgos tuvo. «No lo mostramos» y «no hay nada» son
+cosas distintas y se leen distinto.
+
+El dinero, además, se escribe de **una** manera. La frase la arma el dominio y la cifra suelta la
+pinta la pantalla, así que hay dos formateadores; lo que no puede haber son dos formatos. Los ata
+una sola tabla de casos, en el árbol, que los dos lados asertan.
