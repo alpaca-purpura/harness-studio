@@ -25,6 +25,7 @@ pointers:
   - "internal/adapters/store/registry.go#Registry.Sembrable"
   - "cmd/arnesia/main.go#rutasDelRegistro"
   - "cmd/arnesia/main.go#loguearInforme"
+  - "cmd/arnesia/main.go#avisarDelArchivoAbandonado"
 valida:
   - "TestSaveEstampaEsquemaActual"
   - "TestDetectarVersionArrayDesnudoEsV1"
@@ -47,6 +48,9 @@ valida:
   - "TestRutasDelRegistro"
   - "TestArranqueMigraYLoguea"
   - "TestArranqueSinNovedadesNoLoguea"
+  - "TestAvisarDelArchivoAbandonado"
+  - "TestAvisarDelArchivoAbandonadoNoDiceNadaSiNoEstá"
+  - "TestElArranqueAvisaDelArchivoAbandonado"
 dev_preview:
   route: null
   how_to_navigate: null
@@ -113,6 +117,13 @@ scenarios:
     when: "aparece un campo que ninguna sesión del fixture trae"
     then: "un guard reflexivo falla nombrando el campo, antes de que ningún test campo-por-campo pueda afirmar que lo comparó"
     verifica: "TestElFixtureCompletoPueblaTodosLosCamposDeV1"
+  - id: el-archivo-que-se-deja-de-leer-se-dice
+    name: "El operador actualiza y su `sesiones-cerradas.json` deja de leerse"
+    status: live
+    given: "un registro de archivadas del formato anterior en el disco del operador"
+    when: "arranca el daemon"
+    then: "una línea dice que está, cuántas sesiones tiene y que este binario ya no lo lee ni lo migra — no se toca ni se borra, el borrado es del operador. Era lo único que este arranque hacía en silencio"
+    verifica: "TestAvisarDelArchivoAbandonado"
   - id: un-registro-roto-se-repara-al-abrir
     name: "El registro trae una sesión sin conversaciones y otra con dos activas"
     status: live

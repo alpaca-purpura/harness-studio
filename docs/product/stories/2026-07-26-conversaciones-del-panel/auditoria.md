@@ -559,3 +559,83 @@ para firmar o rechazar**, no como hallazgo.
 
 **CV-D17 sigue sin firmar** y su contenido (adelantar RF-333/334 al tramo 3) me parece
 técnicamente inevitable y bien argumentado — pero la firma es del operador, no mía.
+
+---
+
+## 10 · Estado de los hallazgos tras la reparación (2026-07-27)
+
+> Escrito por el **reparador**, en worktree propio (`.claude/worktrees/fix`, rama
+> `fix-conversaciones`, base `306b80c` — la punta de esta auditoría). **Ninguna cifra de acá se
+> copió: todas se generaron en este worktree**, con `pnpm install --frozen-lockfile` propio.
+> `~/.arnesia/` NO se tocó: `sessions.json` md5 `b1689d1513e8d3c3fa21692c511ed793` al abrir y al
+> cerrar. **T32 NO se ejecutó.**
+>
+> Regla que gobernó la tanda: **cada 🔴 se cierra con un test que se verificó que FALLA sin el
+> fix**. La prueba de mutación va en cada fila, y donde una mutación sobrevivió se dice.
+
+| # | estado | prueba |
+|---|---|---|
+| **A-1** título sin derivar | ✅ **CERRADO** | `DerivarTitulo` cableada en `Turn`, con la misma guarda que el `Frente` de la sesión. Quitar la llamada ⇒ 🔴 `TestPrimerTurnoDerivaElTituloDeLaConversacion`; quitar la guarda ⇒ 🔴 `TestElSegundoTurnoNoRebautizaLaConversacion` |
+| **A-2** `UltimaInteraccion` sin escribir | ✅ **CERRADO** | `marcarInteraccion` en el turno del usuario y al cerrar el del assistant. Quitar el 1.º ⇒ 🔴 `TestCadaTurnoEstampa…` + `TestDesactivarNoToca…`; quitar el 2.º ⇒ 🔴 `TestCadaTurnoEstampa…` |
+| **A-3** fixture sin 5 campos | ✅ **CERRADO — y el hallazgo era MÁS grande** | Fixture sintético con los **20** campos (la auditoría dijo 17; son 20) + guard reflexivo. Matriz de 20 mutaciones: **antes sobrevivían 6**, no 2 — además de `Checkpoint` y `CadenaCC`, tampoco se cazaban **`Status`**, `Puesto`, `Parked` ni `CerradaEn`. **Ahora 20/20 rojas** |
+| **A-4** foco inicial perdido | ✅ **CERRADO + VISTO EN PANTALLA** | Foco al aparecer el destino. Volver al `useEffect(…,[])` ⇒ 🔴 las 2 stories nuevas. Verificado con teclado en Chromium, **los dos temas** (`verificacion-fix/`) |
+| **A-5** sin `scrollIntoView` | ✅ **CERRADO + VISTO EN PANTALLA** | `block: "nearest"` sobre la fila marcada. Quitarlo ⇒ 🔴 `FlechasArrastranElScroll`. En pantalla: 20 `↓` sobre 50 ⇒ `scrollTop` 710 → 1648, cursor dentro del viewport |
+| **A-6** `Escape` no cierra | ✅ **CERRADO + VISTO EN PANTALLA** | Manejador en el **contenedor** (el buscador no siempre se dibuja). Quitarlo ⇒ 🔴 3 stories |
+| **A-7** `convActiva` sin enforcer | ✅ **CERRADO** | `TestElPunteroDeConversacionSigueALaTransicion`, que observa el puntero por su consecuencia (el warn de `chequearDueño`). La mutación exacta de la auditoría lo pone 🔴 — y `TestTransicionDeConversacionEsAtomica` **sigue pasando con ella**, tal como se reportó |
+| **A-8** `respaldarSiEsViejoLocked` sin test | ✅ **CERRADO** | 4 tests por `Save()` directo. `if false` ⇒ 🔴 2 de ellos |
+| **A-9** abandono en silencio | ✅ **CERRADO** | `avisarDelArchivoAbandonado`: una línea con la ruta y el número. Quitar la llamada ⇒ 🔴 `TestElArranqueAvisaDelArchivoAbandonado`. Corregido también el comentario del fallback JSONL, que describía un caso inalcanzable |
+| **A-10** CV-D16 no corre en el binario | ✅ **CERRADO POR DECISIÓN DEL OPERADOR** | Se elevó como enmienda, tal como la auditoría pidió, y el operador firmó **CV-D18**: el re-key se cablea al arranque. Ver §10.1 |
+| **A-11** 2 guards de la transición | 🟠 **PARCIAL — se dice lo que no se hizo** | Ver §10.2 |
+| **A-12** cifras tecleadas | ✅ **CERRADO** | `scripts/paridad_cifras.py` las cuenta. Confirmado el hallazgo: §2 era **31 ✅ · 4 ⚠️** y §2.1 **18 ✅**. Corregidas en `PARIDAD.md`, con `--check` para que un resumen que no coincida falle |
+| **A-13** `RecorteDeTitulo` parte UTF-8 | 🔴 **ABIERTO — a propósito** | Ver §10.2 |
+
+### 10.1 · A-10 → CV-D18, y lo que se construyó
+
+El operador eligió **cablear la recalibración al arranque**, revirtiendo la enmienda que
+`arquitectura.md` le había hecho a CV-D16. La decisión está escrita como **CV-D18 🧑‍⚖️ FIRMADA
+2026-07-27** en `decisiones.md`, con sus alternativas descartadas y su contrapeso declarado:
+**esto muta datos del operador al arrancar**, que es justo lo que el arquitecto quiso evitar.
+
+Lo que hace aceptable el riesgo no es el argumento, son tres garantías con test: **primero la
+red** (si el respaldo falla no se recalibra nada), **nada en silencio** (el log distingue
+recalibradas de `sin-candidata`) e **idempotencia**. **5 mutaciones, 5 rojas.**
+
+Verificado E2E contra una **copia** del registro real del operador, bajo `HOME` falso:
+
+| arranque | resultado |
+|---|---|
+| 1.º | `recalibradas=3 · sin_candidata=1 · ya_calificadas=1`, respaldo escrito |
+| 2.º | `recalibradas=0 · ya_calificadas=4 · respaldo=""`, **un solo** `.bak`, archivo sin cambios |
+
+Las **3** recalibradas son exactamente las que **N-23** nombró como invisibles. La
+`sin-candidata` es `arnesia`, cuyo arnés no está en el Portafolio: correcto, y el log **la
+nombra** en vez de callarla.
+
+### 10.2 · Lo que NO se cerró, y por qué
+
+- **A-11 · `pendingPerm` y `assembling` del paso 5.** El reset de `assembling` es **inalcanzable
+  por test**: `Turn` ya hace `r.assembling.Reset()` por su cuenta, y tras la transición
+  `r.live` es `nil`, así que no hay camino por el que un buffer heredado se observe. Es
+  redundancia defensiva correcta, no una laguna que se pueda cerrar con un test honesto —
+  **fabricarle uno sería exactamente lo que esta auditoría vino a cazar**. `pendingPerm` sí
+  sería testeable y **no se hizo por presupuesto**. Queda abierto y dicho.
+- **A-13 · `RecorteDeTitulo` parte UTF-8.** Deliberadamente **NO se tocó**. El encargo acotaba la
+  tanda a los 🔴 y a los 🟠 más caros, y la propia auditoría dice que «merece su ticket». Con
+  A-1 cerrado, el bug **ganó el consumidor que la auditoría anticipó**: ahora también nombra
+  toda conversación nueva. **Su prioridad subió**, y se declara acá para que no se pierda.
+- **CI.** Sigue sin observarse. Nada de lo corrido acá lo sustituye — mismo límite que declaró
+  la auditoría (§8.5).
+- **Lector de pantalla y contraste medido.** Siguen sin correrse (§8.2, §8.3). Los tres fixes de
+  UX **no introdujeron ningún color ni clase nueva**, así que no hay par fg/bg nuevo que medir.
+
+### 10.3 · Hallazgo nuevo del reparador
+
+**A-14 · `TestResumeAutoSana` era flaky, y la corrida verde de la auditoría fue suerte.**
+El test espera `Idle` **después** de cerrar el canal, pero `Idle` ya lo había puesto el
+`EventResult` anterior: la espera no esperaba a nadie, y el turno 2 corría contra un `r.live`
+que la goroutine de `consume` todavía no había soltado. **Reproducido en la base `306b80c`**
+(sin ninguno de mis cambios) bajo carga: falla ~1 de cada 100. Reparado sincronizando contra el
+paso que suelta el handle; **100 corridas con `-race` bajo carga, verdes**. Ninguna aserción
+cambió.
+
+Esto matiza una fila de la §5 de esta auditoría: `go test ./... -race` **no era determinista**.

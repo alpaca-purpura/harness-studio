@@ -205,6 +205,7 @@ func runServe(args []string) error {
 		return fmt.Errorf("session store: %w", err)
 	}
 	loguearInforme(informe, sesionesV2)
+	avisarDelArchivoAbandonado(sesionesV2)
 
 	// Watcher fsnotify (RF-210): observa el mismo árbol que Rebuild leyó — arnesReg —
 	// para disparar reindex incremental cuando algo cambia en caliente.
@@ -854,6 +855,37 @@ func rutasDelRegistro(sessionsPath string) (vigente, legado string) {
 
 // loguearInforme cuenta lo que el arranque le hizo al registro. Un arranque sin novedades
 // no imprime nada: el Informe sólo trae lo que efectivamente ocurrió.
+// avisarDelArchivoAbandonado — A-9. `sesiones-cerradas.json` dejó de leerse cuando el
+// archivado pasó a conservar el transcript completo (CV-D12 + CV-D8), y el operador lo borra
+// a mano (CV-D6). Todo bien con eso; lo que NO estaba bien era el SILENCIO.
+//
+// Este paquete tiene un lema —«nada de esto ocurre en silencio»— y lo cumple para la
+// migración, el respaldo, la cuarentena, el esquema futuro, las reparaciones y las
+// recalibraciones. Abandonar un archivo de DATOS del operador era lo único que no decía
+// nada. Y no aplica sólo a las 3 sesiones que él ya declaró no importantes: CUALQUIERA que
+// haya archivado con el binario anterior, antes de actualizar, cayó ahí.
+//
+// Una línea, en el arranque, con la ruta y el número. No lo lee, no lo migra y no lo borra:
+// sólo deja de fingir que no existe.
+func avisarDelArchivoAbandonado(sesionesPath string) {
+	ruta := filepath.Join(filepath.Dir(sesionesPath), "sesiones-cerradas.json")
+	b, err := os.ReadFile(ruta) //nolint:gosec // ruta derivada de la del registro, no de la entrada del usuario.
+	if err != nil {
+		return // no existe (el caso normal) o no se puede leer: no es motivo para molestar.
+	}
+	var cerradas []struct {
+		ID string `json:"id"`
+	}
+	n := -1 // -1 = está pero no se pudo contar; se dice igual, no se calla.
+	if json.Unmarshal(b, &cerradas) == nil {
+		n = len(cerradas)
+	}
+	slog.Warn("registro de sesiones: quedó un `sesiones-cerradas.json` del formato anterior — "+
+		"este binario NO lo lee ni lo migra; lo que archives ahora va al registro nuevo. "+
+		"Podés borrarlo a mano cuando quieras (CV-D6 · T32)",
+		"archivo", ruta, "sesiones", n, "bytes", len(b))
+}
+
 // loguearRecalibracion cuenta lo que el re-key del arranque le hizo a las llaves (CV-D18).
 //
 // Dice las DOS cosas, y la segunda no es opcional: cuántas recalibró y cuántas quedaron

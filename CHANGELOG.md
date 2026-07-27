@@ -38,6 +38,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El daemon recalibra solo las llaves de sesión a medias al arrancar (CV-D18): respalda antes, y el log dice cuántas movió y cuántas quedaron sin candidata porque su arnés no está en el Portafolio.
 - Test del respaldo previo de Save (A-8) y enforcer del puntero convActiva de la transición (A-7): dos guards que funcionaban y no tenían red.
 - scripts/paridad_cifras.py: las cifras del gate de PARIDAD se generan y se pueden chequear, ya no se teclean (A-12).
+- El arranque avisa si quedó un sesiones-cerradas.json del formato anterior: dice cuántas sesiones tiene y que este binario ya no lo lee (A-9). Era lo único que el arranque hacía en silencio.
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.

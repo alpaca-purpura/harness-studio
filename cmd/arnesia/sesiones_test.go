@@ -262,3 +262,59 @@ func TestLoguearRecalibracionSinNovedadNoImprime(t *testing.T) {
 		t.Errorf("un arranque sin novedad logueó igual:\n%s", s)
 	}
 }
+
+// TestAvisarDelArchivoAbandonado — A-9. El abandono de `sesiones-cerradas.json` era lo ÚNICO
+// que este paquete hacía en silencio, en un arranque cuyo lema es «nada de esto ocurre en
+// silencio». No se lee, no se migra y no se borra: sólo se dice que está.
+func TestAvisarDelArchivoAbandonado(t *testing.T) {
+	dir := t.TempDir()
+	sesiones := filepath.Join(dir, "sesiones.json")
+	viejo := filepath.Join(dir, "sesiones-cerradas.json")
+	if err := os.WriteFile(viejo, []byte(`[{"id":"s1"},{"id":"s2"},{"id":"s3"}]`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	previo := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previo) })
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
+	avisarDelArchivoAbandonado(sesiones)
+
+	s := buf.String()
+	for _, quiero := range []string{"sesiones-cerradas.json", "sesiones=3", "NO lo lee", "T32"} {
+		if !strings.Contains(s, quiero) {
+			t.Errorf("el aviso no dice %q.\nlog:\n%s", quiero, s)
+		}
+	}
+	// Y no lo toca: el borrado es del operador (CV-D6), no de este código.
+	if _, err := os.Stat(viejo); err != nil {
+		t.Errorf("el archivo del operador se tocó: %v", err)
+	}
+}
+
+// TestAvisarDelArchivoAbandonadoNoDiceNadaSiNoEstá — el caso normal no ensucia el log.
+func TestAvisarDelArchivoAbandonadoNoDiceNadaSiNoEstá(t *testing.T) {
+	previo := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previo) })
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
+	avisarDelArchivoAbandonado(filepath.Join(t.TempDir(), "sesiones.json"))
+
+	if s := strings.TrimSpace(buf.String()); s != "" {
+		t.Errorf("avisó de un archivo que no existe:\n%s", s)
+	}
+}
+
+// TestElArranqueAvisaDelArchivoAbandonado — el cableado, no la función suelta. Mismo motivo
+// que en CV-D18: una función perfecta que nadie llama no cambia nada para el operador.
+func TestElArranqueAvisaDelArchivoAbandonado(t *testing.T) {
+	b, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "avisarDelArchivoAbandonado(sesionesV2)") {
+		t.Error("el arranque no avisa del `sesiones-cerradas.json` abandonado (A-9)")
+	}
+}

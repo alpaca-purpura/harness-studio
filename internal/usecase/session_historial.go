@@ -107,9 +107,17 @@ func (s *SessionService) Cerradas(ctx context.Context, arnesID string) ([]domain
 //
 // Desde que el archivado conserva el transcript (CV-D8), el camino normal es leerlo del
 // propio registro: es lo que el operador vio, y no depende de que el corpus de Claude Code
-// siga en disco. El lector JSONL queda como FALLBACK para las sesiones archivadas ANTES de
-// la migración, cuyo transcript no se guardó — y ahí sigue siendo best-effort honesto: las
-// JSONL que ya no están se reportan en `faltantes`, jamás se inventa contenido.
+// siga en disco.
+//
+// El lector JSONL queda como FALLBACK para una sesión archivada cuyo `Conv` viene vacío —
+// hoy, una que se archivó sin ningún turno. (A-9: este comentario decía «para las sesiones
+// archivadas ANTES de la migración». Ese caso NO puede llegar acá: esas sesiones viven en
+// el `sesiones-cerradas.json` que este binario ya no lee, así que todo lo que se lista
+// salió del registro nuevo, que siempre conserva `Conv`. El fallback sigue siendo útil,
+// pero por otra razón que la que estaba escrita.)
+//
+// Y ahí sigue siendo best-effort honesto: las JSONL que ya no están se reportan en
+// `faltantes`, jamás se inventa contenido.
 func (s *SessionService) HistorialCerrada(ctx context.Context, id string) (turnos []domain.Turn, faltantes []string, err error) {
 	s.mu.Lock()
 	reader := s.historial
