@@ -17,8 +17,8 @@
 | **plan de tickets** | ✅ [`plan-desarrollo.md`](./plan-desarrollo.md) — **33 tickets · 6 tramos** + cobertura E-01…E-50 → ticket |
 | **plan de pruebas** | ✅ [`plan-pruebas.md`](./plan-pruebas.md) — pirámide · **circuito E2E contra la app instalada** (6 guiones) · datos de prueba aislados · 26 criterios de salida |
 | GATE 2 🧑‍⚖️ (specs+arquitectura) | ✅ **AUTORIZADO POR DIRECTIVA 2026-07-26** — ver nota abajo |
-| implementar | ⬜ |
-| PARIDAD | ⬜ |
+| **implementar** | 🚧 **tramo 0 de 6 CERRADO y verde** (T1-T6) · tramos 1-5 sin empezar — ver [`PARIDAD.md`](./PARIDAD.md) §0 |
+| PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) abierta con la evidencia del tramo 0; **gate 🧑‍⚖️ SIN FIRMAR** (no hay superficie nueva que comparar) |
 
 ## GATE 1 🧑‍⚖️ — FIRMADO 2026-07-26
 
@@ -95,31 +95,69 @@ con el paquete (T5, T9-T11, T15). Declararlos `enforced` antes sería el pass fa
 
 ## Retomar aquí
 
-**GATE 2 🧑‍⚖️: leer y firmar `spec.md` + `design.md` + `arquitectura.md` + `plan-desarrollo.md`.**
-Recién con esa firma se toca código (METODOLOGIA §10, paso 4: «nada llega al código sin spec
-firmado»).
+### Lo hecho (2026-07-26) — TRAMO 0 CERRADO Y VERDE
 
-**Lo primero que hace el que construya, sí o sí, es el TRAMO 0** (`plan-desarrollo.md` T1-T6) — y
-**no es opcional**: CI está rojo desde 2026-07-20 (19 de las últimas 20 corridas), hay **79 commits
-sin pushear**, **lefthook no está instalado** en este working copy y `chat-dock.tsx` **no tiene
-story**. El tramo 0 termina en un gate 🧑‍⚖️ propio: **CI 3/3 verde**. Sin línea base, nada de lo que
-se construya después es medible.
+3 commits locales en `main`, **sin pushear** (los 79 previos tampoco: es decisión del operador):
 
-Lo que cambió respecto de la etapa anterior:
+| commit | ticket | qué |
+|---|---|---|
+| `bc9d1d4` | — | los artefactos de spec/diseño/arquitectura/planes + los 2 boundaries nuevos, `proposed` con `enforced_by: []` |
+| `56fdda1` | T2 · T3 | baseline del dock (3 stories) + contraste del picker ⇒ `--project=storybook` **386/386** |
+| `eda01f0` | T4 · T5 | `_sin-declarar.yaml` (15 entradas con razón) + los 4 enforcers ⇒ `ruta-servida-esta-declarada` **`enforced` 4/5** |
 
-1. **P-1 se firmó como CV-D16** — las 4 sesiones vivas con id pelado se **re-key**, no se borran. El
-   re-key es ahora un **paso de la migración versionada** (no un extra), con respaldo obligatorio y
-   **dos caminos de reversión especificados** (`arquitectura.md` §2.6). Hallazgo que cambió el
-   algoritmo: **3 de las 4 tienen `cwd` vacío**, así que hace falta un fallback por id.
-2. **CV-D6 sigue igual y NO se unifica con CV-D16**: `sesiones-cerradas.json` se **borra** (dato
-   distinto, decisión distinta, procedimiento manual del operador en T32).
-3. Los dos gaps del modelo que la spec tenía que construir ya tienen diseño: «última interacción» es
-   `Conversacion.UltimaInteraccion` (**y `domain.Turn` NO se toca** — evitar el incidente de wire de
-   HS-26 es parte del motivo), y `Conv` + `Checkpoint` **se persisten**, con el procedimiento trazado
-   para cambiar CAP-98 y su test (`arquitectura.md` §7.3).
-4. Se destaparon dos cosas que ninguna decisión cubría y que el diseño resuelve: **la rotación no
-   emite ningún frame SSE** (C-6/H-8 → `rotarLocked` devuelve el frame, `Turn` lo publica fuera del
-   lock) y **el OpenAPI driftó sin enforcer** (→ boundary nuevo + `openapi_contract_test.go`).
+**Gate del tramo 0: local completo y verde** (los 9 comandos de los 3 jobs de CI, tabla en
+`PARIDAD.md` §1 T6). ⚠ **CI NO SE OBSERVÓ**: T6 exige `git push` + `gh run watch`, y no se pusheó.
+El rojo conocido (job `ts`, paso `fitness visual`) tiene su causa corregida y medida, pero eso es
+una **inferencia, no una corrida vista**.
 
-**Cobertura: 50 de 50 escenarios con respuesta arquitectónica y ticket.** El único sin test
-automatizado es **E-46** (el borrado de CV-D6), declarado como tal, con rastro escrito en `PARIDAD.md`.
+### Lo siguiente, exacto
+
+**Arrancá por T7** (`plan-desarrollo.md` línea 193). Es el primer ticket del tramo 1 y es
+**aditivo y sin riesgo**: crea archivos que todavía no importa nadie.
+
+- **Ticket:** T7 · `domain.Conversacion` + las 4 operaciones puras + la invariante.
+- **Archivos a crear:** `internal/domain/conversacion.go` · `internal/domain/conversacion_test.go`.
+- **Diseño literal:** `arquitectura.md` §1.2 (los 14 campos, con `Conv []Turn` **sin `omitempty`** y
+  `Turnos` que **no existe**: se deriva con `NumTurnos()`) y §1.4 (las firmas de `Activa`,
+  `CrearConversacion`, `ActivarConversacion`, `RenombrarConversacion`, `VerificarUnaActiva`,
+  `NormalizarConversaciones`).
+- **Capability:** **nueva CAP-140** `dominio-l0/conversacion-como-entidad.yaml`. **Verificado
+  2026-07-26: CAP-139 es el máximo real en `docs/product/capabilities/`, así que CAP-140 sigue
+  libre** (⚠ un `grep` sobre `docs/` devuelve CAP-146 porque los documentos de ESTE paquete ya
+  nombran el bloque 140-146 que todavía no existe — no te confundas).
+- **Los 6 tests, por nombre:** `TestInvarianteUnaActivaTrasCadaTransicion` ·
+  `TestCrearDesactivaLaAnterior` · `TestActivarConversacionAjenaEs404` ·
+  `TestRenombrarVacioNoCambiaElTitulo` · `TestNormalizarReparaYLoDice` ·
+  `TestTituloEditadoNoSeReDeriva`.
+- **Las 2 trampas mecánicas, leelas antes de escribir** (`arquitectura.md` §7.6): (1) ningún
+  comentario con `transcript`/`jsonl`/`.claude/projects` **adyacente** a un decoder, o
+  `TestNoJSONLSchemaParsing` da falso positivo — y **está prohibido** sumar el prefijo a
+  `jsonlExento`; (2) `domain.Turn` **NO se toca** (es el incidente HS-26,
+  `conductor_test.go:TestUserTurnWireSinCamposExtra`).
+
+**Después T8, y es el ticket más riesgoso del paquete** (partir `Session`: el árbol deja de
+compilar hasta arreglar todos los call-sites). No lo arranques sin margen para terminarlo: un T8 a
+medias deja `main` sin compilar. Los 5 tests del boundary
+(`TestOneTurnAtATime`/`TestFramesCarryRunID`/`TestResumeAutoSana`/`TestNoSilentEventDrop`/`TestSessionSpawnsInArnesPath`)
+tienen que seguir verdes **sin tocarles el cuerpo**: es el canario de que el reparto no cambió el pipe.
+
+### Cosas del entorno que ya no hace falta re-descubrir
+
+- **`lefthook` YA está instalado** en este working copy (T1). Los 8 jobs `pre-commit` disparan de
+  verdad — cazaron 5 hallazgos propios en el commit de T5. `estado-cifras` tarda ~55 s por commit y
+  regenera + `git add` del checkpoint solo.
+- **`golangci-lint` local (v2.12.2) es MÁS RUIDOSO que el de CI**: ~25 hallazgos preexistentes en
+  telemetría/logfile/selfupdate que el job `go` de CI **acepta** (última corrida: `go` ✓). No los
+  persigas; sí atendé lo que el hook marque en TUS archivos.
+- **El browser runner de vitest corre headless y rápido** (~4 s por archivo, 43 archivos en ~12 s).
+- **`~/.arnesia/` NO se tocó**: las 3 cerradas de CV-D6 (`s1b38a066`, `s408bb085`, `s020210e3`)
+  siguen enteras. El borrado es T32 y es **procedimiento manual del operador**.
+
+### Lo que sigue abierto del propio paquete
+
+- **GATE 2** sigue siendo *autorizado por directiva, no por lectura* (ver arriba). Si el operador
+  lee los specs y rechaza algo, lo construido sobre esa parte se rehace.
+- **El gate de T6** (CI 3/3 verde) queda **abierto** hasta que se pushee.
+- 5 hallazgos nuevos que ningún documento preveía, todos declarados en `PARIDAD.md` §3.4 — el más
+  importante es **N-1**: el dock tiene hoy, en producción, una violación de contraste (2,21:1) que
+  nadie había visto porque el widget no tenía story.
