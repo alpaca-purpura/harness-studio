@@ -32,6 +32,20 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ### Eliminado
 
 ### Corregido
+
+### Seguridad
+
+## [0.3.1] — 2026-07-27
+
+### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
 - Rail de sesiones: el ✕ de cerrar ya no se monta sobre el ✎ de renombrar (ahora un cluster inline, hitbox propia) y la última sesión se puede cerrar — el shell cae a «Sin sesión activa».
 
 ### Seguridad
