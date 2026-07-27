@@ -11,8 +11,19 @@ verb: crear
 pointers:
   - "web/src/widgets/chat-dock/ui/chat-dock.tsx#ChatDock"
   - "web/src/shared/store/sessions-store.ts#sendTurn"
+  - "web/src/shared/store/sessions-store.ts#onDock"
+  - "web/src/shared/store/sessions-store.test.ts#useSessions"
+  - "web/src/shared/api/types.ts#Session"
 valida:
   - "chat-dock.stories.tsx"
+  - "sessions-store.test.ts"
+last_modified: 2026-07-26
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "El dock deja de hablarle a la sesión y le habla a su conversación activa: el transcript, el contexto, el modelo y la identidad del proceso bajaron un nivel en el contrato (CV-D3), y el cromo bajó de cuatro filas a dos. La fila de identidad técnica no se borró, se mudó detrás del chip de contexto y ganó el directorio de trabajo. Y cerró la violación de contraste que el baseline había destapado: ninguna story del dock apaga ya ninguna regla del gate."
+    merge_sha: null
 scenarios: []
 business_rules: []
 related_capabilities:
@@ -27,16 +38,23 @@ Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-1
 
 ## Baseline de la superficie (T2, paquete 2026-07-26-conversaciones-del-panel)
 
-`chat-dock.stories.tsx` es el **baseline** del widget: A-01 `VigenteReposo` fija las cuatro
-filas de cromo que hoy se ven (header · `SessionLine` · `ScopeRow` · composer), A-02 la tarjeta
-de permiso y A-03 el turno en vuelo. Se escribió **antes** del primer cambio del paquete, que
-reescribe el widget entero: sin él, «el superset no rompió nada» sería una afirmación sin
-evidencia (H-1).
+`chat-dock.stories.tsx` es el **baseline** del widget: se escribió **antes** del primer cambio
+del paquete, que reescribe el widget entero. Sin él, «el superset no rompió nada» sería una
+afirmación sin evidencia (H-1). Sus tres stories originales sobreviven **ajustadas al
+superset**: ya no miden las cuatro filas de cromo —el tramo 3 las bajó a dos— sino lo que no se
+podía tocar: el composer con sus tres marcadores, las burbujas, la tarjeta de actividad
+agrupada y la tarjeta de permiso.
 
-**Hallazgo que destapó el baseline, declarado y no tapado:** `SessionLine` pinta el
+**El hallazgo del baseline, cerrado en el mismo paquete:** `SessionLine` pintaba el
 `◍ <cc-id>` con `text-primary` sobre `bg-secondary` — **2,21:1** medido por axe, contra el
-mínimo 4,5 de texto. Es una violación **preexistente** del dock que se envía hoy, invisible
-hasta ahora porque el widget no tenía story. Las 3 stories del baseline apagan **sólo** la
-regla `color-contrast` (el resto de axe sigue en `error`) y la deuda queda anotada en
-`BACKLOG.md`; se corrige al construir `IdentidadDetalle` (RF-328), adonde el cuerpo de
-`SessionLine` se muda.
+mínimo 4,5 de texto. Era una violación **preexistente** del dock que se enviaba, invisible
+porque el widget no tenía story. Al mudarse el cuerpo de esa fila a `IdentidadDetalle`
+(RF-328), el texto pasó a `--foreground` y las tres stories **dejaron de apagar la regla
+`color-contrast`**: el gate a11y corre entero sobre todo el dock.
+
+## El cromo de dos filas (tramo 3)
+
+`ChatDock` compone hoy: header (intacto, salvo el glifo `»`), `ConversacionRow`, `ScopeRow`
+**sólo con nodo**, y el transcript o la lista de conversaciones — nunca los dos. Las piezas
+nuevas viven en `arnesia.fe-chat.panel-de-conversaciones` (CAP-146); acá queda el turno, el
+interrupt y la composición.
