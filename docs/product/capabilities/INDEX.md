@@ -156,18 +156,19 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-67 · Conmutador de capas** `vivo` · fe-mapa/conmutador-de-capas.yaml — `web/src/widgets/map-canvas/ui/map-bar.tsx#LAYERS`
 - **CAP-95 · Mapa en vivo: refetch al reindexarse el arnés por chat** `vivo` · fe-mapa/reindex-en-vivo.yaml — `web/src/shared/store/map-live-store.ts`
 
-### `fe-chat` (6)
+### `fe-chat` (7)
 
 - **CAP-100 · Conversación legible: actividad visible · burbuja por paso · markdown** `vivo` · fe-chat/conversacion-legible.yaml — `internal/adapters/agent/claudecode/conductor.go#assistantEvents`
 - **CAP-115 · Dictar en el composer (grabar → transcribir → ordenar → poblar)** `vivo` · fe-chat/dictar-en-el-composer.yaml — `web/src/widgets/chat-dock/ui/dictado-button.tsx#DictadoButton`
+- **CAP-146 · Panel de conversaciones: listarlas, buscarlas, crearlas y retomarlas desde el dock** `vivo` · fe-chat/panel-de-conversaciones.yaml — `web/src/widgets/chat-dock/ui/conversacion-row.tsx#ConversacionRow`
 - **CAP-68 · Chat CC (turno/interrupt)** `vivo` · fe-chat/chat-cc.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ChatDock`
-- **CAP-69 · Acotar alcance (nodo→chip)** `vivo·nc` · fe-chat/acotar-alcance.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow`
+- **CAP-69 · Acotar alcance (nodo→chip)** `vivo` · fe-chat/acotar-alcance.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow`
 - **CAP-70 · Decidir permisos (tarjeta inline)** `vivo` · fe-chat/decidir-permisos.yaml — `web/src/widgets/chat-dock/ui/permission-card.tsx#PermissionCard`
 - **CAP-71 · Gate de conformance tras escrituras (RF-117)** `vivo·nc` · fe-chat/gate-de-conformance-tras-escrituras.yaml — `web/src/shared/store/sessions-store.ts`
 
 ### `fe-shell` (7)
 
-- **CAP-72 · Rail de sesiones (crear/renombrar/cerrar/switch)** `vivo·nc` · fe-shell/rail-de-sesiones.yaml — `web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail`
+- **CAP-72 · Rail de sesiones (crear/renombrar/cerrar/switch)** `vivo` · fe-shell/rail-de-sesiones.yaml — `web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail`
 - **CAP-73 · View-strip (Mapa|Diag|Corridas|Tren|Hist)** `vivo·nc` · fe-shell/view-strip.yaml — `web/src/widgets/view-strip/ui/view-strip.tsx#ViewStrip`
 - **CAP-74 · Topbar breadcrumb + ⌘K dock** `vivo·nc` · fe-shell/topbar-breadcrumb-k-dock.yaml — `web/src/widgets/topbar/ui/topbar.tsx#Topbar`
 - **CAP-75 · Navegación global (portafolio/estándar/ajustes)** `vivo·nc` · fe-shell/navegacion-global.yaml — `web/src/pages/shell/ui/global-view.tsx#GlobalView`

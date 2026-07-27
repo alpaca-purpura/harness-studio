@@ -13,6 +13,60 @@ export interface Turn {
   text: string
 }
 
+// Conversacion es UNA conversación de una sesión, tal como viaja en la lista del panel
+// (`ConversacionResumen` del daemon, session_conversaciones.go:46-59). NO trae los turnos:
+// el tipo ni siquiera los declara, así que «no cargado» no es expresable acá.
+//
+// Los campos que el daemon serializa SIN `omitempty` van acá sin `?`: `ctx_pct` a 0 y
+// `turnos` a 0 son DATOS (BR-CV-9), no ausencias, y un `?` invitaría al `?? 0` que borra la
+// distinción. `ultima_interaccion` sí es opcional: viaja vacía cuando no hubo ningún turno,
+// y el FE la DICE («sin fecha»), no la inventa (BR-CV-14).
+export interface Conversacion {
+  id: string
+  /** título auto-derivado del primer turno `user`, o "nueva conversación" (RF-303). */
+  titulo: string
+  /** true ⇒ ningún turno vuelve a re-derivar el título (RF-303). */
+  titulo_editado: boolean
+  /** exactamente una por sesión (BR-CV-1). */
+  activa: boolean
+  turnos: number
+  /** 0 es dato, no ausencia (BR-CV-9). */
+  ctx_pct: number
+  /** el `caliente` del chip sale de acá: el umbral vive en el daemon, el FE no lo conoce. */
+  rotacion_pendiente: boolean
+  /** RFC3339 UTC. VACÍA cuando no hubo turnos — no se inventa (BR-CV-14). */
+  ultima_interaccion?: string | undefined
+  creada_en: string
+  claude_session_id?: string | undefined
+  model?: string | undefined
+  /** sólo con `?q=`: el fragmento que coincidió, ya recortado por el daemon (RF-322). */
+  fragmento?: string | undefined
+}
+
+// ConversacionActiva es la conversación viva de una sesión: el resumen MÁS su transcript.
+// Es la única forma que trae `conv`, y viaja en dos lugares — dentro de la sesión y dentro
+// del frame de la transición, para que el FE repinte sin una segunda vuelta.
+export interface ConversacionActiva extends Conversacion {
+  /** SIN `?`: `[]` y «no la cargué» no pueden significar lo mismo. */
+  conv: Turn[]
+  /** los ids de Claude Code previos de este hilo (sus rotaciones). */
+  cadena_cc?: string[] | undefined
+}
+
+// ConversacionesListado es la respuesta de GET /api/sessions/{id}/conversaciones.
+export interface ConversacionesListado {
+  conversaciones: Conversacion[]
+  /** el total de la SESIÓN, no el de coincidencias: es el denominador de «N de M» (RF-318). */
+  total: number
+}
+
+// Session es el frente de trabajo. Bajo CV-D3 la sesión CONTIENE N conversaciones, así que
+// `claude_session_id`, `model`, `ctx_pct`, `conv`, `turnos` y `cadena_cc` ya NO viven acá:
+// bajaron a `activa`. El wire es `sessionWire` (sessions.go:26-38).
+//
+// `activa` NO es opcional, y es deliberado: la invariante garantiza que existe (BR-CV-1) y un
+// campo opcional invitaría al `if (!activa)` defensivo que escondería el día en que no exista.
+// El daemon loguea `error` antes que inventar una.
 export interface Session {
   id: string
   frente: string
@@ -23,18 +77,13 @@ export interface Session {
   status: SessionStatus
   view: string
   parked?: string
-  // These are built via spreads (`?? prev`), so they may be explicitly undefined —
-  // allowed under exactOptionalPropertyTypes only if the type includes undefined.
-  claude_session_id?: string | undefined
-  model?: string | undefined
-  ctx_pct?: number | undefined
-  conv?: Turn[]
   // Sesión de reparación (RF-191, ley A4): abierta contra una instalación del Portafolio.
   reparacion?: boolean
-  // Metadata de archivo (RF-200, historial B2) — solo pobladas en sesiones CERRADAS.
+  /** el directorio de trabajo del conductor — el confinamiento real (RF-328 CA-2). */
+  cwd?: string | undefined
+  // Metadata de archivo (RF-200) — solo poblada en sesiones CERRADAS.
   cerrada_en?: string
-  turnos?: number
-  cadena_cc?: string[]
+  activa: ConversacionActiva
 }
 
 // NewSession is the create payload. path, when set, registers the arnés's working directory
@@ -65,6 +114,10 @@ export interface HarnessSummary {
 // connection multiplexes N conversations (fase 4 c.1). kind=permission es la tarjeta
 // ask→UI de un control_request (RF-113: request_id + tool + input crudo para pintar el
 // diff; la sesión pasa a `await`); permission_result la cierra con la decisión efectiva.
+// kind=conversacion es el frame del panel (CV-D2): lo emiten crear, retomar, renombrar y la
+// rotación. NO lleva `run_id` — no pertenece a un turno — así que el dedup por run finalizado
+// no aplica: la idempotencia es declarativa para creada/activada/renombrada (traen el estado
+// final: aplicarlas dos veces es un `set`) y por `turno_idx` para `rotada`.
 export interface DockFrame {
   session_id: string
   run_id?: string
@@ -78,6 +131,7 @@ export interface DockFrame {
     | "error"
     | "permission"
     | "permission_result"
+    | "conversacion"
   text?: string
   status?: SessionStatus
   ctx_pct?: number
@@ -87,6 +141,13 @@ export interface DockFrame {
   tool?: string
   input?: unknown
   decision?: "allow" | "deny"
+  // Los 4 campos del frame `conversacion` (design.md §7.2).
+  conversacion_id?: string
+  conversacion_evento?: "creada" | "activada" | "renombrada" | "rotada"
+  /** sólo en `rotada`: el índice del turno donde va la marca — su llave de idempotencia. */
+  turno_idx?: number
+  /** el estado POST-transición, para repintar sin una segunda vuelta. */
+  conversacion?: ConversacionActiva
 }
 
 // MapFrame is one SSE `map` event payload (RF-186/RF-187): the daemon reindexed an arnés

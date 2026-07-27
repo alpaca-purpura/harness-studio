@@ -13,8 +13,6 @@ verb: observar
 pointers:
   - "internal/usecase/session_historial.go"
   - "internal/adapters/history/reader.go"
-  - "web/src/widgets/session-rail/model/conversaciones-store.ts"
-  - "web/src/widgets/session-rail/model/conversaciones-store.test.ts"
 valida:
   - "TestCloseArchivaConTranscript"
   - "TestCloseConservaCheckpoint"
@@ -24,10 +22,14 @@ valida:
   - "TestDirParaCwd"
   - "TestCerradas1Devuelve400ConPuntero"
   - "TestElMuxNoAmbiguaEntreSesionYConversaciones"
-  - "conversaciones-store.test.ts"
 last_modified: 2026-07-26
 source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-200..RF-203)"
 change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "El consumidor de las dos rutas retiradas se ELIMINA (RF-333/RF-334): el store del rail y el bloque «Conversaciones: N abiertas · M cerradas» del selector de arnés desaparecen del árbol. Conservar un cliente cuyos dos endpoints responden 400 y 404 no era conservar superficie: era garantizar un error a la vista del operador. La capacidad de leer lo archivado ANTES de la migración sigue viva del lado del daemon, sin superficie que la ejerza — declarado, no tapado."
+    merge_sha: null
   - story_id: 2026-07-26-conversaciones-del-panel
     date: 2026-07-26
     type: derive

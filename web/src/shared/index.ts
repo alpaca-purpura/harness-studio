@@ -4,6 +4,9 @@
 export {
   ApiError,
   api,
+  type Conversacion,
+  type ConversacionActiva,
+  type ConversacionesListado,
   connectDock,
   type Dictado,
   type DisponibilidadDictado,
@@ -48,8 +51,12 @@ export { useMapLive } from "./store/map-live-store"
 export {
   selectActive,
   selectAttention,
+  selectConvActivaId,
+  selectCtxCaliente,
+  selectCtxPct,
   selectPendingPerms,
   selectScope,
+  selectTituloActiva,
   useSessions,
 } from "./store/sessions-store"
 export { Button, type ButtonProps, buttonVariants } from "./ui/button"
