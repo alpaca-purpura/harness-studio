@@ -352,6 +352,19 @@ func runServe(args []string) error {
 			"registro", sesionesV2, "err", rerr)
 	} else {
 		loguearRecalibracion(infRekey, sesionesV2)
+		// El store ya escribió el disco, pero `sessionSvc` cargó el registro más arriba y
+		// tiene las llaves viejas en memoria. Sin este puente el arranque que APLICA el
+		// re-key sigue sirviendo lo de antes, y el operador estrena la función viendo el
+		// bug que la función arregla (N-24, medido contra el binario).
+		nuevas := map[string]string{}
+		for _, f := range infRekey.Filas {
+			if f.Movio() {
+				nuevas[f.SesionID] = f.Despues
+			}
+		}
+		if n := sessionSvc.AplicarRecalibracion(nuevas); n > 0 {
+			slog.Info("registro de sesiones: llaves recalibradas aplicadas al registro vivo", "sesiones", n)
+		}
 	}
 	// Tarjeta de identidad por sesión (RF-189): cada spawn sabe qué arnés es, qué copia
 	// edita (canónico/instalación/suelto) y su rol — cerrada sobre el Portafolio real.

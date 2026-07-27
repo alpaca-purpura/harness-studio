@@ -70,6 +70,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El teclado del panel de conversaciones arranca solo: el foco se pone cuando la lista existe y no al montar, cuando todavía es el esqueleto y no hay adónde ir.
 - Las flechas del panel arrastran el scroll: con la lista más larga que el panel el cursor avanzaba y la vista no.
 - Escape cierra el panel de conversaciones desde cualquier parte de él, no sólo desde el buscador — que ni siquiera se dibuja con una sola conversación.
+- El arranque que recalibra las llaves de sesión ya deja ver las conversaciones en el acto: antes escribía el registro bien pero la aplicación seguía mostrando lo viejo hasta el siguiente arranque, así que el operador estrenaba la función viendo el problema que la función arregla.
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

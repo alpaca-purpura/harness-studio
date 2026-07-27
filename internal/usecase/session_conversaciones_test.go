@@ -6,6 +6,7 @@ package usecase_test
 // viejo todavía atado a un hilo que ya no recibe los turnos.
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -404,4 +405,61 @@ func mustGet(t *testing.T, svc *usecase.SessionService, id string) domain.Sessio
 		t.Fatalf("la sesión %q desapareció", id)
 	}
 	return m
+}
+
+// TestRecalibracionLlegaAlRegistroVivo (N-24): el re-key del arranque escribe el disco
+// DESPUÉS de que el servicio cargó el registro; sin puente, la memoria se queda con las
+// llaves viejas y la API sigue escondiendo las sesiones hasta el arranque siguiente.
+//
+// Medido contra el binario antes de existir este test: 1er arranque servía 2 de 5
+// sesiones del operador, 2º arranque las 5. El operador estrenaba la función viendo el
+// bug que la función arregla.
+func TestRecalibracionLlegaAlRegistroVivo(t *testing.T) {
+	previas := &memSessionStore{sesiones: []domain.Session{
+		{ID: "s1", Arnes: "vitalia", Conversaciones: []domain.Conversacion{{ID: "cv1", Activa: true, Conv: []domain.Turn{}}}},
+		{ID: "s2", Arnes: "sin-home~vitalia~vitalia", Conversaciones: []domain.Conversacion{{ID: "cv2", Activa: true, Conv: []domain.Turn{}}}},
+		{ID: "s3", Arnes: "vitalia", Conversaciones: []domain.Conversacion{{ID: "cv3", Activa: true, Conv: []domain.Turn{}}}},
+	}}
+	svc, err := usecase.NewSessionService(context.Background(), &stubAgent{}, previas, stubPub{}, stubResolver{path: t.TempDir()}, 40, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	porArnes := func(clave string) int {
+		n := 0
+		for _, s := range svc.List() {
+			if s.Arnes == clave {
+				n++
+			}
+		}
+		return n
+	}
+	if got := porArnes("sin-home~vitalia~vitalia"); got != 1 {
+		t.Fatalf("antes de recalibrar la clave calificada trae %d, want 1", got)
+	}
+
+	// Lo que el store ya escribió en disco, aplicado a memoria.
+	movidas := svc.AplicarRecalibracion(map[string]string{
+		"s1": "sin-home~vitalia~vitalia",
+		"s3": "sin-home~vitalia~vitalia",
+		"s2": "sin-home~vitalia~vitalia", // ya calificada: no cuenta como movida.
+	})
+	if movidas != 2 {
+		t.Errorf("movidas = %d, want 2 (s2 ya estaba calificada)", movidas)
+	}
+	if got := porArnes("sin-home~vitalia~vitalia"); got != 3 {
+		t.Errorf("tras recalibrar la clave calificada trae %d, want 3 — el registro vivo no se enteró", got)
+	}
+	if got := porArnes("vitalia"); got != 0 {
+		t.Errorf("quedan %d sesiones con la llave pelada, want 0", got)
+	}
+
+	// Idempotente: correrla de nuevo no mueve nada.
+	if again := svc.AplicarRecalibracion(map[string]string{"s1": "sin-home~vitalia~vitalia"}); again != 0 {
+		t.Errorf("segunda corrida movió %d, want 0 (idempotencia)", again)
+	}
+	// Una sesión que no existe no explota ni inventa.
+	if ghost := svc.AplicarRecalibracion(map[string]string{"s-fantasma": "x"}); ghost != 0 {
+		t.Errorf("sesión inexistente movió %d, want 0", ghost)
+	}
 }

@@ -401,6 +401,34 @@ func (s *SessionService) Rename(id, frente string) (domain.Session, error) {
 	return r.meta.Instantanea(), nil
 }
 
+// AplicarRecalibracion lleva a MEMORIA las llaves de arnés que el re-key del arranque ya
+// escribió en disco (CV-D18). Devuelve cuántas sesiones movió.
+//
+// Existe por un desfasaje de orden que sólo se ve corriendo el binario: el servicio carga
+// el registro en el composition root ANTES de que el Portafolio exista, y la
+// recalibración —que necesita el Portafolio para resolver la clave calificada— corre
+// después, sobre el store. Sin este puente, el arranque que aplica el re-key sirve las
+// llaves VIEJAS: el registro en disco queda bien y la API sigue escondiendo las sesiones
+// hasta el siguiente arranque. Es decir, el operador estrena la función viendo el bug que
+// la función arregla.
+//
+// No re-persiste: el store ya escribió, con su respaldo y su informe. Acá sólo se pone la
+// memoria de acuerdo con el disco.
+func (s *SessionService) AplicarRecalibracion(nuevas map[string]string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	movidas := 0
+	for id, arnes := range nuevas {
+		r := s.rt[id]
+		if r == nil || arnes == "" || r.meta.Arnes == arnes {
+			continue
+		}
+		r.meta.Arnes = arnes
+		movidas++
+	}
+	return movidas
+}
+
 // SetView records the view a session is parked on (Mapa|Diag|…).
 func (s *SessionService) SetView(id, view string) (domain.Session, error) {
 	s.mu.Lock()

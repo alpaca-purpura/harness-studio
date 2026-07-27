@@ -217,6 +217,14 @@ func TestElArranqueCablearRecalibracionDeLlaves(t *testing.T) {
 	if !strings.Contains(src, "loguearRecalibracion(infRekey") {
 		t.Error("el arranque recalibra y no loguea: CV-D18 exige decir cuántas movió y cuántas quedaron sin candidata")
 	}
+	// N-24: y lo aplica AL REGISTRO VIVO. El store escribe el disco, pero `sessionSvc` ya
+	// cargó las llaves viejas en memoria unas 90 líneas más arriba; sin este puente el
+	// arranque que aplica el re-key sigue sirviendo lo de antes y el operador estrena la
+	// función viendo el bug que la función arregla. Medido contra el binario: 1er arranque
+	// servía 2 de 5 sesiones, 2º arranque las 5.
+	if !strings.Contains(src, "sessionSvc.AplicarRecalibracion(nuevas)") {
+		t.Error("el re-key no se aplica al registro vivo: el disco queda bien y la API sigue escondiendo las sesiones hasta el próximo arranque (N-24)")
+	}
 }
 
 // TestLoguearRecalibracionDiceLasDosCosas — el informe del arranque distingue recalibradas
