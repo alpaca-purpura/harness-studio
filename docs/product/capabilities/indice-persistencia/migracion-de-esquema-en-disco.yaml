@@ -23,6 +23,8 @@ pointers:
   - "internal/adapters/store/migracion.go#encuarentenar"
   - "internal/adapters/store/registry.go#Registry.SoloLectura"
   - "internal/adapters/store/registry.go#Registry.Sembrable"
+  - "cmd/arnesia/main.go#rutasDelRegistro"
+  - "cmd/arnesia/main.go#loguearInforme"
 valida:
   - "TestSaveEstampaEsquemaActual"
   - "TestDetectarVersionArrayDesnudoEsV1"
@@ -39,6 +41,9 @@ valida:
   - "TestCuarentenaNoPisaLaAnterior"
   - "TestCorrupcionNoEsSembrable"
   - "TestEsquemaFuturoNoSePisa"
+  - "TestRutasDelRegistro"
+  - "TestArranqueMigraYLoguea"
+  - "TestArranqueSinNovedadesNoLoguea"
 dev_preview:
   route: null
   how_to_navigate: null
@@ -112,6 +117,13 @@ scenarios:
     when: "arranca el daemon"
     then: "no aparecen las sesiones de ejemplo: un vacío por corrupción no es una instalación nueva, y taparlo con datos inventados escondería justo lo que hay que ver"
     verifica: "TestCorrupcionNoEsSembrable"
+  - id: el-arranque-dice-lo-que-le-hizo-al-registro
+    name: "El operador instala la versión nueva y mira el log del daemon"
+    status: live
+    given: "un registro de la versión anterior con llaves a medias"
+    when: "arranca el daemon"
+    then: "el log dice qué migró, dónde quedó la copia previa, qué reparó y qué llaves movió, con las rutas; un arranque sin novedades no imprime nada"
+    verifica: "TestArranqueMigraYLoguea"
   - id: el-binario-viejo-no-destruye-el-archivo-nuevo
     name: "El operador probó una versión nueva y volvió a la anterior"
     status: live
@@ -146,6 +158,10 @@ business_rules:
     severity: critical
   - id: una-mutacion-que-no-se-guardo-no-ocurrio
     rule: "Cuando el disco falla, la mutación que el operador acaba de pedir devuelve el motivo del filesystem y revierte su cambio en memoria. El estado en memoria y el estado en disco no divergen en silencio. El stream de un turno en vuelo es la excepción declarada: loguea y sigue, porque no se puede deshacer."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+  - id: el-arranque-no-repara-en-silencio
+    rule: "Todo lo que el arranque le hace al registro —migrar, respaldar, poner en cuarentena, reparar la invariante, recalibrar una llave— sale por el log con la ruta del archivo involucrado. Un arranque silencioso sobre un registro que cambió es un fallo, no una virtud."
     enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
     severity: high
   - id: migrar-es-idempotente

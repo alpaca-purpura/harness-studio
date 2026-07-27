@@ -189,10 +189,21 @@ func runServe(args []string) error {
 	}
 	agent := claudecode.New(resolveClaudeBin(*claudeBin)) // the Dock conductor.
 
-	sessionStore, err := store.NewRegistry(*sessionsPath)
+	// El registro vivo se ABRE, no se construye: `AbrirRegistro` resuelve qué archivo
+	// manda, migra la forma vieja con copia previa, recalibra las llaves a medias (CV-D16)
+	// y repara la invariante de conversaciones. Nada de eso ocurre en silencio — todo lo
+	// que hizo viaja en el Informe y sale por el log de arranque, con las rutas.
+	//
+	// El re-key necesita el Portafolio, que se cablea más abajo. Se pasa nil acá y el
+	// comando `arnesia sesiones recalibrar-llaves` lo cubre: es idempotente y el operador
+	// puede correrlo cuando quiera, con dry-run previo. Atar el arranque del daemon a que
+	// el Portafolio responda sería exactamente lo que el paso separado evita.
+	sesionesV2, sessionsLegado := rutasDelRegistro(*sessionsPath)
+	sessionStore, informe, err := store.AbrirRegistro(sesionesV2, sessionsLegado, selfupdate.Build, nil)
 	if err != nil {
 		return fmt.Errorf("session store: %w", err)
 	}
+	loguearInforme(informe, sesionesV2)
 
 	// Watcher fsnotify (RF-210): observa el mismo árbol que Rebuild leyó — arnesReg —
 	// para disparar reindex incremental cuando algo cambia en caliente.
@@ -792,6 +803,57 @@ func imprimirJSON(v any) error {
 	b = append(b, '\n')
 	_, err = os.Stdout.Write(b)
 	return err
+}
+
+// rutasDelRegistro resuelve el par (registro vigente, registro de la versión anterior).
+// El de la versión anterior NO se toca, NO se borra y NO se renombra: mientras exista
+// intacto, volver a un binario anterior no necesita restaurar nada.
+//
+// Con `--sessions` explícito, esa ruta ES el registro vigente y no hay legado que migrar:
+// el operador está apuntando a un archivo suyo a propósito (tests, copias, otro perfil).
+func rutasDelRegistro(sessionsPath string) (vigente, legado string) {
+	if sessionsPath != "" {
+		return sessionsPath, ""
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", "" // AbrirRegistro resolverá (y fallará) honesto por su cuenta.
+	}
+	dir := filepath.Join(home, ".arnesia")
+	return filepath.Join(dir, "sesiones.json"), filepath.Join(dir, "sessions.json")
+}
+
+// loguearInforme cuenta lo que el arranque le hizo al registro. Un arranque sin novedades
+// no imprime nada: el Informe sólo trae lo que efectivamente ocurrió.
+func loguearInforme(inf store.Informe, ruta string) {
+	if !inf.Hubo() {
+		return
+	}
+	if inf.Migro {
+		slog.Info("registro de sesiones: migrado a la forma nueva",
+			"desde_version", inf.DesdeVersion, "hasta_version", store.EsquemaActual,
+			"registro", ruta, "respaldo", inf.RespaldoEn)
+	}
+	if inf.Corrupto {
+		slog.Error("registro de sesiones ILEGIBLE — se guardó entero y el registro arranca vacío",
+			"cuarentena", inf.CuarentenaEn)
+	}
+	if inf.EsquemaFuturo {
+		slog.Error("registro de sesiones escrito por un binario MÁS NUEVO — solo-lectura, no se toca un byte",
+			"registro", ruta)
+	}
+	for _, arreglo := range inf.Reparaciones {
+		slog.Warn("registro de sesiones: invariante reparada al cargar", "arreglo", arreglo)
+	}
+	for _, r := range inf.Recalibradas {
+		if r.Movio() {
+			slog.Info("registro de sesiones: llave recalibrada",
+				"sesion", r.SesionID, "antes", r.Antes, "despues", r.Despues, "motivo", r.Motivo)
+			continue
+		}
+		slog.Info("registro de sesiones: llave sin cambios",
+			"sesion", r.SesionID, "llave", r.Antes, "motivo", r.Motivo)
+	}
 }
 
 // cerradasPathDefault deriva el archivo del registro de sesiones ARCHIVADAS del de sesiones
