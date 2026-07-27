@@ -1,0 +1,82 @@
+# _sin-declarar.yaml · la allowlist de deuda del contrato HTTP
+#
+# enforced_by: docs/architecture/fitness/openapi_contract_test.go
+# boundary:    docs/architecture/boundaries/ruta-servida-esta-declarada.md
+#
+# QUÉ ES. Toda ruta que el daemon sirve tiene que estar declarada en `openapi.yaml`, o estar
+# acá **con una razón escrita**. No hay tercera opción: una ruta que no está ni en un lado ni
+# en el otro rompe el gate.
+#
+# POR QUÉ EXISTE. Medido el 2026-07-26, antes de que existiera enforcer alguno: el router
+# servía **54 rutas** y el contrato declaraba **39**. Las 15 de la diferencia no se fueron por
+# una decisión — se fueron porque nada las miraba. Este archivo las pone a la vista para poder
+# poner el gate; no las perdona.
+#
+# LA REGLA DEL RATCHET: esta lista **sólo puede achicarse**. Sumar una entrada nueva es
+# admitir que se sirvió una ruta sin declararla, y el enforcer `TestExencionDeContratoTieneRazon`
+# exige que cada una traiga su `razon` no vacía. Una razón floja se vuelve permiso permanente:
+# la de abajo que más se acerca a eso es la de telemetría, y por eso trae fecha de cierre.
+#
+# FORMA: `ruta` es exactamente `MÉTODO /path` como lo registra el mux (con `{}` para los
+# comodines), o el path pelado cuando el registro no lleva método.
+
+version: 1
+medido_en: 2026-07-26
+medido_por: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §5.4"
+
+exenciones:
+  # ── El módulo de telemetría (8) ─────────────────────────────────────────────────────
+  # Nace en stories/2026-07-24-telemetria-embebida-otel/ y todavía está abierto: su
+  # superficie sigue moviéndose. Declara su contrato AL CERRAR, no antes — declarar hoy un
+  # contrato que va a cambiar la semana que viene es peor que declararlo deuda.
+  - ruta: "GET /api/telemetria/resumen"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "GET /api/telemetria/salud"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "GET /api/telemetria/portafolio"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "GET /api/telemetria/arneses/{clave}/cajas"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "GET /api/telemetria/arneses/{clave}/cajas/{cajaId}"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "GET /api/telemetria/arneses/{clave}/mejoras"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "POST /api/telemetria/proceso"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+  - ruta: "DELETE /api/telemetria/arneses/{clave}"
+    razon: "el módulo nace en stories/2026-07-24-telemetria-embebida-otel/ y declara su contrato al cerrar"
+
+  # ── Deuda con fecha de retiro (1) ───────────────────────────────────────────────────
+  - ruta: "GET /api/sessions/cerradas/{id}/historial"
+    razon: >-
+      se RETIRA en T18 del paquete 2026-07-26-conversaciones-del-panel: bajo CV-D8 el
+      transcript de una conversación archivada viaja en su propio `conv` y no hay nada que
+      reconstruir. Esta entrada desaparece de la lista en el mismo commit que retira la ruta.
+
+  # ── Deuda pura (1) ──────────────────────────────────────────────────────────────────
+  - ruta: "POST /api/portafolio/arneses/{clave}/identificar"
+    razon: >-
+      quedó sin declarar al aterrizar «Identificar» (S1-D28) — es deuda del contrato, no una
+      decisión. Se declara cuando el Portafolio vuelva a tocarse; no la toca este paquete.
+
+  # ── Estructurales: sirven algo que NO es la API del daemon (5) ──────────────────────
+  - ruta: "POST /v1/logs"
+    razon: >-
+      contrato AJENO: es el endpoint OTLP/HTTP que `claude` escribe por
+      OTEL_EXPORTER_OTLP_ENDPOINT. Su forma la fija la especificación de OpenTelemetry, no
+      nosotros; re-declararla acá sería copiar un contrato de terceros y garantizar que drifte.
+  - ruta: "POST /v1/metrics"
+    razon: "contrato AJENO (OTLP/HTTP), igual que /v1/logs"
+  - ruta: "GET /events"
+    razon: >-
+      alias sin el prefijo /api del mismo SSE que ya está declarado como GET /api/events.
+      Declararlo dos veces duplicaría el contrato de un solo stream.
+  - ruta: "GET /healthz"
+    razon: >-
+      sonda de liveness del proceso, no superficie de producto: la consume `conectando.html`
+      del shell Tauri para saber cuándo el daemon terminó de atar el puerto. No devuelve
+      dominio y su forma es «200 y nada más».
+  - ruta: "/"
+    razon: >-
+      el SPA embebido (bundle.sh paso 1 lo mete en el binario; router.go lo sirve como
+      catch-all estático). No es un endpoint: es el archivo que devuelve el navegador.

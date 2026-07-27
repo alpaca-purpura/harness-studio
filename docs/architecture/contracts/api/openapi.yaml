@@ -606,9 +606,34 @@ paths:
     get:
       operationId: listSessions
       summary: Multisesión (S4) — los frentes de trabajo abiertos (rail).
+      # Los dos parámetros de abajo se sirven desde siempre y NADIE los había declarado: los
+      # destapó el enforcer `TestQueryParamEstaDeclarado` al nacer (2026-07-26). Se declaran
+      # TAL COMO SE COMPORTAN HOY; el paquete conversaciones-del-panel cambia `cerradas` en su
+      # tramo 2 y lo hará en ese commit, no acá — declarar hoy el comportamiento de mañana
+      # sería la misma clase de mentira que no declarar nada.
+      parameters:
+        - name: arnes
+          in: query
+          required: false
+          schema: { type: string }
+          description: >-
+            Filtra por id de arnés con comparación EXACTA (`sessions.go`): NO normaliza llaves.
+            Medido 2026-07-26: 4 de 5 sesiones vivas tenían el id pelado y 3 quedaban
+            invisibles ante una consulta con clave calificada. El filtro es exacto a propósito
+            — normalizar acá escondería el problema en vez de arreglarlo.
+        - name: cerradas
+          in: query
+          required: false
+          schema: { type: string, enum: ["1"] }
+          description: >-
+            Con `1`, la respuesta deja de ser un array y pasa a ser
+            `{sesiones, cerradas}` — la única respuesta BIMORFA conocida del daemon, y el
+            motivo de que esta operación no se pueda describir con un solo schema.
       responses:
         "200":
-          description: Sesiones en orden estable de creación.
+          description: >-
+            Sesiones en orden estable de creación. ⚠ Con `?cerradas=1` la forma cambia a
+            `{sesiones, cerradas}`; el schema de abajo describe la forma SIN ese parámetro.
           content:
             application/json:
               schema: { type: array, items: { $ref: "#/components/schemas/Session" } }

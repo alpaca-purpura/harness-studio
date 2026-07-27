@@ -4,13 +4,17 @@
 capability_id: arnesia.http-sse.superficie-rest
 cap_num: CAP-52
 slug: superficie-rest
-name: "Superficie REST (23 endpoints)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+name: "Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)"
+status: vivo             # GENERADO (R4) — no teclear
 module: http-sse
 verb: funcional
 pointers:
   - "internal/adapters/transport/http/router.go#NewHandler"
-valida: []
+valida:
+  - "TestRutaServidaEstaDeclarada"
+  - "TestRutaDeclaradaSeSirve"
+  - "TestQueryParamEstaDeclarado"
+  - "TestExencionDeContratoTieneRazon"
 scenarios: []
 business_rules: []
 related_capabilities:
@@ -19,6 +23,33 @@ related_capabilities:
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-52)"
 ---
 
-# Superficie REST (23 endpoints)
+# Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)
 
 Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+
+## El contrato dejó de ser un folleto (T4/T5, 2026-07-26)
+
+El nombre viejo de esta hoja decía «23 endpoints». **Medido por AST el 2026-07-26: son 54 rutas
+registradas en el mux.** La cifra no se corrigió por prolijidad: se corrigió porque hasta hoy nadie
+la medía. El único paso de contrato de CI (`ci.yml`, `openapi-gen-check`) está **inerte** — su
+condicional mira `web/src/shared/api/generated/**`, un directorio que no existe — así que el
+contrato podía driftar sin costo, y driftó: **11 rutas `/api` servidas sin declarar y 0 fantasma**.
+
+Ahora hay tres piezas y las tres son verificables:
+
+1. **`openapi.yaml`** declara 41 operaciones (39 + los dos `parameters:` de `GET /api/sessions`,
+   `?arnes=` y `?cerradas=`, que se servían **desde siempre** sin estar declarados y los destapó el
+   enforcer nuevo al nacer). Se declararon **tal como se comportan hoy**, incluida la vergüenza de
+   que `?cerradas=1` cambia la FORMA de la respuesta.
+2. **`_sin-declarar.yaml`** lista las **15** exentas con `razon:` obligatoria — 8 de telemetría (el
+   módulo está abierto y declara al cerrar), 1 con fecha de retiro, 1 de deuda pura y 5
+   estructurales (OTLP ajeno, el alias `/events`, `/healthz`, el SPA). **Sólo puede achicarse.**
+3. **`openapi_contract_test.go`** enforza la ecuación en las dos direcciones.
+
+**Decisión explícita sobre la capability del enforcer, tomada y no omitida** (`plan-desarrollo.md`
+T5 la pedía así): **no nace una hoja nueva**. El enforcer vive en `docs/architecture/fitness/`, que
+R2 **no escanea** por construcción — `TestCapabilityCoverage` recorre `cmd`, `internal`, `web/src` y
+`web/src-tauri/src`, y ningún otro fitness del repo tiene hoja propia. Darle una a este sería
+inventar una asimetría; lo que la superficie REST necesita es que su hoja **diga la verdad sobre su
+tamaño y su deuda**, que es lo que hace este bloque. Los 4 tests entran como `valida:` de CAP-52,
+que es la capability que efectivamente cubren.
