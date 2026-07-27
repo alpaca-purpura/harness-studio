@@ -34,7 +34,8 @@
 | `56fdda1` | T2 (baseline del dock) + T3 (contraste del picker) |
 | `eda01f0` | T4 (allowlist del contrato) + T5 (los 4 enforcers, `enforced` 4/5) |
 | `7113dd1` | el cierre documental del tramo 0 (PARIDAD abierta + «Retomar aquí») |
-| *(este)* | **T7** — `domain.Conversacion`, las operaciones puras y la invariante · CAP-140 |
+| `a15a6d1` | **T7** — `domain.Conversacion`, las operaciones puras y la invariante · CAP-140 |
+| *(este)* | la evidencia de verificación de T7 y el hallazgo N-6 |
 
 🔴 **El tramo 1 NO se cerró, y el motivo no es el trabajo: es que el working copy tiene DOS
 constructores a la vez.** Ver **§1.7** — es el hallazgo más importante de esta corrida y condiciona
@@ -237,6 +238,29 @@ nombre nuevo de CAP-52 que T5 había corregido). Cifras del checkpoint regenerad
 
 ### T8-T14 · 🔴 DETENIDOS — y el motivo no es el trabajo
 
+**Los 9 comandos de los 3 jobs de CI, corridos sobre el árbol con T7 adentro** (2026-07-26, tras
+`a15a6d1`):
+
+| # | comando (job de CI) | resultado |
+|---|---|---|
+| 1 | `go build ./...` | **exit 0** |
+| 2 | `go test ./... -race` | **exit 0** — cero paquetes fallados |
+| 2b | `go test ./internal/domain/ -race -count=1` | **ok** (el paquete de T7, sin caché) |
+| 3 | `go-arch-lint check` | **OK — No warnings found** |
+| 4 | `arnesia conformance --todo` | `323 checks · pass 85 · fail 0 · **error 0** · deferred 238 · n/a 0` |
+| 5 | `bash scripts/estado.sh --check` | **exit 0** — cifras en sync |
+| 6 | `pnpm exec biome ci .` | 169 archivos · 0 errores (1 info) |
+| 7 | `pnpm exec tsc --noEmit` | **exit 0** |
+| 8 | `pnpm exec vitest --project=unit run` | **131/131** · 8 archivos |
+| 9 | `pnpm exec vitest --project=storybook run` | **386/386** · 43 archivos · 0 failed |
+
+⚠ **Cómo leer esta tabla, y es importante:** las filas 2, 6, 7, 8 y 9 miden **el árbol compartido**,
+o sea T7 **más** el trabajo en vuelo de la otra sesión (§1.7). Son verdes de verdad y se corrieron de
+verdad, pero **no aíslan lo propio**. Las que sí lo hacen son la 2b, la 3 y la 4. El salto de
+`unit` de **122 → 131** tests no es de este paquete: es de la telemetría ajena.
+
+**CI sigue sin observarse** (no se pushea: es decisión del operador), igual que en T6.
+
 Ver **§1.7**. En una palabra: **el working copy tiene dos constructores simultáneos** y T8 es
 precisamente el ticket que deja el árbol sin compilar. Arrancarlo en estas condiciones habría roto
 el build de la otra sesión durante toda su ventana, y habría hecho **imposible certificar verde** lo
@@ -374,7 +398,7 @@ Se listan para que nadie los lea como verdes:
 |---|---|
 | 13 · los **6 guiones E2E** contra el binario instalado | 🔴 **NO CORRIDOS.** Es T31, tramo 5. Validan una superficie que no existe; correrlos hoy sólo mediría el arreglo de contraste, a costa de reemplazar el binario instalado del operador (`make dev-sync`) y matarle el daemon. Se decidió **no hacerlo**: cero valor probatorio, costo real |
 | 14 · Modo B (ventana Tauri, gate humano) | 🔴 no corrido — depende del 13 |
-| 15 · los 50 escenarios E-01…E-50 | 🔴 0 de 50 verificados |
+| 15 · los 50 escenarios E-01…E-50 | ⚠ **6 de 50, y sólo en su mitad de dominio**: E-01, E-06, E-11, E-15, E-20, E-30, E-33 tienen su ley probada en `conversacion_test.go` (T7). Ninguno está verificado **de punta a punta**: no hay API, no hay UI y no hay disco todavía |
 | 16 · las 56 stories | ⚠ **3 de 56** (las A-01..A-03 del baseline, que no son de la superficie nueva) |
 | 22 · la tabla de 5 filas del **dry-run de CV-D16** | 🔴 no corrida — es T11 |
 | 23 · el **número** del benchmark de `persistLocked` | 🔴 no medido — es T14 |

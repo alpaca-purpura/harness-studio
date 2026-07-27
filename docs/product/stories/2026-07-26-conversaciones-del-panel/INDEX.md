@@ -127,7 +127,7 @@ Commits locales en `main`, **sin pushear** (los ~83 previos tampoco: es decisió
 | `56fdda1` | T2 · T3 | baseline del dock (3 stories) + contraste del picker ⇒ `--project=storybook` **386/386** |
 | `eda01f0` | T4 · T5 | `_sin-declarar.yaml` (15 entradas con razón) + los 4 enforcers ⇒ `ruta-servida-esta-declarada` **`enforced` 4/5** |
 | `7113dd1` | — | cierre documental del tramo 0 |
-| **el último** | **T7** | `domain.Conversacion` + las 4 operaciones puras + la invariante · **CAP-140** · 8 tests verdes |
+| `a15a6d1` | **T7** | `domain.Conversacion` + las 4 operaciones puras + la invariante · **CAP-140** · 8 tests verdes |
 
 **Gate del tramo 0: local completo y verde** (los 9 comandos de los 3 jobs de CI, tabla en
 `PARIDAD.md` §1 T6). ⚠ **CI NO SE OBSERVÓ**: T6 exige `git push` + `gh run watch`, y no se pusheó.
