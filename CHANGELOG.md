@@ -32,17 +32,20 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - Las conversaciones de una sesión: crear una nueva y retomar una anterior sin perder ninguna de las dos. Cambiar de hilo es una sola transición — o pasa entera, o el estado anterior queda intacto.
 - El buscador del panel entra al TEXTO de la conversación, no sólo al título: encuentra por lo que se dijo, ignora acentos y mayúsculas, y muestra el pedazo donde coincidió.
 - El daemon expone las conversaciones de una sesión: listarlas, buscarlas, crear una nueva, retomar una anterior y renombrarla.
+- El panel de conversación muestra las conversaciones de su sesión: se listan, se buscan por lo que se dijo adentro, se crean y se retoman sin salir del dock
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
 - Cerrar un frente de trabajo ya no tira el transcript ni el checkpoint de sus conversaciones: se archiva lo que el operador vio, que es lo único que sobrevive a una limpieza del corpus de Claude Code y lo único sobre lo que se puede buscar.
 - Toda sesión nace con su conversación activa. Antes nacía sin ninguna y la primera lectura la creaba avisando de una «reparación» de algo que nunca estuvo roto.
 - `GET /api/sessions` vuelve a devolver SIEMPRE un arreglo y cada sesión lleva su conversación activa en vez de todas sus conversaciones con los diálogos completos.
+- El cromo del dock baja de cuatro filas a dos: la identidad técnica del proceso pasa a un chip desplegable —que ahora también dice en qué carpeta corre— y la fila de alcance sólo aparece cuando hay un nodo elegido
 
 ### Deprecado
 
 ### Eliminado
 - Se retiran las rutas del historial por arnés: el parámetro `cerradas` de la lista de sesiones ahora responde con el puntero a su reemplazo, y la ruta que reconstruía turnos desde el corpus nativo ya no se sirve. La capacidad se conserva para lo archivado antes de la migración.
+- El selector de arnés ya no lista conversaciones: pertenecían a una sesión, no a un arnés, y sus dos rutas se retiraron con el modelo nuevo
 
 ### Corregido
 - declarada la violación a11y preexistente del dock: el cc-id de la SessionLine va en --primary sobre --secondary (2,21:1)
@@ -52,6 +55,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - Las sesiones cuya llave de arnés quedó a medias se recalibran a la clave completa: tres de las cinco del registro real estaban invisibles cuando la interfaz preguntaba por la clave. Nada se borra, nada se fusiona, y se ve antes de aplicarse.
 - Leer un registro de sesiones escrito por una versión anterior ya no tira en silencio lo que cambió de lugar — le costaba los 90 turnos de la conversación más larga en disco.
 - La marca de «contexto rotado» ahora aparece en el diálogo sin recargar la aplicación. Antes se guardaba en disco y el operador no la veía hasta reabrir.
+- El identificador de la sesión de Claude Code dejó de pintarse con un color que no llegaba al contraste mínimo de texto sobre el fondo del dock
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

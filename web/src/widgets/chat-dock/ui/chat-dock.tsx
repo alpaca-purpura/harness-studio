@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import type { Resultado, Session, Turn } from "@/shared"
 import { selectActive, selectPendingPerms, selectScope, useSessions } from "@/shared"
 import { cn } from "@/shared/lib/cn"
 import { Pip } from "@/shared/ui/indicators"
+import { useConversaciones } from "../model/conversaciones-store"
+import { ConversacionRow, motivoBloqueo } from "./conversacion-row"
+import { ConversacionesPanel } from "./conversaciones-panel"
 import { DictadoAviso, DictadoButton, VoiceBar } from "./dictado-button"
 import { Md } from "./markdown"
 import { PermissionCard } from "./permission-card"
@@ -13,8 +16,28 @@ export function ChatDock() {
   const active = useSessions(selectActive)
   const streaming = useSessions((s) => (active ? s.streaming[active.id] : undefined))
   const closeChat = useSessions((s) => s.closeChat)
+  const detalleForzado = useSessions((s) =>
+    active ? (s.detalleForzado[active.id] ?? false) : false,
+  )
+  // Selectores PRIMITIVOS, uno por dato: `useConversaciones()` sin selector devuelve el
+  // objeto entero, cuya identidad cambia en cada `set` — y con ella se re-renderizaría el
+  // transcript completo en cada tecla del buscador (arquitectura.md §6.3).
+  const panelAbierta = useConversaciones((s) => s.abierta)
+  const panelSesion = useConversaciones((s) => s.sesionId)
+  const panelEstado = useConversaciones((s) => s.estado)
+  const panelError = useConversaciones((s) => s.error)
+  const panelLista = useConversaciones((s) => s.conversaciones)
+  const panelTotal = useConversaciones((s) => s.total)
+  const panelBusqueda = useConversaciones((s) => s.busqueda)
+  const panelFoco = useConversaciones((s) => s.focoInicial)
+  const retomando = useConversaciones((s) => s.retomando)
+  const fallo = useConversaciones((s) => s.fallo)
+  const panelId = useId()
 
   if (!active) return null
+
+  const abierta = panelAbierta && panelSesion === active.id
+  const acciones = useConversaciones.getState()
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -29,65 +52,111 @@ export function ChatDock() {
           title="Colapsar el dock (⌘K para reabrir)"
           className="ml-auto flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
-          ⟩ colapsar
+          » colapsar
         </button>
       </div>
 
-      <SessionLine session={active} />
-      <ScopeRow session={active} />
-      <Messages session={active} streaming={streaming} />
+      {/* Fila 2 — SIEMPRE. Absorbe el ctx de la `SessionLine` retirada como chip-disclosure
+          (CV-D14): la identidad técnica sigue existiendo, a un clic, y con el `cwd` que hasta
+          hoy no se veía en ninguna superficie. */}
+      <ConversacionRow
+        activa={active.activa}
+        arnes={active.arnes}
+        cwd={active.cwd}
+        status={active.status}
+        listaAbierta={abierta}
+        detalleForzado={detalleForzado}
+        panelId={panelId}
+        onToggleLista={(foco) => (abierta ? acciones.cerrar() : acciones.abrir(active.id, foco))}
+        onNueva={() => void acciones.crear()}
+        onRenombrar={(t) => void acciones.renombrar(active.activa.id, t)}
+      />
+
+      {/* Franja de retoma — efímera mientras `--resume` rehidrata (RF-310), y en variante
+          `bad` cuando la transición falló (C-11/RF-348). Va DEBAJO de la fila, no adentro:
+          es un estado del hilo, no del control. Sin `claude_session_id` no se dibuja el
+          `--resume`: no hay proceso viejo que retomar y anunciarlo sería inventarlo (E-16). */}
+      {retomando !== null && (
+        <div
+          role="status"
+          className="flex flex-none items-center gap-1.5 border-b border-border bg-accent-soft px-3 py-1 text-[10.5px] text-foreground"
+        >
+          <span>Retomando la conversación…</span>
+          {(() => {
+            const cc = panelLista.find((c) => c.id === retomando)?.claude_session_id
+            return cc ? (
+              <span className="ml-auto font-mono text-[9.5px] text-muted-foreground">
+                --resume {cc.slice(0, 8)}
+              </span>
+            ) : null
+          })()}
+        </div>
+      )}
+      {fallo !== undefined && (
+        <div
+          role="alert"
+          className="flex flex-none items-center gap-1.5 border-b border-border bg-crit-soft px-3 py-1 text-[10.5px] text-foreground"
+        >
+          {fallo}
+        </div>
+      )}
+
+      {/* Fila 3 — SÓLO con un nodo elegido (RF-329). */}
+      <ScopeRow />
+
+      {abierta ? (
+        <ConversacionesPanel
+          id={panelId}
+          estado={panelEstado}
+          error={panelError}
+          conversaciones={panelLista}
+          total={panelTotal}
+          frenteSesion={active.frente}
+          busqueda={panelBusqueda}
+          bloqueadoMotivo={motivoBloqueo(active.status)}
+          focoInicial={panelFoco}
+          onBusqueda={(q) => void acciones.buscar(q)}
+          onElegir={(cid) => void acciones.activar(cid)}
+          onCancelar={acciones.cerrar}
+          onReintentar={() => void acciones.reintentar()}
+        />
+      ) : (
+        <Messages session={active} streaming={streaming} />
+      )}
       <Composer />
     </div>
   )
 }
 
-// ScopeRow (RF-110/RF-111, mockup #scope): chip fijo del arnés de la sesión + chip
-// removible del nodo seleccionado en el Mapa (resuelto a su archivo real).
-function ScopeRow({ session: s }: { session: Session }) {
+// ScopeRow (RF-110/RF-111/RF-329, mockup §2C): el chip removible del nodo seleccionado en el
+// Mapa, resuelto a su archivo real.
+//
+// Deja de ser fila fija: SIN nodo devuelve `null` y la fila no existe en el DOM. Lo que se
+// quita, declarado (CV-D14 lo autoriza): el rótulo «Alcance:», el chip punteado del arnés
+// —redundante con el rail, el topbar y el placeholder del composer— y el hint del vacío, que
+// gastaba una fila entera del dock en una instrucción. Con nodo, el chip es LITERAL el
+// vigente, ✕ incluido.
+function ScopeRow() {
   const scope = useSessions(selectScope)
   const setScope = useSessions((st) => st.setScope)
+  if (!scope) return null
   return (
     <div className="flex flex-none flex-wrap items-center gap-1.5 border-b border-border px-3 py-1.5 text-[10px]">
-      <span className="text-muted-foreground">Alcance:</span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-px">
-        arnés <b className="font-mono">{s.arnes}</b>
+      <span className="inline-flex min-w-0 items-center gap-1 rounded-full border border-border bg-secondary px-2 py-px">
+        <span className="size-1.5 flex-none rounded-[2px] bg-skill" aria-hidden />
+        {scope.clase ?? "nodo"} <b className="font-mono">{scope.nodeId}</b>
+        {scope.fuentePath && (
+          <span className="truncate font-mono text-muted-foreground">{scope.fuentePath}</span>
+        )}
+        <button
+          type="button"
+          title="quitar del alcance"
+          onClick={() => setScope(null)}
+          className="flex-none text-muted-foreground hover:text-destructive"
+        >
+          ✕
+        </button>
       </span>
-      {scope ? (
-        <span className="inline-flex min-w-0 items-center gap-1 rounded-full border border-border bg-secondary px-2 py-px">
-          <span className="size-1.5 flex-none rounded-[2px] bg-skill" aria-hidden />
-          {scope.clase ?? "nodo"} <b className="font-mono">{scope.nodeId}</b>
-          {scope.fuentePath && (
-            <span className="truncate font-mono text-muted-foreground">{scope.fuentePath}</span>
-          )}
-          <button
-            type="button"
-            title="quitar del alcance"
-            onClick={() => setScope(null)}
-            className="flex-none text-muted-foreground hover:text-destructive"
-          >
-            ✕
-          </button>
-        </span>
-      ) : (
-        <span className="text-muted-foreground">selecciona un nodo en el Mapa para acotar</span>
-      )}
-    </div>
-  )
-}
-
-function SessionLine({ session: s }: { session: Session }) {
-  return (
-    <div className="flex flex-none flex-wrap items-center gap-1.5 border-b border-border bg-secondary px-3 py-1.5 font-mono text-[9.5px] text-muted-foreground">
-      <span className="text-primary">
-        ◍ {s.claude_session_id ? s.claude_session_id.slice(0, 8) : "sin sesión CC"}
-      </span>
-      <span>· {s.arnes}</span>
-      {s.model && <span>· {s.model}</span>}
-      <span>· ctx</span>
-      <span className="h-[5px] w-11 overflow-hidden rounded-full border border-border bg-card">
-        <span className="block h-full bg-primary" style={{ width: `${s.ctx_pct ?? 0}%` }} />
-      </span>
-      <span>{s.ctx_pct ?? 0}%</span>
     </div>
   )
 }
@@ -96,7 +165,8 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
   const endRef = useRef<HTMLDivElement>(null)
   const pending = useSessions(selectPendingPerms)
   const resolvePermission = useSessions((st) => st.resolvePermission)
-  const conv = s.conv ?? []
+  const desactivada = useSessions((st) => st.desactivadaTitulo[s.id])
+  const conv = s.activa.conv
   const grupos = agrupar(conv)
   const showLive = s.status === "streaming"
 
@@ -108,9 +178,13 @@ function Messages({ session: s, streaming }: { session: Session; streaming: stri
   return (
     <div className="flex flex-1 flex-col gap-2 overflow-auto p-3">
       {conv.length === 0 && !showLive && (
+        // El vacío vigente decía «Esta conversación ES la sesión Claude Code del frente …»:
+        // bajo CV-D3 dejó de ser verdad —la sesión CONTIENE N conversaciones— y por eso
+        // cambia. Es la única eliminación de copy firmado del paquete, autorizada por CV-D3.
+        // La segunda oración sólo aparece si HAY una anterior que nombrar (§4.6 #2).
         <p className="m-auto max-w-[85%] text-center text-[11px] text-muted-foreground">
-          Pídele un cambio a <b className="text-foreground">{s.arnes}</b>. Esta conversación ES la
-          sesión Claude Code del frente «{s.frente}».
+          Pídele un cambio a <b className="text-foreground">{s.arnes}</b>.
+          {desactivada && <> «{desactivada}» quedó guardada — la retomás desde ▶.</>}
         </p>
       )}
       {grupos.map((g, i) =>
