@@ -61,8 +61,12 @@ func (f sesionesFake) Get(id string) (domain.Session, bool) {
 	return f.sess, true
 }
 
+// sesion arma la sesión fake con UNA conversación activa que lleva los turnos: el
+// contexto de limpieza sale de la conversación abierta, no de la sesión (CV-D3).
 func sesion(conv ...domain.Turn) sesionesFake {
-	return sesionesFake{sess: domain.Session{ID: "s1", Arnes: "vitalia", Conv: conv}}
+	return sesionesFake{sess: domain.Session{ID: "s1", Arnes: "vitalia", Conversaciones: []domain.Conversacion{
+		{ID: "cv00000001", Titulo: domain.TituloConversacionNueva, Activa: true, Conv: conv},
+	}}}
 }
 
 func disponible() ports.Disponibilidad {

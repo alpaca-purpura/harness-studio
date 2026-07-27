@@ -34,7 +34,12 @@ func (f *fakeHistory) Turnos(cwd, ccid string) ([]domain.Turn, error) {
 }
 
 // TestCloseArchivaMetadata (RF-200): cerrar deja metadata liviana (cadena completa, cwd,
-// fecha, cantidad de turnos) SIN Conv — el historial deja de morir con la pestaña.
+// fecha) SIN Conv — el historial deja de morir con la pestaña.
+//
+// ⚠ La cláusula `Turnos == 2` de este test se cae acá y NO se recupera en T8: el campo
+// `Session.Turnos` existía sólo para sobrevivir a la destrucción del Conv, y bajo CV-D3 la
+// cuenta se DERIVA (`Conversacion.NumTurnos()`). Con el Conv todavía destruido la cuenta no
+// existe. T12 invierte la ley (el Conv sobrevive) y la aserción vuelve, ya derivada.
 func TestCloseArchivaMetadata(t *testing.T) {
 	agent := &stubAgent{}
 	cerradas := &memSessionStore{}
@@ -55,7 +60,7 @@ func TestCloseArchivaMetadata(t *testing.T) {
 	agent.sessions[0].events <- ports.AgentEvent{Kind: ports.EventResult, Text: "listo", CtxPct: 5}
 	espera(t, func() bool {
 		m, _ := svc.Get(s.ID)
-		return m.Status == domain.StatusIdle && m.ClaudeSessionID == "cc-vivo"
+		return m.Status == domain.StatusIdle && activaSinFallar(m).ClaudeSessionID == "cc-vivo"
 	})
 
 	if closeErr := svc.Close(s.ID); closeErr != nil {
@@ -66,10 +71,15 @@ func TestCloseArchivaMetadata(t *testing.T) {
 		t.Fatalf("cerradas = %v (err %v)", lista, err)
 	}
 	c := lista[0]
-	if c.ID != s.ID || len(c.CadenaCC) != 1 || c.CadenaCC[0] != "cc-vivo" || c.Cwd == "" || c.CerradaEn == "" || c.Turnos != 2 {
+	if c.ID != s.ID || c.Cwd == "" || c.CerradaEn == "" {
 		t.Errorf("metadata archivada incompleta: %+v", c)
 	}
-	if c.Conv != nil {
+	// La cadena y el transcript son de la CONVERSACIÓN, no de la sesión (CV-D3).
+	conv := activaDe(t, c)
+	if len(conv.CadenaCC) != 1 || conv.CadenaCC[0] != "cc-vivo" {
+		t.Errorf("cadena archivada = %v, quiero [cc-vivo]", conv.CadenaCC)
+	}
+	if conv.Conv != nil {
 		t.Error("el Conv NO viaja al archivo (B2: la JSONL nativa es la verdad)")
 	}
 	if otros, _ := svc.Cerradas(context.Background(), "otro-arnes"); len(otros) != 0 {
@@ -82,7 +92,10 @@ func TestCloseArchivaMetadata(t *testing.T) {
 func TestHistorialCerradaCoseCadena(t *testing.T) {
 	cerradas := &memSessionStore{sesiones: []domain.Session{{
 		ID: "s1", Arnes: "vitalia", Cwd: "/proj/vitalia",
-		CadenaCC: []string{"cc-a", "cc-borrada", "cc-b"},
+		Conversaciones: []domain.Conversacion{{
+			ID: "cv0000000a", Titulo: "hilo archivado", Activa: true,
+			CadenaCC: []string{"cc-a", "cc-borrada", "cc-b"},
+		}},
 	}}}
 	svc, err := usecase.NewSessionService(context.Background(), &stubAgent{}, stubStore{}, stubPub{}, stubResolver{path: t.TempDir()}, 40, nil, nil, nil)
 	if err != nil {

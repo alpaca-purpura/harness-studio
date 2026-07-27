@@ -43,8 +43,15 @@ func (s *SessionService) archivarLocked(meta domain.Session) {
 		return
 	}
 	cerrada := meta
-	if cerrada.ClaudeSessionID != "" {
-		cerrada.CadenaCC = append(cerrada.CadenaCC, cerrada.ClaudeSessionID)
+	// La cadena y el transcript son de cada CONVERSACIÓN (CV-D3): se archiva la sesión
+	// entera con las suyas. Copia propia del slice — meta comparte backing array con el
+	// runtime vivo y archivar no puede mutarlo.
+	cerrada.Conversaciones = append([]domain.Conversacion(nil), meta.Conversaciones...)
+	for i := range cerrada.Conversaciones {
+		c := &cerrada.Conversaciones[i]
+		if c.ClaudeSessionID != "" {
+			c.CadenaCC = append(append([]string(nil), c.CadenaCC...), c.ClaudeSessionID)
+		}
 	}
 	// Sesiones nacidas antes del estampado de Cwd (o cerradas sin spawn en esta vida del
 	// daemon): el resolver conoce el dir del arnés — backfill honesto del join del corpus.
@@ -53,9 +60,13 @@ func (s *SessionService) archivarLocked(meta domain.Session) {
 			cerrada.Cwd = cwd
 		}
 	}
-	cerrada.Turnos = len(cerrada.Conv)
-	cerrada.Conv = nil
-	cerrada.Checkpoint = ""
+	// La ley vigente: el archivo se queda con la metadata y tira el contenido, porque la
+	// JSONL nativa es la verdad (B2). CV-D8 + F-3 la invierten en T12 — hasta entonces se
+	// traduce tal cual, sin cambiar lo que hace.
+	for i := range cerrada.Conversaciones {
+		cerrada.Conversaciones[i].Conv = nil
+		cerrada.Conversaciones[i].Checkpoint = ""
+	}
 	cerrada.CerradaEn = time.Now().UTC().Format(time.RFC3339)
 	previas, err := s.cerradas.Load(s.baseCtx)
 	if err != nil {
@@ -109,13 +120,18 @@ func (s *SessionService) HistorialCerrada(ctx context.Context, id string) (turno
 		if c.ID != id {
 			continue
 		}
-		for _, ccid := range c.CadenaCC {
-			t, terr := reader.Turnos(c.Cwd, ccid)
-			if terr != nil {
-				faltantes = append(faltantes, ccid)
-				continue
+		// La cadena vive en cada conversación (CV-D3): se cosen las N JSONL de todas,
+		// en orden de conversación y dentro de cada una en orden de rotación. El cwd es
+		// de la SESIÓN — dos conversaciones de una sesión corren en el mismo directorio.
+		for _, conv := range c.Conversaciones {
+			for _, ccid := range conv.CadenaCC {
+				t, terr := reader.Turnos(c.Cwd, ccid)
+				if terr != nil {
+					faltantes = append(faltantes, ccid)
+					continue
+				}
+				turnos = append(turnos, t...)
 			}
-			turnos = append(turnos, t...)
 		}
 		return turnos, faltantes, nil
 	}

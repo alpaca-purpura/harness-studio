@@ -30,23 +30,48 @@ func TestCtxHistYUmbralRotacion(t *testing.T) {
 			t.Fatal(err)
 		}
 		agent.sessions[len(agent.sessions)-1].events <- ports.AgentEvent{Kind: ports.EventResult, Text: "ok", CtxPct: ctx}
-		espera(t, func() bool { m, _ := svc.Get(s.ID); return m.Status == domain.StatusIdle && m.CtxPct == ctx })
+		espera(t, func() bool {
+			m, _ := svc.Get(s.ID)
+			return m.Status == domain.StatusIdle && activaSinFallar(m).CtxPct == ctx
+		})
 	}
 
 	turno(10)
 	m, _ := svc.Get(s.ID)
-	if len(m.CtxHist) != 1 || m.CtxHist[0] != 10 || m.RotacionPendiente {
-		t.Fatalf("tras turno 1: hist=%v pendiente=%v", m.CtxHist, m.RotacionPendiente)
+	c := activaDe(t, m)
+	if len(c.CtxHist) != 1 || c.CtxHist[0] != 10 || c.RotacionPendiente {
+		t.Fatalf("tras turno 1: hist=%v pendiente=%v", c.CtxHist, c.RotacionPendiente)
 	}
 
 	turno(45)
 	m, _ = svc.Get(s.ID)
-	if len(m.CtxHist) != 2 || m.CtxHist[1] != 45 {
-		t.Errorf("hist=%v, quiero [10 45]", m.CtxHist)
+	c = activaDe(t, m)
+	if len(c.CtxHist) != 2 || c.CtxHist[1] != 45 {
+		t.Errorf("hist=%v, quiero [10 45]", c.CtxHist)
 	}
-	if !m.RotacionPendiente {
+	if !c.RotacionPendiente {
 		t.Error("45 >= umbral 40 debe marcar RotacionPendiente")
 	}
+}
+
+// activaDe devuelve la conversación activa de una sesión leída del servicio. Falla el test
+// si no hay ninguna: bajo CV-D3 eso es la invariante rota, no un caso a tolerar.
+func activaDe(t *testing.T, s domain.Session) domain.Conversacion {
+	t.Helper()
+	c, ok := s.Activa()
+	if !ok {
+		t.Fatalf("la sesión %q no tiene conversación activa (invariante CV-D3): %+v", s.ID, s.Conversaciones)
+	}
+	return *c
+}
+
+// activaSinFallar es la variante para usar DENTRO de una condición de espera, donde un
+// t.Fatal desde otra goroutine sería ilegal. Un registro sin activa devuelve el cero.
+func activaSinFallar(s domain.Session) domain.Conversacion {
+	if c, ok := s.Activa(); ok {
+		return *c
+	}
+	return domain.Conversacion{}
 }
 
 func espera(t *testing.T, cond func() bool) {
@@ -83,7 +108,7 @@ func TestRotacionInvisible(t *testing.T) {
 	}
 	agent.sessions[0].events <- ports.AgentEvent{Kind: ports.EventInit, ClaudeSessionID: "cc-viejo"}
 	agent.sessions[0].events <- ports.AgentEvent{Kind: ports.EventResult, Text: "hecho", CtxPct: 45}
-	espera(t, func() bool { m, _ := svc.Get(s.ID); return m.RotacionPendiente })
+	espera(t, func() bool { m, _ := svc.Get(s.ID); return activaSinFallar(m).RotacionPendiente })
 
 	// Turno 2: rota por detrás y sigue.
 	if err := svc.Turn(s.ID, "segundo pedido"); err != nil {
@@ -99,14 +124,18 @@ func TestRotacionInvisible(t *testing.T) {
 	if m.ID != s.ID {
 		t.Error("Session.ID no debe cambiar")
 	}
-	if len(m.CadenaCC) != 1 || m.CadenaCC[0] != "cc-viejo" {
-		t.Errorf("CadenaCC = %v, quiero [cc-viejo]", m.CadenaCC)
+	c := activaDe(t, m)
+	if len(m.Conversaciones) != 1 {
+		t.Errorf("la rotación es INVISIBLE (CV-D10): sigue siendo UNA conversación, hay %d", len(m.Conversaciones))
 	}
-	if m.RotacionPendiente {
+	if len(c.CadenaCC) != 1 || c.CadenaCC[0] != "cc-viejo" {
+		t.Errorf("CadenaCC = %v, quiero [cc-viejo]", c.CadenaCC)
+	}
+	if c.RotacionPendiente {
 		t.Error("la rotación debe consumir la marca")
 	}
-	if m.Checkpoint == "" || !strings.Contains(m.Checkpoint, "primer pedido") {
-		t.Errorf("checkpoint mecánico sin los últimos turnos: %q", m.Checkpoint)
+	if c.Checkpoint == "" || !strings.Contains(c.Checkpoint, "primer pedido") {
+		t.Errorf("checkpoint mecánico sin los últimos turnos: %q", c.Checkpoint)
 	}
 	// El checkpoint viaja en el system-prompt por sesión del spawn 2.
 	if len(inj.extras) != 2 || !strings.Contains(inj.extras[1], "Checkpoint de rotación") || !strings.Contains(inj.extras[1], "primer pedido") {
@@ -114,7 +143,7 @@ func TestRotacionInvisible(t *testing.T) {
 	}
 	// Conv íntegro + breadcrumb: user1, assistant1, sys, user2.
 	roles := []string{}
-	for _, tu := range m.Conv {
+	for _, tu := range c.Conv {
 		roles = append(roles, string(tu.Rol))
 	}
 	quiero := []string{"user", "assistant", "sys", "user"}

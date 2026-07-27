@@ -47,18 +47,22 @@ func CheckpointMecanico(conv []domain.Turn) string {
 
 // rotarLocked ejecuta la rotación invisible (RF-197): cierra el proceso viejo, encadena su
 // ClaudeSessionID (RF-198 — el join para el historial), limpia el resume, escribe el
-// checkpoint en la sesión y deja el breadcrumb RolSys. Caller holds s.mu; el spawn fresco
-// ocurre después, por el camino normal (live==nil → spawnLocked SIN --resume).
+// checkpoint y deja el breadcrumb RolSys. Caller holds s.mu; el spawn fresco ocurre
+// después, por el camino normal (live==nil → spawnLocked SIN --resume).
+//
+// Todo esto pasa DENTRO de la conversación activa: la rotación es invisible y NO corta el
+// hilo (CV-D10) — es la misma conversación, con una marca inline.
 func (s *SessionService) rotarLocked(r *sessionRuntime) {
 	if r.live != nil {
 		_ = r.live.Close()
 		r.live = nil
 	}
-	if r.meta.ClaudeSessionID != "" {
-		r.meta.CadenaCC = append(r.meta.CadenaCC, r.meta.ClaudeSessionID)
+	conv := r.activa()
+	if conv.ClaudeSessionID != "" {
+		conv.CadenaCC = append(conv.CadenaCC, conv.ClaudeSessionID)
 	}
-	r.meta.Checkpoint = CheckpointMecanico(r.meta.Conv)
-	r.meta.ClaudeSessionID = ""
-	r.meta.RotacionPendiente = false
-	r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolSys, Text: breadcrumbRotacion})
+	conv.Checkpoint = CheckpointMecanico(conv.Conv)
+	conv.ClaudeSessionID = ""
+	conv.RotacionPendiente = false
+	conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolSys, Text: breadcrumbRotacion})
 }

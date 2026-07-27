@@ -108,6 +108,23 @@ type sessionRuntime struct {
 	cwd string
 }
 
+// activa devuelve la conversación activa de la sesión — el hilo que tiene conductor
+// (CV-D7). Nunca devuelve nil: si el registro llegó sin conversaciones (una sesión
+// persistida antes de CV-D3, una sembrada, o un archivo editado a mano) repara la
+// invariante acá mismo y lo DICE en el log. Reparar en silencio está prohibido (E-01).
+//
+// Caller holds s.mu — igual que todo lo que toca r.meta.
+func (r *sessionRuntime) activa() *domain.Conversacion {
+	if c, ok := r.meta.Activa(); ok {
+		return c
+	}
+	for _, arreglo := range r.meta.NormalizarConversaciones(time.Now().UTC()) {
+		slog.Warn("session: invariante de conversaciones reparada", "arreglo", arreglo)
+	}
+	c, _ := r.meta.Activa()
+	return c
+}
+
 // SessionService owns the registry of work-fronts and drives their Claude Code
 // conductors (multisesión). It is the daemon's source of truth for open sessions; the
 // conversation content is rehydrated from Claude Code via --resume.
@@ -211,11 +228,19 @@ func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store por
 	if len(persisted) == 0 {
 		persisted = seedSessions()
 	}
+	ahora := time.Now().UTC()
 	for i := range persisted {
 		m := persisted[i]
 		// Processes are gone after a restart: no conductor is live, so nothing is
 		// streaming. The conversation resumes via --resume on the next turn.
 		m.Status = domain.StatusIdle
+		// Segunda línea de defensa de la invariante (CV-D3): un registro escrito antes de
+		// que la conversación existiera, una migración parcial o un archivo editado a mano
+		// no pueden meter una sesión sin conversación activa en memoria. Lo reparado se
+		// DICE — reparar en silencio está prohibido (E-01).
+		for _, arreglo := range m.NormalizarConversaciones(ahora) {
+			slog.Warn("session service: invariante de conversaciones reparada al cargar", "arreglo", arreglo)
+		}
 		s.order = append(s.order, m.ID)
 		s.rt[m.ID] = &sessionRuntime{meta: &m}
 	}
@@ -229,7 +254,9 @@ func (s *SessionService) List() []domain.Session {
 	out := make([]domain.Session, 0, len(s.order))
 	for _, id := range s.order {
 		if r := s.rt[id]; r != nil {
-			out = append(out, *r.meta)
+			// Instantanea, no *r.meta: el valor cruza el candado y el conductor sigue
+			// escribiendo en las conversaciones del runtime.
+			out = append(out, r.meta.Instantanea())
 		}
 	}
 	return out
@@ -240,7 +267,7 @@ func (s *SessionService) Get(id string) (domain.Session, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if r := s.rt[id]; r != nil {
-		return *r.meta, true
+		return r.meta.Instantanea(), true
 	}
 	return domain.Session{}, false
 }
@@ -262,7 +289,7 @@ func (s *SessionService) Create(sess domain.Session) (domain.Session, error) {
 	s.order = append(s.order, sess.ID)
 	s.rt[sess.ID] = &sessionRuntime{meta: &sess}
 	s.persistLocked()
-	return sess, nil
+	return sess.Instantanea(), nil
 }
 
 // Rename sets a session's frente (the editable work-front name).
@@ -277,7 +304,7 @@ func (s *SessionService) Rename(id, frente string) (domain.Session, error) {
 		r.meta.Frente = frente
 	}
 	s.persistLocked()
-	return *r.meta, nil
+	return r.meta.Instantanea(), nil
 }
 
 // SetView records the view a session is parked on (Mapa|Diag|…).
@@ -292,7 +319,7 @@ func (s *SessionService) SetView(id, view string) (domain.Session, error) {
 		r.meta.View = view
 	}
 	s.persistLocked()
-	return *r.meta, nil
+	return r.meta.Instantanea(), nil
 }
 
 // Close ends a session: it stops the conductor and drops the registry entry.
@@ -306,7 +333,7 @@ func (s *SessionService) Close(id string) error {
 	live := r.live
 	// Archivar ANTES de borrar (RF-200): la metadata (cadena de ClaudeSessionIDs, cwd,
 	// fechas) es el join que el historial B2 necesita para leer las JSONL nativas.
-	s.archivarLocked(*r.meta)
+	s.archivarLocked(r.meta.Instantanea())
 	delete(s.rt, id)
 	for i, oid := range s.order {
 		if oid == id {
@@ -344,7 +371,7 @@ func (s *SessionService) Turn(id, text string) error {
 	// Rotación invisible (RF-197): con el umbral cruzado, ESTE turno arranca en un
 	// proceso fresco — checkpoint + cadena + breadcrumb; el Session.ID no cambia y el
 	// Conv sigue sin cortes. Se rota ENTRE turnos por construcción (nunca streaming acá).
-	if r.meta.RotacionPendiente {
+	if r.activa().RotacionPendiente {
 		s.rotarLocked(r)
 	}
 
@@ -352,7 +379,9 @@ func (s *SessionService) Turn(id, text string) error {
 	if r.meta.Frente == "" || r.meta.Frente == "nuevo frente" {
 		r.meta.Frente = deriveFrente(text)
 	}
-	r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolUser, Text: text})
+	// El turno cae en la conversación ACTIVA, que es la única con conductor (CV-D7).
+	conv := r.activa()
+	conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolUser, Text: text})
 	r.meta.Status = domain.StatusStreaming
 	r.runSeq++
 	runID := fmt.Sprintf("%s-r%d", id, r.runSeq)
@@ -387,7 +416,7 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 	if err != nil {
 		return fmt.Errorf("resolve arnés %q workdir: %w", r.meta.Arnes, err)
 	}
-	resume := r.meta.ClaudeSessionID
+	resume := r.activa().ClaudeSessionID
 	// Inyección de doctrina (HS-11 puente 2): cuerpos ①+② entran por flags desde
 	// ~/.arnesia. Un fallo de provisión DEGRADA honesto (spawn sin doctrina + warn),
 	// jamás bloquea la sesión (principio 6: guía sin bloqueo).
@@ -403,8 +432,10 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 		// Checkpoint de rotación (RF-196/197): el proceso fresco arranca sabiendo dónde
 		// quedó la conversación — viaja en el MISMO system-prompt por sesión que la
 		// tarjeta (un mecanismo, dos usos — MC-D6).
-		if r.meta.Checkpoint != "" {
-			tarjeta = strings.TrimSpace(tarjeta + "\n\n## Checkpoint de rotación (la conversación CONTINÚA)\n\n" + r.meta.Checkpoint)
+		// El checkpoint es de la CONVERSACIÓN activa, no de la sesión: la key del
+		// system-prompt sigue siendo la sesión porque sólo la activa spawnea (§4.6).
+		if ck := r.activa().Checkpoint; ck != "" {
+			tarjeta = strings.TrimSpace(tarjeta + "\n\n## Checkpoint de rotación (la conversación CONTINÚA)\n\n" + ck)
 		}
 		var ierr error
 		if inj, ierr = s.injector.ProvisionSession(s.baseCtx, id, tarjeta); ierr != nil {
@@ -427,8 +458,10 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 		}
 	}
 	live, err := s.agent.Spawn(s.baseCtx, ports.SpawnOpts{
-		Resume:    resume,
-		Model:     r.meta.Model,
+		Resume: resume,
+		// El modelo es de la conversación (§1.2): se captura del init de CADA proceso
+		// suyo, así que el que se pide al spawn sale de la misma — un solo dueño.
+		Model:     r.activa().Model,
 		Cwd:       cwd,
 		MaxTurns:  s.maxTurns,
 		Injection: inj,
@@ -457,9 +490,10 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 			runID := ""
 			if r := s.rt[id]; r != nil && r.live == live {
 				r.sawInit = true
-				r.meta.ClaudeSessionID = ev.ClaudeSessionID
+				conv := r.activa()
+				conv.ClaudeSessionID = ev.ClaudeSessionID
 				if ev.Model != "" {
-					r.meta.Model = ev.Model
+					conv.Model = ev.Model
 				}
 				runID = r.curRun
 				s.persistLocked()
@@ -489,21 +523,22 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				if final == "" && !r.msgFlushed {
 					final = ev.Text
 				}
+				conv := r.activa()
 				if final != "" {
-					r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAssistant, Text: final})
+					conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolAssistant, Text: final})
 				}
 				r.msgFlushed = false
 				r.meta.Status = domain.StatusIdle
 				if ev.CtxPct > 0 {
-					r.meta.CtxPct = ev.CtxPct
+					conv.CtxPct = ev.CtxPct
 					// Histórico + umbral de rotación (RF-194/195): se marca DESPUÉS de
-					// responder el turno; el próximo Turn rota (T8) — nunca a mitad de nada.
-					r.meta.CtxHist = append(r.meta.CtxHist, ev.CtxPct)
-					if len(r.meta.CtxHist) > maxCtxHist {
-						r.meta.CtxHist = r.meta.CtxHist[len(r.meta.CtxHist)-maxCtxHist:]
+					// responder el turno; el próximo Turn rota — nunca a mitad de nada.
+					conv.CtxHist = append(conv.CtxHist, ev.CtxPct)
+					if len(conv.CtxHist) > maxCtxHist {
+						conv.CtxHist = conv.CtxHist[len(conv.CtxHist)-maxCtxHist:]
 					}
-					if s.umbralRot > 0 && ev.CtxPct >= s.umbralRot && !r.meta.RotacionPendiente {
-						r.meta.RotacionPendiente = true
+					if s.umbralRot > 0 && ev.CtxPct >= s.umbralRot && !conv.RotacionPendiente {
+						conv.RotacionPendiente = true
 						slog.Info("session: umbral de contexto cruzado — rotación pendiente",
 							"session", id, "ctx_pct", ev.CtxPct, "umbral", s.umbralRot)
 					}
@@ -551,7 +586,8 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				runID = r.curRun
 				r.assembling.Reset()
 				if txt != "" {
-					r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAssistant, Text: txt})
+					conv := r.activa()
+					conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolAssistant, Text: txt})
 					r.msgFlushed = true
 					s.persistLocked()
 				}
@@ -569,7 +605,8 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 			runID := ""
 			if r := s.rt[id]; r != nil && r.live == live {
 				runID = r.curRun
-				r.meta.Conv = append(r.meta.Conv, domain.Turn{Rol: domain.RolAct, Text: paso})
+				conv := r.activa()
+				conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolAct, Text: paso})
 				s.persistLocked()
 			}
 			s.mu.Unlock()
@@ -604,9 +641,10 @@ func (s *SessionService) tryHealResume(id string, live ports.AgentSession) bool 
 		s.mu.Unlock()
 		return false
 	}
-	slog.Info("session service: resume failed, restarting fresh", "session", id, "stale_cc", r.meta.ClaudeSessionID)
+	conv := r.activa()
+	slog.Info("session service: resume failed, restarting fresh", "session", id, "stale_cc", conv.ClaudeSessionID)
 	r.resumeRetried = true
-	r.meta.ClaudeSessionID = "" // the id was stale; next spawn starts fresh.
+	conv.ClaudeSessionID = "" // the id was stale; next spawn starts fresh.
 	pending := r.pendingTurn
 	if err := s.spawnLocked(id, r); err != nil {
 		r.meta.Status = domain.StatusIdle
@@ -903,7 +941,8 @@ func (s *SessionService) persistLocked() {
 	snap := make([]domain.Session, 0, len(s.order))
 	for _, id := range s.order {
 		if r := s.rt[id]; r != nil {
-			snap = append(snap, *r.meta)
+			// El store puede retener el slice (los in-memory lo hacen): va instantánea.
+			snap = append(snap, r.meta.Instantanea())
 		}
 	}
 	if err := s.store.Save(s.baseCtx, snap); err != nil {

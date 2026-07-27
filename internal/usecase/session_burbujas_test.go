@@ -40,12 +40,13 @@ func TestTurnoSeParteEnBurbujasPorActividad(t *testing.T) {
 		{Rol: domain.RolAct, Text: "Read hooks/sellar.sh"},
 		{Rol: domain.RolAssistant, Text: "Listo."},
 	}
-	if len(s.Conv) != len(want) {
-		t.Fatalf("conv = %+v, want %+v", s.Conv, want)
+	c := activaDe(t, s)
+	if len(c.Conv) != len(want) {
+		t.Fatalf("conv = %+v, want %+v", c.Conv, want)
 	}
 	for i, w := range want {
-		if s.Conv[i] != w {
-			t.Errorf("conv[%d] = %+v, want %+v", i, s.Conv[i], w)
+		if c.Conv[i] != w {
+			t.Errorf("conv[%d] = %+v, want %+v", i, c.Conv[i], w)
 		}
 	}
 }
@@ -66,7 +67,8 @@ func TestResultSinMensajesConservaFallback(t *testing.T) {
 		return s.Status == domain.StatusIdle
 	})
 	s, _ := svc.Get(id)
-	if n := len(s.Conv); n != 2 || s.Conv[1] != (domain.Turn{Rol: domain.RolAssistant, Text: "hola humano"}) {
-		t.Errorf("conv = %+v, want [user, assistant hola humano]", s.Conv)
+	c := activaDe(t, s)
+	if n := len(c.Conv); n != 2 || c.Conv[1] != (domain.Turn{Rol: domain.RolAssistant, Text: "hola humano"}) {
+		t.Errorf("conv = %+v, want [user, assistant hola humano]", c.Conv)
 	}
 }
