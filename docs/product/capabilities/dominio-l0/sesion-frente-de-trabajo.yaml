@@ -1,25 +1,114 @@
 ---
-# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
-# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+# Derivada del código real (barrido 7-subagentes, HS-18) y REESCRITA en el paquete
+# 2026-07-26-conversaciones-del-panel (T8 · RF-300 · CV-D3): la sesión dejó de ser la
+# conversación. Schema: docs/product/_templates/capability.template.yaml
 capability_id: arnesia.dominio-l0.sesion-frente-de-trabajo
 cap_num: CAP-14
 slug: sesion-frente-de-trabajo
 name: "Sesión = frente de trabajo"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 module: dominio-l0
+layer: dominio
 verb: crear
+functional_area: "dominio-l0.sesion"
+user_visible: false
+nature: feature
 pointers:
   - "internal/domain/session.go#Session"
   - "internal/domain/session.go#Salud"
-valida: []
-scenarios: []
-business_rules: []
+  - "internal/domain/session.go#SessionStatus"
+  - "internal/domain/conversacion.go#Session.Instantanea"
+valida:
+  - "TestGetDevuelveInstantaneaNoLaSesionViva"
+  - "TestInstantaneaNoCopiaElTranscript"
+  - "TestRotacionInvisible"
+  - "TestSessionSpawnsInArnesPath"
+  - "TestCloseArchivaMetadata"
 related_capabilities:
   depends_on: []
-  enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-14)"
+  enables:
+    - arnesia.dominio-l0.conversacion-como-entidad
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §1.1 · §1.3"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "La sesión deja de SER la conversación y pasa a CONTENERLAS. Nueve campos —el id de Claude Code, el modelo, el uso de contexto y su histórico, la marca de rotación, la cadena de rotaciones, el checkpoint y el transcript— bajan a `Conversacion`. La sesión se queda con lo que es del frente de trabajo: el arnés, la empresa, el puesto, la salud, la vista, la reparación, el cwd y la fecha de archivado. El campo `Turnos` desaparece: se derivaba de un largo y se duplicaba. `Session` NO se renombra a `Sesion` — rompería el puntero de nueve capabilities sin comprar nada."
+    merge_sha: null
+scenarios:
+  - id: la-sesion-es-el-frente-no-el-hilo
+    name: "El operador rota el contexto a mitad de un trabajo"
+    status: live
+    given: "una sesión trabajando sobre un arnés, con el uso de contexto cruzado"
+    when: "el siguiente turno rota a un proceso fresco"
+    then: "la sesión sigue siendo la misma —mismo id, mismo arnés, mismo cwd— y sigue teniendo UNA sola conversación: lo que rotó es el proceso de adentro, no el frente de trabajo"
+    verifica: "TestRotacionInvisible"
+  - id: el-cwd-es-de-la-sesion
+    name: "Se abre un turno en una sesión sobre un arnés registrado"
+    status: live
+    given: "un arnés con su directorio registrado"
+    when: "la sesión spawnea su conductor"
+    then: "el conductor arranca confinado al directorio del arnés — el cwd es de la sesión, así que todas sus conversaciones corren en el mismo lugar por construcción"
+    verifica: "TestSessionSpawnsInArnesPath"
+  - id: archivar-es-de-la-sesion
+    name: "El operador cierra un frente de trabajo"
+    status: live
+    given: "una sesión con su conversación y su cadena de procesos"
+    when: "se la cierra"
+    then: "se archiva la sesión ENTERA con sus conversaciones, su cwd y la fecha; la fecha de cierre describe la sesión, no un hilo — las conversaciones no se cierran, se desactivan"
+    verifica: "TestCloseArchivaMetadata"
+  - id: lo-que-se-entrega-es-un-instante
+    name: "Alguien lee una sesión mientras el conductor está trabajando"
+    status: live
+    given: "una sesión con un turno respondido y su uso de contexto registrado"
+    when: "se lee la sesión y después el conductor responde otro turno que cruza el umbral"
+    then: "lo leído no cambia: es el instante en que se pidió. La sesión viva sí avanzó, y volver a leerla lo muestra"
+    verifica: "TestGetDevuelveInstantaneaNoLaSesionViva"
+business_rules:
+  - id: la-sesion-contiene-conversaciones-no-es-una
+    rule: "La sesión es el frente de trabajo: arnés, empresa, puesto, salud, vista, reparación, cwd. El estado del diálogo con el conductor —id de Claude Code, modelo, uso de contexto, cadena de rotaciones, checkpoint y turnos— es de la conversación, y la sesión sólo las contiene."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: la-cuenta-de-turnos-no-se-persiste
+    rule: "No existe un campo `Turnos` en la sesión. La cuenta se deriva de los turnos de cada conversación; un campo que duplica un largo se desincroniza."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: medium
+  - id: la-sesion-que-sale-del-candado-es-una-copia
+    rule: "Toda sesión que el servicio entrega afuera del candado es una instantánea con su propio slice de conversaciones. Devolver el agregado vivo dejaría al conductor escribiendo sobre la memoria que el lector ya tiene en la mano — un problema que no existía mientras la sesión era plana."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
+  - id: el-estado-del-conductor-se-proyecta-en-la-sesion
+    rule: "`Session.Status` es el estado del conductor de la conversación activa, proyectado. No se agrega un `Status` por conversación: sólo la activa tiene conductor, así que las demás tendrían un valor inventado."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: medium
 ---
 
 # Sesión = frente de trabajo
 
-Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+La sesión es lo que vive en el rail: **un arnés, una empresa, un puesto, un directorio de trabajo,
+una vista donde quedaste**. Es la unidad que la app corre en paralelo — la tesis de fábrica es que
+haya muchas abiertas a la vez.
+
+Hasta el paquete `2026-07-26-conversaciones-del-panel`, la sesión **era también** la conversación:
+llevaba el id de Claude Code, el uso de contexto, el checkpoint de la última rotación y el
+transcript. Eso hacía que abrir un hilo nuevo sobre el mismo frente de trabajo obligara a abrir otra
+sesión — y que el historial de un hilo muriera con él.
+
+Ahora la sesión **contiene** N conversaciones (CAP-140) y se queda sólo con lo suyo. Dos
+consecuencias que valen la pena decir en voz alta:
+
+- **El `cwd` se queda en la sesión, no baja.** Lo resuelve el arnés, así que dos conversaciones de
+  una misma sesión corren en el mismo directorio por construcción. Es el join hacia el corpus JSONL
+  nativo, y es de la sesión porque el confinamiento es del frente, no del hilo.
+- **`CerradaEn` cambió de sujeto.** Antes decía «esta conversación terminó»; ahora dice «esta SESIÓN
+  se archivó». Las conversaciones no se cierran: se desactivan, y se pueden retomar.
+
+**Lo que la sesión ya no tiene, y por qué importa:** el campo `Turnos`. Existía sólo para sobrevivir
+a que el transcript se tirara al archivar. Con el transcript viviendo en la conversación, un entero
+que duplica un largo es un drift esperando ocurrir — la cuenta se deriva.
+
+**Y una que apareció al partir el agregado:** mientras la sesión fue plana, el valor que el servicio
+devolvía era una copia de verdad — todos sus campos vivos eran escalares. Al bajarlos a un slice de
+conversaciones, ese mismo valor pasó a compartir memoria con el registro vivo, y el conductor
+escribía sobre lo que el lector ya tenía. Por eso toda sesión que cruza el candado sale como
+**instantánea**.

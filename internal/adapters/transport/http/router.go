@@ -128,8 +128,18 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))
-	mux.HandleFunc("GET /api/sessions/cerradas/{id}/historial", historialCerrada(sessions))
 	mux.HandleFunc("POST /api/sessions", createSession(sessions, arneses, onArnesRegistered))
+	// El panel de conversaciones (RF-340…RF-344). Van ANTES de `GET /api/sessions/{id}`:
+	// el patrón más específico tiene que quedar registrado primero para que el mux no
+	// ambigüe. `GET /api/sessions/cerradas/{id}/historial` se RETIRA acá (RF-345 CA-2):
+	// bajo el modelo nuevo el transcript de una conversación archivada viaja en su propio
+	// registro y no hay nada que reconstruir. `HistorialCerrada` y el lector del corpus
+	// nativo se CONSERVAN como capacidad del dominio, sin ruta: siguen siendo el único
+	// fallback para lo archivado ANTES de la migración, que no tiene transcript propio.
+	mux.HandleFunc("GET /api/sessions/{id}/conversaciones", listarConversaciones(sessions))
+	mux.HandleFunc("POST /api/sessions/{id}/conversaciones", crearConversacion(sessions))
+	mux.HandleFunc("PATCH /api/sessions/{id}/conversaciones/{cid}", renombrarConversacion(sessions))
+	mux.HandleFunc("POST /api/sessions/{id}/conversaciones/{cid}/activar", activarConversacion(sessions))
 	mux.HandleFunc("GET /api/sessions/{id}", getSession(sessions))
 	mux.HandleFunc("PATCH /api/sessions/{id}", patchSession(sessions))
 	mux.HandleFunc("DELETE /api/sessions/{id}", deleteSession(sessions))

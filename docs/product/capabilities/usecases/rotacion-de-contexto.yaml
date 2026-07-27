@@ -15,8 +15,28 @@ valida:
   - "TestCtxHistYUmbralRotacion"
   - "TestRotacionInvisible"
   - "TestCtxPctUsaUltimoUsage"
-scenarios: []
-business_rules: []
+  - "TestRotacionEmiteFrameConTurnoIdx"
+  - "TestRotacionFrameLlegaAntesDelStatus"
+  - "TestRotacionNoCreaConversacionNueva"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "La rotación deja de ser invisible EN EL MAL SENTIDO: además de guardar su marca en el diálogo, la anuncia en vivo. Antes el operador no la veía hasta recargar la aplicación, porque la rotación corre con el candado del servicio tomado y en este servicio nada se publica bajo el candado; ahora devuelve su aviso y quien la llama lo publica al soltarlo."
+    merge_sha: null
+scenarios:
+  - id: la-marca-aparece-sin-recargar
+    name: "El contexto rota mientras el operador está mirando"
+    status: live
+    given: "una conversación que cruzó el umbral de uso de contexto"
+    when: "llega el turno siguiente y el proceso se renueva por detrás"
+    then: "la marca aparece en el diálogo sin recargar, antes del mensaje que la disparó, y la conversación sigue siendo la misma: mismo título, misma lista, mismo hilo"
+    verifica: "TestRotacionEmiteFrameConTurnoIdx"
+business_rules:
+  - id: rotar-no-parte-el-hilo
+    rule: "La rotación es la misma conversación con una marca adentro: no crea un hilo nuevo, no cambia el título y no altera la lista del panel."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
 related_capabilities:
   depends_on:
     - arnesia.provisioning.tarjeta-identidad-por-sesion

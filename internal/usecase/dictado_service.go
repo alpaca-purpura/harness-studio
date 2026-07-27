@@ -158,7 +158,14 @@ func (s *DictadoService) Dictar(ctx context.Context, sesionID string, audio []by
 	ctxLimpieza, cancel := context.WithTimeout(ctx, tope)
 	defer cancel()
 
-	limpio, err := s.limpieza.Ordenar(ctxLimpieza, crudo, contextoDeLimpieza(sess.Conv))
+	// El contexto de limpieza sale de la conversación ACTIVA: el dictado se dicta sobre
+	// el hilo que está abierto, no sobre la sesión entera (CV-D4/CV-D7). Una sesión sin
+	// activa (registro roto) limpia sin contexto — degradación honesta, jamás un panic.
+	var turnos []domain.Turn
+	if conv, hay := sess.Activa(); hay {
+		turnos = conv.Conv
+	}
+	limpio, err := s.limpieza.Ordenar(ctxLimpieza, crudo, contextoDeLimpieza(turnos))
 	if err != nil {
 		// V-D4: el escape a crudo. Mismo camino que el fallback de RF-227 — un solo
 		// código, dos motivos para entrar.

@@ -5,14 +5,36 @@ capability_id: arnesia.fe-chat.acotar-alcance
 cap_num: CAP-69
 slug: acotar-alcance
 name: "Acotar alcance (nodo→chip)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 module: fe-chat
 verb: mejorar
 pointers:
   - "web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow"
   - "web/src/shared/store/sessions-store.ts#setScope"
-valida: []
-scenarios: []
+valida:
+  - "chat-dock.stories.tsx"
+last_modified: 2026-07-26
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "La fila de alcance deja de ocupar un lugar fijo: sin nodo elegido no existe. Su estado vacío gastaba una fila entera del dock en una instrucción («selecciona un nodo en el Mapa para acotar») más un chip del arnés que ya estaba en el rail, en la barra superior y en el marcador del composer. Con nodo, el chip es literalmente el de antes, con su ✕ y su comportamiento intactos: lo que cambió es cuándo aparece, no qué hace."
+    merge_sha: null
+scenarios:
+  - id: la-fila-de-alcance-se-gana-el-lugar
+    name: "El operador no eligió ningún nodo en el Mapa"
+    status: live
+    given: "el dock abierto sin nodo seleccionado"
+    when: "mira el cromo"
+    then: "la fila de alcance no existe; el espacio es transcript"
+    verifica: "chat-dock.stories.tsx#Reposo"
+  - id: con-nodo-aparece-y-se-puede-quitar
+    name: "El operador selecciona un nodo en el Mapa"
+    status: live
+    given: "un nodo seleccionado, resuelto a su archivo real"
+    when: "mira el cromo"
+    then: "aparece la fila con el chip del nodo, su ruta y el ✕ que lo quita — el mismo control de antes"
+    verifica: "chat-dock.stories.tsx#ConNodoEnAlcance"
 business_rules: []
 related_capabilities:
   depends_on: []

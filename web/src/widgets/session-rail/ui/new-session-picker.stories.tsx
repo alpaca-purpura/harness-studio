@@ -49,6 +49,10 @@ export const CasoSimple: Story = {
     await userEvent.click(c.getByText("harness"))
     await expect(c.getByText(HARNESS_PATH)).toBeInTheDocument() // "usará <path>"
     await expect(crear).toBeEnabled()
+    // RF-333 · F-01: elegir un arnés YA NO despliega el bloque «Conversaciones: N abiertas ·
+    // M cerradas». Las conversaciones son de una SESIÓN y viven en el dock (CV-D2/CV-D4);
+    // acá mostraban las de un ARNÉS, que es una pregunta que el modelo nuevo no responde.
+    await expect(c.queryByText(/Conversaciones:/)).not.toBeInTheDocument()
 
     await userEvent.click(crear)
     // `arnes` es la clave calificada (deuda BACKLOG «re-key», cerrada 2026-07-23), no el id

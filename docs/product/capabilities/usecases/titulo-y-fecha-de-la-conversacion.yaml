@@ -1,0 +1,165 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, reparación de la auditoría ·
+# hallazgos A-1 y A-2 · CV-D9/CV-D13 · RF-303/RF-304/RF-320 CA-1).
+#
+# Por qué existe como capability aparte y no como un renglón de CAP-146: lo que se reparó NO es
+# la superficie del panel, es el CABLEADO del turno. Las dos decisiones estaban firmadas, la ley
+# estaba escrita y probada en el dominio, y no la llamaba nadie: `DerivarTitulo` tenía cero
+# llamadores de producción y `UltimaInteraccion` sólo se escribía vacía. Toda conversación se
+# llamaba «nueva conversación» para siempre y toda fila decía «sin fecha». Que el SSoT funcional
+# tenga una hoja propia para esto es lo que hace que «tiene test» y «hace lo que dice» no puedan
+# volver a separarse en silencio.
+#
+# El número se verificó contra el árbol (146 hojas con cap_num, sin huecos ni duplicados, máximo
+# CAP-146), nunca contra la prosa de un documento — ya falló dos veces por eso.
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.titulo-y-fecha-de-la-conversacion
+cap_num: CAP-147
+slug: titulo-y-fecha-de-la-conversacion
+name: "El título de la conversación se deriva de su primer mensaje y su fecha se estampa en cada turno"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: usecases
+layer: usecase
+verb: observar
+functional_area: "usecases.conversaciones"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/session_service.go#SessionService.Turn"
+  - "internal/usecase/session_service.go#marcarInteraccion"
+  - "internal/domain/conversacion.go#Conversacion.DerivarTitulo"
+  - "internal/domain/conversacion.go#RecorteDeTitulo"
+  - "internal/usecase/session_conversaciones.go#resumenDe"
+valida:
+  - "TestPrimerTurnoDerivaElTituloDeLaConversacion"
+  - "TestElSegundoTurnoNoRebautizaLaConversacion"
+  - "TestTituloEditadoPorElOperadorGanaContraLaDerivacion"
+  - "TestCadaTurnoEstampaLaUltimaInteraccion"
+  - "TestDesactivarNoTocaLaUltimaInteraccion"
+  - "TestUnaConversacionNuevaNaceSinFechaYConElTituloDefault"
+  - "TestTituloEditadoNoSeReDeriva"
+  - "TestRotacionNoCreaConversacionNueva"
+dev_preview:
+  route: "/"
+  how_to_navigate: "abrir el dock de chat de una sesión, mandar un turno y abrir la lista con el ▶ del título: la fila lleva el título derivado de ese primer mensaje y su fecha"
+  main_component: "web/src/widgets/chat-dock/ui/conversacion-fila.tsx"
+  api_endpoints: ["GET /api/sessions/{id}/conversaciones"]
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-27
+last_modified: 2026-07-27
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/auditoria.md (A-1, A-2)"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-27
+    type: new
+    summary: "Se cablea al camino real del turno lo que estaba firmado y sin construir: el título se deriva del primer mensaje (CV-D9/RF-303) y la fecha de última interacción se estampa en cada turno (CV-D13/RF-304)."
+scenarios:
+  - id: el-primer-mensaje-bautiza-la-conversacion
+    name: "El operador manda su primer mensaje en una conversación recién nacida"
+    status: live
+    given: "una conversación de cero turnos titulada «nueva conversación»"
+    when: "manda su primer turno"
+    then: "el título pasa a derivarse de ese texto, con el mismo recorte con que se deriva el frente de la sesión; el frente de la SESIÓN conserva su propia derivación, porque son dos nombres distintos y ambos siguen existiendo"
+    verifica: "TestPrimerTurnoDerivaElTituloDeLaConversacion"
+  - id: se-deriva-del-primero-no-del-ultimo
+    name: "La conversación sigue veinte turnos más"
+    status: live
+    given: "una conversación ya bautizada por su primer mensaje"
+    when: "llegan más turnos"
+    then: "el título no se mueve: se deriva del PRIMER mensaje, no del último. Sin esa guarda cada turno rebautizaría la conversación con lo último que se dijo, y la lista volvería a ser irreconocible por otro camino"
+    verifica: "TestElSegundoTurnoNoRebautizaLaConversacion"
+  - id: si-el-operador-lo-escribio-gana-el-operador
+    name: "El operador renombró la conversación a mano y después sigue hablando"
+    status: live
+    given: "una conversación cuyo título editó el operador"
+    when: "llegan turnos nuevos"
+    then: "el título sigue siendo el suyo — la derivación automática no pisa nunca lo que escribió una persona"
+    verifica: "TestTituloEditadoPorElOperadorGanaContraLaDerivacion"
+  - id: la-fila-dice-cuando-fue-la-ultima-vez
+    name: "El operador vuelve al día siguiente y abre la lista"
+    status: live
+    given: "varias conversaciones con turnos"
+    when: "mira la lista"
+    then: "cada fila lleva la fecha de su último mensaje y la lista se ordena por esa fecha; antes toda fila decía «sin fecha» y el orden caía en silencio al de creación"
+    verifica: "TestCadaTurnoEstampaLaUltimaInteraccion"
+  - id: dejar-una-conversacion-no-le-cambia-la-fecha
+    name: "El operador deja una conversación del martes y abre otra el jueves"
+    status: live
+    given: "una conversación cuyo último turno fue el martes"
+    when: "el jueves la desactiva creando otra"
+    then: "su fecha sigue diciendo martes: se estampa en el turno y no al desactivar, si no una conversación inactiva mentiría cuándo se habló por última vez"
+    verifica: "TestDesactivarNoTocaLaUltimaInteraccion"
+  - id: sin-turnos-no-hay-fecha-que-inventar
+    name: "El operador crea una conversación y todavía no escribe nada"
+    status: live
+    given: "una conversación de cero turnos"
+    when: "se la lista"
+    then: "la celda dice «sin turnos todavía» y el campo viaja vacío: crear no es interactuar, y derivar la fecha de la de creación sería inventarla"
+    verifica: "TestUnaConversacionNuevaNaceSinFechaYConElTituloDefault"
+  - id: rotar-no-rebautiza
+    name: "El contexto rota en medio de una conversación larga"
+    status: live
+    given: "una conversación ya bautizada cuyo contexto se agotó"
+    when: "el turno siguiente arranca en un proceso fresco"
+    then: "el título no cambia: la rotación es mecánica, no un tema nuevo (CV-D10)"
+    verifica: "TestRotacionNoCreaConversacionNueva"
+business_rules:
+  - id: el-titulo-se-deriva-del-primer-mensaje-no-del-ultimo
+    rule: "La derivación automática corre sólo mientras el título sea el default. Es la misma guarda con la que se deriva el Frente de la sesión — «igual que Frente hoy», dice CV-D9."
+    enforcement: []
+    severity: high
+  - id: gana-el-operador
+    rule: "Con la marca de «título editado» puesta, ningún turno vuelve a tocar el título. La ley vive en el dominio y no se duplica en el usecase."
+    enforcement: []
+    severity: high
+  - id: la-fecha-se-estampa-en-el-turno-no-al-desactivar
+    rule: "«Última interacción» es la fecha del último mensaje del hilo, no la de cuándo se lo abandonó. Se escribe donde se appendea el turno del usuario y donde cierra el del assistant."
+    enforcement: []
+    severity: high
+  - id: vacio-significa-cero-turnos
+    rule: "El campo vacío está reservado para «no hubo ningún turno», que es lo que la fila pinta como «sin turnos todavía». Ninguna otra situación lo deja vacío."
+    enforcement: []
+    severity: high
+related_capabilities:
+  depends_on:
+    - arnesia.dominio-l0.conversacion-como-entidad
+    - arnesia.usecases.conversaciones-de-una-sesion
+  enables:
+    - arnesia.fe-chat.panel-de-conversaciones
+---
+
+# El título y la fecha de la conversación
+
+Las dos mitades de lo que la fila de la lista tenía que mostrar, y las dos estaban **firmadas y
+sin construir**. La auditoría del paquete las encontró juntas y con razón: por separado son dos
+campos; juntos son la lista entera.
+
+## Qué pasaba
+
+`DerivarTitulo` existía en el dominio, con sus tests verdes, y **no la llamaba nadie en
+producción**. `UltimaInteraccion` se declaraba, se proyectaba al DTO y se leía para desempatar,
+pero su única asignación de producción era la que la deja **vacía** (la migración, que hace bien
+en no inventar fechas). El resultado en pantalla: después de media jornada el operador abría el
+panel y veía N filas idénticas, todas `nueva conversación`, todas `sin fecha`. La función que la
+lista existe para cumplir —«¿cuál era aquella conversación?»— no se podía cumplir.
+
+## Por qué se escapó a tres capas verdes
+
+Los tests de dominio prueban la **ley** (quién gana cuando el operador y la derivación escriben
+el mismo campo), no el **cableado**. Las stories del panel **hardcodean** títulos y fechas
+plausibles. Y el E2E midió una **migración** —donde «sin fecha» es la verdad— en vez de una
+conversación nacida en la app. Tres verificaciones verdes sobre una función que nadie llamaba.
+
+Por eso los tests de esta capability corren contra el `SessionService` **real**, el mismo camino
+que usa el daemon, y se verificó por mutación que cada uno se pone **rojo** cuando se quita la
+línea que prueba: la llamada a la derivación, la guarda del primer mensaje, el estampado en el
+turno del usuario y el estampado al cerrar el del assistant.
+
+## El efecto de borde que se corrigió de paso
+
+`TestRotacionNoCreaConversacionNueva` tomaba su línea base del título **antes** del primer turno,
+así que en realidad afirmaba «el título no cambia nunca» — verdad sólo mientras RF-303 estuviera
+sin construir. Ahora toma la línea base inmediatamente **antes de rotar**, que es su sujeto real,
+y se verificó por mutación que sigue cazando una rotación que pise el título.

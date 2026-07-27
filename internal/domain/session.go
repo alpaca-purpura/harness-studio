@@ -1,11 +1,12 @@
 package domain
 
-// A Session is a *frente de trabajo* (work-front): one live Claude Code conversation
-// bound N:1 to an arnés. It is the central unit of the factory thesis — the app runs
-// many of these in parallel (multisesión, HS-03 it.14). The daemon owns the registry
-// of open sessions (source of truth); the conversation itself is rehydrated from
-// Claude Code via `--resume ClaudeSessionID`, so Conv here is only the lightweight
-// transcript the shell replays instantly on reopen.
+// A Session is a *frente de trabajo* (work-front): un arnés, un cwd, una vista. Es la
+// unidad central de la tesis de fábrica — la app corre muchas en paralelo (multisesión,
+// HS-03 it.14). El daemon es dueño del registro de sesiones abiertas.
+//
+// La sesión ya NO es la conversación (CV-D3): CONTIENE N conversaciones y exactamente una
+// está activa. El id de Claude Code, el uso de contexto, la cadena de rotaciones y el
+// registro liviano de turnos viven en Conversacion (conversacion.go), no acá.
 
 // SessionStatus is the live state of a session's conductor, mirrored on the rail pip.
 type SessionStatus string
@@ -91,40 +92,15 @@ type Session struct {
 	// causa. El picker la setea al elegir la copia; el rail la pinta como chip.
 	Reparacion bool `json:"reparacion,omitempty"`
 
-	// ClaudeSessionID is the Claude Code session id captured from the `system/init`
-	// event; passing it to `--resume` rehydrates the real conversation after a restart.
-	ClaudeSessionID string `json:"claude_session_id,omitempty"`
-	Model           string `json:"model,omitempty"`
-	// CtxPct is the last-known context-window usage (0–100) for the dock's ctx bar.
-	CtxPct int `json:"ctx_pct,omitempty"`
-
-	// CtxHist es el histórico de CtxPct por turno (RF-194, mejorar-arnes-conversando):
-	// insumo del umbral de rotación; acotado (los más viejos se recortan).
-	CtxHist []int `json:"ctx_hist,omitempty"`
-
-	// RotacionPendiente (RF-195): el uso de contexto cruzó el umbral — el PRÓXIMO Turn
-	// spawnea un proceso fresco con checkpoint (T8); jamás se rota a mitad de un turno.
-	RotacionPendiente bool `json:"rotacion_pendiente,omitempty"`
-
-	// CadenaCC son los ClaudeSessionID previos de esta sesión (rotaciones, RF-198): el
-	// join sesión-lógica → N JSONLs nativas que el historial B2 necesita para coser.
-	CadenaCC []string `json:"cadena_cc,omitempty"`
-
-	// Checkpoint es el digest mecánico de la última rotación (RF-196): viaja al proceso
-	// fresco vía el system-prompt por sesión. Persistido: sobrevive reinicios del daemon.
-	Checkpoint string `json:"checkpoint,omitempty"`
-
 	// Cwd es el directorio real del conductor (estampado al spawn) — el join hacia el
 	// corpus JSONL nativo (~/.claude/projects/<dir-del-cwd>/) que el historial B2 lee.
+	// Vive en la SESIÓN y no en la conversación: lo resuelve el arnés, así que las N
+	// conversaciones de una sesión corren en el mismo directorio por construcción.
 	Cwd string `json:"cwd,omitempty"`
 
-	// CerradaEn (RFC3339) + Turnos: metadata de archivo de una sesión CERRADA (RF-200) —
-	// solo pobladas en el registro de cerradas, nunca en una sesión viva.
+	// CerradaEn (RFC3339) marca que esta SESIÓN se archivó (RF-306). Ya no describe una
+	// conversación: las conversaciones no se cierran, se desactivan (CV-D12).
 	CerradaEn string `json:"cerrada_en,omitempty"`
-	Turnos    int    `json:"turnos,omitempty"`
-
-	// Conv is the lightweight replay transcript (see Turn).
-	Conv []Turn `json:"conv,omitempty"`
 
 	// Conversaciones son los hilos de esta sesión (CV-D3): N ≥ 1, exactamente una activa.
 	// Sin omitempty: una sesión con [] es una sesión rota, y tiene que verse.

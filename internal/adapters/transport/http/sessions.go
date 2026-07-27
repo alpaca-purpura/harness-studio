@@ -12,14 +12,79 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
-// listSessions (S4) — the multisesión rail. Query params (RF-202, historial B2):
-// `?arnes=<id>` filtra por arnés; `?cerradas=1` suma la metadata de las sesiones cerradas
-// (sin Conv — la JSONL nativa es la verdad; el detalle vive en /sessions/cerradas/{id}/historial).
+// sessionWire es la sesión TAL COMO VIAJA. No es `domain.Session` serializada, y la
+// diferencia es la razón de que el tipo exista: el agregado tiene N conversaciones con sus
+// transcripts completos, y mandarlas todas haría que `GET /api/sessions` costara doce
+// kilobytes por conversación por sesión. Lo que viaja es la ACTIVA —la única que la superficie
+// pinta— y las demás llegan por `GET /api/sessions/{id}/conversaciones`, sin transcript.
+//
+// `activa` NO es opcional: la invariante garantiza que existe (BR-CV-1), y un campo opcional
+// invitaría al `if (!activa)` defensivo que escondería el día en que no exista.
+type sessionWire struct {
+	ID         string               `json:"id"`
+	Frente     string               `json:"frente"`
+	Arnes      string               `json:"arnes"`
+	Empresa    string               `json:"empresa,omitempty"`
+	Puesto     string               `json:"puesto,omitempty"`
+	Salud      domain.Salud         `json:"salud,omitempty"`
+	Status     domain.SessionStatus `json:"status"`
+	View       string               `json:"view"`
+	Parked     string               `json:"parked,omitempty"`
+	Reparacion bool                 `json:"reparacion,omitempty"`
+	Cwd        string               `json:"cwd,omitempty"`
+	CerradaEn  string               `json:"cerrada_en,omitempty"`
+
+	Activa usecase.ConversacionActiva `json:"activa"`
+}
+
+// aWire proyecta una sesión del dominio a lo que viaja.
+//
+// Una sesión sin conversación activa no debería existir —la invariante se repara al cargar y
+// `Create` la produce— pero si llegara una, esto NO inventa una: manda el cero con la lista de
+// turnos vacía y lo DICE en el log. Fabricarle un id acá haría que el defecto se viera como un
+// dato normal en la interfaz, que es la forma más cara de esconder un bug.
+func aWire(s domain.Session) sessionWire {
+	w := sessionWire{
+		ID: s.ID, Frente: s.Frente, Arnes: s.Arnes,
+		Empresa: s.Empresa, Puesto: s.Puesto, Salud: s.Salud,
+		Status: s.Status, View: s.View, Parked: s.Parked,
+		Reparacion: s.Reparacion, Cwd: s.Cwd, CerradaEn: s.CerradaEn,
+	}
+	c, ok := s.Activa()
+	if !ok {
+		slog.Error("sessions: una sesión sin conversación activa llegó al wire", "session", s.ID)
+		w.Activa = usecase.ConversacionActiva{Conv: []domain.Turn{}}
+		return w
+	}
+	w.Activa = usecase.ConversacionActivaDe(*c)
+	return w
+}
+
+func aWireLista(ss []domain.Session) []sessionWire {
+	out := make([]sessionWire, 0, len(ss))
+	for _, s := range ss {
+		out = append(out, aWire(s))
+	}
+	return out
+}
+
+// listSessions (S4) — el rail multisesión. `?arnes=<id>` filtra por arnés con comparación
+// EXACTA. `?cerradas=1` se RETIRÓ (RF-345 CA-1): bajo el modelo nuevo las conversaciones no se
+// cierran, se desactivan, y las de una sesión viven en su propio endpoint. Responde 400 con el
+// puntero en vez de ignorar el parámetro en silencio o devolver 200 con una lista vacía —
+// las dos alternativas le hacen creer al cliente que preguntó bien.
+//
+// Y la respuesta vuelve a ser SIEMPRE un array. Era la única bimorfa del daemon: la misma ruta
+// devolvía una lista o un objeto según un query, lo que hace la operación indocumentable.
 func listSessions(svc *usecase.SessionService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		arnes := r.URL.Query().Get("arnes")
+		if r.URL.Query().Get("cerradas") != "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "el parámetro `cerradas` se retiró: " +
+				"las conversaciones de una sesión viven en GET /api/sessions/{id}/conversaciones"})
+			return
+		}
 		out := svc.List()
-		if arnes != "" {
+		if arnes := r.URL.Query().Get("arnes"); arnes != "" {
 			filtradas := make([]domain.Session, 0, len(out))
 			for _, s := range out {
 				if s.Arnes == arnes {
@@ -28,30 +93,7 @@ func listSessions(svc *usecase.SessionService) http.HandlerFunc {
 			}
 			out = filtradas
 		}
-		if r.URL.Query().Get("cerradas") != "1" {
-			writeJSON(w, http.StatusOK, out)
-			return
-		}
-		cerradas, err := svc.Cerradas(r.Context(), arnes)
-		if err != nil {
-			// Honesto: las vivas viajan igual; el hueco de cerradas se DICE.
-			writeJSON(w, http.StatusOK, map[string]any{"sesiones": out, "cerradas_error": err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"sesiones": out, "cerradas": cerradas})
-	}
-}
-
-// historialCerrada (RF-202) reconstruye los turnos de una sesión cerrada desde las JSONL
-// nativas de su cadena. Las JSONL ya ausentes viajan en `faltantes` — jamás se inventa.
-func historialCerrada(svc *usecase.SessionService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		turnos, faltantes, err := svc.HistorialCerrada(r.Context(), r.PathValue("id"))
-		if err != nil {
-			writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"turnos": turnos, "faltantes": faltantes})
+		writeJSON(w, http.StatusOK, aWireLista(out))
 	}
 }
 
@@ -108,7 +150,7 @@ func createSession(svc *usecase.SessionService, reg ports.ArnesRegistry, onRegis
 			writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusCreated, sess)
+		writeJSON(w, http.StatusCreated, aWire(sess))
 	}
 }
 
@@ -120,7 +162,7 @@ func getSession(svc *usecase.SessionService) http.HandlerFunc {
 			writeJSON(w, http.StatusNotFound, errorBody{Error: "session not found"})
 			return
 		}
-		writeJSON(w, http.StatusOK, sess)
+		writeJSON(w, http.StatusOK, aWire(sess))
 	}
 }
 
@@ -158,7 +200,7 @@ func patchSession(svc *usecase.SessionService) http.HandlerFunc {
 			writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, sess)
+		writeJSON(w, http.StatusOK, aWire(sess))
 	}
 }
 

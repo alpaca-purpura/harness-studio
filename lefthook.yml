@@ -31,6 +31,15 @@ pre-commit:
       # falla acá (feedback local; el gate DURO es CI vía `arnesia conformance`). ~4ms.
       glob: "*.{go,ts,tsx,rs}"
       run: go test ./docs/architecture/fitness/ -run 'TestCapability(PointersResolve|Coverage)'
+    capabilities-index:
+      # AUTO-CURA el índice del SSoT funcional. `docs/product/capabilities/INDEX.md` lo GENERA
+      # `cap_doctor.py --index`, y hasta acá no lo corría ningún hook ni ningún job de CI: driftaba
+      # en silencio cada vez que un paquete sumaba una hoja. Medido: llegó a estar 22 hojas atrás.
+      # Mismo patrón que `estado-cifras` (regenera + `git add` explícito, por el gotcha de
+      # `stage_fixed`), pero cuesta ~200 ms en vez de 60 s, así que corre siempre que se toque una
+      # hoja. No hay gate DURO en CI todavía: acá el enforcement es que se regenere solo.
+      glob: "docs/product/capabilities/**/*.yaml"
+      run: python3 scripts/cap_doctor.py --index >/dev/null && git add docs/product/capabilities/INDEX.md
     changelog:
       # El bump de versión exige changelog (VC-D2, paquete versionado-y-changelog-metodologicos).
       # `scripts/bump.sh` ya lo bloquea, pero solo a quien pasa por `make bump-*`: este job agarra

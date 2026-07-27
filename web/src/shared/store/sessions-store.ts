@@ -45,6 +45,20 @@ interface SessionsState {
   // msgFlushed[id] = algún frame `message` ya cerró burbuja este turno (CH-D3) ⇒ el
   // result no re-arma el texto desde su propio campo (duplicaría).
   msgFlushed: Record<string, boolean>
+  // convRev[id] = revisión de las conversaciones de la sesión. Es el seam con el store del
+  // panel (widgets/chat-dock/model): `shared` NO puede importar `widgets`
+  // (`shared-no-upward`), así que el panel se SUSCRIBE a este contador y refetchea cuando
+  // cambia. Un contador y no la lista: la lista es del panel, esta capa sólo dice «cambió».
+  convRev: Record<string, number>
+  // detalleForzado[id] = el detalle de identidad se abre SOLO (RF-314) porque el cc-id
+  // acaba de cambiar: al retomar y al rotar. Sin esto, el ctx cayendo de 92 % a 12 % y un
+  // cc-id nuevo pasarían inadvertidos, que es exactamente lo que CV-D10 quiere evitar.
+  detalleForzado: Record<string, boolean>
+  // desactivadaTitulo[id] = el TÍTULO de la conversación que quedó inactiva al crear la
+  // actual. Lo necesita el vacío del transcript nuevo, que la nombra (RF-307 CA-1). Sale de
+  // la copia local —el store SABE cuál era la activa cuando llegó el frame `creada`—, así
+  // que no hace falta un campo más en el wire.
+  desactivadaTitulo: Record<string, string>
 
   init: () => Promise<void>
   switchTo: (id: string) => void
@@ -77,13 +91,34 @@ function patch(list: Session[], id: string, fn: (s: Session) => Session): Sessio
 
 // appendConv adds one turn to a session's transcript (local mirror; the daemon's Conv is
 // the persisted truth — permisos/gate son rastro vivo de esta vista).
+//
+// Bajo CV-D3 el transcript vive en la conversación ACTIVA, no en la sesión: `s.activa.conv`.
+// Sin `?? []` a propósito — `activa.conv` nunca es opcional en el wire (el daemon manda `[]`,
+// nunca `null`), y un fallback acá volvería a hacer indistinguible «vacía» de «no cargada».
 function appendConv(
   list: Session[],
   id: string,
   rol: "user" | "assistant" | "sys" | "act",
   text: string,
 ): Session[] {
-  return patch(list, id, (s) => ({ ...s, conv: [...(s.conv ?? []), { rol, text }] }))
+  return patch(list, id, (s) => ({
+    ...s,
+    activa: { ...s.activa, conv: [...s.activa.conv, { rol, text }] },
+  }))
+}
+
+// bump incrementa la revisión de conversaciones de una sesión (el seam con el panel).
+function bump(rev: Record<string, number>, id: string): Record<string, number> {
+  return { ...rev, [id]: (rev[id] ?? 0) + 1 }
+}
+
+// sinClave devuelve el registro sin una clave. Los cuatro buffers por-turno se LIMPIAN en
+// una transición de conversación (el hilo nuevo no hereda el turno a medio ensamblar del
+// viejo); `finalizedRun` y `scope` NO — el primero es idempotencia por run_id, que sobrevive
+// a la transición, y el segundo es alcance de la SESIÓN (RF-118/RF-352 CA-3).
+function sinClave<T>(reg: Record<string, T>, id: string): Record<string, T> {
+  const { [id]: _fuera, ...resto } = reg
+  return resto
 }
 
 export const useSessions = create<SessionsState>((set, get) => ({
@@ -99,6 +134,9 @@ export const useSessions = create<SessionsState>((set, get) => ({
   pendingPerms: {},
   scope: {},
   wroteInRun: {},
+  convRev: {},
+  detalleForzado: {},
+  desactivadaTitulo: {},
 
   init: async () => {
     // Get the API capability token from the Tauri shell before any request (undefined in the
@@ -193,7 +231,7 @@ export const useSessions = create<SessionsState>((set, get) => ({
       sessions: patch(st.sessions, id, (s) => ({
         ...s,
         status: "streaming",
-        conv: [...(s.conv ?? []), { rol: "user", text: body }],
+        activa: { ...s.activa, conv: [...s.activa.conv, { rol: "user", text: body }] },
       })),
       streaming: { ...st.streaming, [id]: "" },
     }))
@@ -204,16 +242,17 @@ export const useSessions = create<SessionsState>((set, get) => ({
       // prevents). Drop the optimistic user turn and leave the live stream untouched.
       if (err instanceof ApiError && err.status === 409) {
         set((st) => ({
-          sessions: patch(st.sessions, id, (s) => ({ ...s, conv: (s.conv ?? []).slice(0, -1) })),
+          sessions: patch(st.sessions, id, (s) => ({
+            ...s,
+            activa: { ...s.activa, conv: s.activa.conv.slice(0, -1) },
+          })),
         }))
         return
       }
       set((st) => ({
-        sessions: patch(st.sessions, id, (s) => ({
-          ...s,
-          status: "idle",
-          conv: [...(s.conv ?? []), { rol: "sys", text: `error: ${String(err)}` }],
-        })),
+        sessions: appendConv(st.sessions, id, "sys", `error: ${String(err)}`).map((s) =>
+          s.id === id ? { ...s, status: "idle" } : s,
+        ),
       }))
     }
   },
@@ -278,8 +317,11 @@ export const useSessions = create<SessionsState>((set, get) => ({
         set((st) => ({
           sessions: patch(st.sessions, id, (s) => ({
             ...s,
-            claude_session_id: f.claude_session_id ?? s.claude_session_id,
-            model: f.model ?? s.model,
+            activa: {
+              ...s.activa,
+              claude_session_id: f.claude_session_id ?? s.activa.claude_session_id,
+              model: f.model ?? s.activa.model,
+            },
           })),
         }))
         break
@@ -319,10 +361,13 @@ export const useSessions = create<SessionsState>((set, get) => ({
             sessions: patch(st.sessions, id, (s) => ({
               ...s,
               status: "idle",
-              ctx_pct: f.ctx_pct && f.ctx_pct > 0 ? f.ctx_pct : s.ctx_pct,
-              conv: finalText
-                ? [...(s.conv ?? []), { rol: "assistant", text: finalText }]
-                : (s.conv ?? []),
+              activa: {
+                ...s.activa,
+                ctx_pct: f.ctx_pct && f.ctx_pct > 0 ? f.ctx_pct : s.activa.ctx_pct,
+                conv: finalText
+                  ? [...s.activa.conv, { rol: "assistant", text: finalText }]
+                  : s.activa.conv,
+              },
             })),
           }
         })
@@ -377,11 +422,9 @@ export const useSessions = create<SessionsState>((set, get) => ({
             // queda en el transcript.
             pendingPerms: { ...st.pendingPerms, [id]: [] },
             finalizedRun: f.run_id ? { ...st.finalizedRun, [id]: f.run_id } : st.finalizedRun,
-            sessions: patch(st.sessions, id, (s) => ({
-              ...s,
-              status: "idle",
-              conv: [...(s.conv ?? []), { rol: "sys", text: `error: ${f.text ?? ""}` }],
-            })),
+            sessions: appendConv(st.sessions, id, "sys", `error: ${f.text ?? ""}`).map((s) =>
+              s.id === id ? { ...s, status: "idle" } : s,
+            ),
           }
         })
         break
@@ -455,6 +498,77 @@ export const useSessions = create<SessionsState>((set, get) => ({
           ),
         }))
         break
+
+      case "conversacion":
+        // CV-D2/CV-D10 · design.md §7.2. Cuatro eventos, tres formas de idempotencia:
+        //
+        //  · `creada`/`activada` traen el estado POST-transición completo ⇒ aplicarlas dos
+        //    veces es un `set`, no un append. Reemplazan la activa y limpian los buffers del
+        //    turno que se quedó en el hilo viejo.
+        //  · `renombrada` puede venir de una conversación INACTIVA (renombrar no exige que sea
+        //    la activa): se aplica sólo si es la activa, y siempre bumpea la revisión para que
+        //    el panel, si está abierto, se entere.
+        //  · `rotada` es un append, así que su llave es `turno_idx`: se appendea SÓLO si la
+        //    copia local tiene exactamente esa longitud. Un replay por Last-Event-ID llega con
+        //    la copia más larga y se descarta solo (E-41).
+        set((st) => {
+          const evento = f.conversacion_evento
+          const nueva = f.conversacion
+          if (evento === "creada" || evento === "activada") {
+            if (!nueva) return { convRev: bump(st.convRev, id) }
+            const anterior = st.sessions.find((s) => s.id === id)?.activa.titulo
+            return {
+              // Los buffers del turno viejo NO se heredan…
+              streaming: sinClave(st.streaming, id),
+              pendingPerms: sinClave(st.pendingPerms, id),
+              msgFlushed: sinClave(st.msgFlushed, id),
+              wroteInRun: sinClave(st.wroteInRun, id),
+              // …pero `finalizedRun` (idempotencia por run_id) y `scope` (alcance de la
+              // SESIÓN, RF-352 CA-3) SÍ: limpiarlos «por simetría» sería un bug.
+              convRev: bump(st.convRev, id),
+              detalleForzado: { ...st.detalleForzado, [id]: evento === "activada" },
+              desactivadaTitulo:
+                evento === "creada" && anterior
+                  ? { ...st.desactivadaTitulo, [id]: anterior }
+                  : sinClave(st.desactivadaTitulo, id),
+              sessions: patch(st.sessions, id, (s) => ({ ...s, activa: nueva })),
+            }
+          }
+          if (evento === "renombrada") {
+            return {
+              convRev: bump(st.convRev, id),
+              sessions:
+                nueva && f.conversacion_id === st.sessions.find((s) => s.id === id)?.activa.id
+                  ? patch(st.sessions, id, (s) => ({ ...s, activa: nueva }))
+                  : st.sessions,
+            }
+          }
+          if (evento === "rotada") {
+            const actual = st.sessions.find((s) => s.id === id)
+            if (!actual || actual.activa.conv.length !== f.turno_idx) return st
+            return {
+              convRev: bump(st.convRev, id),
+              detalleForzado: { ...st.detalleForzado, [id]: true },
+              sessions: patch(
+                appendConv(st.sessions, id, "sys", f.text ?? ""),
+                id,
+                // El daemon limpió el `ClaudeSessionID` al rotar: el del hilo nuevo llega con
+                // el `init` del próximo spawn. Dejar el viejo pintaría una identidad muerta.
+                (s) => ({ ...s, activa: { ...s.activa, claude_session_id: undefined } }),
+              ),
+            }
+          }
+          return { convRev: bump(st.convRev, id) }
+        })
+        break
+
+      default:
+        // Un `kind` que este build no conoce NO se traga en silencio: el daemon puede ser
+        // más nuevo que la SPA (self-update reemplaza el binario, no el bundle servido) y
+        // «no pasó nada» sería indistinguible de «el frame se perdió». Agujero preexistente
+        // que este paquete ensancha con un kind más, así que lo cierra acá.
+        console.warn("arnesia: frame de dock con kind desconocido", f.kind, f)
+        break
     }
   },
 }))
@@ -476,3 +590,26 @@ export const selectPendingPerms = (st: SessionsState): PermissionAsk[] =>
 // selectScope — el chip de alcance de la sesión activa (RF-111).
 export const selectScope = (st: SessionsState): ScopeNode | null =>
   (st.activeId ? st.scope[st.activeId] : null) ?? null
+
+// Los selectores del cromo de conversación devuelven PRIMITIVOS, sin excepción. Zustand
+// compara por identidad: uno que devolviera un objeto nuevo re-renderizaría el dock —y con
+// él el transcript entero— en cada frame `delta`. El repo no usa `useShallow` en ningún lado
+// y este paquete no lo introduce (arquitectura.md §6.3).
+
+// selectConvActivaId — el id de la conversación activa de la sesión activa.
+export const selectConvActivaId = (st: SessionsState): string | undefined =>
+  selectActive(st)?.activa.id
+
+// selectCtxPct — el porcentaje de contexto usado. 0 es DATO (BR-CV-9): sin sesión activa
+// devuelve `undefined`, que es otra cosa.
+export const selectCtxPct = (st: SessionsState): number | undefined =>
+  selectActive(st)?.activa.ctx_pct
+
+// selectCtxCaliente — el chip va en variante caliente. Sale de `rotacion_pendiente` del
+// wire: el umbral vive en el daemon (`SetUmbralRotacion`) y el FE no lo conoce ni lo teclea.
+export const selectCtxCaliente = (st: SessionsState): boolean =>
+  selectActive(st)?.activa.rotacion_pendiente ?? false
+
+// selectTituloActiva — el título de la conversación activa (la fila 2 del cromo).
+export const selectTituloActiva = (st: SessionsState): string | undefined =>
+  selectActive(st)?.activa.titulo

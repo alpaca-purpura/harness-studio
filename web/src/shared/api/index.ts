@@ -2,6 +2,9 @@
 export { ApiError, api, fetchAuthToken, type VentanaQuery } from "./client"
 export { connectDock, type DockConnection } from "./sse"
 export {
+  type Conversacion,
+  type ConversacionActiva,
+  type ConversacionesListado,
   type Dictado,
   type DisponibilidadDictado,
   type DockFrame,

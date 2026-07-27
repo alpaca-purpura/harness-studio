@@ -51,6 +51,21 @@ function escenario(parcial: Partial<ReturnType<typeof useSessions.getState>>) {
 }
 
 // Datos de la máquina real (`GET /api/sessions`, misma fuente que chat-dock.stories.tsx).
+// `conv` ya NO vive en la sesión: bajó a `activa` (CV-D3). El rail no la lee, pero el
+// tipo la exige sin `?` a propósito — un campo opcional invitaría al `if (!activa)`
+// defensivo que escondería el día en que el daemon no la mande.
+const hiloVacio = (id: string, titulo: string): Session["activa"] => ({
+  id,
+  titulo,
+  titulo_editado: false,
+  activa: true,
+  turnos: 0,
+  ctx_pct: 0,
+  rotacion_pendiente: false,
+  creada_en: "2026-07-26T10:00:00Z",
+  conv: [],
+})
+
 const VITALIA: Session = {
   id: "s6165ac75",
   frente: "repro del bug de carga",
@@ -58,7 +73,7 @@ const VITALIA: Session = {
   status: "idle",
   salud: "info",
   view: "Mapa",
-  conv: [],
+  activa: hiloVacio("cv6165ac75", "repro del bug de carga"),
 }
 
 const ARNESIA: Session = {
@@ -68,7 +83,7 @@ const ARNESIA: Session = {
   status: "await",
   salud: "warn",
   view: "Mapa",
-  conv: [],
+  activa: hiloVacio("cv91ba0c12", "franja de artefactos"),
 }
 
 const IR = "Ir a la sesión «repro del bug de carga» de vitalia"

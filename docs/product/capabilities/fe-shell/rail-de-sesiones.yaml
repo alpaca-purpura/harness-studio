@@ -5,7 +5,7 @@ capability_id: arnesia.fe-shell.rail-de-sesiones
 cap_num: CAP-72
 slug: rail-de-sesiones
 name: "Rail de sesiones (crear/renombrar/cerrar/switch)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 module: fe-shell
 verb: crear
 pointers:
@@ -14,9 +14,18 @@ pointers:
   - "web/src/widgets/session-rail/ui/new-session-picker.tsx#NewSessionPicker"
   - "web/src/entities/portafolio/model/selectors.ts#idsColisionados"
   - "web/src/widgets/session-rail/model/portafolio-picker-store.ts#usePortafolioPicker"
+  - "web/src/widgets/session-rail/ui/new-session-picker.stories.tsx"
   - "web/src/widgets/session-rail/model/portafolio-picker-store.test.ts#usePortafolioPicker"
   - "web/src/shared/store/app-store.ts#toggleTheme"
-valida: []
+valida:
+  - "new-session-picker.stories.tsx"
+last_modified: 2026-07-26
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "Elegir un arnés en el selector ya no despliega el bloque de conversaciones del arnés (RF-333). Las conversaciones pertenecen a una SESIÓN y ahora viven en el panel de conversación, que es donde el operador las fue a buscar; acá respondían una pregunta —«qué conversaciones tiene este arnés»— que el modelo nuevo no formula. La story del selector lo asserta por ausencia."
+    merge_sha: null
 scenarios:
   - "El pie del rail gana un botón claro/oscuro (☾/☀) que llama toggleTheme() — la infra data-theme + tokens ya existía (theme.css), solo faltaba el control de UI (2026-07-13)"
   - "«＋ Nueva sesión» abre un picker INLINE (el <aside> ensancha 224→360px, cero popover/backdrop): el arnés se elige del Portafolio REAL (GET /api/portafolio) con buscador en vivo + selección identidad→copia cuando hay 2+ copias; reemplaza el arnes:'nuevo-arnes' hardcodeado y el window.prompt() de ruta. Verificado por new-session-picker.stories.tsx (7 play(), Chromium) + portafolio-picker-store.test.ts (paquete shell-topbar-selector-arnes, 2026-07-20)"

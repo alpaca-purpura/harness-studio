@@ -25,12 +25,21 @@ medido_en: 2026-07-26
 medido_por: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §5.4"
 
 exenciones:
-  # ── Deuda con fecha de retiro (1) ───────────────────────────────────────────────────
-  - ruta: "GET /api/sessions/cerradas/{id}/historial"
-    razon: >-
-      se RETIRA en T18 del paquete 2026-07-26-conversaciones-del-panel: bajo CV-D8 el
-      transcript de una conversación archivada viaja en su propio `conv` y no hay nada que
-      reconstruir. Esta entrada desaparece de la lista en el mismo commit que retira la ruta.
+  # ── Deudas RETIRADAS ─────────────────────────────────────────────────────────────────
+  # Las dos ramas que se fusionan acá achicaron el ratchet por caminos distintos, y las dos
+  # bajas se conservan. Es la prueba de que la regla del ratchet aguanta un merge:
+  #
+  # · Las 8 de `telemetria/` ya NO están: el paquete 2026-07-24-telemetria-embebida-otel
+  #   cerró y declaró su contrato (0.8.0-telemetria), que era exactamente la condición con
+  #   la que se las había exceptuado. Se resolvieron declarando.
+  #
+  # · `GET /api/sessions/cerradas/{id}/historial` ya NO está: la retiró T18 del paquete
+  #   2026-07-26-conversaciones-del-panel, en el mismo commit que sacó su registro del
+  #   router. Bajo CV-D8 el transcript de una conversación archivada viaja en su propio
+  #   `conv` y no hay nada que reconstruir. Se resolvió NO sirviéndola, que es la otra
+  #   forma legítima de bajar una entrada.
+  #
+  # De 15 a 6.
 
   # ── Deuda pura (1) ──────────────────────────────────────────────────────────────────
   - ruta: "POST /api/portafolio/arneses/{clave}/identificar"

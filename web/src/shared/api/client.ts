@@ -10,12 +10,14 @@
 // Host+Origin only.
 
 import type {
+  Conversacion,
+  ConversacionActiva,
+  ConversacionesListado,
   Dictado,
   DisponibilidadDictado,
   EventoDiagnostico,
   NewSession,
   Session,
-  Turn,
 } from "./types"
 
 const BASE = import.meta.env.VITE_ARNESIA_API ?? "http://127.0.0.1:4200"
@@ -213,15 +215,39 @@ export const api = {
 
   listSessions: () => req<Session[]>("/api/sessions"),
 
-  // Historial B2 (RF-202/203): conversaciones de un arnés (vivas + cerradas, metadata) y
-  // los turnos de una cerrada reconstruidos desde la JSONL nativa (faltantes = honestas).
-  conversacionesDeArnes: (arnes: string) =>
-    req<{ sesiones: Session[]; cerradas?: Session[]; cerradas_error?: string }>(
-      `/api/sessions?arnes=${encodeURIComponent(arnes)}&cerradas=1`,
+  // ── El panel de conversaciones (RF-340…RF-344, CV-D2) ───────────────────────────────────
+  //
+  // Reemplazan a `conversacionesDeArnes` (`?arnes=&cerradas=1`) y a `historialCerrada`, que
+  // se RETIRARON con el modelo nuevo: la primera responde hoy 400 con puntero y la segunda
+  // 404. Un método de cliente que sólo puede fallar es peor que ninguno.
+  //
+  // Sólo el GET lleva `signal`: teclear rápido genera búsquedas que se pisan (mismo criterio
+  // que `escanearProyecto`). Las tres mutaciones NO lo llevan a propósito — abortar una
+  // mutación a mitad es peor que esperarla (mismo criterio que `traerCanonico`).
+  conversaciones: (sesionId: string, q?: string, signal?: AbortSignal) =>
+    req<ConversacionesListado>(
+      `/api/sessions/${encodeURIComponent(sesionId)}/conversaciones${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+      { ...(signal ? { signal } : {}) },
     ),
-  historialCerrada: (id: string) =>
-    req<{ turnos: Turn[]; faltantes?: string[] }>(
-      `/api/sessions/cerradas/${encodeURIComponent(id)}/historial`,
+
+  // `desactivada` viaja SIEMPRE, con `null` cuando no había ninguna: el FE la nombra en el
+  // vacío del transcript nuevo (RF-307 CA-1) y deducirla de la lista anterior sería adivinarla.
+  crearConversacion: (sesionId: string) =>
+    req<{ nueva: ConversacionActiva; desactivada: string | null }>(
+      `/api/sessions/${encodeURIComponent(sesionId)}/conversaciones`,
+      { method: "POST" },
+    ),
+
+  activarConversacion: (sesionId: string, cid: string) =>
+    req<{ activada: ConversacionActiva; desactivada: string | null }>(
+      `/api/sessions/${encodeURIComponent(sesionId)}/conversaciones/${encodeURIComponent(cid)}/activar`,
+      { method: "POST" },
+    ),
+
+  renombrarConversacion: (sesionId: string, cid: string, titulo: string) =>
+    req<Conversacion>(
+      `/api/sessions/${encodeURIComponent(sesionId)}/conversaciones/${encodeURIComponent(cid)}`,
+      { method: "PATCH", body: JSON.stringify({ titulo }) },
     ),
 
   createSession: (input: NewSession) =>

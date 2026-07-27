@@ -14,8 +14,26 @@ pointers:
   - "internal/usecase/session_service.go#tryHealResume"
 valida:
   - "internal/usecase/session_permisos_test.go"
-scenarios: []
-business_rules: []
+  - "TestFramesDelConductorViejoSeDescartan"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "El conductor pasa a pertenecer a un HILO de la sesión, no a la sesión entera. Al cambiar de hilo el puntero al proceso vivo se suelta, y lo que el proceso anterior siga emitiendo se descarta antes de tocar nada — el guard que ya existía se vuelve la defensa de una carrera que antes no podía ocurrir."
+    merge_sha: null
+scenarios:
+  - id: el-conductor-anterior-no-contamina-el-hilo-nuevo
+    name: "El proceso anterior sigue hablando después de un cambio de hilo"
+    status: live
+    given: "un cambio de hilo recién ocurrido"
+    when: "el proceso del hilo anterior emite un resultado o una actividad"
+    then: "nada de eso aterriza en el hilo nuevo: ni turnos, ni uso de contexto, ni estado"
+    verifica: "TestFramesDelConductorViejoSeDescartan"
+business_rules:
+  - id: el-turno-cae-en-el-hilo-activo
+    rule: "Un turno cae siempre en el hilo activo de la sesión, que es el único que tiene conductor. No existe un turno dirigido a un hilo inactivo."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
 related_capabilities:
   depends_on: []
   enables: []

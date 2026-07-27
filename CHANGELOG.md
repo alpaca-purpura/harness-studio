@@ -24,16 +24,56 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+- story baseline del panel de conversación (chat-dock.stories.tsx): el widget que no tenía ninguna ahora fija sus 4 filas de cromo, su tarjeta de permiso y su turno en vuelo
+- gate de contrato del daemon: una ruta que se sirve está declarada en openapi.yaml o exenta con razón escrita (4 enforcers + allowlist de 15 entradas)
+- La conversación pasa a ser una entidad propia del dominio, con su título editable, su marca de activa y su ciclo de vida: una sesión contiene N conversaciones y exactamente una activa, y esa invariante se repara al cargar diciendo qué reparó.
+- El registro de sesiones viaja en un sobre que dice de qué versión es, qué build lo escribió y cuándo, y el arranque sabe migrarlo con copia previa obligatoria. El archivo de la versión anterior queda intacto: volver atrás no necesita restaurar nada.
+- El arranque del daemon dice qué le hizo al registro de sesiones: qué migró, dónde quedó la copia previa, qué reparó y qué llaves movió. Un arranque sin novedades no imprime nada.
+- Las conversaciones de una sesión: crear una nueva y retomar una anterior sin perder ninguna de las dos. Cambiar de hilo es una sola transición — o pasa entera, o el estado anterior queda intacto.
+- El buscador del panel entra al TEXTO de la conversación, no sólo al título: encuentra por lo que se dijo, ignora acentos y mayúsculas, y muestra el pedazo donde coincidió.
+- El daemon expone las conversaciones de una sesión: listarlas, buscarlas, crear una nueva, retomar una anterior y renombrarla.
+- El panel de conversación muestra las conversaciones de su sesión: se listan, se buscan por lo que se dijo adentro, se crean y se retoman sin salir del dock
+- Verificación de punta a punta contra la aplicación instalada: los seis guiones del plan corren contra el binario que el operador ejecuta, con los datos de sesiones aislados en una copia, y dejan su informe con capturas
+- Fixture sintético de migración con los 20 campos del esquema v1 poblados, más un guard reflexivo: 6 mutaciones que antes sobrevivían (checkpoint, cadena_cc, status, puesto, parked, cerrada_en) ahora ponen el árbol rojo.
+- El daemon recalibra solo las llaves de sesión a medias al arrancar (CV-D18): respalda antes, y el log dice cuántas movió y cuántas quedaron sin candidata porque su arnés no está en el Portafolio.
+- Test del respaldo previo de Save (A-8) y enforcer del puntero convActiva de la transición (A-7): dos guards que funcionaban y no tenían red.
+- scripts/paridad_cifras.py: las cifras del gate de PARIDAD se generan y se pueden chequear, ya no se teclean (A-12).
+- El arranque avisa si quedó un sesiones-cerradas.json del formato anterior: dice cuántas sesiones tiene y que este binario ya no lo lee (A-9). Era lo único que el arranque hacía en silencio.
 
 ### Cambiado
+- La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
+- Cerrar un frente de trabajo ya no tira el transcript ni el checkpoint de sus conversaciones: se archiva lo que el operador vio, que es lo único que sobrevive a una limpieza del corpus de Claude Code y lo único sobre lo que se puede buscar.
+- Toda sesión nace con su conversación activa. Antes nacía sin ninguna y la primera lectura la creaba avisando de una «reparación» de algo que nunca estuvo roto.
+- `GET /api/sessions` vuelve a devolver SIEMPRE un arreglo y cada sesión lleva su conversación activa en vez de todas sus conversaciones con los diálogos completos.
+- El cromo del dock baja de cuatro filas a dos: la identidad técnica del proceso pasa a un chip desplegable —que ahora también dice en qué carpeta corre— y la fila de alcance sólo aparece cuando hay un nodo elegido
 
 ### Deprecado
 
 ### Eliminado
+- Se retiran las rutas del historial por arnés: el parámetro `cerradas` de la lista de sesiones ahora responde con el puntero a su reemplazo, y la ruta que reconstruía turnos desde el corpus nativo ya no se sirve. La capacidad se conserva para lo archivado antes de la migración.
+- El selector de arnés ya no lista conversaciones: pertenecían a una sesión, no a un arnés, y sus dos rutas se retiraron con el modelo nuevo
 
 ### Corregido
+- declarada la violación a11y preexistente del dock: el cc-id de la SessionLine va en --primary sobre --secondary (2,21:1)
+- el error de historial del picker deja de pintarse en --warn (3,76:1, bajo el mínimo de axe): el texto va en --foreground y la alarma en un borde no textual — con eso el job visual-fitness de CI vuelve a verde
+- declarados ?arnes= y ?cerradas= de GET /api/sessions, que se servían sin figurar en el contrato
+- Lo que el daemon devuelve de una sesión es un instante y ya no una ventana al registro vivo: mientras el conductor trabajaba, la lectura ya entregada se movía sola.
+- Las sesiones cuya llave de arnés quedó a medias se recalibran a la clave completa: tres de las cinco del registro real estaban invisibles cuando la interfaz preguntaba por la clave. Nada se borra, nada se fusiona, y se ve antes de aplicarse.
+- Leer un registro de sesiones escrito por una versión anterior ya no tira en silencio lo que cambió de lugar — le costaba los 90 turnos de la conversación más larga en disco.
+- La marca de «contexto rotado» ahora aparece en el diálogo sin recargar la aplicación. Antes se guardaba en disco y el operador no la veía hasta reabrir.
+- El identificador de la sesión de Claude Code dejó de pintarse con un color que no llegaba al contraste mínimo de texto sobre el fondo del dock
+- La migración del registro de sesiones se probó sobre el archivo real del operador (en copia): las cinco sesiones y la conversación de noventa turnos sobreviven, el archivo de la versión anterior queda intacto y volver a arrancar no vuelve a migrar
+- Se registran seis hallazgos que sólo aparecieron al probar contra la aplicación instalada, entre ellos que la marca de contexto rotado puede perderse sin aviso cuando la misma sesión se mira desde dos ventanas
+- El título de una conversación se deriva de su primer mensaje (CV-D9/RF-303): estaba firmado, escrito en el dominio y sin cablear — toda conversación se llamaba «nueva conversación» para siempre.
+- La fecha de última interacción se estampa en cada turno (CV-D13/RF-304): nunca se escribía, así que toda fila de la lista decía «sin fecha» y el orden del panel caía en silencio al de creación.
+- TestResumeAutoSana dejó de ser flaky: esperaba un Idle que ya estaba puesto, así que el turno 2 corría contra un handle vivo todavía no soltado (falla reproducida en la base, ~1 de 100 bajo carga).
+- El teclado del panel de conversaciones arranca solo: el foco se pone cuando la lista existe y no al montar, cuando todavía es el esqueleto y no hay adónde ir.
+- Las flechas del panel arrastran el scroll: con la lista más larga que el panel el cursor avanzaba y la vista no.
+- Escape cierra el panel de conversaciones desde cualquier parte de él, no sólo desde el buscador — que ni siquiera se dibuja con una sola conversación.
+- El arranque que recalibra las llaves de sesión ya deja ver las conversaciones en el acto: antes escribía el registro bien pero la aplicación seguía mostrando lo viejo hasta el siguiente arranque, así que el operador estrenaba la función viendo el problema que la función arregla.
 
 ### Seguridad
+- Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.
 
 ## [0.3.1] — 2026-07-27
 

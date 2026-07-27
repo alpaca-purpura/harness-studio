@@ -247,6 +247,83 @@ migrador de llaves a costa de perder transcripts vivos.
 
 ---
 
+## CV-D17 · La mudanza del picker se adelanta del tramo 5 al 3 — no se puede no hacerla 🧑‍⚖️ PENDIENTE
+
+**Qué pasó.** T21 retira `conversacionesDeArnes` e `historialCerrada` del cliente, porque sus dos
+rutas ya no existen (responden 400 con puntero y 404). Su único consumidor —el store
+`widgets/session-rail/model/conversaciones-store.ts` y el bloque `ConversacionesDelArnes` del
+selector de arnés— **deja de compilar en el mismo instante**. Eso es RF-333/RF-334, que el plan
+había puesto en **T30, tramo 5**.
+
+**Por qué el orden del plan ya no aplica.** T30 estaba último con un argumento explícito: «hasta acá
+el operador conserva la superficie vieja, aunque muestre 0». El argumento **caducó con el tramo 2**:
+esa superficie no muestra 0 hoy, muestra un error de red, porque los endpoints que consulta se
+retiraron. Conservarla no era conservar nada — era garantizar un fallo a la vista del operador.
+
+**Las alternativas, y por qué no.**
+- *Dejar los dos métodos del cliente hasta T30.* Habría que darles un tipo propio, porque `Session`
+  cambió de forma: escribir un contrato TypeScript que describa endpoints que ya no se sirven.
+- *Adaptar el store del rail a la forma nueva.* Adaptar código que el mismo paquete va a borrar,
+  para que siga llamando a rutas muertas.
+
+**Qué se hizo.** El store y su test se eliminan; el picker pierde el import, la llamada, el render y
+el componente. La story `CasoSimple` gana un assert **por ausencia**
+(`queryByText(/Conversaciones:/) === null`), que es la evidencia de RF-333.
+
+**Qué NO cambia.** El resto de T30 —el gate humano de la mudanza y la nota de `mockups/INDEX.md`—
+sigue en el tramo 5. Y la **capacidad** de leer lo archivado antes de la migración sigue viva del
+lado del daemon (CAP-98), ahora sin superficie que la ejerza: declarado en su `change_log`, no
+tapado.
+
+**Efecto colateral, verificado:** las 4 stories del picker que el `BACKLOG` daba por rotas por el
+`text-warn` de `new-session-picker.tsx:273` ya no lo ejercitan. **La deuda del token `--warn` sigue
+abierta** — sólo perdió a este consumidor.
+
+---
+
+## CV-D18 · La recalibración de llaves se CABLEA al arranque del daemon 🧑‍⚖️ FIRMADA 2026-07-27
+
+**Qué se decide.** El daemon, al arrancar, **detecta las llaves a medias y las recalibra solo**,
+con **respaldo previo** (`sessions.json.bak-<sello>`) y **una línea de log que diga cuántas
+recalibró**. Hoy `cmd/arnesia/main.go:202` pasa `nil` como `ClaveCalificada` a `AbrirRegistro`, así
+que `reKey` no corre nunca en el arranque y la decisión firmada no está construida.
+
+**Qué revierte.** La **enmienda que `arquitectura.md` le había hecho a CV-D16** dejándola como
+comando manual (`arnesia sesiones recalibrar-llaves`). El argumento del arquitecto era bueno —no
+atar el arranque del daemon a que el Portafolio responda— pero la enmienda **la tomó un documento
+que el operador nunca leyó**. Es el riesgo exacto que abrió el Gate 2 «por directiva, no por
+lectura», y se resolvió de la única forma que corresponde: **preguntándole**.
+
+**Motivo.** CV-D16 firmada dice que **el mismo paso** que estrena el esquema versionado re-key las
+vivas. Con el comando manual, **3 de las 5 sesiones del operador quedan invisibles sin que nada se
+lo avise** (hallazgo **N-23** del E2E): nada en la superficie le sugiere correr el comando, así que
+el efecto práctico es que la decisión no existe. **Una decisión firmada que no corre no está
+construida.**
+
+**Alternativas descartadas por el operador.**
+- **(a) Avisar en la superficie, con un botón para recalibrar.** Más honesto con «no mutar datos al
+  arrancar», pero exige **superficie nueva fuera del mockup firmado** — y el mockup está firmado.
+- **(b) Dejarlo manual como está.** Es el estado que produjo N-23.
+
+**Contrapeso declarado, no escondido.** Esto **muta datos del operador al arrancar**, que es justo
+lo que el arquitecto quiso evitar. Se acepta, y por eso **el respaldo previo y el log no son
+opcionales**, y **la reversión tiene que seguir funcionando**:
+
+1. **Primero la red, después el cambio.** Si el respaldo falla, **no se recalibra nada**. El orden
+   no es un detalle de implementación: es la decisión.
+2. **Nada en silencio.** El log dice **cuántas** se recalibraron y **cuántas quedaron
+   `sin-candidata`**. Lo segundo es tan obligatorio como lo primero: el E2E ya sabe que **una de
+   las 5 sale `sin-candidata`** porque su arnés no está en el Portafolio. Eso es correcto y
+   honesto — callarlo lo volvería un defecto mudo.
+3. **Idempotente.** Arrancar dos veces no duplica respaldos ni vuelve a mover nada.
+4. **El motivo del riesgo queda escrito EN EL CÓDIGO**, no sólo acá.
+
+**Consecuencia sobre A-10.** El hallazgo A-10 de la auditoría —«CV-D16 no corre en el binario que
+se instala, y eso lo decidió `arquitectura.md`, no el operador»— queda **cerrado por decisión del
+operador**, no por argumento técnico del ejecutor. El comando manual **no se retira**: sigue siendo
+útil con `--dry-run` y como reversión.
+
 ## Abierto
 
-Ninguno. CV-D1..CV-D16 firmadas; F-1..F-4 son correcciones de hecho, no decisiones nuevas.
+**CV-D17 sigue PENDIENTE de firma.** CV-D1..CV-D16 y **CV-D18** firmadas; F-1..F-4 son
+correcciones de hecho, no decisiones nuevas.

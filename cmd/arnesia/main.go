@@ -67,6 +67,8 @@ func main() {
 		err = runConformance(os.Args[2:])
 	case "portafolio":
 		err = runPortafolio(os.Args[2:])
+	case "sesiones":
+		err = cmdSesiones(os.Args[2:])
 	case "telemetria":
 		err = runTelemetria(os.Args[2:])
 	case "hook":
@@ -100,6 +102,7 @@ commands:
   publish   publish a harness to its marketplace repo (stub)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
   portafolio   escanear/listar/agregar/desvincular arneses del Portafolio (Slice 0)
+  sesiones     recalibrar-llaves: lleva la llave de arnés de cada sesión a su clave calificada (dry-run por default)
   telemetria   resumen/mejoras/salud/purgar/catalogo — verificación del módulo sin FE
   hook         hook de instrumentación: 'arnesia hook proceso' (stdin -> loopback, exit 0 siempre)
 `)
@@ -186,10 +189,23 @@ func runServe(args []string) error {
 	}
 	agent := claudecode.New(resolveClaudeBin(*claudeBin)) // the Dock conductor.
 
-	sessionStore, err := store.NewRegistry(*sessionsPath)
+	// El registro vivo se ABRE, no se construye: `AbrirRegistro` resuelve qué archivo
+	// manda, migra la forma vieja con copia previa, recalibra las llaves a medias (CV-D16)
+	// y repara la invariante de conversaciones. Nada de eso ocurre en silencio — todo lo
+	// que hizo viaja en el Informe y sale por el log de arranque, con las rutas.
+	//
+	// El re-key NO corre acá: necesita el Portafolio, que se cablea más abajo. Se pasa nil
+	// y la recalibración ocurre en su propio paso, apenas el Portafolio existe (CV-D18 ·
+	// buscá `RecalibrarAlArrancar` en este archivo). Este `nil` ya NO significa «el
+	// operador lo corre a mano»: eso fue una enmienda que un documento le hizo a una
+	// decisión firmada, y el hallazgo A-10 la revirtió.
+	sesionesV2, sessionsLegado := rutasDelRegistro(*sessionsPath)
+	sessionStore, informe, err := store.AbrirRegistro(sesionesV2, sessionsLegado, selfupdate.Build, nil)
 	if err != nil {
 		return fmt.Errorf("session store: %w", err)
 	}
+	loguearInforme(informe, sesionesV2)
+	avisarDelArchivoAbandonado(sesionesV2)
 
 	// Watcher fsnotify (RF-210): observa el mismo árbol que Rebuild leyó — arnesReg —
 	// para disparar reindex incremental cuando algo cambia en caliente.
@@ -308,6 +324,47 @@ func runServe(args []string) error {
 	marketplaceSvc, err := newMarketplaceService(pfStore, derivaEval)
 	if err != nil {
 		return fmt.Errorf("marketplace service: %w", err)
+	}
+
+	// CV-D18 (FIRMADA 2026-07-27) · el re-key de CV-D16 corre SOLO, acá, en el arranque.
+	//
+	// Va en este punto y no junto a `AbrirRegistro` por una razón dura: el resolvedor de
+	// llaves necesita el Portafolio, que recién existe en esta línea. Antes se pasaba `nil`
+	// a `AbrirRegistro` y `reKey` no corría nunca — CV-D16 estaba firmada y NO construida
+	// (hallazgo A-10 de la auditoría, síntoma N-23: 3 de las 5 sesiones del operador
+	// invisibles, sin que nada se lo avisara).
+	//
+	// Esto MUTA datos del operador al arrancar, que es justo lo que la arquitectura del
+	// paquete quiso evitar, y el riesgo se acepta a ojos abiertos porque el operador lo
+	// eligió sabiendo el costo. Lo que lo hace aceptable no es el argumento: son las tres
+	// garantías que `RecalibrarAlArrancar` sostiene con tests —respaldo ANTES del cambio
+	// (si falla el respaldo no se recalibra nada), informe que distingue recalibradas de
+	// `sin-candidata`, e idempotencia— más la reversión, que sigue viva en
+	// `arnesia sesiones recalibrar-llaves --revertir --desde <respaldo>`.
+	//
+	// Un fallo acá NO tumba el daemon: se dice y se sigue. Quedarse sin arrancar por no
+	// poder recalibrar una llave sería peor que la llave a medias que se venía tolerando.
+	if entradas, _, lerr := portafolioSvc.Listar(ctx); lerr != nil {
+		slog.Warn("registro de sesiones: no se pudo leer el Portafolio para recalibrar las llaves — "+
+			"quedan como están; corré `arnesia sesiones recalibrar-llaves --dry-run`", "err", lerr)
+	} else if infRekey, rerr := sessionStore.RecalibrarAlArrancar(resolverDeLlaves(entradas), selfupdate.Build); rerr != nil {
+		slog.Error("registro de sesiones: la recalibración de llaves NO se aplicó — el registro quedó intacto",
+			"registro", sesionesV2, "err", rerr)
+	} else {
+		loguearRecalibracion(infRekey, sesionesV2)
+		// El store ya escribió el disco, pero `sessionSvc` cargó el registro más arriba y
+		// tiene las llaves viejas en memoria. Sin este puente el arranque que APLICA el
+		// re-key sigue sirviendo lo de antes, y el operador estrena la función viendo el
+		// bug que la función arregla (N-24, medido contra el binario).
+		nuevas := map[string]string{}
+		for _, f := range infRekey.Filas {
+			if f.Movio() {
+				nuevas[f.SesionID] = f.Despues
+			}
+		}
+		if n := sessionSvc.AplicarRecalibracion(nuevas); n > 0 {
+			slog.Info("registro de sesiones: llaves recalibradas aplicadas al registro vivo", "sesiones", n)
+		}
 	}
 	// Tarjeta de identidad por sesión (RF-189): cada spawn sabe qué arnés es, qué copia
 	// edita (canónico/instalación/suelto) y su rol — cerrada sobre el Portafolio real.
@@ -791,15 +848,135 @@ func imprimirJSON(v any) error {
 	return err
 }
 
-// cerradasPathDefault deriva el archivo del registro de cerradas del de sesiones vivas:
-// mismo dir, nombre propio (default ~/.arnesia/sesiones-cerradas.json).
+// rutasDelRegistro resuelve el par (registro vigente, registro de la versión anterior).
+// El de la versión anterior NO se toca, NO se borra y NO se renombra: mientras exista
+// intacto, volver a un binario anterior no necesita restaurar nada.
+//
+// Con `--sessions` explícito, esa ruta ES el registro vigente y no hay legado que migrar:
+// el operador está apuntando a un archivo suyo a propósito (tests, copias, otro perfil).
+func rutasDelRegistro(sessionsPath string) (vigente, legado string) {
+	if sessionsPath != "" {
+		return sessionsPath, ""
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", "" // AbrirRegistro resolverá (y fallará) honesto por su cuenta.
+	}
+	dir := filepath.Join(home, ".arnesia")
+	return filepath.Join(dir, "sesiones.json"), filepath.Join(dir, "sessions.json")
+}
+
+// loguearInforme cuenta lo que el arranque le hizo al registro. Un arranque sin novedades
+// no imprime nada: el Informe sólo trae lo que efectivamente ocurrió.
+// avisarDelArchivoAbandonado — A-9. `sesiones-cerradas.json` dejó de leerse cuando el
+// archivado pasó a conservar el transcript completo (CV-D12 + CV-D8), y el operador lo borra
+// a mano (CV-D6). Todo bien con eso; lo que NO estaba bien era el SILENCIO.
+//
+// Este paquete tiene un lema —«nada de esto ocurre en silencio»— y lo cumple para la
+// migración, el respaldo, la cuarentena, el esquema futuro, las reparaciones y las
+// recalibraciones. Abandonar un archivo de DATOS del operador era lo único que no decía
+// nada. Y no aplica sólo a las 3 sesiones que él ya declaró no importantes: CUALQUIERA que
+// haya archivado con el binario anterior, antes de actualizar, cayó ahí.
+//
+// Una línea, en el arranque, con la ruta y el número. No lo lee, no lo migra y no lo borra:
+// sólo deja de fingir que no existe.
+func avisarDelArchivoAbandonado(sesionesPath string) {
+	ruta := filepath.Join(filepath.Dir(sesionesPath), "sesiones-cerradas.json")
+	b, err := os.ReadFile(ruta) //nolint:gosec // ruta derivada de la del registro, no de la entrada del usuario.
+	if err != nil {
+		return // no existe (el caso normal) o no se puede leer: no es motivo para molestar.
+	}
+	var cerradas []struct {
+		ID string `json:"id"`
+	}
+	n := -1 // -1 = está pero no se pudo contar; se dice igual, no se calla.
+	if json.Unmarshal(b, &cerradas) == nil {
+		n = len(cerradas)
+	}
+	slog.Warn("registro de sesiones: quedó un `sesiones-cerradas.json` del formato anterior — "+
+		"este binario NO lo lee ni lo migra; lo que archives ahora va al registro nuevo. "+
+		"Podés borrarlo a mano cuando quieras (CV-D6 · T32)",
+		"archivo", ruta, "sesiones", n, "bytes", len(b))
+}
+
+// loguearRecalibracion cuenta lo que el re-key del arranque le hizo a las llaves (CV-D18).
+//
+// Dice las DOS cosas, y la segunda no es opcional: cuántas recalibró y cuántas quedaron
+// `sin-candidata` porque su arnés no está en el Portafolio. Ese caso es real y conocido —el
+// E2E lo vio en una de las cinco sesiones del operador— y callarlo lo volvería un defecto
+// mudo: el operador vería una sesión que sigue sin aparecer y nada que se lo explique.
+//
+// Un arranque sin novedad no imprime nada, igual que `loguearInforme`.
+func loguearRecalibracion(inf store.InformeRecalibracion, ruta string) {
+	if !inf.Hubo() {
+		return
+	}
+	slog.Info("registro de sesiones: llaves recalibradas al arrancar (CV-D18)",
+		"recalibradas", inf.Recalibradas, "sin_candidata", inf.SinCandidata,
+		"ya_calificadas", inf.YaCalificadas, "registro", ruta, "respaldo", inf.RespaldoEn)
+	for _, r := range inf.Filas {
+		switch {
+		case r.Movio():
+			slog.Info("registro de sesiones: llave recalibrada",
+				"sesion", r.SesionID, "antes", r.Antes, "despues", r.Despues, "motivo", r.Motivo)
+		case r.Motivo == "sin-candidata":
+			slog.Warn("registro de sesiones: llave SIN recalibrar — su arnés no está en el Portafolio; "+
+				"la sesión no va a aparecer al filtrar por arnés hasta que lo agregues",
+				"sesion", r.SesionID, "llave", r.Antes)
+		}
+	}
+	if inf.Recalibradas > 0 {
+		slog.Info("registro de sesiones: para deshacer SÓLO el re-key, "+
+			"`arnesia sesiones recalibrar-llaves --revertir --desde <respaldo>`", "respaldo", inf.RespaldoEn)
+	}
+}
+
+func loguearInforme(inf store.Informe, ruta string) {
+	if !inf.Hubo() {
+		return
+	}
+	if inf.Migro {
+		slog.Info("registro de sesiones: migrado a la forma nueva",
+			"desde_version", inf.DesdeVersion, "hasta_version", store.EsquemaActual,
+			"registro", ruta, "respaldo", inf.RespaldoEn)
+	}
+	if inf.Corrupto {
+		slog.Error("registro de sesiones ILEGIBLE — se guardó entero y el registro arranca vacío",
+			"cuarentena", inf.CuarentenaEn)
+	}
+	if inf.EsquemaFuturo {
+		slog.Error("registro de sesiones escrito por un binario MÁS NUEVO — solo-lectura, no se toca un byte",
+			"registro", ruta)
+	}
+	for _, arreglo := range inf.Reparaciones {
+		slog.Warn("registro de sesiones: invariante reparada al cargar", "arreglo", arreglo)
+	}
+	for _, r := range inf.Recalibradas {
+		if r.Movio() {
+			slog.Info("registro de sesiones: llave recalibrada",
+				"sesion", r.SesionID, "antes", r.Antes, "despues", r.Despues, "motivo", r.Motivo)
+			continue
+		}
+		slog.Info("registro de sesiones: llave sin cambios",
+			"sesion", r.SesionID, "llave", r.Antes, "motivo", r.Motivo)
+	}
+}
+
+// cerradasPathDefault deriva el archivo del registro de sesiones ARCHIVADAS del de sesiones
+// vivas: mismo dir, nombre propio (default ~/.arnesia/sesiones-archivadas.json).
+//
+// El nombre cambió con la ley (CV-D12 + CV-D8): «cerradas» describía un archivo terminal
+// del que no se volvía, y ahora lo que se archiva es la sesión ENTERA con sus
+// conversaciones completas. El `sesiones-cerradas.json` viejo NO se lee ni se migra — el
+// operador lo borra a mano (CV-D6), porque su contenido es el que ya declaró que no le
+// importa. Ese borrado es T32 y es del operador, no de este código.
 func cerradasPathDefault(sessionsPath string) string {
 	if sessionsPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "" // NewRegistry("") resolverá (y fallará) honesto por su cuenta.
 		}
-		return filepath.Join(home, ".arnesia", "sesiones-cerradas.json")
+		return filepath.Join(home, ".arnesia", "sesiones-archivadas.json")
 	}
-	return filepath.Join(filepath.Dir(sessionsPath), "sesiones-cerradas.json")
+	return filepath.Join(filepath.Dir(sessionsPath), "sesiones-archivadas.json")
 }

@@ -87,6 +87,26 @@ type Conversacion struct {
 	Conv []Turn `json:"conv"`
 }
 
+// largoDeTitulo es a cuántos caracteres se recorta un nombre derivado de un mensaje.
+const largoDeTitulo = 48
+
+// RecorteDeTitulo normaliza un mensaje del usuario a un nombre corto: colapsa los blancos
+// y recorta con puntos suspensivos. Devuelve "" cuando no queda nada — QUIÉN pone el
+// default es del que llama, y no es el mismo: la sesión cae en "nuevo frente" y la
+// conversación en "nueva conversación".
+//
+// Vive en el dominio porque la usan dos: el usecase al derivar el frente de una sesión y
+// el migrador del registro al bautizar las conversaciones que nacen de un archivo viejo.
+// El migrador no puede importar el usecase (el grafo de dependencias lo prohíbe), y tener
+// dos copias de la regla sería tener dos reglas.
+func RecorteDeTitulo(text string) string {
+	text = strings.TrimSpace(strings.Join(strings.Fields(text), " "))
+	if len(text) > largoDeTitulo {
+		return text[:largoDeTitulo] + "…"
+	}
+	return text
+}
+
 // NumTurnos deriva la cuenta de turnos. NO existe un campo `Turnos` persistido: duplicar
 // len(Conv) es un drift esperando ocurrir, y esto lo hace imposible de mentir.
 func (c Conversacion) NumTurnos() int { return len(c.Conv) }
@@ -117,6 +137,22 @@ func (s *Session) Activa() (*Conversacion, bool) {
 		}
 	}
 	return nil, false
+}
+
+// Instantanea devuelve una copia de la sesión segura para leer FUERA del candado que
+// protege el registro vivo. Copia el slice de conversaciones: sin esto, el valor que
+// devuelve un Get comparte el backing array con el runtime, y cada campo que el conductor
+// mueve (RotacionPendiente, CtxPct, ClaudeSessionID, Titulo) es una escritura sobre la
+// memoria que el lector ya tiene en la mano. Con la sesión plana el problema no existía —
+// esos campos se copiaban por valor; al bajar a un slice, dejaron de copiarse.
+//
+// NO copia los slices DENTRO de cada conversación (Conv, CtxHist, CadenaCC) y es a
+// propósito: sólo se les appendea, así que el lector ve un prefijo estable y jamás toca la
+// posición que el escritor escribe. Copiarlos sería copiar el transcript entero en cada
+// List() — el costo que este método existe para no pagar.
+func (s Session) Instantanea() Session {
+	s.Conversaciones = append([]Conversacion(nil), s.Conversaciones...)
+	return s
 }
 
 // BuscarConversacion devuelve la conversación cid de ESTA sesión. Nunca busca fuera.

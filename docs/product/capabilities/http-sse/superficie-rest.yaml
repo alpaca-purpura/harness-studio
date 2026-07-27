@@ -4,26 +4,64 @@
 capability_id: arnesia.http-sse.superficie-rest
 cap_num: CAP-52
 slug: superficie-rest
-name: "Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)"
+name: "Superficie REST (58 rutas servidas · 43 declaradas · 14 exentas con razón)"
 status: vivo             # GENERADO (R4) — no teclear
 module: http-sse
 verb: funcional
 pointers:
   - "internal/adapters/transport/http/router.go#NewHandler"
+  - "internal/adapters/transport/http/sessions_conversaciones.go#listarConversaciones"
+  - "internal/adapters/transport/http/sessions_conversaciones.go#crearConversacion"
+  - "internal/adapters/transport/http/sessions_conversaciones.go#activarConversacion"
+  - "internal/adapters/transport/http/sessions_conversaciones.go#renombrarConversacion"
+  - "internal/adapters/transport/http/sessions_conversaciones.go#errorDeConversacion"
+  - "internal/adapters/transport/http/sessions.go#sessionWire"
 valida:
+  - "TestListarDevuelve404SiLaSesionNoExiste"
+  - "TestCrearDevuelve409ConTurnoEnVuelo"
+  - "TestActivarConvAjenaDevuelve404"
+  - "TestRenombrarVacioDevuelve400YNoCambia"
+  - "TestCerradas1Devuelve400ConPuntero"
+  - "TestListSessionsSiempreEsArray"
+  - "TestLaSesionQueViajaLlevaSuActivaYNoSusNConversaciones"
+  - "TestElMuxNoAmbiguaEntreSesionYConversaciones"
   - "TestRutaServidaEstaDeclarada"
   - "TestRutaDeclaradaSeSirve"
   - "TestQueryParamEstaDeclarado"
   - "TestExencionDeContratoTieneRazon"
-scenarios: []
-business_rules: []
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "La superficie de sesiones gana las cuatro rutas del panel de conversaciones y pierde la del historial por arnés, que ya no tiene nada que reconstruir. La respuesta de la lista de sesiones deja de ser bimorfa —era la única del daemon que cambiaba de forma según un parámetro, y por eso no se podía describir con un solo esquema— y la sesión que viaja pasa a llevar su conversación activa en vez de sus N conversaciones con los diálogos completos. Cifras medidas, no tecleadas: 58 rutas servidas, 43 operaciones declaradas, 14 exentas con razón; la lista de exentas se achicó, que es lo único que la regla del trinquete permite."
+    merge_sha: null
+scenarios:
+  - id: la-lista-de-sesiones-tiene-una-sola-forma
+    name: "Un cliente lee el contrato de la lista de sesiones"
+    status: live
+    given: "la operación declarada con su único esquema de respuesta"
+    when: "se la consulta con o sin filtro por arnés"
+    then: "siempre devuelve un arreglo; el parámetro que la volvía un objeto se retiró y responde con el puntero a su reemplazo"
+    verifica: "TestListSessionsSiempreEsArray"
+  - id: una-ruta-nueva-no-nace-sin-declarar
+    name: "Se agregan rutas al daemon"
+    status: live
+    given: "el trinquete de contrato ya instalado"
+    when: "el router sirve cuatro rutas nuevas"
+    then: "el gate rompe hasta que las cuatro están declaradas con todos sus códigos; la lista de exentas sólo puede achicarse"
+    verifica: "TestRutaServidaEstaDeclarada"
+business_rules:
+  - id: la-respuesta-de-una-operacion-tiene-una-sola-forma
+    rule: "Una operación devuelve una sola forma de respuesta. La que cambiaba de arreglo a objeto según un parámetro era indescriptible: no había un éxito que documentar, había dos."
+    enforcement: ["docs/architecture/boundaries/ruta-servida-esta-declarada.md"]
+    severity: high
 related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-52)"
 ---
 
-# Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)
+# Superficie REST (58 rutas servidas · 43 declaradas · 14 exentas con razón)
 
 Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
 

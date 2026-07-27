@@ -1,0 +1,105 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, T16 · RF-313 CA-4 · H-8).
+# Schema: docs/product/_templates/capability.template.yaml
+#
+# ⚠ La arquitectura §5.2 anticipaba CAP-145; 143 y 144 se asignaron antes de llegar acá. El
+# próximo libre se verifica contra el árbol, no contra la prosa.
+capability_id: arnesia.http-sse.frame-de-conversacion
+cap_num: CAP-144
+slug: frame-de-conversacion
+name: "El panel de conversaciones se entera en vivo"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: http-sse
+layer: adapter
+verb: observar
+functional_area: "http-sse.dock"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/session_service.go#dockFrame"
+  - "internal/usecase/session_rotacion.go#rotarLocked"
+valida:
+  - "TestRotacionEmiteFrameConTurnoIdx"
+  - "TestRotacionFrameLlegaAntesDelStatus"
+  - "TestRotacionNoCreaConversacionNueva"
+  - "TestRenombrarNoEsUnaTransicion"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §5.2 · §4.3"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: new
+    summary: "Todo lo que le pasa a las conversaciones de una sesión —nace una, se retoma otra, se renombra, o el contexto rota por detrás— viaja por el mismo canal en vivo que ya lleva el resto del diálogo. Antes la rotación sólo se guardaba en disco: el operador no veía la marca hasta recargar la aplicación."
+    merge_sha: null
+scenarios:
+  - id: la-marca-de-rotacion-llega-sola
+    name: "El contexto rota por detrás mientras el operador mira el diálogo"
+    status: live
+    given: "una conversación cuyo uso de contexto cruzó el umbral"
+    when: "el operador manda el turno siguiente"
+    then: "la marca de que el contexto rotó aparece en el diálogo sin recargar nada, y llega ANTES del mensaje que la disparó — que es el orden en que quedó guardada"
+    verifica: "TestRotacionFrameLlegaAntesDelStatus"
+  - id: la-marca-no-se-duplica-si-la-conexion-se-corta
+    name: "La conexión de eventos se corta y el navegador repite lo último"
+    status: live
+    given: "una marca de rotación ya pintada en el diálogo"
+    when: "la conexión se restablece y reenvía ese aviso"
+    then: "la marca no se duplica: el aviso trae la posición exacta que ocupa en el diálogo y sólo se aplica si esa posición todavía está libre"
+    verifica: "TestRotacionEmiteFrameConTurnoIdx"
+  - id: rotar-no-parte-el-hilo
+    name: "El contexto rota con el panel de conversaciones abierto"
+    status: live
+    given: "una sesión con varias conversaciones y el panel abierto"
+    when: "una de ellas rota su contexto"
+    then: "la lista sigue mostrando las mismas conversaciones y el mismo título — lo que rotó es el proceso de adentro, no el hilo"
+    verifica: "TestRotacionNoCreaConversacionNueva"
+business_rules:
+  - id: el-aviso-de-conversacion-no-pertenece-a-un-turno
+    rule: "El aviso del panel no lleva identificador de corrida, porque no pertenece a ningún turno. Su repetición se resuelve por otro camino: los avisos de creación, retoma y renombrado traen el estado final —aplicarlos dos veces da el mismo resultado— y el de rotación trae la posición que ocupa en el diálogo."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
+  - id: nada-se-publica-con-el-candado-tomado
+    rule: "Ningún aviso sale mientras el servicio tiene tomado su candado. La rotación DEVUELVE su aviso y quien la llamó lo publica después de soltarlo — que la marca no llegara en vivo era consecuencia de respetar esta regla, y la corrección la respeta también."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: el-texto-de-la-marca-es-el-que-ya-esta-guardado
+    rule: "El texto de la marca de rotación es el que el registro ya persiste, no el del dibujo del diseño. Reescribirlo dejaría a los diálogos ya guardados con la marca vieja y a los nuevos con otra."
+    enforcement: []
+    severity: medium
+related_capabilities:
+  depends_on:
+    - arnesia.http-sse.sse-multiplexado
+    - arnesia.usecases.conversaciones-de-una-sesion
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# El panel de conversaciones se entera en vivo
+
+El dock arma su copia del diálogo a partir de los avisos que llegan por el stream. Todo lo que no
+llega por ahí, sencillamente no existe para el operador hasta que recarga la aplicación.
+
+La rotación de contexto vivía exactamente en ese punto ciego: se guardaba en disco, encadenaba el
+id del proceso anterior, escribía su checkpoint y dejaba su marca en el diálogo… y no avisaba a
+nadie. No era un olvido: la rotación corre con el candado del servicio tomado, y en este servicio
+**nada se publica bajo el candado**. El lugar donde la función vive no podía publicar.
+
+La corrección respeta la regla en vez de romperla: la rotación **devuelve** su aviso y quien la
+llamó lo publica al soltar el candado, junto con el aviso de estado del turno — y en ese orden,
+porque la marca se guardó antes del mensaje del operador y tiene que verse antes.
+
+**La repetición no se resuelve con un identificador de corrida**, y vale explicar por qué no: este
+aviso no pertenece a ningún turno. Los de creación, retoma y renombrado traen el estado final del
+hilo, así que aplicarlos dos veces da el mismo resultado. El de rotación trae la posición exacta
+que la marca ocupa en el diálogo, y sólo se aplica si esa posición está libre — una reconexión que
+lo repita llega cuando ya está ocupada y se descarta sola.

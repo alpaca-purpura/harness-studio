@@ -36,7 +36,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-11 · FSM determinista de caja (T3)** `vivo` · dominio-l0/fsm-determinista-de-caja.yaml — `internal/domain/caja_fsm.go#AvanzarCaja`
 - **CAP-12 · Spine + 5 categorías fijas (interop I-77)** `vivo` · dominio-l0/spine-5-categorias-fijas.yaml — `internal/domain/graph.go#Spine`
 - **CAP-13 · Permisos derivados del rol (deny>ask>allow, TTL)** `vivo·nc` · dominio-l0/permisos-derivados-del-rol.yaml — `internal/domain/permission.go#PermissionSet.Decide`
-- **CAP-14 · Sesión = frente de trabajo** `vivo·nc` · dominio-l0/sesion-frente-de-trabajo.yaml — `internal/domain/session.go#Session`
+- **CAP-14 · Sesión = frente de trabajo** `vivo` · dominio-l0/sesion-frente-de-trabajo.yaml — `internal/domain/session.go#Session`
 - **CAP-140 · La conversación es una entidad, y la sesión la contiene** `vivo` · dominio-l0/conversacion-como-entidad.yaml — `internal/domain/conversacion.go#Conversacion`
 
 ### `loader` (6)
@@ -48,13 +48,15 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-19 · Derivar edges (necesita→lee/invoca)** `vivo` · loader/derivar-edges.yaml — `internal/adapters/loader/edges.go#derivarEdges`
 - **CAP-20 · Reconciliación honesta (no-reconocido visible)** `vivo` · loader/reconciliacion-honesta.yaml — `internal/adapters/loader/loader.go#nodoNoReconocido`
 
-### `indice-persistencia` (5)
+### `indice-persistencia` (7)
 
+- **CAP-141 · El archivo durable declara su esquema y sabe migrarse** `vivo` · indice-persistencia/migracion-de-esquema-en-disco.yaml — `internal/adapters/store/esquema.go#EsquemaActual`
+- **CAP-142 · Las sesiones con llave pelada se recalibran solas al arrancar, y nada se borra** `vivo` · indice-persistencia/recalibracion-de-llaves-de-sesion.yaml — `internal/adapters/store/rekey.go#ClaveCalificada`
 - **CAP-21 · Índice de arneses en memoria** `vivo` · indice-persistencia/indice-de-arneses-en-memoria.yaml — `internal/adapters/index/store.go#Store`
 - **CAP-22 · Reconstrucción del índice (ArnesRegistry)** `vivo` · indice-persistencia/reconstruccion-del-indice.yaml — `internal/adapters/index/store.go#Store.Rebuild`
 - **CAP-23 · Observar cambios del corpus (watcher)** `parcial` · indice-persistencia/observar-cambios-del-corpus.yaml — `internal/adapters/watch/watcher.go#Watcher`
 - **CAP-24 · Registro arnés→working-dir (confinamiento cwd + denylist)** `vivo·nc` · indice-persistencia/registro-arnesworking-dir.yaml — `internal/adapters/store/arnes_registry.go#Register`
-- **CAP-25 · Persistencia (sesiones + arnés→path, JSON atómico)** `vivo·nc` · indice-persistencia/persistencia.yaml — `internal/adapters/store/registry.go#Save`
+- **CAP-25 · Persistencia (sesiones + arnés→path, JSON atómico)** `vivo` · indice-persistencia/persistencia.yaml — `internal/adapters/store/registry.go#Save`
 
 ### `conformance` (7)
 
@@ -93,31 +95,35 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-46 · Digest acotado (economía de contexto, −90%)** `vivo` · handoff/digest-acotado.yaml — `internal/adapters/artifact/reader.go#Resumen`
 - **CAP-47 · Confinamiento de path del artefacto** `vivo` · handoff/confinamiento-de-path-del-artefacto.yaml — `internal/adapters/artifact/reader.go#confinedPath`
 
-### `http-sse` (9)
+### `http-sse` (10)
 
 - **CAP-106 · Superficie REST de marketplaces (7 endpoints, 400 ≠ 503 ≠ 409, `entradas: null`)** `parcial` · http-sse/superficie-marketplaces.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-114 · Superficie HTTP del dictado (subir audio · disponibilidad)** `vivo` · http-sse/superficie-dictado.yaml — `internal/adapters/transport/http/dictado.go#postDictado`
 - **CAP-116 · Diagnóstico de fallos del FE (el WebView deja rastro en el log)** `vivo` · http-sse/diagnostico-de-fallos.yaml — `internal/adapters/transport/http/diagnostico.go#postDiagnostico`
 - **CAP-137 · Superficie HTTP de telemetría (donde `null` y `0` no se confunden)** `vivo` · http-sse/superficie-telemetria.yaml — `internal/adapters/transport/http/telemetria.go#getResumen`
+- **CAP-144 · El panel de conversaciones se entera en vivo** `vivo` · http-sse/frame-de-conversacion.yaml — `internal/usecase/session_service.go#dockFrame`
 - **CAP-48 · Confinamiento de superficie local (Host+Origin+token)** `vivo` · http-sse/confinamiento-de-superficie-local.yaml — `internal/adapters/transport/http/auth.go#withAuth`
 - **CAP-49 · Router + montaje** `vivo·nc` · http-sse/router-montaje.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-50 · UI embebida servida por daemon** `vivo·nc` · http-sse/ui-embebida-servida-por-daemon.yaml — `embed_webdist.go#WebDist`
 - **CAP-51 · SSE multiplexado (map/dock/run, replay)** `vivo·nc` · http-sse/sse-multiplexado.yaml — `internal/adapters/transport/sse/broker.go#Publish`
-- **CAP-52 · Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
+- **CAP-52 · Superficie REST (58 rutas servidas · 43 declaradas · 14 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 
-### `usecases` (12)
+### `usecases` (15)
 
 - **CAP-113 · Dictado: transcribir y ordenar con contexto de dominio** `vivo` · usecases/dictado-transcribir-y-ordenar.yaml — `internal/ports/dictado.go#TranscriptionPort`
+- **CAP-143 · Crear, retomar y renombrar conversaciones de una sesión** `vivo` · usecases/conversaciones-de-una-sesion.yaml — `internal/usecase/session_conversaciones.go#CrearConversacion`
+- **CAP-145 · Buscar por lo que se dijo, no por cómo se llama** `vivo` · usecases/buscar-en-el-transcript.yaml — `internal/usecase/session_conversaciones.go#Conversaciones`
+- **CAP-147 · El título de la conversación se deriva de su primer mensaje y su fecha se estampa en cada turno** `vivo` · usecases/titulo-y-fecha-de-la-conversacion.yaml — `internal/usecase/session_service.go#SessionService.Turn`
 - **CAP-53 · Dock: conversación en vivo multisesión** `vivo` · usecases/dock-conversacion-en-vivo-multisesion.yaml — `internal/usecase/session_service.go#Turn`
 - **CAP-54 · Gobierno del turno (permisos HITL + interrupt)** `vivo` · usecases/gobierno-del-turno.yaml — `internal/usecase/session_service.go#onControlRequest`
 - **CAP-55 · Ejecutar caja T3 desde daemon (async + gate post-run)** `vivo·nc` · usecases/ejecutar-caja-t3-desde-daemon.yaml — `internal/usecase/run_service.go#RunService.StartRun`
 - **CAP-56 · Orquestación determinista (BoxConductor)** `vivo·nc` · usecases/orquestacion-determinista.yaml — `internal/usecase/box_conductor.go#RunWith`
 - **CAP-57 · Servir fuente real de nodo** `vivo` · usecases/servir-fuente-real-de-nodo.yaml — `internal/usecase/fuente_service.go#Fuente`
 - **CAP-58 · Mapa/portafolio/inspector (ensamblado)** `vivo` · usecases/mapa-portafolio-inspector.yaml — `internal/usecase/map_service.go#Graph`
-- **CAP-59 · Gestión de sesiones CRUD** `vivo·nc` · usecases/gestion-de-sesiones-crud.yaml — `internal/usecase/session_service.go#Create`
+- **CAP-59 · Gestión de sesiones CRUD** `vivo` · usecases/gestion-de-sesiones-crud.yaml — `internal/usecase/session_service.go#Create`
 - **CAP-94 · Reindex del Mapa tras cada turno del chat** `vivo` · usecases/reindex-tras-turno.yaml — `internal/usecase/session_reindex.go`
 - **CAP-97 · Rotación de contexto invisible (conversación infinita)** `vivo` · usecases/rotacion-de-contexto.yaml — `internal/usecase/session_rotacion.go`
-- **CAP-98 · Historial de conversaciones por arnés (B2: JSONL nativa = verdad)** `vivo` · usecases/historial-de-conversaciones.yaml — `internal/usecase/session_historial.go`
+- **CAP-98 · Historial de conversaciones archivadas (transcript propio + JSONL de fallback)** `vivo` · usecases/historial-de-conversaciones.yaml — `internal/usecase/session_historial.go`
 - **CAP-99 · Paquete cerrado: el gate deniega el árbol propio de arnesia** `vivo` · usecases/paquete-cerrado-en-el-gate.yaml — `internal/usecase/session_service.go#ProtegerPaqueteCerrado`
 
 ### `self-update` (1)
@@ -151,18 +157,19 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-67 · Conmutador de capas** `vivo` · fe-mapa/conmutador-de-capas.yaml — `web/src/widgets/map-canvas/ui/map-bar.tsx#LAYERS`
 - **CAP-95 · Mapa en vivo: refetch al reindexarse el arnés por chat** `vivo` · fe-mapa/reindex-en-vivo.yaml — `web/src/shared/store/map-live-store.ts`
 
-### `fe-chat` (6)
+### `fe-chat` (7)
 
 - **CAP-100 · Conversación legible: actividad visible · burbuja por paso · markdown** `vivo` · fe-chat/conversacion-legible.yaml — `internal/adapters/agent/claudecode/conductor.go#assistantEvents`
 - **CAP-115 · Dictar en el composer (grabar → transcribir → ordenar → poblar)** `vivo` · fe-chat/dictar-en-el-composer.yaml — `web/src/widgets/chat-dock/ui/dictado-button.tsx#DictadoButton`
+- **CAP-146 · Panel de conversaciones: listarlas, buscarlas, crearlas y retomarlas desde el dock** `vivo` · fe-chat/panel-de-conversaciones.yaml — `web/src/widgets/chat-dock/ui/conversacion-row.tsx#ConversacionRow`
 - **CAP-68 · Chat CC (turno/interrupt)** `vivo` · fe-chat/chat-cc.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ChatDock`
-- **CAP-69 · Acotar alcance (nodo→chip)** `vivo·nc` · fe-chat/acotar-alcance.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow`
+- **CAP-69 · Acotar alcance (nodo→chip)** `vivo` · fe-chat/acotar-alcance.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow`
 - **CAP-70 · Decidir permisos (tarjeta inline)** `vivo` · fe-chat/decidir-permisos.yaml — `web/src/widgets/chat-dock/ui/permission-card.tsx#PermissionCard`
 - **CAP-71 · Gate de conformance tras escrituras (RF-117)** `vivo·nc` · fe-chat/gate-de-conformance-tras-escrituras.yaml — `web/src/shared/store/sessions-store.ts`
 
 ### `fe-shell` (7)
 
-- **CAP-72 · Rail de sesiones (crear/renombrar/cerrar/switch)** `vivo·nc` · fe-shell/rail-de-sesiones.yaml — `web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail`
+- **CAP-72 · Rail de sesiones (crear/renombrar/cerrar/switch)** `vivo` · fe-shell/rail-de-sesiones.yaml — `web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail`
 - **CAP-73 · View-strip (Mapa|Diag|Corridas|Tren|Hist)** `vivo·nc` · fe-shell/view-strip.yaml — `web/src/widgets/view-strip/ui/view-strip.tsx#ViewStrip`
 - **CAP-74 · Topbar breadcrumb + ⌘K dock** `vivo·nc` · fe-shell/topbar-breadcrumb-k-dock.yaml — `web/src/widgets/topbar/ui/topbar.tsx#Topbar`
 - **CAP-75 · Navegación global (portafolio/estándar/ajustes)** `vivo·nc` · fe-shell/navegacion-global.yaml — `web/src/pages/shell/ui/global-view.tsx#GlobalView`
@@ -190,7 +197,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
 - **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
 
-### `telemetria` (17)
+### `telemetria` (19)
 
 - **CAP-118 · Receptor OTLP embebido (nunca bloquea al emisor, nunca finge haber guardado)** `vivo` · telemetria/receptor-otlp-embebido.yaml — `internal/adapters/telemetria/otlp/receptor.go#Receptor`
 - **CAP-119 · Decodificador OTLP/JSON con la stdlib (+0,49 MB, no +10,79 MB)** `vivo` · telemetria/decodificador-otlp-json.yaml — `internal/adapters/telemetria/otlp/decodifica.go#DecodificarLogs`
@@ -209,6 +216,8 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-132 · Ficha de descubrimiento del daemon (publicada solo cuando ya escucha)** `vivo` · telemetria/ficha-de-descubrimiento-del-daemon.yaml — `internal/adapters/telemetria/descubrimiento/ficha.go#Ficha`
 - **CAP-133 · Token de ingesta acotado (escribir telemetría no es conducir un agente)** `vivo` · telemetria/token-de-ingesta-acotado.yaml — `internal/adapters/transport/http/auth.go#validaIngesta`
 - **CAP-134 · Forward externo filtrado (apagado por default, y solo el operador lo enciende)** `vivo` · telemetria/forward-externo-filtrado.yaml — `internal/adapters/telemetria/forward/forward.go#Forward`
+- **CAP-141 · La frase del punto de mejora se arma en el dominio (y el dinero se formatea una sola vez)** `vivo` · telemetria/prosa-del-punto-de-mejora.yaml — `internal/domain/telemetria_prosa.go#PuntoDeMejora.Redactar`
+- **CAP-142 · El arnés lleva su propia instrumentación (y no escribe en el árbol de nadie)** `vivo` · telemetria/bloque-env-en-el-paquete-del-arnes.yaml — `internal/adapters/agent/claudecode/conductor.go#VariablesTelemetria`
 <!--caps:end-->
 
 ## Cobertura & honestidad (para la doctrina de enforcement)

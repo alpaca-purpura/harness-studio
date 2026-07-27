@@ -12,6 +12,40 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 
 ## Paquete de trabajo activo
 
+- **Las conversaciones viven en el panel de conversación — TRAMOS 0-3 CERRADOS + EL 4 CASI ENTERO
+  (2026-07-26), 29 de 33 tickets.** Paquete
+  [`stories/2026-07-26-conversaciones-del-panel/`](./stories/2026-07-26-conversaciones-del-panel/INDEX.md)
+  — **arrancar por su «Retomar aquí»**, que dice el siguiente ticket exacto (**T30**, y ojo: su mitad
+  de transporte ya se adelantó) y lo que queda de verdad: el **E2E contra el binario instalado**
+  (T31, coordinar con el operador: `make dev-sync` le mata el daemon) y el **borrado manual de
+  CV-D6** (T32).
+  **Origen:** el operador pidió ver el historial de una conversación y crear otra, y no encontró
+  ninguna de las dos. Detrás había un problema de modelo: `Session` **era** la conversación.
+  **Tramos 1 y 2:** los 9 campos del diálogo bajan a `Conversacion`; sobre versionado con migración
+  forward-only, copia previa, cuarentena y modo solo-lectura; re-key de las llaves a medias (CV-D16);
+  una ley invertida —archivar deja de tirar el transcript y el checkpoint—; la transición atómica con
+  rollback total, la rotación que emite frame, el buscador dentro del texto y las 4 rutas nuevas con
+  su contrato.
+  **Tramos 3 y 4 — el frente, y ahora SE VE:** el cromo del dock baja de 4 filas a 2, la identidad
+  técnica pasa a un chip desplegable que además dice **en qué carpeta corre** el conductor, la lista
+  abre **en sitio** con buscador que resalta el fragmento que coincidió, y crear · retomar ·
+  renombrar quedan cableados. **61 stories** nuevas y **17 tests** de store, todas verdes con el gate
+  a11y entero. `tsc` fue de 0 a **18 errores** con T21 —era el objetivo: volver al compilador el
+  inventario de lo que el tramo 2 había roto— y de vuelta a **0**.
+  **Se cerró N-1**, una violación de contraste **que se envía hoy** (el `◍ <cc-id>` en `--primary`
+  sobre `--secondary`, 2,21:1): al mudarse esa línea al detalle pasó a `--foreground`, y las 3
+  stories del baseline **dejaron de apagar `color-contrast`**.
+  **3 hallazgos nuevos:** el panel re-renderizaba el transcript entero en cada tecla del buscador
+  (N-15); un `aria-controls` apuntando a la nada rompe axe cuando `aria-expanded="true"` —lo cazó el
+  gate en la primera corrida— (N-16); y el contrato `<ul role="listbox">` del diseño no compila
+  contra el linter del repo, se realiza sobre `<div>` con el contrato ARIA idéntico (N-17).
+  **PARIDAD dibujo→producto ya se puede leer: 30 ✅ · 5 ⚠️ · 0 ❌**, con **26 capturas** en
+  `verificacion-tramo3/` (13 escenas × 2 temas).
+  ⚠ **El trabajo vive en `tramo3-conversaciones` y NO está integrado a `main`** (encadena los tramos
+  1 y 2). ⚠ CI sin observar (no se pushea) · **`go-arch-lint` no se corrió** (el binario no está en
+  el PATH ni hay target en el Makefile) · gate 🧑‍⚖️ de PARIDAD **sin firmar**: es del operador.
+
+
 - **Dictado por voz en el composer — CONSTRUIDO Y VERIFICADO POR TESTS, falta el gate en vivo
   (2026-07-26).** El spike cerró y se ejecutó completo el mismo hilo. **Las 7 decisiones FIRMADAS 🧑‍⚖️**
   (2ª ronda): V-D1 = **A2 local `base`** con la sub-decisión resuelta como **adaptador por PATH**
@@ -183,11 +217,11 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `323 checks · pass 85 · fail 0 · error 0 · deferred 238 · n/a 0` (medido 2026-07-26, `go run ./cmd/arnesia conformance --todo`)
-- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-26
+- **ruleset `--todo`:** `323 checks · pass 91 · fail 0 · error 0 · deferred 232 · n/a 0` (medido 2026-07-27, `go run ./cmd/arnesia conformance --todo`)
+- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-27
 - **arch/:** 28 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 142 — 89 vivo · 38 vivo·nc · 13 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 149 — 101 vivo · 33 vivo·nc · 13 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):
