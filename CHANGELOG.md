@@ -47,6 +47,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - Lo que el daemon devuelve de una sesión es un instante y ya no una ventana al registro vivo: mientras el conductor trabajaba, la lectura ya entregada se movía sola.
 - Las sesiones cuya llave de arnés quedó a medias se recalibran a la clave completa: tres de las cinco del registro real estaban invisibles cuando la interfaz preguntaba por la clave. Nada se borra, nada se fusiona, y se ve antes de aplicarse.
 - Leer un registro de sesiones escrito por una versión anterior ya no tira en silencio lo que cambió de lugar — le costaba los 90 turnos de la conversación más larga en disco.
+- La marca de «contexto rotado» ahora aparece en el diálogo sin recargar la aplicación. Antes se guardaba en disco y el operador no la veía hasta reabrir.
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

@@ -52,7 +52,17 @@ func CheckpointMecanico(conv []domain.Turn) string {
 //
 // Todo esto pasa DENTRO de la conversación activa: la rotación es invisible y NO corta el
 // hilo (CV-D10) — es la misma conversación, con una marca inline.
-func (s *SessionService) rotarLocked(r *sessionRuntime) {
+//
+// DEVUELVE el frame en vez de publicarlo, y esa es la única diferencia con la versión
+// anterior. El motivo no es estilo: se la llama desde `Turn` **con `s.mu` tomado**, y en este
+// servicio nada publica bajo el candado. Que la marca no llegara en vivo (el operador no la
+// veía hasta recargar) no era un olvido — era que el lugar donde vive esta función no puede
+// publicar. Se corrige respetando la regla, no rompiéndola.
+//
+// El texto de la marca es la constante de arriba y NO el del dibujo del mockup: ese string ya
+// está en el registro de conversaciones vivas, y reescribirlo dejaría los transcripts ya
+// persistidos con la marca vieja (contradicción C-5 del diseño, resuelta a favor del código).
+func (s *SessionService) rotarLocked(r *sessionRuntime) dockFrame {
 	if r.live != nil {
 		_ = r.live.Close()
 		r.live = nil
@@ -65,4 +75,20 @@ func (s *SessionService) rotarLocked(r *sessionRuntime) {
 	conv.ClaudeSessionID = ""
 	conv.RotacionPendiente = false
 	conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolSys, Text: breadcrumbRotacion})
+
+	// El índice donde quedó la marca. Es lo que hace idempotente a este frame: no lleva
+	// run_id —no pertenece a un turno— así que el FE appendea sólo si su copia del
+	// transcript tiene exactamente esa longitud. Un replay por Last-Event-ID llega con la
+	// copia más larga y se descarta solo.
+	idx := len(conv.Conv) - 1
+	return dockFrame{
+		SessionID:          r.meta.ID,
+		Kind:               kindConversacion,
+		ConversacionID:     conv.ID,
+		ConversacionEvento: eventoRotada,
+		TurnoIdx:           &idx,
+		Text:               breadcrumbRotacion,
+		// Sin CtxPct: el uso real del hilo fresco llega con el result del turno nuevo.
+		// Mandar el viejo pintaría un número que ya no describe nada.
+	}
 }

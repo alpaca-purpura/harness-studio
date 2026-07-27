@@ -95,12 +95,13 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-46 · Digest acotado (economía de contexto, −90%)** `vivo` · handoff/digest-acotado.yaml — `internal/adapters/artifact/reader.go#Resumen`
 - **CAP-47 · Confinamiento de path del artefacto** `vivo` · handoff/confinamiento-de-path-del-artefacto.yaml — `internal/adapters/artifact/reader.go#confinedPath`
 
-### `http-sse` (9)
+### `http-sse` (10)
 
 - **CAP-106 · Superficie REST de marketplaces (7 endpoints, 400 ≠ 503 ≠ 409, `entradas: null`)** `parcial` · http-sse/superficie-marketplaces.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-114 · Superficie HTTP del dictado (subir audio · disponibilidad)** `vivo` · http-sse/superficie-dictado.yaml — `internal/adapters/transport/http/dictado.go#postDictado`
 - **CAP-116 · Diagnóstico de fallos del FE (el WebView deja rastro en el log)** `vivo` · http-sse/diagnostico-de-fallos.yaml — `internal/adapters/transport/http/diagnostico.go#postDiagnostico`
 - **CAP-137 · Superficie HTTP de telemetría (donde `null` y `0` no se confunden)** `vivo` · http-sse/superficie-telemetria.yaml — `internal/adapters/transport/http/telemetria.go#getResumen`
+- **CAP-144 · El panel de conversaciones se entera en vivo** `vivo` · http-sse/frame-de-conversacion.yaml — `internal/usecase/session_service.go#dockFrame`
 - **CAP-48 · Confinamiento de superficie local (Host+Origin+token)** `vivo` · http-sse/confinamiento-de-superficie-local.yaml — `internal/adapters/transport/http/auth.go#withAuth`
 - **CAP-49 · Router + montaje** `vivo·nc` · http-sse/router-montaje.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-50 · UI embebida servida por daemon** `vivo·nc` · http-sse/ui-embebida-servida-por-daemon.yaml — `embed_webdist.go#WebDist`

@@ -480,8 +480,11 @@ func (s *SessionService) Turn(id, text string) error {
 	// Rotación invisible (RF-197): con el umbral cruzado, ESTE turno arranca en un
 	// proceso fresco — checkpoint + cadena + breadcrumb; el Session.ID no cambia y el
 	// Conv sigue sin cortes. Se rota ENTRE turnos por construcción (nunca streaming acá).
+	// El frame se publica al soltar el candado, no acá: bajo el lock no publica nadie.
+	var fRotacion *dockFrame
 	if r.activa().RotacionPendiente {
-		s.rotarLocked(r)
+		f := s.rotarLocked(r)
+		fRotacion = &f
 	}
 
 	// Auto-derive the front name from the first user message.
@@ -511,6 +514,13 @@ func (s *SessionService) Turn(id, text string) error {
 	s.persistOSeguir()
 	s.mu.Unlock()
 
+	// El orden importa y es este. La rotación agregó su marca al transcript ANTES de que se
+	// appendeara el turno del usuario, así que su frame tiene que llegar antes para que el
+	// espejo del FE quede en el mismo orden cronológico que el registro del daemon. Al
+	// revés, la marca aparecería debajo del mensaje que la disparó.
+	if fRotacion != nil {
+		s.publish(*fRotacion)
+	}
 	s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "status", Status: string(domain.StatusStreaming)})
 	if err := live.Send(s.baseCtx, text); err != nil {
 		return fmt.Errorf("session service: send %s: %w", id, err)
