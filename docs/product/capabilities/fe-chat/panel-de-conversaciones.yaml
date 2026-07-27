@@ -94,7 +94,7 @@ business_rules:
     enforcement: []
     severity: medium
   - id: la-fecha-que-no-hay-no-se-inventa
-    rule: "Sin turnos se dice «sin turnos todavía»; con turnos pero sin fecha registrada (una conversación migrada) se dice «sin fecha». Derivarla de la fecha de creación sería inventarla."
+    rule: "Sin turnos se dice «sin turnos todavía». «Sin fecha» es el BORDE, no el caso general: toda conversación con turnos nacida en la app lleva su fecha (CAP-147), y sólo las MIGRADAS de un registro viejo —que nunca guardó cuándo fue el último turno— quedan sin ella. Derivarla de la fecha de creación sería inventarla."
     enforcement: []
     severity: high
   - id: ningun-color-solo

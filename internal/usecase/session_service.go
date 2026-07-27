@@ -493,7 +493,21 @@ func (s *SessionService) Turn(id, text string) error {
 	}
 	// El turno cae en la conversación ACTIVA, que es la única con conductor (CV-D7).
 	conv := r.activa()
+	// CV-D9/RF-303: el título de la CONVERSACIÓN se deriva de su primer mensaje, con la
+	// MISMA guarda que el Frente de la sesión de acá arriba — «igual que Frente hoy», dice
+	// la decisión. Sin la guarda, cada turno rebautizaría la conversación con lo último que
+	// se dijo. Son dos nombres distintos y ambos siguen existiendo (RF-303 CA-3).
+	//
+	// La ley de precedencia —gana el operador si ya editó— vive en el dominio y no se
+	// duplica acá. El default es el de la conversación, no el de la sesión: por eso se pasa
+	// `RecorteDeTitulo` y no `deriveFrente`, que cae en "nuevo frente".
+	if conv.Titulo == "" || conv.Titulo == domain.TituloConversacionNueva {
+		conv.DerivarTitulo(domain.RecorteDeTitulo(text))
+	}
 	conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolUser, Text: text})
+	// CV-D13/RF-304: la fecha se estampa EN EL TURNO, no al desactivar — una conversación
+	// inactiva mentiría la fecha de su último mensaje. Vacío ⟺ 0 turnos.
+	marcarInteraccion(conv)
 	r.meta.Status = domain.StatusStreaming
 	r.runSeq++
 	runID := fmt.Sprintf("%s-r%d", id, r.runSeq)
@@ -646,6 +660,10 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				if final != "" {
 					conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolAssistant, Text: final})
 				}
+				// RF-304 CA-1: el turno cerró. «Última interacción» es la del último mensaje
+				// del hilo, no la del último que escribió el operador — y se estampa aunque el
+				// remanente venga vacío, porque el turno ocurrió igual.
+				marcarInteraccion(conv)
 				r.msgFlushed = false
 				r.meta.Status = domain.StatusIdle
 				if ev.CtxPct > 0 {
@@ -1088,6 +1106,18 @@ func (s *SessionService) persistOSeguir() {
 // deriveFrente turns the first user message into a short work-front label. El recorte es
 // del dominio (lo comparte el migrador del registro); acá vive sólo el default, que es de
 // la SESIÓN — una conversación sin nombre se llama distinto.
+// marcarInteraccion estampa el instante del turno en la conversación (CV-D13/RF-304,
+// RFC3339 UTC). Va donde se appendea el turno y NO al desactivar: una conversación que se
+// deja atrás tiene que conservar la fecha de SU último mensaje, no la de cuándo se la
+// abandonó. El vacío queda reservado para «0 turnos», que es lo que la fila pinta como
+// «sin turnos todavía» (BR-CV-14) — por eso nadie lo escribe al crear.
+func marcarInteraccion(c *domain.Conversacion) {
+	if c == nil {
+		return
+	}
+	c.UltimaInteraccion = time.Now().UTC().Format(time.RFC3339)
+}
+
 func deriveFrente(text string) string {
 	if t := domain.RecorteDeTitulo(text); t != "" {
 		return t

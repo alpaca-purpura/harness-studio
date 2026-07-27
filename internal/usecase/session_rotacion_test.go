@@ -280,6 +280,18 @@ func TestRotacionNoCreaConversacionNueva(t *testing.T) {
 	}
 	agent.sessions[0].events <- ports.AgentEvent{Kind: ports.EventResult, Text: "hecho", CtxPct: 45}
 	espera(t, func() bool { m, _ := svc.Get(s.ID); return activaSinFallar(m).RotacionPendiente })
+
+	// El título se toma ACÁ, no antes del primer turno: el primer turno lo DERIVA (CV-D9/
+	// RF-303) y eso es otro sujeto. Lo que este test afirma es que la ROTACIÓN no lo toca,
+	// así que su línea base tiene que ser el título ya derivado, inmediatamente antes de
+	// rotar. Con la línea base vieja el test afirmaba «el título no cambia nunca», que era
+	// verdad sólo mientras RF-303 estuviera sin construir.
+	previo, _ := svc.Get(s.ID)
+	tituloAntesDeRotar := activaDe(t, previo).Titulo
+	if tituloAntesDeRotar == domain.TituloConversacionNueva {
+		t.Fatalf("precondición: el primer turno tenía que derivar el título, sigue en %q", tituloAntesDeRotar)
+	}
+
 	if terr := svc.Turn(s.ID, "segundo pedido"); terr != nil {
 		t.Fatal(terr)
 	}
@@ -292,7 +304,7 @@ func TestRotacionNoCreaConversacionNueva(t *testing.T) {
 	if c.ID != activaAntes.ID {
 		t.Errorf("la activa cambió al rotar: %q → %q", activaAntes.ID, c.ID)
 	}
-	if c.Titulo != activaAntes.Titulo {
-		t.Errorf("el título cambió al rotar: %q → %q", activaAntes.Titulo, c.Titulo)
+	if c.Titulo != tituloAntesDeRotar {
+		t.Errorf("el título cambió al rotar: %q → %q", tituloAntesDeRotar, c.Titulo)
 	}
 }

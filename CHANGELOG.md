@@ -34,6 +34,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El daemon expone las conversaciones de una sesión: listarlas, buscarlas, crear una nueva, retomar una anterior y renombrarla.
 - El panel de conversación muestra las conversaciones de su sesión: se listan, se buscan por lo que se dijo adentro, se crean y se retoman sin salir del dock
 - Verificación de punta a punta contra la aplicación instalada: los seis guiones del plan corren contra el binario que el operador ejecuta, con los datos de sesiones aislados en una copia, y dejan su informe con capturas
+- Fixture sintético de migración con los 20 campos del esquema v1 poblados, más un guard reflexivo: 6 mutaciones que antes sobrevivían (checkpoint, cadena_cc, status, puesto, parked, cerrada_en) ahora ponen el árbol rojo.
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
@@ -59,6 +60,9 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El identificador de la sesión de Claude Code dejó de pintarse con un color que no llegaba al contraste mínimo de texto sobre el fondo del dock
 - La migración del registro de sesiones se probó sobre el archivo real del operador (en copia): las cinco sesiones y la conversación de noventa turnos sobreviven, el archivo de la versión anterior queda intacto y volver a arrancar no vuelve a migrar
 - Se registran seis hallazgos que sólo aparecieron al probar contra la aplicación instalada, entre ellos que la marca de contexto rotado puede perderse sin aviso cuando la misma sesión se mira desde dos ventanas
+- El título de una conversación se deriva de su primer mensaje (CV-D9/RF-303): estaba firmado, escrito en el dominio y sin cablear — toda conversación se llamaba «nueva conversación» para siempre.
+- La fecha de última interacción se estampa en cada turno (CV-D13/RF-304): nunca se escribía, así que toda fila de la lista decía «sin fecha» y el orden del panel caía en silencio al de creación.
+- TestResumeAutoSana dejó de ser flaky: esperaba un Idle que ya estaba puesto, así que el turno 2 corría contra un handle vivo todavía no soltado (falla reproducida en la base, ~1 de 100 bajo carga).
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

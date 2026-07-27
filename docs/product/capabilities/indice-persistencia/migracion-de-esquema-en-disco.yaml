@@ -32,6 +32,9 @@ valida:
   - "TestMigracionRespaldaAntesDeEscribir"
   - "TestMigracionEsIdempotente"
   - "TestDeV1aV2ConservaTodoElFixtureReal"
+  - "TestDeV1aV2ConservaLos20CamposDeV1"
+  - "TestElFixtureCompletoPueblaTodosLosCamposDeV1"
+  - "TestElFixtureRealNoTraeLosCamposQueElSinteticoCubre"
   - "TestCrashAMitadDejaElViejoEntero"
   - "TestPrimerArranqueNoInventaArchivo"
   - "TestNormalizarAlCargarSeReportaYSeArregla"
@@ -96,6 +99,20 @@ scenarios:
     when: "se lo migra"
     then: "la fecha de última interacción queda vacía, no se rellena con la de hoy: la lista la va a mostrar como «sin fecha», que es la verdad"
     verifica: "TestDeV1aV2ConservaTodoElFixtureReal"
+  - id: ningun-campo-del-registro-viejo-se-cae-en-silencio
+    name: "Un refactor futuro deja de llevar un campo de la sesión vieja a la nueva"
+    status: live
+    given: "un registro de la versión anterior con TODOS los campos poblados, incluidos los que el archivo del operador nunca tuvo (cadena de rotaciones, checkpoint, puesto, aparcado, fecha de cierre)"
+    when: "la migración deja de llevar cualquiera de los veinte"
+    then: "el árbol se pone rojo nombrando el campo — antes sobrevivían seis mutaciones, porque un archivo real no contiene todos los campos posibles y un test campo-por-campo no puede comparar lo que el insumo no trae"
+    verifica: "TestDeV1aV2ConservaLos20CamposDeV1"
+  - id: el-insumo-del-test-no-puede-envejecer-en-silencio
+    name: "Alguien agrega un campo a la forma vieja y no lo puebla en el fixture"
+    status: live
+    given: "la struct congelada del esquema viejo y el fixture sintético que la ejercita"
+    when: "aparece un campo que ninguna sesión del fixture trae"
+    then: "un guard reflexivo falla nombrando el campo, antes de que ningún test campo-por-campo pueda afirmar que lo comparó"
+    verifica: "TestElFixtureCompletoPueblaTodosLosCamposDeV1"
   - id: un-registro-roto-se-repara-al-abrir
     name: "El registro trae una sesión sin conversaciones y otra con dos activas"
     status: live

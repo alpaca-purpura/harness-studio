@@ -2016,14 +2016,23 @@ func TestResumeAutoSana(t *testing.T) {
 	svc := newTestService(t, agent, pub, t.TempDir())
 	id := svc.List()[0].ID
 
-	// Turn 1: fresh spawn (no resume yet), inits with a session id, then finishes normally —
+	// Turn 1: fresh spawn (no resume yet), inits with a session id, then its process dies —
 	// that id is what the NEXT turn will try (and fail) to resume.
+	//
+	// El turno 1 NO manda EventResult a propósito, y esto es sincronización, no estilo: el
+	// handle vivo lo suelta la goroutine de consume DESPUÉS de que el canal cierra
+	// (`session_service.go`, «Channel closed»), y ese paso no publica nada. Con un
+	// EventResult, `Status` ya quedaba en Idle antes del cierre, así que esperar Idle no
+	// esperaba a nadie: el Turn 2 corría contra un `r.live` todavía no soltado, no
+	// spawneaba, y el test fallaba ~1 de cada 100 corridas bajo carga (flake preexistente,
+	// reproducido en la base 306b80c). Sin EventResult, `Status` sigue en Streaming hasta
+	// que la limpieza del cierre lo baja a Idle — o sea que esperar Idle espera EXACTAMENTE
+	// al paso que suelta el handle. Ninguna aserción cambia; sólo deja de haber carrera.
 	if err := svc.Turn(id, "primero"); err != nil {
 		t.Fatalf("turn 1: %v", err)
 	}
-	sess1 := agent.sessions[0]
+	sess1 := agent.sessionsSnapshot()[0]
 	sess1.events <- ports.AgentEvent{Kind: ports.EventInit, ClaudeSessionID: "cc-stale"}
-	sess1.events <- ports.AgentEvent{Kind: ports.EventResult, Subtype: "success"}
 	close(sess1.events) // process life ends (Turn 2 must see r.live==nil to spawn again).
 	waitFor(t, 2*time.Second, func() bool { return svc.List()[0].Status == domain.StatusIdle })
 
@@ -2032,10 +2041,10 @@ func TestResumeAutoSana(t *testing.T) {
 	if err := svc.Turn(id, "segundo — el resume se pierde"); err != nil {
 		t.Fatalf("turn 2: %v", err)
 	}
-	if len(agent.spawns) != 2 || agent.spawns[1].Resume != "cc-stale" {
-		t.Fatalf("el 2do spawn debía pedir --resume cc-stale, got %+v", agent.spawns)
+	if spawns := agent.spawnsSnapshot(); len(spawns) != 2 || spawns[1].Resume != "cc-stale" {
+		t.Fatalf("el 2do spawn debía pedir --resume cc-stale, got %+v", spawns)
 	}
-	sess2 := agent.sessions[1]
+	sess2 := agent.sessionsSnapshot()[1]
 	close(sess2.events)
 
 	// The heal must respawn FRESH (stale id dropped) and resend the pending turn — no manual
