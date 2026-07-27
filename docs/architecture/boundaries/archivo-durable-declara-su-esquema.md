@@ -1,6 +1,6 @@
 ---
 regla: archivo-durable-declara-su-esquema
-version: 1.1
+version: 1.2
 updated: 2026-07-26
 status: proposed
 ledger: HS-29
@@ -14,12 +14,14 @@ sources:
   - url: docs/product/stories/2026-07-26-conversaciones-del-panel/relevamiento-as-is.md
     autoridad: medicion-propia
     revisado: 2026-07-26
-enforced_by:      # 3 de 6. Los que faltan siguen `(pendiente — Test…)` en la Checklist y
+enforced_by:      # 5 de 6. El que falta sigue `(pendiente — Test…)` en la Checklist y
                   # FUERA de esta lista: declarar acá un enforcer que no existe hace que el
                   # motor lo invoque, no lo encuentre y reporte `error`.
   - internal/adapters/store/migracion_test.go:TestSaveEstampaEsquemaActual
   - internal/adapters/store/migracion_test.go:TestMigracionRespaldaAntesDeEscribir
   - internal/adapters/store/migracion_test.go:TestMigracionEsIdempotente
+  - internal/adapters/store/cuarentena_test.go:TestArchivoCorruptoSePreservaYSeDice
+  - internal/adapters/store/cuarentena_test.go:TestEsquemaFuturoNoSePisa
 severity: error
 ---
 
@@ -109,12 +111,19 @@ mantener lectores de todas las versiones vivas: obliga a **saber** con qué vers
 | envelope-versionado | todo archivo durable que el daemon escribe lleva `schema_version` dentro del archivo; ningún lector asume la forma que encuentra | error | «el formato cambió y el lector lo interpretó mal en silencio» | internal/adapters/store/migracion_test.go:TestSaveEstampaEsquemaActual |
 | migracion-forward-only-con-respaldo | una versión anterior se respalda con sello ANTES de escribir la nueva, y se migra por cadena declarada, nunca por unmarshal tolerante | error | «migración sin red: el archivo viejo ya no existe» | internal/adapters/store/migracion_test.go:TestMigracionRespaldaAntesDeEscribir |
 | migracion-idempotente | correr la migración dos veces da el mismo resultado; con el esquema actual en disco no corre | error | «el segundo arranque volvió a migrar lo ya migrado» | internal/adapters/store/migracion_test.go:TestMigracionEsIdempotente |
-| corrupto-se-preserva | un archivo ilegible se renombra a `.corrupto-<sello>` y el arranque lo DICE; jamás se sobreescribe ni se tapa con semilla | error | «un archivo roto se pisó con datos vacíos» | (pendiente — TestArchivoCorruptoSePreservaYSeDice) |
-| esquema-futuro-no-se-degrada | un `schema_version` mayor que la del binario deja la superficie en solo-lectura con motivo; nunca se lee a medias ni se pisa | error | «el binario viejo destruyó el archivo nuevo» | (pendiente — TestEsquemaFuturoNoSePisa) |
+| corrupto-se-preserva | un archivo ilegible se renombra a `.corrupto-<sello>` y el arranque lo DICE; jamás se sobreescribe ni se tapa con semilla | error | «un archivo roto se pisó con datos vacíos» | internal/adapters/store/cuarentena_test.go:TestArchivoCorruptoSePreservaYSeDice |
+| esquema-futuro-no-se-degrada | un `schema_version` mayor que la del binario deja la superficie en solo-lectura con motivo; nunca se lee a medias ni se pisa | error | «el binario viejo destruyó el archivo nuevo» | internal/adapters/store/cuarentena_test.go:TestEsquemaFuturoNoSePisa |
 | durable-no-se-wipea | la política wipe-and-rebuild del índice (RF-208) no se aplica a un archivo durable: ningún camino lo borra para «arreglarlo» | error | «se reconstruyó lo que nadie puede reconstruir» | (pendiente — TestDurableNuncaSeWipea) |
 
 ## Changelog
 
+- 2026-07-26 · v1.2 · **5 de los 6 enforcers existen y corren verdes** (T10 suma
+  `corrupto-se-preserva` y `esquema-futuro-no-se-degrada`). El de la cuarentena destapó un
+  hueco de la propia máquina: un array TRUNCADO empieza con `[` igual que uno sano, así que
+  pasaba la detección de versión y se caía adentro del migrador — un error del arranque en
+  vez de lo que realmente era, un archivo ilegible. La validez se chequea ahora al detectar
+  la versión, que es donde corresponde. Falta `durable-no-se-wipea`, y su celda lo dice.
+  Sigue `proposed`: gradúa con los 6, no antes.
 - 2026-07-26 · v1.1 · **3 de los 6 enforcers existen y corren verdes** (T9 del paquete):
   `envelope-versionado`, `migracion-forward-only-con-respaldo` y `migracion-idempotente`, sobre los
   primeros tests que `internal/adapters/store` haya tenido, con el registro **real** del operador

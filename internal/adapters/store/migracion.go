@@ -159,19 +159,40 @@ func AbrirRegistro(rutaV2, rutaLegado, sello string) (*Registry, Informe, error)
 		return reg, inf, nil // primer arranque: no hay nada que migrar.
 	}
 
+	// MODO C · el archivo es ilegible. Se pone en cuarentena con su sello, el registro
+	// arranca vacío y el arranque lo DICE con la ruta. Jamás se sobreescribe: un JSON roto
+	// puede ser recuperable a mano, y pisarlo lo vuelve irrecuperable.
 	version, err := detectarVersion(crudo)
 	if err != nil {
-		return nil, inf, fmt.Errorf("store: %s: %w", origen, err)
+		destino, qerr := encuarentenar(origen, sello)
+		if qerr != nil {
+			return nil, inf, fmt.Errorf("store: %s ilegible (%w) y tampoco se pudo poner a salvo: %w", origen, err, qerr)
+		}
+		inf.Corrupto, inf.CuarentenaEn = true, destino
+		reg.corrupto = true
+		return reg, inf, nil
 	}
+
+	// MODO E · lo escribió un binario más nuevo. Solo-lectura, y NO se escribe un byte:
+	// degradar a vacío y después persistir destruiría el archivo nuevo con el binario
+	// viejo — el único modo de fallo irreversible, y el que este modo existe para impedir.
 	if version > EsquemaActual {
-		return nil, inf, fmt.Errorf(
-			"store: %s lo escribió un binario más nuevo (esquema %d, este binario entiende %d): "+
-				"no se lee a medias ni se pisa", origen, version, EsquemaActual)
+		reg.bloqueo = fmt.Sprintf(
+			"%s lo escribió un binario más nuevo (esquema %d, este entiende %d)",
+			origen, version, EsquemaActual)
+		inf.EsquemaFuturo = true
+		return reg, inf, nil
 	}
 
 	payload, err := payloadDe(crudo, version)
 	if err != nil {
-		return nil, inf, fmt.Errorf("store: %s: %w", origen, err)
+		destino, qerr := encuarentenar(origen, sello)
+		if qerr != nil {
+			return nil, inf, fmt.Errorf("store: %s ilegible (%w) y tampoco se pudo poner a salvo: %w", origen, err, qerr)
+		}
+		inf.Corrupto, inf.CuarentenaEn = true, destino
+		reg.corrupto = true
+		return reg, inf, nil
 	}
 
 	ahora := time.Now().UTC()
@@ -249,6 +270,30 @@ func payloadDe(crudo []byte, version int) (json.RawMessage, error) {
 		return json.RawMessage("[]"), nil
 	}
 	return s.Sesiones, nil
+}
+
+// encuarentenar mueve un archivo ilegible a `<ruta>.corrupto-<sello>` y devuelve dónde
+// quedó. Se RENOMBRA, no se copia: si quedara una copia en la ruta original, el próximo
+// arranque volvería a encontrarla ilegible y la encuarentenaría otra vez.
+//
+// Un `.corrupto-` que ya existe no se pisa: se le suma un sufijo. Dos corrupciones
+// distintas son dos archivos distintos, y la segunda no puede borrar la evidencia de la
+// primera.
+func encuarentenar(ruta, sello string) (string, error) {
+	if sello == "" {
+		sello = time.Now().UTC().Format("0601021504")
+	}
+	destino := fmt.Sprintf("%s.corrupto-%s", ruta, sello)
+	for i := 2; ; i++ {
+		if _, err := os.Stat(destino); os.IsNotExist(err) {
+			break
+		}
+		destino = fmt.Sprintf("%s.corrupto-%s-%d", ruta, sello, i)
+	}
+	if err := os.Rename(ruta, destino); err != nil {
+		return "", fmt.Errorf("store: cuarentena de %s: %w", ruta, err)
+	}
+	return destino, nil
 }
 
 // respaldar copia el archivo que se va a migrar, ANTES de tocar nada. El nombre lleva el

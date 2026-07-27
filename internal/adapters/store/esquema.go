@@ -32,6 +32,10 @@ var ErrEsquemaSinVersion = errors.New("store: el archivo es un objeto JSON sin s
 // ErrNoEsJSON — el contenido no arranca con `[` ni con `{`. Va a cuarentena.
 var ErrNoEsJSON = errors.New("store: el archivo no es JSON")
 
+// ErrSoloLectura — el registro está bloqueado y no acepta escrituras. Hoy la única causa
+// es un archivo escrito por un binario más nuevo: se conserva entero en vez de pisarlo.
+var ErrSoloLectura = errors.New("store: el registro está en solo-lectura")
+
 // detectarVersion mira el primer byte no-blanco y decide. No adivina: cada rama tiene un
 // motivo y la que no lo tiene devuelve error.
 //
@@ -45,6 +49,13 @@ func detectarVersion(b []byte) (int, error) {
 	}
 	switch t[0] {
 	case '[':
+		// La validez se chequea acá y no adentro del migrador. Un array truncado empieza
+		// con `[` igual que uno sano: sin esta línea, el archivo pasaba como v1 y el
+		// migrador se caía más adelante, que es un error del arranque en vez de lo que
+		// realmente es — un archivo ilegible, y por lo tanto cuarentena.
+		if !json.Valid(t) {
+			return 0, fmt.Errorf("%w: el array de sesiones está truncado o mal formado", ErrNoEsJSON)
+		}
 		return 1, nil
 	case '{':
 		var s sobre

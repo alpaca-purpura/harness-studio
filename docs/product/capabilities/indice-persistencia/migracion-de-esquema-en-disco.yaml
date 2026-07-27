@@ -20,6 +20,9 @@ pointers:
   - "internal/adapters/store/migracion.go#deV1aV2"
   - "internal/adapters/store/migracion.go#Informe"
   - "internal/adapters/store/migracion.go#respaldar"
+  - "internal/adapters/store/migracion.go#encuarentenar"
+  - "internal/adapters/store/registry.go#Registry.SoloLectura"
+  - "internal/adapters/store/registry.go#Registry.Sembrable"
 valida:
   - "TestSaveEstampaEsquemaActual"
   - "TestDetectarVersionArrayDesnudoEsV1"
@@ -32,6 +35,10 @@ valida:
   - "TestNormalizarAlCargarSeReportaYSeArregla"
   - "TestRespaldoNoSePisaEntreMigraciones"
   - "TestMigradorNoLeeElReloj"
+  - "TestArchivoCorruptoSePreservaYSeDice"
+  - "TestCuarentenaNoPisaLaAnterior"
+  - "TestCorrupcionNoEsSembrable"
+  - "TestEsquemaFuturoNoSePisa"
 dev_preview:
   route: null
   how_to_navigate: null
@@ -91,6 +98,27 @@ scenarios:
     when: "se lo abre"
     then: "queda con exactamente una activa por sesión y cada arreglo viaja al informe del arranque para que salga por el log"
     verifica: "TestNormalizarAlCargarSeReportaYSeArregla"
+  - id: un-archivo-ilegible-se-guarda-no-se-pisa
+    name: "El registro quedó truncado por un corte a mitad de una escritura vieja"
+    status: live
+    given: "un registro que no se puede leer"
+    when: "arranca el daemon"
+    then: "el archivo se mueve a un nombre con sello y queda entero, el registro arranca vacío y el arranque dice dónde quedó el original; una segunda corrupción no pisa la evidencia de la primera"
+    verifica: "TestArchivoCorruptoSePreservaYSeDice"
+  - id: un-registro-vacio-por-corrupcion-no-se-siembra
+    name: "El registro se puso en cuarentena y el rail queda en cero"
+    status: live
+    given: "un registro corrupto"
+    when: "arranca el daemon"
+    then: "no aparecen las sesiones de ejemplo: un vacío por corrupción no es una instalación nueva, y taparlo con datos inventados escondería justo lo que hay que ver"
+    verifica: "TestCorrupcionNoEsSembrable"
+  - id: el-binario-viejo-no-destruye-el-archivo-nuevo
+    name: "El operador probó una versión nueva y volvió a la anterior"
+    status: live
+    given: "un registro escrito por un binario más nuevo"
+    when: "arranca el binario viejo"
+    then: "el registro queda en solo-lectura con el motivo, ninguna escritura pasa y el archivo no cambia un byte — el operador puede volver a la versión nueva y encontrarlo entero"
+    verifica: "TestEsquemaFuturoNoSePisa"
 business_rules:
   - id: todo-archivo-durable-declara-su-esquema
     rule: "Lo que este binario escribe en un archivo durable dice de qué versión de esquema es, qué build lo escribió y cuándo. Un archivo sin versión no se asume de la versión anterior: se rechaza."
@@ -106,6 +134,18 @@ business_rules:
     severity: high
   - id: el-archivo-de-la-version-anterior-no-se-toca
     rule: "El registro de la versión anterior no se toca, no se borra y no se renombra. Mientras exista intacto, volver a un binario anterior no necesita restaurar nada."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+  - id: ilegible-va-a-cuarentena-jamas-se-pisa
+    rule: "Un archivo durable ilegible se mueve a un nombre con sello y se conserva entero; el arranque dice dónde quedó. Nunca se sobreescribe, y ninguna semilla ilustrativa tapa la corrupción: la semilla es para un archivo AUSENTE, que es otra cosa."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: critical
+  - id: esquema-futuro-bloquea-en-vez-de-degradar
+    rule: "Un archivo con una versión de esquema mayor que la del binario deja el registro en solo-lectura con su motivo. No se lee a medias y no se pisa: degradar a vacío y después persistir sería el único modo de fallo que no se puede deshacer."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: critical
+  - id: una-mutacion-que-no-se-guardo-no-ocurrio
+    rule: "Cuando el disco falla, la mutación que el operador acaba de pedir devuelve el motivo del filesystem y revierte su cambio en memoria. El estado en memoria y el estado en disco no divergen en silencio. El stream de un turno en vuelo es la excepción declarada: loguea y sigue, porque no se puede deshacer."
     enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
     severity: high
   - id: migrar-es-idempotente

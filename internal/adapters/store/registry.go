@@ -22,7 +22,37 @@ type Registry struct {
 	// sello de build del binario que escribe, estampado en el sobre. Vacío cuando el
 	// Registry se construyó con NewRegistry a secas: el sobre lo omite en vez de mentir.
 	sello string
-	mu    sync.Mutex
+
+	// bloqueo explica por qué este registro NO se puede escribir; "" = se puede.
+	// Lo pone AbrirRegistro cuando el archivo en disco lo escribió un binario más nuevo:
+	// degradar a «registro vacío» y después persistir destruiría el archivo nuevo con el
+	// binario viejo, que es el único modo de fallo que no se puede deshacer.
+	bloqueo string
+
+	// corrupto marca que el archivo se puso en cuarentena. El registro arranca vacío, y
+	// eso NO es lo mismo que un primer arranque: la semilla ilustrativa no puede tapar
+	// una corrupción haciéndola parecer una instalación nueva.
+	corrupto bool
+
+	mu sync.Mutex
+}
+
+// SoloLectura reporta si el registro está bloqueado y por qué. Toda mutación consulta
+// esto ANTES de tocar memoria.
+func (r *Registry) SoloLectura() (bool, string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.bloqueo != "", r.bloqueo
+}
+
+// Sembrable reporta si un registro vacío puede rellenarse con las sesiones de ejemplo.
+// Falso cuando el vacío NO significa «primer arranque»: un archivo en cuarentena o un
+// esquema futuro también cargan vacío, y sembrarlos ahí taparía el problema con datos
+// inventados justo cuando el operador necesita ver que algo pasó.
+func (r *Registry) Sembrable() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return !r.corrupto && r.bloqueo == ""
 }
 
 var _ = (interface {
@@ -83,6 +113,10 @@ func (r *Registry) Load(_ context.Context) ([]domain.Session, error) {
 func (r *Registry) Save(_ context.Context, sessions []domain.Session) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.bloqueo != "" {
+		return fmt.Errorf("%w: %s", ErrSoloLectura, r.bloqueo)
+	}
 
 	dir := filepath.Dir(r.path)
 	if err := os.MkdirAll(dir, 0o750); err != nil {

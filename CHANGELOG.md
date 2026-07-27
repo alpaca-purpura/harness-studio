@@ -43,6 +43,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - Lo que el daemon devuelve de una sesión es un instante y ya no una ventana al registro vivo: mientras el conductor trabajaba, la lectura ya entregada se movía sola.
 
 ### Seguridad
+- Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.
 
 ## [0.2.24] — 2026-07-26
 

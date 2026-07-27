@@ -225,7 +225,11 @@ func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store por
 	if err != nil {
 		return nil, fmt.Errorf("session service: load: %w", err)
 	}
-	if len(persisted) == 0 {
+	// La semilla ilustrativa es para un registro AUSENTE — un primer arranque. Un archivo
+	// en cuarentena o bloqueado por esquema futuro también carga vacío, y ahí sembrar
+	// taparía el problema con datos inventados justo cuando el operador necesita ver que
+	// algo pasó. Un store que no sabe distinguir las dos cosas siembra como siempre.
+	if len(persisted) == 0 && sembrable(store) {
 		persisted = seedSessions()
 	}
 	ahora := time.Now().UTC()
@@ -245,6 +249,40 @@ func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store por
 		s.rt[m.ID] = &sessionRuntime{meta: &m}
 	}
 	return s, nil
+}
+
+// registroSembrable lo satisface un store que sabe distinguir «no había archivo» de «el
+// archivo estaba roto o bloqueado». Es opcional a propósito: los stores de test y los
+// futuros no tienen que implementarlo para seguir andando.
+type registroSembrable interface{ Sembrable() bool }
+
+// registroSoloLectura lo satisface un store que puede estar bloqueado y decir por qué.
+type registroSoloLectura interface{ SoloLectura() (bool, string) }
+
+// ErrSoloLectura — el registro en disco no acepta escrituras y la operación no se intenta.
+// El transporte lo mapea a 503: no es culpa del pedido, es que el daemon no puede escribir.
+var ErrSoloLectura = errors.New("el registro de sesiones está en solo-lectura")
+
+func sembrable(store ports.SessionStore) bool {
+	if s, ok := store.(registroSembrable); ok {
+		return s.Sembrable()
+	}
+	return true
+}
+
+// SoloLectura reporta si el registro está bloqueado y por qué. Vacío = se puede escribir.
+func (s *SessionService) SoloLectura() (bool, string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.soloLecturaLocked()
+}
+
+// soloLecturaLocked es el guard que toda mutación consulta ANTES de tocar memoria.
+func (s *SessionService) soloLecturaLocked() (bool, string) {
+	if r, ok := s.store.(registroSoloLectura); ok {
+		return r.SoloLectura()
+	}
+	return false, ""
 }
 
 // List returns the sessions in stable creation order.
@@ -278,6 +316,9 @@ func (s *SessionService) Create(sess domain.Session) (domain.Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if bloqueado, motivo := s.soloLecturaLocked(); bloqueado {
+		return domain.Session{}, fmt.Errorf("%w: %s", ErrSoloLectura, motivo)
+	}
 	sess.ID = newID()
 	sess.Status = domain.StatusIdle
 	if sess.View == "" {
@@ -288,7 +329,12 @@ func (s *SessionService) Create(sess domain.Session) (domain.Session, error) {
 	}
 	s.order = append(s.order, sess.ID)
 	s.rt[sess.ID] = &sessionRuntime{meta: &sess}
-	s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		// El disco manda: en memoria no queda lo que no se guardó.
+		delete(s.rt, sess.ID)
+		s.order = s.order[:len(s.order)-1]
+		return domain.Session{}, err
+	}
 	return sess.Instantanea(), nil
 }
 
@@ -300,10 +346,14 @@ func (s *SessionService) Rename(id, frente string) (domain.Session, error) {
 	if r == nil {
 		return domain.Session{}, errNotFound(id)
 	}
+	previo := r.meta.Frente
 	if frente = strings.TrimSpace(frente); frente != "" {
 		r.meta.Frente = frente
 	}
-	s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		r.meta.Frente = previo
+		return domain.Session{}, err
+	}
 	return r.meta.Instantanea(), nil
 }
 
@@ -315,10 +365,14 @@ func (s *SessionService) SetView(id, view string) (domain.Session, error) {
 	if r == nil {
 		return domain.Session{}, errNotFound(id)
 	}
+	previa := r.meta.View
 	if view != "" {
 		r.meta.View = view
 	}
-	s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		r.meta.View = previa
+		return domain.Session{}, err
+	}
 	return r.meta.Instantanea(), nil
 }
 
@@ -335,13 +389,24 @@ func (s *SessionService) Close(id string) error {
 	// fechas) es el join que el historial B2 necesita para leer las JSONL nativas.
 	s.archivarLocked(r.meta.Instantanea())
 	delete(s.rt, id)
+	posicion := -1
 	for i, oid := range s.order {
 		if oid == id {
+			posicion = i
 			s.order = append(s.order[:i], s.order[i+1:]...)
 			break
 		}
 	}
-	s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		// El conductor NO se cerró todavía (eso pasa después de soltar el lock), así que
+		// reponer la sesión en su lugar la deja exactamente como estaba.
+		s.rt[id] = r
+		if posicion >= 0 {
+			s.order = append(s.order[:posicion], append([]string{id}, s.order[posicion:]...)...)
+		}
+		s.mu.Unlock()
+		return err
+	}
 	s.mu.Unlock()
 
 	if live != nil {
@@ -393,13 +458,13 @@ func (s *SessionService) Turn(id, text string) error {
 	if r.live == nil {
 		if err := s.spawnLocked(id, r); err != nil {
 			r.meta.Status = domain.StatusIdle
-			s.persistLocked()
+			s.persistOSeguir()
 			s.mu.Unlock()
 			return fmt.Errorf("session service: spawn %s: %w", id, err)
 		}
 	}
 	live := r.live
-	s.persistLocked()
+	s.persistOSeguir()
 	s.mu.Unlock()
 
 	s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "status", Status: string(domain.StatusStreaming)})
@@ -496,7 +561,7 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 					conv.Model = ev.Model
 				}
 				runID = r.curRun
-				s.persistLocked()
+				s.persistOSeguir()
 			}
 			s.mu.Unlock()
 			s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "init", ClaudeSessionID: ev.ClaudeSessionID, Model: ev.Model})
@@ -547,7 +612,7 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				r.pendingTurn = ""
 				runID = r.curRun
 				reindex, reindexArnes, reindexCwd = s.reindex, r.meta.Arnes, r.cwd
-				s.persistLocked()
+				s.persistOSeguir()
 			}
 			s.mu.Unlock()
 			s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "result", Text: ev.Text, CtxPct: ev.CtxPct, Status: string(domain.StatusIdle)})
@@ -589,7 +654,7 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 					conv := r.activa()
 					conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolAssistant, Text: txt})
 					r.msgFlushed = true
-					s.persistLocked()
+					s.persistOSeguir()
 				}
 			}
 			s.mu.Unlock()
@@ -607,7 +672,7 @@ func (s *SessionService) consume(id string, live ports.AgentSession) {
 				runID = r.curRun
 				conv := r.activa()
 				conv.Conv = append(conv.Conv, domain.Turn{Rol: domain.RolAct, Text: paso})
-				s.persistLocked()
+				s.persistOSeguir()
 			}
 			s.mu.Unlock()
 			s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "act", Tool: ev.Tool, Text: ev.Text, Status: string(domain.StatusStreaming)})
@@ -650,13 +715,13 @@ func (s *SessionService) tryHealResume(id string, live ports.AgentSession) bool 
 		r.meta.Status = domain.StatusIdle
 		r.live = nil
 		runID := r.curRun
-		s.persistLocked()
+		s.persistOSeguir()
 		s.mu.Unlock()
 		s.publish(dockFrame{SessionID: id, RunID: runID, Kind: "error", Text: "no pude reiniciar la sesión: " + err.Error(), Status: string(domain.StatusIdle)})
 		return true
 	}
 	newLive := r.live
-	s.persistLocked()
+	s.persistOSeguir()
 	s.mu.Unlock()
 
 	if pending != "" {
@@ -706,7 +771,7 @@ func (s *SessionService) onControlRequest(id string, live ports.AgentSession, ev
 		}
 		r.pendingPerm[ev.RequestID] = pendingPermission{Tool: ev.Tool, Input: ev.Input, ToolUseID: ev.ToolUseID}
 		r.meta.Status = domain.StatusAwait
-		s.persistLocked()
+		s.persistOSeguir()
 	}
 	s.mu.Unlock()
 
@@ -828,7 +893,7 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 		if len(r2.pendingPerm) == 0 && r2.meta.Status == domain.StatusAwait {
 			r2.meta.Status = domain.StatusStreaming // el turno sigue vivo tras la decisión.
 		}
-		s.persistLocked()
+		s.persistOSeguir()
 	}
 	s.mu.Unlock()
 
@@ -905,7 +970,7 @@ func (s *SessionService) Interrupt(id string) error {
 	r.pendingPerm = nil
 	if status == domain.StatusAwait {
 		r.meta.Status = domain.StatusStreaming // el turno sigue vivo hasta su result.
-		s.persistLocked()
+		s.persistOSeguir()
 	}
 	runID := r.curRun
 	s.mu.Unlock()
@@ -937,7 +1002,14 @@ func (s *SessionService) publish(f dockFrame) {
 }
 
 // persistLocked snapshots the registry to the store. Caller must hold s.mu.
-func (s *SessionService) persistLocked() {
+//
+// Devuelve el error del disco en vez de tragárselo. Quién lo propaga y quién no es
+// deliberado: las mutaciones que el operador ACABA de pedir revierten su cambio en memoria
+// y le devuelven el motivo del filesystem; `Turn` y `consume` loguean y siguen, porque un
+// turno en vuelo no se puede deshacer y abortarlo por un fallo de disco dejaría al
+// conductor hablando solo. Es la misma asimetría que el servicio ya tiene entre operación
+// y stream.
+func (s *SessionService) persistLocked() error {
 	snap := make([]domain.Session, 0, len(s.order))
 	for _, id := range s.order {
 		if r := s.rt[id]; r != nil {
@@ -946,6 +1018,15 @@ func (s *SessionService) persistLocked() {
 		}
 	}
 	if err := s.store.Save(s.baseCtx, snap); err != nil {
+		return fmt.Errorf("session service: persist: %w", err)
+	}
+	return nil
+}
+
+// persistOSeguir persiste y, si falla, lo LOGUEA y sigue. Es el camino del stream: los
+// frames del turno ya salieron y no se pueden desandar.
+func (s *SessionService) persistOSeguir() {
+	if err := s.persistLocked(); err != nil {
 		slog.Error("session service: persist", "err", err)
 	}
 }
