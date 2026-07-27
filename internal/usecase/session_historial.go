@@ -17,9 +17,9 @@ type HistoryReader interface {
 	Turnos(cwd, claudeSessionID string) ([]domain.Turn, error)
 }
 
-// SetArchivoCerradas cablea el registro de sesiones cerradas (RF-200): Close deja de
-// borrar sin rastro — la metadata liviana (sin Conv) se appendea ahí. nil = comportamiento
-// previo (borrado seco), degradación honesta.
+// SetArchivoCerradas cablea el registro de sesiones archivadas (RF-200/306): Close deja de
+// borrar sin rastro — la sesión entera, con sus conversaciones completas, se appendea ahí.
+// nil = comportamiento previo (borrado seco), degradación honesta.
 func (s *SessionService) SetArchivoCerradas(store ports.SessionStore) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -34,9 +34,17 @@ func (s *SessionService) SetHistoryReader(r HistoryReader) {
 	s.historial = r
 }
 
-// archivarLocked persiste la metadata liviana de una sesión que se cierra (RF-200):
-// identidad, arnés, cwd, cadena de ClaudeSessionIDs (rotaciones + el vivo), cantidad de
-// turnos y fecha de cierre — SIN Conv (B2: la JSONL nativa es la verdad del contenido).
+// archivarLocked persiste la sesión ENTERA que se cierra (RF-200, RF-305/306), con sus
+// conversaciones COMPLETAS: identidad, arnés, cwd, fecha de archivado, y por cada
+// conversación su cadena de ClaudeSessionIDs, su transcript y su checkpoint.
+//
+// ⚠ LEY INVERTIDA en el paquete 2026-07-26-conversaciones-del-panel (CV-D8 + enmienda F-3,
+// ledger HS-29). Hasta acá el archivado tiraba `Conv` y `Checkpoint` con el argumento de
+// que «la JSONL nativa es la verdad». La JSONL sigue siendo la verdad DEL CONTENIDO — pero
+// `Conv` es nuestra copia de presentación, y es lo único que sobrevive a un GC del corpus
+// de Claude Code, lo único sobre lo que se puede buscar, y lo que se repinta al retomar.
+// Tirarlo era perder lo que el operador vio.
+//
 // Best-effort: un archivo que falla no impide cerrar (warn, jamás bloquea). Caller holds s.mu.
 func (s *SessionService) archivarLocked(meta domain.Session) {
 	if s.cerradas == nil {
@@ -59,13 +67,6 @@ func (s *SessionService) archivarLocked(meta domain.Session) {
 		if cwd, _, rerr := s.resolver.Resolve(cerrada.Arnes); rerr == nil {
 			cerrada.Cwd = cwd
 		}
-	}
-	// La ley vigente: el archivo se queda con la metadata y tira el contenido, porque la
-	// JSONL nativa es la verdad (B2). CV-D8 + F-3 la invierten en T12 — hasta entonces se
-	// traduce tal cual, sin cambiar lo que hace.
-	for i := range cerrada.Conversaciones {
-		cerrada.Conversaciones[i].Conv = nil
-		cerrada.Conversaciones[i].Checkpoint = ""
 	}
 	cerrada.CerradaEn = time.Now().UTC().Format(time.RFC3339)
 	previas, err := s.cerradas.Load(s.baseCtx)
@@ -102,16 +103,18 @@ func (s *SessionService) Cerradas(ctx context.Context, arnesID string) ([]domain
 	return out, nil
 }
 
-// HistorialCerrada reconstruye la conversación de una sesión cerrada desde las JSONL
-// nativas de su cadena (RF-202) — best-effort honesto: las JSONL que ya no están en disco
-// se reportan en faltantes, jamás se inventa contenido.
+// HistorialCerrada devuelve los turnos de una sesión archivada (RF-202).
+//
+// Desde que el archivado conserva el transcript (CV-D8), el camino normal es leerlo del
+// propio registro: es lo que el operador vio, y no depende de que el corpus de Claude Code
+// siga en disco. El lector JSONL queda como FALLBACK para las sesiones archivadas ANTES de
+// la migración, cuyo transcript no se guardó — y ahí sigue siendo best-effort honesto: las
+// JSONL que ya no están se reportan en `faltantes`, jamás se inventa contenido.
 func (s *SessionService) HistorialCerrada(ctx context.Context, id string) (turnos []domain.Turn, faltantes []string, err error) {
 	s.mu.Lock()
 	reader := s.historial
 	s.mu.Unlock()
-	if reader == nil {
-		return nil, nil, errors.New("lector de historial no cableado")
-	}
+
 	cerradasTodas, err := s.Cerradas(ctx, "")
 	if err != nil {
 		return nil, nil, err
@@ -120,9 +123,23 @@ func (s *SessionService) HistorialCerrada(ctx context.Context, id string) (turno
 		if c.ID != id {
 			continue
 		}
-		// La cadena vive en cada conversación (CV-D3): se cosen las N JSONL de todas,
-		// en orden de conversación y dentro de cada una en orden de rotación. El cwd es
-		// de la SESIÓN — dos conversaciones de una sesión corren en el mismo directorio.
+		// Camino normal: el transcript archivado.
+		archivado := false
+		for _, conv := range c.Conversaciones {
+			if len(conv.Conv) > 0 {
+				turnos = append(turnos, conv.Conv...)
+				archivado = true
+			}
+		}
+		if archivado {
+			return turnos, nil, nil
+		}
+		// Fallback: archivada antes de la migración, sin transcript propio. Se cose desde
+		// las JSONL nativas de la cadena de cada conversación; el cwd es de la SESIÓN,
+		// porque sus conversaciones corren todas en el mismo directorio.
+		if reader == nil {
+			return nil, nil, errors.New("lector de historial no cableado")
+		}
 		for _, conv := range c.Conversaciones {
 			for _, ccid := range conv.CadenaCC {
 				t, terr := reader.Turnos(c.Cwd, ccid)

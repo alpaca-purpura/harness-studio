@@ -794,15 +794,21 @@ func imprimirJSON(v any) error {
 	return err
 }
 
-// cerradasPathDefault deriva el archivo del registro de cerradas del de sesiones vivas:
-// mismo dir, nombre propio (default ~/.arnesia/sesiones-cerradas.json).
+// cerradasPathDefault deriva el archivo del registro de sesiones ARCHIVADAS del de sesiones
+// vivas: mismo dir, nombre propio (default ~/.arnesia/sesiones-archivadas.json).
+//
+// El nombre cambió con la ley (CV-D12 + CV-D8): «cerradas» describía un archivo terminal
+// del que no se volvía, y ahora lo que se archiva es la sesión ENTERA con sus
+// conversaciones completas. El `sesiones-cerradas.json` viejo NO se lee ni se migra — el
+// operador lo borra a mano (CV-D6), porque su contenido es el que ya declaró que no le
+// importa. Ese borrado es T32 y es del operador, no de este código.
 func cerradasPathDefault(sessionsPath string) string {
 	if sessionsPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "" // NewRegistry("") resolverá (y fallará) honesto por su cuenta.
 		}
-		return filepath.Join(home, ".arnesia", "sesiones-cerradas.json")
+		return filepath.Join(home, ".arnesia", "sesiones-archivadas.json")
 	}
-	return filepath.Join(filepath.Dir(sessionsPath), "sesiones-cerradas.json")
+	return filepath.Join(filepath.Dir(sessionsPath), "sesiones-archivadas.json")
 }

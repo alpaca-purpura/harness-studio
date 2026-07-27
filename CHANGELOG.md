@@ -31,6 +31,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
+- Cerrar un frente de trabajo ya no tira el transcript ni el checkpoint de sus conversaciones: se archiva lo que el operador vio, que es lo único que sobrevive a una limpieza del corpus de Claude Code y lo único sobre lo que se puede buscar.
 
 ### Deprecado
 

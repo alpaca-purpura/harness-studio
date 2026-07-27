@@ -1,12 +1,14 @@
 ---
 # Capability nueva (paquete 2026-07-22-mejorar-arnes-conversando, RF-200..RF-203).
+# LEY INVERTIDA en 2026-07-26-conversaciones-del-panel (T12 · CV-D8 + F-3) — ver change_log.
 # Schema: docs/product/_templates/capability.template.yaml
 capability_id: arnesia.usecases.historial-de-conversaciones
 cap_num: CAP-98
 slug: historial-de-conversaciones
-name: "Historial de conversaciones por arnés (B2: JSONL nativa = verdad)"
+name: "Historial de conversaciones archivadas (transcript propio + JSONL de fallback)"
 status: vivo          # GENERADO (R4) — no teclear
 module: usecases
+layer: usecase
 verb: observar
 pointers:
   - "internal/usecase/session_historial.go"
@@ -14,25 +16,92 @@ pointers:
   - "web/src/widgets/session-rail/model/conversaciones-store.ts"
   - "web/src/widgets/session-rail/model/conversaciones-store.test.ts"
 valida:
-  - "TestCloseArchivaMetadata"
+  - "TestCloseArchivaConTranscript"
+  - "TestCloseConservaCheckpoint"
+  - "TestHistorialArchivadoUsaElTranscriptPropio"
   - "TestHistorialCerradaCoseCadena"
   - "TestTurnosLeeCorpus"
   - "TestDirParaCwd"
   - "conversaciones-store.test.ts"
-scenarios: []
-business_rules: []
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-200..RF-203)"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "La ley se invierte: `Conv` y `Checkpoint` se persisten al archivar (CV-D8 + enmienda F-3). Hasta acá el archivado guardaba metadata y tiraba el contenido con el argumento de que la JSONL nativa de Claude Code era la verdad. Lo sigue siendo del CONTENIDO — pero nuestra copia de presentación es lo único que sobrevive a un GC del corpus, lo único sobre lo que se puede buscar y lo que se repinta al retomar una conversación. El test que afirmaba la ley vieja se renombró e invirtió en el mismo commit, en vez de borrarse, para que el cambio se lea como lo que es."
+    merge_sha: null
+scenarios:
+  - id: archivar-conserva-lo-que-el-operador-vio
+    name: "El operador cierra un frente de trabajo con conversaciones adentro"
+    status: live
+    given: "una sesión con su conversación, sus turnos y su cadena de procesos"
+    when: "se la cierra"
+    then: "se archiva la sesión entera con las conversaciones completas: turnos, checkpoint, cadena y directorio; nada se recorta"
+    verifica: "TestCloseArchivaConTranscript"
+  - id: el-checkpoint-sobrevive-al-archivado
+    name: "Se archiva una conversación que ya había rotado de contexto"
+    status: live
+    given: "una conversación cuyo contexto rotó y dejó su digest de continuidad"
+    when: "se archiva la sesión"
+    then: "el digest viaja al archivo — sin él, retomarla arrancaría sin el resumen de su propia rotación, que es justo el estado que el digest existe para no perder"
+    verifica: "TestCloseConservaCheckpoint"
+  - id: leer-el-historial-no-depende-del-corpus-ajeno
+    name: "El operador abre el historial de una sesión archivada y Claude Code ya limpió sus archivos"
+    status: live
+    given: "una sesión archivada con su transcript guardado, y el corpus nativo ya borrado"
+    when: "se pide su historial"
+    then: "se muestran los turnos guardados, sin faltantes: lo que se archivó es lo que el operador vio"
+    verifica: "TestHistorialArchivadoUsaElTranscriptPropio"
+  - id: las-archivadas-viejas-se-cosen-desde-la-jsonl
+    name: "El historial de una sesión archivada ANTES de la migración"
+    status: live
+    given: "una sesión archivada sin transcript propio, porque en su momento no se guardaba"
+    when: "se pide su historial"
+    then: "se reconstruye cosiendo los archivos nativos de su cadena, y los que ya no están se reportan como faltantes — jamás se inventa contenido"
+    verifica: "TestHistorialCerradaCoseCadena"
+business_rules:
+  - id: archivar-no-recorta-la-conversacion
+    rule: "Al archivar una sesión, ninguna conversación pierde su transcript ni su checkpoint. Lo que se guarda es lo que el operador vio, y es sobre eso que se busca y se repinta al retomar."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
+  - id: la-jsonl-nativa-es-la-verdad-del-contenido-no-la-unica-copia
+    rule: "El corpus nativo de Claude Code sigue siendo la verdad del contenido y nadie lo escribe ni lo mueve. Pero nuestra copia de presentación no es redundante: es la única que sobrevive a un GC del corpus, la única sobre la que se puede buscar y la que se repinta al retomar."
+    enforcement: ["docs/architecture/boundaries/conductor-no-parsea-jsonl.md"]
+    severity: high
+  - id: el-lector-jsonl-es-fallback-no-camino-principal
+    rule: "El historial de una sesión archivada sale de su transcript guardado. El lector del corpus nativo queda como fallback para las archivadas antes de la migración, cuyo transcript no existe."
+    enforcement: ["docs/architecture/boundaries/conductor-no-parsea-jsonl.md"]
+    severity: medium
 related_capabilities:
   depends_on:
     - arnesia.usecases.rotacion-de-contexto
   enables: []
-source_ref: "docs/product/stories/2026-07-22-mejorar-arnes-conversando/spec.md (RF-200..RF-203)"
 ---
 
-# Historial de conversaciones por arnés (B2)
+# Historial de conversaciones archivadas
 
-`Close()` archiva la metadata liviana (cadena de `ClaudeSessionID`s, cwd, fechas, cantidad de
-turnos — sin `Conv`: la JSONL nativa es la verdad) en `~/.arnesia/sesiones-cerradas.json`. El
-lector `history.Reader` camina `~/.claude/projects/<dir-del-cwd>/` y reconstruye los turnos de
-una cerrada cosiendo su cadena (rotación ⇒ N JSONLs); las JSONL ausentes viajan en `faltantes`.
-Endpoints: `GET /api/sessions?arnes=&cerradas=1` + `GET /api/sessions/cerradas/{id}/historial`.
-FE: sección «Conversaciones» del picker (vivas + cerradas, con expand del transcript).
+`Close()` archiva la **sesión entera con sus conversaciones completas** en
+`~/.arnesia/sesiones-archivadas.json`: por cada conversación, su cadena de `ClaudeSessionID`s, su
+transcript y su checkpoint; por la sesión, su arnés, su `cwd` y la fecha de archivado.
+
+**Esto era al revés hasta el paquete `2026-07-26-conversaciones-del-panel`**, y el cambio es de LEY,
+no de implementación. Antes se archivaba metadata y se tiraba el contenido, con el argumento de que
+«la JSONL nativa es la verdad». Sigue siéndolo **del contenido**, y nadie la escribe ni la mueve
+(boundary `conductor-no-parsea-jsonl`). Pero `Conv` es **nuestra copia de presentación** — capturada
+del stream a nuestro propio registro, que es lo que el mismo boundary manda en su L1 — y es:
+
+- lo único que **sobrevive a un GC del corpus** de Claude Code, que no controlamos;
+- lo único sobre lo que se puede **buscar** (CV-D8: el buscador del panel busca el texto que el
+  operador vio, no la JSONL cruda);
+- lo que se **repinta al retomar** una conversación, antes de que el stream vivo se reenganche.
+
+Tirarlo era perder lo que el operador vio para conservar un puntero a un archivo ajeno.
+
+Lo mismo vale para el **checkpoint**, y esa mitad no la cubría ninguna decisión previa (enmienda
+F-3): retomar una conversación que ya había rotado sin su digest de rotación la deja arrancando
+exactamente en el estado que el digest existe para no perder.
+
+El lector `history.Reader` se conserva como **fallback** para las sesiones archivadas antes de la
+migración, cuyo transcript no se guardó: camina `~/.claude/projects/<dir-del-cwd>/` y cose la cadena;
+las JSONL ausentes viajan en `faltantes`, y jamás se inventa contenido.
