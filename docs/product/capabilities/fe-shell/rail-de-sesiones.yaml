@@ -10,6 +10,7 @@ module: fe-shell
 verb: crear
 pointers:
   - "web/src/widgets/session-rail/ui/session-rail.tsx#SessionRail"
+  - "web/src/widgets/session-rail/ui/session-rail.stories.tsx#SessionRail"
   - "web/src/widgets/session-rail/ui/new-session-picker.tsx#NewSessionPicker"
   - "web/src/entities/portafolio/model/selectors.ts#idsColisionados"
   - "web/src/widgets/session-rail/model/portafolio-picker-store.ts#usePortafolioPicker"
@@ -19,6 +20,7 @@ valida: []
 scenarios:
   - "El pie del rail gana un botón claro/oscuro (☾/☀) que llama toggleTheme() — la infra data-theme + tokens ya existía (theme.css), solo faltaba el control de UI (2026-07-13)"
   - "«＋ Nueva sesión» abre un picker INLINE (el <aside> ensancha 224→360px, cero popover/backdrop): el arnés se elige del Portafolio REAL (GET /api/portafolio) con buscador en vivo + selección identidad→copia cuando hay 2+ copias; reemplaza el arnes:'nuevo-arnes' hardcodeado y el window.prompt() de ruta. Verificado por new-session-picker.stories.tsx (7 play(), Chromium) + portafolio-picker-store.test.ts (paquete shell-topbar-selector-arnes, 2026-07-20)"
+  - "Las acciones de la tarjeta (✎ renombrar · ✕ cerrar) viven en UN cluster inline al final de la fila del título: el ✕ dejó de ser `absolute right/top` —caía sobre el ✎ y se comía su click— y la tarjeta dejó de ser `role=button` con botones adentro (axe `nested-interactive`), pasando a un <button> «Ir a la sesión» que la cubre por debajo del contenido. Cerrar ya no exige `sessions.length > 1`: la ÚLTIMA sesión se puede cerrar y el shell cae a su vacío honesto («Sin sesión activa», workspace-stage.tsx). Verificado por session-rail.stories.tsx (4 play(), Chromium headless: hitbox medida con elementFromPoint) — bugfix 2026-07-27"
 business_rules: []
 related_capabilities:
   depends_on: []

@@ -190,7 +190,6 @@ function SessionCard({
 }) {
   const rename = useSessions((st) => st.rename)
   const closeSession = useSessions((st) => st.closeSession)
-  const canClose = useSessions((st) => st.sessions.length > 1)
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(s.frente)
 
@@ -219,44 +218,34 @@ function SessionCard({
   }
 
   return (
+    // La tarjeta ya NO es `role="button"` con botones adentro (axe `nested-interactive`: un
+    // control dentro de otro control). El "ir a la sesión" es un <button> real que cubre la
+    // tarjeta por debajo del contenido; el contenido no recibe punteros (`pointer-events-none`)
+    // salvo las acciones ✎/✕, que quedan encima con su propia hitbox. Misma familia que el bug
+    // que cerró este paquete: dos controles peleándose el mismo click.
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-      aria-current={active}
       title={`${s.arnes} · ${s.frente}`}
       className={cn(
-        "group relative flex cursor-pointer flex-col gap-1 rounded-[9px] border p-2 text-left transition-colors",
+        "group relative flex flex-col gap-1 rounded-[9px] border p-2 text-left transition-colors",
         active
           ? "border-primary bg-accent-soft shadow-[inset_3px_0_0_var(--primary)]"
           : "border-border bg-card hover:border-input hover:bg-secondary",
       )}
     >
-      {canClose && (
-        <button
-          type="button"
-          title="Cerrar sesión"
-          onClick={(e) => {
-            e.stopPropagation()
-            void closeSession(s.id)
-          }}
-          className="absolute right-1.5 top-1.5 hidden size-4 items-center justify-center rounded text-muted-foreground hover:bg-border hover:text-foreground group-hover:flex"
-        >
-          ✕
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={active}
+        aria-label={`Ir a la sesión «${s.frente}» de ${s.arnes}`}
+        className="absolute inset-0 z-0 cursor-pointer rounded-[9px]"
+      />
 
-      <div className="flex items-center gap-1.5">
+      <div className="pointer-events-none relative z-10 flex items-center gap-1.5">
         <Pip status={s.status} />
         {editing ? (
           <input
             autoFocus
+            aria-label={`Nuevo nombre del frente «${s.frente}»`}
             value={value}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => setValue(e.target.value)}
@@ -269,36 +258,66 @@ function SessionCard({
                 setEditing(false)
               }
             }}
-            className="min-w-0 flex-1 rounded border border-primary bg-card px-1.5 py-px text-xs font-semibold text-foreground"
+            className="pointer-events-auto min-w-0 flex-1 rounded border border-primary bg-card px-1.5 py-px text-xs font-semibold text-foreground"
           />
         ) : (
-          <span className="flex-1 truncate text-xs font-semibold">{s.frente}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-semibold">{s.frente}</span>
         )}
-        <button
-          type="button"
-          title="Renombrar frente"
-          onClick={(e) => {
-            e.stopPropagation()
-            setValue(s.frente)
-            setEditing(true)
-          }}
-          className="hidden size-[15px] items-center justify-center rounded text-[10px] text-muted-foreground hover:bg-border hover:text-foreground group-hover:flex"
-        >
-          ✎
-        </button>
+        {/* Acciones de la tarjeta: ✎ y ✕ viven en el MISMO cluster inline — el ✕ era
+            `absolute right/top` y caía encima del ✎, comiéndose el click de renombrar.
+            `invisible` (no `hidden`) reserva el espacio: la fila no salta al hacer hover,
+            y al enfocar la tarjeta con teclado el cluster aparece y es tabulable. */}
+        {!editing && (
+          <div className="pointer-events-auto invisible flex flex-none items-center gap-0.5 group-focus-within:visible group-hover:visible">
+            <button
+              type="button"
+              title="Renombrar frente"
+              aria-label={`Renombrar frente «${s.frente}»`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setValue(s.frente)
+                setEditing(true)
+              }}
+              className="flex size-[17px] items-center justify-center rounded text-[10px] text-muted-foreground hover:bg-border hover:text-foreground"
+            >
+              ✎
+            </button>
+            {/* Se puede cerrar SIEMPRE, incluso la última: el shell tiene vacío honesto
+                («Sin sesión activa») y el pie del rail sigue ofreciendo «＋ Nueva sesión». */}
+            <button
+              type="button"
+              title="Cerrar sesión"
+              aria-label={`Cerrar sesión «${s.frente}»`}
+              onClick={(e) => {
+                e.stopPropagation()
+                void closeSession(s.id)
+              }}
+              className="flex size-[17px] items-center justify-center rounded text-[10px] text-muted-foreground hover:bg-border hover:text-foreground"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-1.5 font-mono text-[9.5px] text-muted-foreground">
+      {/* Las dos filas de abajo quedan por DEBAJO del botón que cubre la tarjeta: todo su
+          ancho conmuta de sesión. Los chips con `title` recuperan sus punteros para que el
+          tooltip siga saliendo (a cambio, un click justo sobre el chip no conmuta). */}
+      <div className="relative z-10 flex pointer-events-none items-center gap-1.5 font-mono text-[9.5px] text-muted-foreground">
         <span className="text-primary/90">{s.arnes}</span>
         {s.reparacion && (
           <span
             title="Sesión de reparación: edita una instalación (ley A4) — deriva visible, backport al canónico según causa"
-            className="rounded-[5px] border border-border bg-secondary px-1 py-px text-[8.5px]"
+            className="pointer-events-auto rounded-[5px] border border-border bg-secondary px-1 py-px text-[8.5px]"
           >
             reparación
           </span>
         )}
-        {multi && <span title="este arnés tiene 2+ frentes">·2 frentes</span>}
+        {multi && (
+          <span className="pointer-events-auto" title="este arnés tiene 2+ frentes">
+            ·2 frentes
+          </span>
+        )}
         <HealthDot salud={s.salud} />
       </div>
 
