@@ -63,6 +63,9 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El título de una conversación se deriva de su primer mensaje (CV-D9/RF-303): estaba firmado, escrito en el dominio y sin cablear — toda conversación se llamaba «nueva conversación» para siempre.
 - La fecha de última interacción se estampa en cada turno (CV-D13/RF-304): nunca se escribía, así que toda fila de la lista decía «sin fecha» y el orden del panel caía en silencio al de creación.
 - TestResumeAutoSana dejó de ser flaky: esperaba un Idle que ya estaba puesto, así que el turno 2 corría contra un handle vivo todavía no soltado (falla reproducida en la base, ~1 de 100 bajo carga).
+- El teclado del panel de conversaciones arranca solo: el foco se pone cuando la lista existe y no al montar, cuando todavía es el esqueleto y no hay adónde ir.
+- Las flechas del panel arrastran el scroll: con la lista más larga que el panel el cursor avanzaba y la vista no.
+- Escape cierra el panel de conversaciones desde cualquier parte de él, no sólo desde el buscador — que ni siquiera se dibuja con una sola conversación.
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

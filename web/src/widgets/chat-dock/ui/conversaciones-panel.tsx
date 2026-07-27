@@ -63,11 +63,23 @@ export function ConversacionesPanel({
 
   // Foco inicial: dos controles, dos destinos (C-10). Entrar por ▶ y que el cursor caiga en el
   // buscador obligaría a un Tab para hacer lo que se vino a hacer.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: el foco se decide UNA vez, al abrir; re-enfocar en cada render pelearía con el operador.
+  //
+  // A-4 — se enfoca cuando el destino EXISTE, no al montar. Al abrir, el store deja el panel en
+  // `cargando` con `total` 0, así que el primer frame es el esqueleto: no hay listbox (va detrás
+  // del estado) ni input (va detrás de `total > 1`). Los dos refs valían `null`, el `?.focus()`
+  // era un no-op silencioso y el efecto de montaje no volvía a correr: el camino de teclado del
+  // panel no arrancaba nunca. El `ya` conserva la intención del `biome-ignore` que había acá —
+  // enfocar UNA vez y no pelear con el operador en cada render— pero contando desde el foco que
+  // de verdad ocurrió, no desde el montaje.
+  const ya = useRef(false)
   useEffect(() => {
-    if (focoInicial === "buscador") buscadorRef.current?.focus()
-    else listaRef.current?.focus()
-  }, [])
+    if (ya.current) return
+    const destino =
+      focoInicial === "buscador" ? (buscadorRef.current ?? listaRef.current) : listaRef.current
+    if (!destino) return // todavía no hay adónde: se reintenta en el próximo render.
+    destino.focus()
+    ya.current = true
+  })
 
   // El cursor arranca en la activa: es de donde el operador viene.
   // biome-ignore lint/correctness/useExhaustiveDependencies: sólo al cambiar el conjunto de filas; moverlo en cada render pisaría las flechas.
@@ -75,6 +87,16 @@ export function ConversacionesPanel({
     const i = filas.findIndex((c) => c.activa)
     setCursor(i < 0 ? 0 : i)
   }, [conversaciones])
+
+  // A-5 — el cursor tiene que VERSE. El contenedor del listbox es `overflow-y-auto` y el cursor
+  // se movía sólo por estado: con la lista más larga que el panel, `aria-activedescendant`
+  // avanzaba y la vista no, así que a partir de la primera fila fuera del viewport se navegaba
+  // a ciegas. `block: "nearest"` scrollea lo mínimo — no recentra la lista en cada flecha.
+  const marcadaId = marcada?.id
+  useEffect(() => {
+    if (!marcadaId) return
+    document.getElementById(`${id}-${marcadaId}`)?.scrollIntoView({ block: "nearest" })
+  }, [id, marcadaId])
 
   const cuerpo = () => {
     if (estado === "cargando") return <Esqueleto />
@@ -160,6 +182,16 @@ export function ConversacionesPanel({
     <section
       id={id}
       aria-label={`Conversaciones de la sesión «${frenteSesion}»`}
+      // A-6 — Escape cierra el panel desde CUALQUIER parte de él, no sólo desde el buscador.
+      // El panel abre en sitio y tapa el transcript (C-4: sin `<dialog>`, sin backdrop), así
+      // que sin Escape la única salida era volver al mouse o tabular hasta el ▶. Va acá y no
+      // en el listbox porque el buscador no siempre se dibuja (`total > 1`) y el error y el
+      // vacío tampoco tienen listbox: el contenedor es lo único que está siempre.
+      onKeyDown={(e) => {
+        if (e.key !== "Escape") return
+        e.stopPropagation()
+        onCancelar()
+      }}
       className="flex min-h-24 flex-1 flex-col overflow-hidden"
     >
       {/* El buscador NO se dibuja con una sola conversación: no hay nada que filtrar
@@ -180,9 +212,8 @@ export function ConversacionesPanel({
             aria-label="Buscar en estas conversaciones"
             placeholder="Buscar en estas conversaciones…"
             onChange={(e) => onBusqueda(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") onCancelar()
-            }}
+            // Sin `onKeyDown` propio: el Escape lo maneja el contenedor (A-6) y desde acá
+            // burbujea hasta él. Duplicarlo llamaría a `onCancelar` dos veces por tecla.
             className="w-full rounded-md border border-border bg-secondary py-1.5 pr-2.5 pl-6 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>

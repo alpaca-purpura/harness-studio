@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { useEffect, useState } from "react"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import type { Conversacion } from "@/shared"
-import { ConversacionesPanel } from "./conversaciones-panel"
+import { ConversacionesPanel, type PanelEstado } from "./conversaciones-panel"
 
 // Story = test (fe-visual-fitness) — paquete 2026-07-26-conversaciones-del-panel, T28.
 // D-01…D-14 de `plan-storybook.md` §2.4. Ninguna baja `a11y` a "todo" (RF-353 CA-4).
@@ -54,6 +55,20 @@ const CUATRO: Conversacion[] = [
     creada_en: iso(23, 12, 0),
   },
 ]
+
+// CINCUENTA — el volumen que el paquete midió como realista (RF-321 CA-2). Sirve para el
+// único escenario donde el scroll importa: la lista más larga que el alto del panel.
+const CINCUENTA: Conversacion[] = Array.from({ length: 50 }, (_, i) => ({
+  id: `c${i}`,
+  titulo: `conversación número ${i}`,
+  titulo_editado: false,
+  activa: i === 0,
+  turnos: 50 - i,
+  ctx_pct: 10,
+  rotacion_pendiente: false,
+  ultima_interaccion: new Date(AHORA - i * 60000).toISOString(),
+  creada_en: iso(20, 10, 0),
+}))
 
 const meta = {
   title: "widgets/chat-dock/ConversacionesPanel",
@@ -266,5 +281,122 @@ export const EscapeCierra: Story = {
     await expect(c.getByRole("searchbox")).toHaveFocus()
     await userEvent.keyboard("{Escape}")
     await expect(args.onCancelar).toHaveBeenCalledTimes(1)
+  },
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A-4 / A-5 / A-6 — los tres 🔴 de teclado de la auditoría 2026-07-26.
+//
+// Por qué NINGUNA story anterior los cazaba, y esto es el hallazgo detrás del hallazgo:
+// D-13 llama `lista.focus()` a mano antes de teclear, y D-14 monta el panel ya con datos.
+// Las dos se saltean el frame de `cargando` —que es EL que rompe el foco— y una de ellas
+// hace por su cuenta justo lo que el componente tenía que hacer solo. Una story que se
+// enfoca sola no puede descubrir que el foco no llega.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// PanelQueCarga monta como monta el panel REAL: al abrir, el store hace `set({ ...INICIAL })`
+// (`conversaciones-store.ts`), y en INICIAL `estado` es `"cargando"` Y `total` es **0**. Eso
+// importa: con `total: 0` tampoco se dibuja el buscador (va detrás de `total > 1`), así que en
+// ese primer frame NO existe ni el listbox ni el input y los DOS refs valen `null` — que es
+// exactamente la condición que volvía no-op al `?.focus()` del efecto de montaje.
+//
+// Por eso la story pasa `total`/`conversaciones` del store y no los fija: una story que le
+// pone datos al frame de carga se saltea el bug.
+function PanelQueCarga(props: React.ComponentProps<typeof ConversacionesPanel>) {
+  const [listo, setListo] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setListo(true), 20)
+    return () => clearTimeout(t)
+  }, [])
+  const estado: PanelEstado = listo ? "datos" : "cargando"
+  return (
+    <ConversacionesPanel
+      {...props}
+      estado={estado}
+      conversaciones={listo ? props.conversaciones : []}
+      total={listo ? props.total : 0}
+    />
+  )
+}
+
+// A-4a · el foco inicial llega a la LISTA cuando se entró por el ▶, aunque el primer frame
+// haya sido el esqueleto. Sin el fix los dos refs valían `null` y el `?.focus()` era un
+// no-op silencioso: el teclado del panel no arrancaba nunca.
+export const FocoAterrizaEnLaListaTrasCargar: Story = {
+  args: { focoInicial: "filas" },
+  render: (args) => <PanelQueCarga {...args} />,
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await waitFor(async () => {
+      await expect(c.getByRole("listbox")).toHaveFocus()
+    })
+    // Y el teclado funciona de entrada, sin un focus() de cortesía del test.
+    await userEvent.keyboard("{ArrowDown}")
+    await expect(c.getByRole("listbox")).toHaveAttribute(
+      "aria-activedescendant",
+      "cv-panel-c-sellar",
+    )
+  },
+}
+
+// A-4b · el mismo camino entrando por el 🔍: el destino es el buscador (C-10, RF-355).
+export const FocoLlegaAlBuscadorTrasCargar: Story = {
+  args: { focoInicial: "buscador" },
+  render: (args) => <PanelQueCarga {...args} />,
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await waitFor(async () => {
+      await expect(c.getByRole("searchbox")).toHaveFocus()
+    })
+  },
+}
+
+// A-6 · Escape cierra el panel desde la LISTA, no sólo desde el buscador. El panel abre en
+// sitio y tapa el transcript (C-4): sin Escape hay que volver al mouse o tabular hasta el ▶.
+export const EscapeDesdeLaListaCierra: Story = {
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const lista = c.getByRole("listbox")
+    lista.focus()
+    await userEvent.keyboard("{Escape}")
+    await expect(args.onCancelar).toHaveBeenCalledTimes(1)
+  },
+}
+
+// A-6b · Escape con UNA sola conversación (sin buscador dibujado) también cierra. Es el caso
+// donde el único manejador que existía —el del `<input>`— ni siquiera está en el árbol.
+export const EscapeSinBuscadorCierra: Story = {
+  args: { conversaciones: [CUATRO[0] as Conversacion], total: 1 },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await expect(c.queryByRole("searchbox")).not.toBeInTheDocument()
+    c.getByRole("listbox").focus()
+    await userEvent.keyboard("{Escape}")
+    await expect(args.onCancelar).toHaveBeenCalledTimes(1)
+  },
+}
+
+// A-5 · con la lista más larga que el panel, bajar con ↓ ARRASTRA el scroll. Sin el fix el
+// cursor y el `aria-activedescendant` avanzaban y la vista no se movía: a partir de la
+// primera fila fuera del viewport el operador navegaba a ciegas. 50 conversaciones es el
+// escenario que el propio paquete midió como realista.
+export const FlechasArrastranElScroll: Story = {
+  args: { conversaciones: CINCUENTA, total: CINCUENTA.length },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const lista = c.getByRole("listbox")
+    await expect(lista.scrollTop).toBe(0)
+    lista.focus()
+    await userEvent.keyboard("{ArrowDown}".repeat(20))
+    await expect(lista).toHaveAttribute("aria-activedescendant", "cv-panel-c20")
+    // La fila marcada tiene que estar DENTRO del viewport del listbox, no sólo marcada.
+    await waitFor(async () => {
+      const marcada = canvasElement.querySelector("#cv-panel-c20") as HTMLElement
+      const caja = lista.getBoundingClientRect()
+      const fila = marcada.getBoundingClientRect()
+      await expect(fila.top).toBeGreaterThanOrEqual(caja.top - 1)
+      await expect(fila.bottom).toBeLessThanOrEqual(caja.bottom + 1)
+    })
+    await expect(lista.scrollTop).toBeGreaterThan(0)
   },
 }

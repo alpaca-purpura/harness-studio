@@ -25,7 +25,7 @@ valida:
   - "conversaciones-panel.stories.tsx"
   - "chat-dock.stories.tsx"
   - "conversaciones-store.test.ts"
-last_modified: 2026-07-26
+last_modified: 2026-07-27
 source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/spec.md (RF-317…RF-334)"
 scenarios:
   - id: ver-las-conversaciones-de-esta-sesion
@@ -77,6 +77,27 @@ scenarios:
     when: "llega el aviso de la rotación"
     then: "queda una marca inline en el transcript, el título no cambia, la lista sigue mostrando las mismas conversaciones y el detalle se abre solo con la identidad nueva — sin la marca, el contexto cayendo de noventa a doce parecería un defecto"
     verifica: "chat-dock.stories.tsx#TranscriptConRotacion"
+  - id: el-teclado-del-panel-arranca-solo
+    name: "El operador abre la lista con el chevron y no toca el mouse"
+    status: live
+    given: "el panel recién abierto, cuyo primer frame es el esqueleto de carga y todavía no tiene ni lista ni buscador"
+    when: "aparecen las conversaciones"
+    then: "el foco aterriza solo en la lista —o en el buscador si entró por la lupa— y las flechas mueven el cursor de entrada; antes el foco se decidía al montar, cuando no existía adónde ir, y el camino de teclado no arrancaba nunca"
+    verifica: "conversaciones-panel.stories.tsx#FocoAterrizaEnLaListaTrasCargar"
+  - id: el-cursor-se-mantiene-a-la-vista
+    name: "El operador navega con flechas una lista más larga que el panel"
+    status: live
+    given: "cincuenta conversaciones en un panel que muestra seis"
+    when: "baja con la flecha más allá de la última fila visible"
+    then: "la vista acompaña al cursor, lo mínimo necesario; antes el cursor y el anuncio avanzaban y la vista no, así que se navegaba a ciegas"
+    verifica: "conversaciones-panel.stories.tsx#FlechasArrastranElScroll"
+  - id: escape-cierra-el-panel-desde-donde-sea
+    name: "El operador abre la lista, mira, y quiere volver al transcript"
+    status: live
+    given: "el panel abierto tapando el transcript, con el foco en la lista"
+    when: "aprieta Escape"
+    then: "el panel se cierra; antes Escape sólo existía en el buscador, que ni siquiera se dibuja cuando hay una sola conversación, y la única salida era el mouse"
+    verifica: "conversaciones-panel.stories.tsx#EscapeDesdeLaListaCierra"
   - id: el-fallo-de-una-transicion-no-inventa-una-lista-vacia
     name: "El daemon no responde cuando se abre la lista"
     status: live
@@ -101,6 +122,18 @@ business_rules:
     rule: "Ninguna distinción depende únicamente del color: la conversación activa se marca con radio relleno, rótulo y fondo; el contexto caliente cambia la barra y el borde, nunca el color del número."
     enforcement: ["docs/architecture/boundaries/fe-visual-fitness.md"]
     severity: high
+  - id: el-foco-se-decide-una-vez-pero-cuando-hay-adonde
+    rule: "El foco inicial se pone UNA vez, y se pone cuando el destino existe — no al montar. El panel abre en estado de carga: en ese frame no hay ni listbox ni buscador, y un focus() sobre un ref nulo es un no-op silencioso."
+    enforcement: []
+    severity: high
+  - id: todo-lo-que-navega-con-teclado-se-ve
+    rule: "Mover el cursor con el teclado tiene que mover la vista. Un aria-activedescendant que avanza sobre una lista que no scrollea es navegación a ciegas para quien ve la pantalla."
+    enforcement: []
+    severity: high
+  - id: escape-sale-de-todo-panel-que-tapa
+    rule: "Un panel que abre en sitio y tapa el contenido responde a Escape desde cualquier parte de él. El manejador va en el contenedor, no en un control que puede no estar dibujado."
+    enforcement: []
+    severity: medium
   - id: un-control-apagado-nunca-es-mudo
     rule: "Todo control deshabilitado lleva el motivo. Un click que se veía legal y después falla es peor experiencia que un control apagado que explica."
     enforcement: []
