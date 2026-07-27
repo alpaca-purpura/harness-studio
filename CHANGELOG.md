@@ -24,6 +24,20 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+
+### Seguridad
+
+## [0.4.0] — 2026-07-27
+
+### Agregado
 - story baseline del panel de conversación (chat-dock.stories.tsx): el widget que no tenía ninguna ahora fija sus 4 filas de cromo, su tarjeta de permiso y su turno en vuelo
 - gate de contrato del daemon: una ruta que se sirve está declarada en openapi.yaml o exenta con razón escrita (4 enforcers + allowlist de 15 entradas)
 - La conversación pasa a ser una entidad propia del dominio, con su título editable, su marca de activa y su ciclo de vida: una sesión contiene N conversaciones y exactamente una activa, y esa invariante se repara al cargar diciendo qué reparó.
