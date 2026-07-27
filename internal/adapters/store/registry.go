@@ -19,7 +19,10 @@ import (
 // Registry is a file-backed session store. Safe for concurrent use.
 type Registry struct {
 	path string
-	mu   sync.Mutex
+	// sello de build del binario que escribe, estampado en el sobre. Vacío cuando el
+	// Registry se construyó con NewRegistry a secas: el sobre lo omite en vez de mentir.
+	sello string
+	mu    sync.Mutex
 }
 
 var _ = (interface {
@@ -41,7 +44,9 @@ func NewRegistry(path string) (*Registry, error) {
 }
 
 // Load reads the persisted sessions. A missing file is not an error — it yields an
-// empty registry (first run).
+// empty registry (first run). Lee las dos formas: el sobre versionado que este binario
+// escribe y el array desnudo que se escribía antes, porque un registro sin migrar
+// (el de sesiones archivadas, p. ej.) sigue siendo legible.
 func (r *Registry) Load(_ context.Context) ([]domain.Session, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -53,8 +58,21 @@ func (r *Registry) Load(_ context.Context) ([]domain.Session, error) {
 	if err != nil {
 		return nil, fmt.Errorf("store: read %s: %w", r.path, err)
 	}
+	version, err := detectarVersion(b)
+	if err != nil {
+		return nil, fmt.Errorf("store: %s: %w", r.path, err)
+	}
+	if version > EsquemaActual {
+		return nil, fmt.Errorf(
+			"store: %s lo escribió un binario más nuevo (esquema %d, este entiende %d)",
+			r.path, version, EsquemaActual)
+	}
+	payload, err := payloadDe(b, version)
+	if err != nil {
+		return nil, fmt.Errorf("store: %s: %w", r.path, err)
+	}
 	var sessions []domain.Session
-	if err := json.Unmarshal(b, &sessions); err != nil {
+	if err := json.Unmarshal(payload, &sessions); err != nil {
 		return nil, fmt.Errorf("store: decode %s: %w", r.path, err)
 	}
 	return sessions, nil
@@ -70,9 +88,13 @@ func (r *Registry) Save(_ context.Context, sessions []domain.Session) error {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("store: mkdir %s: %w", dir, err)
 	}
-	b, err := json.MarshalIndent(sessions, "", "  ")
+	payload, err := json.Marshal(sessions)
 	if err != nil {
 		return fmt.Errorf("store: encode: %w", err)
+	}
+	b, err := envolver(payload, r.sello)
+	if err != nil {
+		return err
 	}
 	tmp, err := os.CreateTemp(dir, ".sessions-*.json")
 	if err != nil {

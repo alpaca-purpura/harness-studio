@@ -1,25 +1,76 @@
 ---
-# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
-# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+# Derivada del código real (barrido 7-subagentes, HS-18) y con evidencia REAL desde el
+# paquete 2026-07-26-conversaciones-del-panel (T9): `store` tuvo sus primeros tests.
+# Schema: docs/product/_templates/capability.template.yaml
 capability_id: arnesia.indice-persistencia.persistencia
 cap_num: CAP-25
 slug: persistencia
 name: "Persistencia (sesiones + arnés→path, JSON atómico)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 module: indice-persistencia
+layer: adaptador
 verb: infra
+functional_area: "indice-persistencia.registro-de-sesiones"
+user_visible: false
+nature: feature
 pointers:
   - "internal/adapters/store/registry.go#Save"
+  - "internal/adapters/store/registry.go#Load"
   - "internal/adapters/store/arnes_registry.go#saveLocked"
-valida: []
-scenarios: []
-business_rules: []
+valida:
+  - "TestSaveEstampaEsquemaActual"
+  - "TestCrashAMitadDejaElViejoEntero"
+  - "TestPrimerArranqueNoInventaArchivo"
+last_modified: 2026-07-26
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-25)"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "La escritura atómica del registro deja de ser una afirmación sin evidencia: `internal/adapters/store` tuvo sus primeros tests, y ahora está probado que un guardado que falla deja el archivo anterior entero en vez de medio archivo nuevo. Lo que se escribe pasa a llevar su sobre versionado (CAP-141) y lo que se lee entiende las dos formas, la nueva y la que se escribía antes."
+    merge_sha: null
+scenarios:
+  - id: guardar-es-atomico
+    name: "El disco deja de aceptar escrituras a mitad de un guardado"
+    status: live
+    given: "un registro de sesiones ya guardado"
+    when: "falla el guardado siguiente"
+    then: "el error se reporta y en disco queda el registro anterior entero, legible — nunca la mitad de uno nuevo"
+    verifica: "TestCrashAMitadDejaElViejoEntero"
+  - id: sin-archivo-no-es-error
+    name: "Primer arranque en una máquina limpia"
+    status: live
+    given: "ningún registro en disco"
+    when: "arranca el daemon"
+    then: "el registro carga vacío y no se escribe ningún archivo que nadie pidió"
+    verifica: "TestPrimerArranqueNoInventaArchivo"
+business_rules:
+  - id: escribir-es-temp-mas-rename
+    rule: "Todo guardado del registro se escribe a un temporal en el mismo directorio y se renombra encima. Un corte a mitad deja el archivo anterior entero, jamás uno truncado."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: critical
+  - id: archivo-ausente-no-es-error
+    rule: "Un registro que no existe es un primer arranque, no un fallo: carga vacío y no se inventa un archivo."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: medium
 related_capabilities:
   depends_on: []
-  enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-25)"
+  enables:
+    - arnesia.indice-persistencia.migracion-de-esquema-en-disco
 ---
 
 # Persistencia (sesiones + arnés→path, JSON atómico)
 
-Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+El registro de sesiones y el mapa arnés→directorio viven en archivos JSON bajo `~/.arnesia/`. Es
+deliberadamente trivial: el registro es chico y cambia poco, y el índice SQLite descartable es otra
+cosa y otro archivo.
+
+Lo que hace que sea confiable y no sólo simple: **la escritura es temporal + rename**, un swap
+atómico en el mismo filesystem. Un corte de luz o un disco lleno a mitad del guardado dejan el
+registro anterior entero. Hasta el paquete `2026-07-26-conversaciones-del-panel` eso era una
+afirmación del comentario de cabecera y nada más: `internal/adapters/store` no tenía un solo test.
+Ahora lo tiene, y el que prueba esto **fuerza el fallo de verdad** —un directorio sin permiso de
+escritura— en vez de confiar en la lectura del código.
+
+Lo que se escribe lleva su sobre versionado y lo que se lee entiende las dos formas: la nueva y la
+que se escribía antes. El detalle vive en CAP-141.

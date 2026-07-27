@@ -950,17 +950,14 @@ func (s *SessionService) persistLocked() {
 	}
 }
 
-// deriveFrente turns the first user message into a short work-front label.
+// deriveFrente turns the first user message into a short work-front label. El recorte es
+// del dominio (lo comparte el migrador del registro); acá vive sólo el default, que es de
+// la SESIÓN — una conversación sin nombre se llama distinto.
 func deriveFrente(text string) string {
-	text = strings.TrimSpace(strings.Join(strings.Fields(text), " "))
-	const maxLen = 48
-	if len(text) > maxLen {
-		return text[:maxLen] + "…"
+	if t := domain.RecorteDeTitulo(text); t != "" {
+		return t
 	}
-	if text == "" {
-		return "nuevo frente"
-	}
-	return text
+	return "nuevo frente"
 }
 
 // newID returns a short, collision-resistant session id (distinct from the Claude

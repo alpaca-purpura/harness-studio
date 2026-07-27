@@ -1,0 +1,151 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, T9 · RF-335/339).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.indice-persistencia.migracion-de-esquema-en-disco
+cap_num: CAP-141
+slug: migracion-de-esquema-en-disco
+name: "El archivo durable declara su esquema y sabe migrarse"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: indice-persistencia
+layer: adaptador
+verb: infra
+functional_area: "indice-persistencia.registro-de-sesiones"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/adapters/store/esquema.go#EsquemaActual"
+  - "internal/adapters/store/esquema.go#detectarVersion"
+  - "internal/adapters/store/migracion.go#AbrirRegistro"
+  - "internal/adapters/store/migracion.go#deV1aV2"
+  - "internal/adapters/store/migracion.go#Informe"
+  - "internal/adapters/store/migracion.go#respaldar"
+valida:
+  - "TestSaveEstampaEsquemaActual"
+  - "TestDetectarVersionArrayDesnudoEsV1"
+  - "TestDetectarVersionSobre"
+  - "TestMigracionRespaldaAntesDeEscribir"
+  - "TestMigracionEsIdempotente"
+  - "TestDeV1aV2ConservaTodoElFixtureReal"
+  - "TestCrashAMitadDejaElViejoEntero"
+  - "TestPrimerArranqueNoInventaArchivo"
+  - "TestNormalizarAlCargarSeReportaYSeArregla"
+  - "TestRespaldoNoSePisaEntreMigraciones"
+  - "TestMigradorNoLeeElReloj"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §2.2 · §2.3"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: new
+    summary: "El registro de sesiones deja de ser un array desnudo que cambia de forma en silencio. Ahora viaja en un sobre que dice de qué versión es, qué binario lo escribió y cuándo, y el arranque sabe llevarlo de una versión a la siguiente con una copia previa obligatoria. El archivo viejo no se toca, no se borra y no se renombra: volver a un binario anterior sigue siendo gratis."
+    merge_sha: null
+scenarios:
+  - id: el-registro-viejo-se-migra-una-vez
+    name: "El operador instala la versión que parte la sesión en conversaciones"
+    status: live
+    given: "un registro escrito por la versión anterior, con cinco sesiones y una de ellas con noventa turnos"
+    when: "arranca el daemon nuevo"
+    then: "cada sesión queda con una conversación activa que se lleva su id de Claude Code, su uso de contexto, su cadena de rotaciones, su checkpoint y sus turnos; se escribe una copia previa del original; y el original queda intacto"
+    verifica: "TestDeV1aV2ConservaTodoElFixtureReal"
+  - id: el-segundo-arranque-no-toca-nada
+    name: "El daemon vuelve a arrancar al día siguiente"
+    status: live
+    given: "un registro ya migrado"
+    when: "arranca de nuevo"
+    then: "no se migra, no se repara y el archivo queda igual byte a byte"
+    verifica: "TestMigracionEsIdempotente"
+  - id: no-se-migra-sin-copia-previa
+    name: "Se va a cambiar la forma de un archivo que el operador no puede reescribir"
+    status: live
+    given: "un registro de la versión anterior"
+    when: "se lo migra"
+    then: "la copia previa existe antes de la primera escritura y es byte a byte el original; su nombre lleva el sello del binario, así que dos migraciones no se pisan el respaldo"
+    verifica: "TestMigracionRespaldaAntesDeEscribir"
+  - id: guardar-nunca-deja-medio-archivo
+    name: "Falla la escritura del registro a mitad de camino"
+    status: live
+    given: "un registro guardado y un disco que deja de aceptar escrituras"
+    when: "se intenta guardar el estado nuevo"
+    then: "el error se reporta y en disco queda el registro anterior entero — nunca la mitad de uno nuevo"
+    verifica: "TestCrashAMitadDejaElViejoEntero"
+  - id: la-fecha-que-no-existe-no-se-inventa
+    name: "Se migra una conversación de noventa turnos"
+    status: live
+    given: "un registro viejo que nunca guardó cuándo fue el último turno"
+    when: "se lo migra"
+    then: "la fecha de última interacción queda vacía, no se rellena con la de hoy: la lista la va a mostrar como «sin fecha», que es la verdad"
+    verifica: "TestDeV1aV2ConservaTodoElFixtureReal"
+  - id: un-registro-roto-se-repara-al-abrir
+    name: "El registro trae una sesión sin conversaciones y otra con dos activas"
+    status: live
+    given: "un registro editado a mano o migrado a medias"
+    when: "se lo abre"
+    then: "queda con exactamente una activa por sesión y cada arreglo viaja al informe del arranque para que salga por el log"
+    verifica: "TestNormalizarAlCargarSeReportaYSeArregla"
+business_rules:
+  - id: todo-archivo-durable-declara-su-esquema
+    rule: "Lo que este binario escribe en un archivo durable dice de qué versión de esquema es, qué build lo escribió y cuándo. Un archivo sin versión no se asume de la versión anterior: se rechaza."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+  - id: migrar-exige-copia-previa
+    rule: "Ninguna migración escribe antes de haber copiado el original. La copia lleva el sello del binario para que dos corridas no se pisen."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: critical
+  - id: el-migrador-congela-la-forma-vieja
+    rule: "Un migrador decodifica con la forma vieja congelada en su propio código, jamás con el tipo del dominio de hoy. Reusar el tipo vivo hace que la próxima vez que el dominio cambie, el migrador pierda en silencio lo que ya no existe."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+  - id: el-archivo-de-la-version-anterior-no-se-toca
+    rule: "El registro de la versión anterior no se toca, no se borra y no se renombra. Mientras exista intacto, volver a un binario anterior no necesita restaurar nada."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+  - id: migrar-es-idempotente
+    rule: "Un arranque sobre un registro ya migrado no migra, no repara y no reescribe. Se ve en el disco: el archivo queda igual byte a byte."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: medium
+related_capabilities:
+  depends_on:
+    - arnesia.indice-persistencia.persistencia
+    - arnesia.dominio-l0.conversacion-como-entidad
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# El archivo durable declara su esquema y sabe migrarse
+
+Hasta este paquete, `~/.arnesia/sessions.json` era un array de sesiones y nada más. Cuando la forma
+cambiaba, el archivo viejo y el nuevo eran indistinguibles salvo por lo que el código de turno
+esperara encontrar — y un campo que se dejaba de leer se perdía sin que nadie se enterara.
+
+Ahora el registro viaja en un **sobre**: `schema_version`, qué build lo escribió y cuándo. El
+arranque mira el primer byte, decide qué versión es —`[` es la forma vieja, `{` es un sobre— y si
+hace falta corre la cadena de migradores hasta la versión de hoy. **Un objeto sin `schema_version`
+no se asume viejo: se rechaza**, porque asumir es exactamente lo que el sobre existe para eliminar.
+
+**La copia previa no es opcional.** Antes de la primera escritura se respalda el original con el
+sello del binario en el nombre. Y el archivo de la versión anterior **no se toca**: se escribe al
+lado, así que volver a la versión anterior del daemon no necesita restaurar nada. Ese truco es el
+bootstrap y sólo vale esta vez — de la v2 en adelante el sobre hace innecesario el archivo aparte.
+
+**Dos decisiones que se ven en el código y conviene decir en voz alta:**
+
+- **El migrador congela la forma vieja en su propia struct.** Decodificar con el tipo del dominio de
+  hoy convertiría al migrador en un lector optimista: la próxima vez que el dominio cambie, leería
+  el archivo viejo con la forma nueva y tiraría lo que ya no existe.
+- **El migrador no lee el reloj: recibe el instante.** Es lo que lo hace determinista y testeable.
+  Y la única fecha que inventa es la de creación, porque no existe en el archivo viejo. La de
+  **última interacción sale vacía aunque la conversación tenga noventa turnos** — esa fecha nunca se
+  guardó, y ponerle la de hoy sería decirle al operador que habló hoy con algo que abandonó en mayo.
+
+El fixture del test es el registro **real** del operador, 17 202 bytes, copiado tal cual. La
+comparación es campo por campo: contar sesiones no detecta un campo que el migrador olvidó llevar.
