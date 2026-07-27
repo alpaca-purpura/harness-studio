@@ -1,0 +1,143 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, T17 · RF-321/322/324/341 · CV-D8).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.usecases.buscar-en-el-transcript
+cap_num: CAP-145
+slug: buscar-en-el-transcript
+name: "Buscar por lo que se dijo, no por cómo se llama"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: usecases
+layer: usecase
+verb: observar
+functional_area: "usecases.conversaciones"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/session_conversaciones.go#Conversaciones"
+  - "internal/usecase/session_conversaciones.go#normalizar"
+  - "internal/usecase/session_conversaciones.go#fragmentoDe"
+  - "internal/usecase/session_conversaciones.go#indiceDeRunas"
+valida:
+  - "TestBuscaEnTituloYEnTexto"
+  - "TestBusquedaInsensibleAAcentosYMayusculas"
+  - "TestQueryEnBlancoEsSinQuery"
+  - "TestFragmentoEsElPrimerMatch"
+  - "TestCoincideSoloEnTituloNoTraeFragmento"
+  - "TestBusquedaSobreTranscriptRealDe90Turnos"
+  - "TestTotalEsElTotalNoElDeCoincidencias"
+  - "TestConversacionesDeSesionInexistenteEsError"
+  - "TestLaListaEsSoloDeEstaSesion"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §5.1 · spec.md RF-321"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: new
+    summary: "El operador puede encontrar una conversación por algo que dijo adentro, no sólo por cómo se llama. La búsqueda entra al texto de cada turno, ignora acentos y mayúsculas, y devuelve el pedazo que coincidió para que se entienda por qué apareció."
+    merge_sha: null
+scenarios:
+  - id: buscar-por-lo-que-se-dijo
+    name: "El operador recuerda una palabra pero no el nombre de la conversación"
+    status: live
+    given: "una sesión con varias conversaciones, una de ellas con esa palabra en medio del diálogo"
+    when: "se busca la palabra"
+    then: "aparecen tanto la que la tiene en el nombre como la que la tiene en el texto, cada una con el pedazo donde apareció"
+    verifica: "TestBuscaEnTituloYEnTexto"
+  - id: los-acentos-no-son-un-obstaculo
+    name: "El operador escribe rápido y sin acentos"
+    status: live
+    given: "una conversación que dice «el manifiesto está vacío»"
+    when: "se busca «VACIO»"
+    then: "la conversación aparece igual; la comparación ignora acentos y mayúsculas de los dos lados"
+    verifica: "TestBusquedaInsensibleAAcentosYMayusculas"
+  - id: un-espacio-suelto-no-vacia-el-panel
+    name: "Queda un espacio en el buscador"
+    status: live
+    given: "el panel con sus conversaciones listadas"
+    when: "el campo de búsqueda queda con espacios y nada más"
+    then: "se muestran todas, sin fragmentos: un espacio accidental no puede decirle al operador que su sesión está vacía"
+    verifica: "TestQueryEnBlancoEsSinQuery"
+  - id: el-pedazo-explica-por-que-aparecio
+    name: "Una conversación aparece entre los resultados"
+    status: live
+    given: "una coincidencia en medio de un turno largo"
+    when: "se arma el resultado"
+    then: "viaja el PRIMER pedazo donde coincidió, con puntos suspensivos a los lados si se recortó, con sus acentos y mayúsculas originales y en texto plano; si la coincidencia fue sólo en el nombre no hay pedazo, porque no hay nada que explicar"
+    verifica: "TestFragmentoEsElPrimerMatch"
+  - id: el-rotulo-necesita-las-dos-cifras
+    name: "El operador filtra y quiere saber cuántas quedaron afuera"
+    status: live
+    given: "cuatro conversaciones, dos de las cuales coinciden"
+    when: "se busca"
+    then: "viajan las dos que coinciden y el total sigue siendo cuatro — es el denominador del «2 de 4 coinciden», no la cuenta de coincidencias"
+    verifica: "TestTotalEsElTotalNoElDeCoincidencias"
+  - id: una-sesion-que-no-existe-no-es-una-lista-vacia
+    name: "Se pide la lista de una sesión inexistente"
+    status: live
+    given: "un id de sesión que no está en el registro"
+    when: "se pide su lista de conversaciones"
+    then: "se responde que no existe; jamás una lista vacía, que le diría al operador «no hay nada» cuando el problema es otro"
+    verifica: "TestConversacionesDeSesionInexistenteEsError"
+business_rules:
+  - id: la-busqueda-corre-en-el-daemon
+    rule: "El filtro corre del lado del daemon, que ya tiene los diálogos en memoria. La lista no manda los turnos por el cable —son doce kilobytes por conversación— así que mandarlos sólo para que la interfaz filtre costaría más de un megabyte por cada apertura del panel."
+    enforcement: []
+    severity: medium
+  - id: la-normalizacion-vive-en-un-solo-lugar
+    rule: "Acentos y mayúsculas se pliegan en un único lugar del daemon y se aplican a los dos lados de la comparación. Dos copias de la regla serían dos reglas, y la interfaz que filtrara por su cuenta sería la segunda."
+    enforcement: []
+    severity: high
+  - id: la-lista-es-solo-de-esta-sesion
+    rule: "La lista jamás trae una conversación de otra sesión. Se garantiza en el dominio, no en la interfaz: ahí sólo se podría esconder."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
+  - id: el-fragmento-viaja-en-texto-plano
+    rule: "El pedazo que coincidió viaja sin marcado; el resaltado del término lo hace la interfaz. Mandar marcado desde el daemon sería mandar algo que el navegador interpreta."
+    enforcement: []
+    severity: high
+related_capabilities:
+  depends_on:
+    - arnesia.dominio-l0.conversacion-como-entidad
+    - arnesia.usecases.historial-de-conversaciones
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Buscar por lo que se dijo, no por cómo se llama
+
+Una conversación de trabajo son noventa turnos de los que el operador recuerda una frase, no un
+título. Buscar sólo por el nombre servía para encontrar lo que ya se sabía dónde estaba.
+
+**Dónde corre, y por qué ahí.** En el daemon. La lista del panel no manda los turnos por el cable
+—son doce kilobytes por conversación, y cien conversaciones son más de un megabyte— así que
+mandarlos únicamente para que el navegador filtre sería pagar el costo que la lista existe para no
+pagar. El daemon ya los tiene cargados: un barrido lineal sobre lo que ya está en memoria.
+
+**Sin índice de texto, y esta vez el motivo se re-funda.** La decisión original decía «sin tocar el
+índice» cuando el índice era un archivo suelto; hoy es una base de datos real. La decisión no
+cambia, pero el argumento sí: no es que el índice no exista, es que el volumen no lo justifica.
+Doce kilobytes por cien conversaciones es un barrido de milisegundos, y un índice de texto sobre el
+contenido de las conversaciones del operador sería, además, exactamente el tipo de ingesta que el
+repo acota a propósito.
+
+**El plegado de acentos es runa a runa, y no es un atajo.** El pedazo que se devuelve se recorta del
+texto **original**: si la normalización cambiara la cantidad de caracteres, las posiciones dejarían
+de corresponderse y el recorte saldría movido. Un plegado uno a uno preserva las posiciones. La
+alternativa —la descomposición canónica de Unicode— no está en la biblioteca estándar y traerla
+sumaría tablas al binario del daemon por un caso que no ocurre: el texto que llega del conductor y
+del operador viene precompuesto. Lo que **no** cubre queda dicho en el código, para que nadie lo
+descubra a los golpes: un texto ya descompuesto, con la marca de acento suelta, no se pliega.
+
+**El pedazo viaja en texto plano.** El resaltado del término lo hace la interfaz. Que el daemon
+mandara marcado sería que el daemon manda algo que el navegador interpreta, y eso no se hace ni
+para una palabra.

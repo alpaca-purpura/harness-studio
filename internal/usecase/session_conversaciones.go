@@ -13,8 +13,11 @@ package usecase
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -354,4 +357,143 @@ func (s *SessionService) transicionLocked(
 		Conversacion:       &resultado,
 	})
 	return viejo, append(frames, denegados...), nil
+}
+
+// ─── La búsqueda (T17 · RF-321/322/324/341 · CV-D8) ──────────────────────────────────────
+//
+// Corre en el daemon y no en el navegador, y el motivo es de volumen: la lista NO manda los
+// turnos por el cable (son 12 KB por conversación), así que mandarlos sólo para que el FE
+// filtre serían más de un megabyte por cada apertura del panel. El daemon ya los tiene en
+// memoria. Sin índice de texto, sin base de datos, sin tocar el índice del Mapa: un barrido
+// lineal sobre lo que ya está cargado.
+
+// contextoFragmento es cuántos caracteres se muestran a cada lado de la coincidencia.
+const contextoFragmento = 40
+
+// Conversaciones devuelve las conversaciones de UNA sesión (CV-D4 — jamás las de otra) y el
+// total de la sesión. Con `q` no vacío sólo viajan las que coinciden, cada una con su
+// fragmento, y el total SIGUE SIENDO EL TOTAL: es el denominador del «N de M coinciden», no
+// la cuenta de coincidencias.
+func (s *SessionService) Conversaciones(id, q string) ([]ConversacionResumen, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	r := s.rt[id]
+	if r == nil {
+		return nil, 0, errNotFound(id)
+	}
+	total := len(r.meta.Conversaciones)
+	// Un `q` de puros espacios es «sin filtro», no «buscá el vacío» (E-26).
+	nq := normalizar(strings.TrimSpace(q))
+	out := make([]ConversacionResumen, 0, total)
+	for i := range r.meta.Conversaciones {
+		c := r.meta.Conversaciones[i]
+		if nq == "" {
+			out = append(out, resumenDe(c))
+			continue
+		}
+		enTitulo := strings.Contains(normalizar(c.Titulo), nq)
+		frag := fragmentoDe(c.Conv, nq)
+		if !enTitulo && frag == "" {
+			continue
+		}
+		res := resumenDe(c)
+		// Coincidencia SÓLO en el título ⇒ sin fragmento: no hay nada que explicar
+		// (RF-322 CA-3). Un fragmento vacío ahí sería una línea en blanco con sangría.
+		res.Fragmento = frag
+		out = append(out, res)
+	}
+	return out, total, nil
+}
+
+// normalizar deja un texto comparable: minúsculas y sin diacríticos. Vive en UN solo lugar y
+// se aplica a los dos lados de la comparación; el FE no normaliza nada, manda el texto crudo.
+//
+// ⚠ Es un plegado RUNA A RUNA, no la descomposición canónica de Unicode, y es deliberado por
+// dos razones. La primera es que el fragmento se recorta del texto ORIGINAL: si la
+// normalización cambiara la cantidad de runas, las posiciones dejarían de corresponderse y el
+// recorte saldría movido. La segunda es que la descomposición canónica no está en la
+// biblioteca estándar y traerla sumaría tablas Unicode al binario del daemon por un caso que
+// el plegado cubre — el texto que llega del conductor y del operador viene precompuesto.
+// Lo que NO cubre, dicho para que nadie lo descubra a los golpes: un texto ya descompuesto
+// (letra + marca combinante suelta) no se pliega.
+func normalizar(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		b.WriteRune(unicode.ToLower(plegarDiacritico(r)))
+	}
+	return b.String()
+}
+
+// diacriticos es la tabla de plegado: cada runa de la primera fila se reemplaza por la de la
+// misma posición en la segunda. Cubre Latin-1 Supplement y lo usado de Latin Extended-A —
+// castellano, portugués, francés, catalán y alemán. Uno a uno, sin excepciones: `ß` NO se
+// expande a `ss` justamente porque cambiaría el largo.
+var diacriticos = map[rune]rune{}
+
+func init() {
+	const (
+		con = "ÀÁÂÃÄÅàáâãäåÇçÈÉÊËèéêëÌÍÎÏìíîïÑñÒÓÔÕÖØòóôõöøÙÚÛÜùúûüÝýÿŠšŽžĀāĒēĪīŌōŪū"
+		sin = "AAAAAAaaaaaaCcEEEEeeeeIIIIiiiiNnOOOOOOooooooUUUUuuuuYyySsZzAaEeIiOoUu"
+	)
+	base := []rune(sin)
+	for i, r := range []rune(con) {
+		diacriticos[r] = base[i]
+	}
+}
+
+func plegarDiacritico(r rune) rune {
+	if b, ok := diacriticos[r]; ok {
+		return b
+	}
+	return r
+}
+
+// fragmentoDe devuelve el PRIMER pedazo de transcript que contiene `nq` (ya normalizado),
+// con elipsis a los dos lados cuando se recortó. Vacío = no coincidió en ningún turno.
+//
+// El texto que sale es el ORIGINAL, con sus acentos y sus mayúsculas: se busca sobre el
+// plegado y se recorta sobre el crudo. Y sale en texto plano — el resaltado del término lo
+// hace el FE. Mandar marcado desde acá sería mandar marcado que el navegador interpreta.
+func fragmentoDe(conv []domain.Turn, nq string) string {
+	if nq == "" {
+		return ""
+	}
+	aguja := []rune(nq)
+	for _, t := range conv {
+		crudo := []rune(t.Text)
+		plegado := []rune(normalizar(t.Text))
+		i := indiceDeRunas(plegado, aguja)
+		if i < 0 {
+			continue
+		}
+		desde := max(i-contextoFragmento, 0)
+		hasta := min(i+len(aguja)+contextoFragmento, len(crudo))
+		var b strings.Builder
+		if desde > 0 {
+			b.WriteString("…")
+		}
+		b.WriteString(strings.TrimSpace(string(crudo[desde:hasta])))
+		if hasta < len(crudo) {
+			b.WriteString("…")
+		}
+		return b.String()
+	}
+	return ""
+}
+
+// indiceDeRunas es un `strings.Index` que cuenta en runas, no en bytes: el recorte del
+// fragmento indexa el texto original y las dos mitades tienen que hablar la misma unidad.
+// Barrido cuadrático a propósito — la conversación más larga medida son 12 KB, y un algoritmo
+// astuto acá sería complejidad comprada sin nadie que la pague.
+func indiceDeRunas(pajar, aguja []rune) int {
+	if len(aguja) == 0 || len(aguja) > len(pajar) {
+		return -1
+	}
+	for i := 0; i+len(aguja) <= len(pajar); i++ {
+		if slices.Equal(pajar[i:i+len(aguja)], aguja) {
+			return i
+		}
+	}
+	return -1
 }

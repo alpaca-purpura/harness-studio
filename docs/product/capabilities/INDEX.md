@@ -108,10 +108,11 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-51 · SSE multiplexado (map/dock/run, replay)** `vivo·nc` · http-sse/sse-multiplexado.yaml — `internal/adapters/transport/sse/broker.go#Publish`
 - **CAP-52 · Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 
-### `usecases` (13)
+### `usecases` (14)
 
 - **CAP-113 · Dictado: transcribir y ordenar con contexto de dominio** `vivo` · usecases/dictado-transcribir-y-ordenar.yaml — `internal/ports/dictado.go#TranscriptionPort`
 - **CAP-143 · Crear, retomar y renombrar conversaciones de una sesión** `vivo` · usecases/conversaciones-de-una-sesion.yaml — `internal/usecase/session_conversaciones.go#CrearConversacion`
+- **CAP-145 · Buscar por lo que se dijo, no por cómo se llama** `vivo` · usecases/buscar-en-el-transcript.yaml — `internal/usecase/session_conversaciones.go#Conversaciones`
 - **CAP-53 · Dock: conversación en vivo multisesión** `vivo` · usecases/dock-conversacion-en-vivo-multisesion.yaml — `internal/usecase/session_service.go#Turn`
 - **CAP-54 · Gobierno del turno (permisos HITL + interrupt)** `vivo` · usecases/gobierno-del-turno.yaml — `internal/usecase/session_service.go#onControlRequest`
 - **CAP-55 · Ejecutar caja T3 desde daemon (async + gate post-run)** `vivo·nc` · usecases/ejecutar-caja-t3-desde-daemon.yaml — `internal/usecase/run_service.go#RunService.StartRun`

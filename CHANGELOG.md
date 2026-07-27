@@ -30,6 +30,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El registro de sesiones viaja en un sobre que dice de qué versión es, qué build lo escribió y cuándo, y el arranque sabe migrarlo con copia previa obligatoria. El archivo de la versión anterior queda intacto: volver atrás no necesita restaurar nada.
 - El arranque del daemon dice qué le hizo al registro de sesiones: qué migró, dónde quedó la copia previa, qué reparó y qué llaves movió. Un arranque sin novedades no imprime nada.
 - Las conversaciones de una sesión: crear una nueva y retomar una anterior sin perder ninguna de las dos. Cambiar de hilo es una sola transición — o pasa entera, o el estado anterior queda intacto.
+- El buscador del panel entra al TEXTO de la conversación, no sólo al título: encuentra por lo que se dijo, ignora acentos y mayúsculas, y muestra el pedazo donde coincidió.
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.
