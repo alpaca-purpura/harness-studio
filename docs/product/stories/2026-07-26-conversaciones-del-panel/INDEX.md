@@ -17,7 +17,7 @@
 | **plan de tickets** | ✅ [`plan-desarrollo.md`](./plan-desarrollo.md) — **33 tickets · 6 tramos** + cobertura E-01…E-50 → ticket |
 | **plan de pruebas** | ✅ [`plan-pruebas.md`](./plan-pruebas.md) — pirámide · **circuito E2E contra la app instalada** (6 guiones) · datos de prueba aislados · 26 criterios de salida |
 | GATE 2 🧑‍⚖️ (specs+arquitectura) | ✅ **AUTORIZADO POR DIRECTIVA 2026-07-26** — ver nota abajo |
-| **implementar** | 🚧 **tramo 0 de 6 CERRADO y verde** (T1-T6) · tramos 1-5 sin empezar — ver [`PARIDAD.md`](./PARIDAD.md) §0 |
+| **implementar** | 🚧 **tramo 0 CERRADO y verde** (T1-T6) · **tramo 1 abierto: T7 ✅, T8-T14 detenidos por N-6** — ver [`PARIDAD.md`](./PARIDAD.md) §0 y §1.7 |
 | PARIDAD | 🚧 [`PARIDAD.md`](./PARIDAD.md) abierta con la evidencia del tramo 0; **gate 🧑‍⚖️ SIN FIRMAR** (no hay superficie nueva que comparar) |
 
 ## GATE 1 🧑‍⚖️ — FIRMADO 2026-07-26
@@ -95,51 +95,78 @@ con el paquete (T5, T9-T11, T15). Declararlos `enforced` antes sería el pass fa
 
 ## Retomar aquí
 
-### Lo hecho (2026-07-26) — TRAMO 0 CERRADO Y VERDE
+### 🔴 LEELO ANTES DE TOCAR NADA — el working copy tiene DOS constructores
 
-3 commits locales en `main`, **sin pushear** (los 79 previos tampoco: es decisión del operador):
+**Es la condición de arranque, no una nota al pie.** Mientras se construía T7 se observó, con marca
+de tiempo (tabla completa en `PARIDAD.md` §1.7), que **otra sesión de Claude estaba escribiendo en
+este mismo directorio**: el paquete `2026-07-24-telemetria-embebida-otel`, 18 archivos en vuelo
+(`internal/domain/telemetria_*.go`, `internal/usecase/telemetria_*.go`, `web/src/entities/telemetria/**`,
+capabilities y un fitness nuevo). `ps aux` muestra **4 procesos `claude`** sobre el repo.
+
+Consecuencia mecánica, verificada tres veces: **`lefthook` escanea el árbol entero, no lo staged.**
+`golangci-lint run --new-from-rev=HEAD ./...` y `TestCapabilityCoverage` fallan por archivos ajenos
+a medio escribir y **rechazan un commit propio impecable**. Y `go test ./... -race` deja de ser
+evidencia de nada, porque mide trabajo de dos.
+
+**Antes de arrancar T8, asegurate de una de estas dos:**
+
+1. la otra sesión terminó y commiteó (`git status` limpio salvo lo tuyo), **o**
+2. tu trabajo vive en un **worktree propio** (`git worktree add`).
+
+Sin eso, T8 —que deja `internal/usecase` y `transport/http` sin compilar hasta el último
+call-site— rompe el build de la otra sesión durante toda su ventana, y no vas a poder certificar
+verde lo tuyo sin fabricarlo.
+
+### Lo hecho — TRAMO 0 CERRADO Y VERDE · TRAMO 1 ABIERTO EN T7
+
+Commits locales en `main`, **sin pushear** (los ~83 previos tampoco: es decisión del operador):
 
 | commit | ticket | qué |
 |---|---|---|
 | `bc9d1d4` | — | los artefactos de spec/diseño/arquitectura/planes + los 2 boundaries nuevos, `proposed` con `enforced_by: []` |
 | `56fdda1` | T2 · T3 | baseline del dock (3 stories) + contraste del picker ⇒ `--project=storybook` **386/386** |
 | `eda01f0` | T4 · T5 | `_sin-declarar.yaml` (15 entradas con razón) + los 4 enforcers ⇒ `ruta-servida-esta-declarada` **`enforced` 4/5** |
+| `7113dd1` | — | cierre documental del tramo 0 |
+| **el último** | **T7** | `domain.Conversacion` + las 4 operaciones puras + la invariante · **CAP-140** · 8 tests verdes |
 
 **Gate del tramo 0: local completo y verde** (los 9 comandos de los 3 jobs de CI, tabla en
 `PARIDAD.md` §1 T6). ⚠ **CI NO SE OBSERVÓ**: T6 exige `git push` + `gh run watch`, y no se pusheó.
 El rojo conocido (job `ts`, paso `fitness visual`) tiene su causa corregida y medida, pero eso es
 una **inferencia, no una corrida vista**.
 
+**T7 cerrado** — evidencia completa en `PARIDAD.md` §1 T7. Tres cosas que el que siga tiene que
+saber porque cambian el punto de partida de T8:
+
+1. **`Session.Conversaciones` YA EXISTE** (se adelantó de T8 a T7: sin el campo, los métodos no
+   compilan). Lo que T8 tiene que hacer es **quitar los 9 campos que bajan** y arreglar call-sites.
+2. **`domain.NuevoConvID()`** existe y es el generador de ids `cv<8hex>`: úsalo desde `usecase`, no
+   escribas otro.
+3. **`Conversacion.DerivarTitulo(titulo) bool`** es el guard de RF-303 CA-1. El derivador sigue
+   siendo `deriveFrente` del usecase; el usecase llama `conv.DerivarTitulo(deriveFrente(text))`.
+
 ### Lo siguiente, exacto
 
-**Arrancá por T7** (`plan-desarrollo.md` línea 193). Es el primer ticket del tramo 1 y es
-**aditivo y sin riesgo**: crea archivos que todavía no importa nadie.
+**Arrancá por T8** (`plan-desarrollo.md` línea 235) — **y sólo si se cumple la condición del bloque
+rojo de arriba**. Es el ticket 🔴 más riesgoso del paquete.
 
-- **Ticket:** T7 · `domain.Conversacion` + las 4 operaciones puras + la invariante.
-- **Archivos a crear:** `internal/domain/conversacion.go` · `internal/domain/conversacion_test.go`.
-- **Diseño literal:** `arquitectura.md` §1.2 (los 14 campos, con `Conv []Turn` **sin `omitempty`** y
-  `Turnos` que **no existe**: se deriva con `NumTurnos()`) y §1.4 (las firmas de `Activa`,
-  `CrearConversacion`, `ActivarConversacion`, `RenombrarConversacion`, `VerificarUnaActiva`,
-  `NormalizarConversaciones`).
-- **Capability:** **nueva CAP-140** `dominio-l0/conversacion-como-entidad.yaml`. **Verificado
-  2026-07-26: CAP-139 es el máximo real en `docs/product/capabilities/`, así que CAP-140 sigue
-  libre** (⚠ un `grep` sobre `docs/` devuelve CAP-146 porque los documentos de ESTE paquete ya
-  nombran el bloque 140-146 que todavía no existe — no te confundas).
-- **Los 6 tests, por nombre:** `TestInvarianteUnaActivaTrasCadaTransicion` ·
-  `TestCrearDesactivaLaAnterior` · `TestActivarConversacionAjenaEs404` ·
-  `TestRenombrarVacioNoCambiaElTitulo` · `TestNormalizarReparaYLoDice` ·
-  `TestTituloEditadoNoSeReDeriva`.
-- **Las 2 trampas mecánicas, leelas antes de escribir** (`arquitectura.md` §7.6): (1) ningún
-  comentario con `transcript`/`jsonl`/`.claude/projects` **adyacente** a un decoder, o
-  `TestNoJSONLSchemaParsing` da falso positivo — y **está prohibido** sumar el prefijo a
-  `jsonlExento`; (2) `domain.Turn` **NO se toca** (es el incidente HS-26,
-  `conductor_test.go:TestUserTurnWireSinCamposExtra`).
-
-**Después T8, y es el ticket más riesgoso del paquete** (partir `Session`: el árbol deja de
-compilar hasta arreglar todos los call-sites). No lo arranques sin margen para terminarlo: un T8 a
-medias deja `main` sin compilar. Los 5 tests del boundary
-(`TestOneTurnAtATime`/`TestFramesCarryRunID`/`TestResumeAutoSana`/`TestNoSilentEventDrop`/`TestSessionSpawnsInArnesPath`)
-tienen que seguir verdes **sin tocarles el cuerpo**: es el canario de que el reparto no cambió el pipe.
+- **Ticket:** T8 · `Session` se parte, y el árbol vuelve a compilar.
+- **Qué queda por hacer, exacto:** quitar de `internal/domain/session.go` los 9 campos
+  (`ClaudeSessionID`, `Model`, `CtxPct`, `CtxHist`, `RotacionPendiente`, `CadenaCC`, `Checkpoint`,
+  `Conv`, `Turnos`) y traducir cada `r.meta.X` a `r.meta.Activa().X`.
+- **Archivos:** `internal/usecase/session_service.go` (`consume` `:452+`, `spawnLocked`
+  `:390`/`:406-408`/`:431`, `Turn` `:347-355`) · `internal/usecase/session_rotacion.go` (`:57-63`) ·
+  `internal/usecase/session_historial.go` (`:46-58`, `:112`) ·
+  `internal/adapters/transport/http/sessions.go`.
+- **Los 2 puntos que NO son mecánicos** (`arquitectura.md` §4.6): `spawnLocked:406-408` (el
+  `Checkpoint` de la tarjeta sale de `r.meta.Activa().Checkpoint`) y `session_historial.go:112`
+  (`HistorialCerrada` recorre las `CadenaCC` de las **conversaciones**, no la de la sesión).
+- **`Session` NO se renombra a `Sesion`** (`arquitectura.md` §1.3): rompería el `#Símbolo` de 9
+  capabilities sin comprar nada.
+- **El canario:** los 5 tests de `sesion-viva-consistente` (`TestOneTurnAtATime:1911`,
+  `TestFramesCarryRunID:1924`, `TestResumeAutoSana:1957`, `TestNoSilentEventDrop:1699`,
+  `TestSessionSpawnsInArnesPath:1891`) tienen que seguir verdes **sin tocarles el cuerpo**.
+- **Capability:** modifica **CAP-14** (hoy con `valida`/`scenarios`/`business_rules` **vacíos**) +
+  punteros de **CAP-53/CAP-59/CAP-97**.
 
 ### Cosas del entorno que ya no hace falta re-descubrir
 
@@ -158,6 +185,10 @@ tienen que seguir verdes **sin tocarles el cuerpo**: es el canario de que el rep
 - **GATE 2** sigue siendo *autorizado por directiva, no por lectura* (ver arriba). Si el operador
   lee los specs y rechaza algo, lo construido sobre esa parte se rehace.
 - **El gate de T6** (CI 3/3 verde) queda **abierto** hasta que se pushee.
-- 5 hallazgos nuevos que ningún documento preveía, todos declarados en `PARIDAD.md` §3.4 — el más
-  importante es **N-1**: el dock tiene hoy, en producción, una violación de contraste (2,21:1) que
-  nadie había visto porque el widget no tenía story.
+- 7 hallazgos nuevos que ningún documento preveía, todos declarados en `PARIDAD.md` §3.4. Los dos
+  que condicionan lo que sigue: **N-6**, los dos constructores en el mismo working copy (bloque rojo
+  de «Retomar aquí»), y **N-1**, el dock con una violación de contraste (2,21:1) en producción hoy
+  que nadie había visto porque el widget no tenía story.
+- **N-7 (nuevo, barato de arreglar):** `docs/product/capabilities/INDEX.md` es generado por
+  `cap_doctor.py --index` pero **ningún hook ni job de CI lo corre**, así que driftea en silencio —
+  estaba stale desde el paquete de telemetría. Candidato a fila del `pre-commit`.

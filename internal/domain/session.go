@@ -125,4 +125,9 @@ type Session struct {
 
 	// Conv is the lightweight replay transcript (see Turn).
 	Conv []Turn `json:"conv,omitempty"`
+
+	// Conversaciones son los hilos de esta sesión (CV-D3): N ≥ 1, exactamente una activa.
+	// Sin omitempty: una sesión con [] es una sesión rota, y tiene que verse.
+	// La invariante y sus transiciones viven en conversacion.go.
+	Conversaciones []Conversacion `json:"conversaciones"`
 }

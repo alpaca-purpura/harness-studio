@@ -1,0 +1,140 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, T7 · RF-300/301/303/304).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.dominio-l0.conversacion-como-entidad
+cap_num: CAP-140
+slug: conversacion-como-entidad
+name: "La conversación es una entidad, y la sesión la contiene"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: dominio-l0
+layer: dominio
+verb: crear
+functional_area: "dominio-l0.conversacion"
+user_visible: false
+nature: feature
+pointers:
+  - "internal/domain/conversacion.go#Conversacion"
+  - "internal/domain/conversacion.go#Session.Activa"
+  - "internal/domain/conversacion.go#Session.CrearConversacion"
+  - "internal/domain/conversacion.go#Session.ActivarConversacion"
+  - "internal/domain/conversacion.go#Session.RenombrarConversacion"
+  - "internal/domain/conversacion.go#Session.NormalizarConversaciones"
+  - "internal/domain/conversacion.go#VerificarUnaActiva"
+  - "internal/domain/conversacion.go#Conversacion.NumTurnos"
+  - "internal/domain/conversacion.go#Conversacion.DerivarTitulo"
+valida:
+  - "TestInvarianteUnaActivaTrasCadaTransicion"
+  - "TestCrearDesactivaLaAnterior"
+  - "TestActivarConversacionAjenaEs404"
+  - "TestRenombrarVacioNoCambiaElTitulo"
+  - "TestNormalizarReparaYLoDice"
+  - "TestVerificarUnaActivaDistingueLosTresEstadosRotos"
+  - "TestTituloEditadoNoSeReDeriva"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §1.2 · §1.4"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: new
+    summary: "La conversación deja de ser un puñado de campos de la sesión y pasa a ser una entidad con su propia identidad, su título y su ciclo de vida. La invariante «una sesión tiene N conversaciones y exactamente una activa» vive en operaciones puras del dominio, no en el handler ni en el store: ahí no se puede expresar un estado inválido."
+    merge_sha: null
+scenarios:
+  - id: crear-desactiva-en-una-transicion
+    name: "El operador abre una conversación nueva"
+    status: live
+    given: "una sesión con una conversación activa de 90 turnos"
+    when: "se crea otra"
+    then: "la nueva nace activa, con 0 turnos y sin uso de contexto; la anterior queda inactiva conservando sus 90 turnos y su checkpoint; y la operación nombra cuál desactivó"
+    verifica: "TestCrearDesactivaLaAnterior"
+  - id: retomar-la-que-ya-esta-activa-no-hace-nada
+    name: "El operador elige la conversación que ya estaba activa"
+    status: live
+    given: "una sesión con una activa y una inactiva"
+    when: "se activa la que ya lo estaba"
+    then: "no se desactiva nada y el estado no cambia — no es un error, es que no hay transición que hacer"
+    verifica: "TestInvarianteUnaActivaTrasCadaTransicion"
+  - id: una-conversacion-cuelga-de-su-sesion
+    name: "Se pide activar una conversación de otra sesión"
+    status: live
+    given: "una sesión con dos conversaciones propias"
+    when: "se pide activar un id que no es de ninguna de ellas"
+    then: "se rechaza nombrando el id pedido, no se desactiva nada, y la activa sigue siendo la misma"
+    verifica: "TestActivarConversacionAjenaEs404"
+  - id: renombrar-a-vacio-descarta
+    name: "El operador borra el título y confirma"
+    status: live
+    given: "una conversación titulada"
+    when: "se la renombra a vacío o sólo con espacios"
+    then: "se rechaza y el título anterior queda intacto, sin quedar marcado como editado"
+    verifica: "TestRenombrarVacioNoCambiaElTitulo"
+  - id: el-titulo-del-operador-le-gana-al-automatico
+    name: "Llegan turnos después de que el operador renombró"
+    status: live
+    given: "una conversación cuyo título el operador editó"
+    when: "llegan veinte turnos más, cada uno con su título candidato"
+    then: "el título sigue siendo el del operador"
+    verifica: "TestTituloEditadoNoSeReDeriva"
+  - id: un-registro-roto-se-repara-y-se-dice
+    name: "El registro en disco trae una sesión sin activa, sin conversaciones o con dos activas"
+    status: live
+    given: "una sesión inválida (migración parcial o edición a mano)"
+    when: "se la normaliza"
+    then: "queda con exactamente una activa y la reparación viaja como texto para que el arranque la loguee; una sesión sana no genera ninguna línea"
+    verifica: "TestNormalizarReparaYLoDice"
+business_rules:
+  - id: una-sesion-tiene-al-menos-una-conversacion-y-exactamente-una-activa
+    rule: "Toda sesión tiene N ≥ 1 conversaciones y exactamente una activa. La invariante vive en el dominio, se verifica después de cada transición, y un registro que la viole se repara al cargar diciendo qué reparó."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: la-conversacion-cuelga-de-su-sesion
+    rule: "Una conversación se busca dentro de SU sesión, jamás globalmente. Un id ajeno no existe para esa sesión."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
+  - id: crear-y-desactivar-son-una-sola-transicion
+    rule: "Crear una conversación desactiva la anterior en la misma operación. No existe un estado intermedio con cero activas ni con dos, y un fallo deja el estado anterior intacto."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: desactivar-no-es-archivar
+    rule: "Al desactivarse, la conversación conserva sus turnos, su checkpoint y su cadena de sesiones de Claude Code. Perderlos era el comportamiento viejo del archivado y es lo que este paquete invierte."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: high
+  - id: los-turnos-no-se-cuentan-dos-veces
+    rule: "La cuenta de turnos se deriva de los turnos, no se persiste aparte. Un campo que duplica un largo es un drift esperando ocurrir."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: medium
+related_capabilities:
+  depends_on:
+    - arnesia.dominio-l0.sesion-frente-de-trabajo
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# La conversación es una entidad, y la sesión la contiene
+
+Hasta este paquete, «la sesión» y «la conversación» eran la misma cosa: el id de Claude Code, el uso
+de contexto, el checkpoint y los turnos vivían todos en `Session`. Eso hacía imposible lo que el
+operador pidió — ver el historial de una conversación y abrir otra sin perder la primera.
+
+`Conversacion` es ahora una entidad con identidad propia (`cv…`), título editable, marca de activa,
+fecha de creación y fecha de última interacción. La sesión sigue siendo el **frente de trabajo**
+—el arnés, la empresa, el puesto, el `cwd`— y **contiene** N conversaciones.
+
+**Dónde vive la invariante, y dónde no.** «N ≥ 1 y exactamente una activa» se enforza en tres
+lugares, en orden de defensa: las operaciones puras del dominio (que no pueden expresar un estado
+inválido), la carga desde disco (que **repara y lo dice**, nunca en silencio) y la escritura (que se
+niega a persistir un registro que la viole). No se enforza en el handler, no se enforza en el FE:
+ahí sólo se podría esconder.
+
+**Lo que deliberadamente NO se agregó:** ni un campo `Turnos` persistido —se deriva de los turnos, y
+así es imposible de mentir— ni un campo por turno en `Turn`, que es el tipo que roza el wire del
+turno del usuario y cuyo último campo nuevo rompió la API con un 400.

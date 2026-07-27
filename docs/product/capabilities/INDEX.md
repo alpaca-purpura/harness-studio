@@ -16,7 +16,7 @@
 _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar a mano._
 
 
-### `cli-daemon` (6)
+### `cli-daemon` (7)
 
 - **CAP-01 · Servir daemon** `vivo·nc` · cli-daemon/servir-daemon.yaml — `cmd/arnesia/main.go#runServe`
 - **CAP-02 · Indexar arnés (CLI `index`)** `vivo·nc` · cli-daemon/indexar-arnes.yaml — `cmd/arnesia/main.go#runIndex`
@@ -24,8 +24,9 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-04 · Publicar al marketplace (`publish`)** `stub` · cli-daemon/publicar-al-marketplace.yaml — `cmd/arnesia/main.go#runPublish`
 - **CAP-05 · Abrir shell (`open`)** `stub` · cli-daemon/abrir-shell.yaml — `cmd/arnesia/main.go#runOpen`
 - **CAP-117 · Log del daemon a archivo rotativo (el incidente deja rastro)** `vivo` · cli-daemon/log-del-daemon.yaml — `internal/adapters/logfile/logfile.go#Writer`
+- **CAP-138 · CLI de telemetría (la superficie observable sin pantalla)** `vivo` · cli-daemon/telemetria-cli.yaml — `cmd/arnesia/telemetria.go#runTelemetria`
 
-### `dominio-l0` (9)
+### `dominio-l0` (10)
 
 - **CAP-06 · Grafo agnóstico L0 (Graph/Arnes/Edge/manifiesto)** `vivo·nc` · dominio-l0/grafo-agnostico-l0.yaml — `internal/domain/graph.go#Graph`
 - **CAP-07 · Taxonomía Clase (10 primitivas)** `vivo·nc` · dominio-l0/taxonomia-clase.yaml — `internal/domain/box.go#Clase`
@@ -36,6 +37,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-12 · Spine + 5 categorías fijas (interop I-77)** `vivo` · dominio-l0/spine-5-categorias-fijas.yaml — `internal/domain/graph.go#Spine`
 - **CAP-13 · Permisos derivados del rol (deny>ask>allow, TTL)** `vivo·nc` · dominio-l0/permisos-derivados-del-rol.yaml — `internal/domain/permission.go#PermissionSet.Decide`
 - **CAP-14 · Sesión = frente de trabajo** `vivo·nc` · dominio-l0/sesion-frente-de-trabajo.yaml — `internal/domain/session.go#Session`
+- **CAP-140 · La conversación es una entidad, y la sesión la contiene** `vivo` · dominio-l0/conversacion-como-entidad.yaml — `internal/domain/conversacion.go#Conversacion`
 
 ### `loader` (6)
 
@@ -64,8 +66,10 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-31 · Scope fabrica|arnes (portabilidad)** `vivo·nc` · conformance/scope-fabrica-arnes.yaml — `internal/adapters/conformance/mechanism/adapters.go`
 - **CAP-32 · Doctrina embebida (portable)** `vivo·nc` · conformance/doctrina-embebida.yaml — `embed_doctrina.go#Files`
 
-### `conductor` (10)
+### `conductor` (12)
 
+- **CAP-135 · Toda sesión que ArnesIA lanza nace instrumentada** `vivo` · conductor/spawn-inyecta-telemetria.yaml — `internal/adapters/agent/claudecode/conductor.go#SpawnEnv`
+- **CAP-136 · El uso del turno que el cierre del subproceso ya traía y se tiraba** `vivo` · conductor/uso-del-turno-en-el-result.yaml — `internal/adapters/agent/claudecode/conductor.go#parseResult`
 - **CAP-33 · Conducir sesión CC persistente (stream-json)** `vivo·nc` · conductor/conducir-sesion-cc-persistente.yaml — `internal/adapters/agent/claudecode/conductor.go#Spawn`
 - **CAP-34 · Aislamiento de superficie de config al spawn** `vivo` · conductor/aislamiento-de-superficie-de-config-al-spawn.yaml — `internal/adapters/agent/claudecode/conductor.go#SpawnArgs`
 - **CAP-35 · Inyección de doctrina por flags** `vivo·nc` · conductor/inyeccion-de-doctrina-por-flags.yaml — `internal/adapters/agent/claudecode/conductor.go#SpawnArgs`
@@ -89,16 +93,17 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-46 · Digest acotado (economía de contexto, −90%)** `vivo` · handoff/digest-acotado.yaml — `internal/adapters/artifact/reader.go#Resumen`
 - **CAP-47 · Confinamiento de path del artefacto** `vivo` · handoff/confinamiento-de-path-del-artefacto.yaml — `internal/adapters/artifact/reader.go#confinedPath`
 
-### `http-sse` (8)
+### `http-sse` (9)
 
 - **CAP-106 · Superficie REST de marketplaces (7 endpoints, 400 ≠ 503 ≠ 409, `entradas: null`)** `parcial` · http-sse/superficie-marketplaces.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-114 · Superficie HTTP del dictado (subir audio · disponibilidad)** `vivo` · http-sse/superficie-dictado.yaml — `internal/adapters/transport/http/dictado.go#postDictado`
 - **CAP-116 · Diagnóstico de fallos del FE (el WebView deja rastro en el log)** `vivo` · http-sse/diagnostico-de-fallos.yaml — `internal/adapters/transport/http/diagnostico.go#postDiagnostico`
+- **CAP-137 · Superficie HTTP de telemetría (donde `null` y `0` no se confunden)** `vivo` · http-sse/superficie-telemetria.yaml — `internal/adapters/transport/http/telemetria.go#getResumen`
 - **CAP-48 · Confinamiento de superficie local (Host+Origin+token)** `vivo` · http-sse/confinamiento-de-superficie-local.yaml — `internal/adapters/transport/http/auth.go#withAuth`
 - **CAP-49 · Router + montaje** `vivo·nc` · http-sse/router-montaje.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 - **CAP-50 · UI embebida servida por daemon** `vivo·nc` · http-sse/ui-embebida-servida-por-daemon.yaml — `embed_webdist.go#WebDist`
 - **CAP-51 · SSE multiplexado (map/dock/run, replay)** `vivo·nc` · http-sse/sse-multiplexado.yaml — `internal/adapters/transport/sse/broker.go#Publish`
-- **CAP-52 · Superficie REST (23 endpoints)** `vivo·nc` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
+- **CAP-52 · Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 
 ### `usecases` (12)
 
@@ -134,8 +139,9 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-88 · Observar en Mapa (presencia read-only del Portafolio)** `vivo` · portafolio/observar-en-mapa.yaml — `internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa`
 - **CAP-93 · Identificar (sellar arnes.l0.json in-situ)** `vivo` · portafolio/identificar.yaml — `internal/usecase/portafolio.go#PortafolioService.Identificar`
 
-### `fe-mapa` (8)
+### `fe-mapa` (9)
 
+- **CAP-139 · Capa «Mejora» del Mapa — cifra, confianza, cobertura y puntos de mejora** `parcial` · fe-mapa/capa-mejora.yaml — `web/src/entities/telemetria/model/types.ts#CifraCaja`
 - **CAP-61 · Renderizar el Mapa (HTML+SVG)** `vivo` · fe-mapa/renderizar-el-mapa.yaml — `web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas`
 - **CAP-62 · Pan/zoom/fit** `vivo·nc` · fe-mapa/pan-zoom-fit.yaml — `web/src/widgets/map-canvas/model/use-viewport.ts#useViewport`
 - **CAP-63 · Inspector drawer (Resumen|Contenido|Corridas)** `vivo` · fe-mapa/inspector-drawer.yaml — `web/src/widgets/map-canvas/ui/inspector.tsx#Inspector`
@@ -149,7 +155,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 
 - **CAP-100 · Conversación legible: actividad visible · burbuja por paso · markdown** `vivo` · fe-chat/conversacion-legible.yaml — `internal/adapters/agent/claudecode/conductor.go#assistantEvents`
 - **CAP-115 · Dictar en el composer (grabar → transcribir → ordenar → poblar)** `vivo` · fe-chat/dictar-en-el-composer.yaml — `web/src/widgets/chat-dock/ui/dictado-button.tsx#DictadoButton`
-- **CAP-68 · Chat CC (turno/interrupt)** `vivo·nc` · fe-chat/chat-cc.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ChatDock`
+- **CAP-68 · Chat CC (turno/interrupt)** `vivo` · fe-chat/chat-cc.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ChatDock`
 - **CAP-69 · Acotar alcance (nodo→chip)** `vivo·nc` · fe-chat/acotar-alcance.yaml — `web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow`
 - **CAP-70 · Decidir permisos (tarjeta inline)** `vivo` · fe-chat/decidir-permisos.yaml — `web/src/widgets/chat-dock/ui/permission-card.tsx#PermissionCard`
 - **CAP-71 · Gate de conformance tras escrituras (RF-117)** `vivo·nc` · fe-chat/gate-de-conformance-tras-escrituras.yaml — `web/src/shared/store/sessions-store.ts`
@@ -183,6 +189,26 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-80 · Sidecar del daemon (bind-or-bail, kill al salir)** `vivo·nc` · tauri/sidecar-del-daemon.yaml — `web/src-tauri/src/lib.rs#daemon_running`
 - **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
 - **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
+
+### `telemetria` (17)
+
+- **CAP-118 · Receptor OTLP embebido (nunca bloquea al emisor, nunca finge haber guardado)** `vivo` · telemetria/receptor-otlp-embebido.yaml — `internal/adapters/telemetria/otlp/receptor.go#Receptor`
+- **CAP-119 · Decodificador OTLP/JSON con la stdlib (+0,49 MB, no +10,79 MB)** `vivo` · telemetria/decodificador-otlp-json.yaml — `internal/adapters/telemetria/otlp/decodifica.go#DecodificarLogs`
+- **CAP-120 · Evento canónico de telemetría (una puerta de escritura, «no aplica» ≠ 0)** `vivo` · telemetria/evento-canonico-de-telemetria.yaml — `internal/domain/telemetria.go#EventoTelemetria`
+- **CAP-121 · Allowlist de ingesta (ni identidad de cuenta, ni contenido, ni rutas)** `vivo` · telemetria/allowlist-de-ingesta.yaml — `internal/adapters/telemetria/otlp/mapa_cc.go#MapearLogRecord`
+- **CAP-122 · Almacén de telemetría (base propia, migración aditiva, archivado que nunca borra)** `vivo` · telemetria/almacen-de-telemetria.yaml — `internal/adapters/telemetria/store/store.go#Store`
+- **CAP-123 · Rollup horario incremental (el «no aplica» sobrevive a la suma)** `parcial` · telemetria/rollup-horario-incremental.yaml — `internal/adapters/telemetria/store/rollup.go#Rollup`
+- **CAP-124 · Retención y borrado (el botón borra también el agregado)** `vivo` · telemetria/retencion-y-borrado.yaml — `internal/usecase/telemetria_retencion.go#TelemetriaService.Purgar`
+- **CAP-125 · Catálogo de precios embebido (cero post-install, con procedencia declarada)** `vivo` · telemetria/catalogo-de-precios-embebido.yaml — `internal/adapters/telemetria/catalogo/catalogo.go#Embebido`
+- **CAP-126 · Costeo de doble fuente (lo que dijo el runtime y lo que dice nuestro catálogo)** `vivo` · telemetria/costeo-de-doble-fuente.yaml — `internal/domain/telemetria_costo.go#CalcularCosto`
+- **CAP-127 · Atribución y confianza (el orden de preferencia, y el escenario derivado de la señal)** `vivo` · telemetria/atribucion-y-confianza.yaml — `internal/usecase/telemetria_service.go#TelemetriaService.Atribuir`
+- **CAP-128 · Conciliación de cobertura (cuántos turnos hubo, no cuántos medimos)** `vivo` · telemetria/conciliacion-de-cobertura.yaml — `internal/usecase/telemetria_service.go#TelemetriaService.Conciliar`
+- **CAP-129 · Motor de detectores (cada uno declara si puede correr, y por qué no)** `vivo` · telemetria/motor-de-detectores.yaml — `internal/domain/telemetria_deteccion.go#Detector`
+- **CAP-130 · Los seis detectores del MVP (número, contrafactual, umbral, sesgo en contra y un fix)** `vivo` · telemetria/los-seis-detectores-del-mvp.yaml — `internal/domain/telemetria_deteccion.go#DetectoresMVP`
+- **CAP-131 · Hook de proceso que nunca rompe un turno (el hook es el propio binario)** `vivo` · telemetria/hook-de-proceso-fail-open.yaml — `cmd/arnesia/hook.go#runHook`
+- **CAP-132 · Ficha de descubrimiento del daemon (publicada solo cuando ya escucha)** `vivo` · telemetria/ficha-de-descubrimiento-del-daemon.yaml — `internal/adapters/telemetria/descubrimiento/ficha.go#Ficha`
+- **CAP-133 · Token de ingesta acotado (escribir telemetría no es conducir un agente)** `vivo` · telemetria/token-de-ingesta-acotado.yaml — `internal/adapters/transport/http/auth.go#validaIngesta`
+- **CAP-134 · Forward externo filtrado (apagado por default, y solo el operador lo enciende)** `vivo` · telemetria/forward-externo-filtrado.yaml — `internal/adapters/telemetria/forward/forward.go#Forward`
 <!--caps:end-->
 
 ## Cobertura & honestidad (para la doctrina de enforcement)
