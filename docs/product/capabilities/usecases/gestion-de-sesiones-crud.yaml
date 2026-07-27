@@ -5,16 +5,47 @@ capability_id: arnesia.usecases.gestion-de-sesiones-crud
 cap_num: CAP-59
 slug: gestion-de-sesiones-crud
 name: "Gestión de sesiones CRUD"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 module: usecases
 verb: crear
 pointers:
   - "internal/usecase/session_service.go#Create"
   - "internal/usecase/session_service.go#Rename"
   - "internal/usecase/session_service.go#Close"
-valida: []
-scenarios: []
-business_rules: []
+  - "internal/usecase/session_service.go#seedSessions"
+valida:
+  - "TestCreateNaceConUnaConversacionActiva"
+  - "TestTituloInicialNoHeredaNuevoFrente"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "Abrir un frente de trabajo produce, en la misma operación, el hilo con el que se va a hablar. Antes la sesión nacía sin ninguno y la primera lectura lo creaba avisando de una «reparación» de algo que nunca estuvo roto: la invariante se cumplía por el camino de emergencia y el log entrenaba a ignorar sus propias alertas."
+    merge_sha: null
+scenarios:
+  - id: una-sesion-nace-con-su-hilo
+    name: "El operador abre un frente de trabajo nuevo"
+    status: live
+    given: "el rail con «＋ Nueva sesión»"
+    when: "se crea la sesión"
+    then: "nace con exactamente un hilo activo, de cero turnos, sin uso de contexto y sin fecha de última interacción —porque todavía no hubo ninguna—; lo persistido es lo mismo que se devolvió"
+    verifica: "TestCreateNaceConUnaConversacionActiva"
+  - id: la-sesion-y-el-hilo-tienen-nombres-propios
+    name: "Se crea una sesión sin nombre"
+    status: live
+    given: "un alta sin nombre de frente"
+    when: "nace la sesión y su primer hilo"
+    then: "la sesión cae en su propio nombre por defecto y el hilo en el suyo — no hereda el de la sesión, porque son dos cosas distintas y ambas siguen existiendo"
+    verifica: "TestTituloInicialNoHeredaNuevoFrente"
+business_rules:
+  - id: toda-sesion-nace-con-un-hilo-activo
+    rule: "Crear una sesión crea, en la misma operación, su primer hilo activo. Ninguna operación de la API deja una sesión sin hilos ni con dos activos."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: el-nombre-del-hilo-no-hereda-el-de-la-sesion
+    rule: "El nombre por defecto del hilo es el del hilo, no el del frente de trabajo. Heredarlo mostraría el nombre de una cosa como si fuera el de otra."
+    enforcement: []
+    severity: low
 related_capabilities:
   depends_on: []
   enables: []

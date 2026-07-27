@@ -1761,6 +1761,9 @@ type fakeSession struct {
 	sent   []string
 	// responded records every RespondControl (the control_response wire the daemon sent).
 	responded []respondedControl
+	// closed cuenta los Close() — la transición de conversación tiene que cerrar el
+	// conductor del hilo que deja de estar activo.
+	closed int
 }
 
 type respondedControl struct {
@@ -1776,7 +1779,22 @@ func (f *fakeSession) Send(_ context.Context, turn string) error {
 }
 func (f *fakeSession) Events() <-chan ports.AgentEvent { return f.events }
 func (f *fakeSession) Interrupt(context.Context) error { return nil }
-func (f *fakeSession) Close() error                    { return nil }
+
+func (f *fakeSession) Close() error {
+	f.mu.Lock()
+	f.closed++
+	f.mu.Unlock()
+	return nil
+}
+
+// closedSnapshot es la lectura lock-safe de cuántas veces se cerró este conductor. La
+// necesita `transicion-de-conversacion-atomica`: «cierra el conductor vivo» es una de las
+// cinco cosas que el check afirma, y sin contarlo sólo se podría inferir del respawn.
+func (f *fakeSession) closedSnapshot() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.closed
+}
 
 func (f *fakeSession) RespondControl(_ context.Context, requestID string, d ports.ControlDecision) error {
 	f.mu.Lock()
@@ -1843,6 +1861,35 @@ type fakeStore struct{}
 func (fakeStore) Load(context.Context) ([]domain.Session, error) { return nil, nil }
 func (fakeStore) Save(context.Context, []domain.Session) error   { return nil }
 
+// storeFalible es fakeStore con un interruptor: modela el filesystem que deja de aceptar
+// escrituras a mitad de una sesión de trabajo (disco lleno, montaje read-only). Lo necesita
+// la mitad del check que dice «un fallo deja el estado anterior intacto»: sin un disco que
+// falle no hay forma de afirmarlo, y afirmarlo sin probarlo sería el pass fabricado.
+type storeFalible struct {
+	mu   sync.Mutex
+	roto bool
+}
+
+func (*storeFalible) Load(context.Context) ([]domain.Session, error) { return nil, nil }
+
+func (s *storeFalible) Save(context.Context, []domain.Session) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.roto {
+		return errors.New("no space left on device")
+	}
+	return nil
+}
+
+func (s *storeFalible) romper() { s.setRoto(true) }
+func (s *storeFalible) sanar()  { s.setRoto(false) }
+
+func (s *storeFalible) setRoto(v bool) {
+	s.mu.Lock()
+	s.roto = v
+	s.mu.Unlock()
+}
+
 type fakePub struct {
 	mu     sync.Mutex
 	frames []map[string]any
@@ -1867,9 +1914,18 @@ func (p *fakePub) snapshot() []map[string]any {
 
 func newTestService(t *testing.T, agent ports.AgentPort, pub usecase.EventPublisher, cwd string) *usecase.SessionService {
 	t.Helper()
+	return newTestServiceConStore(t, agent, pub, cwd, fakeStore{})
+}
+
+// newTestServiceConStore es el mismo helper con el store inyectable. Se factorizó al escribir
+// el enforcer de la transición atómica, que necesita un disco que falle; los llamadores de
+// `newTestService` no cambian ni una línea — siguen sembrando exactamente una sesión en
+// `List()[0]`, que es de lo que dependen los cuatro checks originales de este boundary.
+func newTestServiceConStore(t *testing.T, agent ports.AgentPort, pub usecase.EventPublisher, cwd string, store ports.SessionStore) *usecase.SessionService {
+	t.Helper()
 	// The REAL role provisioner backs the permission seam: the fitness runs against the
 	// same authority the daemon wires (permisos-derivan-del-rol).
-	svc, err := usecase.NewSessionService(context.Background(), agent, fakeStore{}, pub, fakeResolver{path: cwd}, 40, nil, permission.NewKitProvisioner(), nil)
+	svc, err := usecase.NewSessionService(context.Background(), agent, store, pub, fakeResolver{path: cwd}, 40, nil, permission.NewKitProvisioner(), nil)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
@@ -1996,6 +2052,141 @@ func TestResumeAutoSana(t *testing.T) {
 	waitFor(t, 2*time.Second, func() bool { return len(sess3.sentSnapshot()) > 0 })
 	if got := sess3.sentSnapshot(); got[0] != "segundo — el resume se pierde" {
 		t.Errorf("el heal no reenvió el turno pendiente, got %v", got)
+	}
+}
+
+// TestTransicionDeConversacionEsAtomica es el enforcer del quinto check de
+// `sesion-viva-consistente` v1.2 (`transicion-de-conversacion-atomica`). Nació declarado
+// pendiente en el nodo, sin cuerpo, para no fabricarle un pass; este es el cuerpo.
+//
+// Afirma las cinco cosas que el check dice, en una sola corrida contra el servicio real:
+//
+//  1. exige turno quieto — con un turno en vuelo la transición devuelve ErrBusy (→ 409);
+//  2. cierra el conductor vivo — el proceso del hilo que se desactiva recibe su Close();
+//  3. deniega los permisos pendientes CON MOTIVO, y el motivo nombra la desactivación;
+//  4. descarta los grants efímeros — el mismo tool vuelve a preguntar en el hilo nuevo;
+//  5. deja exactamente una activa, y un fallo de persistencia deja el estado anterior
+//     intacto (ni media transición, ni una sesión sin conductor).
+//
+// Lo que NO afirma, y por eso no se enuncia: nada sobre el `run_id` del frame nuevo. El frame
+// `conversacion` no lleva run_id a propósito (no pertenece a un turno) y su idempotencia es
+// declarativa — trae el estado final. Eso lo cubren los tests del usecase, no este check.
+func TestTransicionDeConversacionEsAtomica(t *testing.T) {
+	agent := &fakeAgent{}
+	pub := &fakePub{}
+	disco := &storeFalible{}
+	svc := newTestServiceConStore(t, agent, pub, t.TempDir(), disco)
+	id := svc.List()[0].ID
+
+	// (1) Con el turno en vuelo, las dos transiciones se rechazan con el MISMO error que
+	// `Turn` usa para el turno concurrente: dos conductores sobre un stdin es exactamente
+	// lo que la propiedad «un productor por recurso serializado» prohíbe.
+	if err := svc.Turn(id, "un pedido largo"); err != nil {
+		t.Fatalf("turn: %v", err)
+	}
+	if _, _, err := svc.CrearConversacion(id); !errors.Is(err, usecase.ErrBusy) {
+		t.Errorf("crear con el turno en vuelo = %v, want ErrBusy (→ 409)", err)
+	}
+	if _, _, err := svc.ActivarConversacion(id, "cv-cualquiera"); !errors.Is(err, usecase.ErrBusy) {
+		t.Errorf("retomar con el turno en vuelo = %v, want ErrBusy (→ 409)", err)
+	}
+
+	// El conductor pide permiso y el operador lo aprueba: eso mintea un grant efímero. La
+	// segunda pregunta por el mismo tool ya no llega al humano — se auto-aprueba.
+	viejo := agent.sessionsSnapshot()[0]
+	viejo.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-1", Tool: "Write", Input: []byte(`{"file_path":"spec.md"}`)}
+	waitFor(t, 2*time.Second, func() bool { return svc.List()[0].Status == domain.StatusAwait })
+	if _, err := svc.ResolvePermission(id, "cr-1", "allow", "backend-dev", time.Minute, nil); err != nil {
+		t.Fatalf("resolve cr-1: %v", err)
+	}
+	// Una tarjeta que queda ABIERTA: el conductor pregunta y nadie contesta. El `result`
+	// del turno devuelve la sesión a idle sin limpiarla — ese es el estado real en el que
+	// la transición se encuentra un permiso pendiente.
+	viejo.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-2", Tool: "Bash", Input: []byte(`{"command":"ls"}`)}
+	waitFor(t, 2*time.Second, func() bool { return svc.List()[0].Status == domain.StatusAwait })
+	viejo.events <- ports.AgentEvent{Kind: ports.EventResult, Text: "listo"}
+	waitFor(t, 2*time.Second, func() bool { return svc.List()[0].Status == domain.StatusIdle })
+
+	// (5b) Con el disco roto, la transición NO ocurre y el estado anterior queda intacto.
+	antes := svc.List()[0]
+	activaAntes, _ := antes.Activa()
+	disco.romper()
+	if _, _, err := svc.CrearConversacion(id); err == nil {
+		t.Fatal("crear con el disco roto tiene que fallar: en memoria no puede quedar lo que no se guardó")
+	}
+	ahora := svc.List()[0]
+	if len(ahora.Conversaciones) != len(antes.Conversaciones) {
+		t.Errorf("el rollback dejó %d conversaciones, había %d", len(ahora.Conversaciones), len(antes.Conversaciones))
+	}
+	if c, ok := ahora.Activa(); !ok || c.ID != activaAntes.ID {
+		t.Errorf("el rollback cambió la activa (%v), tenía que dejar %q", c, activaAntes.ID)
+	}
+	if n := viejo.closedSnapshot(); n != 0 {
+		t.Errorf("el conductor se cerró %d vez/veces en una transición que falló: la sesión quedaría sin proceso", n)
+	}
+
+	// La transición de verdad, con el disco sano.
+	disco.sanar()
+	nueva, desactivada, err := svc.CrearConversacion(id)
+	if err != nil {
+		t.Fatalf("crear: %v", err)
+	}
+	if desactivada != activaAntes.ID {
+		t.Errorf("desactivada = %q, want %q — la operación tiene que nombrar cuál desactivó", desactivada, activaAntes.ID)
+	}
+
+	// (5a) Exactamente una activa, y es la nueva.
+	final := svc.List()[0]
+	if err := domain.VerificarUnaActiva(final); err != nil {
+		t.Fatalf("la invariante se rompió tras la transición: %v", err)
+	}
+	if c, _ := final.Activa(); c.ID != nueva.ID {
+		t.Errorf("la activa es %q, want la recién creada %q", c.ID, nueva.ID)
+	}
+
+	// (2) El conductor del hilo que se desactivó está cerrado.
+	waitFor(t, 2*time.Second, func() bool { return viejo.closedSnapshot() == 1 })
+
+	// (3) La tarjeta que quedó pendiente se resolvió como deny, con un motivo que nombra la
+	// desactivación y NO se confunde con el de Interrupt.
+	var cerrada map[string]any
+	for _, f := range pub.snapshot() {
+		if f["kind"] == "permission_result" && f["request_id"] == "cr-2" {
+			cerrada = f
+		}
+	}
+	if cerrada == nil {
+		t.Fatal("la tarjeta pendiente quedó abierta: el conductor esperaría una respuesta que nadie va a dar")
+	}
+	if cerrada["decision"] != string(domain.DecisionDeny) {
+		t.Errorf("decision = %v, want deny (deny-by-default)", cerrada["decision"])
+	}
+	if motivo, _ := cerrada["text"].(string); !strings.Contains(motivo, "desactivada") || strings.Contains(motivo, "interrumpido") {
+		t.Errorf("motivo = %q: tiene que nombrar la desactivación y ser distinguible del de Interrupt", motivo)
+	}
+
+	// (4) Los grants no se heredan: el mismo tool que ya se había aprobado vuelve a
+	// preguntar en el hilo nuevo. Heredarlo sería aprobar algo que el operador nunca vio acá.
+	if err := svc.Turn(id, "seguimos en el hilo nuevo"); err != nil {
+		t.Fatalf("turn en el hilo nuevo: %v", err)
+	}
+	fresco := agent.sessionsSnapshot()[1]
+	fresco.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-3", Tool: "Write", Input: []byte(`{"file_path":"spec.md"}`)}
+	waitFor(t, 2*time.Second, func() bool {
+		for _, f := range pub.snapshot() {
+			if f["request_id"] == "cr-3" {
+				return true
+			}
+		}
+		return false
+	})
+	for _, f := range pub.snapshot() {
+		if f["request_id"] != "cr-3" {
+			continue
+		}
+		if f["kind"] != "permission" {
+			t.Errorf("cr-3 salió como %v: el grant del hilo anterior se heredó (deny-by-default violado)", f["kind"])
+		}
 	}
 }
 

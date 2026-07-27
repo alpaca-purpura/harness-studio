@@ -50,10 +50,14 @@ type EventPublisher interface {
 // kind=permission is the ask→UI card (D3: el canal del control_request es el Dock): it
 // carries request_id + tool + the raw input so the shell paints the diff and answers via
 // POST /sessions/{id}/permission. kind=permission_result closes the card.
+// kind=conversacion es el frame del panel de conversaciones (CV-D2): lo emiten la creación,
+// la retoma, el renombrado y la rotación. NO lleva run_id — no pertenece a un turno — así que
+// su idempotencia se resuelve por otro camino: declarativa para creada/activada/renombrada
+// (traen el estado final, aplicarlas dos veces es un set) y por TurnoIdx para rotada.
 type dockFrame struct {
 	SessionID       string          `json:"session_id"`
 	RunID           string          `json:"run_id,omitempty"`
-	Kind            string          `json:"kind"` // status|init|delta|message|act|result|error|permission|permission_result
+	Kind            string          `json:"kind"` // status|init|delta|message|act|result|error|permission|permission_result|conversacion
 	Text            string          `json:"text,omitempty"`
 	Status          string          `json:"status,omitempty"`
 	CtxPct          int             `json:"ctx_pct,omitempty"`
@@ -63,6 +67,16 @@ type dockFrame struct {
 	Tool            string          `json:"tool,omitempty"`
 	Input           json.RawMessage `json:"input,omitempty"`
 	Decision        string          `json:"decision,omitempty"`
+
+	// Los 4 campos del frame `conversacion`, TODOS con omitempty. La disciplina no es
+	// estética: un campo nuevo sin omitempty en un tipo que roza el wire del turno del
+	// usuario devolvió `400 Extra inputs are not permitted` y envenenó el registro nativo
+	// del operador (ledger/HS-26.md). dockFrame es de salida y no toca ese camino, pero la
+	// regla se aplica igual.
+	ConversacionID     string              `json:"conversacion_id,omitempty"`
+	ConversacionEvento string              `json:"conversacion_evento,omitempty"` // creada|activada|renombrada|rotada
+	TurnoIdx           *int                `json:"turno_idx,omitempty"`           // sólo en `rotada`.
+	Conversacion       *ConversacionActiva `json:"conversacion,omitempty"`        // el estado POST-transición.
 }
 
 // pendingPermission is a forwarded control_request waiting for the human (or the role
@@ -106,6 +120,13 @@ type sessionRuntime struct {
 
 	// cwd real del conductor (resuelto al spawn) — insumo del reindex-tras-turno (RF-184).
 	cwd string
+
+	// convActiva es el id de la conversación a la que el runtime cree pertenecer
+	// (boundary sesion-viva-consistente v1.2: «el runtime sigue siendo uno por sesión y
+	// gana un puntero que dice a quién le pertenece»). NO es la fuente de verdad — lo es
+	// la marca `Activa` del agregado —: es el detector de que las dos se separaron.
+	// Vacío = todavía no se observó ninguna transición en esta vida del daemon.
+	convActiva string
 }
 
 // activa devuelve la conversación activa de la sesión — el hilo que tiene conductor
@@ -116,13 +137,30 @@ type sessionRuntime struct {
 // Caller holds s.mu — igual que todo lo que toca r.meta.
 func (r *sessionRuntime) activa() *domain.Conversacion {
 	if c, ok := r.meta.Activa(); ok {
+		r.chequearDueño(c)
 		return c
 	}
 	for _, arreglo := range r.meta.NormalizarConversaciones(time.Now().UTC()) {
 		slog.Warn("session: invariante de conversaciones reparada", "arreglo", arreglo)
 	}
 	c, _ := r.meta.Activa()
+	if c != nil {
+		r.convActiva = c.ID
+	}
 	return c
+}
+
+// chequearDueño compara la activa del agregado con la que el runtime cree tener. Que se
+// separen sería que el estado de vuelo (el proceso, el buffer, los permisos) quedó atado a
+// un hilo distinto del que recibe los turnos — el defecto exacto que la transición atómica
+// existe para impedir. No se repara acá: se DICE, y se re-sincroniza para no repetir la
+// línea en cada turno. Caller holds s.mu.
+func (r *sessionRuntime) chequearDueño(c *domain.Conversacion) {
+	if r.convActiva != "" && r.convActiva != c.ID {
+		slog.Warn("session: el runtime y el agregado no coinciden en cuál es la conversación activa",
+			"session", r.meta.ID, "runtime", r.convActiva, "agregado", c.ID)
+	}
+	r.convActiva = c.ID
 }
 
 // SessionService owns the registry of work-fronts and drives their Claude Code
@@ -327,6 +365,12 @@ func (s *SessionService) Create(sess domain.Session) (domain.Session, error) {
 	if sess.Frente == "" {
 		sess.Frente = "nuevo frente"
 	}
+	// Toda sesión nace con su conversación activa (RF-301 CA-1). Antes nacía sin ninguna y
+	// la primera lectura la reparaba con un warn: la invariante se cumplía, pero por el
+	// camino de emergencia, y el log decía «reparada» de algo que nunca estuvo roto.
+	// El título es el de la CONVERSACIÓN ("nueva conversación") y NO hereda el "nuevo
+	// frente" de la sesión: son dos nombres distintos y ambos existen (RF-301 CA-3).
+	sess.CrearConversacion(domain.NuevoConvID(), time.Now().UTC())
 	s.order = append(s.order, sess.ID)
 	s.rt[sess.ID] = &sessionRuntime{meta: &sess}
 	if err := s.persistLocked(); err != nil {
@@ -1061,10 +1105,19 @@ func errNotFound(id string) error {
 // the real indexed dogfood arnés (dev-full-cycle) with the Mapa view, so the map loads
 // immediately on first run; the other two are illustrative (their arnés/company labels are
 // placeholders until a real graph is indexed, and their views don't fetch a graph).
+// La semilla también nace con su conversación (RF-301): sembrar sesiones sin ella dejaba que
+// la normalización de arranque las «reparara» y escribiera tres warns de un problema que
+// habíamos creado nosotros dos líneas antes. Un log que avisa de algo que no pasó es peor que
+// no avisar: entrena a ignorarlo.
 func seedSessions() []domain.Session {
-	return []domain.Session{
+	ahora := time.Now().UTC()
+	semillas := []domain.Session{
 		{ID: newID(), Frente: "ciclo full-cycle · spec→released", Arnes: "dev-full-cycle", Empresa: "alpacapurpura", Puesto: "Ingeniería · Desarrollo full-cycle", Salud: domain.SaludInfo, Status: domain.StatusIdle, View: "Mapa", Parked: "spec-writer"},
 		{ID: newID(), Frente: "eval-gate de po-ux", Arnes: "ux-nordia", Empresa: "Nordia", Puesto: "Diseño · UX", Salud: domain.SaludWarn, Status: domain.StatusIdle, View: "Diag", Parked: "hallazgo éxito 87%"},
 		{ID: newID(), Frente: "corrida r3 · 3 hallazgos", Arnes: "backend-nordia", Empresa: "Nordia", Puesto: "Backend", Salud: domain.SaludCrit, Status: domain.StatusIdle, View: "Corridas", Parked: "corrida r3"},
 	}
+	for i := range semillas {
+		semillas[i].CrearConversacion(domain.NuevoConvID(), ahora)
+	}
+	return semillas
 }

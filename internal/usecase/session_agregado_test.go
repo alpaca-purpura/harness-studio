@@ -93,3 +93,60 @@ func TestInstantaneaNoCopiaElTranscript(t *testing.T) {
 		t.Error("Instantanea copió el transcript: eso es el costo que el método evita")
 	}
 }
+
+// TestCreateNaceConUnaConversacionActiva (E-01 · RF-301 CA-1/CA-2): abrir un frente de
+// trabajo produce, en la misma operación, el hilo con el que se va a hablar. Antes la sesión
+// nacía vacía y la primera lectura la «reparaba» con un warn — la invariante se cumplía por
+// el camino de emergencia, y el log avisaba de un problema que nos habíamos hecho solos.
+func TestCreateNaceConUnaConversacionActiva(t *testing.T) {
+	svc, err := usecase.NewSessionService(t.Context(), &stubAgent{}, stubStore{}, stubPub{}, stubResolver{path: t.TempDir()}, 40, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := svc.Create(domain.Session{Arnes: "vitalia", Frente: "reparar el mapa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Conversaciones) != 1 {
+		t.Fatalf("la sesión nació con %d conversaciones, quiero exactamente 1", len(s.Conversaciones))
+	}
+	if err := domain.VerificarUnaActiva(s); err != nil {
+		t.Fatalf("la sesión recién creada viola la invariante: %v", err)
+	}
+	c := activaDe(t, s)
+	if c.NumTurnos() != 0 || c.CtxPct != 0 {
+		t.Errorf("la conversación inicial trae %d turnos y ctx %d, quiero 0 y 0", c.NumTurnos(), c.CtxPct)
+	}
+	if c.UltimaInteraccion != "" {
+		t.Errorf("ultima_interaccion = %q: sin turnos no hay fecha que inventar (BR-CV-14)", c.UltimaInteraccion)
+	}
+	if c.CreadaEn == "" {
+		t.Error("creada_en vacío: es el desempate de orden de las de 0 turnos")
+	}
+	// Y lo que se persiste es lo mismo que se devolvió: la relectura tiene que coincidir.
+	leida, ok := svc.Get(s.ID)
+	if !ok || len(leida.Conversaciones) != 1 || activaDe(t, leida).ID != c.ID {
+		t.Errorf("la sesión leída no coincide con la creada: %+v", leida.Conversaciones)
+	}
+}
+
+// TestTituloInicialNoHeredaNuevoFrente (RF-301 CA-3): la sesión y la conversación tienen
+// nombres propios y ambos siguen existiendo. Heredar el de la sesión haría que el panel
+// mostrara "nuevo frente" como si fuera el nombre de un hilo, que no lo es.
+func TestTituloInicialNoHeredaNuevoFrente(t *testing.T) {
+	svc, err := usecase.NewSessionService(t.Context(), &stubAgent{}, stubStore{}, stubPub{}, stubResolver{path: t.TempDir()}, 40, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := svc.Create(domain.Session{Arnes: "vitalia"}) // sin frente: cae en "nuevo frente".
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Frente != "nuevo frente" {
+		t.Fatalf("frente de la sesión = %q, quiero el default de la SESIÓN", s.Frente)
+	}
+	if got := activaDe(t, s).Titulo; got != domain.TituloConversacionNueva {
+		t.Errorf("título de la conversación = %q, quiero %q — no hereda el de la sesión",
+			got, domain.TituloConversacionNueva)
+	}
+}

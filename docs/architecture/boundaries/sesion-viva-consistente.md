@@ -19,6 +19,7 @@ enforced_by:
   - fitness/arch_test.go:TestFramesCarryRunID
   - fitness/arch_test.go:TestNoSilentEventDrop
   - fitness/arch_test.go:TestResumeAutoSana
+  - fitness/arch_test.go:TestTransicionDeConversacionEsAtomica
 severity: high
 ---
 
@@ -117,10 +118,20 @@ en el check nuevo.
 | sin-perdida-silenciosa | ni el conductor ni el broker dropean frames en silencio (bloquean o reconectan+replayan) | error | «frame perdido → dock colgado en streaming» | arch_test.go:TestNoSilentEventDrop |
 | frames-idempotentes-run-id | todo frame del dock lleva `run_id`; el consumidor aplica el terminal una sola vez | error | «replay SSE duplica turnos (sin run_id/dedup)» | arch_test.go:TestFramesCarryRunID |
 | resume-auto-sana | un `--resume` fallido antes de init reinicia fresh una vez y reenvía el turno | warn | «sesión CC stale = frente muerto permanente» | arch_test.go:TestResumeAutoSana |
-| transicion-de-conversacion-atomica | crear/retomar es UNA transición: exige turno quieto (409), cierra el conductor, deniega los permisos pendientes con motivo, descarta los grants y deja exactamente una activa; un fallo deja el estado anterior intacto | error | «dos conductores sobre el mismo stdin, o una sesión sin conversación activa» | (pendiente — TestTransicionDeConversacionEsAtomica) |
+| transicion-de-conversacion-atomica | crear/retomar es UNA transición: exige turno quieto (409), cierra el conductor, deniega los permisos pendientes con motivo, descarta los grants y deja exactamente una activa; un fallo deja el estado anterior intacto | error | «dos conductores sobre el mismo stdin, o una sesión sin conversación activa» | arch_test.go:TestTransicionDeConversacionEsAtomica |
 
 ## Changelog
 
+- 2026-07-26 · v1.2 · **el quinto check deja de estar pendiente** (T15 del mismo paquete):
+  `TestTransicionDeConversacionEsAtomica` existe y pasa. Afirma las cinco cosas que el check
+  enuncia, en una corrida contra el servicio real: ErrBusy con el turno en vuelo (para crear y
+  para retomar), `Close()` del conductor que se desactiva, `permission_result` deny con un motivo
+  que nombra la desactivación y no se confunde con el de `Interrupt`, el mismo tool volviendo a
+  preguntar en el hilo nuevo (grants descartados) y —con un store que falla a pedido— el rollback
+  que deja el estado anterior intacto **sin** cerrar el conductor. El nodo pasa a **5/5 con
+  enforcer real**; los 4 originales siguen verdes **sin que se tocara una línea de su cuerpo**.
+  El hueco de `frames-idempotentes-run-id` (2 de 14 `publish` sin `run_id`) **sigue abierto y
+  sigue en el BACKLOG**: este enforcer no lo tapa ni le cambia el veredicto.
 - 2026-07-26 · v1.2 · **Re-enunciación del sujeto** (paquete
   `stories/2026-07-26-conversaciones-del-panel/`, CV-D3/CV-D7 firmadas): `Session` se parte en
   Sesión + Conversación, así que «la sesión viva» necesitaba decir de quién habla. **Los 4 checks de

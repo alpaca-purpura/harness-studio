@@ -1,0 +1,161 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, T15 · RF-307/308/310/311/312/316).
+# Schema: docs/product/_templates/capability.template.yaml
+#
+# ⚠ El número NO es el que la arquitectura del paquete anticipó (§7.3 decía CAP-141): para cuando
+# este ticket llegó, 141 y 142 ya estaban tomadas por la migración de esquema y la recalibración de
+# llaves. El próximo libre se verifica contra el árbol, nunca contra la prosa de un documento.
+capability_id: arnesia.usecases.conversaciones-de-una-sesion
+cap_num: CAP-143
+slug: conversaciones-de-una-sesion
+name: "Crear, retomar y renombrar conversaciones de una sesión"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: usecases
+layer: usecase
+verb: crear
+functional_area: "usecases.conversaciones"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/usecase/session_conversaciones.go#CrearConversacion"
+  - "internal/usecase/session_conversaciones.go#ActivarConversacion"
+  - "internal/usecase/session_conversaciones.go#RenombrarConversacion"
+  - "internal/usecase/session_conversaciones.go#transicionLocked"
+  - "internal/usecase/session_conversaciones.go#ConversacionResumen"
+  - "internal/usecase/session_conversaciones.go#ConversacionActiva"
+valida:
+  - "TestCrearConTurnoEnVueloEsErrBusy"
+  - "TestRetomarConTurnoEnVueloEsErrBusy"
+  - "TestTransicionDeniegaPermisosPendientesConMotivo"
+  - "TestFalloDePersistenciaDejaElEstadoAnterior"
+  - "TestCrearDosVecesRapidoDejaUnaActiva"
+  - "TestRetomarLaActivaEsNoOp"
+  - "TestFramesDelConductorViejoSeDescartan"
+  - "TestRenombrarNoEsUnaTransicion"
+  - "TestSoloLecturaBloqueaLasTresOperaciones"
+  - "TestTransicionDeConversacionEsAtomica"
+dev_preview:
+  route: null
+  how_to_navigate: null
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §4.2"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: new
+    summary: "El operador puede abrir un hilo nuevo dentro de su sesión y volver a uno anterior sin perder ninguno de los dos. Cambiar de hilo es UNA transición: o pasa entera, o el estado anterior queda intacto — nunca dos conductores sobre el mismo canal, nunca una sesión sin hilo activo."
+    merge_sha: null
+scenarios:
+  - id: crear-con-un-turno-en-vuelo-se-rechaza-con-motivo
+    name: "El operador abre un hilo nuevo mientras el conductor está respondiendo"
+    status: live
+    given: "una conversación con un turno en vuelo (respondiendo, o esperando una decisión de permiso)"
+    when: "se pide crear otra conversación o retomar una anterior"
+    then: "se rechaza con el mismo conflicto que un turno concurrente y nada cambia; el guard se evalúa en el servidor, no se confía en que la interfaz haya apagado el botón"
+    verifica: "TestCrearConTurnoEnVueloEsErrBusy"
+  - id: cambiar-de-hilo-cierra-el-conductor-y-no-hereda-nada
+    name: "El operador cambia de hilo"
+    status: live
+    given: "una conversación activa con conductor vivo, permisos aprobados y una tarjeta pendiente"
+    when: "se crea otra conversación o se retoma una anterior"
+    then: "el conductor del hilo anterior se cierra, la tarjeta pendiente se resuelve como denegada con un motivo que nombra la desactivación, los permisos aprobados NO se heredan y la sesión queda con exactamente un hilo activo"
+    verifica: "TestTransicionDeConversacionEsAtomica"
+  - id: si-el-disco-falla-no-hubo-transicion
+    name: "El registro no se puede escribir en el momento del cambio de hilo"
+    status: live
+    given: "una sesión con su conversación activa y su conductor"
+    when: "se pide crear otra y el filesystem rechaza la escritura"
+    then: "se devuelve el motivo del disco, no se creó nada, la activa sigue siendo la misma y la sesión conserva su conductor"
+    verifica: "TestFalloDePersistenciaDejaElEstadoAnterior"
+  - id: retomar-la-que-ya-esta-activa-no-cuesta-nada
+    name: "El operador elige el hilo en el que ya estaba"
+    status: live
+    given: "una conversación activa con su conductor trabajando"
+    when: "se la vuelve a elegir"
+    then: "no se cierra el conductor, no se reinicia nada y no se emite ningún evento — no hay transición que hacer"
+    verifica: "TestRetomarLaActivaEsNoOp"
+  - id: el-hilo-viejo-no-escribe-en-el-nuevo
+    name: "El conductor anterior sigue emitiendo después del cambio"
+    status: live
+    given: "un cambio de hilo recién ocurrido"
+    when: "el proceso anterior emite un resultado o una actividad"
+    then: "nada de eso se escribe en el hilo nuevo: ni turnos, ni uso de contexto, ni estado"
+    verifica: "TestFramesDelConductorViejoSeDescartan"
+  - id: renombrar-no-cambia-de-hilo
+    name: "El operador le pone nombre a un hilo mientras el conductor trabaja"
+    status: live
+    given: "una conversación con un turno en vuelo"
+    when: "se la renombra"
+    then: "el renombrado se aplica sin exigir que el turno termine —no cambia quién tiene el conductor—; con el nombre vacío se rechaza y el nombre anterior queda intacto"
+    verifica: "TestRenombrarNoEsUnaTransicion"
+  - id: registro-en-solo-lectura-no-acepta-ninguna-de-las-tres
+    name: "El registro en disco lo escribió una versión más nueva del programa"
+    status: live
+    given: "un registro que el daemon declaró en solo-lectura"
+    when: "se intenta crear, retomar o renombrar"
+    then: "las tres se rechazan diciendo que el registro no acepta escrituras, y ninguna toca la memoria"
+    verifica: "TestSoloLecturaBloqueaLasTresOperaciones"
+business_rules:
+  - id: crear-y-retomar-son-una-sola-transicion
+    rule: "Crear o retomar una conversación es UNA operación que desactiva y activa. Un fallo a mitad no es observable: o la transición ocurrió entera, o el estado anterior quedó intacto."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: la-transicion-exige-turno-quieto
+    rule: "Con un turno en vuelo —respondiendo o esperando una decisión de permiso— la transición se rechaza con conflicto. Dos conductores sobre el mismo canal de entrada es lo que la propiedad de productor único prohíbe."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: critical
+  - id: los-permisos-aprobados-no-se-heredan
+    rule: "Los permisos efímeros aprobados dentro de un hilo se descartan al cambiar de hilo. Heredarlos sería aprobar algo que el operador nunca vio en el hilo nuevo."
+    enforcement: ["docs/architecture/boundaries/permisos-gui-human-in-the-loop.md"]
+    severity: high
+  - id: las-tarjetas-pendientes-se-cierran-con-motivo
+    rule: "Al desactivarse, toda tarjeta de permiso que quedó abierta se resuelve como denegada con un motivo que nombra la desactivación y es distinguible del de una interrupción."
+    enforcement: ["docs/architecture/boundaries/permisos-gui-human-in-the-loop.md"]
+    severity: high
+  - id: renombrar-no-es-una-transicion
+    rule: "Renombrar no cambia quién tiene el conductor, así que no exige turno quieto, no cierra nada y no reinicia el estado del turno."
+    enforcement: ["docs/architecture/boundaries/sesion-viva-consistente.md"]
+    severity: medium
+related_capabilities:
+  depends_on:
+    - arnesia.dominio-l0.conversacion-como-entidad
+    - arnesia.usecases.gestion-de-sesiones-crud
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Crear, retomar y renombrar conversaciones de una sesión
+
+El operador pidió dos cosas que el producto no tenía: ver el historial de una conversación y abrir
+una nueva sin perder la que estaba. Esta capability es la mitad de servidor de las dos.
+
+**Por qué crear y retomar comparten un cuerpo.** Son la misma transición: dejar de tener conductor
+en un hilo y pasar a tenerlo en otro. Escribirlas por separado sería tener dos copias de la misma
+invariante, y una de las dos se iba a quedar atrás — el defecto clásico de las reglas duplicadas.
+El cuerpo compartido (`transicionLocked`) corre ocho pasos en un orden que no se improvisa: guard →
+foto de rollback → operación pura del dominio → denegar los permisos pendientes → resetear el
+estado del turno → mover el puntero del conductor → persistir → armar los eventos.
+
+**Lo que se hace fuera del candado, y por qué.** El servicio tiene una regla vieja y sin
+excepciones: bajo el candado sólo hay mutación pura y persistencia; todo lo que hace entrada/salida
+—cerrar el proceso anterior, publicar los eventos— ocurre después de soltarlo. Por eso
+`transicionLocked` no publica: **devuelve** lo que hay que publicar. Y el proceso anterior se cierra
+**después** de que el disco confirmó, así que un fallo de persistencia nunca deja al operador sin
+conductor.
+
+**El contador de turnos no baja a la conversación.** Es deliberado y cuesta explicarlo, así que
+queda escrito: el identificador de cada corrida se genera con un contador monótono **por sesión**.
+Uno por conversación reiniciaría al retomar un hilo viejo y produciría un identificador que la
+interfaz ya tiene marcado como terminado — con el resultado de que descartaría eventos legítimos.
+
+**Lo que deliberadamente no se agregó:** ni un mapa por conversación en el estado del turno (hay una
+sola activa, así que no hay dos hilos en vuelo que separar), ni un canal nuevo para el evento del
+panel (viaja por el mismo stream que todo lo demás), ni una búsqueda global por id de conversación
+(una conversación cuelga de su sesión; buscarla fuera sería inventar una relación que no existe).

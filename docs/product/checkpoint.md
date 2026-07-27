@@ -206,11 +206,11 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `323 checks · pass 90 · fail 0 · error 0 · deferred 233 · n/a 0` (medido 2026-07-26, `go run ./cmd/arnesia conformance --todo`)
+- **ruleset `--todo`:** `323 checks · pass 91 · fail 0 · error 0 · deferred 232 · n/a 0` (medido 2026-07-26, `go run ./cmd/arnesia conformance --todo`)
 - **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-26
 - **arch/:** 28 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
-- **capabilities (SSoT):** 142 — 91 vivo · 36 vivo·nc · 13 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
+- **capabilities (SSoT):** 143 — 93 vivo · 35 vivo·nc · 13 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
 <!--/stats-->
 
 > Nota: `scripts/estado.sh` regenera **todo** el bloque desde conformance/árbol (RF-178 + HS-20):

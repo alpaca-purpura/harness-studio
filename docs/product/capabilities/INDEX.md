@@ -107,16 +107,17 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-51 · SSE multiplexado (map/dock/run, replay)** `vivo·nc` · http-sse/sse-multiplexado.yaml — `internal/adapters/transport/sse/broker.go#Publish`
 - **CAP-52 · Superficie REST (54 rutas servidas · 41 declaradas · 15 exentas con razón)** `vivo` · http-sse/superficie-rest.yaml — `internal/adapters/transport/http/router.go#NewHandler`
 
-### `usecases` (12)
+### `usecases` (13)
 
 - **CAP-113 · Dictado: transcribir y ordenar con contexto de dominio** `vivo` · usecases/dictado-transcribir-y-ordenar.yaml — `internal/ports/dictado.go#TranscriptionPort`
+- **CAP-143 · Crear, retomar y renombrar conversaciones de una sesión** `vivo` · usecases/conversaciones-de-una-sesion.yaml — `internal/usecase/session_conversaciones.go#CrearConversacion`
 - **CAP-53 · Dock: conversación en vivo multisesión** `vivo` · usecases/dock-conversacion-en-vivo-multisesion.yaml — `internal/usecase/session_service.go#Turn`
 - **CAP-54 · Gobierno del turno (permisos HITL + interrupt)** `vivo` · usecases/gobierno-del-turno.yaml — `internal/usecase/session_service.go#onControlRequest`
 - **CAP-55 · Ejecutar caja T3 desde daemon (async + gate post-run)** `vivo·nc` · usecases/ejecutar-caja-t3-desde-daemon.yaml — `internal/usecase/run_service.go#RunService.StartRun`
 - **CAP-56 · Orquestación determinista (BoxConductor)** `vivo·nc` · usecases/orquestacion-determinista.yaml — `internal/usecase/box_conductor.go#RunWith`
 - **CAP-57 · Servir fuente real de nodo** `vivo` · usecases/servir-fuente-real-de-nodo.yaml — `internal/usecase/fuente_service.go#Fuente`
 - **CAP-58 · Mapa/portafolio/inspector (ensamblado)** `vivo` · usecases/mapa-portafolio-inspector.yaml — `internal/usecase/map_service.go#Graph`
-- **CAP-59 · Gestión de sesiones CRUD** `vivo·nc` · usecases/gestion-de-sesiones-crud.yaml — `internal/usecase/session_service.go#Create`
+- **CAP-59 · Gestión de sesiones CRUD** `vivo` · usecases/gestion-de-sesiones-crud.yaml — `internal/usecase/session_service.go#Create`
 - **CAP-94 · Reindex del Mapa tras cada turno del chat** `vivo` · usecases/reindex-tras-turno.yaml — `internal/usecase/session_reindex.go`
 - **CAP-97 · Rotación de contexto invisible (conversación infinita)** `vivo` · usecases/rotacion-de-contexto.yaml — `internal/usecase/session_rotacion.go`
 - **CAP-98 · Historial de conversaciones archivadas (transcript propio + JSONL de fallback)** `vivo` · usecases/historial-de-conversaciones.yaml — `internal/usecase/session_historial.go`

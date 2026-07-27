@@ -14,8 +14,26 @@ pointers:
   - "internal/usecase/session_service.go#Interrupt"
 valida:
   - "TestResolvePermissionUsesArnesRole"
-scenarios: []
-business_rules: []
+  - "TestTransicionDeniegaPermisosPendientesConMotivo"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: derive
+    summary: "El gobierno del turno gana una tercera salida además de la decisión humana y la interrupción: el cambio de hilo. Toda tarjeta que quede abierta se cierra como denegada con un motivo propio —distinguible del de una interrupción— y los permisos ya aprobados se descartan en vez de heredarse."
+    merge_sha: null
+scenarios:
+  - id: cambiar-de-hilo-cierra-las-tarjetas-abiertas
+    name: "El operador cambia de hilo con una tarjeta de permiso pendiente"
+    status: live
+    given: "una conversación con una tarjeta de permiso sin responder"
+    when: "se la desactiva al crear o retomar otra"
+    then: "la tarjeta se resuelve como denegada, con un motivo que nombra la desactivación y no se confunde con el de una interrupción"
+    verifica: "TestTransicionDeniegaPermisosPendientesConMotivo"
+business_rules:
+  - id: ninguna-tarjeta-queda-esperando-a-nadie
+    rule: "Toda tarjeta de permiso pendiente se cierra con motivo cuando su hilo deja de ser el activo. Un conductor bloqueado esperando una respuesta que nadie va a dar es un frente muerto sin señal."
+    enforcement: ["docs/architecture/boundaries/permisos-gui-human-in-the-loop.md"]
+    severity: high
 related_capabilities:
   depends_on: []
   enables: []
