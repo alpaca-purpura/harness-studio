@@ -27,7 +27,7 @@
 |---|---|---|---|
 | **0** llegar a verde | T1-T6 | ✅ **completo y verde** | 🧑‍⚖️ parcial — ver §1.6 |
 | **1** modelo y disco | T7-T14 | ✅ **completo y verde** — ver §1.8 | 🧑‍⚖️ sin firmar |
-| **2** usecase y API | T15-T20 | ⬜ no empezado | — |
+| **2** usecase y API | T15-T20 | ✅ **completo y verde** — ver §1.10 | 🧑‍⚖️ sin firmar |
 | **3** cromo del dock | T21-T25 | ⬜ no empezado | — |
 | **4** lista y buscador | T26-T29 | ⬜ no empezado | — |
 | **5** mudanza y cierre | T30-T33 | ⬜ no empezado | — |
@@ -54,6 +54,16 @@
 | `a62208f` | **T11** — CV-D16, el re-key de las llaves + `arnesia sesiones recalibrar-llaves` · CAP-142 |
 | `d67200a` | **T12** — la ley se invierte: `Conv` y `Checkpoint` sobreviven al archivado · CAP-98 + ledger HS-29 |
 | `edd17c4` | **T13/T14** — `AbrirRegistro` cableado + el `Informe` en el log · el benchmark de H-7 |
+
+**Commits del tramo 2** — rama **`tramo2-conversaciones`**, worktree
+`.claude/worktrees/tramo2`, partiendo de `68515ec`. **Sin pushear** y **sin integrar**:
+
+| commit | qué |
+|---|---|
+| `4bbe40e` | **T20/T15** — la sesión nace con su hilo · la transición atómica · el 5.º check con enforcer real · CAP-143 |
+| `a08451c` | **T16** — la rotación emite su frame · CAP-144 |
+| `b8c5c2a` | **T17** — el buscador entra al texto, con fixture real de 90 turnos · CAP-145 |
+| `e041aa7` | **T18/T19** — las 4 rutas + el contrato que las declara · el parser del enforcer reparado |
 
 ---
 
@@ -542,6 +552,233 @@ regresión.
 `pre-commit` de `lefthook.yml`, que corre `cap_doctor.py --index` + `git add` al tocar cualquier
 hoja. ~200 ms, mismo patrón que `estado-cifras`.
 
+
+---
+
+## 1.10 · Tramo 2 (T15-T20), ticket por ticket — usecase, API y contrato
+
+⚠ **El orden se alteró, y por una razón, no por gusto.** T20 (`Create` nace con su conversación)
+se construyó **antes** que T15 y viaja en su commit. Los tests de T15 crean una sesión por la vía
+del operador y le piden su conversación activa; con `Create` naciendo sin ninguna, la única salida
+habría sido armar los agregados a mano — y un test que no pasa por el camino del operador no prueba
+el camino del operador. Los otros cuatro tickets van en el orden del plan.
+
+### T20 · toda sesión nace con su conversación — verde
+
+`Create` y `seedSessions` producen la conversación activa **en la misma operación**. Lo que había
+antes no era «sin conversación»: era una sesión que nacía rota y que la **primera lectura** reparaba
+con un `slog.Warn`. El arranque de un registro vacío escribía tres «invariante de conversaciones
+reparada» de un problema que nos hacíamos nosotros dos líneas antes. Un log que avisa de algo que no
+pasó entrena al operador a ignorar sus propias alertas.
+
+| DoD | evidencia |
+|---|---|
+| 2 tests nuevos verdes | `TestCreateNaceConUnaConversacionActiva` (E-01, RF-301 CA-1/CA-2) · `TestTituloInicialNoHeredaNuevoFrente` (RF-301 CA-3) |
+| los 5 del boundary verdes **con el cuerpo intacto** | ✅ `TestOneTurnAtATime` · `TestFramesCarryRunID` · `TestResumeAutoSana` · `TestNoSilentEventDrop` · `TestSessionSpawnsInArnesPath`. **No se editó una aserción.** `newTestService` sólo se factorizó para poder inyectar el store; su comportamiento —sembrar y dejar una sesión en `List()[0]`— es idéntico |
+| el código de estado de `POST /api/sessions` **verificado y declarado** | **YA respondía `201`** (`sessions.go`, `http.StatusCreated`). RF-301 CA-1 se cumple **sin breaking change**. Se verificó antes de tocar nada, que era exactamente lo que el ticket pedía |
+
+El título de la conversación es `"nueva conversación"` y **no** hereda el `"nuevo frente"` de la
+sesión: son dos nombres y los dos existen.
+
+### T15 · la transición atómica — verde · el 5.º check pasa a tener enforcer real
+
+`internal/usecase/session_conversaciones.go`: `CrearConversacion`, `ActivarConversacion`,
+`RenombrarConversacion` y el cuerpo compartido `transicionLocked` con los **8 pasos de
+`arquitectura.md` §4.2 en ese orden**.
+
+**Lo que se respetó y cuesta ver en el diff:** `transicionLocked` **no publica ni cierra nada**.
+Devuelve el conductor a cerrar y los frames a publicar, y el llamador hace las dos cosas **fuera del
+candado**. Es la disciplina que el servicio tiene en sus 953 líneas y que este paquete no rompe.
+
+**Tres decisiones de implementación que el plan no fijaba, tomadas y escritas:**
+
+1. **El rollback es TOTAL, no del agregado solo.** §4.2 paso 7 dice «restaurar el snapshot y
+   `r.live = viejo`». Se restaura además el estado de vuelo entero (`pendingTurn`, `wasResume`,
+   `sawInit`, `resumeRetried`, `msgFlushed`, el buffer de ensamblado, los permisos pendientes y los
+   grants). Revertir la mitad sería «el estado anterior quedó intacto» dicho a medias.
+2. **El no-op de RF-316 se detecta comparando el id de la activa antes y después**, no por
+   `desactivada == ""`: crear en una sesión sin conversaciones también devuelve `""` y sí es una
+   transición.
+3. **`evento` (`creada` vs `activada`) se DERIVA** de si el id ya existía antes, en vez de pasarse
+   como parámetro. El frame dice lo que pasó, no lo que se quiso.
+
+**`convActiva` no es decoración.** El boundary pedía «un puntero que dice a quién le pertenece» el
+runtime. Un campo que nadie lee es deuda, así que tiene trabajo: `activa()` compara la activa del
+agregado contra la que el runtime cree tener y **loguea si se separaron**. No repara —la fuente de
+verdad es la marca del agregado— pero deja de ser un defecto silencioso.
+
+| test | escenario |
+|---|---|
+| `TestCrearConTurnoEnVueloEsErrBusy` | E-07 · RF-312 CA-3 |
+| `TestRetomarConTurnoEnVueloEsErrBusy` | E-11 |
+| `TestTransicionDeniegaPermisosPendientesConMotivo` | E-08 · RF-311 |
+| `TestFalloDePersistenciaDejaElEstadoAnterior` | E-36, E-37 · RF-308 CA-2 |
+| `TestCrearDosVecesRapidoDejaUnaActiva` | E-09 · CR-1 |
+| `TestRetomarLaActivaEsNoOp` | E-15 · RF-316 |
+| `TestFramesDelConductorViejoSeDescartan` | CR-3 |
+| `TestRenombrarNoEsUnaTransicion` | E-30 · RF-344 (superset del plan) |
+| `TestSoloLecturaBloqueaLasTresOperaciones` | RF-338 (superset del plan) |
+
+**Cómo se llegó al estado del permiso pendiente, porque importa que no sea fabricado.** El guard
+rechaza `await`, así que «desactivar con una tarjeta abierta» parece inalcanzable. No lo es: el
+`control_request` deja la sesión en `await` **con la tarjeta pendiente**, y el `result` del turno la
+devuelve a `idle` **sin limpiarla** (`consume`, rama result). Ahí el guard deja pasar la transición
+y el pendiente sigue vivo. El test parte de ese estado real, no de un mapa cargado a mano.
+
+**El boundary `sesion-viva-consistente` pasa a 5/5 con enforcer real.**
+`TestTransicionDeConversacionEsAtomica` (`docs/architecture/fitness/arch_test.go`) afirma las cinco
+cosas que el check enuncia, en una corrida contra el servicio real: `ErrBusy` para crear **y** para
+retomar · `Close()` del conductor que se desactiva (contado, no inferido) · `permission_result` deny
+con motivo que nombra la desactivación y **no** se confunde con el de `Interrupt` · el mismo tool
+volviendo a **preguntar** en el hilo nuevo (grants descartados) · exactamente una activa **y** el
+rollback con un store que falla a pedido, que además comprueba que el conductor **no** se cerró.
+Los 4 checks originales siguen verdes sin que se tocara una línea de su cuerpo.
+**El hueco de `frames-idempotentes-run-id` (2 de 14 `publish` sin `run_id`) sigue abierto y sigue en
+el BACKLOG:** este enforcer no lo tapa ni le cambia el veredicto.
+
+### T16 · la rotación emite — verde
+
+`rotarLocked` cambia de **firma** (devuelve `dockFrame`) y **no cambia una línea de lógica**.
+
+Que la marca no llegara en vivo no era un olvido: se la llama desde `Turn` **con `s.mu` tomado**, y
+en este servicio nada publica bajo el candado. **El lugar donde la función vive no podía publicar.**
+La corrección respeta la regla en vez de romperla.
+
+| DoD | evidencia |
+|---|---|
+| 4 tests verdes | `TestRotacionInvisible` (existente, ajustado al retorno) · `TestRotacionEmiteFrameConTurnoIdx` (E-19) · `TestRotacionFrameLlegaAntesDelStatus` · `TestRotacionNoCreaConversacionNueva` (E-19, E-20) |
+| **cero `s.publish` dentro de `rotarLocked`** | `grep -c 's.publish' internal/usecase/session_rotacion.go` → **0** |
+| el orden verificado | test propio: la posición del frame `conversacion` es menor que la del `status` |
+| H-8 cerrado | ✅ |
+
+El frame va **sin `run_id`** (no pertenece a un turno) y **sin `ctx_pct`** (el del hilo fresco llega
+con el `result` del turno nuevo; mandar el viejo pintaría un número que ya no describe nada). Su
+idempotencia va por `turno_idx`. **C-5 resuelta a favor del código**: el texto es
+`breadcrumbRotacion`, no el del dibujo — reescribir la constante dejaría los transcripts ya
+persistidos con la marca vieja y los nuevos con otra.
+
+### T17 · el buscador — verde · fixture REAL
+
+`Conversaciones(id, q)` + `normalizar` + `fragmentoDe`, todo en el daemon.
+
+| DoD | evidencia |
+|---|---|
+| 7 verdes | son **9**: los 7 del plan + `TestConversacionesDeSesionInexistenteEsError` (E-35) y `TestLaListaEsSoloDeEstaSesion` (CV-D4) |
+| el fixture es el transcript **real** | `internal/usecase/testdata/conv-90-turnos.json` — **90 turnos, 12 095 B**, extraídos de `s6165ac75` del registro del operador **sin escribirlo** (md5 `b1689d15…` verificado antes y después). Composición: **75 pasos de actividad · 13 respuestas · 2 mensajes del operador**, que es la proporción real de una conversación de trabajo. El test **falla ruidoso** si el fixture no tiene 90 turnos, para que nadie lo reemplace por uno sintético sin enterarse |
+| `normalizar` existe **una sola vez** | ✅ un único `func normalizar` en todo el árbol |
+| cero referencias a `index.db` | `grep index.db internal/usecase/session_conversaciones.go` → **0** |
+
+**Una decisión de implementación que el plan no fijaba, y su precio.** `normalizar` es un **plegado
+runa a runa**, no la descomposición canónica de Unicode que el spec nombra. Dos motivos, los dos
+escritos en el código: (a) el fragmento se recorta del texto **original**, así que una normalización
+que cambie la cantidad de runas movería el recorte; (b) `golang.org/x/text/unicode/norm` **no está
+en `go.mod`** y traerlo sumaría tablas Unicode al binario del daemon —`peso-del-binario-es-presupuesto`—
+por un caso que no ocurre: el texto del conductor y del operador viene precompuesto. **Lo que no
+cubre queda dicho, no tapado:** un texto ya descompuesto (letra + marca combinante suelta) no se
+pliega. Cubre Latin-1 Supplement y lo usado de Latin Extended-A.
+
+`total` es el **total de la sesión**, no el de coincidencias, y hay un test que prohíbe confundirlos.
+El fragmento viaja en **texto plano**: el `<mark>` es del FE (`design.md` §3.5 lo dice así).
+
+### T18 · el transporte — verde
+
+4 registraciones en el mux (las 5 filas de la tabla §5.1; `GET` con y sin `?q=` es la misma ruta),
+1 retirada, 1 parámetro retirado.
+
+| DoD | evidencia |
+|---|---|
+| 6 tests verdes | son **8**: los 6 del plan + `TestCrearPrimeraConversacionNoInventaDesactivada` y `TestLaSesionQueViajaLlevaSuActivaYNoSusNConversaciones` |
+| las rutas responden | `TestElMuxNoAmbiguaEntreSesionYConversaciones` las ejercita **sobre el router real**, no sobre un mux armado en el test: lo que puede romperse es el registro |
+| la ruta B2 devuelve 404 | ✅ `GET /api/sessions/cerradas/{id}/historial` → **404** |
+| **`TestRutaServidaEstaDeclarada` FALLA** (lo esperado) | ✅ **verificado en el árbol**: 4 rutas sin declarar, nombradas una por una. Lo cerró T19 |
+| `_sin-declarar.yaml` pierde la entrada | ✅ de **15 a 14**. El trinquete se achicó **no declarando la ruta sino no sirviéndola** |
+
+**`ErrSoloLectura` → 503: cerrado.** Era el ticket que faltaba y está mapeado en las cuatro
+operaciones que mutan, con test.
+
+**Un sentinela nuevo, `usecase.ErrSesionNoEncontrada`.** `errNotFound` devolvía un error de texto
+suelto; mapear un código de estado comparando cadenas es atar el contrato a un mensaje.
+
+🔴 **Superficie que ningún ticket nombraba, y que hacía falta: `sessionWire`.** La sesión del wire
+**no puede ser el agregado serializado** — `GET /api/sessions` mandaría los transcripts de las N
+conversaciones de cada sesión, que es exactamente el costo que la lista existe para no pagar. Viaja
+la **activa**. Es lo que `arquitectura.md` §6.1 dibuja y lo que la validación de T20 exige (`activa`
+con `turnos: 0`, `conv: []`), pero **ningún ticket lo tenía en sus «Archivos»**. Se construyó y se
+declara acá. Si una sesión llegara sin activa, **no se le inventa una**: sale el cero con la lista
+de turnos vacía y se loguea `error` — fabricarle un id haría que el defecto se viera como un dato
+normal en la interfaz.
+
+### T19 · el contrato — verde · los 4 enforcers de vuelta en verde
+
+| DoD | evidencia |
+|---|---|
+| los 4 enforcers verdes | ✅ `TestRutaServidaEstaDeclarada` · `TestRutaDeclaradaSeSirve` · `TestQueryParamEstaDeclarado` · `TestExencionDeContratoTieneRazon` |
+| el `enum` de `rol` con los 4 valores | ✅ `[user, assistant, sys, act]`. El contrato decía tres y el dominio tiene cuatro desde `RolAct`: se **arregla**, no se «documenta el bug» |
+| `_sin-declarar.yaml` en 10 entradas `/api` | ⚠ **14 entradas en total, 10 de ellas `/api`** — las otras 4 son estructurales (`/v1/*`, `/events`, `/healthz`, `/`). El número del plan contaba sólo las `/api`, y así se cumple |
+| ninguna ruta nueva sin declarar | ✅ |
+
+Cifras **generadas**, no tecleadas: **58 rutas servidas · 43 operaciones declaradas · 38 paths ·
+14 exentas con razón**.
+
+🔴 **HALLAZGO N-12 — el enforcer del contrato tenía código que no podía correr.** `docOpenAPI`
+modelaba un path como `map[verbo]operación`, así que un `parameters:` **a nivel de path** (una
+secuencia, no una operación) hacía **fallar el parseo del contrato entero**: los cuatro enforcers
+caían juntos con `cannot unmarshal !!seq`. Y `TestQueryParamEstaDeclarado` **ya traía** la rama que
+junta los parámetros comunes del path — código que nunca pudo ejecutarse, porque el documento que lo
+habría ejercitado no parseaba. Se destapó al declarar las rutas del panel, que usan
+`$ref: SessionId` para no repetir el mismo `{id}` en tres lugares —exactamente lo que
+`arquitectura.md` §5.4(e) manda—. Reparado separando `pathDoc` en parámetros comunes + operaciones
+(`yaml:",inline"`). **Verificado por FALLO INDUCIDO, no por lectura:** renombrando `q` a `qXX` en el
+contrato, el enforcer marca rojo nombrando handler y ruta; restaurado, verde.
+
+### 1.11 · El gate del tramo 2, completo — cifras PROPIAS
+
+Corridos en el worktree `tramo2`, sobre un árbol donde el único trabajo en vuelo es este:
+
+| # | comando | resultado |
+|---|---|---|
+| 1 | `go build ./...` | **exit 0** |
+| 2 | `go test ./... -race` | **exit 0** — 27 paquetes, 0 fallados |
+| 3 | `go-arch-lint check` | **OK — No warnings found** |
+| 4 | `arnesia conformance --todo` | `323 checks · pass 91 · fail 0 · **error 0** · deferred 232 · n/a 0` |
+| 5 | `bash scripts/estado.sh --check` | **exit 0** — cifras en sync |
+| 6 | `biome ci .` | 169 archivos · **exit 0** · 0 errores (1 info: `recommended` deprecado, preexistente) |
+| 7 | `tsc --noEmit` | **exit 0** |
+| 8 | `depcruise` · `steiger` · `stylelint` | **0 violaciones** · **sin problemas** · **exit 0** |
+| 9 | `vitest --project=unit` | **122/122** · 8 archivos · 310 ms |
+| 10 | `vitest --project=storybook` | **386/386** · 43 archivos · 12,3 s · headless |
+| 11 | `golangci-lint run --new-from-rev=HEAD` | **0 issues** en los 4 commits |
+
+**El delta contra el tramo 1, generado:** `pass 90 → 91` y `deferred 233 → 232` (el 5.º check de
+`sesion-viva-consistente` dejó de estar pendiente); capabilities **142 → 145** (CAP-143, CAP-144,
+CAP-145), **cobertura 100 %**, 0 huérfanos, 0 punteros colgantes.
+
+**CI sigue sin observarse.** No se pushea: es decisión del operador. El trabajo vive en
+`tramo2-conversaciones` y todavía hay que integrarlo.
+
+**`~/.arnesia/` NO se tocó.** `sessions.json` conserva su md5 `b1689d1513e8d3c3fa21692c511ed793`
+—verificado al abrir y al cerrar el tramo—, y la única lectura fue la extracción del fixture de
+T17, que sólo lee.
+
+### 1.12 · 🔴 Lo que este tramo DEJA ROTO a propósito, y hay que decirlo
+
+**El frontend todavía no está adaptado, y con estos 4 commits la app no funcionaría.**
+
+No es un descuido: es la forma del plan, que pone todo el backend en el tramo 2 y todo el FE en el
+3. Pero el que retome tiene que saber qué encontraría si levantara la app **ahora**:
+
+- `GET /api/sessions` ya **no** trae `claude_session_id`, `model`, `ctx_pct`, `conv`, `turnos` ni
+  `cadena_cc` en la raíz de la sesión: bajaron a `activa`. `sessions-store.ts` los lee de la raíz,
+  así que el dock pintaría **transcript vacío y ctx 0** en toda sesión.
+- `client.ts` conserva `conversacionesDeArnes` y `historialCerrada`, que ahora pegan contra un
+  **400** y un **404** respectivamente. El picker del rail que los usa mostraría su error.
+- **`tsc` pasa igual** y eso es justamente el problema: los tipos de `types.ts` no cambiaron, así que
+  el compilador no ve nada. Lo cierra **T21**, cuyo objetivo declarado es que el compilador se
+  vuelva el inventario de call-sites rotos.
+
+**Nada de esto llegó al operador:** no se pusheó, no se corrió `make dev-sync` y no se tocó el
+binario instalado. La app instalada del operador sigue corriendo el daemon de antes.
+
 ---
 
 ## 2 · Mockup §panel → producto
@@ -605,6 +842,9 @@ as-code: figura como celda `(pendiente — juicio)` en el boundary y fuera de su
 | N-9 | 🔴 **`Registry.Load` sobre un archivo de la versión anterior tiraba en silencio lo que había cambiado de lugar.** El «unmarshal tolerante» que `archivo-durable-declara-su-esquema` prohíbe. **Costó los 90 turnos de la conversación más larga en disco**, observado en una copia. Arreglado: se migra en memoria al leer, y el respaldo vive DENTRO de `Save` | §1.8 T11 · CAP-141 |
 | N-10 | el symlink de `web/node_modules` a otro checkout alcanza para `tsc`/`biome`/`vitest unit` pero **rompe el runner de navegador** (43 archivos, «Failed to fetch dynamically imported module»): los módulos resuelven fuera de la raíz que Vite sirve. Se resuelve con `pnpm install --frozen-lockfile` real en el worktree | §1.9 |
 | N-11 | la arquitectura §7.6 punto 1 afirma que `esquema.go` cae bajo `TestNoJSONLSchemaParsing`. **No cae**: ese scan cubre `usecase`, `domain` y `adapters/telemetria`, y `esquema.go` vive en `adapters/store`. Sin efecto práctico | §1.8 T9 |
+| N-12 | 🔴 **el enforcer del contrato tenía una rama que no podía ejecutarse nunca.** `docOpenAPI` modelaba un path como `map[verbo]operación`, así que un `parameters:` a nivel de path hacía fallar el parseo del yaml ENTERO y los 4 enforcers caían juntos. `TestQueryParamEstaDeclarado` ya traía el código que junta los parámetros comunes: muerto, porque el documento que lo habría ejercitado no parseaba. Reparado (`pathDoc` con `yaml:",inline"`) y **verificado por fallo inducido** | §1.10 T19 |
+| N-13 | ⚠ **los `s.publish` de `consume` están FUERA del guard `r.live == live`** (preexistente, 7 tramos). Tras una transición o una rotación, un evento tardío del proceso viejo **no muta estado** —eso lo fija `TestFramesDelConductorViejoSeDescartan`— pero **sí sale por el SSE**, con `run_id` vacío. Ventana angosta (el proceso se cierra al soltar el candado) y **preexistente**: no lo introduce este paquete y moverlo tocaría 7 caminos. **Declarado, no tapado** — es pariente del hueco de `frames-idempotentes-run-id` que el boundary ya anota | §1.10 T15 · BACKLOG |
+| N-14 | ⚠ **`sessionWire` no estaba en ningún ticket.** La sesión del wire tiene que proyectar sólo su conversación activa (`arquitectura.md` §6.1 lo dibuja, la validación de T20 lo exige), pero ni T18 ni T19 ni T20 lo listaban en sus «Archivos». Se construyó en T18 y se declara. Sin él, `GET /api/sessions` mandaría el transcript de cada conversación de cada sesión | §1.10 T18 |
 
 ---
 
@@ -616,22 +856,24 @@ Se listan para que nadie los lea como verdes:
 |---|---|
 | 13 · los **6 guiones E2E** contra el binario instalado | 🔴 **NO CORRIDOS.** Es T31, tramo 5. Validan una superficie que no existe; correrlos hoy sólo mediría el arreglo de contraste, a costa de reemplazar el binario instalado del operador (`make dev-sync`) y matarle el daemon. Se decidió **no hacerlo**: cero valor probatorio, costo real |
 | 14 · Modo B (ventana Tauri, gate humano) | 🔴 no corrido — depende del 13 |
-| 15 · los 50 escenarios E-01…E-50 | ⚠ **~12 de 50, dominio + disco**: a los 7 de T7 se suman E-43 (migración idempotente), E-44 (cuarentena), E-45 (persist fallido revierte), E-47 (crash a mitad) y E-50 (archivar conserva). Ninguno verificado **de punta a punta**: sigue sin haber API ni UI |
-| 16 · las 56 stories | ⚠ **3 de 56** (las A-01..A-03 del baseline, que no son de la superficie nueva) |
+| 15 · los 50 escenarios E-01…E-50 | ⚠ **~28 de 50, dominio + disco + API**: a los ~12 del tramo 1 el tramo 2 suma E-01, E-03, E-07, E-08, E-09, E-11, E-15, E-19, E-20, E-22, E-23, E-25, E-26, E-27, E-29, E-30, E-35, E-36, E-37, E-39. Ninguno verificado **de punta a punta**: hay API, **no hay UI** — los que hablan de lo que el operador VE siguen fuera de alcance |
+| 16 · las 56 stories | ⚠ **3 de 56** (las A-01..A-03 del baseline, que no son de la superficie nueva) — el tramo 2 **no toca el FE**, así que no las mueve |
+| — · el FE contra el backend nuevo | 🔴 **ROTO A PROPÓSITO** hasta T21-T22 — ver §1.12. `tsc` pasa igual, y eso es justamente el problema |
 | 22 · la tabla de 5 filas del **dry-run de CV-D16** | ✅ **CORRIDA y transcrita** (§1.8 T11), contra una copia del registro real. 3 de 5 se mueven; `arnesia` sale `sin-candidata` — honesto, y la arquitectura ya lo declaraba imposible de prometer. R1 y R2 probadas a mano |
 | 23 · el **número** del benchmark de `persistLocked` | ✅ **MEDIDO**: `345 286 ns/op` con 20 conversaciones reales (~292 KB). 0,35 ms contra 15 ms de presupuesto — **43× de margen**, el corte no se dispara |
 | 24 · el rastro de **E-46** (borrado CV-D6) | 🔴 no ejecutado — es T32, **procedimiento manual del operador**. Los 3 ids (`s1b38a066`, `s408bb085`, `s020210e3`) siguen en `~/.arnesia/sesiones-cerradas.json`, **intactos**. `~/.arnesia/` NO se tocó en todo el tramo 1: `sessions.json` conserva su md5 `b1689d15…` tras seis corridas del comando de re-key, todas contra copias |
-| 26 · `TestTransicionDeConversacionEsAtomica` | 🔴 no escrito — es T15. `sesion-viva-consistente` sigue en **4/5 declarado**, que es lo correcto |
+| 26 · `TestTransicionDeConversacionEsAtomica` | ✅ **ESCRITO Y VERDE** (T15). `sesion-viva-consistente` pasa a **5/5 con enforcer real**, y los 4 originales siguen verdes sin que se tocara su cuerpo. El conteo del ruleset lo confirma: `pass 90 → 91`, `deferred 233 → 232` |
 
 ---
 
 ## 5 · Gate 🧑‍⚖️
 
-**SIN FIRMAR, y no corresponde firmarlo.** El paquete está en el 42 % de sus tickets (14 de 33) y
-**sigue sin tener superficie visible** que comparar contra el dibujo firmado: los tramos 0 y 1
-construyeron la línea base, el modelo y el disco. La firma de PARIDAD es del operador y se pide
-cuando los 26 criterios estén verdes o declarados; hoy quedan 4 que ni siquiera son evaluables
-(los E2E, el modo B, las 56 stories y la transición atómica).
+**SIN FIRMAR, y no corresponde firmarlo.** El paquete está en el 61 % de sus tickets (20 de 33) y
+**sigue sin tener superficie visible** que comparar contra el dibujo firmado: los tramos 0, 1 y 2
+construyeron la línea base, el modelo, el disco, el usecase y la API. La firma de PARIDAD es del
+operador y se pide cuando los 26 criterios estén verdes o declarados; hoy quedan 3 que ni siquiera
+son evaluables (los E2E, el modo B y las 56 stories) — el cuarto, la transición atómica, **cerró en
+el tramo 2**.
 
 Lo único que sí admite firma parcial es el **gate de línea base de T6**, y también queda abierto:
 el local está completo y verde, pero **CI no se observó** porque pushear es decisión del operador.
