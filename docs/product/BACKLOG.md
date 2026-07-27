@@ -196,6 +196,44 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
+- [conversaciones/N-21] 🔴 **La marca de rotación se pierde EN SILENCIO cuando hay dos vistas.**
+  Repro (E2E-3, contra el binario instalado): dock abierto → mandar un turno desde OTRO cliente
+  (`POST /turn` o una segunda ventana) → colapsar el dock → ocurre una rotación → reabrir ⇒ la
+  pantalla muestra **1** marca y el servidor tiene **3**; un `reload` completo muestra las 3. El
+  frame de rotación se appendea sólo si la copia local del transcript mide exactamente `TurnoIdx`
+  (`internal/usecase/session_rotacion.go:81-84`, guard de idempotencia pensado para el replay por
+  `Last-Event-ID`), pero **el turno mandado desde otro cliente nunca entra en la copia local** —sólo
+  el que lo envía lo agrega, optimista—, así que la longitud queda corta **para siempre** y toda
+  marca posterior se descarta. Es **pérdida silenciosa**, justo lo que el boundary
+  `sesion-viva-consistente`/`sin-perdida-silenciosa` prohíbe. Cerrarlo = que el frame de rotación
+  no dependa de la longitud local (id de turno estable, o reconciliar contra el servidor al
+  re-montar el dock) · evidencia en `stories/2026-07-26-conversaciones-del-panel/verificacion-e2e/INFORME.md`
+  · `deuda`
+- [conversaciones/N-22] **RF-348 CA-1 no está construido**: no hay marca `⟳ hilo reiniciado ·
+  checkpoint` cuando `tryHealResume` respawnea fresh. El literal tiene **0 ocurrencias en el árbol**
+  y el heal está documentado como *«silent on success»* (`internal/usecase/session_service.go:755`),
+  así que el `cc-id` cambia por debajo sin que el operador se entere. Verificado en vivo (E2E-6).
+  Necesita ticket propio · `deuda`
+- [conversaciones/N-23] **El re-key de CV-D16 no corre solo ni avisa tras migrar.** `main.go:202`
+  pasa `clave = nil` y `migracion.go:224` sólo recalibra `if inf.Migro && clave != nil` — deliberado
+  (no atar el arranque a que el Portafolio responda), pero la consecuencia es que **3 de las 5
+  sesiones del operador siguen invisibles** hasta que corra a mano
+  `arnesia sesiones recalibrar-llaves --aplicar`, y nada se lo dice. Cerrarlo = avisarlo en el log
+  del arranque y/o en la UI, no automatizarlo en silencio · `deuda`
+- [conversaciones/N-18] **El dry-run de CV-D16 contesta «no hay sesiones» si corre antes del primer
+  arranque.** `cmd/arnesia/sesiones.go:131-142` abre sólo `~/.arnesia/sesiones.json` (el v2), que
+  todavía no existe, y `NewRegistry` sobre una ruta ausente devuelve un registro vacío: el operador
+  que quiere previsualizar **antes** de actualizar lee «tu registro está vacío». Cerrarlo = detectar
+  el legado y decir «arrancá el daemon primero», o migrar en memoria para el dry-run · `deuda`
+- [conversaciones/N-19] **El `＋` bloqueado no ofrece la salida.** `spec.md:347`/E-07 fijan «esperá a
+  que termine el turno **(■ para interrumpir)**»; el código dice «…el turno **en vuelo**»
+  (`web/src/widgets/chat-dock/ui/conversacion-row.tsx:19`). Una línea de copy. **Esperando decisión
+  del operador**, porque el gate 2 del paquete está *autorizado por directiva, no por lectura* ·
+  `deuda`
+- [conversaciones/N-20] **El 409 del servidor no distingue `await` de `streaming`**:
+  `internal/usecase/session_conversaciones.go:262` devuelve `ErrBusy` para los dos, así que el cuerpo
+  habla de un turno en vuelo aunque lo que bloquee sea un permiso (E-08 nombra otro motivo). Impacto
+  bajo: la UI ya diferencia bien (`motivoBloqueo`) · `deuda`
 - [telemetria/A2] **El rollup horario está construido y NO está en el camino de lectura.** `Resumen`,
   `PorCaja`, `Turnos`, `cobertura` y `escenario` van todas a la tabla cruda; `rollup_hora` solo se
   escribe. Consecuencias hoy: (a) el presupuesto de «tablero en milisegundos» **no está realizado**

@@ -58,6 +58,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - La marca de «contexto rotado» ahora aparece en el diálogo sin recargar la aplicación. Antes se guardaba en disco y el operador no la veía hasta reabrir.
 - El identificador de la sesión de Claude Code dejó de pintarse con un color que no llegaba al contraste mínimo de texto sobre el fondo del dock
 - La migración del registro de sesiones se probó sobre el archivo real del operador (en copia): las cinco sesiones y la conversación de noventa turnos sobreviven, el archivo de la versión anterior queda intacto y volver a arrancar no vuelve a migrar
+- Se registran seis hallazgos que sólo aparecieron al probar contra la aplicación instalada, entre ellos que la marca de contexto rotado puede perderse sin aviso cuando la misma sesión se mira desde dos ventanas
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.
