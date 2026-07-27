@@ -41,6 +41,8 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - el error de historial del picker deja de pintarse en --warn (3,76:1, bajo el mínimo de axe): el texto va en --foreground y la alarma en un borde no textual — con eso el job visual-fitness de CI vuelve a verde
 - declarados ?arnes= y ?cerradas= de GET /api/sessions, que se servían sin figurar en el contrato
 - Lo que el daemon devuelve de una sesión es un instante y ya no una ventana al registro vivo: mientras el conductor trabajaba, la lectura ya entregada se movía sola.
+- Las sesiones cuya llave de arnés quedó a medias se recalibran a la clave completa: tres de las cinco del registro real estaban invisibles cuando la interfaz preguntaba por la clave. Nada se borra, nada se fusiona, y se ve antes de aplicarse.
+- Leer un registro de sesiones escrito por una versión anterior ya no tira en silencio lo que cambió de lugar — le costaba los 90 turnos de la conversación más larga en disco.
 
 ### Seguridad
 - Un registro de sesiones ilegible se guarda entero con su sello en vez de pisarse, y uno escrito por una versión más nueva deja el daemon en solo-lectura en vez de destruirlo. Una mutación que no se pudo guardar ya no queda viva en memoria.

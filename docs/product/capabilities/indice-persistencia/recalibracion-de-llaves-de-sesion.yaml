@@ -1,0 +1,150 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, T11 · CV-D16 🧑‍⚖️).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.indice-persistencia.recalibracion-de-llaves-de-sesion
+cap_num: CAP-142
+slug: recalibracion-de-llaves-de-sesion
+name: "Las sesiones con llave pelada se recalibran, y nada se borra"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+module: indice-persistencia
+layer: adaptador
+verb: infra
+functional_area: "indice-persistencia.registro-de-sesiones"
+user_visible: true
+nature: feature
+pointers:
+  - "internal/adapters/store/rekey.go#ClaveCalificada"
+  - "internal/adapters/store/rekey.go#Recalibracion"
+  - "internal/adapters/store/rekey.go#reKey"
+  - "internal/adapters/store/rekey.go#Registry.Recalibrar"
+  - "internal/adapters/store/rekey.go#Registry.RevertirLlaves"
+  - "cmd/arnesia/sesiones.go#resolverDeLlaves"
+  - "cmd/arnesia/sesiones.go#cmdSesiones"
+valida:
+  - "TestReKeyPorCwd"
+  - "TestReKeyPorIdCuandoNoHayCwd"
+  - "TestReKeyAmbiguaNoDecide"
+  - "TestReKeySinCandidataNoDecide"
+  - "TestReKeyEmiteUnaFilaPorSesionSeMuevaONo"
+  - "TestReKeyEsIdempotente"
+  - "TestDryRunNoEscribe"
+  - "TestRevertirRestauraSoloElArnes"
+  - "TestReKeyEnLaMigracion"
+  - "TestReKeySinResolvedorNoRompeElArranque"
+dev_preview:
+  route: null
+  how_to_navigate: "arnesia sesiones recalibrar-llaves (dry-run por default)"
+  main_component: null
+  api_endpoints: []
+  e2e_test: null
+created_in_story: 2026-07-26-conversaciones-del-panel
+created_date: 2026-07-26
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/arquitectura.md §2.6 · decisiones.md CV-D16"
+change_log:
+  - story_id: 2026-07-26-conversaciones-del-panel
+    date: 2026-07-26
+    type: new
+    summary: "Cuatro de las cinco sesiones vivas del operador tenían la llave de arnés pelada en vez de calificada, y tres quedaban invisibles cuando la interfaz preguntaba por la clave completa. Se recalibran en el mismo paso que estrena el esquema versionado: por directorio de trabajo cuando lo hay, por id cuando no, y cuando no hay exactamente una candidata la llave se deja como está diciendo por qué. Nada se borra y nada se fusiona."
+    merge_sha: null
+scenarios:
+  - id: la-llave-se-resuelve-por-el-directorio
+    name: "Una sesión que ya trabajó tiene su directorio estampado"
+    status: live
+    given: "una sesión con llave pelada y dos entradas del portafolio que comparten ese id"
+    when: "se recalibra"
+    then: "gana la entrada que realmente vive en ese directorio, y la fila lo dice"
+    verifica: "TestReKeyPorCwd"
+  - id: la-llave-se-resuelve-por-id-cuando-no-hay-directorio
+    name: "Una sesión que se abrió y nunca se usó"
+    status: live
+    given: "una sesión sin directorio, porque nunca arrancó su conductor"
+    when: "se recalibra"
+    then: "si hay exactamente una entrada con ese id, la llave se completa igual — sin este camino, tres de las cuatro sesiones reales quedaban peladas para siempre"
+    verifica: "TestReKeyPorIdCuandoNoHayCwd"
+  - id: lo-que-no-se-puede-decidir-no-se-decide
+    name: "Dos arneses distintos comparten el mismo id, o el id no existe en el portafolio"
+    status: live
+    given: "una sesión cuya llave no se puede resolver sin adivinar"
+    when: "se recalibra"
+    then: "la llave queda exactamente como estaba y la fila dice el motivo — elegir una de dos fusionaría dos identidades por coincidencia"
+    verifica: "TestReKeyAmbiguaNoDecide"
+  - id: se-ve-antes-de-que-pase
+    name: "El operador quiere ver qué va a cambiar antes de que cambie"
+    status: live
+    given: "un registro con llaves peladas"
+    when: "corre el comando sin pedirle que aplique"
+    then: "imprime una fila por sesión con su motivo y no escribe nada: «nada se borra» pasa a ser algo que se ve, no algo que hay que creer"
+    verifica: "TestDryRunNoEscribe"
+  - id: deshacer-sin-perder-lo-de-hoy
+    name: "El operador quiere volver atrás el cambio de llaves, pero no el trabajo de después"
+    status: live
+    given: "un registro recalibrado sobre el que ya se conversó y se abrieron sesiones nuevas"
+    when: "se revierte usando el respaldo"
+    then: "vuelven las llaves originales y se conservan las conversaciones, los turnos y las sesiones nacidas después; las que no estaban en el respaldo se dejan como están, con su motivo"
+    verifica: "TestRevertirRestauraSoloElArnes"
+  - id: correrlo-dos-veces-es-correrlo-una
+    name: "El comando se corre otra vez por las dudas"
+    status: live
+    given: "un registro ya recalibrado"
+    when: "se vuelve a correr"
+    then: "ninguna fila se mueve y el archivo no se reescribe"
+    verifica: "TestReKeyEsIdempotente"
+business_rules:
+  - id: sin-una-sola-candidata-no-se-decide
+    rule: "Una llave se recalibra sólo cuando hay exactamente una candidata. Con cero o con varias se deja como está y el motivo viaja al informe. Elegir al azar fusionaría dos identidades por coincidencia."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: critical
+  - id: una-fila-por-sesion-se-mueva-o-no
+    rule: "El informe emite una fila por sesión aunque no haya cambiado. Un silencio sería indistinguible de «no la miré»."
+    enforcement: ["docs/architecture/boundaries/no-aplica-no-es-cero.md"]
+    severity: high
+  - id: el-re-key-toca-un-solo-campo
+    rule: "La recalibración cambia únicamente la llave de arnés de la sesión. No mira las conversaciones, no borra, no fusiona — y por eso deshacerla puede conservar todo lo que se hizo después."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+  - id: la-migracion-de-dato-va-aparte-de-la-de-forma
+    rule: "Recalibrar una llave contra una autoridad externa es un paso separado del migrador de forma: el primero puede no poder decidir y depende de que el portafolio responda, el segundo es determinista. Fusionarlos ataría el arranque del daemon a una autoridad externa."
+    enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
+    severity: high
+related_capabilities:
+  depends_on:
+    - arnesia.indice-persistencia.migracion-de-esquema-en-disco
+    - arnesia.portafolio.identidad-calificada
+  enables: []
+  similar: []
+  obsoletes: []
+---
+
+# Las sesiones con llave pelada se recalibran, y nada se borra
+
+El registro guardaba el arnés de cada sesión como un id pelado (`vitalia`) en vez de su clave
+calificada (`sin-home~vitalia~vitalia`). Consecuencia medida contra el daemon vivo: cuatro de las
+cinco sesiones del operador tenían la llave vieja, y **tres quedaban invisibles** cuando la interfaz
+preguntaba por la clave completa.
+
+La recalibración vive **dentro** del paso que estrena el esquema versionado, no en una tarea aparte
+que alguien tiene que acordarse de correr. Y va **después** del migrador de forma, en un paso propio:
+cambiar la estructura de un archivo es determinista y se prueba con un fixture; recalibrar un valor
+contra el Portafolio hace consultas y **puede no poder decidir**. Fusionarlos haría intestable la
+parte determinista y ataría el arranque del daemon a que el Portafolio responda.
+
+**Las dos vías, y por qué hay dos.** La fuerte es el directorio de trabajo: la entrada que realmente
+vive ahí. Pero de las cuatro sesiones a recalibrar del operador, **tres nunca arrancaron su
+conductor** y por lo tanto no tienen directorio. Sin el fallback por id se quedaban peladas para
+siempre. Y cuando ninguna de las dos vías deja exactamente una candidata, **la llave no se toca**:
+elegir una de dos fusionaría dos identidades por coincidencia, que es justo lo que la identidad
+calificada existe para impedir.
+
+**Se ve antes de que pase.** El comando es dry-run por default e imprime una fila por sesión —
+incluidas las que no se mueven, con su motivo. Eso es lo que convierte «nada se borra» en algo
+observable. Corrido contra el registro real del operador: 3 se mueven, 1 ya estaba calificada, y 1
+sale `sin-candidata` porque su arnés no está en el Portafolio. **La arquitectura no puede prometer
+que las cuatro se resuelvan** — depende de qué tenga el Portafolio. Lo que sí promete es que ninguna
+se pierde, ninguna se fusiona, y que el resultado se ve antes de aplicarse.
+
+**Deshacer no cuesta el día de trabajo.** Como el re-key toca un solo campo por sesión, revertirlo
+puede reescribir sólo ese campo y dejar intactas las conversaciones, los turnos y las sesiones que
+nacieron después. Sin eso, «reversible» sería un eufemismo de «restaurá el backup y perdé lo que
+hiciste desde entonces».

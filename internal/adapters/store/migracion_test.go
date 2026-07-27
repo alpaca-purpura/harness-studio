@@ -123,7 +123,7 @@ func TestMigracionRespaldaAntesDeEscribir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, inf, err := AbrirRegistro(filepath.Join(dir, "sesiones.json"), legado, "0.2.17.2607262100")
+	_, inf, err := AbrirRegistro(filepath.Join(dir, "sesiones.json"), legado, "0.2.17.2607262100", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestMigracionEsIdempotente(t *testing.T) {
 	legado := fixtureReal(t, dir)
 	v2 := filepath.Join(dir, "sesiones.json")
 
-	if _, inf, err := AbrirRegistro(v2, legado, "sello-1"); err != nil || !inf.Migro {
+	if _, inf, err := AbrirRegistro(v2, legado, "sello-1", nil); err != nil || !inf.Migro {
 		t.Fatalf("primer arranque: inf=%+v err=%v", inf, err)
 	}
 	primera, err := os.ReadFile(v2) //nolint:gosec // ruta del propio test.
@@ -165,7 +165,7 @@ func TestMigracionEsIdempotente(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, inf, err := AbrirRegistro(v2, legado, "sello-2")
+	_, inf, err := AbrirRegistro(v2, legado, "sello-2", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestDeV1aV2ConservaTodoElFixtureReal(t *testing.T) {
 		t.Fatalf("el fixture real dejó de tener 5 sesiones (tiene %d) — revisá qué se copió", len(viejas))
 	}
 
-	reg, inf, err := AbrirRegistro(filepath.Join(dir, "sesiones.json"), legado, "sello")
+	reg, inf, err := AbrirRegistro(filepath.Join(dir, "sesiones.json"), legado, "sello", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func TestCrashAMitadDejaElViejoEntero(t *testing.T) {
 func TestPrimerArranqueNoInventaArchivo(t *testing.T) {
 	dir := t.TempDir()
 	v2 := filepath.Join(dir, "sesiones.json")
-	reg, inf, err := AbrirRegistro(v2, filepath.Join(dir, "sessions.json"), "sello")
+	reg, inf, err := AbrirRegistro(v2, filepath.Join(dir, "sessions.json"), "sello", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +359,7 @@ func TestNormalizarAlCargarSeReportaYSeArregla(t *testing.T) {
 	if err := os.WriteFile(v2, []byte(roto), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	reg, inf, err := AbrirRegistro(v2, "", "sello")
+	reg, inf, err := AbrirRegistro(v2, "", "sello", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

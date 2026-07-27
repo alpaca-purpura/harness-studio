@@ -32,7 +32,7 @@ func TestArchivoCorruptoSePreservaYSeDice(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			reg, inf, err := AbrirRegistro(v2, "", "2607262100")
+			reg, inf, err := AbrirRegistro(v2, "", "2607262100", nil)
 			if err != nil {
 				t.Fatalf("un archivo roto no puede tumbar el arranque: %v", err)
 			}
@@ -73,7 +73,7 @@ func TestCuarentenaNoPisaLaAnterior(t *testing.T) {
 		if err := os.WriteFile(v2, []byte(contenido), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		_, inf, err := AbrirRegistro(v2, "", "2607262100")
+		_, inf, err := AbrirRegistro(v2, "", "2607262100", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -107,7 +107,7 @@ func TestCorrupcionNoEsSembrable(t *testing.T) {
 	if err := os.WriteFile(v2, []byte("roto"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	reg, inf, err := AbrirRegistro(v2, "", "sello")
+	reg, inf, err := AbrirRegistro(v2, "", "sello", nil)
 	if err != nil || !inf.Corrupto {
 		t.Fatalf("inf=%+v err=%v", inf, err)
 	}
@@ -116,7 +116,7 @@ func TestCorrupcionNoEsSembrable(t *testing.T) {
 	}
 
 	// Contraste: un primer arranque de verdad SÍ es sembrable.
-	limpio, _, err := AbrirRegistro(filepath.Join(t.TempDir(), "sesiones.json"), "", "sello")
+	limpio, _, err := AbrirRegistro(filepath.Join(t.TempDir(), "sesiones.json"), "", "sello", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestEsquemaFuturoNoSePisa(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reg, inf, err := AbrirRegistro(v2, "", "sello")
+	reg, inf, err := AbrirRegistro(v2, "", "sello", nil)
 	if err != nil {
 		t.Fatalf("un esquema futuro no tumba el arranque, lo bloquea: %v", err)
 	}

@@ -29,6 +29,10 @@ type Informe struct {
 	RespaldoEn   string   // "" si no migró.
 	Reparaciones []string // lo que NormalizarConversaciones arregló, una línea por arreglo.
 
+	// Recalibradas es el re-key de CV-D16: UNA fila por sesión, se haya movido o no. Un
+	// silencio sería indistinguible de «no la miré».
+	Recalibradas []Recalibracion
+
 	// Modos de fallo C y E (cuarentena y esquema futuro). Los puebla T10.
 	Corrupto      bool
 	CuarentenaEn  string
@@ -37,7 +41,7 @@ type Informe struct {
 
 // Hubo reporta si el informe tiene algo que decir. Un arranque sin novedades no loguea.
 func (i Informe) Hubo() bool {
-	return i.Migro || i.Corrupto || i.EsquemaFuturo || len(i.Reparaciones) > 0
+	return i.Migro || i.Corrupto || i.EsquemaFuturo || len(i.Reparaciones) > 0 || len(i.Recalibradas) > 0
 }
 
 // sesionV1 es la forma VIEJA del registro, congelada acá a propósito. Un migrador que
@@ -147,7 +151,7 @@ func tituloDeLaMigrada(turnos []domain.Turn) string {
 //
 // rutaV2 es el registro nuevo; rutaLegado el viejo, que NO se toca, NO se borra y NO se
 // renombra: mientras exista intacto, volver a un binario anterior es gratis.
-func AbrirRegistro(rutaV2, rutaLegado, sello string) (*Registry, Informe, error) {
+func AbrirRegistro(rutaV2, rutaLegado, sello string, clave ClaveCalificada) (*Registry, Informe, error) {
 	var inf Informe
 	reg := &Registry{path: rutaV2, sello: sello}
 
@@ -202,14 +206,8 @@ func AbrirRegistro(rutaV2, rutaLegado, sello string) (*Registry, Informe, error)
 			return nil, inf, berr
 		}
 		inf.Migro, inf.DesdeVersion, inf.RespaldoEn = true, version, respaldo
-		for v := version; v < EsquemaActual; v++ {
-			paso, ok := migradores[v]
-			if !ok {
-				return nil, inf, fmt.Errorf("store: falta el migrador de la versión %d a la %d", v, v+1)
-			}
-			if payload, err = paso(payload, ahora); err != nil {
-				return nil, inf, err
-			}
+		if payload, err = migrarEnMemoria(payload, version, ahora); err != nil {
+			return nil, inf, err
 		}
 	}
 
@@ -217,6 +215,16 @@ func AbrirRegistro(rutaV2, rutaLegado, sello string) (*Registry, Informe, error)
 	if err := json.Unmarshal(payload, &sesiones); err != nil {
 		return nil, inf, fmt.Errorf("store: %s: no se pudo leer el registro migrado: %w", origen, err)
 	}
+
+	// PASO 4 · el re-key de las llaves (CV-D16), sólo cuando se migró de la forma vieja.
+	// Va DESPUÉS del migrador de forma y en un paso propio: cambiar la estructura es
+	// determinista y puro, y recalibrar un valor contra una autoridad externa puede no
+	// poder decidir. Fusionarlos haría intestable la parte determinista y ataría el
+	// arranque del daemon a que el Portafolio responda.
+	if inf.Migro && clave != nil {
+		inf.Recalibradas = reKey(sesiones, clave)
+	}
+
 	for i := range sesiones {
 		inf.Reparaciones = append(inf.Reparaciones, sesiones[i].NormalizarConversaciones(ahora)...)
 	}
@@ -270,6 +278,23 @@ func payloadDe(crudo []byte, version int) (json.RawMessage, error) {
 		return json.RawMessage("[]"), nil
 	}
 	return s.Sesiones, nil
+}
+
+// migrarEnMemoria corre la cadena de migradores sobre un payload ya leído, sin tocar el
+// disco. Es la mitad pura de la migración: la usa el arranque (que además respalda y
+// escribe) y la usa cualquier lectura de un archivo viejo, que no escribe nada.
+func migrarEnMemoria(payload json.RawMessage, version int, ahora time.Time) (json.RawMessage, error) {
+	for v := version; v < EsquemaActual; v++ {
+		paso, ok := migradores[v]
+		if !ok {
+			return nil, fmt.Errorf("store: falta el migrador de la versión %d a la %d", v, v+1)
+		}
+		var err error
+		if payload, err = paso(payload, ahora); err != nil {
+			return nil, err
+		}
+	}
+	return payload, nil
 }
 
 // encuarentenar mueve un archivo ilegible a `<ruta>.corrupto-<sello>` y devuelve dónde

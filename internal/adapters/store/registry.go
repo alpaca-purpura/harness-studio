@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
 )
@@ -101,11 +102,44 @@ func (r *Registry) Load(_ context.Context) ([]domain.Session, error) {
 	if err != nil {
 		return nil, fmt.Errorf("store: %s: %w", r.path, err)
 	}
+	// Un archivo de una versión anterior se MIGRA en memoria antes de leerlo. Sin esto,
+	// decodificar la forma vieja con el tipo de hoy tira en silencio todo lo que cambió de
+	// lugar — es el «unmarshal tolerante que se lleva lo que entre» que el boundary
+	// prohíbe, y le costó 90 turnos al primer registro real que lo cruzó. Leer no escribe:
+	// acá no hay respaldo porque no hay nada que respaldar.
+	if payload, err = migrarEnMemoria(payload, version, time.Now().UTC()); err != nil {
+		return nil, fmt.Errorf("store: %s: %w", r.path, err)
+	}
 	var sessions []domain.Session
 	if err := json.Unmarshal(payload, &sessions); err != nil {
 		return nil, fmt.Errorf("store: decode %s: %w", r.path, err)
 	}
 	return sessions, nil
+}
+
+// respaldarSiEsViejoLocked copia el archivo en disco si es de un esquema anterior al que
+// se va a escribir. Caller holds r.mu.
+func (r *Registry) respaldarSiEsViejoLocked() error {
+	b, err := os.ReadFile(r.path)
+	if os.IsNotExist(err) {
+		return nil // no hay nada que respaldar.
+	}
+	if err != nil {
+		return fmt.Errorf("store: read %s: %w", r.path, err)
+	}
+	// Un archivo ilegible no se respalda acá: la cuarentena de AbrirRegistro ya lo pone a
+	// salvo entero, y hacerlo dos veces dejaría dos copias del mismo problema.
+	version, derr := detectarVersion(b)
+	if derr != nil {
+		return nil //nolint:nilerr // ilegible ⇒ lo maneja la cuarentena, no el respaldo.
+	}
+	if version >= EsquemaActual {
+		return nil // ya al día: no hay versión anterior que preservar.
+	}
+	if _, berr := respaldar(r.path, version, r.sello); berr != nil {
+		return berr
+	}
+	return nil
 }
 
 // Save atomically replaces the file with sessions (temp file in the same directory,
@@ -116,6 +150,12 @@ func (r *Registry) Save(_ context.Context, sessions []domain.Session) error {
 
 	if r.bloqueo != "" {
 		return fmt.Errorf("%w: %s", ErrSoloLectura, r.bloqueo)
+	}
+	// Si en disco hay un archivo de una versión anterior, se respalda ANTES de pisarlo.
+	// El respaldo va acá y no en el llamador para que no haya un camino de escritura que
+	// se lo saltee — el que se lo saltea es el que borra el archivo del operador.
+	if err := r.respaldarSiEsViejoLocked(); err != nil {
+		return err
 	}
 
 	dir := filepath.Dir(r.path)

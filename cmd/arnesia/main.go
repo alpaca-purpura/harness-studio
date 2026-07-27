@@ -67,6 +67,8 @@ func main() {
 		err = runConformance(os.Args[2:])
 	case "portafolio":
 		err = runPortafolio(os.Args[2:])
+	case "sesiones":
+		err = cmdSesiones(os.Args[2:])
 	case "telemetria":
 		err = runTelemetria(os.Args[2:])
 	case "hook":
@@ -100,6 +102,7 @@ commands:
   publish   publish a harness to its marketplace repo (stub)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
   portafolio   escanear/listar/agregar/desvincular arneses del Portafolio (Slice 0)
+  sesiones     recalibrar-llaves: lleva la llave de arnés de cada sesión a su clave calificada (dry-run por default)
   telemetria   resumen/mejoras/salud/purgar/catalogo — verificación del módulo sin FE
   hook         hook de instrumentación: 'arnesia hook proceso' (stdin -> loopback, exit 0 siempre)
 `)
