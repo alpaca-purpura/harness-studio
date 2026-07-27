@@ -1,0 +1,146 @@
+---
+# Capability nueva (paquete 2026-07-26-conversaciones-del-panel, tramos 3 y 4 · CV-D2/CV-D4/
+# CV-D9/CV-D11/CV-D13/CV-D14/CV-D15 · RF-317…RF-334). La superficie que el paquete existe para
+# construir: las conversaciones se ven, se buscan, se crean y se retoman DESDE EL PANEL.
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-chat.panel-de-conversaciones
+cap_num: CAP-146
+slug: panel-de-conversaciones
+name: "Panel de conversaciones: listarlas, buscarlas, crearlas y retomarlas desde el dock"
+status: vivo          # GENERADO (R4) — no teclear
+module: fe-chat
+verb: observar
+pointers:
+  - "web/src/widgets/chat-dock/ui/conversacion-row.tsx#ConversacionRow"
+  - "web/src/widgets/chat-dock/ui/ctx-chip.tsx#CtxChip"
+  - "web/src/widgets/chat-dock/ui/conversaciones-panel.tsx#ConversacionesPanel"
+  - "web/src/widgets/chat-dock/ui/conversacion-fila.tsx#ConversacionFila"
+  - "web/src/widgets/chat-dock/model/conversaciones-store.ts#useConversaciones"
+  - "web/src/widgets/chat-dock/model/conversaciones-store.test.ts#useConversaciones"
+  - "web/src/shared/api/client.ts#conversaciones"
+valida:
+  - "ctx-chip.stories.tsx"
+  - "conversacion-row.stories.tsx"
+  - "conversacion-fila.stories.tsx"
+  - "conversaciones-panel.stories.tsx"
+  - "chat-dock.stories.tsx"
+  - "conversaciones-store.test.ts"
+last_modified: 2026-07-26
+source_ref: "docs/product/stories/2026-07-26-conversaciones-del-panel/spec.md (RF-317…RF-334)"
+scenarios:
+  - id: ver-las-conversaciones-de-esta-sesion
+    name: "El operador quiere ver el historial de la conversación en la que está"
+    status: live
+    given: "una sesión con cuatro conversaciones y el dock abierto"
+    when: "aprieta el chevron del título"
+    then: "la lista se despliega EN SITIO sobre el área del transcript, con las cuatro conversaciones de ESA sesión y ninguna de otra, y el header, la fila de conversación y el composer siguen visibles"
+    verifica: "chat-dock.stories.tsx#ListaAbierta"
+  - id: buscar-por-lo-que-se-dijo
+    name: "El operador recuerda una frase pero no en qué conversación fue"
+    status: live
+    given: "la lista abierta con cuatro conversaciones"
+    when: "escribe un término en el buscador"
+    then: "quedan las que coinciden, cada una con el fragmento que la hizo aparecer, y el rótulo dice cuántas de cuántas — el denominador es el total de la sesión, no el de coincidencias"
+    verifica: "conversaciones-panel.stories.tsx#BuscandoConCoincidencias"
+  - id: la-busqueda-vacia-dice-donde-busco
+    name: "Ninguna conversación menciona lo buscado"
+    status: live
+    given: "la lista abierta y un término que no aparece en ninguna"
+    when: "se completa la búsqueda"
+    then: "el vacío nombra el término, dice que se buscó en el título Y en el texto, y cuántas se miraron; un «sin resultados» pelado dejaría la duda que originó el paquete"
+    verifica: "conversaciones-panel.stories.tsx#SinCoincidencias"
+  - id: crear-una-conversacion-nueva-sin-perder-la-anterior
+    name: "El operador quiere empezar un tema distinto en el mismo frente"
+    status: live
+    given: "una conversación activa con noventa turnos"
+    when: "aprieta ＋"
+    then: "nace una conversación vacía y el transcript nuevo NOMBRA la que quedó guardada y dice cómo volver a ella"
+    verifica: "chat-dock.stories.tsx#ConversacionRecienCreada"
+  - id: no-se-puede-cambiar-de-hilo-con-un-turno-en-vuelo
+    name: "El operador aprieta ＋ mientras el conductor está generando"
+    status: live
+    given: "un turno en vuelo o un permiso esperando decisión"
+    when: "mira el control de crear"
+    then: "está deshabilitado y DICE por qué; el buscador, en cambio, sigue activo — leer lo que ya se dijo no compite con el turno"
+    verifica: "chat-dock.stories.tsx#TurnoEnVuelo"
+  - id: la-identidad-tecnica-deja-de-costar-una-fila
+    name: "El operador quiere saber contra qué proceso y en qué carpeta está hablando"
+    status: live
+    given: "el dock en reposo, con dos filas de cromo"
+    when: "abre el chip de contexto"
+    then: "aparecen los cuatro datos de la fila retirada más el directorio de trabajo, que hasta acá no se veía en ninguna superficie"
+    verifica: "chat-dock.stories.tsx#DetalleDesplegado"
+  - id: la-rotacion-no-corta-el-hilo
+    name: "El contexto rota en medio de una conversación larga"
+    status: live
+    given: "una conversación cuyo contexto se agotó"
+    when: "llega el aviso de la rotación"
+    then: "queda una marca inline en el transcript, el título no cambia, la lista sigue mostrando las mismas conversaciones y el detalle se abre solo con la identidad nueva — sin la marca, el contexto cayendo de noventa a doce parecería un defecto"
+    verifica: "chat-dock.stories.tsx#TranscriptConRotacion"
+  - id: el-fallo-de-una-transicion-no-inventa-una-lista-vacia
+    name: "El daemon no responde cuando se abre la lista"
+    status: live
+    given: "el daemon caído"
+    when: "el operador abre la lista"
+    then: "se muestra el motivo tal como llegó y un reintento, JAMÁS «0 conversaciones» — no poder preguntar y no tener ninguna son cosas distintas"
+    verifica: "conversaciones-store.test.ts"
+business_rules:
+  - id: el-alcance-de-la-lista-se-dice-no-se-deduce
+    rule: "La lista muestra SOLO las conversaciones de la sesión activa, y el rótulo la nombra. Mostrar las de un arnés era la pregunta que el modelo nuevo no responde."
+    enforcement: []
+    severity: high
+  - id: cero-es-un-dato
+    rule: "Una conversación de 0 turnos y un contexto al 0 % se pintan igual que cualquier otra. Esconderlos haría indistinguible «recién nace» de «no sé cuánto»."
+    enforcement: []
+    severity: medium
+  - id: la-fecha-que-no-hay-no-se-inventa
+    rule: "Sin turnos se dice «sin turnos todavía»; con turnos pero sin fecha registrada (una conversación migrada) se dice «sin fecha». Derivarla de la fecha de creación sería inventarla."
+    enforcement: []
+    severity: high
+  - id: ningun-color-solo
+    rule: "Ninguna distinción depende únicamente del color: la conversación activa se marca con radio relleno, rótulo y fondo; el contexto caliente cambia la barra y el borde, nunca el color del número."
+    enforcement: ["docs/architecture/boundaries/fe-visual-fitness.md"]
+    severity: high
+  - id: un-control-apagado-nunca-es-mudo
+    rule: "Todo control deshabilitado lleva el motivo. Un click que se veía legal y después falla es peor experiencia que un control apagado que explica."
+    enforcement: []
+    severity: medium
+related_capabilities:
+  depends_on:
+    - arnesia.usecases.conversaciones-de-una-sesion
+    - arnesia.usecases.buscar-en-el-transcript
+    - arnesia.http-sse.frame-de-conversacion
+    - arnesia.fe-chat.chat-cc
+  enables: []
+---
+
+# Panel de conversaciones
+
+El operador pidió dos cosas —ver el historial de una conversación y crear una nueva— y no
+encontró ninguna de las dos en el panel de conversación. Estaban escondidas en el picker del
+rail, colgadas del **arnés** en vez de la **sesión**, y ahí mostraban 0 por un defecto de llave.
+Esta capability es la superficie que las trae adonde el operador las buscó.
+
+## Lo que se ve
+
+El cromo del dock **baja de cuatro filas a dos**. La fila nueva lleva `▶ título · ✎ · chip de
+contexto · 🔍 · ＋`. La `SessionLine` que ocupaba una fila fija **se muda** al detalle del chip:
+sus cuatro datos siguen ahí —y ganan el directorio de trabajo, que hasta acá no se veía en
+ninguna superficie— pero dejan de costar una fila permanente. La fila de alcance **deja de
+existir cuando no hay nodo elegido**: su estado vacío gastaba una fila entera en una
+instrucción.
+
+La lista se abre **en sitio**, sobre el área del transcript, con el mismo gesto que el picker
+del rail: cero diálogo, cero fondo oscurecido, cero portal. El header y el composer siguen
+visibles — nunca se pierde de vista en qué sesión se está.
+
+## Lo que se corrigió de paso, y se declara
+
+El chip de contexto **caliente** pinta la barra en el color de aviso y **el número no**: ese
+color como texto mide 3,76:1 sobre el fondo del dock, bajo el mínimo de 4,5. Mismo criterio en
+el rótulo `activa` de la fila, en el glifo `＋` y en el motivo de un error de lectura.
+
+Y cierra una violación **preexistente**: la `SessionLine` pintaba el `◍ <cc-id>` en el color de
+acento sobre el fondo secundario — **2,21:1** medido por axe. Era invisible porque el widget no
+tenía story hasta el baseline de este paquete. Al mudarse al detalle, el texto pasó al color de
+primer plano y **ninguna story del dock apaga ya ninguna regla del gate**.
