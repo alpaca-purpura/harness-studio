@@ -4,7 +4,7 @@
 capability_id: arnesia.indice-persistencia.recalibracion-de-llaves-de-sesion
 cap_num: CAP-142
 slug: recalibracion-de-llaves-de-sesion
-name: "Las sesiones con llave pelada se recalibran, y nada se borra"
+name: "Las sesiones con llave pelada se recalibran solas al arrancar, y nada se borra"
 status: vivo          # GENERADO (R4) — no teclear
 license: brand-local
 module: indice-persistencia
@@ -19,6 +19,9 @@ pointers:
   - "internal/adapters/store/rekey.go#reKey"
   - "internal/adapters/store/rekey.go#Registry.Recalibrar"
   - "internal/adapters/store/rekey.go#Registry.RevertirLlaves"
+  - "internal/adapters/store/rekey.go#Registry.RecalibrarAlArrancar"
+  - "internal/adapters/store/rekey.go#InformeRecalibracion"
+  - "cmd/arnesia/main.go#loguearRecalibracion"
   - "cmd/arnesia/sesiones.go#resolverDeLlaves"
   - "cmd/arnesia/sesiones.go#cmdSesiones"
 valida:
@@ -32,9 +35,18 @@ valida:
   - "TestRevertirRestauraSoloElArnes"
   - "TestReKeyEnLaMigracion"
   - "TestReKeySinResolvedorNoRompeElArranque"
+  - "TestRecalibrarAlArrancarSinLlavesAMediasNoTocaNiRespalda"
+  - "TestRecalibrarAlArrancarRespaldaRecalibraYCuenta"
+  - "TestRecalibrarAlArrancarNoRecalibraSiFallaElRespaldo"
+  - "TestRecalibrarAlArrancarEsIdempotente"
+  - "TestRecalibrarAlArrancarSinResolvedorEsError"
+  - "TestElRespaldoDelArranqueSirveParaRevertir"
+  - "TestElArranqueCablearRecalibracionDeLlaves"
+  - "TestLoguearRecalibracionDiceLasDosCosas"
+  - "TestLoguearRecalibracionSinNovedadNoImprime"
 dev_preview:
   route: null
-  how_to_navigate: "arnesia sesiones recalibrar-llaves (dry-run por default)"
+  how_to_navigate: "corre SOLA al arrancar el daemon (CV-D18); el comando `arnesia sesiones recalibrar-llaves` sigue existiendo para dry-run y para revertir"
   main_component: null
   api_endpoints: []
   e2e_test: null
@@ -49,6 +61,41 @@ change_log:
     summary: "Cuatro de las cinco sesiones vivas del operador tenían la llave de arnés pelada en vez de calificada, y tres quedaban invisibles cuando la interfaz preguntaba por la clave completa. Se recalibran en el mismo paso que estrena el esquema versionado: por directorio de trabajo cuando lo hay, por id cuando no, y cuando no hay exactamente una candidata la llave se deja como está diciendo por qué. Nada se borra y nada se fusiona."
     merge_sha: null
 scenarios:
+  - id: el-daemon-recalibra-solo-al-arrancar
+    name: "El operador actualiza la app y abre el dock"
+    status: live
+    given: "sesiones vivas con la llave de arnés pelada, de antes de la clave calificada"
+    when: "arranca el daemon"
+    then: "las recalibra solo, después de dejar una copia previa, y el log dice cuántas movió; antes hacía falta que el operador corriera un comando que nada le sugería, así que tres de sus cinco sesiones quedaban invisibles sin aviso"
+    verifica: "TestRecalibrarAlArrancarRespaldaRecalibraYCuenta"
+  - id: primero-la-red-despues-el-cambio
+    name: "El disco no deja escribir la copia previa"
+    status: live
+    given: "sesiones por recalibrar y un respaldo que falla"
+    when: "arranca el daemon"
+    then: "NO se recalibra nada y el registro queda intacto; recalibrar sin copia previa dejaría al operador sin nada a lo que volver"
+    verifica: "TestRecalibrarAlArrancarNoRecalibraSiFallaElRespaldo"
+  - id: la-que-no-se-puede-resolver-se-dice
+    name: "Una sesión apunta a un arnés que no está en el Portafolio"
+    status: live
+    given: "un registro con una sesión cuyo arnés nadie agregó"
+    when: "el arranque recalibra el resto"
+    then: "esa queda como está y el log la NOMBRA diciendo por qué no va a aparecer al filtrar; jamás se adivina una llave, y jamás se calla que quedó afuera"
+    verifica: "TestRecalibrarAlArrancarRespaldaRecalibraYCuenta"
+  - id: arrancar-dos-veces-no-hace-nada-dos-veces
+    name: "El operador reinicia el daemon"
+    status: live
+    given: "un registro ya recalibrado"
+    when: "arranca de nuevo, incluso con otro sello de build"
+    then: "no se mueve una sola llave, no se escribe el archivo y no aparece un segundo respaldo"
+    verifica: "TestRecalibrarAlArrancarEsIdempotente"
+  - id: se-puede-volver-atras
+    name: "El operador quiere deshacer la recalibración"
+    status: live
+    given: "el respaldo que dejó el arranque"
+    when: "corre el comando con --revertir --desde ese respaldo"
+    then: "las llaves vuelven a su valor anterior y las conversaciones generadas desde entonces se conservan"
+    verifica: "TestElRespaldoDelArranqueSirveParaRevertir"
   - id: la-llave-se-resuelve-por-el-directorio
     name: "Una sesión que ya trabajó tiene su directorio estampado"
     status: live
@@ -92,6 +139,14 @@ scenarios:
     then: "ninguna fila se mueve y el archivo no se reescribe"
     verifica: "TestReKeyEsIdempotente"
 business_rules:
+  - id: recalibrar-al-arrancar-exige-copia-previa
+    rule: "El re-key del arranque respalda ANTES de tocar nada, y si el respaldo falla no recalibra. El orden no es un detalle de implementación: es la decisión (CV-D18). Muta datos del operador al arrancar, y eso sólo es aceptable con red y con log."
+    enforcement: []
+    severity: high
+  - id: sin-candidata-se-cuenta-y-se-dice
+    rule: "El informe del arranque distingue las recalibradas de las que quedaron sin candidata. Un silencio sobre la segunda sería indistinguible de «no la miré», y es el caso real de una de las sesiones del operador."
+    enforcement: []
+    severity: high
   - id: sin-una-sola-candidata-no-se-decide
     rule: "Una llave se recalibra sólo cuando hay exactamente una candidata. Con cero o con varias se deja como está y el motivo viaja al informe. Elegir al azar fusionaría dos identidades por coincidencia."
     enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]

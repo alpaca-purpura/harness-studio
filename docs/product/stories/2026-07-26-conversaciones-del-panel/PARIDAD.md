@@ -979,9 +979,23 @@ Leyenda: ✅ igual · ⚠️ desviación **con motivo** · ❌ falta.
 | §6 | `.resumebar.bad` (definido y sin usar en el dibujo) | `ChatDock` | A-13 | ✅ **usado** — C-11 autorizaba el superset; texto en `--foreground` sobre `--crit-soft` |
 | §2A | «no hay botón de cerrar», a propósito | `ConversacionRow` | B-01 (no existe tal control) | ✅ igual |
 
-**Resumen: 30 ✅ · 5 ⚠️ · 0 ❌.** Las cinco desviaciones son: una superset (el `✎`), tres por el
-gate a11y (las dos del contraste + la de N-1) y una por contradicción ya firmada (C-5, el texto de
-la marca). **Ninguna es una simplificación.**
+**Resumen: 31 ✅ · 4 ⚠️ · 0 ❌** — cifras **GENERADAS**, ver el recuadro de abajo. Las cuatro
+desviaciones son: una superset (el `✎`), dos por el gate a11y (las del contraste) y una por
+contradicción ya firmada (C-5, el texto de la marca). **Ninguna es una simplificación.**
+
+> **Estas cifras estaban tecleadas, y estaban mal** (decían `30 ✅ · 5 ⚠️`) — hallazgo **A-12**
+> de la auditoría, confirmado por conteo propio. La causa era benigna: N-1 se cerró en T23 y su
+> fila pasó de ⚠️ a ✅ sin que nadie recontara el resumen. Se levantó igual porque la regla del
+> repo es dura —**las cifras se GENERAN, no se teclean**— y éstas son justo las dos que el
+> operador lee para decidir si firma. Ahora se regeneran con:
+>
+> ```bash
+> python3 scripts/paridad_cifras.py docs/product/stories/2026-07-26-conversaciones-del-panel/PARIDAD.md
+> python3 scripts/paridad_cifras.py <ruta> --check   # sale 1 si un resumen tecleado no coincide
+> ```
+>
+> El script cuenta la **última celda** de cada fila de tabla (la columna `veredicto`) y toma su
+> PRIMER símbolo, así que una fila `⚠️ …porque ✅ tal cosa` cuenta una vez y por lo que es.
 
 Lo que la tabla NO cubre, porque el dibujo no lo dibuja: el borrado de las 3 conversaciones
 cerradas (T32), que sigue abierto. **El E2E contra el binario instalado (T31) ya no está
@@ -1022,7 +1036,7 @@ capturas · **98 aserciones: 92 ok · 3 fallas · 3 n/c**.
 | §4C | la marca de rotación **al reabrir el dock colapsado** | E2E-3.6c | ❌ **pantalla 1 · servidor 3** — se pierde en silencio si la copia local divergió. **N-21** |
 | RF-348 CA-1 | marca `⟳ hilo reiniciado · checkpoint` tras el heal | E2E-6.4 | ❌ **no construida** — 0 ocurrencias del literal; el heal es «silent on success». **N-22** |
 
-**Resumen §2.1: 17 ✅ · 1 ⚠️ · 2 ❌.**
+**Resumen §2.1: 18 ✅ · 1 ⚠️ · 2 ❌** — generadas por `scripts/paridad_cifras.py` (A-12: estaba tecleado `17 ✅`).
 
 **Y la condición que no está en ninguna tabla** (`plan-pruebas.md` §5.4) — el operador abre la
 app, aprieta `＋`, ve la conversación anterior en la lista, busca una palabra y vuelve a ese
@@ -1121,9 +1135,10 @@ Se listan para que nadie los lea como verdes:
 ## 5 · Gate 🧑‍⚖️
 
 **SIN FIRMAR.** La firma es del operador y **el ejecutor no la fabrica**. Lo que cambió respecto
-del cierre del tramo 4: §2 comparó el dibujo contra el **Storybook** (30 ✅ · 5 ⚠️ · 0 ❌) y §2.1
-comparó la mitad que sólo la app real puede cerrar (**17 ✅ · 1 ⚠️ · 2 ❌**), contra el **binario
-instalado** sello `0.2.24.2607262315`.
+del cierre del tramo 4: §2 comparó el dibujo contra el **Storybook** (**31 ✅ · 4 ⚠️ · 0 ❌**) y
+§2.1 comparó la mitad que sólo la app real puede cerrar (**18 ✅ · 1 ⚠️ · 2 ❌**), contra el
+**binario instalado** sello `0.2.24.2607262315`. Las dos cifras están **generadas**
+(`scripts/paridad_cifras.py`), no tecleadas — antes lo estaban y las dos estaban mal (A-12).
 
 **Van 31 de 33 tickets.** T30 y T31 cerrados; quedan **T32** (borrado de CV-D6, procedimiento
 manual del operador) y **T33** (cierre).

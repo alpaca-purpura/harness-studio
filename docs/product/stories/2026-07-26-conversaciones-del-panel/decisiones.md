@@ -279,6 +279,51 @@ tapado.
 `text-warn` de `new-session-picker.tsx:273` ya no lo ejercitan. **La deuda del token `--warn` sigue
 abierta** — sólo perdió a este consumidor.
 
+---
+
+## CV-D18 · La recalibración de llaves se CABLEA al arranque del daemon 🧑‍⚖️ FIRMADA 2026-07-27
+
+**Qué se decide.** El daemon, al arrancar, **detecta las llaves a medias y las recalibra solo**,
+con **respaldo previo** (`sessions.json.bak-<sello>`) y **una línea de log que diga cuántas
+recalibró**. Hoy `cmd/arnesia/main.go:202` pasa `nil` como `ClaveCalificada` a `AbrirRegistro`, así
+que `reKey` no corre nunca en el arranque y la decisión firmada no está construida.
+
+**Qué revierte.** La **enmienda que `arquitectura.md` le había hecho a CV-D16** dejándola como
+comando manual (`arnesia sesiones recalibrar-llaves`). El argumento del arquitecto era bueno —no
+atar el arranque del daemon a que el Portafolio responda— pero la enmienda **la tomó un documento
+que el operador nunca leyó**. Es el riesgo exacto que abrió el Gate 2 «por directiva, no por
+lectura», y se resolvió de la única forma que corresponde: **preguntándole**.
+
+**Motivo.** CV-D16 firmada dice que **el mismo paso** que estrena el esquema versionado re-key las
+vivas. Con el comando manual, **3 de las 5 sesiones del operador quedan invisibles sin que nada se
+lo avise** (hallazgo **N-23** del E2E): nada en la superficie le sugiere correr el comando, así que
+el efecto práctico es que la decisión no existe. **Una decisión firmada que no corre no está
+construida.**
+
+**Alternativas descartadas por el operador.**
+- **(a) Avisar en la superficie, con un botón para recalibrar.** Más honesto con «no mutar datos al
+  arrancar», pero exige **superficie nueva fuera del mockup firmado** — y el mockup está firmado.
+- **(b) Dejarlo manual como está.** Es el estado que produjo N-23.
+
+**Contrapeso declarado, no escondido.** Esto **muta datos del operador al arrancar**, que es justo
+lo que el arquitecto quiso evitar. Se acepta, y por eso **el respaldo previo y el log no son
+opcionales**, y **la reversión tiene que seguir funcionando**:
+
+1. **Primero la red, después el cambio.** Si el respaldo falla, **no se recalibra nada**. El orden
+   no es un detalle de implementación: es la decisión.
+2. **Nada en silencio.** El log dice **cuántas** se recalibraron y **cuántas quedaron
+   `sin-candidata`**. Lo segundo es tan obligatorio como lo primero: el E2E ya sabe que **una de
+   las 5 sale `sin-candidata`** porque su arnés no está en el Portafolio. Eso es correcto y
+   honesto — callarlo lo volvería un defecto mudo.
+3. **Idempotente.** Arrancar dos veces no duplica respaldos ni vuelve a mover nada.
+4. **El motivo del riesgo queda escrito EN EL CÓDIGO**, no sólo acá.
+
+**Consecuencia sobre A-10.** El hallazgo A-10 de la auditoría —«CV-D16 no corre en el binario que
+se instala, y eso lo decidió `arquitectura.md`, no el operador»— queda **cerrado por decisión del
+operador**, no por argumento técnico del ejecutor. El comando manual **no se retira**: sigue siendo
+útil con `--dry-run` y como reversión.
+
 ## Abierto
 
-Ninguno. CV-D1..CV-D16 firmadas; F-1..F-4 son correcciones de hecho, no decisiones nuevas.
+**CV-D17 sigue PENDIENTE de firma.** CV-D1..CV-D16 y **CV-D18** firmadas; F-1..F-4 son
+correcciones de hecho, no decisiones nuevas.

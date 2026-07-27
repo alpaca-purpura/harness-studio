@@ -184,3 +184,81 @@ func TestArchivoDeArchivadasCambioDeNombre(t *testing.T) {
 		t.Errorf("= %q, quiero el archivo de archivadas junto al de vivas", got)
 	}
 }
+
+// TestElArranqueCablearRecalibracionDeLlaves — CV-D18 / A-10, en el composition root.
+//
+// El defecto que cierra no era de lógica: era de CABLEADO. `RecalibrarAlArrancar` puede
+// estar perfecta y con todos sus tests verdes, y si `runServe` no la llama, CV-D16 sigue
+// sin construirse — que es exactamente lo que pasó (se pasaba `nil` y nadie se enteraba).
+// Un test de unidad del store no puede ver eso; este mira el composition root.
+//
+// Se afirma sobre el FUENTE de `main.go` a propósito: `runServe` abre puertos, spawnea
+// watchers y no vuelve, así que no se lo puede invocar en un test. El precedente del repo
+// para esta clase de check es `docs/architecture/fitness/arch_test.go`, que ya afirma
+// propiedades leyendo el árbol con go/parser.
+func TestElArranqueCablearRecalibracionDeLlaves(t *testing.T) {
+	b, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(b)
+
+	if !strings.Contains(src, "RecalibrarAlArrancar") {
+		t.Fatal("el arranque NO llama a RecalibrarAlArrancar: CV-D16 vuelve a estar firmada y sin construir (A-10)")
+	}
+	// Y le pasa el resolvedor REAL, no un nil ni un stub: sin Portafolio no hay con qué decidir.
+	if !strings.Contains(src, "RecalibrarAlArrancar(resolverDeLlaves(entradas)") {
+		t.Error("la recalibración del arranque no recibe el resolvedor construido desde el Portafolio")
+	}
+	// Y lo que hizo sale por el log: «nada en silencio» es la mitad de la decisión. Se busca
+	// la LLAMADA con su argumento, no el nombre a secas: `loguearRecalibracion(` también
+	// aparece en la línea que la DEFINE, así que buscar eso daba verde con la llamada
+	// borrada — verificado por mutación, y fue este test el que estaba flojo.
+	if !strings.Contains(src, "loguearRecalibracion(infRekey") {
+		t.Error("el arranque recalibra y no loguea: CV-D18 exige decir cuántas movió y cuántas quedaron sin candidata")
+	}
+}
+
+// TestLoguearRecalibracionDiceLasDosCosas — el informe del arranque distingue recalibradas
+// de `sin-candidata`. La segunda es el caso que el E2E ya conoce (una de las 5 sesiones del
+// operador) y que CV-D18 prohíbe callar.
+func TestLoguearRecalibracionDiceLasDosCosas(t *testing.T) {
+	previo := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previo) })
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+	loguearRecalibracion(store.InformeRecalibracion{
+		Recalibradas: 2, SinCandidata: 1, YaCalificadas: 1, RespaldoEn: "/tmp/sessions.json.bak-x",
+		Filas: []store.Recalibracion{
+			{SesionID: "s1", Antes: "vitalia", Despues: "sin-home~vitalia~vitalia", Motivo: "resuelta-por-id"},
+			{SesionID: "s2", Antes: "fantasma", Despues: "fantasma", Motivo: "sin-candidata"},
+		},
+	}, "/tmp/sessions.json")
+
+	s := buf.String()
+	for _, quiero := range []string{
+		"recalibradas=2", "sin_candidata=1", "/tmp/sessions.json.bak-x",
+		"s1", "sin-home~vitalia~vitalia", "s2",
+		"no está en el Portafolio", "--revertir",
+	} {
+		if !strings.Contains(s, quiero) {
+			t.Errorf("el log del arranque no dice %q.\nlog:\n%s", quiero, s)
+		}
+	}
+}
+
+// TestLoguearRecalibracionSinNovedadNoImprime — un arranque que no movió nada y no tiene
+// ninguna sesión sin candidata no ensucia el log. Mismo criterio que `loguearInforme`.
+func TestLoguearRecalibracionSinNovedadNoImprime(t *testing.T) {
+	previo := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previo) })
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
+	loguearRecalibracion(store.InformeRecalibracion{YaCalificadas: 5}, "/tmp/sessions.json")
+
+	if s := strings.TrimSpace(buf.String()); s != "" {
+		t.Errorf("un arranque sin novedad logueó igual:\n%s", s)
+	}
+}

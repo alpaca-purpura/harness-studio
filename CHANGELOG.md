@@ -35,6 +35,9 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - El panel de conversación muestra las conversaciones de su sesión: se listan, se buscan por lo que se dijo adentro, se crean y se retoman sin salir del dock
 - Verificación de punta a punta contra la aplicación instalada: los seis guiones del plan corren contra el binario que el operador ejecuta, con los datos de sesiones aislados en una copia, y dejan su informe con capturas
 - Fixture sintético de migración con los 20 campos del esquema v1 poblados, más un guard reflexivo: 6 mutaciones que antes sobrevivían (checkpoint, cadena_cc, status, puesto, parked, cerrada_en) ahora ponen el árbol rojo.
+- El daemon recalibra solo las llaves de sesión a medias al arrancar (CV-D18): respalda antes, y el log dice cuántas movió y cuántas quedaron sin candidata porque su arnés no está en el Portafolio.
+- Test del respaldo previo de Save (A-8) y enforcer del puntero convActiva de la transición (A-7): dos guards que funcionaban y no tenían red.
+- scripts/paridad_cifras.py: las cifras del gate de PARIDAD se generan y se pueden chequear, ya no se teclean (A-12).
 
 ### Cambiado
 - La sesión deja de ser la conversación: el id de Claude Code, el modelo, el uso de contexto, la cadena de rotaciones, el checkpoint y el transcript bajan a la conversación que los tiene. La sesión se queda con el frente de trabajo.

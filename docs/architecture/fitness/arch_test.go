@@ -15,6 +15,7 @@
 package fitness
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -23,6 +24,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -2254,5 +2256,80 @@ func TestVersionManifestsInSync(t *testing.T) {
 	}
 	if pkgVer[1] != v {
 		t.Errorf("package.json version=%q != Cargo.toml version=%q (drift — correr `make bump-patch`)", pkgVer[1], v)
+	}
+}
+
+// TestElPunteroDeConversacionSigueALaTransicion — A-7 (auditoría 2026-07-26).
+//
+// `sesion-viva-consistente` se extendió a v1.2 con el argumento de que «el runtime sigue
+// siendo uno por sesión y **gana un puntero que dice a quién le pertenece**». El quinto
+// check nuevo se declaraba enforzado por `TestTransicionDeConversacionEsAtomica` — pero
+// borrar la asignación del puntero (`r.convActiva = nueva.ID`) dejaba ese test VERDE. El
+// mecanismo que el nodo v1.2 agregó no lo probaba nadie: es N-12 otra vez, en forma más
+// sutil (allá el enforcer no podía correr; acá corría y pasaba sin tocar lo suyo).
+//
+// Cómo se observa un campo privado sin exportarlo para el test: por su CONSECUENCIA. El
+// puntero existe para que `chequearDueño` pueda avisar cuando el runtime y el agregado se
+// separan. Si la transición no lo mueve, el runtime se queda creyendo que le pertenece la
+// conversación VIEJA, y el primer turno sobre la nueva emite el warn de divergencia. Con la
+// asignación puesta, ese warn no aparece nunca. Se afirma sobre el log, que es la superficie
+// que el propio nodo eligió para este detector.
+func TestElPunteroDeConversacionSigueALaTransicion(t *testing.T) {
+	agent := &fakeAgent{}
+	svc := newTestService(t, agent, &fakePub{}, t.TempDir())
+	id := svc.List()[0].ID
+
+	// Un turno en la conversación original: deja el puntero del runtime apuntando a ella.
+	if err := svc.Turn(id, "el primer tema"); err != nil {
+		t.Fatalf("turn 1: %v", err)
+	}
+	sess1 := agent.sessionsSnapshot()[0]
+	sess1.events <- ports.AgentEvent{Kind: ports.EventResult, Text: "listo"}
+	waitFor(t, 2*time.Second, func() bool { return svc.List()[0].Status == domain.StatusIdle })
+
+	vieja, ok := svc.List()[0].Activa()
+	if !ok {
+		t.Fatal("precondición: la sesión tiene que tener una activa")
+	}
+
+	// La transición. A partir de acá el runtime tiene que pertenecer a la conversación nueva.
+	nueva, desactivada, err := svc.CrearConversacion(id)
+	if err != nil {
+		t.Fatalf("crear: %v", err)
+	}
+	if desactivada != vieja.ID {
+		t.Fatalf("la desactivada fue %q, esperaba %q", desactivada, vieja.ID)
+	}
+
+	// Desde acá se escucha el log: el turno siguiente pasa por `activa()` ⇒ `chequearDueño`.
+	previo := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previo) })
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
+
+	if err := svc.Turn(id, "el tema nuevo"); err != nil {
+		t.Fatalf("turn 2: %v", err)
+	}
+
+	if s := buf.String(); strings.Contains(s, "no coinciden en cuál es la conversación activa") {
+		t.Errorf("la transición NO movió el puntero del runtime: el detector de divergencia se "+
+			"disparó en el primer turno de la conversación nueva %q.\nlog:\n%s", nueva.ID, s)
+	}
+
+	// Y el turno cayó donde tenía que caer: en la conversación NUEVA, no en la vieja. Sin
+	// esto, un puntero correcto con el turno en el hilo equivocado pasaría igual.
+	final := svc.List()[0]
+	for _, c := range final.Conversaciones {
+		switch c.ID {
+		case nueva.ID:
+			if c.NumTurnos() == 0 {
+				t.Error("el turno no cayó en la conversación nueva")
+			}
+		case vieja.ID:
+			if c.NumTurnos() != vieja.NumTurnos() {
+				t.Errorf("la conversación vieja creció de %d a %d turnos después de desactivarse",
+					vieja.NumTurnos(), c.NumTurnos())
+			}
+		}
 	}
 }

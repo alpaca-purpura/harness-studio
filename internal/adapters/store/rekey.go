@@ -2,6 +2,9 @@ package store
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"time"
 
 	"github.com/alpacapurpura/arnesia/internal/domain"
 )
@@ -138,4 +141,112 @@ func (r *Registry) RevertirLlaves(respaldo []domain.Session) ([]Recalibracion, e
 func LeerRespaldo(ruta string) ([]domain.Session, error) {
 	reg := &Registry{path: ruta}
 	return reg.Load(nil) //nolint:staticcheck // Load ignora el ctx: lee un archivo local.
+}
+
+// InformeRecalibracion es lo que el arranque LOGUEA del re-key (CV-D18). Lleva las filas
+// crudas y los tres conteos que el operador necesita para saber qué pasó con SUS sesiones.
+type InformeRecalibracion struct {
+	Filas []Recalibracion
+
+	// RespaldoEn es la copia previa. Vacío ⟺ no hubo nada que mover, así que no se
+	// respaldó: respaldar de gusto llenaría el disco del operador de copias idénticas.
+	RespaldoEn string
+
+	// Recalibradas son las que efectivamente movieron su llave.
+	Recalibradas int
+	// SinCandidata son las que NO se pudieron resolver porque su arnés no está en el
+	// Portafolio. Se cuenta aparte y se dice: es el caso que el E2E ya conoce (una de las
+	// cinco sesiones del operador), y callarlo lo volvería un defecto mudo.
+	SinCandidata int
+	// YaCalificadas son las que ya tenían clave calificada. Es lo que hace visible la
+	// idempotencia: en el segundo arranque, todas caen acá.
+	YaCalificadas int
+}
+
+// Hubo reporta si hay algo que decir. Un arranque que no movió nada y no tiene ninguna
+// sesión sin candidata no imprime: el silencio es correcto sólo cuando no hubo novedad.
+func (i InformeRecalibracion) Hubo() bool { return i.Recalibradas > 0 || i.SinCandidata > 0 }
+
+// RecalibrarAlArrancar es CV-D18: el daemon detecta las llaves a medias y las recalibra
+// SOLO, al arrancar, con respaldo previo y sin silencio.
+//
+// Por qué esto muta datos del operador al arrancar, que es justo lo que la arquitectura del
+// paquete quiso evitar: porque CV-D16 está FIRMADA y dice que el mismo paso que estrena el
+// esquema versionado re-key las vivas, y el comando manual que la reemplazó dejaba 3 de las
+// 5 sesiones del operador invisibles sin avisarle (N-23). Una decisión firmada que no corre
+// no está construida. El operador eligió esta vía sabiendo el costo (CV-D18, 2026-07-27).
+//
+// El costo se paga con tres cosas que NO son opcionales:
+//
+//  1. **Primero la red, después el cambio.** Si el respaldo falla, no se recalibra nada. El
+//     orden no es un detalle de implementación: es la decisión.
+//  2. **Nada en silencio.** El informe distingue recalibradas de `sin-candidata`.
+//  3. **Idempotente.** Sin nada que mover no se respalda ni se escribe, así que arrancar
+//     dos veces no duplica respaldos ni vuelve a tocar el archivo.
+//
+// Y la reversión sigue existiendo: `RevertirLlaves` + el respaldo que esto deja.
+func (r *Registry) RecalibrarAlArrancar(clave ClaveCalificada, sello string) (InformeRecalibracion, error) {
+	var inf InformeRecalibracion
+	if clave == nil {
+		return inf, errors.New("store: recalibrar al arrancar sin resolvedor de llaves: no hay con qué decidir")
+	}
+
+	// PASO 1 · en seco. Se mira ANTES de tocar nada: hace falta saber si hay algo que
+	// mover para decidir si corresponde respaldar.
+	filas, err := r.Recalibrar(clave, true)
+	if err != nil {
+		return inf, err
+	}
+	inf.Filas = filas
+	for _, f := range filas {
+		switch {
+		case f.Movio():
+			inf.Recalibradas++
+		case f.Motivo == "sin-candidata":
+			inf.SinCandidata++
+		case f.Motivo == "ya-calificada":
+			inf.YaCalificadas++
+		}
+	}
+	if inf.Recalibradas == 0 {
+		return inf, nil // nada que mover ⇒ ni respaldo ni escritura.
+	}
+
+	// PASO 2 · la red. Si esto falla, se sale SIN recalibrar.
+	respaldo, err := respaldarLlaves(r.path, sello)
+	if err != nil {
+		return inf, err
+	}
+	inf.RespaldoEn = respaldo
+
+	// PASO 3 · recién ahora, el cambio.
+	if _, err := r.Recalibrar(clave, false); err != nil {
+		return inf, err
+	}
+	return inf, nil
+}
+
+// respaldarLlaves copia el registro vivo a `<ruta>.bak-<sello>` (el nombre que nombran
+// CV-D16 y CV-D18). Si ese respaldo YA existe no se pisa: la primera copia es la que tiene
+// el estado anterior de verdad, y sobrescribirla con el estado de una segunda corrida
+// destruiría justamente aquello a lo que se quiere poder volver.
+func respaldarLlaves(ruta, sello string) (string, error) {
+	if sello == "" {
+		sello = time.Now().UTC().Format("0601021504")
+	}
+	destino := fmt.Sprintf("%s.bak-%s", ruta, sello)
+	// Sólo un ARCHIVO REGULAR cuenta como respaldo ya hecho. Un directorio con ese nombre
+	// no es una copia de nada, y darlo por bueno dejaría recalibrar sin red — que es
+	// exactamente lo que el orden «primero la red» existe para impedir.
+	if fi, err := os.Stat(destino); err == nil && fi.Mode().IsRegular() {
+		return destino, nil
+	}
+	b, err := os.ReadFile(ruta) //nolint:gosec // la ruta del propio registro.
+	if err != nil {
+		return "", fmt.Errorf("store: respaldo de llaves de %s: %w", ruta, err)
+	}
+	if err := os.WriteFile(destino, b, 0o600); err != nil { //nolint:gosec // ruta derivada de la del registro.
+		return "", fmt.Errorf("store: respaldo de llaves en %s: %w", destino, err)
+	}
+	return destino, nil
 }

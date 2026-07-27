@@ -194,10 +194,11 @@ func runServe(args []string) error {
 	// y repara la invariante de conversaciones. Nada de eso ocurre en silencio — todo lo
 	// que hizo viaja en el Informe y sale por el log de arranque, con las rutas.
 	//
-	// El re-key necesita el Portafolio, que se cablea más abajo. Se pasa nil acá y el
-	// comando `arnesia sesiones recalibrar-llaves` lo cubre: es idempotente y el operador
-	// puede correrlo cuando quiera, con dry-run previo. Atar el arranque del daemon a que
-	// el Portafolio responda sería exactamente lo que el paso separado evita.
+	// El re-key NO corre acá: necesita el Portafolio, que se cablea más abajo. Se pasa nil
+	// y la recalibración ocurre en su propio paso, apenas el Portafolio existe (CV-D18 ·
+	// buscá `RecalibrarAlArrancar` en este archivo). Este `nil` ya NO significa «el
+	// operador lo corre a mano»: eso fue una enmienda que un documento le hizo a una
+	// decisión firmada, y el hallazgo A-10 la revirtió.
 	sesionesV2, sessionsLegado := rutasDelRegistro(*sessionsPath)
 	sessionStore, informe, err := store.AbrirRegistro(sesionesV2, sessionsLegado, selfupdate.Build, nil)
 	if err != nil {
@@ -322,6 +323,34 @@ func runServe(args []string) error {
 	marketplaceSvc, err := newMarketplaceService(pfStore, derivaEval)
 	if err != nil {
 		return fmt.Errorf("marketplace service: %w", err)
+	}
+
+	// CV-D18 (FIRMADA 2026-07-27) · el re-key de CV-D16 corre SOLO, acá, en el arranque.
+	//
+	// Va en este punto y no junto a `AbrirRegistro` por una razón dura: el resolvedor de
+	// llaves necesita el Portafolio, que recién existe en esta línea. Antes se pasaba `nil`
+	// a `AbrirRegistro` y `reKey` no corría nunca — CV-D16 estaba firmada y NO construida
+	// (hallazgo A-10 de la auditoría, síntoma N-23: 3 de las 5 sesiones del operador
+	// invisibles, sin que nada se lo avisara).
+	//
+	// Esto MUTA datos del operador al arrancar, que es justo lo que la arquitectura del
+	// paquete quiso evitar, y el riesgo se acepta a ojos abiertos porque el operador lo
+	// eligió sabiendo el costo. Lo que lo hace aceptable no es el argumento: son las tres
+	// garantías que `RecalibrarAlArrancar` sostiene con tests —respaldo ANTES del cambio
+	// (si falla el respaldo no se recalibra nada), informe que distingue recalibradas de
+	// `sin-candidata`, e idempotencia— más la reversión, que sigue viva en
+	// `arnesia sesiones recalibrar-llaves --revertir --desde <respaldo>`.
+	//
+	// Un fallo acá NO tumba el daemon: se dice y se sigue. Quedarse sin arrancar por no
+	// poder recalibrar una llave sería peor que la llave a medias que se venía tolerando.
+	if entradas, _, lerr := portafolioSvc.Listar(ctx); lerr != nil {
+		slog.Warn("registro de sesiones: no se pudo leer el Portafolio para recalibrar las llaves — "+
+			"quedan como están; corré `arnesia sesiones recalibrar-llaves --dry-run`", "err", lerr)
+	} else if infRekey, rerr := sessionStore.RecalibrarAlArrancar(resolverDeLlaves(entradas), selfupdate.Build); rerr != nil {
+		slog.Error("registro de sesiones: la recalibración de llaves NO se aplicó — el registro quedó intacto",
+			"registro", sesionesV2, "err", rerr)
+	} else {
+		loguearRecalibracion(infRekey, sesionesV2)
 	}
 	// Tarjeta de identidad por sesión (RF-189): cada spawn sabe qué arnés es, qué copia
 	// edita (canónico/instalación/suelto) y su rol — cerrada sobre el Portafolio real.
@@ -825,6 +854,38 @@ func rutasDelRegistro(sessionsPath string) (vigente, legado string) {
 
 // loguearInforme cuenta lo que el arranque le hizo al registro. Un arranque sin novedades
 // no imprime nada: el Informe sólo trae lo que efectivamente ocurrió.
+// loguearRecalibracion cuenta lo que el re-key del arranque le hizo a las llaves (CV-D18).
+//
+// Dice las DOS cosas, y la segunda no es opcional: cuántas recalibró y cuántas quedaron
+// `sin-candidata` porque su arnés no está en el Portafolio. Ese caso es real y conocido —el
+// E2E lo vio en una de las cinco sesiones del operador— y callarlo lo volvería un defecto
+// mudo: el operador vería una sesión que sigue sin aparecer y nada que se lo explique.
+//
+// Un arranque sin novedad no imprime nada, igual que `loguearInforme`.
+func loguearRecalibracion(inf store.InformeRecalibracion, ruta string) {
+	if !inf.Hubo() {
+		return
+	}
+	slog.Info("registro de sesiones: llaves recalibradas al arrancar (CV-D18)",
+		"recalibradas", inf.Recalibradas, "sin_candidata", inf.SinCandidata,
+		"ya_calificadas", inf.YaCalificadas, "registro", ruta, "respaldo", inf.RespaldoEn)
+	for _, r := range inf.Filas {
+		switch {
+		case r.Movio():
+			slog.Info("registro de sesiones: llave recalibrada",
+				"sesion", r.SesionID, "antes", r.Antes, "despues", r.Despues, "motivo", r.Motivo)
+		case r.Motivo == "sin-candidata":
+			slog.Warn("registro de sesiones: llave SIN recalibrar — su arnés no está en el Portafolio; "+
+				"la sesión no va a aparecer al filtrar por arnés hasta que lo agregues",
+				"sesion", r.SesionID, "llave", r.Antes)
+		}
+	}
+	if inf.Recalibradas > 0 {
+		slog.Info("registro de sesiones: para deshacer SÓLO el re-key, "+
+			"`arnesia sesiones recalibrar-llaves --revertir --desde <respaldo>`", "respaldo", inf.RespaldoEn)
+	}
+}
+
 func loguearInforme(inf store.Informe, ruta string) {
 	if !inf.Hubo() {
 		return

@@ -51,7 +51,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 ### `indice-persistencia` (7)
 
 - **CAP-141 · El archivo durable declara su esquema y sabe migrarse** `vivo` · indice-persistencia/migracion-de-esquema-en-disco.yaml — `internal/adapters/store/esquema.go#EsquemaActual`
-- **CAP-142 · Las sesiones con llave pelada se recalibran, y nada se borra** `vivo` · indice-persistencia/recalibracion-de-llaves-de-sesion.yaml — `internal/adapters/store/rekey.go#ClaveCalificada`
+- **CAP-142 · Las sesiones con llave pelada se recalibran solas al arrancar, y nada se borra** `vivo` · indice-persistencia/recalibracion-de-llaves-de-sesion.yaml — `internal/adapters/store/rekey.go#ClaveCalificada`
 - **CAP-21 · Índice de arneses en memoria** `vivo` · indice-persistencia/indice-de-arneses-en-memoria.yaml — `internal/adapters/index/store.go#Store`
 - **CAP-22 · Reconstrucción del índice (ArnesRegistry)** `vivo` · indice-persistencia/reconstruccion-del-indice.yaml — `internal/adapters/index/store.go#Store.Rebuild`
 - **CAP-23 · Observar cambios del corpus (watcher)** `parcial` · indice-persistencia/observar-cambios-del-corpus.yaml — `internal/adapters/watch/watcher.go#Watcher`
