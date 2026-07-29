@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/filelock"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 )
 
@@ -75,6 +76,10 @@ func (r *ArnesRegistry) Resolve(arnesID string) (string, bool, error) {
 }
 
 // Register validates path and records it for arnesID (replacing any prior entry).
+//
+// Corre bajo `filelock.Guard` (Fase 1, D2): recarga desde disco antes de mutar — mismo
+// mecanismo que `portafolio.Store.Upsert`, para el mismo riesgo (el daemon y un CLI
+// standalone son dos procesos con dos cachés en memoria escribiendo `arneses.json`).
 func (r *ArnesRegistry) Register(arnesID, path string) error {
 	if strings.TrimSpace(arnesID) == "" {
 		return errors.New("arnes registry: empty arnés id")
@@ -85,8 +90,13 @@ func (r *ArnesRegistry) Register(arnesID, path string) error {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.entries[arnesID] = clean
-	return r.saveLocked()
+	return filelock.Guard(r.path, func() error {
+		if rerr := r.reloadLocked(); rerr != nil {
+			return rerr
+		}
+		r.entries[arnesID] = clean
+		return r.saveLocked()
+	})
 }
 
 // List returns every registered arnés→path entry.
@@ -194,6 +204,16 @@ func (r *ArnesRegistry) load() error {
 		r.entries[e.Arnes] = e.Path
 	}
 	return nil
+}
+
+// reloadLocked descarta el mapeo en memoria y vuelve a leer `r.path` desde cero. Se llama
+// DENTRO de un `filelock.Guard` (Fase 1, D2/D3): mismo mecanismo que
+// `portafolio.Store.reloadLocked` — un `Register` tiene que partir de lo que hay en disco en
+// ESE instante, nunca de un caché que pudo quedar viejo porque otro proceso escribió
+// mientras tanto. Caller sostiene r.mu.
+func (r *ArnesRegistry) reloadLocked() error {
+	r.entries = map[string]string{}
+	return r.load()
 }
 
 // saveLocked snapshots the mapping to disk atomically (temp + rename). Caller holds r.mu.

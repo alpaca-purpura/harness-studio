@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/alpacapurpura/arnesia/internal/adapters/store"
+	"github.com/alpacapurpura/arnesia/internal/adapters/telemetria/descubrimiento"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 )
 
@@ -79,6 +80,23 @@ func resolverDeLlaves(entradas []domain.EntradaPortafolio) store.ClaveCalificada
 	}
 }
 
+// daemonPareceVivo consulta la ficha de descubrimiento (`descubrimiento.Ficha`, la misma que
+// ya usa `arnesia hook proceso` para encontrar al daemon) para decidir si `arnesia serve`
+// parece estar corriendo. Una ficha huérfana (daemon muerto sin shutdown ordenado) da un
+// falso positivo — que acá es el lado seguro del error: en el peor caso el operador corre
+// con --force de más, nunca pierde datos por asumir que no había nadie escuchando.
+func daemonPareceVivo() (bool, string) {
+	f, err := descubrimiento.New("")
+	if err != nil {
+		return false, ""
+	}
+	ficha, err := f.Leer()
+	if err != nil {
+		return false, ""
+	}
+	return true, ficha.Endpoint
+}
+
 // mismoDir compara dos rutas por su forma limpia. No resuelve symlinks a propósito: el
 // comando puede correr con el daemon detenido y sobre un árbol montado distinto, y una
 // comparación que falla es `sin-candidata` (honesto), no una decisión equivocada.
@@ -110,6 +128,7 @@ func cmdSesiones(args []string) error {
 	aplicar := fs.Bool("aplicar", false, "escribe los cambios; sin este flag es un dry-run")
 	revertir := fs.Bool("revertir", false, "deshace el re-key usando --desde, sin tocar las conversaciones")
 	desde := fs.String("desde", "", "respaldo del que leer las llaves originales (con --revertir)")
+	forzar := fs.Bool("force", false, "escribe aunque el daemon esté corriendo (Fase 1, D3: sin esto, este comando standalone y el daemon vivo son dos cachés en memoria separadas escribiendo el mismo archivo)")
 	fs.Usage = func() {
 		fmt.Fprint(os.Stderr, `uso: arnesia sesiones recalibrar-llaves [flags]
 
@@ -139,6 +158,20 @@ flags:
 	reg, err := store.NewRegistry(ruta)
 	if err != nil {
 		return err
+	}
+
+	// D3 (Fase 1): este comando abre su PROPIA instancia de store.Registry, separada de la
+	// que vive dentro de `arnesia serve` — igual que el bug confirmado en portafolio.json.
+	// A diferencia de portafolio/marketplace, el caché de sesiones vivo pertenece al motor
+	// de chat (SessionService), no a este adaptador — tocarlo acá sería cirugía de alto
+	// riesgo sobre el camino más caliente del sistema. En su lugar: si el daemon parece
+	// vivo y esto va a ESCRIBIR, se rechaza salvo --force.
+	if (*aplicar || *revertir) && !*forzar {
+		if vivo, motivo := daemonPareceVivo(); vivo {
+			return fmt.Errorf("arnesia sesiones: el daemon parece estar corriendo (%s) — "+
+				"escribir acá y desde el daemon a la vez puede perder cambios. "+
+				"Cerrá la app o corré con --force si estás seguro", motivo)
+		}
 	}
 
 	if *revertir {

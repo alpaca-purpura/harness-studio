@@ -3,14 +3,23 @@ package portafolio
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/filelock"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 )
+
+// esquemaActual es la versión de forma que este binario sabe escribir/leer. portafolio.json
+// nunca tuvo una v2 todavía — el chequeo existe igual (D1, auditoría 2026-07-27: el campo
+// `version` se escribía y jamás se comparaba al leer) para que el día que exista, un archivo
+// escrito por un binario MÁS NUEVO se detecte y se respete en vez de pisarse en silencio.
+const esquemaActual = 1
 
 // envelope es la forma versionada de `~/.arnesia/portafolio.json` (S0-D5). Cada entrada
 // se decodifica INDEPENDIENTE (`[]json.RawMessage`, no un `[]domain.EntradaPortafolio`
@@ -28,6 +37,11 @@ type Store struct {
 	mu        sync.Mutex
 	entradas  map[string]domain.EntradaPortafolio // key = Identidad.Clave()
 	corruptas []domain.EntradaCorrupta
+
+	// bloqueo explica por qué este store NO se puede escribir ("" = se puede). Lo pone load()
+	// cuando el archivo en disco lo escribió un binario más nuevo (D1): persistir encima
+	// destruiría datos que este binario no sabe interpretar.
+	bloqueo string
 }
 
 var _ ports.PortafolioStore = (*Store)(nil)
@@ -51,7 +65,10 @@ func NewStore(path string) (*Store, error) {
 }
 
 // load lee el archivo entry-wise. Un envelope top-level ilegible (archivo editado a mano
-// hasta romperlo) degrada a UNA corrupta con el blob entero — jamás impide abrir el store.
+// hasta romperlo) se pone en CUARENTENA (D1): los bytes originales quedan intactos en
+// `<ruta>.corrupto-<sello>`, nunca se pisan, y el store arranca vacío — jamás impide abrir el
+// store, pero tampoco intenta reinsertar bytes no-JSON dentro de un documento que sí debe
+// serlo (imposible por definición: ver el comentario de saveLocked).
 func (s *Store) load() error {
 	b, err := os.ReadFile(s.path)
 	if os.IsNotExist(err) {
@@ -62,7 +79,27 @@ func (s *Store) load() error {
 	}
 	var env envelope
 	if uerr := json.Unmarshal(b, &env); uerr != nil {
-		s.corruptas = append(s.corruptas, domain.EntradaCorrupta{Raw: b, Motivo: fmt.Sprintf("envelope ilegible: %v", uerr)})
+		destino, qerr := encuarentenar(s.path)
+		if qerr != nil {
+			// No se pudo poner a salvo (p.ej. permisos): se conserva el comportamiento previo
+			// (visible en Listar, no sobrevive al próximo write) antes que fallar la apertura
+			// del store entero — abrir degradado sigue siendo mejor que no abrir.
+			s.corruptas = append(s.corruptas, domain.EntradaCorrupta{
+				Raw: b, Motivo: fmt.Sprintf("envelope ilegible: %v (cuarentena falló: %v)", uerr, qerr),
+			})
+			return nil
+		}
+		slog.Warn("portafolio store: envelope ilegible, puesto en cuarentena",
+			"archivo", s.path, "cuarentena", destino, "motivo", uerr)
+		return nil
+	}
+	if env.Version > esquemaActual {
+		// D1 · Modo E (mismo nombre que sessions.json): lo escribió un binario más nuevo.
+		// Solo-lectura, ni un byte se toca — degradar a "vacío" y después persistir
+		// destruiría el archivo nuevo con el binario viejo, el único fallo irreversible.
+		s.bloqueo = fmt.Sprintf("%s lo escribió un binario más nuevo (esquema %d, este entiende %d)",
+			s.path, env.Version, esquemaActual)
+		slog.Warn("portafolio store: esquema futuro, store en solo-lectura", "archivo", s.path, "bloqueo", s.bloqueo)
 		return nil
 	}
 	for _, raw := range env.Entradas {
@@ -74,6 +111,17 @@ func (s *Store) load() error {
 		s.entradas[e.Identidad.Clave()] = e
 	}
 	return nil
+}
+
+// reloadLocked descarta el estado en memoria y vuelve a leer `s.path` desde cero. Se llama
+// DENTRO de un `filelock.Guard` (Fase 1, D2/D3): cada mutación tiene que partir de lo que hay
+// en disco en ESE instante, nunca de un caché que pudo quedar viejo porque otro PROCESO
+// (el daemon, un CLI standalone) escribió mientras tanto. Caller sostiene s.mu.
+func (s *Store) reloadLocked() error {
+	s.entradas = map[string]domain.EntradaPortafolio{}
+	s.corruptas = nil
+	s.bloqueo = ""
+	return s.load()
 }
 
 // Listar devuelve las entradas sanas (orden estable por clave) + las corruptas visibles
@@ -97,36 +145,45 @@ func (s *Store) Listar() ([]domain.EntradaPortafolio, []domain.EntradaCorrupta) 
 // resuelta JAMÁS colisionan de clave — Clave() ya las diferencia estructuralmente
 // (prefijo `sin-home~` vs el home canonicalizado) — así que Upsert nunca las fusiona
 // (C-ID-2) sin necesitar lógica extra.
+//
+// Corre bajo `filelock.Guard` (Fase 1, D2): recarga desde disco ANTES de mutar, así que un
+// Upsert de OTRO proceso (daemon vs CLI standalone) que ya se guardó nunca se pisa por un
+// caché que quedó viejo.
 func (s *Store) Upsert(e domain.EntradaPortafolio) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	clave := e.Identidad.Clave()
-	existing, ok := s.entradas[clave]
-	if !ok {
-		s.entradas[clave] = e
-		return s.saveLocked()
-	}
+	return filelock.Guard(s.path, func() error {
+		if err := s.reloadLocked(); err != nil {
+			return err
+		}
+		clave := e.Identidad.Clave()
+		existing, ok := s.entradas[clave]
+		if !ok {
+			s.entradas[clave] = e
+			return s.saveLocked()
+		}
 
-	merged := e
-	merged.Instalaciones = mergeInstalaciones(existing.Instalaciones, e.Instalaciones)
-	// S1-D3 (cierra GAP-3): Empresas/Registries son facetas N:M — se UNEN, jamás se
-	// reemplazan; un re-agregar con menos datos (p.ej. un candidato sin registry
-	// resuelto) NO borra lo que ya estaba persistido.
-	merged.Empresas = unionDedup(existing.Empresas, e.Empresas)
-	merged.Registries = unionDedup(existing.Registries, e.Registries)
-	switch {
-	case e.Canonico != nil && existing.Canonico != nil && e.Canonico.Path != existing.Canonico.Path:
-		return fmt.Errorf("portafolio store: dos canónicos distintos para %q: %q vs %q (C-N-5)",
-			clave, existing.Canonico.Path, e.Canonico.Path)
-	case e.Canonico == nil:
-		merged.Canonico = existing.Canonico
-	}
-	if merged.Agregado == "" {
-		merged.Agregado = existing.Agregado
-	}
-	s.entradas[clave] = merged
-	return s.saveLocked()
+		merged := e
+		merged.Instalaciones = mergeInstalaciones(existing.Instalaciones, e.Instalaciones)
+		// S1-D3 (cierra GAP-3): Empresas/Registries son facetas N:M — se UNEN, jamás se
+		// reemplazan; un re-agregar con menos datos (p.ej. un candidato sin registry
+		// resuelto) NO borra lo que ya estaba persistido.
+		merged.Empresas = unionDedup(existing.Empresas, e.Empresas)
+		merged.Registries = unionDedup(existing.Registries, e.Registries)
+		switch {
+		case e.Canonico != nil && existing.Canonico != nil && e.Canonico.Path != existing.Canonico.Path:
+			return fmt.Errorf("portafolio store: dos canónicos distintos para %q: %q vs %q (C-N-5)",
+				clave, existing.Canonico.Path, e.Canonico.Path)
+		case e.Canonico == nil:
+			merged.Canonico = existing.Canonico
+		}
+		if merged.Agregado == "" {
+			merged.Agregado = existing.Agregado
+		}
+		s.entradas[clave] = merged
+		return s.saveLocked()
+	})
 }
 
 // mergeInstalaciones dedupea por InstallPath (C-P-8/C-N-3): la entrada nueva pisa la
@@ -180,14 +237,23 @@ func unionDedup(existing, nueva []string) []string {
 func (s *Store) Desvincular(clave string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.entradas[clave]; !ok {
-		return false, nil
-	}
-	delete(s.entradas, clave)
-	if err := s.saveLocked(); err != nil {
+
+	var desvinculada bool
+	err := filelock.Guard(s.path, func() error {
+		if rerr := s.reloadLocked(); rerr != nil {
+			return rerr
+		}
+		if _, ok := s.entradas[clave]; !ok {
+			return nil
+		}
+		delete(s.entradas, clave)
+		desvinculada = true
+		return s.saveLocked()
+	})
+	if err != nil {
 		return false, err
 	}
-	return true, nil
+	return desvinculada, nil
 }
 
 // Checkouts devuelve los paths de canónicos conocidos (RN-IDENT-4).
@@ -215,6 +281,9 @@ func (s *Store) Checkouts() []string {
 // posterior — no hay forma honesta de "conservar" bytes que no son JSON dentro de un
 // documento que sí debe serlo. Caller sostiene s.mu.
 func (s *Store) saveLocked() error {
+	if s.bloqueo != "" {
+		return fmt.Errorf("portafolio store: %s", s.bloqueo)
+	}
 	claves := make([]string, 0, len(s.entradas))
 	for k := range s.entradas {
 		claves = append(claves, k)
@@ -236,7 +305,7 @@ func (s *Store) saveLocked() error {
 		entradas = append(entradas, c.Raw)
 	}
 
-	env := envelope{Version: 1, Entradas: entradas}
+	env := envelope{Version: esquemaActual, Entradas: entradas}
 	b, err := json.MarshalIndent(env, "", "  ")
 	if err != nil {
 		return fmt.Errorf("portafolio store: encode envelope: %w", err)
@@ -263,4 +332,25 @@ func (s *Store) saveLocked() error {
 		return fmt.Errorf("portafolio store: rename %s: %w", s.path, rerr)
 	}
 	return nil
+}
+
+// encuarentenar mueve un archivo ilegible a `<ruta>.corrupto-<sello>` y devuelve dónde quedó.
+// Se RENOMBRA, no se copia (si quedara una copia en la ruta original, el próximo arranque
+// volvería a encontrarla ilegible y la encuarentenaría otra vez) — mismo patrón que
+// internal/adapters/store/migracion.go#encuarentenar (sessions.json). Un `.corrupto-` que ya
+// existe no se pisa: se le suma un sufijo, porque dos corrupciones distintas son dos archivos
+// distintos y la segunda no puede borrar la evidencia de la primera.
+func encuarentenar(ruta string) (string, error) {
+	sello := time.Now().UTC().Format("0601021504")
+	destino := fmt.Sprintf("%s.corrupto-%s", ruta, sello)
+	for i := 2; ; i++ {
+		if _, err := os.Stat(destino); os.IsNotExist(err) {
+			break
+		}
+		destino = fmt.Sprintf("%s.corrupto-%s-%d", ruta, sello, i)
+	}
+	if err := os.Rename(ruta, destino); err != nil {
+		return "", fmt.Errorf("portafolio store: cuarentena de %s: %w", ruta, err)
+	}
+	return destino, nil
 }

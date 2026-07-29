@@ -17,17 +17,29 @@ pointers:
   - "internal/adapters/store/registry.go#Save"
   - "internal/adapters/store/registry.go#Load"
   - "internal/adapters/store/arnes_registry.go#saveLocked"
+  - "internal/adapters/store/arnes_registry.go#Register"
+  - "internal/adapters/filelock/filelock.go#Guard"
+  - "internal/adapters/filelock/filelock_unix.go#lock"
+  - "internal/adapters/filelock/filelock_windows.go#lock"
 valida:
   - "TestSaveEstampaEsquemaActual"
   - "TestCrashAMitadDejaElViejoEntero"
   - "TestPrimerArranqueNoInventaArchivo"
-last_modified: 2026-07-26
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-25)"
+  - "TestArnesRegistryRegisterNoPisaEscrituraDeOtraInstancia"
+  - "TestGuardSerializesWithinProcess"
+  - "TestGuardSerializesAcrossProcesses"
+last_modified: 2026-07-28
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-25); docs/product/stories/2026-07-28-persistencia-escalabilidad/ (Fase 1, flock cross-proceso)"
 change_log:
   - story_id: 2026-07-26-conversaciones-del-panel
     date: 2026-07-26
     type: derive
     summary: "La escritura atómica del registro deja de ser una afirmación sin evidencia: `internal/adapters/store` tuvo sus primeros tests, y ahora está probado que un guardado que falla deja el archivo anterior entero en vez de medio archivo nuevo. Lo que se escribe pasa a llevar su sobre versionado (CAP-141) y lo que se lee entiende las dos formas, la nueva y la que se escribía antes."
+    merge_sha: null
+  - story_id: 2026-07-28-persistencia-escalabilidad
+    date: 2026-07-28
+    type: extend
+    summary: "El swap atómico protegía contra un corte a mitad de escritura, pero no contra DOS PROCESOS mutando el mismo archivo a la vez — confirmado leyendo `cmd/arnesia/main.go`: el daemon (`arnesia serve`) y un CLI standalone (`arnesia sesiones recalibrar-llaves`) abren cada uno su propia instancia del store. Se agrega `internal/adapters/filelock` (flock/LockFileEx cross-proceso, sin dependencia nueva — golang.org/x/sys ya vendorizado transitivo) y `ArnesRegistry.Register` ahora recarga desde disco DENTRO del lock antes de mutar, así que un Register de otro proceso que ya se guardó nunca se pisa."
     merge_sha: null
 scenarios:
   - id: guardar-es-atomico
@@ -44,6 +56,13 @@ scenarios:
     when: "arranca el daemon"
     then: "el registro carga vacío y no se escribe ningún archivo que nadie pidió"
     verifica: "TestPrimerArranqueNoInventaArchivo"
+  - id: dos-procesos-no-se-pisan
+    name: "El daemon y un CLI standalone registran arneses a la vez"
+    status: live
+    given: "`arnesia serve` corriendo con su propio `ArnesRegistry` en memoria"
+    when: "un `arnesia` standalone (otro proceso) registra un arnés MIENTRAS el daemon también registró uno propio, sin que el standalone lo supiera al abrir"
+    then: "el archivo final tiene AMBOS registros — ninguno se pisa, porque cada Register recarga desde disco dentro del flock antes de guardar"
+    verifica: "TestArnesRegistryRegisterNoPisaEscrituraDeOtraInstancia"
 business_rules:
   - id: escribir-es-temp-mas-rename
     rule: "Todo guardado del registro se escribe a un temporal en el mismo directorio y se renombra encima. Un corte a mitad deja el archivo anterior entero, jamás uno truncado."
@@ -53,6 +72,10 @@ business_rules:
     rule: "Un registro que no existe es un primer arranque, no un fallo: carga vacío y no se inventa un archivo."
     enforcement: ["docs/architecture/boundaries/archivo-durable-declara-su-esquema.md"]
     severity: medium
+  - id: mutar-recarga-bajo-lock-cross-proceso
+    rule: "Toda mutación de un store file-backed (Register/Upsert/Desvincular/Olvidar) toma un flock exclusivo sobre un sidecar `<archivo>.lock` y recarga desde disco DENTRO de ese lock antes de aplicar el cambio — nunca confía en un caché en memoria que otro PROCESO pudo haber dejado viejo."
+    enforcement: ["internal/adapters/filelock/filelock.go"]
+    severity: critical
 related_capabilities:
   depends_on: []
   enables:

@@ -41,6 +41,8 @@ vendors:
     in: modernc.org/sqlite   # índice desechable (indice-desechable-jsonl-es-verdad.md), pure Go sin CGO
   fsnotify:
     in: github.com/fsnotify/fsnotify   # watcher del árbol de arneses (RF-210)
+  xsys:
+    in: golang.org/x/sys/**  # flock cross-proceso (internal/adapters/filelock, Fase 1 persistencia) — ya vendorizado transitivo por sqlite, sin dependencia nueva
 
 components:
   # --- el core: dominio + casos de uso. No conoce nada de afuera. ---
@@ -92,6 +94,8 @@ components:
     in: internal/adapters/stt/**
   logfile:
     in: internal/adapters/logfile/**
+  filelock:
+    in: internal/adapters/filelock/**   # flock cross-proceso alrededor del ciclo reload→mutar→guardar (Fase 1 persistencia, D2)
 
   # --- telemetría embebida (paquete 2026-07-24-telemetria-embebida-otel) ---
   # Los cinco NO se importan entre sí: cada uno habla `domain`+`ports` y nada más. Lo que el
@@ -166,16 +170,21 @@ deps:
   selfupdate:
     mayDependOn: [domain, ports] # build/instalar/re-exec del binario (paquete boton-actualizar)
   portafolio:
-    mayDependOn: [domain, ports] # walker + lock + deriva + store del Portafolio (Slice 0)
+    mayDependOn: [domain, ports, filelock] # walker + lock + deriva + store del Portafolio (Slice 0)
     canUse: [yaml]               # parsea el lock DevStudio (.devstudio/arneses.yaml, S0-D4/D8)
   marketplace:
-    mayDependOn: [domain, ports] # registro + caché + detector CC + los 2 lectores de catálogo
+    mayDependOn: [domain, ports, filelock] # registro + caché + detector CC + los 2 lectores de catálogo
   traer:
     mayDependOn: [domain, ports] # materializa un PlanTraer en un staging (camino A local, B por git)
 
   # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
-    mayDependOn: [domain, ports]
+    mayDependOn: [domain, ports, filelock]  # flock cross-proceso en ArnesRegistry.Register (Fase 1, D2)
+
+  # flock cross-proceso puro (Fase 1 persistencia, D2): no conoce domain/ports a propósito —
+  # habla `path string, fn func() error` y nada más, igual que `logfile` no conoce nada.
+  filelock:
+    canUse: [xsys]
 
   # Lector de replay del JSONL de ~/.claude (historial B2) — enumera/reconstruye turnos,
   # nunca parsea su schema como contrato (conductor-no-parsea-jsonl.md).

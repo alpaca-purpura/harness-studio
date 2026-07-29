@@ -25,7 +25,10 @@ pointers:
   - "internal/adapters/transport/http/portafolio.go#postObservarEnMapa"
   - "internal/ports/index.go#IndexPort"
   - "internal/adapters/index/store.go#Store.Upsert"
+  - "cmd/arnesia/main.go#avisarCoberturaPortafolioIndice"
 valida:
+  - "TestAvisarCoberturaPortafolioIndiceCallaSiTodoCubierto"
+  - "TestAvisarCoberturaPortafolioIndiceDiceCuantasFaltan"
   - "TestObservarEnMapaIndexaSinRegistro"
   - "TestObservarEnMapaDegradadoSintetiza"
   - "TestObservarEnMapaInstallPathAjeno"
@@ -49,9 +52,21 @@ dev_preview:
 
 created_in_story: 2026-07-13-portafolio-slice1-fe
 created_date: 2026-07-13
-last_modified: 2026-07-23
+last_modified: 2026-07-28
 source_ref: "docs/product/stories/2026-07-13-portafolio-slice1-fe/decisiones.md S1-D1/S1-D2/S1-D3"
 change_log:
+  - story_id: 2026-07-28-persistencia-escalabilidad
+    date: 2026-07-28
+    type: extend
+    summary: >-
+      Fase 2 (D4): la ley anti-drift S1-D1 es correcta en intención pero no daba señal de
+      CUÁNTAS entradas del Portafolio nunca pasaron por "Observar en Mapa" — quedan
+      divergentes de `index.db` indefinidamente y en silencio. `avisarCoberturaPortafolioIndice`
+      corre una vez al arrancar el daemon (mismo punto que el re-key CV-D18, con
+      `portafolioSvc`/`idx` ya cableados) y loguea `slog.Warn` con la cuenta + las claves
+      concretas sin cubrir — silencioso si la cobertura es completa. Probado contra una copia
+      real del `~/.arnesia` del operador: 3 de 4 entradas reales resultaron sin observar.
+    merge_sha: null
   - story_id: 2026-07-23-resolucion-deuda-viva
     date: 2026-07-23
     type: fix
@@ -153,6 +168,13 @@ scenarios:
     when: "ambos se observan en el Mapa"
     then: "cada uno se indexa bajo su propia clave calificada — el segundo Upsert NO pisa al primero, ambos quedan consultables"
     verifica: "TestUpsertDosArnesesMismoIDNoColisionan (internal/adapters/index)"
+
+  - id: cobertura-visible-al-arrancar
+    name: "El daemon dice cuántas entradas del Portafolio nunca se observaron en el Mapa"
+    given: "N entradas sanas en el Portafolio, de las cuales M nunca pasaron por Observar en Mapa"
+    when: "arranca `arnesia serve`"
+    then: "si M>0, un `slog.Warn` reporta sin_indice=M, de_un_total=N y las claves concretas; si M==0, no loguea nada (silencio = cobertura completa)"
+    verifica: "TestAvisarCoberturaPortafolioIndiceDiceCuantasFaltan · TestAvisarCoberturaPortafolioIndiceCallaSiTodoCubierto"
 
 business_rules:
   - id: observar-no-registra-cwd

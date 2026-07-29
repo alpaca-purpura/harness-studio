@@ -318,6 +318,7 @@ func runServe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("portafolio service: %w", err)
 	}
+	avisarCoberturaPortafolioIndice(ctx, portafolioSvc, idx)
 	// Plano Marketplaces + catálogo + `↧ Traer canónico` (paquete
 	// 2026-07-23-portafolio-agregar-marketplace): comparte el store del Portafolio (el cruce
 	// catálogo × portafolio lo necesita) y la MISMA instancia del evaluador de deriva.
@@ -880,6 +881,30 @@ func rutasDelRegistro(sessionsPath string) (vigente, legado string) {
 //
 // Una línea, en el arranque, con la ruta y el número. No lo lee, no lo migra y no lo borra:
 // sólo deja de fingir que no existe.
+// avisarCoberturaPortafolioIndice cuenta cuántas entradas SANAS del Portafolio nunca pasaron
+// por "Observar en Mapa" (Fase 2, D4: la ley anti-drift S1-D1 — "el scan del Portafolio NUNCA
+// registra en arneses.json" — es correcta en intención, pero hasta acá no había señal de
+// CUÁNTOS proyectos quedan así, indefinidamente). Silencioso si la cobertura es completa —
+// mismo criterio que loguearRecalibracion: un arranque sin novedades no habla.
+func avisarCoberturaPortafolioIndice(ctx context.Context, svc *usecase.PortafolioService, idx ports.IndexPort) {
+	sanas, _, err := svc.Listar(ctx)
+	if err != nil || len(sanas) == 0 {
+		return // sin Portafolio o ilegible: nada que reportar acá (otros avisos ya lo cubren).
+	}
+	var sinIndice []string
+	for _, e := range sanas {
+		clave := e.Identidad.Clave()
+		if _, qerr := idx.Query(ctx, clave); qerr != nil {
+			sinIndice = append(sinIndice, clave)
+		}
+	}
+	if len(sinIndice) == 0 {
+		return
+	}
+	slog.Warn("portafolio: hay entradas sin observar en el Mapa — el índice no las conoce hasta que se aprieta \"Observar en Mapa\"",
+		"sin_indice", len(sinIndice), "de_un_total", len(sanas), "claves", sinIndice)
+}
+
 func avisarDelArchivoAbandonado(sesionesPath string) {
 	ruta := filepath.Join(filepath.Dir(sesionesPath), "sesiones-cerradas.json")
 	b, err := os.ReadFile(ruta) //nolint:gosec // ruta derivada de la del registro, no de la entrada del usuario.

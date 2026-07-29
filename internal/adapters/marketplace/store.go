@@ -4,14 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/filelock"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 )
+
+// esquemaActual es la versión de forma que este binario sabe escribir/leer — mismo chequeo
+// y mismos motivos que su store hermano (portafolio/store.go#esquemaActual, D1).
+const esquemaActual = 1
 
 // store.go persiste el lado DECLARADO del registro en `~/.arnesia/marketplaces.json`.
 //
@@ -47,6 +54,10 @@ type Store struct {
 	mu        sync.Mutex
 	filas     map[string]domain.MarketplaceConocido // key = Nombre (la clave de merge, AG-D9)
 	corruptas []domain.EntradaCorrupta
+
+	// bloqueo explica por qué este store NO se puede escribir ("" = se puede) — mismo
+	// mecanismo que portafolio.Store.bloqueo (D1).
+	bloqueo string
 }
 
 var _ ports.MarketplaceStore = (*Store)(nil)
@@ -69,8 +80,9 @@ func NewStore(path string) (*Store, error) {
 	return s, nil
 }
 
-// load lee el archivo entry-wise. Un envelope top-level ilegible degrada a UNA corrupta con el
-// blob entero — jamás impide abrir el store (E-44).
+// load lee el archivo entry-wise. Un envelope top-level ilegible se pone en CUARENTENA (D1,
+// calco de portafolio/store.go#load) — los bytes originales quedan intactos en
+// `<ruta>.corrupto-<sello>`, jamás impide abrir el store (E-44).
 func (s *Store) load() error {
 	b, err := os.ReadFile(s.path)
 	if os.IsNotExist(err) {
@@ -81,9 +93,21 @@ func (s *Store) load() error {
 	}
 	var env envelopeMkt
 	if uerr := json.Unmarshal(b, &env); uerr != nil {
-		s.corruptas = append(s.corruptas, domain.EntradaCorrupta{
-			Raw: b, Motivo: fmt.Sprintf("envelope ilegible: %v", uerr),
-		})
+		destino, qerr := encuarentenar(s.path)
+		if qerr != nil {
+			s.corruptas = append(s.corruptas, domain.EntradaCorrupta{
+				Raw: b, Motivo: fmt.Sprintf("envelope ilegible: %v (cuarentena falló: %v)", uerr, qerr),
+			})
+			return nil
+		}
+		slog.Warn("marketplace store: envelope ilegible, puesto en cuarentena",
+			"archivo", s.path, "cuarentena", destino, "motivo", uerr)
+		return nil
+	}
+	if env.Version > esquemaActual {
+		s.bloqueo = fmt.Sprintf("%s lo escribió un binario más nuevo (esquema %d, este entiende %d)",
+			s.path, env.Version, esquemaActual)
+		slog.Warn("marketplace store: esquema futuro, store en solo-lectura", "archivo", s.path, "bloqueo", s.bloqueo)
 		return nil
 	}
 	for _, raw := range env.Marketplaces {
@@ -102,6 +126,16 @@ func (s *Store) load() error {
 		s.filas[m.Nombre] = m
 	}
 	return nil
+}
+
+// reloadLocked descarta el estado en memoria y vuelve a leer `s.path` desde cero — mismo
+// mecanismo y mismos motivos que `portafolio.Store.reloadLocked` (Fase 1, D2/D3). Caller
+// sostiene s.mu.
+func (s *Store) reloadLocked() error {
+	s.filas = map[string]domain.MarketplaceConocido{}
+	s.corruptas = nil
+	s.bloqueo = ""
+	return s.load()
 }
 
 // Listar devuelve las filas sanas (orden estable por nombre) + las corruptas visibles aparte
@@ -123,14 +157,23 @@ func (s *Store) Listar() ([]domain.MarketplaceConocido, []domain.EntradaCorrupta
 // Upsert inserta o reemplaza la fila declarada de m.Nombre. Es el mecanismo; la regla BR-7 («no
 // duplica ni pisa») la enforça el usecase, que consulta antes de llamar — separar mecanismo de
 // política es lo que permite que `Olvidar`+`Registrar` funcione sin un flag de «forzar».
+//
+// Corre bajo `filelock.Guard` (Fase 1, D2/D4): recarga desde disco antes de mutar, mismo
+// mecanismo que `portafolio.Store.Upsert` — uniforme entre los dos stores hermanos aunque hoy
+// solo el daemon escriba `marketplaces.json` (D3: sin CLI standalone confirmado todavía).
 func (s *Store) Upsert(m domain.MarketplaceConocido) error {
 	if m.Nombre == "" {
 		return errors.New("marketplace store: upsert sin nombre (no hay clave de merge)")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.filas[m.Nombre] = m
-	return s.saveLocked()
+	return filelock.Guard(s.path, func() error {
+		if err := s.reloadLocked(); err != nil {
+			return err
+		}
+		s.filas[m.Nombre] = m
+		return s.saveLocked()
+	})
 }
 
 // Olvidar quita la fila DECLARADA (bool=true si existía). Si Claude Code igual lo conoce, la
@@ -139,14 +182,23 @@ func (s *Store) Upsert(m domain.MarketplaceConocido) error {
 func (s *Store) Olvidar(nombre string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.filas[nombre]; !ok {
-		return false, nil
-	}
-	delete(s.filas, nombre)
-	if err := s.saveLocked(); err != nil {
+
+	var borrada bool
+	err := filelock.Guard(s.path, func() error {
+		if rerr := s.reloadLocked(); rerr != nil {
+			return rerr
+		}
+		if _, ok := s.filas[nombre]; !ok {
+			return nil
+		}
+		delete(s.filas, nombre)
+		borrada = true
+		return s.saveLocked()
+	})
+	if err != nil {
 		return false, err
 	}
-	return true, nil
+	return borrada, nil
 }
 
 // saveLocked escribe el envelope atómico (temp+rename). Las corruptas se RE-SERIALIZAN crudas
@@ -154,6 +206,9 @@ func (s *Store) Olvidar(nombre string) (bool, error) {
 // honesta que `portafolio.Store.saveLocked` (bytes que no son JSON no pueden re-insertarse como
 // elemento de un array JSON). Caller sostiene s.mu.
 func (s *Store) saveLocked() error {
+	if s.bloqueo != "" {
+		return fmt.Errorf("marketplace store: %s", s.bloqueo)
+	}
 	nombres := make([]string, 0, len(s.filas))
 	for n := range s.filas {
 		nombres = append(nombres, n)
@@ -177,7 +232,7 @@ func (s *Store) saveLocked() error {
 		filas = append(filas, c.Raw)
 	}
 
-	b, err := json.MarshalIndent(envelopeMkt{Version: 1, Marketplaces: filas}, "", "  ")
+	b, err := json.MarshalIndent(envelopeMkt{Version: esquemaActual, Marketplaces: filas}, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marketplace store: encode envelope: %w", err)
 	}
@@ -208,4 +263,21 @@ func escribirAtomico(path, patron string, b []byte) error {
 		return fmt.Errorf("marketplace store: rename %s: %w", path, rerr)
 	}
 	return nil
+}
+
+// encuarentenar mueve un archivo ilegible a `<ruta>.corrupto-<sello>` — calco exacto de
+// portafolio/store.go#encuarentenar (D1), el mecanismo hermano.
+func encuarentenar(ruta string) (string, error) {
+	sello := time.Now().UTC().Format("0601021504")
+	destino := fmt.Sprintf("%s.corrupto-%s", ruta, sello)
+	for i := 2; ; i++ {
+		if _, err := os.Stat(destino); os.IsNotExist(err) {
+			break
+		}
+		destino = fmt.Sprintf("%s.corrupto-%s-%d", ruta, sello, i)
+	}
+	if err := os.Rename(ruta, destino); err != nil {
+		return "", fmt.Errorf("marketplace store: cuarentena de %s: %w", ruta, err)
+	}
+	return destino, nil
 }

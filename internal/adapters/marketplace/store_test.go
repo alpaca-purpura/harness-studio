@@ -34,22 +34,59 @@ func TestStoreArchivoAusenteAbreVacio(t *testing.T) {
 	}
 }
 
-// E-44 · envelope ilegible ⇒ NewStore no falla, Listar devuelve 1 corrupta con el blob entero, y
-// el plano sigue poblado por el detector CC + banner de corrupta.
+// E-44 · envelope ilegible ⇒ NewStore no falla; el blob entero se pone en CUARENTENA en disco
+// (D1, calco de portafolio.Store) en vez de quedar en memoria — Listar devuelve 0/0 y el plano
+// sigue poblado por el detector CC + banner de corrupta (que ahora lee del archivo de cuarentena).
 func TestStoreEnvelopeIlegibleDegradaHonesto(t *testing.T) {
-	st, _ := storeEn(t, `{"version": 1, "marketplaces": [`)
+	original := `{"version": 1, "marketplaces": [`
+	st, path := storeEn(t, original)
 	sanas, corruptas := st.Listar()
-	if len(sanas) != 0 {
-		t.Fatalf("sanas = %v, want 0", sanas)
+	if len(sanas) != 0 || len(corruptas) != 0 {
+		t.Fatalf("Listar = (%v, %v), want (0, 0): el blob se fue a cuarentena, no queda en memoria", sanas, corruptas)
 	}
-	if len(corruptas) != 1 {
-		t.Fatalf("corruptas = %d, want 1", len(corruptas))
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("la ruta original debía quedar libre tras la cuarentena, stat err=%v", err)
 	}
-	if !strings.HasPrefix(corruptas[0].Motivo, "envelope ilegible:") {
-		t.Fatalf("Motivo = %q, want prefijo «envelope ilegible:»", corruptas[0].Motivo)
+	entries, err := os.ReadDir(filepath.Dir(path))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if len(corruptas[0].Raw) == 0 {
-		t.Fatal("Raw vacío: el blob entero se conserva")
+	var cuarentena string
+	for _, e := range entries {
+		if strings.Contains(e.Name(), ".corrupto-") {
+			cuarentena = filepath.Join(filepath.Dir(path), e.Name())
+		}
+	}
+	if cuarentena == "" {
+		t.Fatal("quiero un archivo `.corrupto-*` en el mismo directorio")
+	}
+	b, err := os.ReadFile(cuarentena) //nolint:gosec // G304: temporal del propio test.
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != original {
+		t.Errorf("la cuarentena debe conservar los bytes originales byte a byte, got %q", string(b))
+	}
+}
+
+// D1 Modo E · un `version` mayor al que este binario entiende significa que lo escribió un
+// binario más nuevo: el store abre en solo-lectura y cualquier escritura se rechaza.
+func TestStoreEsquemaFuturoEsSoloLectura(t *testing.T) {
+	original := `{"version":99,"marketplaces":[{"nombre":"del-futuro","clase":"propio"}]}`
+	st, path := storeEn(t, original)
+	sanas, corruptas := st.Listar()
+	if len(sanas) != 0 || len(corruptas) != 0 {
+		t.Fatalf("esquema futuro: Listar = (%v, %v), want (0, 0)", sanas, corruptas)
+	}
+	if err := st.Upsert(domain.MarketplaceConocido{Nombre: "nueva", Clase: domain.ClasePropio}); err == nil {
+		t.Fatal("Upsert sobre un esquema futuro debe rechazarse, no pisarlo en silencio")
+	}
+	b, err := os.ReadFile(path) //nolint:gosec // G304: temporal del propio test.
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != original {
+		t.Errorf("el archivo de un esquema futuro no debe tocarse ni un byte, got %q", string(b))
 	}
 }
 
