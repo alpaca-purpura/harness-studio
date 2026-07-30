@@ -12,11 +12,13 @@
 | «Editar fuente» intacto (Fase 2) | story asserta disabled | ✅ |
 | Descartar NO tocado (ya estaba cableado — C-D1) | verificado en vivo pre-cambio | ✅ |
 | Suite | 20/20 inspector · 607/607 total · verify exit 0 · gate a11y | ✅ |
-| **AC-d: click-through con tarjeta REAL de mejora (exige telemetría medida) en laptop** | | ⬜ **gate** |
+| AC-d: click-through con tarjeta REAL de mejora | **Auto-verificado 2026-07-30** (daemon del `.deb` v0.6.0 + Playwright/Chromium): telemetría inyectada por el CAMINO REAL (`POST /v1/logs` OTLP/JSON, shape del golden de CC 2.1.220) → detector **B4 gasto-concentrado** disparó de verdad (93 % en `hipaa-check`, USD 0,11) → click en «Proponerlo en el chat»: Dock abre · chip `skill hipaa-check` con fuente_path real + caja resaltada en canvas · composer prellenado con foco al final (caret 59/59) · **0 turnos enviados** · Descartar quita la tarjeta y PERSISTE en el daemon. Capturas + script en [`verificacion-tarjeta-real/`](./verificacion-tarjeta-real/) | ✅ |
+| **Residuo humano: verlo en TU laptop + firma** | | ⬜ **gate** |
 
-Gap declarado: la cadena C-T1a sobre tarjeta real no se pudo escenificar en sandbox
-(sin corridas ⇒ sin tarjetas); la cadena idéntica (openChat+setScope) quedó probada
-vía C-T1b + el buzón en vivo.
+Gap original («sin corridas ⇒ sin tarjetas») CERRADO por la inyección OTLP de arriba —
+cero datos fabricados a mano: el detector computó sobre ingesta real del receptor.
+Nota fiel del reporte: `GET /api/telemetria/arneses/{clave}/mejoras` es la ruta real
+(el spec citaba `/api/harnesses/{id}/mejoras`, que no existe).
 
 ## Firma
 

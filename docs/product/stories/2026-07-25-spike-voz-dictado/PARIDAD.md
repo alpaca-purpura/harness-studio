@@ -66,6 +66,14 @@ defecto (exige motor + modelo, que CI no tiene) y se corre con
 `ARNESIA_STT_E2E_AUDIO=<wav> go test ./internal/adapters/stt/local/ -run E2E -v`. Que skipee es
 honesto; fingir que pasó no lo sería.
 
+**Re-corrido 2026-07-30 (auto-verificación del MVP):** wav sintetizado con piper
+(voz es_ES x_low) → `TestE2ETranscribeConMotorReal` **PASS** (motor
+`whisper-ctranslate2`, 1.99 s, 84 chars, transcripción fiel módulo acento del modelo
+— la etapa de limpieza es la que repara eso). Y con el **daemon del `.deb` v0.6.0**:
+`GET /api/dictado/disponibilidad` = `{"disponible":true,"motor":"whisper-ctranslate2"}`
+con el venv en PATH · `disponible:false` honesto con hints sin él. T6 (micrófono en la
+ventana instalada) sigue ABIERTO — eso no lo reemplaza ningún test.
+
 ### 3 bugs REALES que solo aparecieron al correr los binarios
 
 La primera versión del adaptador estaba escrita contra lo que yo suponía que hacían los CLI.

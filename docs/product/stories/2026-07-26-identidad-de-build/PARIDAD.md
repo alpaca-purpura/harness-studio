@@ -96,6 +96,9 @@ Tras la verificación en vivo, la lista se acortó a tres cosas — y ninguna es
   sellado, en el navegador. Falta el `.deb` instalado abriendo su ventana nativa: `make installer`
   necesita rust/Tauri y la instalación pide **sudo**, así que es del operador. La tarjeta no cambia
   —es el mismo SPA embebido—, pero la doctrina dice que no se firma sin verlo.
+  **Actualización 2026-07-30:** la mitad API se re-verificó con el **payload del `.deb` v0.6.0**
+  (`dpkg-deb -x`, daemon sandbox): `GET /api/version` → `0.6.0.2607301226`, huella `a1004a9`,
+  sucio:false. Residuo = únicamente abrir la ventana nativa instalada.
 - **El sello a través del botón «Actualizar»**, de punta a punta. El self-update corre
   `bundle.sh --daemon-only`, camino ya verificado a mano, pero no se disparó el botón.
 - **El aviso con un `.deb` recién instalado de verdad** (dos binarios, dos dueños — ver

@@ -14,7 +14,8 @@
 | Marketplace ⇒ re-key con Home | E2E sandbox: `sin-home~~c1dbb2fb98fb` → `(github.com/alpacapurpura/prenter-marketplace, mi-arnes)`; CLI (2º proceso) ve la entrada | ✅ |
 | Form FE 4 campos + disabled honesto | 3 stories drawer (verify exit 0) | ✅ |
 | Hoja `versionado-arnes.md` | v1.0 `proposed` → v1.1 con enforcers reales (B2) | ✅ |
-| **AC-e: E2E en laptop del operador** | Portafolio → dir crudo → ✦ Identificar → sello | ⬜ **gate** |
+| AC-e: E2E contra el binario INSTALABLE | **Auto-verificado 2026-07-30 con el payload del `.deb` v0.6.0** (`dpkg-deb -x`, daemon sandbox): escanear crudo → 400 incompleto → 200 → sello en disco `[empresas,id,nombre,proceso,reporta_a,rol]` (sin version) | ✅ |
+| **Residuo humano: mismo flujo en la app instalada (sudo) + firma** | | ⬜ **gate** |
 
 ## B2 — publicar
 
@@ -27,7 +28,9 @@
 | Guardas 400/503 (sin-canónico/home/no-propio/semver/auth) | 12 tests usecase + tabla HTTP | ✅ |
 | Botón FE vivo + checks FAIL listados | 4 stories drawer + fix asserts motivo-viejo | ✅ |
 | CLI `arnesia publish <clave>` | recableado al usecase real (no se recortó) | ✅ |
-| **AC-e: publicar contra repo GitHub REAL desde laptop** (re-publicar ⇒ 409 · `gh auth logout` ⇒ 503) | exige credenciales del operador | ⬜ **gate** |
+| AC-e: publicar contra repo GitHub **REAL** | **Auto-verificado 2026-07-30** (daemon del `.deb`, repo descartable `arnesia-e2e-publicar-20260730`, borrado al cierre): registrar propio → catálogo leído REMOTO vía gh → traer canónico → bump 0.2.0 → **POST publicaciones 200** → verificado EN GITHUB: tag `demo-pub/v0.2.0` + árbol `plugins/demo-pub/0.2.0/` + fila catalogo `sello: 2607301251` → **re-publicar 409** («una versión publicada no se pisa») | ✅ |
+| Sin-auth honesto | daemon con HOME aislado sin config de gh: «gh está instalado pero no autenticado, y ARNESIA_GH_TOKEN está vacío» (vía de registro; el clasificador del publisher queda cubierto por unit) | ✅ |
+| **Residuo humano: mismo flujo desde la app instalada + firma** | | ⬜ **gate** |
 
 ## Desviaciones declaradas (aceptar u objetar al firmar)
 

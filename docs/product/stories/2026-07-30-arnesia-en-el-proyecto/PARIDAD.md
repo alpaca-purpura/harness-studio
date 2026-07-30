@@ -12,7 +12,8 @@
 | Endpoints `/api/forja/semillas` (+`/chequeos`), campo `path` | E2E daemon sandbox: chequeo reporta incompleta; siembra repara SOLO lo ausente; path protegido ⇒ 400 | ✅ |
 | Enmienda doctrine ADITIVA, runtime intacto | test frontera: `<proyecto>/.arnesia/` NO matchea `ProtegerPaqueteCerrado`; kit/doctrine + forjar-caja + metodología §9 con nota fechada | ✅ |
 | Capabilities módulo `forja/` (CAP-149/150) + arch-lint componente `forja` | fitness ok · cap_doctor 152 válidas · go-arch-lint OK | ✅ |
-| **AC-e: `arnesia init` sobre proyecto REAL en laptop** | | ⬜ **gate** |
+| AC-e: init con el binario INSTALABLE sobre proyecto real | **Auto-verificado 2026-07-30 con el payload del `.deb` v0.6.0**: init sobre COPIA de `dogfood/dev-full-cycle` (proyecto real, aditivo puro) → sana · re-run 0 creados/todo ya-existía · borrar `01-spec.md` ⇒ `incompleta` + faltante listado + **exit 1** | ✅ |
+| **Residuo humano: init sobre TU proyecto en TU laptop + firma** | | ⬜ **gate** |
 
 Desviaciones/gaps declarados: doctor sin verificación de hashes (deriva de semilla =
 Fase 2) · `--arnes-yaml` del proyecto = Fase 2 · nodos `.arnesia/` en Mapa = Fase 2 ·
