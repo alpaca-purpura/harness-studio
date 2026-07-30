@@ -114,7 +114,7 @@ func TestDiagnosticoAcotaElCuerpo(t *testing.T) {
 // el del arranque, cuando el resto del daemon todavía puede no estar cableado.
 func TestDiagnosticoVivoSinDictadoCableado(t *testing.T) {
 	vacio := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	h := NewHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, vacio, vacio,
+	h := NewHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, vacio, vacio,
 		AuthConfig{AllowedHosts: []string{"127.0.0.1:4200"}})
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/api/diagnostico", strings.NewReader(`{"evento":"fe.error"}`))

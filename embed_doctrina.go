@@ -30,3 +30,12 @@ var Files embed.FS
 //
 //go:embed all:kit
 var Kit embed.FS
+
+// Semilla carries the process-as-code seed que `arnesia init` siembra en el proyecto del
+// usuario (contrato docs/architecture/contracts/semilla-arnesia.md, A-D2): `semilla/arnes.yaml`
+// (la copia GRADUADA del v0 firmado de terreno-conocimiento) + `semilla/plantillas/`
+// (text/template del árbol `.arnesia/`). Vive como embed HERMANO del Kit y NO adentro de
+// `kit/`: el kit viaja como `--plugin-dir` a cada spawn y no se infla con archivos inertes.
+//
+//go:embed all:semilla
+var Semilla embed.FS

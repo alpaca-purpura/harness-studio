@@ -77,7 +77,7 @@ func TestTelemetriaCLIReusaElUsecase(t *testing.T) {
 	}
 	defer cerrarHTTP()
 	vacio := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
-	h := httpapi.NewHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	h := httpapi.NewHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		svcHTTP, nil, vacio, vacio, httpapi.AuthConfigFor("127.0.0.1:4200", ""))
 	req := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:4200/api/telemetria/resumen", nil)
 	req.Host = "127.0.0.1:4200"

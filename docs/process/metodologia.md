@@ -404,6 +404,15 @@ producto — lo que ③ contiene es solo suyo, más lo que el provisioning ESTAM
 (`graph.l0.schema.json`, campo `origen`) cita «los 3 cuerpos» — esta sección es su definición
 canónica.
 
+> **Enmienda 2026-07-30 (A-D3, paquete `2026-07-30-arnesia-en-el-proyecto`) — supersede con
+> nota, la regla no se reescribe:** `<proyecto>/.arnesia/` es la zona de escritura sancionada
+> del PROCESO — el process-as-code que siembra `arnesia init` (contrato
+> [`semilla-arnesia.md`](../architecture/contracts/semilla-arnesia.md)) y los artefactos de
+> paquete que las cajas llenan ahí. NO es ② filtrándose a ③: es contenido del proyecto,
+> versionable por el usuario. Sigue prohibido copiar kit/doctrina/know-how dentro del arnés.
+> Runtime intacto: `ProtegerPaqueteCerrado` matchea `~/.arnesia` (el paquete cerrado de la
+> app), no `<proyecto>/.arnesia` — fijado con test de `refiereAlguno` (A-T5).
+
 ## 10. Disciplina de desarrollo por paquete de trabajo (FIRMADA 2026-07-07)
 
 > Origen: orden del operador (sesión inspector-drawer, HS-09/Hito 2): TODA funcionalidad

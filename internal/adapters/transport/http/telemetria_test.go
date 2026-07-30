@@ -37,7 +37,7 @@ func handlerConTelemetria(t *testing.T, sembrar func(*usecase.TelemetriaService,
 		sembrar(svc, st)
 	}
 	vacio := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
-	return NewHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	return NewHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		svc, nil, vacio, vacio, AuthConfigFor("127.0.0.1:4200", ""))
 }
 

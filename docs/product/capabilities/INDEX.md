@@ -197,6 +197,11 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
 - **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
 
+### `forja` (2)
+
+- **CAP-148 · Sembrar semilla .arnesia/ (arnesia init)** `vivo` · forja/sembrar-semilla.yaml — `internal/adapters/forja/parser.go#ParseSemilla`
+- **CAP-149 · Chequear salud de la semilla (doctor v0, arnesia init --check)** `vivo` · forja/chequear-semilla.yaml — `internal/adapters/forja/doctor.go#Adapter.Chequear`
+
 ### `telemetria` (19)
 
 - **CAP-118 · Receptor OTLP embebido (nunca bloquea al emisor, nunca finge haber guardado)** `vivo` · telemetria/receptor-otlp-embebido.yaml — `internal/adapters/telemetria/otlp/receptor.go#Receptor`

@@ -26,6 +26,7 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/adapters/artifact"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/ruleset"
+	"github.com/alpacapurpura/arnesia/internal/adapters/forja"
 	"github.com/alpacapurpura/arnesia/internal/adapters/history"
 	"github.com/alpacapurpura/arnesia/internal/adapters/index"
 	"github.com/alpacapurpura/arnesia/internal/adapters/loader"
@@ -61,6 +62,8 @@ func main() {
 		err = runOpen(os.Args[2:])
 	case "index":
 		err = runIndex(os.Args[2:])
+	case "init":
+		err = runInit(os.Args[2:])
 	case "publish":
 		err = runPublish(os.Args[2:])
 	case "conformance":
@@ -99,6 +102,7 @@ commands:
   serve     watcher + index + HTTP/SSE API + UI embebida on :4200 (dev sin dist: solo API; el bundle la trae)
   open      open the UI (stub)
   index     load an arnés directory into a graph.l0 (nomenclatura-arnes.md)
+  init      siembra el process-as-code .arnesia/ en un proyecto (contrato semilla-arnesia.md); --check = doctor
   publish   publish a harness to its marketplace repo (stub)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
   portafolio   escanear/listar/agregar/desvincular arneses del Portafolio (Slice 0)
@@ -330,6 +334,14 @@ func runServe(args []string) error {
 		return fmt.Errorf("marketplace service: %w", err)
 	}
 
+	// Forja: la siembra `.arnesia/` (paquete 2026-07-30-arnesia-en-el-proyecto, A-T3) —
+	// mismo usecase que `arnesia init`, expuesto por HTTP para el FE futuro.
+	semillaFS, err := iofs.Sub(doctrina.Semilla, "semilla")
+	if err != nil {
+		return fmt.Errorf("semilla embebida: %w", err)
+	}
+	forjaSvc := usecase.NewForjaService(forja.New(semillaFS))
+
 	// CV-D18 (FIRMADA 2026-07-27) · el re-key de CV-D16 corre SOLO, acá, en el arranque.
 	//
 	// Va en este punto y no junto a `AbrirRegistro` por una razón dura: el resolvedor de
@@ -442,7 +454,7 @@ func runServe(args []string) error {
 	}
 	dirReal := ln.Addr().String()
 
-	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, marketplaceSvc, dictadoSvc, telSvc, telHandler, embeddedUI(), broker,
+	handler := httpapi.NewHandler(mapSvc, sessionSvc, runSvc, fuenteSvc, arnesReg, confSvc, confBase, loadArnesDir, updSvc, portafolioSvc, forjaSvc, marketplaceSvc, dictadoSvc, telSvc, telHandler, embeddedUI(), broker,
 		httpapi.AuthConfigConIngesta(dirReal, *authToken, tokenIngesta, *telEstricta))
 
 	// Filesystem changes drive incremental reindex + a map delta on the SSE bus

@@ -25,7 +25,7 @@ type errorBody struct {
 // arneses (Slice 0, S0-D9 — superficie observable sin FE); events is the SSE broker
 // mounted at /events. auth confines the whole surface (Host+Origin+token, boundary
 // superficie-local-confinada).
-func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, portafolio *usecase.PortafolioService, marketplaces *usecase.MarketplaceService, dictado *usecase.DictadoService, telemetria *usecase.TelemetriaService, otlp http.Handler, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
+func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs *usecase.RunService, fuentes *usecase.FuenteService, arneses ports.ArnesRegistry, conf ports.ConformancePort, confBase func(id string) string, onArnesRegistered func(id, path string) error, updates *usecase.SelfUpdateService, portafolio *usecase.PortafolioService, forja *usecase.ForjaService, marketplaces *usecase.MarketplaceService, dictado *usecase.DictadoService, telemetria *usecase.TelemetriaService, otlp http.Handler, ui http.Handler, events http.Handler, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 
 	// Telemetría embebida (paquete 2026-07-24-telemetria-embebida-otel). El receptor OTLP
@@ -109,6 +109,13 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	// PERSISTIDA al índice del Mapa, read-only — NO registra cwd.
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/mapa", postObservarEnMapa(portafolio))
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/identificar", postIdentificar(portafolio))
+
+	// Forja: siembra `.arnesia/` (contrato semilla-arnesia.md; paquete
+	// 2026-07-30-arnesia-en-el-proyecto, A-T3). Mismo usecase que `arnesia init`.
+	if forja != nil {
+		mux.HandleFunc("POST /api/forja/semillas", postSembrarSemilla(forja))
+		mux.HandleFunc("POST /api/forja/semillas/chequeos", postChequearSemilla(forja))
+	}
 
 	// Plano Marketplaces + catálogo (paquete 2026-07-23-portafolio-agregar-marketplace, AG-D8):
 	// el estante de lo que vendemos y el espejo de si el cliente coincide. Lectura de catálogo

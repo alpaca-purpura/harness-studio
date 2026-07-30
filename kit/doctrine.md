@@ -47,6 +47,12 @@ Esta maquinaria (el kit que te da estas skills) se inyecta por flags y vive FUER
 repo del arnés: **jamás escribas archivos del kit, de ArnesIA o de esta doctrina dentro
 del arnés** (② no contamina ③). En el arnés solo escribes lo que su nomenclatura define.
 
+**Excepción sancionada** (contrato `semilla-arnesia.md`, enmienda A-D3 2026-07-30): la
+carpeta `.arnesia/` del proyecto es la zona de escritura del PROCESO — ahí viven las
+plantillas sembradas por `arnesia init` y ahí escriben las cajas sus artefactos de
+paquete. Es process-as-code DEL PROYECTO, no doctrina copiada. Sigue PROHIBIDO copiar
+kit, doctrina o know-how dentro del arnés.
+
 Referencia completa (read-only): el directorio `knowhow/` inyectado con `--add-dir`
 contiene los nodos del estándar (checklists evaluables por elemento). Consúltalos al
 crear o auditar cada elemento; el veredicto mecánico lo da `arnesia conformance`.

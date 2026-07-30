@@ -50,4 +50,6 @@ Creas UNA caja de proceso en el arnés del cwd, conforme al contrato fusionado
 
 - Frontmatter fantasma (persistent_facts / customize / sanctum / activation_steps_prepend).
 - Estados fuera del spine · dos escritores de un artefacto · gate inventado.
-- Escribir CUALQUIER archivo del kit/doctrina dentro del arnés (② no contamina ③).
+- Escribir CUALQUIER archivo del kit/doctrina dentro del arnés (② no contamina ③). La
+  prohibición es COPIAR kit/doctrina: `.arnesia/` del proyecto es zona LEGAL de artefactos
+  del proceso (contrato `semilla-arnesia.md`, enmienda A-D3).
