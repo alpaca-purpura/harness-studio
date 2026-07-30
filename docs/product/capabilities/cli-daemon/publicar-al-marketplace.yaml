@@ -1,25 +1,40 @@
 ---
-# GENERADO desde CAPABILITIES.md por scripts/capabilities_to_yaml.py — no editar a mano
-# (mientras CAPABILITIES.md sea el enforcer). Schema: docs/product/_templates/capability.template.yaml
+# Schema: docs/product/_templates/capability.template.yaml
 capability_id: arnesia.cli-daemon.publicar-al-marketplace
 cap_num: CAP-04
 slug: publicar-al-marketplace
 name: "Publicar al marketplace (`publish`)"
-status: stub          # GENERADO (R4) — no teclear
+status: parcial        # recableado B2 (2026-07-30): fachada CLI del usecase real (CAP-148); `vivo` lo gradúa PARIDAD.
 module: cli-daemon
 verb: mejorar
 pointers:
   - "cmd/arnesia/main.go#runPublish"
-  - "internal/adapters/publish/publisher.go#Publish"
-valida: []
+  - "internal/adapters/publish/publisher.go#Publisher.Publicar"
+valida:
+  - "TestPublicarFelizContraBare"
+  - "TestPublicarIdempotente"
 scenarios: []
 business_rules: []
 related_capabilities:
-  depends_on: []
+  depends_on: [arnesia.portafolio.publicar]
   enables: []
-source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-04)"
+source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-04) · recableado en docs/product/stories/2026-07-30-volverlo-de-arnesia-y-publicar/ (B2, B-D6)"
+change_log:
+  - story_id: 2026-07-30-volverlo-de-arnesia-y-publicar
+    date: 2026-07-30
+    type: extend
+    summary: >-
+      `arnesia publish <clave>` deja de ser stub: es la fachada CLI del MISMO usecase que
+      POST /api/portafolio/arneses/{clave}/publicaciones (CAP-148) — cero lógica propia,
+      patrón runPortafolio. El gate de conformance corre con el ruleset embebido: el
+      binario instalado publica con el mismo contrato que el daemon. El flag-shape viejo
+      (`-harness`/`-target`) muere con el puerto stub que nadie consumía (B-D5).
+    merge_sha: null
 ---
 
 # Publicar al marketplace (`publish`)
 
-Capability derivada del código real (barrido 7-subagentes, CAPABILITIES.md HS-18).
+Fachada CLI de [`arnesia.portafolio.publicar`](../portafolio/publicar.yaml) (CAP-148, B2 del
+paquete `2026-07-30-volverlo-de-arnesia-y-publicar`): `arnesia publish <clave>` publica el
+canónico de una entrada del Portafolio en su marketplace-home por el mismo usecase que el
+endpoint HTTP — guardas, gate de conformance e idempotencia incluidos.

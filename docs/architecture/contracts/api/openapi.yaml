@@ -36,7 +36,11 @@ info:
   # Con B1 el body gana rol/proceso/empresas/marketplace (B-D1) y el sello se valida contra
   # graph.l0 ANTES de escribirse; `version` NO viaja en el sello (B-D2 — SoT =
   # plugin.json.version, conventions/versionado-arnes.md).
-  version: 0.9.0-sello-b1
+  # 0.10.0-publicar-b2: + POST /portafolio/arneses/{clave}/publicaciones (B2, paquete
+  # 2026-07-30-volverlo-de-arnesia-y-publicar, B-D5): publica el canónico en su
+  # marketplace-home — gate de conformance ANTES del push, idempotencia por versión,
+  # push SIN force (rechazo = 409 «reintentá»), tag `<id>/vX.Y.Z` tras el push.
+  version: 0.10.0-publicar-b2
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -467,6 +471,60 @@ paths:
         "400": { description: "`home` no canonicalizable, o el body no trae ni `home` ni `sin_origen`." }
         "404": { description: Clave desconocida en el Portafolio. }
         "409": { description: "Re-keyear daría una clave que YA existe: fusionar dos identidades es otra operación (C-ID-2), el sistema no las junta solo." }
+
+  /portafolio/arneses/{clave}/publicaciones:
+    post:
+      operationId: postPublicarPortafolio
+      summary: >-
+        `▲ Publicar` (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar, B-D5): publica el
+        CANÓNICO de la entrada en su marketplace-home (el repo de `identidad.home`, que debe ser
+        de clase `propio` — BR-1 del lado write). Sin body: la versión sale del canónico
+        (`plugin.json.version`, la SoT de conventions/versionado-arnes.md) y jamás se teclea.
+        Secuencia: guardas (canónico → home → propio → semver) → gate `conformance` VERDE →
+        clone/pull del marketplace en `~/.arnesia/publicaciones/` → copia del árbol a
+        `plugins/<id>/<version>/` (mismo set de exclusión que el hash de deriva) →
+        read-modify-write de `marketplace.json` (source re-apuntado; filas ajenas intactas) y
+        `catalogo.json` (fila con `sello` AAMMDDHHMM aditivo) → commit → push SIN force → tag
+        `<id>/vX.Y.Z` TRAS el push (fallo de tag = `avisos`, no rollback).
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: >-
+            Publicado. `avisos` puede traer éxitos parciales VISIBLES («publicado sin tag: …»,
+            symlinks omitidos de la copia) — un 200 con avisos sigue siendo publicado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [clave, id, version, marketplace, commit]
+                properties:
+                  clave: { type: string }
+                  id: { type: string }
+                  version: { type: string }
+                  marketplace: { type: string, description: "nombre del marketplace destino (el del home)." }
+                  commit: { type: string }
+                  tag: { type: string, description: "`<id>/vX.Y.Z`; ausente si el tag falló (ver avisos)." }
+                  avisos: { type: array, items: { type: string } }
+        "404": { description: Clave desconocida en el Portafolio. }
+        "400": { description: "Precondiciones del pedido, nada se intentó: sin canónico · identidad sin home (resolvé el origen primero) · el marketplace del home no es `propio` · la versión del canónico no es semver X.Y.Z." }
+        "409":
+          description: >-
+            Tres conflictos distintos, todos con el motivo real: (a) la versión YA está publicada
+            (idempotencia — una versión publicada no se pisa); (b) el push fue rechazado
+            (non-fast-forward): alguien publicó antes — reintentá; (c) el gate de conformance está
+            en rojo — el body trae `conformance` con el reporte completo para listar los checks
+            FAIL (jamás se publica un arnés que no pasa su contrato).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
+                  conformance: { type: object, description: "ConformanceReport completo; SOLO en el caso (c) gate rojo." }
+        "503": { description: "«no puedo escribir»: sin `gh` autenticado ni PAT (BR-18 — ArnesIA no pide, guarda ni proxya credenciales), o el publisher no está cableado en esta instalación." }
+        "500": { description: "Fallo NUESTRO: loader del canónico, disco, git local. El remoto NO cambió (toda guarda corre antes del push)." }
 
   /marketplaces:
     get:

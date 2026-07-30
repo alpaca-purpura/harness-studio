@@ -523,3 +523,66 @@ export const DrawerSinPuertaConHome: Story = {
     await expect(c.queryByRole("button", { name: "Resolver origen" })).toBeNull()
   },
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// Paquete 2026-07-30-volverlo-de-arnesia-y-publicar — B2 (`▲ Publicar`, B-D5). SUPERSET
+// estricto: sin `onPublicar` el botón sigue `disabled` + «próximo · S3» exactamente como antes
+// (las stories firmadas que no pasan el callback no cambian). Estas stories SON el mockup
+// (B-D4: cero html nuevo).
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+// B2 — con `onPublicar` el botón que ya existía se HABILITA y pierde el tooltip de diferido.
+// Vive en la zona Canónico: solo se publica la única copia editable (ley anti-drift).
+export const DrawerPublicarHabilitado: Story = {
+  args: { entrada: entradaCanonicaCompleta, onPublicar: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const publicar = c.getByRole("button", { name: "▲ Publicar" })
+    await expect(publicar).toBeEnabled()
+    await expect(publicar).not.toHaveAttribute("title")
+    await userEvent.click(publicar)
+    await expect(args.onPublicar).toHaveBeenCalledTimes(1)
+  },
+}
+
+// B2 — `publicando`: botón bloqueado + `aria-busy`; no se dispara dos veces el mismo push.
+export const DrawerPublicando: Story = {
+  args: { entrada: entradaCanonicaCompleta, onPublicar: fn(), publicando: true },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const btn = c.getByRole("button", { name: "Publicando…" })
+    await expect(btn).toBeDisabled()
+    await expect(btn).toHaveAttribute("aria-busy", "true")
+    await expect(c.queryByRole("button", { name: "▲ Publicar" })).toBeNull()
+  },
+}
+
+// B2 — `falló`: el motivo LITERAL del backend en `role="alert"`, incluidos los checks FAIL que
+// la página extrajo del 409 del gate de conformance (RF-B2.6) — el FE presenta, no re-calcula.
+export const DrawerPublicarError: Story = {
+  args: {
+    entrada: entradaCanonicaCompleta,
+    onPublicar: fn(),
+    publicarError:
+      "arnesia POST /api/portafolio/arneses/github-com-acme-acme-cli~acme-cli~/publicaciones: 409 " +
+      "publicar: el gate de conformance está en rojo · checks en rojo: escritor-unico",
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("alert")).toHaveTextContent("checks en rojo: escritor-unico")
+    // El botón queda re-disparable: un gate rojo se arregla y se reintenta.
+    await expect(c.getByRole("button", { name: "▲ Publicar" })).toBeEnabled()
+  },
+}
+
+// Superset: SIN `onPublicar` la zona Canónico queda EXACTAMENTE como el Slice 1 la firmó —
+// `disabled` + «próximo · S3».
+export const DrawerPublicarSinCallback: Story = {
+  args: { entrada: entradaCanonicaCompleta },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    const publicar = c.getByRole("button", { name: "▲ Publicar" })
+    await expect(publicar).toBeDisabled()
+    await expect(publicar).toHaveAttribute("title", "próximo · S3")
+  },
+}

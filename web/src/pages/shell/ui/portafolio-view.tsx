@@ -85,6 +85,36 @@ function motivoDe(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
+// ── `▲ Publicar` (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar) ──
+
+type EstadoPublicarUi =
+  | { fase: "publicando" }
+  | { fase: "publicado" }
+  | { fase: "fallo"; motivo: string }
+
+// checksFallidosDe — el 409 del gate rojo trae `{error, conformance}` (RF-B2.5): se listan los
+// checks FAIL/error por el cuerpo CRUDO (`ApiError.body`), jamás parseando la prosa del mensaje.
+function checksFallidosDe(e: unknown): string[] {
+  if (!(e instanceof ApiError) || e.status !== 409 || e.body === "") return []
+  try {
+    const json = JSON.parse(e.body) as {
+      conformance?: { results?: { veredicto?: string; check?: { id?: string } }[] }
+    }
+    const results = json.conformance?.results ?? []
+    return results
+      .filter((r) => r.veredicto === "fail" || r.veredicto === "error")
+      .map((r) => r.check?.id ?? "?")
+  } catch {
+    return []
+  }
+}
+
+function motivoPublicar(e: unknown): string {
+  const fallidos = checksFallidosDe(e)
+  if (fallidos.length > 0) return `${motivoDe(e)} · checks en rojo: ${fallidos.join(", ")}`
+  return motivoDe(e)
+}
+
 export function PortafolioView() {
   // vivo evita setState tras unmount durante un fetch en vuelo (mismo patrón que AjustesView).
   const vivo = useRef(true)
@@ -532,6 +562,46 @@ export function PortafolioView() {
     }
     return out
   }, [traer, catalogoAbierto])
+
+  // ── `▲ Publicar` (B2) — patrón EXACTO de Traer: estado keyeado por CLAVE del arnés (un
+  // publish en vuelo por identidad), la página hace el transporte, el drawer solo pinta. Tras
+  // el 200 se refetchean el Portafolio (Canonico.Version subió) y el catálogo del marketplace
+  // destino si está abierto (el backend ya invalidó su caché — la fila deja de decir
+  // «mi copia adelantada»). El fallo muestra el motivo LITERAL del backend; el 409 del gate
+  // rojo agrega los checks FAIL extraídos del cuerpo crudo. ──
+  const [publicar, setPublicar] = useState<Record<string, EstadoPublicarUi>>({})
+
+  const onPublicarArnes = useCallback(
+    (clave: string) => {
+      setPublicar((p) => ({ ...p, [clave]: { fase: "publicando" } }))
+      api
+        .publicarArnes<{ marketplace?: string }>(clave)
+        .then((res) => {
+          if (!vivo.current) return
+          setPublicar((p) => ({ ...p, [clave]: { fase: "publicado" } }))
+          cargar()
+          if (res.marketplace && catalogoAbierto === res.marketplace) {
+            pedirCatalogo(res.marketplace, false)
+          }
+        })
+        .catch((e: unknown) => {
+          if (!vivo.current) return
+          setPublicar((p) => ({ ...p, [clave]: { fase: "fallo", motivo: motivoPublicar(e) } }))
+        })
+    },
+    [cargar, catalogoAbierto, pedirCatalogo],
+  )
+
+  // Se ofrece con canónico presente y nada más: las guardas reales (home declarado, clase
+  // propio, semver, gate de conformance) viven en el DOMINIO y su rechazo llega como error
+  // literal — preferimos un round-trip de más antes que teclear una regla del dominio acá
+  // (mismo criterio que onTraerDelDrawer).
+  const publicarDelDrawer = seleccionadaEntrada ? publicar[seleccionadaEntrada.clave] : undefined
+  const onPublicarDelDrawer = useMemo(() => {
+    if (!seleccionadaEntrada?.canonico) return undefined
+    const clave = seleccionadaEntrada.clave
+    return () => onPublicarArnes(clave)
+  }, [seleccionadaEntrada, onPublicarArnes])
 
   // La segunda puerta: desde el drawer. Para pegarle al endpoint hace falta el NOMBRE del
   // marketplace, y la identidad del arnés trae el REPO canonicalizado (C17) — se cruza contra la
@@ -993,6 +1063,11 @@ export function PortafolioView() {
               onTraerCanonico={onTraerDelDrawer}
               trayendo={traerDelDrawer?.fase === "trayendo"}
               traerError={traerDelDrawer?.fase === "fallo" ? traerDelDrawer.motivo : undefined}
+              onPublicar={onPublicarDelDrawer}
+              publicando={publicarDelDrawer?.fase === "publicando"}
+              publicarError={
+                publicarDelDrawer?.fase === "fallo" ? publicarDelDrawer.motivo : undefined
+              }
             />
           </div>
         </div>

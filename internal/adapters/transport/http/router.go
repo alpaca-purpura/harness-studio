@@ -125,6 +125,10 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	// Reconciliación de origen (S7): actúa sobre un ARNÉS, por eso vive bajo /portafolio.
 	mux.HandleFunc("GET /api/portafolio/arneses/{clave}/origen/candidatos", getCandidatosOrigen(marketplaces))
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/origen", postAsignarOrigen(portafolio))
+	// `▲ Publicar` (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar): publica el canónico
+	// en su marketplace-home. Actúa sobre un ARNÉS (mismo criterio que /origen) aunque lo sirva
+	// el servicio de marketplaces — precedente getCandidatosOrigen.
+	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/publicaciones", postPublicar(marketplaces))
 
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))

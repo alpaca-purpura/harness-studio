@@ -231,6 +231,17 @@ export const api = {
       body: JSON.stringify({ entrada }),
     }),
 
+  // publicarArnes (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar) — publica el CANÓNICO
+  // de la entrada en su marketplace-home. Sin body: la clave decide todo (la versión sale del
+  // plugin.json del canónico, el destino del home declarado). Sin `signal` a propósito: abortar
+  // un push a mitad es peor que esperarlo (mismo criterio que `traerCanonico`). El 409 del gate
+  // rojo trae `{error, conformance}` en `ApiError.body` — la página lista los checks FAIL por
+  // el cuerpo crudo, nunca parseando prosa.
+  publicarArnes: <T = unknown>(clave: string) =>
+    req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}/publicaciones`, {
+      method: "POST",
+    }),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   // ── El panel de conversaciones (RF-340…RF-344, CV-D2) ───────────────────────────────────

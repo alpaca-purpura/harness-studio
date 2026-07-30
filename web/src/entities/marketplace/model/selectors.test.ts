@@ -244,17 +244,16 @@ describe("entradas: null ≠ [] (BR-4, design.md §2 C4)", () => {
 })
 
 describe("las acciones del wire son la autoridad (BR-10 + §13.11)", () => {
-  it("7 de las 8 celdas siguen `habilitada: false`; la única abierta es propio × no-lo-tengo", () => {
+  it("dos celdas habilitadas: propio × no-lo-tengo (AG-D17) y propio × mi-copia-adelantada (B2)", () => {
     const habilitadas = situacionesLas6.filter((e) => e.accion.habilitada)
-    expect(habilitadas.map((e) => e.situacion.tipo)).toEqual(["no-lo-tengo"])
-    expect(habilitadas[0]?.accion.verbo).toBe("traer-canonico")
+    expect(habilitadas.map((e) => e.situacion.tipo)).toEqual(["no-lo-tengo", "mi-copia-adelantada"])
+    expect(habilitadas.map((e) => e.accion.verbo)).toEqual(["traer-canonico", "publicar"])
+    // La habilitada nueva no lleva motivo: el tooltip de diferido murió con el write-side.
+    expect(habilitadas[1]?.accion.motivo).toBeUndefined()
   })
 
   it("cada acción deshabilitada trae su motivo LITERAL (el tooltip no se inventa en el FE)", () => {
     const porVerbo = new Map(situacionesLas6.map((e) => [e.accion.verbo, e.accion.motivo]))
-    expect(porVerbo.get("publicar")).toBe(
-      "Publicar se construye en su propio paquete (ítem 3 del outcome)",
-    )
     expect(porVerbo.get("actualizar-mi-copia")).toBe(
       "Actualizar mi copia se construye en su propio paquete (ítem 4 del outcome)",
     )

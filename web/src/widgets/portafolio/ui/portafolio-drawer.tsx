@@ -57,6 +57,14 @@ export interface PortafolioDrawerProps {
   onTraerCanonico?: (() => void) | undefined
   trayendo?: boolean | undefined
   traerError?: string | undefined
+  /** B2 (paquete 2026-07-30-volverlo-de-arnesia-y-publicar): `▲ Publicar` REAL — publica el
+   *  canónico en su marketplace-home. undefined ⇒ el botón queda `disabled` + `TOOLTIP_S3`
+   *  como antes (superset estricto, mismo contrato que `onTraerCanonico`). Las guardas viven
+   *  en el dominio: un 400 (sin home / no propio / no semver) llega como `publicarError`
+   *  LITERAL — el FE no re-implementa BR-1. */
+  onPublicar?: (() => void) | undefined
+  publicando?: boolean | undefined
+  publicarError?: string | undefined
 }
 
 const TOOLTIP_UPDATE = "update-check llega en Slice 4"
@@ -89,6 +97,9 @@ export function PortafolioDrawer({
   onTraerCanonico,
   trayendo,
   traerError,
+  onPublicar,
+  publicando,
+  publicarError,
 }: PortafolioDrawerProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeBtnRef = useRef<HTMLButtonElement>(null)
@@ -389,10 +400,26 @@ export function PortafolioDrawer({
               <button type="button" className="pf-btn-secundario" disabled title={TOOLTIP_S2}>
                 ✎ Mejorar
               </button>
-              <button type="button" className="pf-btn-secundario" disabled title={TOOLTIP_S3}>
-                ▲ Publicar
+              {/* B2 — `▲ Publicar` VIVO (patrón exacto de `↧ Traer canónico`): sin
+                  `onPublicar` queda `disabled` + TOOLTIP_S3 como siempre (superset estricto);
+                  el error del backend se muestra LITERAL — incluidos los checks FAIL que la
+                  página extrajo del 409 de conformance. */}
+              <button
+                type="button"
+                className="pf-btn-secundario"
+                disabled={!onPublicar || publicando}
+                title={onPublicar ? undefined : TOOLTIP_S3}
+                aria-busy={publicando}
+                onClick={onPublicar}
+              >
+                {publicando ? "Publicando…" : "▲ Publicar"}
               </button>
             </div>
+            {publicarError && (
+              <p role="alert" className="pf-error">
+                {publicarError}
+              </p>
+            )}
           </div>
         ) : (
           <div className="pf-canonico-ausente">

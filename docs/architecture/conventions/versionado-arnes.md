@@ -1,6 +1,6 @@
 ---
 regla: versionado-arnes
-version: 1.0
+version: 1.1
 updated: 2026-07-30
 status: proposed
 sources:
@@ -10,6 +10,9 @@ sources:
 enforced_by:
   - internal/usecase/portafolio_test.go:TestIdentificarSellaYRekey
   - internal/usecase/portafolio_test.go:TestIdentificarConMarketplacePueblaHome
+  - internal/adapters/publish/publisher_test.go:TestPublicarFelizContraBare
+  - internal/adapters/publish/publisher_test.go:TestPublicarIdempotente
+  - internal/usecase/publicar_test.go:TestPublicarVersionNoSemver
 severity: medium
 ---
 
@@ -52,11 +55,9 @@ automático** — dos números, dos preguntas, jamás fundidos en uno.
 
 ## Gaps declarados (por qué `proposed`)
 
-- **El enforcer del lado publish llega con el publisher (B2):** sello aditivo en
-  `catalogo.json`, tag `<id>/vX.Y.Z`, no-reuso de versión publicada. Hasta que B2 landee,
-  esos checks difieren honestos — no hay pass fabricado.
 - **Changelog-de-arnés = Fase 2 (B-D6):** un arnés publicado aún no declara qué trae cada
-  versión. Gap visible, no silencio.
+  versión. Gap visible, no silencio. Es el único gap que queda: los enforcers del lado
+  publish llegaron con B2 (sello aditivo · tag · no-reuso de versión, ver checklist).
 
 ## Checklist evaluable
 
@@ -64,12 +65,20 @@ automático** — dos números, dos preguntas, jamás fundidos en uno.
 |----|-------------|-----------|-------|----------|
 | sello-sin-version | el `arnes.l0.json` que escribe Identificar NO lleva `version`; la SoT es `plugin.json.version` | error | «dos números para la misma pregunta» | internal/usecase/portafolio_test.go:TestIdentificarSellaYRekey |
 | plugin-json-si-falta | Identificar genera el plugin.json mínimo cuando falta y el target no es `proyecto-instalado`; en proyecto-instalado NO lo genera (rompería el detector del loader) y deja aviso honesto | error | «arnés sellado sin SoT de versión, o loader re-detectado» | internal/usecase/portafolio_test.go:TestIdentificarConMarketplacePueblaHome (genera) + TestIdentificarNoGeneraPluginJSONEnProyectoInstalado (no genera + aviso) |
-| sello-extraccion-aditivo | publish estampa `sello: AAMMDDHHMM` como campo aditivo en `catalogo.json`, nunca dentro del string semver | error | «metadato de build dentro del semver — CC compara strings» | gap: llega con el publisher (B2) |
-| tag-por-arnes | cada publicación taggea `<id>/vX.Y.Z` tras el push; fallo de tag = aviso visible | warn | «versión publicada sin tag rastreable» | gap: llega con el publisher (B2) |
+| sello-extraccion-aditivo | publish estampa `sello: AAMMDDHHMM` como campo aditivo en `catalogo.json`, nunca dentro del string semver | error | «metadato de build dentro del semver — CC compara strings» | internal/adapters/publish/publisher_test.go:TestPublicarFelizContraBare (asserta el sello `^\d{10}$` como campo aparte y los canales intactos) |
+| version-publicada-inmutable | republicar una versión ya poblada en `plugins/<id>/<version>/` ⇒ 409 y NADA se toca (ni working tree ni remoto) | error | «versión pisada en el estante» | internal/adapters/publish/publisher_test.go:TestPublicarIdempotente + TestPublicarVersionDeLaSemillaYaPublicada |
+| version-del-canonico-semver | la versión publicada sale de `plugin.json` del canónico y tiene que parsear semver — "latest"/vacío no se publican | error | «versión fabricada o incomparable en el estante» | internal/usecase/publicar_test.go:TestPublicarVersionNoSemver |
+| tag-por-arnes | cada publicación taggea `<id>/vX.Y.Z` tras el push; fallo de tag = aviso visible | warn | «versión publicada sin tag rastreable» | internal/adapters/publish/publisher_test.go:TestPublicarFelizContraBare (tag en el remoto) |
 | changelog-de-arnes | toda versión publicada de un arnés declara qué trae | warn | «versión de arnés muda» | gap: Fase 2 (B-D6) |
 
 ## Changelog
 
+- 2026-07-30 · v1.1 · B2 landeó el publisher (`internal/adapters/publish` +
+  `MarketplaceService.Publicar`, CAP-148): los 2 checks que diferían ganan enforcer real
+  (sello-extraccion-aditivo · tag-por-arnes) y entran 2 nuevos
+  (version-publicada-inmutable · version-del-canonico-semver), todos con test colocado
+  contra repos git reales. Queda `proposed` por el único gap restante:
+  changelog-de-arnés (Fase 2, B-D6).
 - 2026-07-30 · v1.0 · Nace con B1 del paquete `volverlo-de-arnesia-y-publicar` (B-D2/B-D3):
   el sello deja de llevar `version` (la SoT pasa a `plugin.json.version`, que Identificar
   genera si falta fuera de proyecto-instalado), el «a.b.c.d» pedido se resuelve como

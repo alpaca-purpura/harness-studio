@@ -21,7 +21,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-01 · Servir daemon** `vivo·nc` · cli-daemon/servir-daemon.yaml — `cmd/arnesia/main.go#runServe`
 - **CAP-02 · Indexar arnés (CLI `index`)** `vivo·nc` · cli-daemon/indexar-arnes.yaml — `cmd/arnesia/main.go#runIndex`
 - **CAP-03 · Conformance CLI (`elemento|--arnes|--todo`)** `vivo` · cli-daemon/conformance-cli.yaml — `cmd/arnesia/conformance.go#runConformance`
-- **CAP-04 · Publicar al marketplace (`publish`)** `stub` · cli-daemon/publicar-al-marketplace.yaml — `cmd/arnesia/main.go#runPublish`
+- **CAP-04 · Publicar al marketplace (`publish`)** `parcial` · cli-daemon/publicar-al-marketplace.yaml — `cmd/arnesia/main.go#runPublish`
 - **CAP-05 · Abrir shell (`open`)** `stub` · cli-daemon/abrir-shell.yaml — `cmd/arnesia/main.go#runOpen`
 - **CAP-117 · Log del daemon a archivo rotativo (el incidente deja rastro)** `vivo` · cli-daemon/log-del-daemon.yaml — `internal/adapters/logfile/logfile.go#Writer`
 - **CAP-138 · CLI de telemetría (la superficie observable sin pantalla)** `vivo` · cli-daemon/telemetria-cli.yaml — `cmd/arnesia/telemetria.go#runTelemetria`
@@ -130,13 +130,14 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 
 - **CAP-60 · Self-update sin sudo (5 pasos atómico)** `vivo` · self-update/self-update-sin-sudo.yaml — `internal/usecase/selfupdate_service.go#Actualizar`
 
-### `portafolio` (12)
+### `portafolio` (13)
 
 - **CAP-102 · Registro de marketplaces conocidos (collect-all CC + declarado)** `parcial` · portafolio/registrar-marketplace.yaml — `internal/domain/repo_ref.go#CanonicalizarRepo`
 - **CAP-103 · Leer el catálogo de un marketplace (local primero, remoto por gh, caché fechado)** `parcial` · portafolio/leer-catalogo-marketplace.yaml — `internal/domain/repo_ref.go#CanonicalizarRepo`
 - **CAP-104 · Situación de una fila del catálogo (6 ramas, precedencia, acción por clase)** `parcial` · portafolio/situacion-de-catalogo.yaml — `internal/domain/portafolio.go#EntradaPortafolio`
 - **CAP-105 · Asignar origen a un arnés huérfano (re-key por home declarado, sin clonar)** `parcial` · portafolio/asignar-origen.yaml — `internal/usecase/portafolio.go#PortafolioService`
 - **CAP-111 · Traer canónico (materializar el arnés del estante: local o clone externo, atómico)** `parcial` · portafolio/traer-canonico.yaml — `internal/domain/portafolio.go#Canonico`
+- **CAP-148 · Publicar (write-side prenter-marketplace: gate de conformance → copia versionada → push sin force → tag)** `parcial` · portafolio/publicar.yaml — `internal/domain/publicar.go#SolicitudPublicacion`
 - **CAP-83 · Registrar identidad de arnés (home,id)** `vivo` · portafolio/registrar-identidad.yaml — `internal/domain/portafolio.go#IdentidadArnes`
 - **CAP-84 · Escanear proyecto (walker multi-instalación)** `vivo` · portafolio/escanear-proyecto.yaml — `internal/domain/portafolio.go#TipoInstalacion`
 - **CAP-85 · Resolver origen (collect-all + reconcilia)** `vivo` · portafolio/resolver-origen.yaml — `internal/domain/portafolio.go#OrigenPortafolio`

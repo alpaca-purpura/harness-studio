@@ -339,7 +339,9 @@ func AccionDeSituacion(s SituacionCatalogo, clase ClaseMarketplace) AccionCatalo
 		// Traer escribe SOLO en ~/.arnesia/checkouts/, a diferencia de los otros tres verbos.
 		return AccionCatalogo{Verbo: AccionTraerCanonico, Habilitada: true}
 	case SituacionMiCopiaAdelantada:
-		return AccionCatalogo{Verbo: AccionPublicar, Motivo: "Publicar se construye en su propio paquete (ítem 3 del outcome)"}
+		// Habilitada desde B2 (paquete 2026-07-30-volverlo-de-arnesia-y-publicar): el write-side
+		// existe — el drawer ejecuta; la celda del catálogo pinta lo que el dominio manda (B-D6).
+		return AccionCatalogo{Verbo: AccionPublicar, Habilitada: true}
 	case SituacionEstanteAdelantado:
 		return AccionCatalogo{Verbo: AccionActualizarMiCopia, Motivo: "Actualizar mi copia se construye en su propio paquete (ítem 4 del outcome)"}
 	case SituacionEnDeriva:

@@ -55,18 +55,22 @@ func TestReferenciaNuncaHabilitaAccion(t *testing.T) {
 	if a := AccionDeSituacion(SituacionCatalogo{Tipo: SituacionNoLoTengo}, "tienda"); a.Habilitada {
 		t.Fatal("una clase desconocida habilitó una acción (fail-safe roto)")
 	}
-	// La ÚNICA celda habilitada del paquete: propio × no-lo-tengo (AG-D17).
+	// Las DOS celdas habilitadas: propio × no-lo-tengo (AG-D17) y propio × mi-copia-adelantada
+	// (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar).
 	a := AccionDeSituacion(SituacionCatalogo{Tipo: SituacionNoLoTengo}, ClasePropio)
 	if !a.Habilitada || a.Verbo != AccionTraerCanonico || a.Motivo != "" {
 		t.Fatalf("propio × no-lo-tengo = %+v, want {traer-canonico true \"\"}", a)
 	}
-	// Y las otras 7 filas siguen deshabilitadas (spec §0: el entregable es la situación).
+	p := AccionDeSituacion(SituacionCatalogo{Tipo: SituacionMiCopiaAdelantada}, ClasePropio)
+	if !p.Habilitada || p.Verbo != AccionPublicar || p.Motivo != "" {
+		t.Fatalf("propio × mi-copia-adelantada = %+v, want {publicar true \"\"}", p)
+	}
+	// Y las otras filas siguen deshabilitadas (spec §0: el entregable es la situación).
 	for _, c := range []struct {
 		tipo  TipoSituacion
 		verbo Accion
 	}{
 		{SituacionAlHilo, AccionNinguna},
-		{SituacionMiCopiaAdelantada, AccionPublicar},
 		{SituacionEstanteAdelantado, AccionActualizarMiCopia},
 		{SituacionEnDeriva, AccionReparar},
 		{SituacionNoComparable, AccionNinguna},
@@ -85,8 +89,8 @@ func TestReferenciaNuncaHabilitaAccion(t *testing.T) {
 	}
 }
 
-// E-20 · canónico 0.5.4 vs estante 0.5.3 ⇒ mi-copia-adelantada + `Publicar` disabled con el
-// tooltip literal del ítem 3.
+// E-20 · canónico 0.5.4 vs estante 0.5.3 ⇒ mi-copia-adelantada + `Publicar` HABILITADO (B2,
+// paquete 2026-07-30-volverlo-de-arnesia-y-publicar: el write-side existe).
 func TestSituacionMiCopiaAdelantada(t *testing.T) {
 	e := entradaConCanonico("harness", "0.5.4", inst("/i/1", DerivaAlHilo, "", ""))
 	s := CalcularSituacion(filaHarness("0.5.3"), coincidencias(e, ViaHomeDeclarado))
@@ -94,7 +98,7 @@ func TestSituacionMiCopiaAdelantada(t *testing.T) {
 		t.Fatalf("situación = %+v, want {mi-copia-adelantada 0.5.4 0.5.3}", s)
 	}
 	a := AccionDeSituacion(s, ClasePropio)
-	want := AccionCatalogo{Verbo: AccionPublicar, Motivo: "Publicar se construye en su propio paquete (ítem 3 del outcome)"}
+	want := AccionCatalogo{Verbo: AccionPublicar, Habilitada: true}
 	if a != want {
 		t.Fatalf("accion = %+v, want %+v", a, want)
 	}

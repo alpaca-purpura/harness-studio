@@ -1,0 +1,199 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.publicar
+cap_num: CAP-148
+slug: publicar
+name: "Publicar (write-side prenter-marketplace: gate de conformance → copia versionada → push sin force → tag)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD, no este commit.
+license: brand-local
+
+module: portafolio
+layer: usecase
+
+verb: mejorar
+functional_area: "portafolio.canonico"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/domain/publicar.go#SolicitudPublicacion"
+  - "internal/domain/publicar.go#ResultadoPublicacion"
+  - "internal/domain/publicar.go#RaizPublicaciones"
+  - "internal/domain/publicar.go#SlugRepo"
+  - "internal/domain/marketplace_situacion.go#AccionDeSituacion"
+  - "internal/adapters/publish/publisher.go#Publisher.Publicar"
+  - "internal/adapters/publish/publisher.go#clasificarErrorGitPublish"
+  - "internal/adapters/publish/publisher.go#copiarArbolPublicable"
+  - "internal/adapters/publish/publisher.go#reapuntarMarketplaceJSON"
+  - "internal/adapters/publish/publisher.go#estamparCatalogoJSON"
+  - "internal/usecase/publicar.go#MarketplaceService.SetPublicar"
+  - "internal/usecase/publicar.go#MarketplaceService.Publicar"
+  - "internal/usecase/publicar.go#ErrorConformancePublicar"
+  - "internal/usecase/publicar.go#ResultadoPublicar"
+  - "internal/adapters/transport/http/marketplace.go#postPublicar"
+  - "internal/adapters/transport/http/marketplace.go#escribirErrorPublicar"
+  - "cmd/arnesia/main.go#runPublish"
+  - "web/src/shared/api/client.ts#api"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+valida:
+  - "TestPublicarFelizContraBare"
+  - "TestPublicarIdempotente"
+  - "TestPublicarVersionDeLaSemillaYaPublicada"
+  - "TestPublicarPushRechazado"
+  - "TestPublicarSymlinkOmitidoConAviso"
+  - "TestClasificarErrorGitPublish"
+  - "TestPublicarNoDisponible"
+  - "TestPublicarClaveNoEncontrada"
+  - "TestPublicarSinCanonico"
+  - "TestPublicarSinHome"
+  - "TestPublicarNoPropio"
+  - "TestPublicarVersionNoSemver"
+  - "TestPublicarConformanceRojoBloquea"
+  - "TestPublicarWarnNoBloquea"
+  - "TestPublicarActualizaCanonicoEInvalidaCache"
+  - "TestPublicarPropagaCentinelasDelPublisher"
+  - "TestErrorConformancePublicarMensaje"
+  - "TestPublicarStatusPorCentinela"
+  - "TestPublicarConformanceRojoBody"
+  - "TestPostPublicacionesSinPublisher503"
+  - "TestSituacionMiCopiaAdelantada"
+
+dev_preview:
+  route: "#/portafolio"
+  how_to_navigate: "rail → Portafolio → drawer de un arnés CON canónico → zona Canónico → `▲ Publicar`. La celda `Publicar` del catálogo (mi-copia-adelantada, marketplace propio) pinta el verbo habilitado; la ejecución vive en el drawer (B-D6)"
+  main_component: "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  api_endpoints:
+    - "POST /api/portafolio/arneses/{clave}/publicaciones"
+  e2e_test: null
+
+created_in_story: 2026-07-30-volverlo-de-arnesia-y-publicar
+created_date: 2026-07-30
+last_modified: 2026-07-30
+source_ref: "docs/product/stories/2026-07-30-volverlo-de-arnesia-y-publicar/decisiones.md B-D5/B-D6 (FIRMADAS 🧑‍⚖️) + spec.md §B2"
+change_log:
+  - story_id: 2026-07-30-volverlo-de-arnesia-y-publicar
+    date: 2026-07-30
+    type: new
+    summary: >-
+      B2 completo: `ports.PublishPort` rediseñado (el stub `Publish(id, target)` no tenía
+      consumidores reales) y publisher REAL por git en `~/.arnesia/publicaciones/<slug>/`
+      (checkouts/ son canónicos, no se mezclan — B-D5). Secuencia: pull-antes-de-push
+      (`fetch` + `reset --hard origin/HEAD` + `clean`) → guarda de idempotencia
+      (`plugins/<id>/<version>/` poblado ⇒ 409, nada se toca) → copia del canónico con el
+      MISMO set de exclusión que `HashFormaPlugin` (.git/.in_use/.orphaned_at — así el
+      instalado hashea al-hilo) → read-modify-write con `map[string]any` sobre
+      `marketplace.json` (source re-apuntado, filas ajenas intactas) y `catalogo.json`
+      (fila nueva con `sello` AAMMDDHHMM ADITIVO, jamás dentro del semver; canales
+      intactos) → commit → push SIN force (rechazo ⇒ 409 «reintentá») → tag `<id>/vX.Y.Z`
+      TRAS el push (fallo de tag = aviso visible, no rollback). El usecase corre las
+      guardas ANTES del mecanismo: canónico → home → clase `propio` (BR-1 lado write) →
+      semver (SoT plugin.json.version) → gate `conf.RunGraph` VERDE — rojo ⇒ 409 con el
+      reporte ADJUNTO (`{error, conformance}`). `AccionPublicar` pasa a habilitada SOLO en
+      `mi-copia-adelantada`. FE: botón `▲ Publicar` vivo en el drawer (patrón exacto de
+      Traer: spinner/error inline con los checks FAIL listados); la celda del catálogo
+      pinta lo que el dominio manda, sin onClick propio (recorte B-D6). Auth calcada de
+      traer (gh credential-helper / PAT por GIT_ASKPASS; el token jamás en argv) —
+      duplicación documentada: go-arch-lint prohíbe publish→traer. `parcial` y no `vivo`:
+      el gate humano 🧑‍⚖️ de PARIDAD sigue pendiente.
+    merge_sha: null
+
+scenarios:
+  - id: publica-y-taggea
+    name: "El camino feliz publica el árbol versionado, re-apunta los índices y taggea `<id>/vX.Y.Z`"
+    given: "una entrada con canónico, home declarado hacia un marketplace `propio`, plugin.json con versión semver nueva, y el gate de conformance verde"
+    when: "se publica (drawer `▲ Publicar`, POST …/publicaciones o `arnesia publish <clave>`)"
+    then: "el remoto gana `plugins/<id>/<version>/` (sin .git/.in_use/.orphaned_at), el `marketplace.json` re-parsea con la fila `name==id` apuntando a la versión nueva y las filas ajenas byte-intactas a nivel de claves, `catalogo.json` gana la fila `{version, estado: habilitada, fuente: <id>@v<version>, fecha, sello: AAMMDDHHMM}` con los canales SIN tocar, y el tag `<id>/vX.Y.Z` queda en el remoto; el registro local sube `Canonico.Version` y el caché del catálogo se invalida"
+    verifica: "TestPublicarFelizContraBare (contra un bare git real, verificado CLONÁNDOLO) + TestPublicarActualizaCanonicoEInvalidaCache"
+  - id: conformance-rojo-bloquea
+    name: "El gate de conformance en rojo bloquea ANTES de tocar el remoto, con el reporte adjunto (INNEGOCIABLE)"
+    given: "un canónico cuyo grafo tiene ≥1 check severidad error en fail"
+    when: "se intenta publicar"
+    then: "409 con `{error, conformance}` — el reporte completo viaja para listar los checks FAIL; el publisher NO se llamó y el remoto no cambió. Un warn en fail NO bloquea (mismo OK() del daemon)"
+    verifica: "TestPublicarConformanceRojoBloquea + TestPublicarWarnNoBloquea + TestPublicarConformanceRojoBody"
+  - id: version-ya-publicada
+    name: "Idempotencia: una versión publicada es inmutable — republicarla es 409 y NADA se toca"
+    given: "`plugins/<id>/<version>/` ya poblado en el marketplace (por este publisher o por la semilla)"
+    when: "se publica la misma versión"
+    then: "`ErrPublicarVersionYaPublicada` (409), el working tree queda limpio y el remoto no gana ni un commit"
+    verifica: "TestPublicarIdempotente + TestPublicarVersionDeLaSemillaYaPublicada"
+  - id: push-rechazado
+    name: "Push SIN force: un rechazo non-fast-forward es «alguien publicó antes — reintentá», jamás un --force"
+    given: "otro clon pushea al marketplace entre el fetch y el push (carrera real, reproducida con shim determinista)"
+    when: "el publisher pushea"
+    then: "`ErrPublicarPushRechazado` (409 «reintentá») — el reintento hace pull-antes-de-push y encima de lo del rival; el trabajo ajeno nunca se pisa"
+    verifica: "TestPublicarPushRechazado + TestClasificarErrorGitPublish"
+  - id: sin-auth
+    name: "Sin credencial de escritura el fallo es 503 distinguible, y el token jamás viaja en argv"
+    given: "un repo que exige auth, sin `gh` autenticado ni PAT"
+    when: "se publica"
+    then: "`ErrPublicarSinAuth` (503 «no puedo escribir», nunca 400) — la tabla de clasificación calca la de traer (duplicación documentada: go-arch-lint prohíbe publish→traer); con PAT, viaja por env de un GIT_ASKPASS, jamás en argv ni en la URL"
+    verifica: "TestClasificarErrorGitPublish + TestPublicarStatusPorCentinela"
+  - id: guardas-antes-del-remoto
+    name: "Toda guarda corre antes del push: sin canónico / sin home / no-propio / no-semver son 400 con CERO I/O remoto"
+    given: "una entrada sin canónico, o con identidad provisional, o cuyo home apunta a un marketplace `referencia` (o desconocido), o cuyo plugin.json no declara semver"
+    when: "se intenta publicar"
+    then: "el centinela correspondiente (400) y el publisher NO se llamó — BR-1 del lado write vive en el usecase, no en un botón disabled"
+    verifica: "TestPublicarSinCanonico + TestPublicarSinHome + TestPublicarNoPropio + TestPublicarVersionNoSemver"
+
+business_rules:
+  - id: gate-conformance-antes-del-push
+    rule: "No se publica un arnés cuyo gate de conformance tenga fails bloqueantes (severidad error). El gate es el MISMO RunGraph del daemon (un solo veredicto) y corre ANTES de cualquier efecto remoto; el rechazo lleva el reporte completo adjunto."
+    enforcement: ["docs/architecture/boundaries/codigo-traza-a-capability.md"]
+    severity: critical
+  - id: version-publicada-inmutable
+    rule: "`plugins/<id>/<version>/` poblado en el marketplace ⇒ la publicación se rechaza sin tocar nada. Re-publicar una versión existente exige bump del plugin.json del canónico (conventions/versionado-arnes.md)."
+    enforcement: ["docs/architecture/conventions/versionado-arnes.md"]
+    severity: critical
+  - id: push-sin-force
+    rule: "El push al marketplace es SIEMPRE fast-forward: un rechazo se clasifica a `ErrPublicarPushRechazado` (409 reintentá) y jamás se resuelve con --force — el trabajo publicado por otro no se pisa."
+    enforcement: ["docs/architecture/conventions/versionado-arnes.md"]
+    severity: critical
+  - id: solo-marketplace-propio
+    rule: "Solo se publica en el marketplace del home declarado y SOLO si su clase es `propio` (BR-1 del lado write): jamás un push al estante de un tercero, y la guarda vive en el dominio/usecase — el botón es render, no control de acceso."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: critical
+  - id: sello-aditivo-jamas-en-semver
+    rule: "El sello de extracción AAMMDDHHMM se estampa como campo ADITIVO `sello` en la fila de catalogo.json — nunca dentro del string semver (Claude Code compara versiones como strings)."
+    enforcement: ["docs/architecture/conventions/versionado-arnes.md"]
+    severity: high
+  - id: indices-ajenos-intactos
+    rule: "El read-modify-write de marketplace.json/catalogo.json usa `map[string]any` sobre el archivo real — jamás los structs lossy de parse.go: las claves de las filas ajenas y los `canales` quedan intactos (B-D6)."
+    enforcement: ["docs/architecture/boundaries/marketplace-referencia-es-solo-procedencia.md"]
+    severity: high
+  - id: exclusion-coincide-con-el-hash
+    rule: "La copia publicada excluye exactamente el set de `HashFormaPlugin` (.git/, .in_use, .orphaned_at): así la instalación del cliente hashea al-hilo contra su referencia; los symlinks no viajan y su omisión es un aviso visible."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
+  - id: tag-tras-push-sin-rollback
+    rule: "El tag `<id>/vX.Y.Z` se pushea DESPUÉS del branch; su fallo es éxito parcial con aviso «publicado sin tag: …», nunca un rollback (el branch ya viajó — deshacerlo fabricaría historia)."
+    enforcement: ["docs/architecture/conventions/versionado-arnes.md"]
+    severity: medium
+
+related_capabilities:
+  depends_on:
+    - arnesia.portafolio.traer-canonico
+    - arnesia.portafolio.situacion-de-catalogo
+    - arnesia.portafolio.registrar-marketplace
+    - arnesia.conformance.validar-grafo-arnes
+  enables: [arnesia.cli-daemon.publicar-al-marketplace, arnesia.fe-portafolio.drawer-detalle-read]
+  similar: [arnesia.portafolio.asignar-origen]
+  obsoletes: []
+---
+
+# Publicar (write-side prenter-marketplace)
+
+Cierra el ciclo que `↧ Traer canónico` abrió: traer materializa el arnés del estante para
+mejorarlo; **Publicar devuelve la mejora al estante** — versionada, gateada y sin pisar a nadie.
+Con esto el prenter-marketplace deja de editarse a mano: la fábrica escribe su propio índice.
+
+La secuencia completa y sus innegociables (gate de conformance · idempotencia · push sin force)
+viven en el frontmatter. Dos decisiones de diseño cargan el peso:
+
+- **El workdir es `~/.arnesia/publicaciones/<slug>/`** — nunca `checkouts/` (B-D5): un clone del
+  marketplace no es un canónico de arnés y mezclarlos rompería la clasificación RN-IDENT-4.
+- **La versión no se pregunta**: es la del `plugin.json` del canónico (SoT,
+  `conventions/versionado-arnes.md`). Bump interactivo quedó FUERA del MVP (B-D6) — subir la
+  versión es editar el canónico (mejorar-conversando), no un diálogo del publish.

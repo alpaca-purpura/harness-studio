@@ -37,6 +37,12 @@ type MarketplaceService struct {
 	deriva      ports.DerivaEvaluator // firma FIJA: se reusa la MISMA instancia que el Portafolio.
 	raizArnesia string                // "" ⇒ ~/.arnesia — inyectable para tests.
 	traerMu     sync.Mutex            // serializa el chequeo destino-poblado + el rename (E-102).
+
+	// ── `▲ Publicar` (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar) ──
+	pub         ports.PublishPort     // el publisher git. nil ⇒ 503 honesto (SetPublicar).
+	cargarArnes ports.ArnesLoader     // carga el canónico para leer su versión (plugin.json SoT).
+	conf        ports.ConformancePort // el gate: RunGraph verde ANTES de tocar el remoto.
+	publicarMu  sync.Mutex            // serializa dos Publicar del mismo daemon (el remoto arbitra el resto).
 }
 
 // NewMarketplaceService cablea el usecase a sus 7 puertos de lectura. Los 3 puertos de `Traer`

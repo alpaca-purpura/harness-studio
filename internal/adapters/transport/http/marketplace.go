@@ -238,6 +238,64 @@ func indiceDe(s, sub string) int {
 	return -1
 }
 
+// conflictoPublicarBody — 409 de POST …/publicaciones con el gate de conformance en rojo: el
+// reporte viaja ADJUNTO para que la UI liste los checks FAIL, no solo «está rojo» (precedente de
+// body enriquecido: conflictoTraerBody).
+type conflictoPublicarBody struct {
+	Error       string                   `json:"error"`
+	Conformance domain.ConformanceReport `json:"conformance"`
+}
+
+// postPublicar — POST /api/portafolio/arneses/{clave}/publicaciones (B2, RF-B2.5). Actúa sobre
+// un ARNÉS del Portafolio (por eso vive bajo /portafolio, precedente getCandidatosOrigen) y lo
+// publica en su marketplace-home. Sin body: la clave decide todo — la versión sale del canónico
+// (plugin.json SoT) y el destino del home declarado.
+func postPublicar(svc *usecase.MarketplaceService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if svc == nil {
+			writeJSON(w, http.StatusInternalServerError, errorBody{Error: "marketplaces: servicio no cableado"})
+			return
+		}
+		res, err := svc.Publicar(r.Context(), r.PathValue("clave"))
+		if err != nil {
+			escribirErrorPublicar(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
+	}
+}
+
+// escribirErrorPublicar mapea los centinelas de Publicar a su status (RF-B2.5). Espejo de la
+// tabla de Traer: cada código dice algo DISTINTO y el FE los usa distinto.
+func escribirErrorPublicar(w http.ResponseWriter, err error) {
+	var confErr *usecase.ErrorConformancePublicar
+	switch {
+	case errors.Is(err, usecase.ErrObservarClaveNoEncontrada):
+		writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+	case errors.Is(err, domain.ErrPublicarSinCanonico),
+		errors.Is(err, domain.ErrPublicarSinHome),
+		errors.Is(err, domain.ErrPublicarNoPropio),
+		errors.Is(err, domain.ErrPublicarVersionInvalida):
+		// Precondiciones del pedido: nada se intentó contra el remoto.
+		writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+	case errors.As(err, &confErr):
+		// Gate rojo: 409 con el reporte adjunto — la UI lista los checks FAIL.
+		writeJSON(w, http.StatusConflict, conflictoPublicarBody{Error: err.Error(), Conformance: confErr.Reporte})
+	case errors.Is(err, domain.ErrPublicarConformanceRojo):
+		writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+	case errors.Is(err, domain.ErrPublicarVersionYaPublicada),
+		errors.Is(err, domain.ErrPublicarPushRechazado):
+		// Conflictos del estante: la versión ya está, o alguien publicó antes — reintentá.
+		writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+	case errors.Is(err, domain.ErrPublicarSinAuth), errors.Is(err, usecase.ErrPublicarNoDisponible):
+		// «No puedo escribir» NUNCA se pinta como «tu pedido está mal».
+		writeJSON(w, http.StatusServiceUnavailable, errorBody{Error: err.Error()})
+	default:
+		// Fallo NUESTRO: loader, disco, git local.
+		writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+	}
+}
+
 // statusDeLectura mapea los errores de LECTURA/registro a su status: 400 «tu url no sirve» vs
 // 503 «no puedo mirar» (§7.2 — el FE los usa distinto y jamás insinúa que la url esté mal).
 func statusDeLectura(err error) int {

@@ -46,8 +46,9 @@ type Story = StoryObj<typeof meta>
 
 // E-20/E-21/E-22/E-23 — cada fila muestra SU situación real y la acción que le corresponde
 // (AG-D8 decisión 6): no hay un «Agregar» genérico por fila. Y BR-10 con el literal EXACTO del
-// dominio: Publicar/Actualizar/Reparar van `disabled` + `title` — el widget no inventa ese texto
-// ni puede habilitarlos (cierra C5: el mockup los tenía habilitados; el spec gana).
+// dominio: Actualizar/Reparar van `disabled` + `title` — el widget no inventa ese texto ni
+// puede habilitarlos. Publicar dejó de estar diferido con B2 (2026-07-30): habilitado sin
+// tooltip, exactamente como el dominio lo manda.
 export const CatalogoLas6Situaciones: Story = {
   args: { catalogo: catLas6Situaciones },
   play: async ({ canvasElement }) => {
@@ -67,13 +68,14 @@ export const CatalogoLas6Situaciones: Story = {
     await expect(c.getByText("1 instalación en deriva")).toBeInTheDocument()
     await expect(c.getByText("no comparable")).toBeInTheDocument()
 
-    // BR-10 — los 3 verbos fuera de alcance: `disabled` + el tooltip LITERAL del dominio.
+    // B2 (paquete 2026-07-30-volverlo-de-arnesia-y-publicar) — `Publicar` HABILITADO: el
+    // dominio manda `habilitada: true` en mi-copia-adelantada y la celda pinta lo que el wire
+    // dice (la ejecución vive en el drawer; la celda no gana onClick — recorte B-D6).
     const publicar = c.getByRole("button", { name: "Publicar" })
-    await expect(publicar).toBeDisabled()
-    await expect(publicar).toHaveAttribute(
-      "title",
-      "Publicar se construye en su propio paquete (ítem 3 del outcome)",
-    )
+    await expect(publicar).toBeEnabled()
+    await expect(publicar).not.toHaveAttribute("title")
+
+    // BR-10 — los 2 verbos aún fuera de alcance: `disabled` + el tooltip LITERAL del dominio.
     const actualizar = c.getByRole("button", { name: "Actualizar mi copia" })
     await expect(actualizar).toBeDisabled()
     await expect(actualizar).toHaveAttribute(

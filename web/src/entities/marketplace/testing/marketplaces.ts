@@ -805,9 +805,9 @@ export const catDegradadoConCache: Catalogo = {
 
 // ── Las 6 situaciones (una fila por rama) ───────────────────────────────────────────────────
 
-// Los 4 tooltips LITERALES de `AccionDeSituacion` para clase `propio` (design.md §6.3). Viven en
-// el dominio Go; acá se espejan porque la fixture ES el wire.
-const MOTIVO_PUBLICAR = "Publicar se construye en su propio paquete (ítem 3 del outcome)"
+// Los tooltips LITERALES de `AccionDeSituacion` para clase `propio` (design.md §6.3). Viven en
+// el dominio Go; acá se espejan porque la fixture ES el wire. `publicar` ya no lleva motivo:
+// B2 (paquete 2026-07-30-volverlo-de-arnesia-y-publicar) la habilitó.
 const MOTIVO_ACTUALIZAR =
   "Actualizar mi copia se construye en su propio paquete (ítem 4 del outcome)"
 const MOTIVO_REPARAR = "Reparar se construye en su propio paquete (ítem 5 del outcome)"
@@ -836,8 +836,9 @@ function filaSituacion(
 }
 
 // situacionesLas6 — una fila por rama de spec §4.3, clase `propio`, con la acción EXACTA que
-// `AccionDeSituacion` devuelve (design.md §6.3 con la corrección de §13.11): **7 de 8 celdas
-// siguen `habilitada: false`**; la única habilitada es `propio × no-lo-tengo`, que AG-D17 abrió.
+// `AccionDeSituacion` devuelve (design.md §6.3 con la corrección de §13.11): DOS celdas
+// habilitadas — `propio × no-lo-tengo` (AG-D17) y `propio × mi-copia-adelantada` (B2, paquete
+// 2026-07-30-volverlo-de-arnesia-y-publicar); el resto sigue `habilitada: false`.
 export const situacionesLas6: EntradaCatalogo[] = [
   filaSituacion("dev-full-cycle", { tipo: "no-lo-tengo" }, "traer-canonico", undefined, true),
   filaSituacion(
@@ -862,7 +863,8 @@ export const situacionesLas6: EntradaCatalogo[] = [
       via: "home-declarado",
     },
     "publicar",
-    MOTIVO_PUBLICAR,
+    undefined,
+    true, // B2: mi-copia-adelantada habilita Publicar — el dominio manda, la celda pinta.
   ),
   filaSituacion(
     "ux-nordia",

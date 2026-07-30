@@ -99,7 +99,7 @@ commands:
   serve     watcher + index + HTTP/SSE API + UI embebida on :4200 (dev sin dist: solo API; el bundle la trae)
   open      open the UI (stub)
   index     load an arnés directory into a graph.l0 (nomenclatura-arnes.md)
-  publish   publish a harness to its marketplace repo (stub)
+  publish   publica el canónico de una entrada del Portafolio en su marketplace-home (B2)
   conformance  run the ruleset against an element or an arnés (METODOLOGIA §6)
   portafolio   escanear/listar/agregar/desvincular arneses del Portafolio (Slice 0)
   sesiones     recalibrar-llaves: lleva la llave de arnés de cada sesión a su clave calificada (dry-run por default)
@@ -329,6 +329,13 @@ func runServe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("marketplace service: %w", err)
 	}
+	// `▲ Publicar` (B2, paquete 2026-07-30-volverlo-de-arnesia-y-publicar): el publisher git +
+	// el MISMO loader real y el MISMO motor de conformance que sirve GET …/conformance — el
+	// gate del publish y el del Mapa son un solo veredicto. Credencial del operador (gh/PAT),
+	// jamás de la app (BR-18).
+	marketplaceSvc.SetPublicar(
+		&publish.Publisher{GitBin: "git", GHBin: "gh", Token: os.Getenv("ARNESIA_GH_TOKEN")},
+		arnesLoaderFunc(loader.LoadArnes), confSvc)
 
 	// CV-D18 (FIRMADA 2026-07-27) · el re-key de CV-D16 corre SOLO, acá, en el arranque.
 	//
@@ -702,16 +709,63 @@ func runIndex(args []string) error {
 	return err
 }
 
-// runPublish publishes a harness. Stub over the git publisher.
+// runPublish publica el canónico de una entrada del Portafolio en su marketplace-home (B2) —
+// el MISMO usecase que POST /api/portafolio/arneses/{clave}/publicaciones, cero lógica propia
+// acá (patrón runPortafolio). El gate de conformance corre con el ruleset embebido: el binario
+// instalado publica con el mismo contrato que el daemon.
 func runPublish(args []string) error {
 	fs := flag.NewFlagSet("publish", flag.ExitOnError)
-	harness := fs.String("harness", "", "harness id to publish")
-	target := fs.String("target", "", "marketplace repo (remote)")
+	fs.Usage = func() {
+		fmt.Fprint(os.Stderr, `usage: arnesia publish <clave>
+
+  <clave>  la clave del arnés en el Portafolio (arnesia portafolio listar)
+
+Publica el CANÓNICO en el marketplace de su home (clase propio): gate de conformance
+verde → copia a plugins/<id>/<version>/ → marketplace.json + catalogo.json → commit →
+push sin force → tag <id>/vX.Y.Z. La versión es la de plugin.json del canónico.
+`)
+	}
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	pub := publish.New("git")
-	return pub.Publish(context.Background(), *harness, *target)
+	clave := fs.Arg(0)
+	if clave == "" {
+		fs.Usage()
+		return errors.New("falta la clave del arnés")
+	}
+
+	schemas, err := schemasEmbebidos()
+	if err != nil {
+		return err
+	}
+	_, pfStore, derivaEval, err := newPortafolioService(nil, schemas)
+	if err != nil {
+		return err
+	}
+	svc, err := newMarketplaceService(pfStore, derivaEval)
+	if err != nil {
+		return err
+	}
+	confSvc := usecase.NewConformanceService("", ruleset.NewFromFS(doctrina.Files),
+		schemas, []ports.MechanismAdapter{
+			mechanism.NLJudge{}, mechanism.StaticScan{}, mechanism.SchemaAdapter{},
+		})
+	svc.SetPublicar(
+		&publish.Publisher{GitBin: "git", GHBin: "gh", Token: os.Getenv("ARNESIA_GH_TOKEN")},
+		arnesLoaderFunc(loader.LoadArnes), confSvc)
+
+	res, err := svc.Publicar(context.Background(), clave)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("publicado %s v%s → %s (commit %s)\n", res.ID, res.Version, res.Marketplace, res.Commit)
+	if res.Tag != "" {
+		fmt.Printf("tag %s\n", res.Tag)
+	}
+	for _, a := range res.Avisos {
+		fmt.Printf("aviso: %s\n", a)
+	}
+	return nil
 }
 
 // newPortafolioService cablea el usecase del Portafolio con sus adapters por default
