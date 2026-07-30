@@ -12,13 +12,19 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 
 ## Paquete de trabajo activo
 
-- **Las conversaciones viven en el panel de conversación — TRAMOS 0-3 CERRADOS + EL 4 CASI ENTERO
-  (2026-07-26), 29 de 33 tickets.** Paquete
-  [`stories/2026-07-26-conversaciones-del-panel/`](./stories/2026-07-26-conversaciones-del-panel/INDEX.md)
-  — **arrancar por su «Retomar aquí»**, que dice el siguiente ticket exacto (**T30**, y ojo: su mitad
-  de transporte ya se adelantó) y lo que queda de verdad: el **E2E contra el binario instalado**
-  (T31, coordinar con el operador: `make dev-sync` le mata el daemon) y el **borrado manual de
-  CV-D6** (T32).
+- **Retomar aquí: MVP DE 1 DÍA — EN CURSO (2026-07-30).** Tres paquetes activos, corte y decisiones firmados
+  vía aprobación del plan de sesión (prioridad 1 = B):
+  [`stories/2026-07-30-volverlo-de-arnesia-y-publicar/`](./stories/2026-07-30-volverlo-de-arnesia-y-publicar/INDEX.md)
+  (B1 sello válido + B2 publicar write-side) ·
+  [`stories/2026-07-30-arnesia-en-el-proyecto/`](./stories/2026-07-30-arnesia-en-el-proyecto/INDEX.md)
+  (semilla `.arnesia/` + `arnesia init` + enmienda doctrine) ·
+  [`stories/2026-07-30-ciclo-conversacional-cables/`](./stories/2026-07-30-ciclo-conversacional-cables/INDEX.md)
+  (Dock desde tarjeta de mejora + editar-conversando). Validación directo en laptop por bloque.
+- **Las conversaciones viven en el panel — MERGEADO A MAIN (v0.4.0, merge `bb53421`; el aviso
+  previo de «no integrado» quedó stale y se corrigió 2026-07-30).** Paquete
+  [`stories/2026-07-26-conversaciones-del-panel/`](./stories/2026-07-26-conversaciones-del-panel/INDEX.md).
+  Quedan: borrado manual de CV-D6 (T32) y las deudas N-21/N-22/N-23 (en `BACKLOG.md`); la firma
+  🧑‍⚖️ de PARIDAD del paquete sigue del operador.
   **Origen:** el operador pidió ver el historial de una conversación y crear otra, y no encontró
   ninguna de las dos. Detrás había un problema de modelo: `Session` **era** la conversación.
   **Tramos 1 y 2:** los 9 campos del diálogo bajan a `Conversacion`; sobre versionado con migración
@@ -41,9 +47,7 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
   contra el linter del repo, se realiza sobre `<div>` con el contrato ARIA idéntico (N-17).
   **PARIDAD dibujo→producto ya se puede leer: 30 ✅ · 5 ⚠️ · 0 ❌**, con **26 capturas** en
   `verificacion-tramo3/` (13 escenas × 2 temas).
-  ⚠ **El trabajo vive en `tramo3-conversaciones` y NO está integrado a `main`** (encadena los tramos
-  1 y 2). ⚠ CI sin observar (no se pushea) · **`go-arch-lint` no se corrió** (el binario no está en
-  el PATH ni hay target en el Makefile) · gate 🧑‍⚖️ de PARIDAD **sin firmar**: es del operador.
+  Gate 🧑‍⚖️ de PARIDAD del paquete **sin firmar**: es del operador.
 
 
 - **Dictado por voz en el composer — CONSTRUIDO Y VERIFICADO POR TESTS, falta el gate en vivo
@@ -198,7 +202,7 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
   re-estampar `mockups/INDEX.md` → `BACKLOG.md`.
 - **Shell — Topbar sin empresa + selector de arnés (2026-07-20) — FIRMADO 🧑‍⚖️ (HS-25).**
   `topbar.tsx`/`session-rail.tsx`/`new-session-picker.tsx`/`portafolio-picker-store.ts`, 168/168 verde.
-- **Retomar aquí: paquete `mejorar-arnes-conversando` — IMPLEMENTADO COMPLETO 2026-07-22
+- **Paquete `mejorar-arnes-conversando` — IMPLEMENTADO COMPLETO 2026-07-22
   (ejecución autónoma /goal), pendiente SOLO gate humano 🧑‍⚖️ de PARIDAD.**
   [`stories/2026-07-22-mejorar-arnes-conversando/INDEX.md`](stories/2026-07-22-mejorar-arnes-conversando/INDEX.md) —
   spike cerrado (Forks A4/B2/C + grounding firmados, MC-D1..D8) → `spec.md` RF-183..206 → los 11
@@ -217,8 +221,8 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 ## Cifras vivas
 
 <!--stats: `scripts/estado.sh` regenera TODO este bloque desde conformance/árbol; no editar a mano -->
-- **ruleset `--todo`:** `323 checks · pass 91 · fail 0 · error 0 · deferred 232 · n/a 0` (medido 2026-07-27, `go run ./cmd/arnesia conformance --todo`)
-- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-27
+- **ruleset `--todo`:** `323 checks · pass 91 · fail 0 · error 0 · deferred 232 · n/a 0` (medido 2026-07-29, `go run ./cmd/arnesia conformance --todo`)
+- **dogfood `--arnes`:** `21 checks · pass 20 · fail 1 · error 0 · deferred 0 · n/a 0` (warn honesto `art-es-path`, el diente no se silencia) — medido 2026-07-29
 - **arch/:** 28 boundaries (`codigo-traza-a-capability` **enforced**: R1/R2/R4 pasan)
 - **docs/architecture/knowledge/:** 12 nodos · 138 checks
 - **capabilities (SSoT):** 149 — 101 vivo · 33 vivo·nc · 13 parcial · 2 stub · **cobertura 100%** (0 huérfanos, 0 punteros colgantes)
