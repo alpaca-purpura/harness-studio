@@ -24,6 +24,20 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+
+### Seguridad
+
+## [0.5.0] — 2026-07-30
+
+### Agregado
 - backup + cuarentena real en portafolio.json y marketplaces.json (mismo patrón que sessions.json) + chequeo de esquema futuro (Modo E) — antes se escribía un `version` que nunca se comparaba al leer
 - internal/adapters/filelock: flock cross-proceso (sin dependencia nueva, golang.org/x/sys ya vendorizado) que serializa recarga-mutar-guardar en portafolio.Store, marketplace.Store y ArnesRegistry — cierra el last-writer-wins confirmado entre el daemon y un CLI standalone
 - guard de daemon-vivo en `arnesia sesiones recalibrar-llaves` (--force para saltarlo) — mismo riesgo de doble-escritor que portafolio.json, resuelto sin tocar el motor de sesiones vivo
