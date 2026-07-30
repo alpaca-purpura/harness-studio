@@ -192,7 +192,10 @@ arch+knowledge — el motor y la suma de docs difieren en un par por deuda menor
   schemas del dominio (L0 `meta.clase` + `contract:` de caja); `api/openapi.yaml` = superficie
   HTTP/SSE. `gen/` = tipos generados Go+TS (quicktype/oapi-codegen; **aún vacío**: el codegen no
   corrió — `domain.Contract` y los tipos TS son a mano; checks `tipos-generados`/`dtos-generados`
-  en warn, deuda registrada).
+  en warn, deuda registrada). Contratos de reconocimiento en prosa:
+  [`nomenclatura-arnes.md`](./contracts/nomenclatura-arnes.md) (arnés ⟷ grafo L0, FIRMADA v1.1) ·
+  [`semilla-arnesia.md`](./contracts/semilla-arnesia.md) (siembra `.arnesia/` en el proyecto del
+  usuario, v0 — enforcement `pendiente-de-construir`, llega con A-T2).
 - [`fitness/`](./fitness/) — **las checks ejecutables** (fallan CI): `.go-arch-lint.yml` (grafo
   de imports Go), `arch_test.go` (lo que el linter no expresa). Los enforcers FE viven junto a la SPA
   (`web/.dependency-cruiser.js`, `web/steiger.config.ts`, `web/.stylelintrc.json`) y los de estilo en

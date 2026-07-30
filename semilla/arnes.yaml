@@ -1,0 +1,203 @@
+# GRADUADO del draft firmado 2026-07-10 (stories/2026-07-10-terreno-conocimiento/) — fuente de la semilla .arnesia/ (contrato semilla-arnesia.md)
+# arnes.yaml — instancia del ARNÉS-DEV (dogfood: ArnesIA se forja con ArnesIA)
+# ─────────────────────────────────────────────────────────────────────────────
+# Schema LINCHPIN del motor-FORJA. Declara el dimension-set (11 canónicas + 2
+# overlays) + proceso (multi-pipeline por tipo-de-paquete) + gestion-trabajo +
+# sello. El forjador lo LEE, pasa el gate de completitud, y rellena PLANTILLAS →
+# docs/terreno/ (definición) + docs/wip/ (esqueleto vacío) + sello (baseline).
+# Modelo: decisiones.md D0-D20. Vocabulario: D18 (3 caras) · D19 (set) · D20 (paquete/artefacto + multi-pipeline).
+#
+# Modelo FIRMADO 🧑‍⚖️ 2026-07-10 (decisiones.md D0-D20) — el aviso DRAFT original
+# quedó stale en la fuente y no se arrastra a esta copia graduada. El seam real
+# vivirá en la raíz del arnés forjado (Fase 2: --arnes-yaml del proyecto).
+# ─────────────────────────────────────────────────────────────────────────────
+
+schema: 0
+
+arnes:
+  id: dev
+  nombre: "Arnés de Desarrollo de Software"
+  rubro: software
+  base: canonico@0          # forjado desde el frame canónico del motor, versión pineada
+  # regla E: los `label` de abajo son el idioma del rubro; el motor traza por el `id` canónico.
+  # dev habla casi el canónico → varios label ≈ id (no se fuerza a empeorar, D19).
+
+# ── TERRITORIOS: label del rubro sobre el territorio canónico ────────────────
+territorios:
+  proposito:    { label: "Propósito",    naturaleza: definicion, essence: customer  }
+  producto:     { label: "Producto",     naturaleza: definicion, essence: solution  }
+  organizacion: { label: "Organización", naturaleza: definicion, essence: endeavour }
+  wip:          { label: "WIP",          naturaleza: instancia,  essence: work      }
+
+# ── DIMENSIONES CANÓNICAS (11) — el gate EXIGE las 11 ────────────────────────
+# cada una: {territorio, zachman, label (E, obligatorio), activacion (D7), receta, knowledge}
+# activacion (D7): always | glob(fileMatch) | demand(description) | manual
+dimensiones:
+
+  # PROPÓSITO (Customer) ──────────────────────────────────────────────────────
+  encargo:
+    territorio: proposito
+    zachman: Why
+    label: "Oportunidad / brief"
+    activacion: demand
+    receta:
+      plantilla: proposito/encargo.plantilla.md
+      preguntas: ["¿qué oportunidad?", "¿por qué ahora?", "¿qué pasa si no se hace?"]
+    knowledge: proposito/encargo/knowledge/
+
+  stakeholders:
+    territorio: proposito
+    zachman: Who
+    label: "Stakeholders"
+    activacion: demand
+    receta:
+      plantilla: proposito/stakeholders.plantilla.md
+      preguntas: ["¿para quién?", "¿afectados?", "¿quién decide / aprueba?"]
+
+  necesidad:
+    territorio: proposito
+    zachman: What
+    label: "Necesidad / problema de usuario"
+    activacion: demand
+    receta:
+      plantilla: proposito/necesidad.plantilla.md
+      preguntas: ["¿qué problema / outcome?", "¿cómo aporta al producto y al negocio?", "¿criterio de éxito?"]
+
+  # PRODUCTO (Solution) ───────────────────────────────────────────────────────
+  requisitos:                 # el CONTRATO de la solución (durable); NO el requerimiento-en-vuelo (eso es WIP)
+    territorio: producto
+    zachman: What
+    label: "Requisitos / specs / BDD"
+    activacion: demand
+    receta:
+      plantilla: producto/requisitos.plantilla.md
+      preguntas: ["¿qué debe CUMPLIR la solución?", "¿restricciones?", "¿criterios de aceptación?"]
+
+  producto:                   # ancla; el rubro EXPANDE en sub-nodos o AGREGA hermanas (D13/D19)
+    territorio: producto
+    zachman: How/What
+    label: "Producto"
+    activacion: glob
+    globs: ["web/**", "src/**", "crates/**"]
+    expande: [arquitectura, ux, tecnologias, concurrencia]   # dev suma hermanas bajo Producto
+    receta:
+      plantilla: producto/producto.plantilla.md
+      scraping: [sbom, storybook-index, structurizr-dsl]     # punteros auto-derivados (D6/D9)
+
+  datos:
+    territorio: producto
+    zachman: What
+    label: "Datos / persistencia"
+    activacion: glob
+    globs: ["**/schema/**", "**/migrations/**", "**/*.tokens.json"]
+    receta: { plantilla: producto/datos.plantilla.md }
+
+  contexto:                   # [Where]: perímetro / integraciones (deslindado de requisitos [What], F2)
+    territorio: producto
+    zachman: Where
+    label: "Contexto (C4 L1)"
+    activacion: demand
+    receta:
+      plantilla: producto/contexto.plantilla.md
+      preguntas: ["¿perímetro del sistema?", "¿sistemas externos / integraciones?"]
+
+  # ORGANIZACIÓN (Endeavour) ──────────────────────────────────────────────────
+  proceso:                    # la SECUENCIA: mapa {tipo-de-paquete → spine} — el detalle vive en `proceso:` (abajo)
+    territorio: organizacion
+    zachman: When/How
+    label: "Ciclo dev"
+    activacion: always
+    ref: proceso              # ver bloque `proceso:` (spines por tipo-de-paquete, D20)
+
+  equipo:
+    territorio: organizacion
+    zachman: Who
+    label: "Roles dev"
+    activacion: demand
+    receta: { plantilla: organizacion/equipo.plantilla.md }   # RACI + permisos por rol/TTL
+
+  forma-trabajo:
+    territorio: organizacion
+    zachman: How
+    label: "code-style · PARIDAD"
+    activacion: always
+    receta: { plantilla: organizacion/forma-trabajo.plantilla.md }
+
+  gestion-trabajo:            # el CONTENEDOR: declara los tipos-de-paquete — el detalle vive en `gestion_trabajo:` (abajo)
+    territorio: organizacion
+    zachman: How
+    label: "Backlog / flujo de historias"
+    activacion: always
+    ref: gestion_trabajo
+
+# ── OVERLAYS transversales (catálogo + peso por rubro) — D3/D16/D19 ──────────
+overlays:
+  calidad:                    # produce las capabilities NO-funcionales
+    catalogo: [Functional-Suitability, Performance-Efficiency, Compatibility, Interaction-Capability,
+               Reliability, Security, Maintainability, Flexibility, Safety]     # ISO 25010:2023
+    carve_out: [seguridad, testing, compliance]   # conservan carpeta propia (peso operativo, D3)
+  economia:                   # costo/valor permea toda decisión (ex-canónica → overlay, D19)
+    catalogo: [Costo-infra, ROI, Time-to-market, Deuda-tecnica, Coste-mantenimiento]
+    carve_out: []
+
+# ── GESTION-TRABAJO: TIPOS DE PAQUETE (contenedor · lifecycle) — D19/D20 ─────
+# cada tipo: jerarquía + máquina de estados + criterio de cierre. El spine (pasos) vive en `proceso.spines`.
+gestion_trabajo:
+  tipos_paquete:
+    historia:                 # el tipo por defecto del rubro dev
+      jerarquia: [outcome, historia, sub-tarea]
+      estados:   [idea, refinando, listo, en-curso, en-revision, done]
+      wip_caps:  { refinando: 3, en-curso: 2 }        # límites por estado (flow, no sprints)
+      cierre:    ratifica_capability                  # criterio de cierre (frontera WIP↔Producto, D16)
+      appetite:  escalable                            # Shape-Up: pasos cond/opcionales según el paquete
+    spike:                    # investigación acotada
+      jerarquia: [spike]
+      estados:   [abierto, investigando, cerrado]
+      cierre:    documenta_decision                   # cierra al registrar la decisión (→ LEDGER)
+  carpetas:
+    activo:    "docs/wip/activo/<outcome>/<paquete>/"  # artefactos LLENADOS + estado
+    done:      "docs/wip/done/<outcome>/"              # cerrados (ratificaron capability)
+    snapshot:  "docs/wip/INDEX.md"                     # foto viva AUTO-GENERADA (DO-NOT-EDIT)
+  reglas:
+    - "release/fase = TAG ortogonal, jamás en el slug/id (D17)"
+    - "cada paquete: estado + criterio de cierre + pasa a done/ (anti-cajón, D15)"
+    - "artefacto = plantilla LLENADA dentro del paquete; la plantilla vacía vive en proceso (D20)"
+
+# ── PROCESO: SPINES por tipo-de-paquete (la secuencia) — D20 ─────────────────
+# cada paso: {paso, rol, plantilla (vacía), artefacto (llenado → cuelga del paquete), cond?}
+# cond = expresión evaluada sobre el paquete; si es falsa, el paso se salta (appetite escalable).
+proceso:
+  spines:
+    historia:
+      - { paso: research,     rol: pm,        plantilla: proceso/historia/00-research.md, artefacto: research.md }
+      - { paso: spec,         rol: pm,        plantilla: proceso/historia/01-spec.md,     artefacto: spec.md }
+      - { paso: ux,           rol: designer,  plantilla: proceso/historia/02-ux.md,       artefacto: mockup.md,  cond: "tiene_ui" }
+      - { paso: arquitectura, rol: architect, plantilla: proceso/historia/03-arch.md,     artefacto: adr.md,     cond: "toca_arquitectura" }
+      - { paso: build,        rol: dev,       plantilla: proceso/historia/04-build.md,    artefacto: pr }
+      - { paso: paridad,      rol: dev,       plantilla: proceso/historia/05-paridad.md,  artefacto: paridad.md }
+    spike:
+      - { paso: investigar,   rol: dev,       plantilla: proceso/spike/00-investigar.md,  artefacto: hallazgos.md }
+      - { paso: decidir,      rol: dev,       plantilla: proceso/spike/01-decidir.md,     artefacto: decision.md }
+
+# ── FRONTERA con el PRODUCTO durable — D16 ──────────────────────────────────
+producto_durable:
+  capabilities: "docs/product/capabilities/"   # Σ capabilities func + no-func — SSoT funcional
+  cierre: "un paquete cierra al ratificar su(s) capability(es); story efímera, capability durable (Vitalia)"
+
+# ── SELLO / DERIVA — se estampa al forjar — D8 ──────────────────────────────
+sello:
+  fuente: "prenter-marketplace/arnes-dev"
+  version_pineada: 0
+  firma_fabrica: "<hash-al-forjar>"
+  hashes: ".baseline-hashes"      # hash por-archivo del render canónico
+  propiedad: parcial              # el arnés solo posee lo que el proceso EXIGE (no el repo entero)
+
+# ── GATE DE COMPLETITUD (la forja FALLA si…) — D19 ──────────────────────────
+gate:
+  exige:
+    - "las 11 dimensiones canónicas presentes"
+    - "cada canónica con `label` (E) + `receta`"
+    - "catálogo por overlay (calidad, economia) con ≥1 atributo"
+    - "≥1 tipo-de-paquete con estados + criterio de cierre + spine en proceso"
+    - "(rec) cada decisión con rule/skill trazable (knowledge co-locado)"
+  extiende: [arnesia-conformance, paridad]

@@ -32,6 +32,15 @@
   copiar kit/doctrina/knowhow dentro del arnés. El runtime NO bloquea `.arnesia/` de
   proyecto (verificado: `ProtegerPaqueteCerrado` matchea `~/.arnesia`, no
   `<proyecto>/.arnesia`) — se FIJA con test de `refiereAlguno`.
+- **A-D5 — tensiones del modelo destapadas por A-T1 (2026-07-30), resolución v0.**
+  (a) `gestion_trabajo.carpetas` del yaml firmado dice `docs/wip/…` pero la semilla
+  planta `.arnesia/wip/…`: para la SEMILLA manda el contrato `semilla-arnesia.md`
+  (árbol A-D1); la cuerda del yaml se conserva literal y la reconciliación va con P9
+  (Fase 2). (b) `product/stories/INDEX.md` no existe en el modelo firmado (D20 pone
+  paquetes en `wip/activo/`): se puentea descriptivamente — el índice LISTA paquetes
+  que VIVEN en `wip/activo/` — y la pregunta de propiedad queda abierta a Fase 2.
+  (c) El aviso «⚠ DRAFT … falta firmar el modelo» del yaml original estaba stale (el
+  modelo se firmó 2026-07-10): NO se arrastra a la copia graduada.
 - **A-D4 — salud mínima honesta, sin tocar loader ni conformance.** El doctor vive en
   `arnesia init --check` + `POST /api/forja/semillas/chequeos`: estados VISIBLES
   `sana|ausente|incompleta` + faltantes; exit≠0 si insana («no avanzamos si no está

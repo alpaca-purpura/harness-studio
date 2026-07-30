@@ -12,7 +12,7 @@
 | `boundaries/` | nodos de frontera (core-no-importa-shell, dominio-independiente-de-transporte, …) |
 | `fitness/` | checks ejecutables que fallan CI (`.go-arch-lint.yml`, `arch_test.go`, `capability_trace_test.go`) |
 | `conventions/` | estilo/lint/format/naming/commits/hooks/CI (Go+TS+Rust) |
-| `contracts/` | schema-first: `schema/*.json`, `api/openapi.yaml`, `nomenclatura-arnes.md` |
+| `contracts/` | schema-first: `schema/*.json`, `api/openapi.yaml`, `nomenclatura-arnes.md`, `semilla-arnesia.md` (siembra `.arnesia/` en el proyecto, v0) |
 | `model/` | diagramas as-code (C4): `system-context.mmd`, `container.d2` |
 | `stack.md` | tecnologías (← STACK.md) |
 | `knowledge/` | metodología-as-code sobre elementos de arnés (dominio-producto ArnesIA) |
