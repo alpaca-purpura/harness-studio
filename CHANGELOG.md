@@ -29,6 +29,8 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - guard de daemon-vivo en `arnesia sesiones recalibrar-llaves` (--force para saltarlo) — mismo riesgo de doble-escritor que portafolio.json, resuelto sin tocar el motor de sesiones vivo
 - aviso de cobertura portafolio↔índice al arrancar el daemon: cuántas entradas del Portafolio nunca se observaron en el Mapa
 - «Editar conversando (dock)» del inspector vivo cuando el arnés visto es el de la sesión; deshabilitado con motivo honesto en caso contrario
+- Form de Identificar con rol (sugerencias), proceso, empresa y marketplace opcional; genera plugin.json mínimo donde es seguro y avisa honesto donde no
+- Política de versionado de arnés as-code (versionado-arnes.md): version del autor en plugin.json + sello de extracción AAMMDDHHMM en catalogo.json + tag <id>/vX.Y.Z
 
 ### Cambiado
 
@@ -39,6 +41,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ### Corregido
 - El Mapa mostraba «No se pudo cargar el arnés» sobre arneses que el daemon sí tenía indexados: el listado del portafolio anunciaba el id interno del manifiesto en vez de la clave del índice, así que la pantalla comparaba dos espacios de llaves distintos y negaba lo que existía.
 - Proponer una mejora desde el Mapa ahora abre el Dock con la caja como alcance — la propuesta quedaba invisible si el chat estaba colapsado
+- Identificar emite un sello arnes.l0.json VÁLIDO contra graph.l0 (rol/proceso/empresa obligatorios) y lo valida ANTES de escribir — antes escribía uno inválido sin que nada lo detectara
 
 ### Seguridad
 

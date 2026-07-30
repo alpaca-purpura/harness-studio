@@ -30,11 +30,14 @@ convención en este árbol DEBE romper CI** (si no, es una nota, va al doc de hi
 | [`editor.md`](./editor.md) | Indentación/EOL única (EditorConfig) | 🌱 vivo | `/.editorconfig` | (vía format checks) |
 | [`ci.md`](./ci.md) | Todo check rompe el merge (GitHub Actions) | 🌱 vivo | `/.github/workflows/ci.yml` | required status checks |
 | [`versionado.md`](./versionado.md) | SemVer plano sin prefijo `v`, `Cargo.toml` SoT, sync 3 manifiestos, daemon dev sincronizado | 🌱 vivo | `/Makefile` | `arch_test.go:TestVersionManifestsInSync` + aviso `make installer` |
+| [`versionado-arnes.md`](./versionado-arnes.md) | Versionado del ARNÉS (producto): `plugin.json.version` SoT, sello de extracción aditivo en catalogo.json, tag `<id>/vX.Y.Z` | ⏳ proposed | `internal/usecase/portafolio_test.go` | `arnesia conformance` (tests colocados; los checks de publish difieren hasta B2) |
 
 Leyenda: ⏳ en forja · 🌱 vivo (nace, se enforça cuando el código llegue) · 🌳 estable · 🔍 en-revisión.
-**Total: 9 convention nodes · 31 checks · pasada fundacional 2026-07-05 (HS-05); +1 nodo
+**Total: 10 convention nodes · 31 checks · pasada fundacional 2026-07-05 (HS-05); +1 nodo
 `versionado.md` 2026-07-15 (4 checks, enforcer real desde el día 1); +1 check
-`dev-daemon-sincronizado` 2026-07-25 (5 checks — incidente real self-update vs. installer).**
+`dev-daemon-sincronizado` 2026-07-25 (5 checks — incidente real self-update vs. installer);
++1 nodo `versionado-arnes.md` 2026-07-30 (5 checks — 2 con test colocado desde el día 1,
+3 gaps declarados hasta el publisher B2).**
 
 > **Honestidad (heredada de METODOLOGIA §4 / CADENCE):** el código es real (daemon Go
 > `internal/`+`cmd/`, SPA `web/`, shell Rust `web/src-tauri/` — HS-06/HS-08) y los configs

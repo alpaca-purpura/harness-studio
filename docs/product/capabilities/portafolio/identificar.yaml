@@ -19,7 +19,9 @@ nature: feature
 
 pointers:
   - "internal/usecase/portafolio.go#PortafolioService.Identificar"
+  - "internal/usecase/portafolio.go#SolicitudIdentificar"
   - "internal/usecase/portafolio.go#selloDe"
+  - "internal/usecase/portafolio.go#asegurarPluginJSON"
   - "internal/usecase/portafolio.go#entradaDeCandidato"
   - "internal/domain/portafolio.go#Slug"
   - "internal/adapters/transport/http/portafolio.go#postIdentificar"
@@ -27,6 +29,12 @@ pointers:
 valida:
   - "TestIdentificarSellaYRekey"
   - "TestIdentificarNoPisaSelloExistente"
+  - "TestIdentificarRechazaSelloIncompleto"
+  - "TestIdentificarSelloRechazadoNoSeEscribe"
+  - "TestIdentificarSelloValidaContraSchemaReal"
+  - "TestIdentificarNoGeneraPluginJSONEnProyectoInstalado"
+  - "TestIdentificarConMarketplacePueblaHome"
+  - "TestPortafolioIdentificar"
 
 dev_preview:
   route: portafolio
@@ -38,7 +46,7 @@ dev_preview:
 
 created_in_story: 2026-07-17-portafolio-slice2-sello-identificar
 created_date: 2026-07-17
-last_modified: 2026-07-17
+last_modified: 2026-07-30
 source_ref: "docs/product/stories/2026-07-17-portafolio-slice2-sello-identificar/spike-spec.md §4"
 change_log:
   - story_id: 2026-07-17-portafolio-slice2-sello-identificar
@@ -46,13 +54,18 @@ change_log:
     type: new
     summary: "T3 (S1-D28) — Identificar: escribe el sello arnes.l0.json IN-SITU (scaffold mínimo id·nombre·empresas·version) sobre una presencia sin manifiesto y re-keya la entrada por la misma tubería que AgregarProyecto. Guardas: entrada+installPath autoritativos, path no protegido, no pisa un sello existente. Sellar un dir sin identidad CREA la identidad — no viola la ley anti-drift."
     merge_sha: null
+  - story_id: 2026-07-30-volverlo-de-arnesia-y-publicar
+    date: 2026-07-30
+    type: extend
+    summary: "B1 (B-D1/B-D2) — sello VÁLIDO: SolicitudIdentificar gana rol/proceso/empresas/marketplace (se piden al operador, jamás se inventan; 400 ErrIdentificarSelloIncompleto) y el sello se valida contra graph.l0.schema.json ANTES de escribirse (6° puerto SchemaValidator; inválido ⇒ ErrIdentificarSelloInvalido, nada toca disco). El sello ya NO lleva version (SoT = plugin.json.version, conventions/versionado-arnes.md): Identificar genera el plugin.json mínimo si falta salvo en proyecto-instalado (aviso honesto «sin plugin.json: no publicable en esta forma»). Con marketplace poblado el re-key sale con identidad.home. FE: form del drawer con rol (datalist rolesConocidos)/proceso/empresa prellenada/marketplace, submit disabled con motivo."
+    merge_sha: null
 
 scenarios:
   - id: sella-in-situ-y-rekey
     name: "Identificar sella y re-keya la entrada anónima"
     given: "una entrada persistida SIN manifiesto (identidad anónima por huella de path) cuyo installPath le pertenece"
-    when: "POST /api/portafolio/arneses/{clave}/identificar con id/nombre (o vacíos → defaults)"
-    then: "se escribe arnes.l0.json in-situ (id sluggeado o basename, version 0.1.0, reporta_a null); el re-escaneo reconstruye la identidad sellada y la entrada migra a su clave nueva, desvinculando la vieja"
+    when: "POST /api/portafolio/arneses/{clave}/identificar con rol/proceso/empresas (id/nombre vacíos → defaults)"
+    then: "se escribe arnes.l0.json in-situ (id sluggeado o basename, rol·proceso·empresas declarados, reporta_a null, SIN version — B-D2); el re-escaneo reconstruye la identidad sellada y la entrada migra a su clave nueva, desvinculando la vieja"
     verifica: "TestIdentificarSellaYRekey"
   - id: no-pisa-sello-existente
     name: "No se re-sella un dir que ya tiene arnes.l0.json"
@@ -60,9 +73,35 @@ scenarios:
     when: "se invoca Identificar"
     then: "ErrIdentificarYaSellado (409) — editar un sello ya escrito es otra operación, jamás se sobrescribe en silencio"
     verifica: "TestIdentificarNoPisaSelloExistente"
+  - id: sello-incompleto-nada-se-escribe
+    name: "Sin rol/proceso/≥1 empresa no se escribe nada"
+    given: "una solicitud sin rol, sin proceso o sin empresa (ni en la solicitud ni heredable de la entrada)"
+    when: "se invoca Identificar"
+    then: "ErrIdentificarSelloIncompleto (400 honesto con motivo) y el disco queda intacto — los campos se PIDEN al operador, jamás se inventan (B-D1)"
+    verifica: "TestIdentificarRechazaSelloIncompleto"
+  - id: sello-valida-contra-schema-real
+    name: "El sello escrito PASA graph.l0.schema.json"
+    given: "el SchemaSet real de docs/architecture/contracts/schema cableado como 6° puerto"
+    when: "Identificar arma el sello y lo valida envuelto como grafo ({arnes, nodos: []})"
+    then: "el sello nuevo valida y se escribe; la forma vieja ({id,nombre,empresas,version} sin rol/proceso) es INVÁLIDA — el bug que B1 cierra; un rechazo del validador ⇒ ErrIdentificarSelloInvalido y nada se escribe"
+    verifica: "TestIdentificarSelloValidaContraSchemaReal"
+  - id: plugin-json-segun-forma
+    name: "plugin.json mínimo según la forma de la instalación"
+    given: "un target sellado sin .claude-plugin/plugin.json"
+    when: "Identificar termina de escribir el sello"
+    then: "fuera de proyecto-instalado se genera {name, version: 0.1.0, description} (SoT de la versión, B-D2); en proyecto-instalado NO (rompería el detector del loader) y la instalación queda con el aviso «sin plugin.json: no publicable en esta forma»"
+    verifica: "TestIdentificarNoGeneraPluginJSONEnProyectoInstalado"
+  - id: marketplace-puebla-home
+    name: "Marketplace declarado ⇒ re-key con home"
+    given: "una solicitud con marketplace poblado (home autor-declarado crudo)"
+    when: "el re-key relee el sello escrito"
+    then: "la entrada re-keyed sale con identidad.home canonicalizado — deja de ser provisional"
+    verifica: "TestIdentificarConMarketplacePueblaHome"
 business_rules:
   - "El sello se escribe IN-SITU en el dir del proyecto (S1-D27 decisión 2): sin clon, git del proyecto es la red de seguridad — cero duplicidad de información para el usuario."
   - "Guarda de path protegido (validarRootPortafolio): un sello jamás se escribe bajo ~/.claude, ~/.ssh, ~/.arnesia, etc."
+  - "B-D1: rol/proceso/≥1 empresa se piden al operador — el schema graph.l0 NO se relaja; sin ellos, 400 honesto y disco intacto."
+  - "B-D2: el sello NO lleva version — la SoT es plugin.json.version (conventions/versionado-arnes.md); Identificar genera el plugin.json mínimo solo donde no rompe el detector del loader."
 related_capabilities:
   depends_on:
     - arnesia.portafolio.registrar-identidad

@@ -22,9 +22,18 @@ import type {
   SaludPortafolio,
 } from "@/entities/portafolio"
 import type { FilaPortafolio } from "@/entities/telemetria"
-import { ApiError, api, isTauri, selectActive, useAppStore, useSessions } from "@/shared"
+import {
+  ApiError,
+  api,
+  type HarnessSummary,
+  isTauri,
+  selectActive,
+  useAppStore,
+  useSessions,
+} from "@/shared"
 import { MarketplaceCatalogo, MarketplaceList } from "@/widgets/marketplace"
 import {
+  type DatosIdentificar,
   PortafolioDrawer,
   PortafolioList,
   PortafolioWizard,
@@ -360,15 +369,23 @@ export function PortafolioView() {
       })
   }, [seleccionada, cargar])
 
-  // ── Identificar (S1-D28): sella arnes.l0.json in-situ + re-key ──
+  // ── Identificar (S1-D28 + B1): sella arnes.l0.json in-situ + re-key. El form entrega
+  // también rol/proceso/empresas/marketplace (B-D1: el sello debe pasar graph.l0). ──
   const onIdentificar = useCallback(
-    (installPath: string, id: string, nombre: string) => {
+    (datos: DatosIdentificar) => {
       const clave = seleccionada
       if (!clave) return
       setIdentificando(true)
       setIdentificarError(undefined)
       api
-        .identificarArnes(clave, installPath, id, nombre)
+        .identificarArnes(clave, datos.installPath, {
+          id: datos.id,
+          nombre: datos.nombre,
+          rol: datos.rol,
+          proceso: datos.proceso,
+          empresas: datos.empresas,
+          marketplace: datos.marketplace,
+        })
         .then(() => {
           if (!vivo.current) return
           // La entrada re-keyea a una clave nueva; refrescamos y cerramos el drawer (el
@@ -386,6 +403,33 @@ export function PortafolioView() {
     },
     [seleccionada, cargar],
   )
+
+  // ── Roles conocidos para el datalist del form Identificar (B-D1: texto libre + sugerido
+  // desde GET /api/harnesses — sin catálogo de roles en el sistema, el operador es la
+  // autoridad). Carga lazy no-bloqueante, mismo patrón que la telemetría: sin la lista, el
+  // input libre sigue funcionando — no hay banner de error para una sugerencia. ──
+  const [rolesConocidos, setRolesConocidos] = useState<string[]>([])
+
+  useEffect(() => {
+    let vivoLocal = true
+    api
+      .listHarnesses<HarnessSummary[]>()
+      .then((harnesses) => {
+        if (!vivoLocal || !vivo.current) return
+        const roles = new Set<string>()
+        for (const h of harnesses ?? []) {
+          if (h.rol) roles.add(h.rol)
+        }
+        setRolesConocidos([...roles].sort())
+      })
+      .catch(() => {
+        // Silencio deliberado: el datalist es sugerencia, no dato — sin él el form no pierde nada.
+        if (vivoLocal && vivo.current) setRolesConocidos([])
+      })
+    return () => {
+      vivoLocal = false
+    }
+  }, [])
 
   // ── Abrir/Observar en Mapa (S1-D1/D2/D13) ──
   const activeSession = useSessions(selectActive)
@@ -944,6 +988,7 @@ export function PortafolioView() {
               onIdentificar={onIdentificar}
               identificando={identificando}
               identificarError={identificarError}
+              rolesConocidos={rolesConocidos}
               onResolverOrigen={onResolverOrigen}
               onTraerCanonico={onTraerDelDrawer}
               trayendo={traerDelDrawer?.fase === "trayendo"}

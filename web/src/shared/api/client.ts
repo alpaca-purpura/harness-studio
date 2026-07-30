@@ -140,15 +140,33 @@ export const api = {
       body: JSON.stringify({ install_path: installPath }),
     }),
 
-  // identificarArnes escribe el sello arnes.l0.json in-situ y re-keya la entrada (S1-D28).
-  // id/nombre opcionales — el backend cae al basename de la carpeta si van vacíos.
-  identificarArnes: <T = unknown>(clave: string, installPath: string, id: string, nombre: string) =>
+  // identificarArnes escribe el sello arnes.l0.json in-situ y re-keya la entrada (S1-D28 +
+  // B1). id/nombre opcionales — el backend cae al basename de la carpeta si van vacíos;
+  // rol/proceso/≥1 empresa son obligatorios (B-D1: graph.l0 los exige, 400 honesto si
+  // faltan); marketplace opcional (home autor-declarado crudo). Los campos del sello viajan
+  // en un objeto — 8 posicionales invitan a trasponer strings.
+  identificarArnes: <T = unknown>(
+    clave: string,
+    installPath: string,
+    datos: {
+      id: string
+      nombre: string
+      rol: string
+      proceso: string
+      empresas: string[]
+      marketplace: string
+    },
+  ) =>
     req<T>(`/api/portafolio/arneses/${encodeURIComponent(clave)}/identificar`, {
       method: "POST",
       body: JSON.stringify({
         install_path: installPath,
-        ...(id ? { id } : {}),
-        ...(nombre ? { nombre } : {}),
+        ...(datos.id ? { id: datos.id } : {}),
+        ...(datos.nombre ? { nombre: datos.nombre } : {}),
+        rol: datos.rol,
+        proceso: datos.proceso,
+        empresas: datos.empresas,
+        ...(datos.marketplace ? { marketplace: datos.marketplace } : {}),
       }),
     }),
 

@@ -150,16 +150,24 @@ func postObservarEnMapa(svc *usecase.PortafolioService) http.HandlerFunc {
 
 // postIdentificarBody is the POST /api/portafolio/arneses/{clave}/identificar payload.
 // id/nombre opcionales — el usecase cae a defaults (basename del install-path) si vienen "".
+// rol/proceso/empresas los declara el operador (B-D1: graph.l0 los exige y el schema no se
+// relaja; empresas vacías caen a las de la entrada). marketplace = home autor-declarado
+// CRUDO, opcional (S0-D3).
 type postIdentificarBody struct {
-	InstallPath string `json:"install_path"`
-	ID          string `json:"id,omitempty"`
-	Nombre      string `json:"nombre,omitempty"`
+	InstallPath string   `json:"install_path"`
+	ID          string   `json:"id,omitempty"`
+	Nombre      string   `json:"nombre,omitempty"`
+	Rol         string   `json:"rol,omitempty"`
+	Proceso     string   `json:"proceso,omitempty"`
+	Empresas    []string `json:"empresas,omitempty"`
+	Marketplace string   `json:"marketplace,omitempty"`
 }
 
 // postIdentificar — POST /api/portafolio/arneses/{clave}/identificar: escribe el sello
-// `arnes.l0.json` IN-SITU en la instalación y re-keya la entrada (S1-D28). 404 clave
-// desconocida · 409 ya sellado · 400 install_path ajeno / path protegido / otro. Devuelve la
-// entrada re-keyed (su nueva clave viaja en identidad → el FE re-apunta el drawer).
+// `arnes.l0.json` IN-SITU en la instalación y re-keya la entrada (S1-D28 + B1). 404 clave
+// desconocida · 409 ya sellado · 400 install_path ajeno / path protegido / sello incompleto
+// o inválido contra graph.l0 (nada se escribe) / otro. Devuelve la entrada re-keyed (su
+// nueva clave viaja en identidad → el FE re-apunta el drawer).
 func postIdentificar(svc *usecase.PortafolioService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clave := r.PathValue("clave")
@@ -167,13 +175,25 @@ func postIdentificar(svc *usecase.PortafolioService) http.HandlerFunc {
 		if err := decodeJSON(w, r, &body); err != nil {
 			return
 		}
-		entrada, err := svc.Identificar(r.Context(), clave, body.InstallPath, body.ID, body.Nombre)
+		entrada, err := svc.Identificar(r.Context(), clave, usecase.SolicitudIdentificar{
+			InstallPath: body.InstallPath,
+			ID:          body.ID,
+			Nombre:      body.Nombre,
+			Rol:         body.Rol,
+			Proceso:     body.Proceso,
+			Empresas:    body.Empresas,
+			Marketplace: body.Marketplace,
+		})
 		if err != nil {
 			switch {
 			case errors.Is(err, usecase.ErrObservarClaveNoEncontrada):
 				writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
 			case errors.Is(err, usecase.ErrIdentificarYaSellado):
 				writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+			case errors.Is(err, usecase.ErrIdentificarSelloIncompleto), errors.Is(err, usecase.ErrIdentificarSelloInvalido):
+				// B-D1/RF-B1.2: 400 con el motivo real — el sello jamás se escribe
+				// incompleto ni inválido contra graph.l0.
+				writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
 			default:
 				// install_path ajeno, path protegido, o fallo de escritura/re-escaneo — el
 				// motivo real viaja en el body.

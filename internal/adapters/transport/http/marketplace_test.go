@@ -92,7 +92,7 @@ func armarHTTP(t *testing.T) *escenarioHTTP {
 	}
 	e.svc = usecase.NewMarketplaceService(st, e.detector, e.local, e.remoto, e.validador, cache, pfStore)
 	e.svc.SetTraer(&traer.CopiadorLocal{}, &traer.ClonadorExterno{GitBin: "/no/existe/git"}, fakeDeriva{}, e.raiz)
-	e.pfSvc = usecase.NewPortafolioService(pfStore, &fakeScan{}, &fakeLoad{}, fakeDeriva{}, nil)
+	e.pfSvc = usecase.NewPortafolioService(pfStore, &fakeScan{}, &fakeLoad{}, fakeDeriva{}, nil, fakeSchemas{})
 	return e
 }
 

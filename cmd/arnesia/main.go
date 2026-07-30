@@ -234,8 +234,11 @@ func runServe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("schemas embebidos: %w", err)
 	}
+	// El SchemaSet embebido se comparte con el Portafolio (B1: Identificar valida el sello
+	// contra graph.l0 antes de escribirlo) — una sola instancia, un solo caché de schemas.
+	schemaSet := mechanism.NewSchemaSetFS(schemaFS)
 	confSvc := usecase.NewConformanceService("", ruleset.NewFromFS(doctrina.Files),
-		mechanism.NewSchemaSetFS(schemaFS), []ports.MechanismAdapter{
+		schemaSet, []ports.MechanismAdapter{
 			mechanism.NLJudge{}, mechanism.StaticScan{}, mechanism.SchemaAdapter{},
 		})
 
@@ -314,7 +317,7 @@ func runServe(args []string) error {
 	// físico READ-ONLY + evaluador de deriva local + wrapper del loader real. Mismo wiring
 	// que usa el subcomando `portafolio` — newPortafolioService lo factoriza para no
 	// duplicarlo.
-	portafolioSvc, pfStore, derivaEval, err := newPortafolioService(idx)
+	portafolioSvc, pfStore, derivaEval, err := newPortafolioService(idx, schemaSet)
 	if err != nil {
 		return fmt.Errorf("portafolio service: %w", err)
 	}
@@ -716,8 +719,10 @@ func runPublish(args []string) error {
 // default) — compartido entre `serve` y el subcomando `portafolio`, sin duplicar wiring.
 // indice es el 5° puerto (S1-D1, Observar en Mapa): `serve` pasa el `idx` real que ya
 // construyó; el subcomando CLI pasa nil — no necesita indexar (ObservarEnMapa con índice
-// nil da el error honesto «requiere el daemon», jamás un nil-pointer panic).
-func newPortafolioService(indice ports.IndexPort) (*usecase.PortafolioService, ports.PortafolioStore, ports.DerivaEvaluator, error) {
+// nil da el error honesto «requiere el daemon», jamás un nil-pointer panic). schemas es el
+// 6° puerto (B1): `serve` pasa el SchemaSet embebido que ya construyó; los subcomandos CLI
+// lo arman con schemasEmbebidos().
+func newPortafolioService(indice ports.IndexPort, schemas ports.SchemaValidator) (*usecase.PortafolioService, ports.PortafolioStore, ports.DerivaEvaluator, error) {
 	st, err := portafolio.NewStore("")
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("portafolio store: %w", err)
@@ -726,7 +731,18 @@ func newPortafolioService(indice ports.IndexPort) (*usecase.PortafolioService, p
 	// marketplaces (§12.2 riesgo 15): una segunda duplicaría la resolución de RutaReferencia y
 	// podrían divergir.
 	refs := &portafolio.Referencias{}
-	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), refs, indice), st, refs, nil
+	return usecase.NewPortafolioService(st, &portafolio.Scanner{}, arnesLoaderFunc(loader.LoadArnes), refs, indice, schemas), st, refs, nil
+}
+
+// schemasEmbebidos construye el SchemaSet desde la doctrina embebida en el binario (mismo
+// patrón que conformance.go): un subcomando CLI valida el sello contra el MISMO contrato
+// que el daemon instalado, sin depender del repo en disco.
+func schemasEmbebidos() (*mechanism.SchemaSet, error) {
+	sub, err := iofs.Sub(doctrina.Files, "docs/architecture/contracts/schema")
+	if err != nil {
+		return nil, fmt.Errorf("schemas embebidos: %w", err)
+	}
+	return mechanism.NewSchemaSetFS(sub), nil
 }
 
 // newMarketplaceService cablea el plano Marketplaces (paquete
@@ -776,7 +792,12 @@ func runPortafolio(args []string) error {
 	}
 
 	// nil: el CLI no observa en Mapa (esa vía es HTTP-only, S1-D1) — no necesita el 5° puerto.
-	svc, _, _, err := newPortafolioService(nil)
+	// Los schemas embebidos sí van (B1): un `Identificar` futuro por CLI valida igual que el daemon.
+	schemas, err := schemasEmbebidos()
+	if err != nil {
+		return err
+	}
+	svc, _, _, err := newPortafolioService(nil, schemas)
 	if err != nil {
 		return err
 	}

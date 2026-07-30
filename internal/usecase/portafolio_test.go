@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacapurpura/arnesia/internal/adapters/conformance/mechanism"
 	"github.com/alpacapurpura/arnesia/internal/domain"
 	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
@@ -43,6 +44,30 @@ type fakeDerivaEvaluator struct{}
 
 func (fakeDerivaEvaluator) Evaluar(string, string, string, string) (domain.EstadoDeriva, string) {
 	return domain.DerivaNoEvaluable, "fake: no evaluado"
+}
+
+// fakeSchemaValidator satisface ports.SchemaValidator (6° puerto, B1): err configurable para
+// probar que un sello que no valida NO llega al disco. El contrato REAL lo ejercita
+// TestIdentificarSelloValidaContraSchemaReal con el SchemaSet de verdad.
+type fakeSchemaValidator struct{ err error }
+
+func (f fakeSchemaValidator) Validate(string, any) error     { return f.err }
+func (f fakeSchemaValidator) ValidateJSON(string, any) error { return f.err }
+
+// loaderDeSello lee el arnes.l0.json REAL que Identificar escribió — así el re-key prueba
+// que lo que puebla la identidad es el SELLO en disco, no un fixture tecleado.
+type loaderDeSello struct{}
+
+func (loaderDeSello) Load(dir string) (domain.Graph, error) {
+	b, err := os.ReadFile(filepath.Join(dir, "arnes.l0.json")) //nolint:gosec // G304: dir de fixture del test.
+	if err != nil {
+		return domain.Graph{}, err
+	}
+	var a domain.Arnes
+	if err := json.Unmarshal(b, &a); err != nil {
+		return domain.Graph{}, err
+	}
+	return domain.Graph{Arnes: &a, Nodes: []domain.Box{}}, nil
 }
 
 type fakePortafolioStore struct {
@@ -128,7 +153,7 @@ func TestServiceEscanearClasificaCheckout(t *testing.T) {
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
 		checkoutDir: {Arnes: &domain.Arnes{ID: "x", Marketplace: "owner/repo"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil {
@@ -158,7 +183,7 @@ func TestServiceAgregarSoloElegidos(t *testing.T) {
 		dirA: {Arnes: &domain.Arnes{ID: "harness-a", Marketplace: "owner/repo-a"}},
 		dirB: {Arnes: &domain.Arnes{ID: "harness-b", Marketplace: "owner/repo-b"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil {
@@ -201,7 +226,7 @@ func TestServiceDesvincularNoTocaDisco(t *testing.T) {
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
 		root: {Arnes: &domain.Arnes{ID: "harness-x", Marketplace: "owner/repo"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil || len(cands) != 1 {
@@ -234,7 +259,7 @@ func TestServiceRootProtegido(t *testing.T) {
 	store := newFakePortafolioStore()
 	scan := &fakePortafolioScanner{}
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil, nil)
 
 	if _, err := svc.Escanear(context.Background(), home); err == nil {
 		t.Error("root == $HOME debe rechazarse")
@@ -273,7 +298,7 @@ func TestObservarEnMapaIndexaSinRegistro(t *testing.T) {
 		installPath: {Arnes: &domain.Arnes{ID: "harness-x", Marketplace: "owner/repo"}},
 	}}
 	idx := &fakeIndexPort{}
-	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx)
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx, nil)
 
 	id, err := svc.ObservarEnMapa(context.Background(), clave, installPath)
 	if err != nil {
@@ -314,7 +339,7 @@ func TestObservarEnMapaDegradadoSintetiza(t *testing.T) {
 		installPath: {Arnes: nil, Degradado: true, Nodes: []domain.Box{{ID: "std", Clase: domain.ClaseRule}}},
 	}}
 	idx := &fakeIndexPort{}
-	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx)
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx, nil)
 
 	id, err := svc.ObservarEnMapa(context.Background(), clave, installPath)
 	if err != nil {
@@ -348,8 +373,9 @@ func TestObservarEnMapaDegradadoSintetiza(t *testing.T) {
 	}
 }
 
-// TestIdentificarSellaYRekey cubre S1-D28: Identificar escribe el sello `arnes.l0.json`
-// IN-SITU (scaffold mínimo) y re-keya la entrada anónima con su identidad ya sellada,
+// TestIdentificarSellaYRekey cubre S1-D28 + B1: Identificar escribe el sello `arnes.l0.json`
+// IN-SITU (id · rol · proceso · empresas · reporta_a null — SIN `version`, B-D2: la SoT es
+// plugin.json.version) y re-keya la entrada anónima con su identidad ya sellada,
 // desvinculando la clave vieja. El fake loader simula que, tras sellar, el loader lee el
 // manifiesto y resuelve id — la escritura del sello, las guardas y el re-key son reales.
 func TestIdentificarSellaYRekey(t *testing.T) {
@@ -371,14 +397,18 @@ func TestIdentificarSellaYRekey(t *testing.T) {
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{
 		dir: {Arnes: &domain.Arnes{ID: "mi-arnes", Nombre: "Mi Arnés"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, &fakeIndexPort{})
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, &fakeIndexPort{}, fakeSchemaValidator{})
 
-	nueva, err := svc.Identificar(context.Background(), claveVieja, dir, "mi-arnes", "Mi Arnés")
+	nueva, err := svc.Identificar(context.Background(), claveVieja, usecase.SolicitudIdentificar{
+		InstallPath: dir, ID: "mi-arnes", Nombre: "Mi Arnés",
+		Rol: "dev-full-cycle", Proceso: "delivery", Empresas: []string{"vitalia"},
+	})
 	if err != nil {
 		t.Fatalf("Identificar: %v", err)
 	}
 
-	// 1. El sello se escribió con el scaffold mínimo (id · version · reporta_a null).
+	// 1. El sello se escribió con la META declarada (id · rol · proceso · empresas ·
+	// reporta_a null) y SIN `version` (B-D2 — el "0.1.0" tecleado era el bug del sello inválido).
 	b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json")) //nolint:gosec // G304: ruta de fixture del test.
 	if rerr != nil {
 		t.Fatalf("el sello no se escribió: %v", rerr)
@@ -387,11 +417,18 @@ func TestIdentificarSellaYRekey(t *testing.T) {
 	if jerr := json.Unmarshal(b, &sello); jerr != nil {
 		t.Fatalf("sello inválido: %v", jerr)
 	}
-	if sello["id"] != "mi-arnes" || sello["version"] != "0.1.0" {
-		t.Errorf("sello = %v, quiero id=mi-arnes version=0.1.0", sello)
+	if sello["id"] != "mi-arnes" || sello["rol"] != "dev-full-cycle" || sello["proceso"] != "delivery" {
+		t.Errorf("sello = %v, quiero id=mi-arnes rol=dev-full-cycle proceso=delivery", sello)
+	}
+	if _, tiene := sello["version"]; tiene {
+		t.Errorf("el sello NO debe llevar `version` (B-D2: la SoT es plugin.json.version), got %v", sello["version"])
 	}
 	if v, ok := sello["reporta_a"]; !ok || v != nil {
 		t.Errorf("el sello debe emitir reporta_a: null, got %v (ok=%v)", v, ok)
+	}
+	empresas, _ := sello["empresas"].([]any)
+	if len(empresas) != 1 || empresas[0] != "vitalia" {
+		t.Errorf("empresas = %v, quiero [vitalia]", sello["empresas"])
 	}
 
 	// 2. Re-key: la entrada nueva tiene la identidad sellada; la vieja anónima se desvinculó.
@@ -421,11 +458,220 @@ func TestIdentificarNoPisaSelloExistente(t *testing.T) {
 	if err := store.Upsert(e); err != nil {
 		t.Fatal(err)
 	}
-	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, &fakeIndexPort{})
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, &fakeIndexPort{}, fakeSchemaValidator{})
 
-	_, err := svc.Identificar(context.Background(), e.Identidad.Clave(), dir, "", "")
+	_, err := svc.Identificar(context.Background(), e.Identidad.Clave(), usecase.SolicitudIdentificar{InstallPath: dir})
 	if !errors.Is(err, usecase.ErrIdentificarYaSellado) {
 		t.Fatalf("err = %v, quiero ErrIdentificarYaSellado", err)
+	}
+}
+
+// entradaAnonimaEn arma y persiste la entrada anónima estándar de los tests de Identificar
+// (B1): una presencia sin manifiesto en dir, con el tipo dado.
+func entradaAnonimaEn(t *testing.T, store *fakePortafolioStore, dir string, tipo domain.TipoInstalacion) domain.EntradaPortafolio {
+	t.Helper()
+	e := domain.EntradaPortafolio{
+		Identidad:     domain.IdentidadArnes{Scope: ".", Disc: domain.HuellaPath(dir)},
+		Instalaciones: []domain.Instalacion{{ProyectoPath: dir, InstallPath: dir, Tipo: tipo}},
+	}
+	if err := store.Upsert(e); err != nil {
+		t.Fatal(err)
+	}
+	return e
+}
+
+// TestIdentificarRechazaSelloIncompleto cubre B-D1: rol/proceso/≥1 empresa se PIDEN, jamás
+// se inventan — sin ellos el error es ErrIdentificarSelloIncompleto y NADA se escribe en
+// disco. Las empresas de la solicitud vacías caen a las de la entrada (y solo entonces).
+func TestIdentificarRechazaSelloIncompleto(t *testing.T) {
+	completa := func(dir string) usecase.SolicitudIdentificar {
+		return usecase.SolicitudIdentificar{
+			InstallPath: dir, ID: "mi-arnes",
+			Rol: "dev", Proceso: "delivery", Empresas: []string{"vitalia"},
+		}
+	}
+	casos := []struct {
+		nombre string
+		mutar  func(*usecase.SolicitudIdentificar)
+	}{
+		{"sin rol", func(s *usecase.SolicitudIdentificar) { s.Rol = "" }},
+		{"sin proceso", func(s *usecase.SolicitudIdentificar) { s.Proceso = "  " }},
+		{"sin empresas", func(s *usecase.SolicitudIdentificar) { s.Empresas = []string{"", " "} }},
+	}
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			dir := t.TempDir()
+			store := newFakePortafolioStore()
+			e := entradaAnonimaEn(t, store, dir, domain.InstProyectoInstalado)
+			svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{}, fakeDerivaEvaluator{}, &fakeIndexPort{}, fakeSchemaValidator{})
+
+			sol := completa(dir)
+			c.mutar(&sol)
+			_, err := svc.Identificar(context.Background(), e.Identidad.Clave(), sol)
+			if !errors.Is(err, usecase.ErrIdentificarSelloIncompleto) {
+				t.Fatalf("err = %v, quiero ErrIdentificarSelloIncompleto", err)
+			}
+			if _, serr := os.Stat(filepath.Join(dir, "arnes.l0.json")); serr == nil {
+				t.Fatal("con la solicitud incompleta NADA debe escribirse en disco")
+			}
+		})
+	}
+
+	t.Run("empresas vacías caen a las de la entrada", func(t *testing.T) {
+		dir := t.TempDir()
+		store := newFakePortafolioStore()
+		e := domain.EntradaPortafolio{
+			Identidad:     domain.IdentidadArnes{Scope: ".", Disc: domain.HuellaPath(dir)},
+			Empresas:      []string{"vitalia"},
+			Instalaciones: []domain.Instalacion{{ProyectoPath: dir, InstallPath: dir, Tipo: domain.InstProyectoInstalado}},
+		}
+		if err := store.Upsert(e); err != nil {
+			t.Fatal(err)
+		}
+		scan := &fakePortafolioScanner{hallazgos: []domain.HallazgoInstalacion{{Dir: dir, Tipo: domain.InstProyectoInstalado}}}
+		svc := usecase.NewPortafolioService(store, scan, loaderDeSello{}, fakeDerivaEvaluator{}, &fakeIndexPort{}, fakeSchemaValidator{})
+
+		sol := completa(dir)
+		sol.Empresas = nil
+		if _, err := svc.Identificar(context.Background(), e.Identidad.Clave(), sol); err != nil {
+			t.Fatalf("con empresas de la entrada disponibles NO debe fallar: %v", err)
+		}
+		b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json")) //nolint:gosec // G304: ruta de fixture del test.
+		if rerr != nil {
+			t.Fatal(rerr)
+		}
+		var sello map[string]any
+		if jerr := json.Unmarshal(b, &sello); jerr != nil {
+			t.Fatal(jerr)
+		}
+		empresas, _ := sello["empresas"].([]any)
+		if len(empresas) != 1 || empresas[0] != "vitalia" {
+			t.Fatalf("empresas del sello = %v, quiero las heredadas de la entrada [vitalia]", sello["empresas"])
+		}
+	})
+}
+
+// TestIdentificarSelloRechazadoNoSeEscribe cubre RF-B1.2 lado rojo: si el validador rechaza
+// el sello, el error es ErrIdentificarSelloInvalido (con el detalle envuelto) y el disco
+// queda intacto.
+func TestIdentificarSelloRechazadoNoSeEscribe(t *testing.T) {
+	dir := t.TempDir()
+	store := newFakePortafolioStore()
+	e := entradaAnonimaEn(t, store, dir, domain.InstProyectoInstalado)
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{}, fakeDerivaEvaluator{}, &fakeIndexPort{},
+		fakeSchemaValidator{err: errors.New("anyOf: falta empresa")})
+
+	_, err := svc.Identificar(context.Background(), e.Identidad.Clave(), usecase.SolicitudIdentificar{
+		InstallPath: dir, Rol: "dev", Proceso: "delivery", Empresas: []string{"vitalia"},
+	})
+	if !errors.Is(err, usecase.ErrIdentificarSelloInvalido) {
+		t.Fatalf("err = %v, quiero ErrIdentificarSelloInvalido", err)
+	}
+	if _, serr := os.Stat(filepath.Join(dir, "arnes.l0.json")); serr == nil {
+		t.Fatal("un sello que no valida NO debe escribirse")
+	}
+}
+
+// TestIdentificarSelloValidaContraSchemaReal es el test que CIERRA el bug de B1: con el
+// SchemaSet REAL (docs/architecture/contracts/schema) el sello que Identificar escribe PASA
+// graph.l0 — y la forma vieja ({id,nombre,empresas,version}, sin rol/proceso) NO pasa, que
+// es exactamente lo que nada validaba antes.
+func TestIdentificarSelloValidaContraSchemaReal(t *testing.T) {
+	schemas := mechanism.NewSchemaSet(filepath.Join("..", "..", "docs", "architecture", "contracts", "schema"))
+
+	dir := t.TempDir()
+	store := newFakePortafolioStore()
+	e := entradaAnonimaEn(t, store, dir, domain.InstProyectoInstalado)
+	scan := &fakePortafolioScanner{hallazgos: []domain.HallazgoInstalacion{{Dir: dir, Tipo: domain.InstProyectoInstalado}}}
+	svc := usecase.NewPortafolioService(store, scan, loaderDeSello{}, fakeDerivaEvaluator{}, &fakeIndexPort{}, schemas)
+
+	if _, err := svc.Identificar(context.Background(), e.Identidad.Clave(), usecase.SolicitudIdentificar{
+		InstallPath: dir, ID: "mi-arnes", Nombre: "Mi Arnés",
+		Rol: "dev-full-cycle", Proceso: "delivery", Empresas: []string{"vitalia"},
+	}); err != nil {
+		t.Fatalf("el sello de B1 debe pasar el schema real: %v", err)
+	}
+
+	// El archivo ESCRITO re-valida contra el contrato (no solo el struct en memoria).
+	b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json")) //nolint:gosec // G304: ruta de fixture del test.
+	if rerr != nil {
+		t.Fatal(rerr)
+	}
+	var enDisco any
+	if jerr := json.Unmarshal(b, &enDisco); jerr != nil {
+		t.Fatal(jerr)
+	}
+	if verr := schemas.Validate("graph.l0.schema.json", map[string]any{"arnes": enDisco, "nodos": []any{}}); verr != nil {
+		t.Fatalf("el sello escrito en disco no valida contra graph.l0: %v", verr)
+	}
+
+	// Y la forma VIEJA de selloDe (pre-B1) es inválida: si esto pasara, el schema se relajó
+	// — cosa que B-D1 prohíbe expresamente.
+	viejo := map[string]any{"id": "mi-arnes", "nombre": "Mi Arnés", "empresas": []any{"vitalia"}, "version": "0.1.0", "reporta_a": nil}
+	if verr := schemas.Validate("graph.l0.schema.json", map[string]any{"arnes": viejo, "nodos": []any{}}); verr == nil {
+		t.Fatal("el sello viejo (sin rol/proceso) debería ser INVÁLIDO contra graph.l0 — el bug que B1 cierra")
+	}
+}
+
+// TestIdentificarNoGeneraPluginJSONEnProyectoInstalado cubre B-D2 lado proyecto-instalado:
+// escribir `.claude-plugin/plugin.json` ahí cambiaría la detección del loader (plugin manda
+// sobre `.claude/`) y rompería el arnés — NO se genera, y la instalación re-keyed queda con
+// el aviso honesto «sin plugin.json: no publicable en esta forma».
+func TestIdentificarNoGeneraPluginJSONEnProyectoInstalado(t *testing.T) {
+	dir := t.TempDir()
+	store := newFakePortafolioStore()
+	e := entradaAnonimaEn(t, store, dir, domain.InstProyectoInstalado)
+	scan := &fakePortafolioScanner{hallazgos: []domain.HallazgoInstalacion{{Dir: dir, Tipo: domain.InstProyectoInstalado}}}
+	svc := usecase.NewPortafolioService(store, scan, loaderDeSello{}, fakeDerivaEvaluator{}, &fakeIndexPort{}, fakeSchemaValidator{})
+
+	nueva, err := svc.Identificar(context.Background(), e.Identidad.Clave(), usecase.SolicitudIdentificar{
+		InstallPath: dir, Rol: "dev", Proceso: "delivery", Empresas: []string{"vitalia"},
+	})
+	if err != nil {
+		t.Fatalf("Identificar: %v", err)
+	}
+	if _, serr := os.Stat(filepath.Join(dir, ".claude-plugin", "plugin.json")); serr == nil {
+		t.Fatal("en proyecto-instalado NO debe generarse plugin.json (rompería el detector del loader)")
+	}
+	if len(nueva.Instalaciones) != 1 || nueva.Instalaciones[0].Aviso != "sin plugin.json: no publicable en esta forma" {
+		t.Fatalf("la instalación debe cargar el aviso honesto, got %+v", nueva.Instalaciones)
+	}
+}
+
+// TestIdentificarConMarketplacePueblaHome cubre el AC (d) de B1: con Marketplace declarado
+// el sello lo lleva CRUDO, el re-key (que acá relee el sello REAL de disco, no un fixture)
+// sale con Identidad.Home canonicalizado — y en una instalación que NO es proyecto-instalado
+// se genera el plugin.json mínimo (SoT de la versión, B-D2).
+func TestIdentificarConMarketplacePueblaHome(t *testing.T) {
+	dir := t.TempDir()
+	store := newFakePortafolioStore()
+	e := entradaAnonimaEn(t, store, dir, domain.InstMaterializada)
+	scan := &fakePortafolioScanner{hallazgos: []domain.HallazgoInstalacion{{Dir: dir, Tipo: domain.InstMaterializada}}}
+	svc := usecase.NewPortafolioService(store, scan, loaderDeSello{}, fakeDerivaEvaluator{}, &fakeIndexPort{}, fakeSchemaValidator{})
+
+	nueva, err := svc.Identificar(context.Background(), e.Identidad.Clave(), usecase.SolicitudIdentificar{
+		InstallPath: dir, ID: "mi-arnes", Nombre: "Mi Arnés",
+		Rol: "dev", Proceso: "delivery", Empresas: []string{"vitalia"},
+		Marketplace: "vitalia/arneses",
+	})
+	if err != nil {
+		t.Fatalf("Identificar: %v", err)
+	}
+	if nueva.Identidad.Home != "github.com/vitalia/arneses" {
+		t.Fatalf("Identidad.Home = %q, quiero el marketplace del sello canonicalizado (github.com/vitalia/arneses)", nueva.Identidad.Home)
+	}
+
+	// plugin.json mínimo generado (no proyecto-instalado, no existía): la SoT de la versión.
+	b, rerr := os.ReadFile(filepath.Join(dir, ".claude-plugin", "plugin.json")) //nolint:gosec // G304: ruta de fixture del test.
+	if rerr != nil {
+		t.Fatalf("el plugin.json mínimo no se generó: %v", rerr)
+	}
+	var pj map[string]any
+	if jerr := json.Unmarshal(b, &pj); jerr != nil {
+		t.Fatal(jerr)
+	}
+	if pj["name"] != "mi-arnes" || pj["version"] != "0.1.0" || pj["description"] != "Mi Arnés" {
+		t.Fatalf("plugin.json = %v, quiero {name: mi-arnes, version: 0.1.0, description: Mi Arnés}", pj)
 	}
 }
 
@@ -445,7 +691,7 @@ func TestObservarEnMapaInstallPathAjeno(t *testing.T) {
 
 	idx := &fakeIndexPort{}
 	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{},
-		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, idx)
+		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, idx, nil)
 
 	ajeno := filepath.Join(t.TempDir(), "ajeno")
 	if _, err := svc.ObservarEnMapa(context.Background(), clave, ajeno); !errors.Is(err, usecase.ErrObservarInstallPathAjeno) {
@@ -461,7 +707,7 @@ func TestObservarEnMapaInstallPathAjeno(t *testing.T) {
 func TestObservarEnMapaClaveInexistente(t *testing.T) {
 	store := newFakePortafolioStore()
 	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{},
-		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, &fakeIndexPort{})
+		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, &fakeIndexPort{}, nil)
 
 	if _, err := svc.ObservarEnMapa(context.Background(), "no-existe", "/cualquier/path"); !errors.Is(err, usecase.ErrObservarClaveNoEncontrada) {
 		t.Fatalf("err = %v, quiero ErrObservarClaveNoEncontrada", err)
@@ -483,7 +729,7 @@ func TestObservarEnMapaSinIndice(t *testing.T) {
 	clave := entrada.Identidad.Clave()
 
 	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{},
-		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, nil)
+		&fakePortafolioLoader{porDir: map[string]domain.Graph{}}, fakeDerivaEvaluator{}, nil, nil)
 
 	if _, err := svc.ObservarEnMapa(context.Background(), clave, installPath); !errors.Is(err, usecase.ErrObservarSinIndice) {
 		t.Fatalf("err = %v, quiero ErrObservarSinIndice", err)
@@ -506,7 +752,7 @@ func TestObservarEnMapaNoCargable(t *testing.T) {
 
 	idx := &fakeIndexPort{}
 	ldr := &fakePortafolioLoader{porDir: map[string]domain.Graph{}} // sin fixture: Load falla.
-	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx)
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, ldr, fakeDerivaEvaluator{}, idx, nil)
 
 	_, err := svc.ObservarEnMapa(context.Background(), clave, installPath)
 	if err == nil {
@@ -543,7 +789,7 @@ func TestAgregarProyectoPueblaRegistries(t *testing.T) {
 		dirCanon: {Arnes: &domain.Arnes{ID: "harness-canon"}},
 		dirCrudo: {Arnes: &domain.Arnes{ID: "harness-crudo"}},
 	}}
-	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil)
+	svc := usecase.NewPortafolioService(store, scan, ldr, fakeDerivaEvaluator{}, nil, nil)
 
 	cands, err := svc.Escanear(context.Background(), root)
 	if err != nil || len(cands) != 2 {
@@ -599,7 +845,7 @@ func TestReevaluarDerivaTrasEdicion(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{}, derivaFija{domain.DerivaEnDeriva, "hash difiere"}, nil)
+	svc := usecase.NewPortafolioService(store, &fakePortafolioScanner{}, &fakePortafolioLoader{}, derivaFija{domain.DerivaEnDeriva, "hash difiere"}, nil, nil)
 
 	cambio, err := svc.ReevaluarDeriva(context.Background(), "/proj/vitalia")
 	if err != nil || !cambio {
@@ -636,7 +882,7 @@ func (d *derivaConHome) Evaluar(installDir, home, _, version string) (domain.Est
 
 // svcConStore cablea un PortafolioService mínimo (sin scanner ni loader: AsignarOrigen no los usa).
 func svcConStore(st *fakePortafolioStore, deriva ports.DerivaEvaluator) *usecase.PortafolioService {
-	return usecase.NewPortafolioService(st, &fakePortafolioScanner{}, &fakePortafolioLoader{}, deriva, nil)
+	return usecase.NewPortafolioService(st, &fakePortafolioScanner{}, &fakePortafolioLoader{}, deriva, nil, nil)
 }
 
 const homeVitalia = "github.com/vitalia/arneses"

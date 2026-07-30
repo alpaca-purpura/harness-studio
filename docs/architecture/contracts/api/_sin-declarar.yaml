@@ -40,12 +40,14 @@ exenciones:
   #   forma legítima de bajar una entrada.
   #
   # De 15 a 6.
-
-  # ── Deuda pura (1) ──────────────────────────────────────────────────────────────────
-  - ruta: "POST /api/portafolio/arneses/{clave}/identificar"
-    razon: >-
-      quedó sin declarar al aterrizar «Identificar» (S1-D28) — es deuda del contrato, no una
-      decisión. Se declara cuando el Portafolio vuelva a tocarse; no la toca este paquete.
+  #
+  # · `POST /api/portafolio/arneses/{clave}/identificar` ya NO está: la retiró B1 del
+  #   paquete 2026-07-30-volverlo-de-arnesia-y-publicar declarándola en `openapi.yaml`
+  #   (0.9.0-sello-b1) — exactamente lo que su razón prometía («se declara cuando el
+  #   Portafolio vuelva a tocarse»). Con eso se fue la última deuda pura: lo que queda
+  #   abajo es estructural, no contrato pendiente.
+  #
+  # De 6 a 5.
 
   # ── Estructurales: sirven algo que NO es la API del daemon (5) ──────────────────────
   - ruta: "POST /v1/logs"

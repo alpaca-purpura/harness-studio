@@ -8,7 +8,11 @@ export {
   nuncaCorrio,
   PieMejoraPortafolio,
 } from "./ui/celdas-mejora-fila"
-export { PortafolioDrawer, type PortafolioDrawerProps } from "./ui/portafolio-drawer"
+export {
+  type DatosIdentificar,
+  PortafolioDrawer,
+  type PortafolioDrawerProps,
+} from "./ui/portafolio-drawer"
 export {
   PortafolioList,
   type PortafolioListProps,

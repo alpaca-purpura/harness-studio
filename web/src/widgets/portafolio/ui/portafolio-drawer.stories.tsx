@@ -141,9 +141,10 @@ export const IdentidadProvisional: Story = {
   },
 }
 
-// IdentificarSinSello — S1-D28: una presencia sin manifiesto muestra la marca roja
-// `manifiesto-ausente` y ofrece «Identificar»; abrir el form, rellenar el id y sellar dispara
-// onIdentificar con (install_path, id, nombre) — el sello se escribe in-situ.
+// IdentificarSinSello — S1-D28 + B1: una presencia sin manifiesto muestra la marca roja
+// `manifiesto-ausente` y ofrece «Identificar»; el form pide TAMBIÉN rol/proceso/empresa
+// (B-D1: graph.l0 los exige, jamás se inventan) y sellar dispara onIdentificar con el objeto
+// DatosIdentificar completo — el sello se escribe in-situ.
 export const IdentificarSinSello: Story = {
   args: { entrada: entradaSinSello, onIdentificar: fn() },
   play: async ({ canvasElement, args }) => {
@@ -155,12 +156,101 @@ export const IdentificarSinSello: Story = {
     await expect(abrir).toBeEnabled()
     await userEvent.click(abrir)
 
-    const idInput = c.getByRole("textbox", { name: "id" })
-    await userEvent.type(idInput, "mi-cruda")
+    await userEvent.type(c.getByRole("textbox", { name: "id" }), "mi-cruda")
+    // El input de rol lleva `list` (datalist) ⇒ su role ARIA es combobox, no textbox.
+    await userEvent.type(c.getByRole("combobox", { name: "rol" }), "dev-full-cycle")
+    await userEvent.type(c.getByRole("textbox", { name: "proceso" }), "delivery")
+    await userEvent.type(c.getByRole("textbox", { name: "empresa" }), "vitalia")
 
     await userEvent.click(c.getByRole("button", { name: "Sellar in-situ" }))
     await waitFor(() =>
-      expect(args.onIdentificar).toHaveBeenCalledWith("~/Proyectos/cruda", "mi-cruda", ""),
+      expect(args.onIdentificar).toHaveBeenCalledWith({
+        installPath: "~/Proyectos/cruda",
+        id: "mi-cruda",
+        nombre: "",
+        rol: "dev-full-cycle",
+        proceso: "delivery",
+        empresas: ["vitalia"],
+        marketplace: "",
+      }),
+    )
+  },
+}
+
+// IdentificarFormIncompletoDisabled — B-D1: sin rol/proceso/empresa el submit queda disabled
+// con el motivo en title (el 400 del backend es el enforcement; el botón es la puerta
+// honesta) y onIdentificar NO se dispara.
+export const IdentificarFormIncompletoDisabled: Story = {
+  args: { entrada: entradaSinSello, onIdentificar: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+
+    await userEvent.click(c.getByRole("button", { name: "✦ Identificar" }))
+    // Solo el id: rol/proceso/empresa vacíos (la fixture no trae empresas que prellenar).
+    await userEvent.type(c.getByRole("textbox", { name: "id" }), "mi-cruda")
+
+    const sellar = c.getByRole("button", { name: "Sellar in-situ" })
+    await expect(sellar).toBeDisabled()
+    await expect(sellar).toHaveAttribute(
+      "title",
+      "rol, proceso y empresa son obligatorios — el sello debe pasar el contrato graph.l0",
+    )
+    await expect(args.onIdentificar).not.toHaveBeenCalled()
+  },
+}
+
+// IdentificarFormCompletoValido — B-D1 lado verde: empresa PRELLENADA desde
+// entrada.empresas[0]; el datalist de rol sugiere los `rolesConocidos` que llegan por props
+// (widget puro — el fetch de GET /api/harnesses vive en la página); con rol/proceso
+// completados el submit se habilita y entrega la empresa prellenada + el marketplace opcional.
+export const IdentificarFormCompletoValido: Story = {
+  args: {
+    entrada: { ...entradaSinSello, empresas: ["vitalia"] },
+    onIdentificar: fn(),
+    rolesConocidos: ["dev-full-cycle", "legal-administrativo"],
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+
+    await userEvent.click(c.getByRole("button", { name: "✦ Identificar" }))
+
+    // Empresa prellenada de la faceta ya conocida (entrada.empresas[0]).
+    await expect(c.getByRole("textbox", { name: "empresa" })).toHaveValue("vitalia")
+
+    // El input de rol es texto libre CON datalist (sugerencia, no catálogo).
+    const rolInput = c.getByRole("combobox", { name: "rol" })
+    const listId = rolInput.getAttribute("list")
+    await expect(listId).toBeTruthy()
+    const opciones = listId
+      ? Array.from(document.getElementById(listId)?.querySelectorAll("option") ?? [])
+      : []
+    await expect(opciones.map((o) => o.getAttribute("value"))).toEqual([
+      "dev-full-cycle",
+      "legal-administrativo",
+    ])
+
+    const sellar = c.getByRole("button", { name: "Sellar in-situ" })
+    await expect(sellar).toBeDisabled() // rol/proceso aún vacíos
+
+    await userEvent.type(rolInput, "dev-full-cycle")
+    await userEvent.type(c.getByRole("textbox", { name: "proceso" }), "delivery")
+    await userEvent.type(
+      c.getByRole("textbox", { name: "marketplace (opcional)" }),
+      "vitalia/arneses",
+    )
+    await expect(sellar).toBeEnabled()
+
+    await userEvent.click(sellar)
+    await waitFor(() =>
+      expect(args.onIdentificar).toHaveBeenCalledWith({
+        installPath: "~/Proyectos/cruda",
+        id: "",
+        nombre: "",
+        rol: "dev-full-cycle",
+        proceso: "delivery",
+        empresas: ["vitalia"],
+        marketplace: "vitalia/arneses",
+      }),
     )
   },
 }

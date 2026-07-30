@@ -190,8 +190,13 @@ flags:
 		return nil
 	}
 
-	// nil: el CLI no observa en Mapa — no necesita el puerto del índice.
-	svc, _, _, err := newPortafolioService(nil)
+	// nil: el CLI no observa en Mapa — no necesita el puerto del índice. Los schemas
+	// embebidos van igual (B1): el service exige su 6° puerto aunque acá solo se liste.
+	schemas, err := schemasEmbebidos()
+	if err != nil {
+		return err
+	}
+	svc, _, _, err := newPortafolioService(nil, schemas)
 	if err != nil {
 		return err
 	}

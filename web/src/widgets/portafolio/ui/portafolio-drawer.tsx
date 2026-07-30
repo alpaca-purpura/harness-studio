@@ -17,6 +17,19 @@ import { trapTabKeyDown } from "@/shared/lib/focus-trap"
 // `onDesvincular`. El widget existe montado MIENTRAS está abierto (la página lo desmonta al
 // cerrar, mismo patrón que el Inspector del Mapa) — "montar" == "abrir" para el foco inicial.
 
+/** DatosIdentificar — lo que el form sin-sello entrega al sellar (B1): además de id/nombre
+ * (opcionales), la META que graph.l0 exige (B-D1: rol/proceso/≥1 empresa se PIDEN, jamás se
+ * inventan) y el marketplace opcional (home autor-declarado). */
+export interface DatosIdentificar {
+  installPath: string
+  id: string
+  nombre: string
+  rol: string
+  proceso: string
+  empresas: string[]
+  marketplace: string
+}
+
 export interface PortafolioDrawerProps {
   entrada: EntradaPortafolio
   onClose: () => void
@@ -26,11 +39,14 @@ export interface PortafolioDrawerProps {
   desvinculando?: boolean | undefined
   desvincularError?: string | undefined
   onDesvincular: () => void
-  /** Identificar (S1-D28): escribe el sello arnes.l0.json in-situ sobre una presencia sin
+  /** Identificar (S1-D28 + B1): escribe el sello arnes.l0.json in-situ sobre una presencia sin
    * manifiesto. undefined ⇒ el arnés ya está sellado (no se ofrece). */
-  onIdentificar?: ((installPath: string, id: string, nombre: string) => void) | undefined
+  onIdentificar?: ((datos: DatosIdentificar) => void) | undefined
   identificando?: boolean | undefined
   identificarError?: string | undefined
+  /** Sugerencias del datalist de `rol` (B-D1: texto libre + sugerido desde los arneses que el
+   *  daemon ya conoce). Widget puro: la lista llega por props, el fetch vive en la página. */
+  rolesConocidos?: string[] | undefined
   /** S7 (AG-D8 decisión 7, paquete 2026-07-23): abre el diálogo «Resolver origen» SOBRE este
    *  drawer — la acción se ejecuta acá, en la ficha del arnés, y el contador cruzado del plano
    *  Marketplaces es solo la segunda forma de llegar. undefined ⇒ no se ofrece. */
@@ -68,6 +84,7 @@ export function PortafolioDrawer({
   onIdentificar,
   identificando,
   identificarError,
+  rolesConocidos,
   onResolverOrigen,
   onTraerCanonico,
   trayendo,
@@ -77,10 +94,17 @@ export function PortafolioDrawer({
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const cancelarBtnRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
+  const rolesListId = useId()
   const [confirmando, setConfirmando] = useState(false)
   const [sellando, setSellando] = useState(false)
   const [idInput, setIdInput] = useState("")
   const [nombreInput, setNombreInput] = useState("")
+  // B-D1: la META del sello se PIDE — empresa prellenada desde la entrada si la hay (la
+  // faceta ya conocida), rol/proceso siempre del operador.
+  const [rolInput, setRolInput] = useState("")
+  const [procesoInput, setProcesoInput] = useState("")
+  const [empresaInput, setEmpresaInput] = useState(entrada.empresas?.[0] ?? "")
+  const [marketplaceInput, setMarketplaceInput] = useState("")
 
   // Foco inicial DENTRO del drawer al montar (G8).
   useEffect(() => {
@@ -120,8 +144,24 @@ export function PortafolioDrawer({
     onObservar?.(installPath)
   }
 
+  // B-D1: sin rol/proceso/≥1 empresa el sello no valida contra graph.l0 — el submit queda
+  // disabled con motivo (el 400 del backend es el enforcement; esto es la puerta honesta).
+  const selloCompleto =
+    rolInput.trim() !== "" && procesoInput.trim() !== "" && empresaInput.trim() !== ""
+  const selloIncompletoMotivo =
+    "rol, proceso y empresa son obligatorios — el sello debe pasar el contrato graph.l0"
+
   function identificar() {
-    if (selloTarget) onIdentificar?.(selloTarget, idInput.trim(), nombreInput.trim())
+    if (!selloTarget || !selloCompleto) return
+    onIdentificar?.({
+      installPath: selloTarget,
+      id: idInput.trim(),
+      nombre: nombreInput.trim(),
+      rol: rolInput.trim(),
+      proceso: procesoInput.trim(),
+      empresas: [empresaInput.trim()],
+      marketplace: marketplaceInput.trim(),
+    })
   }
 
   return (
@@ -216,6 +256,47 @@ export function PortafolioDrawer({
                   onChange={(e) => setNombreInput(e.target.value)}
                 />
               </label>
+              {/* B-D1: la META que graph.l0 exige — texto libre; el datalist solo sugiere
+                  roles de arneses ya conocidos, el operador es la autoridad. */}
+              <label className="pf-sello-campo">
+                <span>rol</span>
+                <input
+                  value={rolInput}
+                  placeholder="p.ej. dev-full-cycle"
+                  list={rolesListId}
+                  onChange={(e) => setRolInput(e.target.value)}
+                />
+              </label>
+              <datalist id={rolesListId}>
+                {(rolesConocidos ?? []).map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+              <label className="pf-sello-campo">
+                <span>proceso</span>
+                <input
+                  value={procesoInput}
+                  placeholder="p.ej. delivery"
+                  onChange={(e) => setProcesoInput(e.target.value)}
+                />
+              </label>
+              <label className="pf-sello-campo">
+                <span>empresa</span>
+                <input
+                  value={empresaInput}
+                  placeholder="¿para qué empresa sirve?"
+                  onChange={(e) => setEmpresaInput(e.target.value)}
+                />
+              </label>
+              <label className="pf-sello-campo">
+                <span>marketplace (opcional)</span>
+                <input
+                  className="mono"
+                  value={marketplaceInput}
+                  placeholder="owner/repo — home del arnés"
+                  onChange={(e) => setMarketplaceInput(e.target.value)}
+                />
+              </label>
               {identificarError && (
                 <p role="alert" className="pf-error">
                   {identificarError}
@@ -232,7 +313,8 @@ export function PortafolioDrawer({
                 <button
                   type="button"
                   className="pf-btn-primary"
-                  disabled={identificando || !puedeIdentificar}
+                  disabled={identificando || !puedeIdentificar || !selloCompleto}
+                  title={selloCompleto ? undefined : selloIncompletoMotivo}
                   onClick={identificar}
                 >
                   {identificando ? "Sellando…" : "Sellar in-situ"}

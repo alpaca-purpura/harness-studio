@@ -44,13 +44,18 @@ type PortafolioService struct {
 	// nil explícito, no un adapter vacío, así ObservarEnMapa puede dar el error honesto
 	// «requiere el daemon» en vez de un nil-pointer panic.
 	indice ports.IndexPort
+	// schemas es el 6° puerto (B1, RF-B1.2): valida el sello de Identificar contra
+	// graph.l0.schema.json ANTES de escribirlo. El wiring real (serve y CLI) siempre lo
+	// cablea con el SchemaSet embebido; nil hace fallar Identificar con error honesto,
+	// jamás escribe un sello sin validar.
+	schemas ports.SchemaValidator
 }
 
-// NewPortafolioService cablea el usecase a sus 5 puertos (cmd es quien inyecta los
+// NewPortafolioService cablea el usecase a sus 6 puertos (cmd es quien inyecta los
 // adapters concretos — composition root, igual que el resto de services). indice puede
 // ser nil (subcomando CLI: la observación en Mapa no aplica sin daemon).
-func NewPortafolioService(store ports.PortafolioStore, scan ports.PortafolioScanner, cargar ports.ArnesLoader, deriva ports.DerivaEvaluator, indice ports.IndexPort) *PortafolioService {
-	return &PortafolioService{store: store, scan: scan, cargar: cargar, deriva: deriva, indice: indice}
+func NewPortafolioService(store ports.PortafolioStore, scan ports.PortafolioScanner, cargar ports.ArnesLoader, deriva ports.DerivaEvaluator, indice ports.IndexPort, schemas ports.SchemaValidator) *PortafolioService {
+	return &PortafolioService{store: store, scan: scan, cargar: cargar, deriva: deriva, indice: indice, schemas: schemas}
 }
 
 // Los errores centinela de ObservarEnMapa (S1-D1) — distinguibles por errors.Is desde el
@@ -70,6 +75,12 @@ var (
 	// ErrIdentificarYaSellado: el dir ya tiene arnes.l0.json — Identificar NO pisa un sello
 	// existente (S1-D28, guarda 2). Editar un sello ya escrito es otra operación (S2+).
 	ErrIdentificarYaSellado = errors.New("portafolio: identificar: el directorio ya tiene arnes.l0.json (no se pisa)")
+	// ErrIdentificarSelloIncompleto: el sello exige rol, proceso y ≥1 empresa (B-D1 — el
+	// anyOf de graph.l0). Se PIDEN al operador, jamás se inventan; vacíos ⇒ 400 honesto.
+	ErrIdentificarSelloIncompleto = errors.New("portafolio: identificar: sello incompleto — rol, proceso y ≥1 empresa son obligatorios (contrato graph.l0)")
+	// ErrIdentificarSelloInvalido: el sello armado NO valida contra graph.l0.schema.json
+	// (RF-B1.2) — NADA se escribe. El detalle del validador viaja envuelto.
+	ErrIdentificarSelloInvalido = errors.New("portafolio: identificar: el sello no valida contra graph.l0.schema.json")
 )
 
 // Escanear recorre root y devuelve TODOS los candidatos crudos (collect-all, spec §7.1):
@@ -319,16 +330,34 @@ func (s *PortafolioService) ObservarEnMapa(ctx context.Context, clave, installPa
 	return clave, nil
 }
 
+// SolicitudIdentificar es el insumo de Identificar (B1, paquete volverlo-de-arnesia-y-publicar):
+// el sello ya no se arma con defaults inventados — Rol/Proceso/Empresas los declara el
+// operador (B-D1) porque graph.l0 los exige y el schema NO se relaja. ID/Nombre siguen
+// opcionales (defaults: basename sluggeado / el id); Marketplace es el home autor-declarado
+// CRUDO (S0-D3), opcional — poblado, el re-key sale con Identidad.Home.
+type SolicitudIdentificar struct {
+	InstallPath string
+	ID          string
+	Nombre      string
+	Rol         string
+	Proceso     string
+	Empresas    []string
+	Marketplace string
+}
+
 // Identificar escribe el sello `arnes.l0.json` (el manifiesto de la fábrica, S1-D28) en la
-// instalación installPath de la entrada clave, y re-keya la entrada con su identidad ya
-// sellada. V1 = scaffold mínimo (id·nombre·empresas·version), SIN clon: se sella IN-SITU
-// (S1-D27 decisión 2 — git del proyecto es la red de seguridad, no una 2ª copia). Guardas:
-// (1) la entrada existe y installPath le pertenece (misma autoridad que Observar — el store,
-// jamás un dir arbitrario); (2) path no protegido (validarRootPortafolio, así un sello jamás
-// se escribe en ~/.claude/~/.ssh/etc.); (3) NO pisa un sello existente. Sellar un dir sin
-// identidad previa NO viola la ley anti-drift: CREA la identidad, no edita una copia
-// downstream de un canónico. Devuelve la entrada re-keyed.
-func (s *PortafolioService) Identificar(ctx context.Context, clave, installPath, id, nombre string) (domain.EntradaPortafolio, error) {
+// instalación sol.InstallPath de la entrada clave, y re-keya la entrada con su identidad ya
+// sellada. SIN clon: se sella IN-SITU (S1-D27 decisión 2 — git del proyecto es la red de
+// seguridad, no una 2ª copia). Guardas: (1) la entrada existe y installPath le pertenece
+// (misma autoridad que Observar — el store, jamás un dir arbitrario); (2) path no protegido
+// (validarRootPortafolio, así un sello jamás se escribe en ~/.claude/~/.ssh/etc.); (3) NO
+// pisa un sello existente; (4) rol/proceso/≥1 empresa presentes (B-D1); (5) el sello valida
+// contra graph.l0.schema.json ANTES de tocar disco (RF-B1.2 — cierra el bug del sello
+// inválido {id,nombre,empresas,version}). Sellar un dir sin identidad previa NO viola la ley
+// anti-drift: CREA la identidad, no edita una copia downstream de un canónico. Devuelve la
+// entrada re-keyed.
+func (s *PortafolioService) Identificar(ctx context.Context, clave string, sol SolicitudIdentificar) (domain.EntradaPortafolio, error) {
+	installPath := sol.InstallPath
 	entrada, encontrada := s.buscarPorClave(clave)
 	if !encontrada {
 		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %q", ErrObservarClaveNoEncontrada, clave)
@@ -344,13 +373,42 @@ func (s *PortafolioService) Identificar(ctx context.Context, clave, installPath,
 		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %s", ErrIdentificarYaSellado, ruta)
 	}
 
-	sello := selloDe(installPath, id, nombre, entrada.Empresas)
+	// B-D1: empresas de la solicitud; vacías caen a las de la entrada; si sigue vacío, el
+	// sello sería inválido contra el anyOf del schema — error ANTES de escribir nada.
+	empresas := sinVacios(sol.Empresas)
+	if len(empresas) == 0 {
+		empresas = sinVacios(entrada.Empresas)
+	}
+	if strings.TrimSpace(sol.Rol) == "" || strings.TrimSpace(sol.Proceso) == "" || len(empresas) == 0 {
+		return domain.EntradaPortafolio{}, ErrIdentificarSelloIncompleto
+	}
+
+	sello := selloDe(installPath, sol, empresas)
+	if s.schemas == nil {
+		return domain.EntradaPortafolio{}, errors.New("portafolio: identificar: sin validador de schemas cableado — no se escribe un sello sin validar")
+	}
+	// graph.l0 valida el GRAFO (top-level exige `nodos`): el sello se envuelve con un slice
+	// NO-nil — nil marshalearía `"nodos": null` y el `type: array` del schema lo tumbaría.
+	if verr := s.schemas.ValidateJSON("graph.l0.schema.json", domain.Graph{Arnes: &sello, Nodes: []domain.Box{}}); verr != nil {
+		return domain.EntradaPortafolio{}, fmt.Errorf("%w: %w", ErrIdentificarSelloInvalido, verr)
+	}
 	b, merr := json.MarshalIndent(sello, "", "  ")
 	if merr != nil {
 		return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: serializar sello: %w", merr)
 	}
 	if werr := os.WriteFile(ruta, append(b, '\n'), 0o644); werr != nil { //nolint:gosec // G306: el sello es doc pública versionable, no secreto.
 		return domain.EntradaPortafolio{}, fmt.Errorf("portafolio: identificar: escribir %s: %w", ruta, werr)
+	}
+
+	// B-D2: la versión del arnés tiene UNA fuente — plugin.json.version (SoT,
+	// conventions/versionado-arnes.md). Si falta, se genera el mínimo; EXCEPTO en
+	// `proyecto-instalado`: escribirlo ahí cambiaría la detección del loader (plugin manda
+	// sobre .claude/) y rompería el arnés — la instalación queda con el aviso honesto.
+	var avisoSinPlugin string
+	if tipoInstalacionDe(entrada, installPath) == domain.InstProyectoInstalado {
+		avisoSinPlugin = "sin plugin.json: no publicable en esta forma"
+	} else if perr := asegurarPluginJSON(installPath, sello.ID, sello.Nombre); perr != nil {
+		return domain.EntradaPortafolio{}, perr
 	}
 
 	// Re-key: re-escanear el proyecto reconstruye la identidad YA sellada por la misma tubería
@@ -370,6 +428,13 @@ func (s *PortafolioService) Identificar(ctx context.Context, clave, installPath,
 			continue
 		}
 		nueva := entradaDeCandidato(c)
+		if avisoSinPlugin != "" {
+			for i := range nueva.Instalaciones {
+				if canonicalPathPortafolio(nueva.Instalaciones[i].InstallPath) == target && nueva.Instalaciones[i].Aviso == "" {
+					nueva.Instalaciones[i].Aviso = avisoSinPlugin
+				}
+			}
+		}
 		if uerr := s.store.Upsert(nueva); uerr != nil {
 			return domain.EntradaPortafolio{}, uerr
 		}
@@ -394,16 +459,80 @@ func (s *PortafolioService) buscarPorClave(clave string) (domain.EntradaPortafol
 	return domain.EntradaPortafolio{}, false
 }
 
-// selloDe arma el manifiesto mínimo de Identificar V1 (S1-D28): id = el dado o el basename
-// del install-path sluggeado; nombre = el dado o el id; empresas heredadas de la entrada;
-// version semilla "0.1.0". Sin marketplace (identidad provisional honesta hasta que se
-// declare un home) ni fases/spine (opcionales, §2 de nomenclatura-arnes). reporta_a = null.
-func selloDe(installPath, id, nombre string, empresas []string) domain.Arnes {
-	id = domain.Slug(primerNoVacio(id, filepath.Base(installPath)))
+// selloDe arma el manifiesto de Identificar (B1): id = el dado o el basename del
+// install-path sluggeado; nombre = el dado o el id; rol/proceso/empresas = declarados por
+// el operador (B-D1, ya validados por el caller); marketplace CRUDO si se declaró (S0-D3,
+// con omitempty el campo desaparece si viene vacío). SIN `version` (B-D2): la SoT es
+// plugin.json.version — el "0.1.0" que antes se tecleaba acá era la ambigüedad que hacía
+// el sello inválido contra graph.l0. reporta_a = null (raíz; el schema lo exige presente).
+func selloDe(installPath string, sol SolicitudIdentificar, empresas []string) domain.Arnes {
+	id := domain.Slug(primerNoVacio(sol.ID, filepath.Base(installPath)))
+	nombre := sol.Nombre
 	if nombre == "" {
 		nombre = id
 	}
-	return domain.Arnes{ID: id, Nombre: nombre, Empresas: empresas, Version: "0.1.0", ReportaA: nil}
+	return domain.Arnes{
+		ID:          id,
+		Nombre:      nombre,
+		Rol:         strings.TrimSpace(sol.Rol),
+		Proceso:     strings.TrimSpace(sol.Proceso),
+		Empresas:    empresas,
+		Marketplace: strings.TrimSpace(sol.Marketplace),
+		ReportaA:    nil,
+	}
+}
+
+// sinVacios filtra los strings vacíos (tras TrimSpace) preservando el orden — así una
+// empresa "" del wire no cuela un ítem inválido en el anyOf de graph.l0.
+func sinVacios(xs []string) []string {
+	out := make([]string, 0, len(xs))
+	for _, x := range xs {
+		if v := strings.TrimSpace(x); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// pluginJSONMinimo es la forma mínima de `.claude-plugin/plugin.json` que Identificar genera
+// (B-D2): la SoT de la versión del arnés — ver conventions/versionado-arnes.md.
+type pluginJSONMinimo struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Description string `json:"description"`
+}
+
+// asegurarPluginJSON escribe el `.claude-plugin/plugin.json` mínimo bajo installPath si
+// falta (B-D2). Nunca pisa uno existente — solo asegura que el arnés recién sellado tenga
+// su SoT de versión (semilla "0.1.0").
+func asegurarPluginJSON(installPath, id, nombre string) error {
+	ruta := filepath.Join(installPath, ".claude-plugin", "plugin.json")
+	if _, err := os.Stat(ruta); err == nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(ruta), 0o750); err != nil {
+		return fmt.Errorf("portafolio: identificar: crear %s: %w", filepath.Dir(ruta), err)
+	}
+	b, err := json.MarshalIndent(pluginJSONMinimo{Name: id, Version: "0.1.0", Description: nombre}, "", "  ")
+	if err != nil {
+		return fmt.Errorf("portafolio: identificar: serializar plugin.json: %w", err)
+	}
+	if err := os.WriteFile(ruta, append(b, '\n'), 0o644); err != nil { //nolint:gosec // G306: manifiesto público versionable, no secreto.
+		return fmt.Errorf("portafolio: identificar: escribir %s: %w", ruta, err)
+	}
+	return nil
+}
+
+// tipoInstalacionDe devuelve el Tipo de la instalación de entrada que coincide con
+// installPath; "" si installPath es el canónico u otra presencia sin tipo registrado.
+func tipoInstalacionDe(entrada domain.EntradaPortafolio, installPath string) domain.TipoInstalacion {
+	target := canonicalPathPortafolio(installPath)
+	for _, inst := range entrada.Instalaciones {
+		if canonicalPathPortafolio(inst.InstallPath) == target {
+			return inst.Tipo
+		}
+	}
+	return ""
 }
 
 // proyectoPathDe devuelve el ProyectoPath de la instalación de entrada que coincide con

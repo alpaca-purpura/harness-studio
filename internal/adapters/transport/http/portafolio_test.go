@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,6 +35,13 @@ func (fakeDeriva) Evaluar(string, string, string, string) (domain.EstadoDeriva, 
 	return domain.DerivaNoEvaluable, "fake"
 }
 
+// fakeSchemas satisface ports.SchemaValidator (6° puerto del Portafolio, B1) — el wire no
+// prueba el schema real (eso vive en usecase); acá solo que el body llega al usecase.
+type fakeSchemas struct{}
+
+func (fakeSchemas) Validate(string, any) error     { return nil }
+func (fakeSchemas) ValidateJSON(string, any) error { return nil }
+
 // fakeIndex satisface ports.IndexPort — el único método que el endpoint de observar
 // ejercita es Upsert (S1-D1).
 type fakeIndex struct {
@@ -61,7 +69,7 @@ func svcConTienda(t *testing.T, root string) (*usecase.PortafolioService, *porta
 	scan := &fakeScan{hallazgos: []domain.HallazgoInstalacion{{Dir: root, Tipo: domain.InstProyectoInstalado}}}
 	ldr := &fakeLoad{porDir: map[string]domain.Graph{root: {Arnes: &domain.Arnes{ID: "harness-x", Marketplace: "owner/repo"}}}}
 	idx := &fakeIndex{}
-	svc := usecase.NewPortafolioService(st, scan, ldr, fakeDeriva{}, idx)
+	svc := usecase.NewPortafolioService(st, scan, ldr, fakeDeriva{}, idx, fakeSchemas{})
 	return svc, st, idx
 }
 
@@ -74,7 +82,7 @@ func TestPortafolioListIncluyeCorruptas(t *testing.T) {
 	if uerr := st.Upsert(domain.EntradaPortafolio{Identidad: domain.IdentidadArnes{ID: "x"}}); uerr != nil {
 		t.Fatal(uerr)
 	}
-	svc := usecase.NewPortafolioService(st, &fakeScan{}, &fakeLoad{}, fakeDeriva{}, &fakeIndex{})
+	svc := usecase.NewPortafolioService(st, &fakeScan{}, &fakeLoad{}, fakeDeriva{}, &fakeIndex{}, fakeSchemas{})
 
 	w := httptest.NewRecorder()
 	listPortafolio(svc)(w, httptest.NewRequestWithContext(context.Background(), "GET", "/api/portafolio", nil))
@@ -213,6 +221,72 @@ func TestPortafolioObservar(t *testing.T) {
 		postObservarEnMapa(svc)(w, r)
 		if w.Code != 400 {
 			t.Fatalf("status %d, quiero 400 para un install_path ajeno: %s", w.Code, w.Body)
+		}
+	})
+}
+
+// TestPortafolioIdentificar cubre el wire de B1: los campos nuevos del body
+// (rol/proceso/empresas/marketplace) llegan al usecase y terminan en el sello; sin rol el
+// centinela ErrIdentificarSelloIncompleto mapea a 400 con motivo.
+func TestPortafolioIdentificar(t *testing.T) {
+	nuevoSvc := func(t *testing.T, dir string) (*usecase.PortafolioService, string) {
+		t.Helper()
+		st, err := portafolio.NewStore(filepath.Join(t.TempDir(), "portafolio.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		anon := domain.EntradaPortafolio{
+			Identidad:     domain.IdentidadArnes{Scope: ".", Disc: domain.HuellaPath(dir)},
+			Instalaciones: []domain.Instalacion{{ProyectoPath: dir, InstallPath: dir, Tipo: domain.InstProyectoInstalado}},
+		}
+		if uerr := st.Upsert(anon); uerr != nil {
+			t.Fatal(uerr)
+		}
+		scan := &fakeScan{hallazgos: []domain.HallazgoInstalacion{{Dir: dir, Tipo: domain.InstProyectoInstalado}}}
+		ldr := &fakeLoad{porDir: map[string]domain.Graph{dir: {Arnes: &domain.Arnes{ID: "mi-arnes"}}}}
+		return usecase.NewPortafolioService(st, scan, ldr, fakeDeriva{}, &fakeIndex{}, fakeSchemas{}), anon.Identidad.Clave()
+	}
+
+	t.Run("200 y el sello lleva los campos del body", func(t *testing.T) {
+		dir := t.TempDir()
+		svc, clave := nuevoSvc(t, dir)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequestWithContext(context.Background(), "POST", "/api/portafolio/arneses/"+clave+"/identificar",
+			strings.NewReader(`{"install_path":"`+dir+`","id":"mi-arnes","rol":"dev","proceso":"delivery","empresas":["vitalia"],"marketplace":"vitalia/arneses"}`))
+		r.SetPathValue("clave", clave)
+		postIdentificar(svc)(w, r)
+		if w.Code != 200 {
+			t.Fatalf("status %d: %s", w.Code, w.Body)
+		}
+		b, rerr := os.ReadFile(filepath.Join(dir, "arnes.l0.json")) //nolint:gosec // G304: ruta de fixture del test.
+		if rerr != nil {
+			t.Fatalf("el sello no se escribió: %v", rerr)
+		}
+		var sello map[string]any
+		if jerr := json.Unmarshal(b, &sello); jerr != nil {
+			t.Fatal(jerr)
+		}
+		if sello["rol"] != "dev" || sello["proceso"] != "delivery" || sello["marketplace"] != "vitalia/arneses" {
+			t.Fatalf("el body no llegó al sello: %v", sello)
+		}
+	})
+
+	t.Run("400 sello incompleto (sin rol)", func(t *testing.T) {
+		dir := t.TempDir()
+		svc, clave := nuevoSvc(t, dir)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequestWithContext(context.Background(), "POST", "/api/portafolio/arneses/"+clave+"/identificar",
+			strings.NewReader(`{"install_path":"`+dir+`","proceso":"delivery","empresas":["vitalia"]}`))
+		r.SetPathValue("clave", clave)
+		postIdentificar(svc)(w, r)
+		if w.Code != 400 {
+			t.Fatalf("status %d, quiero 400 para un sello incompleto: %s", w.Code, w.Body)
+		}
+		if !strings.Contains(w.Body.String(), "rol") {
+			t.Fatalf("el motivo debe nombrar lo que falta: %s", w.Body)
+		}
+		if _, serr := os.Stat(filepath.Join(dir, "arnes.l0.json")); serr == nil {
+			t.Fatal("un 400 no debe dejar sello en disco")
 		}
 	})
 }

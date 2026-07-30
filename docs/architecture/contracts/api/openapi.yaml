@@ -30,7 +30,13 @@ info:
   # cargar: (a) el DELETE acepta ventana y borra lo que la confirmación declara (D26.5,
   # única acción irreversible); (b) `contrafactual` viaja como prosa YA redactada por el
   # dominio (D25) — la UI presenta, no calcula.
-  version: 0.8.0-telemetria
+  # 0.9.0-sello-b1: + POST /portafolio/arneses/{clave}/identificar — sale de la allowlist
+  # `_sin-declarar.yaml` (ratchet 6→5): su razón prometía declararla «cuando el Portafolio
+  # vuelva a tocarse», y B1 (paquete 2026-07-30-volverlo-de-arnesia-y-publicar) lo tocó.
+  # Con B1 el body gana rol/proceso/empresas/marketplace (B-D1) y el sello se valida contra
+  # graph.l0 ANTES de escribirse; `version` NO viaja en el sello (B-D2 — SoT =
+  # plugin.json.version, conventions/versionado-arnes.md).
+  version: 0.9.0-sello-b1
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -357,6 +363,47 @@ paths:
         "404": { description: Clave desconocida en el Portafolio (solo se observa lo YA persistido). }
         "400": { description: "`install_path` ajeno a la entrada, o no cargable (motivo real del loader — jamás un grafo inventado)." }
         "500": { description: PortafolioService sin el 5° puerto cableado (subcomando CLI, no el daemon). }
+
+  /portafolio/arneses/{clave}/identificar:
+    post:
+      operationId: postIdentificarPortafolio
+      summary: >-
+        Identificar (S1-D28 + B1): escribe el sello `arnes.l0.json` IN-SITU en la
+        instalación y re-keya la entrada. El sello se valida contra `graph.l0.schema.json`
+        ANTES de escribirse (RF-B1.2) — inválido o incompleto, NADA toca el disco.
+        rol/proceso/≥1 empresa los declara el operador (B-D1: el schema no se relaja y los
+        exige); `version` NO viaja en el sello (B-D2: la SoT es `plugin.json.version` —
+        conventions/versionado-arnes.md). Si el target NO es `proyecto-instalado` y falta
+        `.claude-plugin/plugin.json`, se genera el mínimo (`{name, version: "0.1.0",
+        description}`); en `proyecto-instalado` NO se genera (cambiaría la detección del
+        loader) y la instalación queda con el aviso honesto «sin plugin.json: no publicable
+        en esta forma».
+      parameters:
+        - { name: clave, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [install_path, rol, proceso]
+              properties:
+                install_path: { type: string, description: "presencia REAL de la entrada (misma autoridad que /mapa: el store, jamás un dir arbitrario)." }
+                id: { type: string, description: "opcional — default: basename del install-path, sluggeado." }
+                nombre: { type: string, description: "opcional — default: el id." }
+                rol: { type: string, description: "META del sello (graph.l0 la exige) — texto libre del operador, jamás inventada (B-D1)." }
+                proceso: { type: string, description: "META del sello (graph.l0 la exige)." }
+                empresas: { type: array, items: { type: string }, description: "≥1 (el anyOf del schema); vacías caen a las de la entrada — si tampoco hay, 400." }
+                marketplace: { type: string, description: "home autor-declarado CRUDO (S0-D3), opcional — poblado, la entrada re-keyed sale con identidad.home." }
+      responses:
+        "200":
+          description: La EntradaPortafolio re-keyed (su `identidad` nueva → el FE re-apunta el drawer).
+          content:
+            application/json:
+              schema: { type: object }
+        "404": { description: Clave desconocida en el Portafolio. }
+        "409": { description: "El dir ya tiene `arnes.l0.json` — no se pisa; editar un sello es otra operación." }
+        "400": { description: "`install_path` ajeno / path protegido / sello incompleto (sin rol, proceso o empresa) / sello que no valida contra graph.l0 — en todos los casos NADA se escribió." }
 
   /portafolio/arneses/{clave}/origen/candidatos:
     get:

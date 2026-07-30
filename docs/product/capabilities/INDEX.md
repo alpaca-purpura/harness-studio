@@ -151,7 +151,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-61 · Renderizar el Mapa (HTML+SVG)** `vivo` · fe-mapa/renderizar-el-mapa.yaml — `web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas`
 - **CAP-62 · Pan/zoom/fit** `vivo·nc` · fe-mapa/pan-zoom-fit.yaml — `web/src/widgets/map-canvas/model/use-viewport.ts#useViewport`
 - **CAP-63 · Inspector drawer (Resumen|Contenido|Corridas)** `vivo` · fe-mapa/inspector-drawer.yaml — `web/src/widgets/map-canvas/ui/inspector.tsx#Inspector`
-- **CAP-64 · Tab Contenido (fuente real, lazy)** `vivo·nc` · fe-mapa/tab-contenido.yaml — `web/src/widgets/map-canvas/ui/inspector.tsx#Contenido`
+- **CAP-64 · Tab Contenido (fuente real, lazy)** `vivo` · fe-mapa/tab-contenido.yaml — `web/src/widgets/map-canvas/ui/inspector.tsx#Contenido`
 - **CAP-65 · Franja de artefactos (chips hand-off, off/auto/todos)** `vivo` · fe-mapa/franja-de-artefactos.yaml — `web/src/widgets/map-canvas/ui/handoff-gutter.tsx#HandoffGutter`
 - **CAP-66 · Picker de arnés** `vivo` · fe-mapa/picker-de-arnes.yaml — `web/src/widgets/map-canvas/ui/map-bar.tsx#arnes`
 - **CAP-67 · Conmutador de capas** `vivo` · fe-mapa/conmutador-de-capas.yaml — `web/src/widgets/map-canvas/ui/map-bar.tsx#LAYERS`

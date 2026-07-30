@@ -5,7 +5,7 @@ capability_id: arnesia.fe-mapa.tab-contenido
 cap_num: CAP-64
 slug: tab-contenido
 name: "Tab Contenido (fuente real, lazy)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+status: vivo          # GENERADO (R4) — no teclear
 module: fe-mapa
 verb: observar
 pointers:

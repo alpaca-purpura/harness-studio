@@ -50,7 +50,7 @@ func TestAvisarCoberturaPortafolioIndiceCallaSiTodoCubierto(t *testing.T) {
 	if err := store.Upsert(domain.EntradaPortafolio{Identidad: id}); err != nil {
 		t.Fatal(err)
 	}
-	svc := usecase.NewPortafolioService(store, nil, nil, nil, nil)
+	svc := usecase.NewPortafolioService(store, nil, nil, nil, nil, nil)
 	idx := indiceFalso{conocidas: map[string]bool{id.Clave(): true}}
 
 	out := capturarLogs(t, func() { avisarCoberturaPortafolioIndice(context.Background(), svc, idx) })
@@ -74,7 +74,7 @@ func TestAvisarCoberturaPortafolioIndiceDiceCuantasFaltan(t *testing.T) {
 	if err := store.Upsert(domain.EntradaPortafolio{Identidad: sinCubrir}); err != nil {
 		t.Fatal(err)
 	}
-	svc := usecase.NewPortafolioService(store, nil, nil, nil, nil)
+	svc := usecase.NewPortafolioService(store, nil, nil, nil, nil, nil)
 	idx := indiceFalso{conocidas: map[string]bool{cubierta.Clave(): true}}
 
 	out := capturarLogs(t, func() { avisarCoberturaPortafolioIndice(context.Background(), svc, idx) })
