@@ -169,6 +169,12 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 
 // harnessSummary is one row of GET /api/harnesses — the lightweight portfolio entry the Map
 // picker (RF-72) consumes; the full graph is a separate call (getHarnessGraph).
+//
+// `id` es la CLAVE del índice (`sin-home~vitalia~vitalia`), no el id interno del manifiesto
+// (`vitalia`): es la única cuerda con la que el cliente puede después pedir el grafo, y la
+// misma que la sesión guarda en `arnes` desde el re-key (CAP-142). Cuando devolvía
+// `g.Arnes.ID` el consumidor comparaba dos espacios de llaves distintos y una sesión
+// perfectamente cargable se veía como «no está en el índice del daemon».
 type harnessSummary struct {
 	ID       string   `json:"id"`
 	Rol      string   `json:"rol,omitempty"`
@@ -179,21 +185,21 @@ type harnessSummary struct {
 // listHarnesses (S1) — portfolio, from the index (RF-72).
 func listHarnesses(maps *usecase.MapService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		gs, err := maps.Harnesses(r.Context())
+		entradas, err := maps.Harnesses(r.Context())
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
 			return
 		}
-		out := make([]harnessSummary, 0, len(gs))
-		for _, g := range gs {
-			if g.Arnes == nil {
+		out := make([]harnessSummary, 0, len(entradas))
+		for _, e := range entradas {
+			if e.Grafo.Arnes == nil {
 				continue
 			}
 			out = append(out, harnessSummary{
-				ID:       g.Arnes.ID,
-				Rol:      g.Arnes.Rol,
-				Proceso:  g.Arnes.Proceso,
-				Empresas: g.Arnes.Empresas,
+				ID:       e.Clave,
+				Rol:      e.Grafo.Arnes.Rol,
+				Proceso:  e.Grafo.Arnes.Proceso,
+				Empresas: e.Grafo.Arnes.Empresas,
 			})
 		}
 		writeJSON(w, http.StatusOK, out)

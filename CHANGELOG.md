@@ -36,6 +36,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ### Eliminado
 
 ### Corregido
+- El Mapa mostraba «No se pudo cargar el arnés» sobre arneses que el daemon sí tenía indexados: el listado del portafolio anunciaba el id interno del manifiesto en vez de la clave del índice, así que la pantalla comparaba dos espacios de llaves distintos y negaba lo que existía.
 
 ### Seguridad
 

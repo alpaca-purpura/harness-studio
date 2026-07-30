@@ -26,8 +26,10 @@ func (s *MapService) Graph(ctx context.Context, harnessID string) (domain.Graph,
 	return s.index.Query(ctx, harnessID)
 }
 
-// Harnesses returns every indexed harness graph — the portfolio the picker lists (S1, RF-72).
-func (s *MapService) Harnesses(ctx context.Context) ([]domain.Graph, error) {
+// Harnesses returns every indexed harness with su clave — el portafolio que la superficie
+// lista (S1, RF-72). Devuelve la clave y no sólo el grafo porque el consumidor la necesita
+// para nombrar la fila con la misma cuerda que después le pasa a Graph.
+func (s *MapService) Harnesses(ctx context.Context) ([]ports.EntradaIndice, error) {
 	return s.index.List(ctx)
 }
 

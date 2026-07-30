@@ -10,6 +10,7 @@ import (
 
 	"github.com/alpacapurpura/arnesia/internal/adapters/portafolio"
 	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
@@ -44,7 +45,7 @@ func (f *fakeIndex) Rebuild(context.Context) error { return nil }
 func (f *fakeIndex) Query(context.Context, string) (domain.Graph, error) {
 	return domain.Graph{}, nil
 }
-func (f *fakeIndex) List(context.Context) ([]domain.Graph, error) { return nil, nil }
+func (f *fakeIndex) List(context.Context) ([]ports.EntradaIndice, error) { return nil, nil }
 func (f *fakeIndex) Upsert(_ context.Context, clave string, g domain.Graph) error {
 	f.upserted = append(f.upserted, g)
 	f.claves = append(f.claves, clave)

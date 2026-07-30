@@ -1341,7 +1341,7 @@ type fakeIndexPort struct{ g domain.Graph }
 
 func (f *fakeIndexPort) Rebuild(context.Context) error                       { return nil }
 func (f *fakeIndexPort) Query(context.Context, string) (domain.Graph, error) { return f.g, nil }
-func (f *fakeIndexPort) List(context.Context) ([]domain.Graph, error)        { return nil, nil }
+func (f *fakeIndexPort) List(context.Context) ([]ports.EntradaIndice, error) { return nil, nil }
 func (f *fakeIndexPort) Upsert(context.Context, string, domain.Graph) error  { return nil }
 
 type fakePermissionPort struct{ ps domain.PermissionSet }

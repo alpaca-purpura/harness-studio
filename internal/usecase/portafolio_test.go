@@ -106,7 +106,7 @@ func (f *fakeIndexPort) Rebuild(context.Context) error { return nil }
 func (f *fakeIndexPort) Query(context.Context, string) (domain.Graph, error) {
 	return domain.Graph{}, nil
 }
-func (f *fakeIndexPort) List(context.Context) ([]domain.Graph, error) { return nil, nil }
+func (f *fakeIndexPort) List(context.Context) ([]ports.EntradaIndice, error) { return nil, nil }
 func (f *fakeIndexPort) Upsert(_ context.Context, clave string, g domain.Graph) error {
 	f.upserted = append(f.upserted, g)
 	f.claves = append(f.claves, clave)

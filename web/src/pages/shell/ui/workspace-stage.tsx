@@ -117,6 +117,10 @@ export function WorkspaceStage() {
     // index doesn't hold (e.g. a persisted session to a since-removed arnés). Fetching it blindly
     // spams the console with a 404; instead we degrade to a clean "no indexado" state and let the
     // picker be the escape hatch.
+    //
+    // El guard de abajo compara `viewedId` (la clave que la sesión guarda, CAP-142) contra
+    // `h.id` — que ES la clave del índice desde 2026-07-29. Mientras el daemon devolvía ahí el
+    // `arnes.id` del manifiesto, este guard mentía: negaba arneses cuyo grafo respondía 200.
     if (!harnessesLoaded) return
     let alive = true
     setGraph(null)

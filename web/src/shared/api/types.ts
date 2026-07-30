@@ -104,6 +104,9 @@ export interface NewSession {
 // a lightweight row, not the full graph. The domain Graph/Box types live in entities/arnes
 // (shared/api must not import upward), so the page maps this to whatever it renders.
 export interface HarnessSummary {
+  // La CLAVE del índice del daemon (`sin-home~vitalia~vitalia`) — el mismo espacio de llaves
+  // que `session.arnes` y que `getGraph(id)`. NO es el `arnes.id` del manifiesto: comparar
+  // contra ése hacía que una sesión cargable se viera «no está en el índice del daemon».
   id: string
   rol?: string
   proceso?: string

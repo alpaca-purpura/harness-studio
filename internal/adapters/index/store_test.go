@@ -184,29 +184,70 @@ func TestUpsertSinManifiestoError(t *testing.T) {
 	}
 }
 
-// TestListPortfolio asserts List returns every seeded harness ordered by id (the picker's
-// stable portfolio, RF-72) and includes the real dogfood arnés.
+// TestListPortfolio asserts List returns every seeded harness ordered by clave (the
+// portfolio's stable order, RF-72) and includes the real dogfood arnés.
 func TestListPortfolio(t *testing.T) {
-	gs, err := newTestStore(t).List(context.Background())
+	entradas, err := newTestStore(t).List(context.Background())
 	if err != nil {
 		t.Fatalf("List() = %v", err)
 	}
-	ids := make([]string, 0, len(gs))
-	for _, g := range gs {
-		if g.Arnes != nil {
-			ids = append(ids, g.Arnes.ID)
+	claves := make([]string, 0, len(entradas))
+	for _, e := range entradas {
+		if e.Grafo.Arnes != nil {
+			claves = append(claves, e.Clave)
 		}
 	}
-	// New() seeds demo + dev-full-cycle + content-studio-full; sorted by id.
+	// New() seeds demo + dev-full-cycle + content-studio-full; sorted by clave.
 	want := []string{"content-studio-full", "demo", "dev-full-cycle"}
-	if len(ids) != len(want) {
-		t.Fatalf("List ids = %v, want %v", ids, want)
+	if len(claves) != len(want) {
+		t.Fatalf("List claves = %v, want %v", claves, want)
 	}
 	for i, w := range want {
-		if ids[i] != w {
-			t.Errorf("List ids = %v, want %v", ids, want)
+		if claves[i] != w {
+			t.Errorf("List claves = %v, want %v", claves, want)
 			break
 		}
+	}
+}
+
+// TestListDevuelveLaClaveNoElArnesID es la regresión del cartel «no está en el índice del
+// daemon»: una entrada del Portafolio se indexa bajo su clave calificada
+// («sin-home~vitalia~vitalia») mientras el manifiesto sigue diciendo «vitalia». List tiene
+// que devolver la clave — es la única cuerda que después sirve para Query. Cuando devolvía
+// el id interno, un arnés perfectamente cargable se veía como ausente.
+func TestListDevuelveLaClaveNoElArnesID(t *testing.T) {
+	st := newTestStore(t)
+	ctx := context.Background()
+	const clave = "sin-home~vitalia~vitalia"
+	g := domain.Graph{Arnes: &domain.Arnes{ID: "vitalia"}}
+	if err := st.Upsert(ctx, clave, g); err != nil {
+		t.Fatalf("Upsert(%s) = %v", clave, err)
+	}
+
+	entradas, err := st.List(ctx)
+	if err != nil {
+		t.Fatalf("List() = %v", err)
+	}
+	var hallada *ports.EntradaIndice
+	for i := range entradas {
+		if entradas[i].Clave == clave {
+			hallada = &entradas[i]
+			break
+		}
+	}
+	if hallada == nil {
+		claves := make([]string, 0, len(entradas))
+		for _, e := range entradas {
+			claves = append(claves, e.Clave)
+		}
+		t.Fatalf("List no trajo la clave %q; trajo %v", clave, claves)
+	}
+	if hallada.Grafo.Arnes == nil || hallada.Grafo.Arnes.ID != "vitalia" {
+		t.Errorf("el grafo de %q perdió su manifiesto (arnes.id interno)", clave)
+	}
+	// La clave listada tiene que servir tal cual para pedir el grafo.
+	if _, qerr := st.Query(ctx, hallada.Clave); qerr != nil {
+		t.Errorf("Query(clave listada %q) = %v, want nil", hallada.Clave, qerr)
 	}
 }
 

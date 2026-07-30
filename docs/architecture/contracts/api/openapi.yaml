@@ -57,7 +57,11 @@ paths:
       summary: Portafolio (S1) — arneses con salud + telemetría resumida.
       responses:
         "200":
-          description: Lista de arneses (organigrama/cuadrícula).
+          description: >-
+            Lista de arneses (organigrama/cuadrícula). El `id` de cada fila es la CLAVE del
+            índice (la misma que `/harnesses/{id}/graph` acepta y que la sesión guarda en
+            `arnes`), no el id interno del manifiesto: dos arneses distintos pueden compartir
+            ese id, y devolverlo hacía que un arnés indexado se viera ausente.
   /harnesses/{id}/graph:
     get:
       operationId: getHarnessGraph

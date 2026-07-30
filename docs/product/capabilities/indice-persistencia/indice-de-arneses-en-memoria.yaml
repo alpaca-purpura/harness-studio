@@ -12,14 +12,44 @@ pointers:
   - "internal/adapters/index/store.go#Store"
   - "internal/adapters/index/store.go#Store.Upsert"
   - "internal/adapters/index/store.go#Store.Query"
+  - "internal/adapters/index/store.go#Store.List"
+  - "internal/ports/index.go#EntradaIndice"
+  - "internal/usecase/map_service.go#MapService.Harnesses"
+  - "internal/adapters/transport/http/router.go#listHarnesses"
 valida:
   - "TestListPortfolio"
+  - "TestListDevuelveLaClaveNoElArnesID"
+  - "TestListarArnesesDevuelveLaClaveNoElArnesID"
   - "TestUpsertIndexaBajoLaClaveNoElArnesID"
   - "TestUpsertDosArnesesMismoIDNoColisionan"
   - "TestUpsertClaveVaciaError"
   - "TestUpsertSinManifiestoError"
-scenarios: []
-business_rules: []
+change_log:
+  - story_id: null
+    date: 2026-07-29
+    type: fix
+    summary: "El índice escribía bajo la clave calificada y leía devolviendo el id interno del manifiesto: `List` entregaba `arnes.id` («vitalia») en vez de la clave («sin-home~vitalia~vitalia»). Como la sesión guarda la clave desde la recalibración, la interfaz comparaba dos espacios de llaves distintos y negaba arneses cuyo grafo el propio daemon servía con 200 — cartel «no está en el índice del daemon» sobre un arnés cargable. `List` ahora devuelve la clave junto al grafo, que es lo único con lo que el caller puede volver a pedir la fila."
+    merge_sha: null
+scenarios:
+  - id: la-llave-que-sale-es-la-llave-que-entra
+    name: "El operador abre una sesión cuyo arnés se identificó desde el Portafolio"
+    status: live
+    given: "un arnés indexado bajo su clave calificada, con un id interno de manifiesto distinto"
+    when: "se lista el portafolio del índice"
+    then: "cada fila viaja con su clave —la misma cuerda que la consulta del grafo acepta— y no con el id interno; antes la interfaz lo declaraba ausente y no llegaba a pedir el grafo que sí respondía"
+    verifica: "TestListDevuelveLaClaveNoElArnesID"
+  - id: la-fila-sin-manifiesto-no-se-inventa
+    name: "El índice guarda una fila sin manifiesto"
+    status: live
+    given: "una entrada del índice cuyo grafo no tiene arnés"
+    when: "se lista el portafolio en la superficie"
+    then: "la fila se saltea; no se emite un arnés con facetas vacías"
+    verifica: "TestListarArnesesDevuelveLaClaveNoElArnesID"
+business_rules:
+  - id: leer-y-escribir-hablan-la-misma-llave
+    rule: "La llave que el índice devuelve al listar es la MISMA con la que se upserteó y con la que se consulta: la clave autoritativa, nunca `g.Arnes.ID`. La asimetría entre escribir por clave y leer por id interno no es un detalle de forma — hace que un consumidor compare dos espacios de llaves y niegue lo que existe."
+    enforcement: ["docs/architecture/boundaries/portafolio-identidad-y-deriva-honesta.md"]
+    severity: high
 related_capabilities:
   depends_on: []
   enables: []
@@ -44,3 +74,18 @@ acá; ver `reconstruccion-del-indice.yaml`/CAP-22 para lo que sí cambió — `R
 `observar-cambios-del-corpus.yaml`/CAP-23 para el watcher). No se renombra el `slug`/`capability_id`
 (costo de migrar referencias por beneficio cosmético, mismo criterio que
 `docs/architecture/boundaries/indice-desechable-jsonl-es-verdad.md` D3).
+
+**La otra mitad del re-key (2026-07-29):** el re-key de 2026-07-23 arregló la ESCRITURA
+(`Upsert` recibe la clave) y el de las sesiones (CAP-142) las hizo guardar la clave calificada.
+La LECTURA quedó atrás: `List` devolvía `[]domain.Graph` pelado, y el único identificador que
+el consumidor podía sacar de ahí era `g.Arnes.ID` — el id interno del manifiesto. Resultado
+medido contra el daemon instalado: la fila `sin-home~vitalia~vitalia` estaba en el índice y
+`GET /api/harnesses/sin-home~vitalia~vitalia/graph` respondía **200 con el grafo completo**,
+pero `GET /api/harnesses` la anunciaba como `"vitalia"`, así que el guard de la pantalla
+—que compara contra la clave de la sesión— la declaraba ausente y **nunca llegaba a pedir el
+grafo**. El operador veía «No se pudo cargar el arnés» sobre un arnés perfectamente cargable.
+
+`List` devuelve ahora `[]ports.EntradaIndice{Clave, Grafo}`: la llave viaja con la fila porque
+**no está dentro del grafo**. Se cambió la firma en vez de agregar un método al lado para que
+no queden dos lecturas del índice —una que dice la verdad sobre la llave y otra que no— y para
+que el compilador obligue a cada caller a elegir; `Query`/`Upsert` no se tocan.

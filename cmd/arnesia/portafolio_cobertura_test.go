@@ -11,6 +11,7 @@ import (
 
 	"github.com/alpacapurpura/arnesia/internal/adapters/portafolio"
 	"github.com/alpacapurpura/arnesia/internal/domain"
+	"github.com/alpacapurpura/arnesia/internal/ports"
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
@@ -25,8 +26,8 @@ func (f indiceFalso) Query(_ context.Context, id string) (domain.Graph, error) {
 	}
 	return domain.Graph{}, errors.New("no encontrado")
 }
-func (f indiceFalso) List(context.Context) ([]domain.Graph, error)       { return nil, nil }
-func (f indiceFalso) Upsert(context.Context, string, domain.Graph) error { return nil }
+func (f indiceFalso) List(context.Context) ([]ports.EntradaIndice, error) { return nil, nil }
+func (f indiceFalso) Upsert(context.Context, string, domain.Graph) error  { return nil }
 
 func capturarLogs(t *testing.T, fn func()) string {
 	t.Helper()

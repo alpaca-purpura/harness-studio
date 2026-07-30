@@ -6,6 +6,17 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/domain"
 )
 
+// EntradaIndice es una fila del índice: su llave AUTORITATIVA (la `clave` con la que se
+// upserteó — ver IndexPort.Upsert) junto al grafo que guarda. `List` devuelve esto y no un
+// `domain.Graph` pelado porque la llave NO está dentro del grafo: `g.Arnes.ID` es el id
+// interno del manifiesto, que dos arneses distintos pueden compartir. Quien liste tiene que
+// poder nombrar cada fila con la misma cuerda con la que después la va a pedir (`Query`), o
+// el consumidor termina comparando dos espacios de llaves distintos.
+type EntradaIndice struct {
+	Clave string
+	Grafo domain.Graph
+}
+
 // IndexPort is the disposable index over the arnés-tree source of truth (the harness
 // directories the Portafolio knows about, ports.PortafolioStore/PortafolioScanner +
 // ports.ArnesLoader — NOT the ~/.claude conversation JSONL, a separate corpus read by
@@ -16,8 +27,9 @@ type IndexPort interface {
 	Rebuild(ctx context.Context) error
 	// Query returns the agnostic graph of one harness.
 	Query(ctx context.Context, harnessID string) (domain.Graph, error)
-	// List returns every harness graph currently indexed (portfolio, S1).
-	List(ctx context.Context) ([]domain.Graph, error)
+	// List returns every indexed harness with its clave (portfolio, S1). La clave viaja
+	// SIEMPRE: es lo único que el caller puede volver a pasarle a Query.
+	List(ctx context.Context) ([]EntradaIndice, error)
 	// Upsert inserts or replaces one harness graph bajo `clave` (HS-11: la vía del loader
 	// real — «Cargar» un arnés del disco lo indexa en vivo). `clave` es la llave AUTORITATIVA
 	// (deuda BACKLOG «re-key (home,id,scope)», 2026-07-23): el caller la decide — el

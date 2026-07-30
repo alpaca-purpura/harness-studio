@@ -195,25 +195,28 @@ func (s *Store) Query(ctx context.Context, harnessID string) (domain.Graph, erro
 	return decodeGraph([]byte(raw))
 }
 
-// List returns every indexed harness graph, ordered by clave for a stable portfolio (S1).
-func (s *Store) List(ctx context.Context) ([]domain.Graph, error) {
-	rows, err := s.reader.QueryContext(ctx, `SELECT graph_json FROM graphs ORDER BY clave`)
+// List returns every indexed harness with its clave, ordered by clave for a stable
+// portfolio (S1). La clave sale del SELECT y no se re-deriva del grafo: `g.Arnes.ID` es el id
+// interno del manifiesto (dos arneses distintos pueden compartirlo) y no sirve para volver a
+// pedir la fila por `Query` — simétrico a lo que `Upsert` ya exigía al escribir.
+func (s *Store) List(ctx context.Context) ([]ports.EntradaIndice, error) {
+	rows, err := s.reader.QueryContext(ctx, `SELECT clave, graph_json FROM graphs ORDER BY clave`)
 	if err != nil {
 		return nil, fmt.Errorf("index: list: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
-	out := []domain.Graph{}
+	out := []ports.EntradaIndice{}
 	for rows.Next() {
-		var raw string
-		if serr := rows.Scan(&raw); serr != nil {
+		var clave, raw string
+		if serr := rows.Scan(&clave, &raw); serr != nil {
 			return nil, fmt.Errorf("index: list scan: %w", serr)
 		}
 		g, derr := decodeGraph([]byte(raw))
 		if derr != nil {
 			return nil, derr
 		}
-		out = append(out, g)
+		out = append(out, ports.EntradaIndice{Clave: clave, Grafo: g})
 	}
 	if rerr := rows.Err(); rerr != nil {
 		return nil, fmt.Errorf("index: list rows: %w", rerr)
