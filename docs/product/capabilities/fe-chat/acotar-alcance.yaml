@@ -11,14 +11,28 @@ verb: mejorar
 pointers:
   - "web/src/widgets/chat-dock/ui/chat-dock.tsx#ScopeRow"
   - "web/src/shared/store/sessions-store.ts#setScope"
+  - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
 valida:
   - "chat-dock.stories.tsx"
-last_modified: 2026-07-26
+last_modified: 2026-07-30
 change_log:
   - story_id: 2026-07-26-conversaciones-del-panel
     date: 2026-07-26
     type: derive
     summary: "La fila de alcance deja de ocupar un lugar fijo: sin nodo elegido no existe. Su estado vacío gastaba una fila entera del dock en una instrucción («selecciona un nodo en el Mapa para acotar») más un chip del arnés que ya estaba en el rail, en la barra superior y en el marcador del composer. Con nodo, el chip es literalmente el de antes, con su ✕ y su comportamiento intactos: lo que cambió es cuándo aparece, no qué hace."
+    merge_sha: null
+  - story_id: 2026-07-30-ciclo-conversacional-cables
+    date: 2026-07-30
+    type: extend
+    summary: >-
+      C-D1/C-D2 — el chip de alcance gana dos productores nuevos además de la selección del
+      Mapa: «Proponerlo en el chat» (la caja del punto de mejora, vía `caja_id` → lookup en el
+      grafo) y «Editar conversando (dock)» del inspector (el nodo seleccionado, re-fijado en el
+      click porque el chip es removible desde el Dock). Ambos llaman al MISMO `setScope` y
+      abren el Dock con `openChat()` (que tenía 0 callers). El contrato no cambia: el alcance
+      pertenece a UNA sesión (RF-118), ambos productores solo corren con
+      `viewedId === arnesId`, y el contexto sigue viajando como línea `[alcance: …]` antepuesta
+      por `sendTurn` — jamás ensuciando el composer ni auto-enviando (BR-M12).
     merge_sha: null
 scenarios:
   - id: la-fila-de-alcance-se-gana-el-lugar

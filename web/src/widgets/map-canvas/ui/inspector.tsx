@@ -142,6 +142,13 @@ export interface InspectorProps {
   // Lectura de la fuente real del nodo (RF-93, GET …/nodes/{id}/fuente) — la inyecta la
   // página (el widget jamás fetchea); ausente = la tab lo dice.
   loadFuente?: ((nodeId: string) => Promise<string>) | undefined
+  /**
+   * «Editar conversando (dock)» de la tab Contenido (RF-C.2, C-D2). La página la pasa SOLO
+   * cuando el arnés visto es el de la sesión (CH-D6: el chat embebido no alcanza otros
+   * arneses); el callback fija el alcance al nodo y abre el Dock. Sin la prop el botón queda
+   * `disabled` con su motivo honesto — jamás fingiendo funcionar.
+   */
+  onEditarConversando?: (() => void) | undefined
 }
 
 export function Inspector({
@@ -152,6 +159,7 @@ export function Inspector({
   conformance,
   loadFuente,
   mejora,
+  onEditarConversando,
 }: InspectorProps) {
   const [expanded, setExpanded] = useState(false)
   const [tab, setTab] = useState<Tab>("resumen")
@@ -251,7 +259,12 @@ export function Inspector({
           aria-labelledby="dw-tab-contenido"
           hidden={tab !== "contenido"}
         >
-          <Contenido box={box} active={tab === "contenido"} loadFuente={loadFuente} />
+          <Contenido
+            box={box}
+            active={tab === "contenido"}
+            loadFuente={loadFuente}
+            onEditarConversando={onEditarConversando}
+          />
         </div>
         <div
           className="tabpane"
@@ -599,10 +612,12 @@ function Contenido({
   box,
   active,
   loadFuente,
+  onEditarConversando,
 }: {
   box: Box
   active: boolean
   loadFuente?: ((nodeId: string) => Promise<string>) | undefined
+  onEditarConversando?: (() => void) | undefined
 }) {
   const [fuente, setFuente] = useState<FuenteState>()
   // pedido: para qué (nodo, loadFuente) ya se disparó la lectura — un ref (no estado)
@@ -669,11 +684,19 @@ function Contenido({
         >
           Editar fuente
         </button>
+        {/* C-D2 (2026-07-30) — vivo cuando la página pasa el callback (arnés visto = el de
+            la sesión); sin él, disabled con el motivo HONESTO de hoy — el viejo «Se cablea
+            en Fase 3/4» dejó de ser verdad. */}
         <button
           type="button"
           className="act"
-          disabled
-          title="Se cablea en Fase 3/4 — conversación gobernada vía Dock (backend Fase E vivo)"
+          disabled={onEditarConversando === undefined}
+          title={
+            onEditarConversando === undefined
+              ? "Disponible cuando el arnés visto es el de la sesión"
+              : "Abre el Dock con este nodo como alcance del chat"
+          }
+          onClick={onEditarConversando}
         >
           Editar conversando (dock)
         </button>

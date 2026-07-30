@@ -473,7 +473,27 @@ export function WorkspaceStage() {
                   .then(() => setNonce((n) => n + 1))
                   .catch(() => undefined)
               }}
-              onProponer={({ textoPropuesto }) => setPropuestaChat(textoPropuesto)}
+              // C-D1 (2026-07-30) — el único cable que faltaba era ABRIR el Dock: con el Dock
+              // colapsado la propuesta quedaba invisible en el buzón (`openChat()` tenía 0
+              // callers). El contexto viaja por el chip de alcance —`sendTurn` antepone
+              // `[alcance: …]`—, NO ensuciando el composer; y el buzón se consume UNA vez
+              // (BR-M12: prellenar + focus, JAMÁS auto-enviar). Solo corre con
+              // `viewedId === arnesId` (proponerDeshabilitado), así que el alcance pertenece
+              // a la sesión activa (RF-118).
+              onProponer={({ puntoId, textoPropuesto }) => {
+                setPropuestaChat(textoPropuesto)
+                const cajaId = puntos.find((p) => p.id === puntoId)?.caja_id
+                const caja = cajaId ? graph?.nodos.find((n) => n.id === cajaId) : undefined
+                // Un punto sin caja (detector de ventana entera: B1·B2·B3·B6) o cuya caja no
+                // está en el grafo NO pisa el chip que ya hubiera — se abre el Dock igual.
+                if (caja)
+                  setScope({
+                    nodeId: caja.id,
+                    clase: caja.clase,
+                    fuentePath: caja.fuente_path,
+                  })
+                useSessions.getState().openChat()
+              }}
               // CH-D6 — el alcance del chat embebido excluye los arneses que no son el de la
               // sesión. Se dice en texto, no solo en un `title`: un botón muerto sin
               // explicación se lee como un bug.
@@ -518,6 +538,23 @@ export function WorkspaceStage() {
                     conformance={conformance}
                     loadFuente={loadFuente}
                     mejora={cuerpoMejora}
+                    // C-D2 (2026-07-30) — «Editar conversando (dock)» vive SOLO cuando el
+                    // arnés visto es el de la sesión (CH-D6: el chat embebido no alcanza
+                    // otros arneses). Sin la prop, el inspector deja el botón disabled con
+                    // su motivo honesto. El callback re-fija el chip (es removible desde el
+                    // Dock — el click debe garantizarlo, no asumirlo) y abre el Dock.
+                    onEditarConversando={
+                      viewedId === arnesId
+                        ? () => {
+                            setScope({
+                              nodeId: selectedBox.id,
+                              clase: selectedBox.clase,
+                              fuentePath: selectedBox.fuente_path,
+                            })
+                            useSessions.getState().openChat()
+                          }
+                        : undefined
+                    }
                   />
                 ) : undefined
               }

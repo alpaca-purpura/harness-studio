@@ -101,7 +101,7 @@ dev_preview:
 
 created_in_story: 2026-07-24-telemetria-embebida-otel
 created_date: 2026-07-26
-last_modified: 2026-07-26
+last_modified: 2026-07-30
 source_ref: "docs/product/stories/2026-07-24-telemetria-embebida-otel/decisiones.md D17/D18/D22/D23"
 change_log:
   - story_id: 2026-07-24-telemetria-embebida-otel
@@ -372,6 +372,23 @@ change_log:
       También se corrige el anuncio del descarte: prometía «se puede volver a mostrar desde la tab
       Mejora de esa caja» y **esa afordancia no existe** (`grep` devolvía solo la promesa). Dice
       lo que sí pasa. Desviación de design §7.4, declarada.
+    merge_sha: null
+
+  - story_id: 2026-07-30-ciclo-conversacional-cables
+    date: 2026-07-30
+    type: extend
+    summary: >-
+      C-T1a (C-D1) — «Proponerlo en el chat» por fin ABRE el Dock: `onProponer` en
+      `workspace-stage.tsx` suma `useSessions.getState().openChat()` (tenía 0 callers — con el
+      Dock colapsado la propuesta quedaba invisible en el buzón) y fija el alcance a la caja del
+      punto (`caja_id` → lookup en `graph.nodos` → `setScope`). El contexto viaja por el chip de
+      alcance —`sendTurn` antepone `[alcance: …]`—, NO ensuciando el composer. BR-M12 intacto:
+      el buzón `propuestaChat` prellena + enfoca y JAMÁS auto-envía; la tarjeta
+      (`punto-mejora-card.tsx`) NO se toca — su contrato «no escribe archivos» sigue, con las
+      mismas stories. Un punto sin caja (detector de ventana entera: B1·B2·B3·B6) o cuya caja no
+      está en el grafo no pisa el chip que ya hubiera — el Dock se abre igual. Solo corre con
+      `viewedId === arnesId` (garantizado por `proponerDeshabilitado`, CH-D6/RF-118). Descartar
+      ya estaba cableado end-to-end y no se tocó.
     merge_sha: null
 
 scenarios:

@@ -28,6 +28,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - internal/adapters/filelock: flock cross-proceso (sin dependencia nueva, golang.org/x/sys ya vendorizado) que serializa recarga-mutar-guardar en portafolio.Store, marketplace.Store y ArnesRegistry — cierra el last-writer-wins confirmado entre el daemon y un CLI standalone
 - guard de daemon-vivo en `arnesia sesiones recalibrar-llaves` (--force para saltarlo) — mismo riesgo de doble-escritor que portafolio.json, resuelto sin tocar el motor de sesiones vivo
 - aviso de cobertura portafolio↔índice al arrancar el daemon: cuántas entradas del Portafolio nunca se observaron en el Mapa
+- «Editar conversando (dock)» del inspector vivo cuando el arnés visto es el de la sesión; deshabilitado con motivo honesto en caso contrario
 
 ### Cambiado
 
@@ -37,6 +38,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Corregido
 - El Mapa mostraba «No se pudo cargar el arnés» sobre arneses que el daemon sí tenía indexados: el listado del portafolio anunciaba el id interno del manifiesto en vez de la clave del índice, así que la pantalla comparaba dos espacios de llaves distintos y negaba lo que existía.
+- Proponer una mejora desde el Mapa ahora abre el Dock con la caja como alcance — la propuesta quedaba invisible si el chat estaba colapsado
 
 ### Seguridad
 

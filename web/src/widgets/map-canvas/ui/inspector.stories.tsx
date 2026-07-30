@@ -400,6 +400,52 @@ export const TabMejoraContratoAria: Story = {
   },
 }
 
+// ══ «Editar conversando (dock)» (paquete 2026-07-30, C-T1b · RF-C.2) ══════════════════════
+
+// C-D2 — con `onEditarConversando` el botón de la tab Contenido está VIVO: click ⇒ el
+// callback (la página fija el alcance al nodo y abre el Dock). «Editar fuente» queda
+// EXACTAMENTE como está (Fase 2): staged, disabled.
+export const EditarConversandoCableado: Story = {
+  args: {
+    box: { ...cajaBox, fuente_path: "skills/spec-writer/SKILL.md" },
+    loadFuente: fn(async () => "# spec-writer"),
+    onEditarConversando: fn(),
+    onClose: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    const btn = c.getByRole("button", { name: "Editar conversando (dock)" })
+    await expect(btn).toBeEnabled()
+    await btn.click()
+    await expect(args.onEditarConversando).toHaveBeenCalledTimes(1)
+    // «Editar fuente» no se toca en este paquete: sigue staged.
+    await expect(c.getByRole("button", { name: "Editar fuente" })).toBeDisabled()
+  },
+}
+
+// C-D2 — sin la prop (el arnés visto NO es el de la sesión, CH-D6) el botón queda disabled
+// con el title HONESTO nuevo. El viejo «Se cablea en Fase 3/4» dejó de ser verdad y no
+// puede quedar en el DOM.
+export const EditarConversandoSinSesion: Story = {
+  args: {
+    box: { ...cajaBox, fuente_path: "skills/spec-writer/SKILL.md" },
+    loadFuente: fn(async () => "# spec-writer"),
+    onClose: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await c.getByRole("tab", { name: "Contenido" }).click()
+    const btn = c.getByRole("button", { name: "Editar conversando (dock)" })
+    await expect(btn).toBeDisabled()
+    // El title exacto ES el assert de honestidad: pinnearlo garantiza que «Fase 3/4» no está.
+    await expect(btn).toHaveAttribute(
+      "title",
+      "Disponible cuando el arnés visto es el de la sesión",
+    )
+  },
+}
+
 // RF-277 — cambiar de nodo vuelve a Resumen, igual que hoy: cada drawer abre en su resumen.
 export const CambioDeNodoVuelveAlResumen: Story = {
   play: async ({ canvasElement, args, step }) => {

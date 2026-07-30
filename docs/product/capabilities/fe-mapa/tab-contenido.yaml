@@ -11,7 +11,25 @@ verb: observar
 pointers:
   - "web/src/widgets/map-canvas/ui/inspector.tsx#Contenido"
   - "web/src/shared/api/client.ts#getNodeFuente"
-valida: []
+  - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
+valida:
+  - "web/src/widgets/map-canvas/ui/inspector.stories.tsx"
+last_modified: 2026-07-30
+change_log:
+  - story_id: 2026-07-30-ciclo-conversacional-cables
+    date: 2026-07-30
+    type: extend
+    summary: >-
+      C-T1b (C-D2) — «Editar conversando (dock)» deja de ser un botón muerto: `InspectorProps`
+      gana `onEditarConversando?: () => void` y la página lo pasa SOLO cuando el arnés visto es
+      el de la sesión (CH-D6 — el chat embebido no alcanza otros arneses). Con la prop el botón
+      está vivo: el callback fija el alcance al nodo seleccionado (`setScope`) y abre el Dock
+      (`openChat`). Sin la prop queda `disabled` con el title HONESTO nuevo «Disponible cuando
+      el arnés visto es el de la sesión» — el viejo «Se cablea en Fase 3/4» dejó de ser verdad.
+      «Editar fuente» (CodeMirror) queda EXACTAMENTE como estaba: Fase 2, staged. Stories nuevas
+      `EditarConversandoCableado` / `EditarConversandoSinSesion` (gate a11y heredado); ninguna
+      story firmada se modifica.
+    merge_sha: null
 scenarios: []
 business_rules: []
 related_capabilities:
