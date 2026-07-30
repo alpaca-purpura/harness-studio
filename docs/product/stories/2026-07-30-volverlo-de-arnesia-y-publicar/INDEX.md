@@ -16,7 +16,7 @@ prenter-marketplace (publish con gate de conformance, pull-antes-de-push, tag-tr
 | Mockup | ✅ resuelto como superset del Storybook vigente, sin html nuevo (B-D4) |
 | Decisiones | ✅ FIRMADAS 🧑‍⚖️ 2026-07-30 (aprobación del plan) — `decisiones.md` |
 | Spec | ✅ `spec.md` (spec-lite sancionada por la firma del corte) |
-| Implementación | 🔨 EN CURSO |
+| Implementación | ✅ en main |
 | PARIDAD | ⬜ al cierre del bloque (installer + laptop) |
 
 ## Retomar aquí

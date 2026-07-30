@@ -196,6 +196,15 @@
 
 ## Deuda viva (registrada, no bloquea la línea principal)
 
+- [forja/§11] **El daemon quedó al 92 % del techo absoluto de peso (23,04 de 25 MB).**
+  `text/template`, linkeado por primera vez por el forjador de la semilla (A-D2), costó
+  **+3,28 MB** medidos (diff de binarios limpios b2d2200→bdc1a1b). `PresupuestoBaselineMB`
+  se movió con la medición en el commit (camino que el propio test sanciona), pero el
+  headroom al techo es ~2 MB: la próxima feature con dependencia pesada lo revienta.
+  Cerrarlo = expander propio para los 3 placeholders + `range` de la semilla (el uso real
+  no justifica el motor entero) o build del daemon con `-ldflags "-s -w"` midiendo qué
+  recupera · `deuda`
+
 - [conversaciones/N-21] 🔴 **La marca de rotación se pierde EN SILENCIO cuando hay dos vistas.**
   Repro (E2E-3, contra el binario instalado): dock abierto → mandar un turno desde OTRO cliente
   (`POST /turn` o una segunda ventana) → colapsar el dock → ocurre una rotación → reabrir ⇒ la

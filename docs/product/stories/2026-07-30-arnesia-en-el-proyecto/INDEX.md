@@ -17,7 +17,7 @@ zona de escritura del proceso.
 | Mockup | n/a (sin superficie FE nueva; CLI + contrato) |
 | Decisiones | ✅ FIRMADAS 🧑‍⚖️ 2026-07-30 (aprobación del plan) — `decisiones.md` |
 | Spec | ✅ `spec.md` |
-| Implementación | ⬜ (arranca tras B1) |
+| Implementación | ✅ en main (merge 07f9d3b) |
 | PARIDAD | ⬜ Installer 3: `arnesia init` sobre proyecto real del operador |
 
 ## Retomar aquí

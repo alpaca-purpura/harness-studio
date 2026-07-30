@@ -16,7 +16,7 @@ instalaciones → re-evaluar deriva → SSE.
 | Mockup | n/a (cero componente nuevo: cableo de superficies firmadas HS-26/capa Mejora) |
 | Decisiones | ✅ FIRMADAS 🧑‍⚖️ 2026-07-30 (aprobación del plan) — `decisiones.md` |
 | Spec | ✅ `spec.md` |
-| Implementación | ⬜ (paralelo a B1, carril FE) |
+| Implementación | ✅ en main (e55006e) |
 | PARIDAD | ⬜ navegador contra daemon real + laptop |
 
 ## Retomar aquí

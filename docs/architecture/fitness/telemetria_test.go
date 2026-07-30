@@ -682,12 +682,17 @@ func TestDetectorQueNoAplicaTraeMotivo(t *testing.T) {
 	}
 }
 
-// PresupuestoBaselineMB es el peso del daemon **sin el módulo de telemetría**, medido sobre un
-// árbol limpio (`git archive HEAD`, sin `web/dist`) el 2026-07-26: **18,95 MB**.
+// PresupuestoBaselineMB es el peso del daemon completo, medido sobre un árbol limpio
+// (`git archive HEAD`, sin `web/dist`) el 2026-07-30 en 07f9d3b: **23,04 MB**. El salto desde
+// la medición anterior (18,95 MB, 2026-07-26, entonces «sin el módulo de telemetría») lo explica
+// casi entero `text/template`, linkeado por primera vez por el forjador de la semilla (A-D2,
+// paquete 2026-07-30-arnesia-en-el-proyecto): +3,28 MB medidos por diff de binarios
+// b2d2200→bdc1a1b. Con 23,04 MB el daemon está al 92 % del techo absoluto — deuda VISIBLE en
+// BACKLOG (evaluar expander propio o strip), no un pase silencioso.
 //
 // Está acá y no en un archivo aparte para que quien cambie el número tenga que tocar el test que
 // lo usa, y para que el `git blame` diga cuándo y por qué se movió.
-const PresupuestoBaselineMB = 18.95
+const PresupuestoBaselineMB = 23.04
 
 // TestPresupuestoDeBinario verifica los DOS presupuestos de §11, no solo uno.
 //

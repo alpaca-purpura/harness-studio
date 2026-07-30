@@ -12,8 +12,12 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 
 ## Paquete de trabajo activo
 
-- **Retomar aquí: MVP DE 1 DÍA — EN CURSO (2026-07-30).** Tres paquetes activos, corte y decisiones firmados
-  vía aprobación del plan de sesión (prioridad 1 = B):
+- **Retomar aquí: MVP DE 1 DÍA — CÓDIGO COMPLETO EN MAIN (2026-07-30), faltan las firmas 🧑‍⚖️
+  de PARIDAD del operador + demo E2E en laptop.** Los 3 carriles landeados y verificados
+  (B1 `9c91449` · C `e55006e` · B2 `f50a24a` · A merge `07f9d3b`); releases v0.5.0 y v0.6.0
+  publicados con ciclo changelog→bump real; installers en `instaladores/v0.5.0/` y `v0.6.0/`.
+  Cada paquete tiene su `PARIDAD.md` con evidencia y casillas de firma vacías — eso es lo
+  que queda. Corte y decisiones firmados vía aprobación del plan de sesión (prioridad 1 = B):
   [`stories/2026-07-30-volverlo-de-arnesia-y-publicar/`](./stories/2026-07-30-volverlo-de-arnesia-y-publicar/INDEX.md)
   (B1 sello válido + B2 publicar write-side) ·
   [`stories/2026-07-30-arnesia-en-el-proyecto/`](./stories/2026-07-30-arnesia-en-el-proyecto/INDEX.md)
