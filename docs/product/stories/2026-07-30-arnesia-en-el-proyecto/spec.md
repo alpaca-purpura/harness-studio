@@ -19,7 +19,9 @@ text/template: 8 de proceso + INDEX/backlog/roadmap) + `//go:embed all:semilla` 
 `validarRootPortafolio`; usecase no importa adapters — wiring en cmd) +
 `cmd/arnesia/init.go`: `arnesia init [dir] [--check] [--json]`; sin `--check` siembra
 Y chequea; **exit≠0 si la instalación queda insana**. HTTP: `POST /api/forja/semillas`
-`{dir}` → informe · `POST /api/forja/semillas/chequeos` `{dir}` → salud (+openapi).
+`{path}` → informe · `POST /api/forja/semillas/chequeos` `{path}` → salud (+openapi).
+<!-- corrección A-T3 (2026-07-30): el campo del body es `path`, no `dir` — el MISMO
+nombre que POST /api/portafolio/escaneos; un sinónimo nuevo por ruta sería drift. -->
 **RF-A.4 (A-T5)** Enmienda doctrine A-D3 + test `refiereAlguno` con
 `/proyecto/.arnesia/x` NO matchea marcas del kit. Efecto colateral: fingerprint del
 kit cambia ⇒ re-materialización automática a `~/.arnesia` al próximo arranque.

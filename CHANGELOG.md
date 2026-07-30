@@ -25,6 +25,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Agregado
 - ▲ Publicar: write-side prenter-marketplace — gate conformance verde, pull-antes-de-push, idempotencia por versión, push sin force, tag <id>/vX.Y.Z tras push; botón vivo en el drawer y CLI arnesia publish <clave>
+- arnesia init: siembra el process-as-code .arnesia/ en el proyecto (terreno + product + wip + plantillas por tipo de paquete, derivado del modelo firmado) con doctor de salud --check y endpoints /api/forja/semillas
 
 ### Cambiado
 

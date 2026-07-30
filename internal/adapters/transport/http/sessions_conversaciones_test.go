@@ -299,7 +299,7 @@ func TestElMuxNoAmbiguaEntreSesionYConversaciones(t *testing.T) {
 	// el catch-all responde 404 con motivo, que es justo lo que la ruta retirada tiene que
 	// devolver — o sirve, o 404; nunca 200 vacío.
 	sinEventos := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
-	h := NewHandler(nil, svc, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, sinEventos,
+	h := NewHandler(nil, svc, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, sinEventos,
 		AuthConfigFor("127.0.0.1:4200", ""))
 
 	casos := []struct {

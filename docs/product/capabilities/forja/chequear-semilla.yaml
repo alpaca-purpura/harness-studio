@@ -1,0 +1,76 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.forja.chequear-semilla
+cap_num: CAP-150
+slug: chequear-semilla
+name: "Chequear salud de la semilla (doctor v0, arnesia init --check)"
+status: vivo           # pointers resuelven + valida real (R4).
+license: brand-local
+
+module: forja
+layer: usecase
+
+verb: observar
+functional_area: "forja.semilla"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/adapters/forja/doctor.go#Adapter.Chequear"
+  - "internal/domain/forja.go#SaludSemilla"
+  - "internal/domain/forja.go#EstadoSemilla"
+  - "internal/usecase/forja_service.go#ForjaService.Chequear"
+  - "internal/adapters/transport/http/forja.go#postChequearSemilla"
+valida:
+  - "TestChequearTresEstados"
+  - "TestChequearLockMalformado"
+  - "TestPostChequearSemilla"
+  - "TestRunInitSiembraChequeaYExitCode"
+
+dev_preview:
+  route: null
+  how_to_navigate: "CLI: `arnesia init --check [dir]` — exit≠0 si la salud no es sana"
+  main_component: null
+  api_endpoints:
+    - "POST /api/forja/semillas/chequeos"
+  e2e_test: null
+
+created_in_story: 2026-07-30-arnesia-en-el-proyecto
+created_date: 2026-07-30
+last_modified: 2026-07-30
+source_ref: "docs/architecture/contracts/semilla-arnesia.md §4"
+change_log:
+  - story_id: 2026-07-30-arnesia-en-el-proyecto
+    date: 2026-07-30
+    type: new
+    summary: "A-T4 (A-D4) — doctor v0 de la semilla: juzga por PRESENCIA de las 19 piezas del árbol del contrato §2 (la lista se deriva de la MISMA semilla embebida que siembra — una sola fuente), SIN hashes (la deriva de semilla contra el lock es gap declarado Fase 2). Estados visibles sana|ausente|incompleta + faltantes LISTADOS; lock presente pero ilegible = malformado con motivo. `arnesia init --check` y el propio `init` post-siembra hacen exit≠0 si insana («no avanzamos si no está sana»); el HTTP devuelve 200 con el veredicto tal cual — la salud es un veredicto, no un error."
+    merge_sha: null
+
+scenarios:
+  - id: tres-estados
+    name: "sana / ausente / incompleta, jamás fabricados"
+    given: "un proyecto virgen, luego sembrado, luego con una pieza borrada"
+    when: "corre Chequear en cada momento"
+    then: "ausente (sin `.arnesia/`) → sana (todo el árbol §2) → incompleta con el faltante LISTADO por ruta"
+    verifica: "TestChequearTresEstados"
+  - id: lock-malformado-visible
+    name: "Lock ilegible = malformado, no «sana por no mirar»"
+    given: "una instalación sembrada cuyo `semilla.lock.json` quedó corrupto"
+    when: "corre Chequear"
+    then: "estado incompleta, el lock aparece marcado `(malformado)` y el motivo viaja en detalle"
+    verifica: "TestChequearLockMalformado"
+  - id: exit-manda-la-salud
+    name: "«No avanzamos si no está sana» — exit≠0"
+    given: "una instalación con una pieza rota"
+    when: "corre `arnesia init --check <dir>`"
+    then: "el veredicto sale (JSON o texto) y el proceso termina con exit ≠ 0"
+    verifica: "TestRunInitSiembraChequeaYExitCode"
+business_rules:
+  - "Doctor v0 = presencia, sin hashes (§4): el lock se escribe pero NO se evalúa — la evaluación de deriva de semilla es gap declarado Fase 2 (§3)."
+  - "El veredicto LISTA los faltantes, jamás los resume en un adjetivo; un lock ilegible es malformado VISIBLE."
+  - "HTTP devuelve 200 con estado insano: la salud es un veredicto del dominio, no un error de la operación."
+related_capabilities:
+  depends_on:
+    - arnesia.forja.sembrar-semilla

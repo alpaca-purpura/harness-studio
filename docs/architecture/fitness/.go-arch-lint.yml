@@ -88,6 +88,8 @@ components:
     in: internal/adapters/marketplace/**
   traer:
     in: internal/adapters/traer/**
+  forja:
+    in: internal/adapters/forja/**
   history:
     in: internal/adapters/history/**
   stt:
@@ -177,6 +179,12 @@ deps:
   traer:
     mayDependOn: [domain, ports] # materializa un PlanTraer en un staging (camino A local, B por git)
 
+  # Siembra `.arnesia/` (contrato semilla-arnesia.md, A-T2): parser + scaffolder + doctor
+  # sobre la semilla embebida que cmd le inyecta como fs.FS.
+  forja:
+    mayDependOn: [domain]
+    canUse: [yaml]               # parsea el subset de semilla/arnes.yaml
+
   # El store (registro de sesiones + registro arnés→ruta) implementa puertos.
   store:
     mayDependOn: [domain, ports, filelock]  # flock cross-proceso en ArnesRegistry.Register (Fase 1, D2)
@@ -224,4 +232,4 @@ deps:
 
   # SOLO la composition root cablea adaptadores concretos con los puertos.
   cmd:
-    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, marketplace, traer, history, stt, logfile, dogfood, doctrina, telemetria-otlp, telemetria-hooks, telemetria-store, telemetria-catalogo, telemetria-descubrimiento, telemetria-forward]
+    mayDependOn: [domain, usecase, ports, transport-http, transport-sse, agent-adapters, artifact, index, watch, publish, store, conformance, permission, provision, loader, selfupdate, portafolio, forja, marketplace, traer, history, stt, logfile, dogfood, doctrina, telemetria-otlp, telemetria-hooks, telemetria-store, telemetria-catalogo, telemetria-descubrimiento, telemetria-forward]

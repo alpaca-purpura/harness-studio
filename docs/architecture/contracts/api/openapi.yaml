@@ -40,7 +40,15 @@ info:
   # 2026-07-30-volverlo-de-arnesia-y-publicar, B-D5): publica el canónico en su
   # marketplace-home — gate de conformance ANTES del push, idempotencia por versión,
   # push SIN force (rechazo = 409 «reintentá»), tag `<id>/vX.Y.Z` tras el push.
-  version: 0.10.0-publicar-b2
+  # 0.11.0-forja-semilla: + POST /forja/semillas · POST /forja/semillas/chequeos (paquete
+  # 2026-07-30-arnesia-en-el-proyecto, A-T3; contrato semilla-arnesia.md). El body usa
+  # `path` — el MISMO campo que POST /portafolio/escaneos, no un sinónimo nuevo por ruta
+  # (el spec-lite decía `{dir}`; se corrigió por coherencia). Dos decisiones que el
+  # contrato carga: (a) la siembra es IDEMPOTENTE y lo existente JAMÁS se pisa — un 200
+  # con `ya_existian` poblado es el comportamiento correcto, no un fallo; (b) el chequeo
+  # devuelve 200 TAMBIÉN con estado `incompleta`/`ausente` — la salud es un veredicto,
+  # no un error HTTP; convertirla en 4xx sería fabricar que «chequear falló».
+  version: 0.11.0-forja-semilla
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -526,6 +534,43 @@ paths:
         "503": { description: "«no puedo escribir»: sin `gh` autenticado ni PAT (BR-18 — ArnesIA no pide, guarda ni proxya credenciales), o el publisher no está cableado en esta instalación." }
         "500": { description: "Fallo NUESTRO: loader del canónico, disco, git local. El remoto NO cambió (toda guarda corre antes del push)." }
 
+  /forja/semillas:
+    post:
+      operationId: postSembrarSemilla
+      summary: >-
+        Siembra el process-as-code `.arnesia/` en el proyecto `path` (contrato
+        semilla-arnesia.md §2/§4): render determinista de la semilla embebida, IDEMPOTENTE —
+        lo existente JAMÁS se pisa (viaja en `ya_existian`); al final escribe
+        `semilla.lock.json` (schema 0, §3) y corre el doctor. La salud viaja SIEMPRE,
+        también si quedó insana (el criterio «no avanzamos» es del caller).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [path], properties: { path: { type: string } } }
+      responses:
+        "200":
+          description: >-
+            `{informe: {creados, ya_existian}, salud: {estado, faltantes?, detalle?}}` —
+            estado ∈ sana|ausente|incompleta.
+        "400": { description: "Path inválido, relativo, inexistente o protegido (~/.claude, $HOME, …) — nada se escribe." }
+  /forja/semillas/chequeos:
+    post:
+      operationId: postChequearSemilla
+      summary: >-
+        Doctor v0 de la semilla (contrato §4, A-D4): juzga por PRESENCIA de las piezas del
+        árbol §2 — SIN hashes (la deriva de semilla es gap declarado Fase 2). Un lock
+        presente pero ilegible se reporta malformado. El veredicto se emite TAL CUAL,
+        jamás fabricado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [path], properties: { path: { type: string } } }
+      responses:
+        "200":
+          description: "`{estado: sana|ausente|incompleta, faltantes?: [ruta], detalle?}` — incompleta LISTA los faltantes."
+        "400": { description: "Path inválido, relativo, inexistente o protegido." }
   /marketplaces:
     get:
       operationId: listMarketplaces

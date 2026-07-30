@@ -1,0 +1,98 @@
+---
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.forja.sembrar-semilla
+cap_num: CAP-149
+slug: sembrar-semilla
+name: "Sembrar semilla .arnesia/ (arnesia init)"
+status: vivo           # pointers resuelven + valida real (R4).
+license: brand-local
+
+module: forja
+layer: usecase
+
+verb: crear
+functional_area: "forja.semilla"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/adapters/forja/parser.go#ParseSemilla"
+  - "internal/adapters/forja/scaffolder.go#Adapter.Sembrar"
+  - "internal/domain/forja.go#InformeSemilla"
+  - "internal/ports/forja.go#ForjaPort"
+  - "internal/usecase/forja_service.go#ForjaService.Sembrar"
+  - "cmd/arnesia/init.go#runInit"
+  - "internal/adapters/transport/http/forja.go#postSembrarSemilla"
+valida:
+  - "TestParseSemillaGoldenContraArnesYAMLReal"
+  - "TestParseSemillaIlegibleErrorHonesto"
+  - "TestSembrarCreaElArbolDelContrato"
+  - "TestSembrarIdempotenteJamasPisa"
+  - "TestSembrarParcialSoloCreaLoAusente"
+  - "TestForjaServiceValidaDirProtegido"
+  - "TestForjaServiceDelegaConDirValido"
+  - "TestRunInitSiembraChequeaYExitCode"
+  - "TestPostSembrarSemilla"
+  - "TestPostSembrarSemillaPathProtegido"
+  - "TestRefiereAlgunoNoMatcheaArnesiaDeProyecto"
+
+dev_preview:
+  route: null
+  how_to_navigate: "CLI: `arnesia init [dir]` (sin FE en v0; el HTTP es para el FE futuro)"
+  main_component: null
+  api_endpoints:
+    - "POST /api/forja/semillas"
+  e2e_test: null
+
+created_in_story: 2026-07-30-arnesia-en-el-proyecto
+created_date: 2026-07-30
+last_modified: 2026-07-30
+source_ref: "docs/architecture/contracts/semilla-arnesia.md §2-§6"
+change_log:
+  - story_id: 2026-07-30-arnesia-en-el-proyecto
+    date: 2026-07-30
+    type: new
+    summary: "A-T2/A-T3 (A-D1/A-D2) — `arnesia init` siembra el process-as-code `.arnesia/` (terreno stubs · product · wip · plantillas de proceso por tipo de paquete) derivado determinísticamente de `semilla/arnes.yaml` embebido (`//go:embed all:semilla`, hermano del Kit). Idempotente: lo existente JAMÁS se pisa (informe creados/ya-existian); al final escribe `semilla.lock.json` (schema 0, baseline D8 mínimo) con sha256 de lo que ESTA siembra escribió. Valida dir con la política de path protegido del Portafolio. A-T5 (A-D3): enmienda ADITIVA a doctrine/SKILL/metodología — `.arnesia/` del proyecto es zona de escritura sancionada del PROCESO; runtime intacto, fijado con test de refiereAlguno. GAPs Fase 2 declarados: flag `--arnes-yaml` del proyecto (el seam del parser ya queda), evaluación de deriva contra el lock, 11 dimensiones con hoja, nodos `.arnesia/` en el Mapa."
+    merge_sha: null
+
+scenarios:
+  - id: siembra-arbol-contrato
+    name: "arnesia init crea EXACTAMENTE el árbol del contrato"
+    given: "un proyecto sin `.arnesia/`"
+    when: "corre `arnesia init <dir>` (o POST /api/forja/semillas {path})"
+    then: "se materializan las 19 piezas del contrato §2 (terreno INDEX + 3 territorios · product backlog/roadmap/stories · wip INDEX + .gitkeep×2 · proceso historia×6 + spike×2 · semilla.lock.json al FINAL), sin placeholders sin resolver; la salud queda sana y el exit es 0"
+    verifica: "TestSembrarCreaElArbolDelContrato"
+  - id: re-siembra-idempotente
+    name: "Re-correr jamás pisa — todo ya-existia"
+    given: "una instalación ya sembrada, con un archivo EDITADO por el usuario"
+    when: "se re-corre `arnesia init`"
+    then: "cero escrituras: todo viaja en `ya_existian` y el archivo editado se respeta byte a byte (contrato §4.1)"
+    verifica: "TestSembrarIdempotenteJamasPisa"
+  - id: lock-al-final
+    name: "El lock lleva hashes SOLO de lo que esta siembra escribió"
+    given: "un proyecto con parte del árbol ya presente"
+    when: "corre la siembra"
+    then: "solo lo ausente se crea; `semilla.lock.json` (schema 0) lleva sha256 de lo creado AHORA — jamás del contenido ajeno preexistente"
+    verifica: "TestSembrarParcialSoloCreaLoAusente"
+  - id: dir-protegido-rechazado
+    name: "Una semilla jamás se siembra en ubicación protegida"
+    given: "un dir destino que es $HOME, ~/.claude, relativo o inexistente"
+    when: "se invoca Sembrar o Chequear"
+    then: "error honesto con motivo y el puerto NI SE TOCA — misma política de path protegido que el Portafolio"
+    verifica: "TestForjaServiceValidaDirProtegido"
+  - id: runtime-intacto
+    name: "El guardrail del paquete cerrado NO bloquea la semilla del proyecto"
+    given: "las marcas de ProtegerPaqueteCerrado (~/.arnesia del kit materializado, CH-D6)"
+    when: "un tool_use refiere `<proyecto>/.arnesia/…`"
+    then: "refiereAlguno NO matchea (A-D3: `.arnesia/` del proyecto es zona legal del proceso); el paquete cerrado sigue denegándose en sus dos formas (abs y ~/)"
+    verifica: "TestRefiereAlgunoNoMatcheaArnesiaDeProyecto"
+business_rules:
+  - "Determinismo D12: el sembrador RELLENA plantillas embebidas (text/template, missingkey=error), jamás improvisa; misma fuente + mismos inputs ⇒ mismo árbol."
+  - "Idempotencia §4.1: archivo existente JAMÁS se pisa — se reporta `ya-existia`; re-run sano ⇒ cero escrituras."
+  - "El lock se escribe AL FINAL: si la siembra falla a medias no hay lock que mienta «completa» (§3)."
+  - "Aditivo puro: `arnes.l0.json` SE QUEDA en la raíz (moverlo rompe nomenclatura-arnes.md); nada del proyecto se mueve ni borra."
+  - "A-D3: `.arnesia/` del proyecto = zona de escritura sancionada del PROCESO; sigue PROHIBIDO copiar kit/doctrina/know-how dentro del arnés — runtime intacto."
+related_capabilities:
+  depends_on: []
