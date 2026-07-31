@@ -23,6 +23,18 @@
   `init`/`doctor`/`loop-forward`, pausado, fuera de alcance de este spike) ni el re-key
   `(home,id,scope)` de la deuda viva (plomería de identidad del Portafolio, sin relación directa).
 
+## Definición canónica de arnés + cadena de proceso (paquete de doctrina, abierto 2026-07-30)
+
+- [ ] **DEF-D2 — debatir y firmar la definición canónica de arnés.** v1 NO ratificada (el operador
+  pidió debatir); v2 propuesta: arnés = posee FASES de un proceso, lo opera UN rol, 1 arnés = 1
+  plugin; proceso = entidad aparte declarada en el home; vendible = proceso/familia, instalable =
+  arnés. DEF-D1 (feature/bugfix/spike = pipelines internos, aplica D20) YA FIRMADA 🧑‍⚖️ 2026-07-30.
+  → [`stories/2026-07-30-definicion-de-arnes/debate-definicion.md`](stories/2026-07-30-definicion-de-arnes/debate-definicion.md) · `gate`
+- [ ] **DEF-D3 — firmar el diseño de la cadena** (`proceso/<id>.yaml` en el home, fases con
+  arnés-owner + `gate_salida` verificable, N:1 para empresa chica). Directiva «diseñar ahora» dada;
+  se firma junto con DEF-D2. Después: hoja canónica en `docs/` + tipos-de-paquete del arnés-dev
+  (dogfood) · `gate` · `bloqueo`(DEF-D2)
+
 ## Rebrand PRENTER — gate FIRMADO (HS-25), deuda residual de diseño
 
 - [x] ✅ **Chrome de tokens (color/tipografía/radios/sombras) reemplazado por el sistema PRENTER**
