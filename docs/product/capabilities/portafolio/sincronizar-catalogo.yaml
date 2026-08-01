@@ -1,0 +1,64 @@
+---
+# Nacida con DD-2/E-bis (deudas de dogfood del paquete 2026-07-30-definicion-de-arnes).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.sincronizar-catalogo
+cap_num: CAP-154
+slug: sincronizar-catalogo
+name: "Sincronizar el checkout de un marketplace propio al Refrescar (pull ff-only)"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD.
+license: brand-local
+
+module: portafolio
+layer: adapter
+
+verb: mapear
+functional_area: "portafolio.marketplaces"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/ports/marketplace.go#CatalogoSync"
+  - "internal/adapters/marketplace/sincronizador.go#SincronizadorGit"
+  - "internal/usecase/marketplace.go#MarketplaceService"
+valida:
+  - "internal/adapters/marketplace/sincronizador_test.go"
+  - "TestRefrescarSincronizaSoloPropioYExplicito"
+  - "TestRefrescarConPullFallidoDegradaVisible"
+scenarios:
+  - "Dado un marketplace PROPIO con checkout local, cuando el operador aprieta «↻ Refrescar», entonces el checkout hace git pull --ff-only ANTES de la lectura — una versión publicada aparece sin git pull manual (E-bis)"
+  - "Dado un marketplace de REFERENCIA, cuando se refresca, entonces el checkout JAMÁS se sincroniza — sobre lo ajeno solo se lee (invariante 3 del boundary)"
+  - "Dado un pull que falla (historia divergente, sin red), cuando se refresca, entonces la lectura local sigue viva y el motivo del pull queda VISIBLE en Lectura.Motivo — jamás «al día» fingido"
+  - "Dada una lectura cacheada (refrescar=false), cuando se pinta el catálogo, entonces el sincronizador no corre — cero I/O de red en el camino normal"
+business_rules:
+  - "El LECTOR sigue sin escribir jamás (TestLectorLocalNoEscribeEnElCheckout intacto): sincronizar es un puerto/actor SEPARADO (CatalogoSync) y la política (refresco explícito + clase propio) vive en el usecase"
+  - "--ff-only a propósito: un clone con historia divergente (editado a mano) FALLA con motivo visible, nunca se mergea en silencio"
+related_capabilities:
+  depends_on: ["arnesia.portafolio.leer-catalogo-marketplace"]
+  enables: []
+
+dev_preview:
+  route: "#/portafolio"
+  how_to_navigate: "Plano Marketplaces → drawer de un marketplace propio → «↻ Refrescar»"
+  main_component: "internal/adapters/marketplace/sincronizador.go"
+  api_endpoints: ["POST /api/marketplaces/{nombre}/lecturas"]
+  e2e_test: null
+
+created_in_story: 2026-07-30-definicion-de-arnes
+created_date: 2026-08-01
+last_modified: 2026-08-01
+source_ref: "docs/product/stories/2026-07-30-definicion-de-arnes/decisiones.md DD-2/DD-2-bis"
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: new
+    summary: "E-bis: «↻ Refrescar» hace pull ff-only real del checkout propio vía puerto CatalogoSync — el catálogo ve versiones nuevas sin git pull manual; referencia jamás se sincroniza."
+---
+
+# Sincronizar el checkout de un marketplace propio al Refrescar
+
+Cierra la deuda E-bis del dogfood developer-vitalia: «↻ Refrescar» no hacía fetch — el
+`LectorLocal` releía el clone stale que administra CC y sincronizar era `git pull` manual.
+El pull vive en un actor separado del lector (boundary intacto) y solo toca marketplaces
+propios en refresco explícito.

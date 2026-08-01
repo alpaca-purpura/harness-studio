@@ -734,3 +734,84 @@ func TestFilaRegistradaTraeLecturaNoLeida(t *testing.T) {
 		t.Fatalf("Lectura.Tipo = %q, want %q (jamás vacío en el wire)", fila.Lectura.Tipo, domain.LecturaNoLeida)
 	}
 }
+
+// ── DD-2/E-bis · «↻ Refrescar» = fetch/pull real del checkout PROPIO ──────────────────────
+
+type fakeSync struct {
+	llamadas []string
+	err      error
+}
+
+func (f *fakeSync) Sincronizar(_ context.Context, m domain.MarketplaceConocido) (string, error) {
+	f.llamadas = append(f.llamadas, m.Nombre)
+	if f.err != nil {
+		return "", f.err
+	}
+	return "avanzó a abc123def456", nil
+}
+
+// El sincronizador corre SOLO en refresco explícito y SOLO para clase propio; la lectura
+// cacheada y los marketplaces de referencia jamás lo tocan (invariante 3 del boundary:
+// sobre lo ajeno solo se lee).
+func TestRefrescarSincronizaSoloPropioYExplicito(t *testing.T) {
+	e := armar(t)
+	sync := &fakeSync{}
+	e.svc.SetSync(sync)
+	e.store.filas["mio"] = domain.MarketplaceConocido{
+		Nombre: "mio", Repo: "github.com/a/mio", Clase: domain.ClasePropio, InstallLocation: "/checkout/mio",
+	}
+	e.store.filas["ajeno"] = domain.MarketplaceConocido{
+		Nombre: "ajeno", Repo: "github.com/x/ajeno", Clase: domain.ClaseReferencia, InstallLocation: "/checkout/ajeno",
+	}
+	e.local.cat = catDosEntradas("mio", "2026-07-25T14:07:33Z", "local")
+
+	// refrescar=false con caché: ni lectura fresca ni sync.
+	e.cache.guardados["mio"] = catDosEntradas("mio", "2026-07-23T14:07:33Z", "local")
+	if _, err := e.svc.Catalogo(context.Background(), "mio", false); err != nil {
+		t.Fatalf("Catalogo cacheado: %v", err)
+	}
+	if len(sync.llamadas) != 0 {
+		t.Fatalf("lectura cacheada no debe sincronizar, llamadas = %v", sync.llamadas)
+	}
+
+	// refrescar=true sobre PROPIO: sincroniza una vez.
+	if _, err := e.svc.Catalogo(context.Background(), "mio", true); err != nil {
+		t.Fatalf("Catalogo refrescar: %v", err)
+	}
+	if len(sync.llamadas) != 1 || sync.llamadas[0] != "mio" {
+		t.Fatalf("refrescar propio debe sincronizar el checkout, llamadas = %v", sync.llamadas)
+	}
+
+	// refrescar=true sobre REFERENCIA: jamás.
+	e.local.cat = catDosEntradas("ajeno", "2026-07-25T14:07:33Z", "local")
+	if _, err := e.svc.Catalogo(context.Background(), "ajeno", true); err != nil {
+		t.Fatalf("Catalogo ajeno: %v", err)
+	}
+	if len(sync.llamadas) != 1 {
+		t.Fatalf("un marketplace de referencia no se sincroniza, llamadas = %v", sync.llamadas)
+	}
+}
+
+// Un pull fallido NO bloquea el catálogo: la lectura local sigue y el motivo del sync
+// queda VISIBLE en Lectura.Motivo aunque la lectura haya salido bien (el clone quedó
+// stale y eso se dice — jamás «al día» fingido).
+func TestRefrescarConPullFallidoDegradaVisible(t *testing.T) {
+	e := armar(t)
+	sync := &fakeSync{err: errors.New("git pull --ff-only: divergent histories")}
+	e.svc.SetSync(sync)
+	e.store.filas["mio"] = domain.MarketplaceConocido{
+		Nombre: "mio", Repo: "github.com/a/mio", Clase: domain.ClasePropio, InstallLocation: "/checkout/mio",
+	}
+	e.local.cat = catDosEntradas("mio", "2026-07-25T14:07:33Z", "local")
+
+	cat, err := e.svc.Catalogo(context.Background(), "mio", true)
+	if err != nil {
+		t.Fatalf("Catalogo: %v", err)
+	}
+	if cat.Lectura.Tipo != domain.LecturaLeida || len(cat.Entradas) != 2 {
+		t.Fatalf("la lectura local debe seguir viva pese al pull fallido: %+v", cat.Lectura)
+	}
+	if !strings.Contains(cat.Lectura.Motivo, "divergent histories") {
+		t.Fatalf("Lectura.Motivo = %q, want el motivo del pull fallido visible", cat.Lectura.Motivo)
+	}
+}

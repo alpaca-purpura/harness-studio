@@ -833,6 +833,9 @@ func newMarketplaceService(pfStore ports.PortafolioStore, deriva ports.DerivaEva
 	// `↧ Traer canónico`: camino A sin red, camino B por `git` con `gh` como credential helper
 	// (ArnesIA nunca ve el token, BR-18). raizArnesia "" ⇒ ~/.arnesia.
 	svc.SetTraer(&traer.CopiadorLocal{}, &traer.ClonadorExterno{GHBin: "gh", Token: token}, deriva, "")
+	// «↻ Refrescar» = pull ff-only del checkout de un marketplace PROPIO (DD-2/E-bis);
+	// la política (refresco explícito + clase propio) vive en el usecase.
+	svc.SetSync(&marketplace.SincronizadorGit{})
 	return svc, nil
 }
 

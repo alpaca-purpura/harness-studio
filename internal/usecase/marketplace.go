@@ -26,6 +26,7 @@ type MarketplaceService struct {
 	detector   ports.MarketplaceDetector
 	local      ports.CatalogoReader
 	remoto     ports.CatalogoReader
+	sync       ports.CatalogoSync // nil ⇒ Refrescar no sincroniza el checkout (solo relee).
 	validador  ports.CatalogoValidador
 	cache      ports.CatalogoCache
 	portafolio ports.PortafolioStore
@@ -66,6 +67,10 @@ func NewMarketplaceService(
 
 // SetAhora inyecta el reloj (tests).
 func (s *MarketplaceService) SetAhora(f func() time.Time) { s.ahora = f }
+
+// SetSync cablea el sincronizador del checkout (DD-2/E-bis). Aparte del constructor por la
+// misma razón que SetTraer: el servicio arranca útil sin él y Refrescar degrada a solo-releer.
+func (s *MarketplaceService) SetSync(sync ports.CatalogoSync) { s.sync = sync }
 
 // Errores centinela: el handler mapea el status por errors.Is, jamás parseando strings (mismo
 // patrón que ErrObservarClaveNoEncontrada). ErrNoEsMarketplace/ErrSinViaDeLectura se RE-EXPORTAN
@@ -195,17 +200,31 @@ func (s *MarketplaceService) Catalogo(ctx context.Context, nombre string, refres
 		}
 	}
 
+	// DD-2/E-bis · «↻ Refrescar» = fetch/pull REAL, no solo releer el clone stale: en
+	// refresco EXPLÍCITO y SOLO para un marketplace PROPIO se sincroniza el checkout
+	// antes de leer (referencia jamás: sobre lo ajeno solo se lee — invariante 3 del
+	// boundary). Best-effort: el pull fallido se arrastra a Lectura.Motivo — TAMBIÉN en
+	// lectura exitosa (el clone quedó stale y eso se dice) — y la lectura sigue.
+	var motivoSync string
+	if refrescar && s.sync != nil && m.InstallLocation != "" && domain.ClaseSegura(m.Clase) == domain.ClasePropio {
+		if _, serr := s.sync.Sincronizar(ctx, m); serr != nil {
+			motivoSync = serr.Error()
+		}
+	}
+
 	cat, lerr := s.leerFresco(ctx, m)
 	if lerr == nil {
 		cat.Lectura.Tipo = domain.LecturaLeida
 		cat.Lectura.Cuando = s.ahora().Format(time.RFC3339)
 		cat.Lectura.Entradas = len(cat.Entradas)
+		cat.Lectura.Motivo = juntarMotivos(cat.Lectura.Motivo, motivoSync)
 		if gerr := s.cache.Guardar(nombre, cat); gerr != nil {
 			// La lectura NO se pierde por no poder guardarla (E-51).
 			cat.Lectura.Motivo = strings.TrimSpace(cat.Lectura.Motivo + fmt.Sprintf(" (no se pudo cachear: %v)", gerr))
 		}
 		return s.conSituacion(m, cat), nil
 	}
+	motivoCache = juntarMotivos(motivoCache, motivoSync)
 
 	// Falló la lectura fresca. Con caché: se devuelve el caché + la degradación VISIBLE + el
 	// `Cuando` VIEJO — la UI dice «leído hace 2 días · ahora sin acceso», nunca «al día» (E-29/E-63).

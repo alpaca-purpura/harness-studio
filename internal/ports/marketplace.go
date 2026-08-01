@@ -42,6 +42,17 @@ type CatalogoValidador interface {
 	Validar(ctx context.Context, url string) (domain.Catalogo, error)
 }
 
+// CatalogoSync sincroniza el checkout local de un marketplace PROPIO con su remoto
+// (DD-2/E-bis, «↻ Refrescar» = fetch/pull real). El usecase lo invoca SOLO en refresco
+// EXPLÍCITO y SOLO para clase propio — un marketplace de referencia JAMÁS se sincroniza
+// (invariante 3 de marketplace-referencia-es-solo-procedencia: sobre lo ajeno solo se
+// lee). Devuelve un detalle legible («ya al día» / «avanzó a <sha>») o error; el usecase
+// arrastra el error a Lectura.Motivo y la lectura SIGUE — sincronizar es best-effort,
+// jamás bloquea el catálogo.
+type CatalogoSync interface {
+	Sincronizar(ctx context.Context, m domain.MarketplaceConocido) (detalle string, err error)
+}
+
 // CatalogoCache guarda la última lectura EXITOSA por marketplace + su timestamp (AG-D8
 // decisión 3, BR-3). Leer devuelve ok=false tanto si no hay caché como si el archivo está
 // corrupto — con `motivo` poblado en el segundo caso, para que el degradado sea visible.

@@ -1,7 +1,7 @@
 ---
 regla: marketplace-referencia-es-solo-procedencia
-version: 1.2
-updated: 2026-07-25
+version: 1.3
+updated: 2026-08-01
 status: enforced
 ledger: HS-27
 sources:
@@ -61,6 +61,14 @@ Aterrizado en `internal/domain/marketplace{,_situacion}.go` +
    `ClaseMarketplace` fuera del enum a `referencia`, **nunca** a `propio`. Un registro editado a
    mano, un formato futuro o un typo no pueden habilitar operar lo ajeno. ⇐ L1: bounded context —
    lo que no reconozco entra en el modo más acotado, no en el más permisivo.
+3-bis. **Sincronizar ≠ leer, y solo lo PROPIO se sincroniza (DD-2/E-bis, 2026-08-01).** «↻
+   Refrescar» sobre un marketplace de clase `propio` hace `git pull --ff-only` del checkout ANTES
+   de leer — vía el puerto `CatalogoSync` (adapter `SincronizadorGit`), un actor SEPARADO del
+   lector: `LectorLocal` sigue sin escribir jamás (su enforcer queda intacto). Un marketplace de
+   **referencia JAMÁS se sincroniza** — sobre lo ajeno solo se lee; la política (refresco
+   explícito + clase propio) vive en el usecase y el pull fallido degrada VISIBLE en
+   `Lectura.Motivo`. Enforcers: `TestRefrescarSincronizaSoloPropioYExplicito` ·
+   `TestSincronizadorNoMergeaHistoriaDivergente`.
 3. **Conocer ≠ adquirir.** `MarketplaceService.Registrar` escribe UNA fila en
    `~/.arnesia/marketplaces.json` y nada más: no clona, no instala, no descarga un árbol.
    `PortafolioService.AsignarOrigen` escribe el `home` declarado en el store y re-evalúa deriva: no
@@ -92,6 +100,11 @@ diluye los dos. Los dos nodos se tocan en el mismo paquete y se leen juntos.
 | traer-referencia-rechazado | `PlanificarTraer` rechaza clase `referencia` en el DOMINIO, con cero I/O — el botón `disabled` de la UI no es control de acceso, y un POST puede llegar sin pasar por él | error | «se materializó un arnés de un marketplace de terceros» | internal/domain/traer_test.go:TestPlanificarTraerRechazaReferencia |
 
 ## Changelog
+
+- 2026-08-01 · v1.3 · **DD-2/E-bis: nace `CatalogoSync`.** «Refrescar» releía el clone stale de CC
+  y sincronizar era `git pull` manual (deuda E-bis del dogfood developer-vitalia). El pull vive en
+  un actor separado del lector (invariante 3 intacto), solo clase `propio`, solo refresco
+  explícito, `--ff-only` (divergencia = error visible, jamás merge silencioso). +2 enforcers.
 
 - 2026-07-25 · v1.0 · Nodo fundacional (paquete
   `docs/product/stories/2026-07-23-portafolio-agregar-marketplace/`, etapa 3 · diseño técnico).

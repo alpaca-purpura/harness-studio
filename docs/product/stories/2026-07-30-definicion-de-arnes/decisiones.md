@@ -176,6 +176,15 @@
   falta en marketplace» (fila nueva vía RMW). El operador amplió el corte — el
   handoff recomendaba diferir (b). Orden interno: (a)+(c) primero, (b) después.
   E-ter (esquema multi-plugin de catalogo.json) sigue diferido a la 2ª versión.
+- **DD-2-bis — diseño de (c) Refrescar (2026-08-01, al implementar):** `git pull` del
+  clone CC chocaba con el invariante 3 de `marketplace-referencia-es-solo-procedencia`
+  («el lector nunca escribe en el checkout»). Resolución: el LECTOR sigue puro; nace el
+  puerto **`CatalogoSync`** (adapter `SincronizadorGit`, `git pull --ff-only` con
+  timeout) que el usecase invoca SOLO en Refrescar EXPLÍCITO y SOLO para marketplaces
+  de clase PROPIO — un marketplace de referencia JAMÁS se sincroniza (solo lectura
+  remota). Falla de pull = motivo visible arrastrado a `Lectura.Motivo`, la lectura
+  sigue. El boundary se enmienda (v1.3) aclarando la distinción propio/ajeno en el
+  MISMO commit.
 - **DD-3 🧑‍⚖️ (2026-08-01) — peek con foco COMPLETO:** la vista previa («Abrir en
   Mapa», `viewedId ≠ arnesId`) recibe las mismas props de foco que la sesión
   propia (secuencia/dimlane/breadcrumb). Es lectura pura (MA-L6); CH-D6 intacto
