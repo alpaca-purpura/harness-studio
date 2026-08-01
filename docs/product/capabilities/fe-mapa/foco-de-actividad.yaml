@@ -19,6 +19,7 @@ user_visible: true
 nature: feature
 
 pointers:
+  - "web/src/pages/shell/ui/workspace-stage.tsx#WorkspaceStage"
   - "web/src/widgets/map-canvas/model/use-secuencia-paths.ts#useSecuenciaPaths"
   - "web/src/widgets/map-canvas/model/use-secuencia-paths.ts#SecuenciaActividad"
   - "web/src/entities/arnes/model/actividades.ts#fasesDeActividad"
@@ -42,6 +43,7 @@ scenarios:
   - "Dado el foco, cuando se miran los edges, entonces el spine invoca genérico baja a opacity .18 — atenuado, NUNCA removido (MA-L6)"
 business_rules:
   - "El foco atenúa, no borra (MA-L6): nunca filtra-y-esconde; el todo sigue presente y clickeable"
+  - "El foco funciona COMPLETO también en peek (DD-3, «Abrir en Mapa» con viewedId ≠ arnesId): es lectura pura; CH-D6 solo gatea los CTA de chat. El efecto de carga de la página depende de la PRIMITIVA enIndice, no del array del índice — un refetch de listHarnesses con el mismo contenido no resetea el foco activo"
   - "Superset estricto (MA-L3): sin actividadFoco el DOM del canvas es EXACTAMENTE el vigente — las 13 stories de map-canvas + 5 de map-bar siguen verdes sin tocarse"
   - "Las cifras de la capa Mejora siguen siendo del arnés completo bajo foco (disclaimer §3); filtrar costo por actividad = diferido E12"
   - "La fila «Actividades» del inspector vive ENTRE Clasificación y Fuente, solo para nodos de banda fase con catálogo declarado"
@@ -65,6 +67,10 @@ change_log:
     date: 2026-08-01
     type: new
     summary: "Foco N1: dim por faceta + secuencia sólida --primary numerada + dimlane E5 + ghost E13 + breadcrumb + badge ×N + fila «Actividades» del inspector con radio de impacto MA-L4."
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: fix
+    summary: "Gotcha peek (DD-3): el efecto de carga dependía del ARRAY harnesses (identidad nueva por refetch) y re-corría reseteando el foco recién puesto — race al entrar por peek (dos listHarnesses concurrentes). Dep cambiada a la primitiva enIndice; verificado en vivo: foco completo en peek (crumb+secuencia+dimlane)."
 ---
 
 # Foco de actividad (N1) — secuencia del procedimiento, atenuación y radio de impacto

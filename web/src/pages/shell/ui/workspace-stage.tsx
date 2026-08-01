@@ -115,6 +115,14 @@ export function WorkspaceStage() {
     setSelectedId(undefined)
   }, [arnesId])
 
+  // ¿El arnés visto está en el índice? PRIMITIVA estable a propósito (deuda peek, DD-3): el
+  // efecto de carga de abajo la lleva en deps en vez del ARRAY `harnesses` — cada refetch del
+  // índice crea un array de identidad nueva, y con el array en deps el efecto re-corría entero
+  // (reset de foco/selección + refetch del grafo) aunque el contenido no cambiara. Ese re-run
+  // es el que borraba el foco de actividad recién puesto al entrar por peek (dos listHarnesses
+  // concurrentes al montar: el de [isMapa] + el del buzón mapaPeek).
+  const enIndice = harnesses.some((h) => h.id === viewedId)
+
   // Load the graph of the viewed arnés when the Map view is active (RF-70). shared/api is the
   // only transport seam; the entity/canvas never fetch.
   useEffect(() => {
@@ -136,7 +144,7 @@ export function WorkspaceStage() {
     // Cambiar de arnés vuelve al panorama: el foco de actividad pertenece a UN grafo.
     setActividadFoco(null)
     setActividadPre(null)
-    if (!harnesses.some((h) => h.id === viewedId)) {
+    if (!enIndice) {
       setLoadErr(`«${viewedId}» no está en el índice del daemon.`)
       return () => {
         alive = false
@@ -173,7 +181,7 @@ export function WorkspaceStage() {
     return () => {
       alive = false
     }
-  }, [viewedId, isMapa, harnesses, harnessesLoaded])
+  }, [viewedId, isMapa, enIndice, harnessesLoaded])
 
   // Reindex-en-vivo (RF-187): el daemon avisó por `event: map` que el grafo del arnés visto
   // cambió tras un turno del chat → refetch del grafo SIN resetear selección ni conformance
