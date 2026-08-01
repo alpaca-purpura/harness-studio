@@ -12,6 +12,16 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
 
 ## Paquete de trabajo activo
 
+- **Ingesta escenario B — jalar proyectos crudos + Mapa editor. DECISIONES ING-D1..D10
+  FIRMADAS 🧑‍⚖️ 2026-08-01 (aprobación conversacional); próxima etapa = MOCKUP (gate 🧑‍⚖️).**
+  Realineación del operador: B (proyecto crudo → inventariar as-code → clasificar → curar →
+  empaquetar → marketplace propio → reinstalar formal → telemetría) = **90 % del uso**; el Mapa
+  pasa de visor a **editor manual first-class** (clicks crean/cablean → archivos reales; el chat
+  asiste). Estado real auditado con evidencia (Mapa 100 % read-only · reconocedor de agents
+  inexistente · clasificación cero código · carpeta cruda = callejón sin salida · forja pausada
+  absorbida ING-D10). Quick-win T0 desacoplable: instalaciones no reciben `arnes.yaml` →
+  actividades invisibles (bug vivido y fixeado a mano en vitalia-app el mismo día).
+  → [`stories/2026-08-01-ingesta-escenario-b/`](./stories/2026-08-01-ingesta-escenario-b/INDEX.md)
 - **Retomar aquí: MVP DE 1 DÍA — CÓDIGO COMPLETO EN MAIN (2026-07-30), faltan las firmas 🧑‍⚖️
   de PARIDAD del operador + demo E2E en laptop.** Los 3 carriles landeados y verificados
   (B1 `9c91449` · C `e55006e` · B2 `f50a24a` · A merge `07f9d3b`); releases v0.5.0 y v0.6.0

@@ -153,11 +153,29 @@
   inspector-drawer) quedaron FIRMADOS 2026-07-09 (HS-20) — sus 7+7+6+5 desviaciones aceptadas;
   cierre en `ledger/HS-20.md`.
 
-## Outcome ACTIVO — Fase 1 · Ciclo de forja de arneses vivo (2026-07-10)
+## Outcome ACTIVO — Ingesta escenario B · jalar proyectos crudos + Mapa editor (2026-08-01)
+
+> Decisiones **ING-D1..D10 FIRMADAS 🧑‍⚖️ 2026-08-01** →
+> [`stories/2026-08-01-ingesta-escenario-b/`](stories/2026-08-01-ingesta-escenario-b/INDEX.md)
+> (decisiones + informe de estado real con evidencia). B = 90 % del uso: proyecto crudo →
+> inventario TOTAL as-code (incl. **agents**, hoy sin reconocedor) + procedencia
+> (plugin/propio/suelto/drifteado/referencia) → clasificación por facetas (knowledge · as-code ·
+> WIP-home) leyendo el grafo de punteros REAL → curaduría conversacional **y manual en el Mapa**
+> (hoy 100 % read-only → pasa a editor: clicks escriben archivos) → sello → publicar → reinstalar
+> formal → telemetría. **Absorbe la Fase 1 forja (ING-D10)**: forjar-de-cero = subcaso.
+>
+> - [ ] **T0 quick-win desacoplable** — instalaciones no reciben `arnes.yaml` → actividades
+>   invisibles (mecanismo en `decisiones.md` §P1)
+> - [ ] **Mockup** ingesta + Mapa editor (gate 🧑‍⚖️; superset del baseline, leer `mockups/INDEX.md`)
+> - [ ] **Spec** → slices de implementación → PARIDAD
+
+### (absorbida) Fase 1 · Ciclo de forja de arneses vivo (2026-07-10)
 
 > Modelo de terreno FIRMADO 🧑‍⚖️ (`stories/2026-07-10-terreno-conocimiento/`, D0-D20 + `arnes.yaml`).
 > Ejecución en `stories/2026-07-10-forja-ciclo-vivo/`. Loop meta: `chat → arnes.yaml → gate → scaffold → Mapa`.
 > Agnóstico al rubro (dev = un ejemplo). Slice fino primero (Shape-Up).
+> **Reencuadrada por ING-D10 (2026-08-01): forjar-de-cero = subcaso de la ingesta.** Las piezas
+> vivas (scaffolder · semilla · gate D19 · Slice 1a construido) son motor del paquete nuevo.
 
 - [ ] **1. Dogfood scaffold** — `docs/terreno/{proposito,producto,organizacion}/` + `docs/wip/` derivados del
   `arnes.yaml` (INDEX/dim + hojas atómicas D9 + `knowledge/`), migrando `docs/architecture/`→`terreno/producto/`;
