@@ -1,7 +1,7 @@
 ---
 regla: permisos-gui-human-in-the-loop
-version: 1.2
-updated: 2026-07-07
+version: 1.3
+updated: 2026-08-01
 status: proposed
 ledger: HS-04
 sources:
@@ -16,6 +16,7 @@ sources:
     revisado: 2026-07-05
 enforced_by:
   - fitness/arch_test.go:TestNoBypassPermissions
+  - adapters/agent/claudecode/conductor_test.go:TestPermissionArgsMaterialization
   - fitness/arch_test.go:TestWriteRequiresApproval
   - fitness/arch_test.go:TestSessionSpawnsInArnesPath
   - fitness/arch_test.go:TestArnesPathContainment
@@ -41,6 +42,11 @@ control):
 
 - **El conductor corre en `default`, deny-by-default.** `--allowedTools` = solo read-only genuino;
   **Write/Edit nunca pre-aprobados**. ⇐ L1: deny-by-default.
+- **El canal va SIEMPRE cableado (DD-1, 2026-08-01).** Un `PermissionSet` de valor cero (sesión
+  sobre material sin sello → sin rol) emite igual `--permission-mode default
+  --permission-prompt-tool stdio`: nada pre-aprobado, TODO pasa por la tarjeta del panel. El
+  comportamiento previo (set vacío = cero flags) dejaba esa sesión headless sin canal: CC
+  auto-negaba Write y el permiso jamás llegaba al Dock — read-only de facto.
 - **El GUI es el human-in-the-loop.** Claude pide edit → `control_request:can_use_tool` con el
   input (`file_path`/`old_string`/`new_string`) → el dock **pinta el diff (CodeMirror merge)** →
   el usuario aprueba → `control_response` allow (echo `updatedInput`) / deny (con `message`). ⇐ L1.
@@ -58,6 +64,7 @@ control):
 
 | id | qué chequea | severidad | señal en el mapa | enforcer |
 |----|-------------|-----------|------------------|----------|
+| canal-siempre-cableado | todo spawn del Dock emite `--permission-mode default --permission-prompt-tool stdio`, incluso con set de valor cero (sin rol) | error | «sesión sin canal de permisos — escritura auto-negada sin HITL» | conductor_test.go:TestPermissionArgsMaterialization |
 | no-bypass | ningún path de código pasa `--dangerously-skip-permissions`/`bypassPermissions` en el conductor de cara al usuario | error | banda Guardia «automatización con permisos saltados» | arch_test.go:TestNoBypassPermissions |
 | write-requiere-aprobacion | Write/Edit no están en `--allowedTools`; pasan por el diff-approval del GUI | error | «escritura auto-aprobada sin diff» | arch_test.go:TestWriteRequiresApproval |
 | modo-por-fase | evals-gate/promote corren `dontAsk`; grill/spec corren `plan` | warn | «fase sin humano corriendo en modo interactivo (o viceversa)» | arch_test.go |
@@ -68,6 +75,14 @@ control):
 
 ## Changelog
 
+- 2026-08-01 · v1.3 · **DD-1 (deuda D del dogfood developer-vitalia): el canal de permisos va
+  SIEMPRE cableado.** `permissionArgs` con set de valor cero emitía cero flags («Dock unchanged»,
+  deliberado en Fase E) — pero una sesión sobre material sin sello (sin rol) quedaba headless SIN
+  `--permission-prompt-tool`: CC auto-negaba Write/mkdir y el prompt jamás llegaba al panel; la
+  forja conversacional era read-only de facto. Ahora el set vacío emite `--permission-mode default
+  --permission-prompt-tool stdio` (nada pre-aprobado, todo por la tarjeta). +1 check
+  (`canal-siempre-cableado`). El «rol de forja» (perfil explícito para material sin sello) queda
+  como evolución del modelo de roles. 7 → **8 checks**.
 - 2026-07-07 · v1.2 · **realizado en vivo (HS-11/Fase E).** El diff-approval reservado desde v1.0
   aterriza: el adapter claudecode REENVÍA `control_request:can_use_tool` (antes lo descartaba) como
   evento normalizado; el daemon lo pinta como tarjeta `permission` del Dock por SSE (D3) y `POST

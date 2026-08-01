@@ -127,8 +127,10 @@ func TestDockSpawnCarriesRolePermissions(t *testing.T) {
 	}
 }
 
-// Degradación honesta: rol irresoluble ⇒ spawn SIN flags de permisos (zero-value), la
-// sesión jamás se bloquea por la autoridad ausente.
+// Degradación honesta: rol irresoluble ⇒ el spawn lleva el set de valor CERO — nada
+// pre-aprobado ni denegado por rol; el canal de permisos va cableado igual (DD-1: el
+// conductor emite mode+prompt-tool siempre) y la sesión jamás se bloquea por la
+// autoridad ausente.
 func TestDockSpawnDegradesWithoutRole(t *testing.T) {
 	agent := &stubAgent{}
 	svc := newSvc(t, agent, func(context.Context, string) string { return "" })
@@ -171,6 +173,41 @@ func TestResolvePermissionUsesArnesRole(t *testing.T) {
 	}
 	if len(responded[0].UpdatedInput) == 0 {
 		t.Error("allow sin updatedInput — el wire lo requiere (echo del input original)")
+	}
+}
+
+// DD-1 (deuda D): resolver un permiso de una sesión SIN rol (material sin sello) NO es
+// un 400 — la autoridad es el click humano con el set de valor cero: allow responde el
+// control_response y el grant nace ya expirado (TTL 0 ⇒ cada escritura re-pregunta).
+// Antes ResolveForRole("") reventaba con «rol vacío» y la tarjeta era inaprobable: el
+// HITL moría en el último tramo justo en el caso que más lo necesita (la forja).
+func TestResolvePermissionSinRolDecideElHumano(t *testing.T) {
+	agent := &stubAgent{}
+	svc := newSvc(t, agent, func(context.Context, string) string { return "" }) // sin sello ⇒ sin rol.
+	id := svc.List()[0].ID
+	if err := svc.Turn(id, "forjá el sello"); err != nil {
+		t.Fatalf("turn: %v", err)
+	}
+	sess := agent.sessions[0]
+	sess.events <- ports.AgentEvent{Kind: ports.EventControlRequest, RequestID: "cr-f1", Tool: "Write", Input: []byte(`{"file_path":"arnes.yaml"}`), ToolUseID: "toolu_f1"}
+	waitUntil(t, func() bool {
+		s, _ := svc.Get(id)
+		return s.Status == domain.StatusAwait
+	})
+
+	res, err := svc.ResolvePermission(id, "cr-f1", "allow", "", 0, nil)
+	if err != nil {
+		t.Fatalf("resolve sin rol: %v (DD-1: el humano ES la autoridad)", err)
+	}
+	if res.Efectiva != domain.DecisionAllow {
+		t.Fatalf("resolución = %+v, want allow del operador", res)
+	}
+	if res.Expira != nil && res.Expira.After(time.Now()) {
+		t.Errorf("grant sin rol debe nacer ya expirado (TTL 0, por-tarea), got expira %v", res.Expira)
+	}
+	_, responded := sess.snapshot()
+	if len(responded) != 1 || !responded[0].Allow || responded[0].ToolUseID != "toolu_f1" {
+		t.Errorf("control_response = %+v, want allow con toolUseID ecoado", responded)
 	}
 }
 

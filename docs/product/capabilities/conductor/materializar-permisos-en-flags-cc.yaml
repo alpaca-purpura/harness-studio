@@ -12,12 +12,21 @@ pointers:
   - "internal/adapters/agent/claudecode/conductor.go#permissionArgs"
 valida:
   - "TestPermissionArgsMaterialization"
-scenarios: []
-business_rules: []
+scenarios:
+  - "Dado un PermissionSet de valor cero (sesión sobre material sin sello, sin rol), cuando se materializan los flags, entonces el spawn emite igual --permission-mode default --permission-prompt-tool stdio — nada pre-aprobado, TODO pasa por la tarjeta del panel (DD-1)"
+  - "Dado un set con rol, cuando se materializan los flags, entonces --allowedTools lleva SOLO el allow read-only genuino (Write/Edit jamás) y --disallowedTools el deny del rol"
+business_rules:
+  - "El canal de permisos va SIEMPRE cableado (DD-1, deuda D del dogfood): el comportamiento previo (set vacío = cero flags) dejaba la sesión headless sin HITL — CC auto-negaba Write y el permiso jamás llegaba al Dock"
 related_capabilities:
   depends_on: []
-  enables: []
+  enables: ["arnesia.conductor.hitl-permisos"]
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-37)"
+last_modified: 2026-08-01
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: fix
+    summary: "DD-1: permissionArgs emite mode+prompt-tool incondicionalmente — el set de valor cero ya no corre headless sin canal; boundary permisos-gui v1.3 (+check canal-siempre-cableado)."
 ---
 
 # Materializar permisos en flags CC (read-only, deny>allow)

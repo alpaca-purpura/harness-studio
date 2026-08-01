@@ -131,11 +131,14 @@ var escrituraDirecta = map[string]bool{
 // GAP honesto: `Ask` has no dedicated CC flag — it is realized by NOT pre-approving +
 // prompt-tool stdio (deny-by-default posture: unlisted/ask tools hit the control
 // channel). `TTL` maps to no flag either: the ephemeral grants live in the daemon
-// (SessionService), not in the CLI. A zero-value set emits NO flags (Dock unchanged).
+// (SessionService), not in the CLI.
+//
+// El canal va SIEMPRE cableado (DD-1, deuda D del dogfood): un set de valor cero emite
+// igual `--permission-mode default --permission-prompt-tool stdio` — nada pre-aprobado,
+// TODO pasa por la tarjeta del panel. Antes el set vacío emitía cero flags y una sesión
+// sobre material sin sello (sin rol) corría headless SIN canal: CC auto-negaba Write y el
+// permiso jamás llegaba al Dock — read-only de facto, forja conversacional imposible.
 func permissionArgs(ps domain.PermissionSet) []string {
-	if ps.Rol == "" && len(ps.Allow) == 0 && len(ps.Ask) == 0 && len(ps.Deny) == 0 && ps.TTL == 0 {
-		return nil
-	}
 	args := []string{"--permission-mode", "default"}
 	var readOnly []string
 	for _, tool := range ps.Allow {

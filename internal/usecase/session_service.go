@@ -245,7 +245,7 @@ func refiereAlguno(input []byte, marcas []string) bool {
 // endpoint de permisos responde honesto que no hay autoridad cableada). roleFor resuelve
 // el rol del arnés de cada sesión — con él el spawn del Dock materializa los flags de
 // permisos (RF-112) y una resolución sin rol explícito usa la autoridad del arnés
-// (RF-114); nil = spawns sin flags (comportamiento previo).
+// (RF-114); nil = spawns con el set de valor cero (canal HITL cableado igual, DD-1).
 func NewSessionService(baseCtx context.Context, agent ports.AgentPort, store ports.SessionStore, pub EventPublisher, resolver ports.WorkdirResolver, maxTurns int, injector ports.InjectionProvisioner, perms ports.PermissionPort, roleFor RoleSource) (*SessionService, error) {
 	s := &SessionService{
 		rt:       map[string]*sessionRuntime{},
@@ -607,7 +607,8 @@ func (s *SessionService) spawnLocked(id string, r *sessionRuntime) error {
 	// Permisos del ROL del arnés (RF-112, permisos-derivan-del-rol): el spawn del Dock
 	// materializa --permission-mode/--allowedTools/--permission-prompt-tool stdio para que
 	// cada escritura llegue como control_request→tarjeta. Sin rol resoluble se degrada
-	// honesto (sin flags = comportamiento previo del Dock), jamás bloquea la sesión.
+	// honesto al set de valor cero — el canal queda cableado igual (DD-1: nada
+	// pre-aprobado, todo pasa por el panel), jamás bloquea la sesión.
 	var permisos domain.PermissionSet
 	if s.perms != nil && s.roleFor != nil {
 		if rol := s.roleFor(s.baseCtx, r.meta.Arnes); rol != "" {
@@ -920,7 +921,9 @@ var (
 //   - allow mintea un Grant efímero (TTL del rol, o ttl si el operador lo acota más);
 //     mientras Vigente, el mismo tool no re-pregunta en esta sesión — EXCEPTO
 //     askUserQuestionTool, que jamás mintea grant (cada pregunta es distinta);
-//   - deny-by-default: sin rol no hay resolución (ResolveForRole exige rol).
+//   - deny-by-default: un rol NOMBRADO que no resuelve es error; sin rol (material sin
+//     sello, DD-1) la autoridad es el click humano con el set de valor cero — todo
+//     re-pregunta (ask), nada se auto-deniega y el grant nace ya expirado (TTL 0).
 //
 // answers (RF-113 bugfix) son las respuestas humanas a un AskUserQuestion — question text
 // → label elegido (multi-select: labels separados por coma, mismo shape que la propia
@@ -953,9 +956,17 @@ func (s *SessionService) ResolvePermission(id, requestID, decision, rol string, 
 		rol = s.roleFor(s.baseCtx, arnes)
 	}
 
-	ps, err := s.perms.ResolveForRole(s.baseCtx, rol)
-	if err != nil {
-		return PermissionResolution{}, fmt.Errorf("resolver rol: %w", err)
+	// DD-1 (deuda D): sesión sobre material sin sello ⇒ no hay rol que resolver y la
+	// autoridad es SOLO el click humano, con el set de valor cero — Decide()=ask para
+	// todo (nada auto-deny, nada pre-aprobado) y TTL 0 ⇒ el grant nace ya expirado
+	// (por-tarea: cada escritura re-pregunta). Antes esto era un 400 «rol vacío» y la
+	// tarjeta del panel no se podía aprobar: el HITL moría en el último tramo.
+	var ps domain.PermissionSet
+	if rol != "" {
+		var err error
+		if ps, err = s.perms.ResolveForRole(s.baseCtx, rol); err != nil {
+			return PermissionResolution{}, fmt.Errorf("resolver rol: %w", err)
+		}
 	}
 
 	res := PermissionResolution{RequestID: requestID, Tool: p.Tool, Efectiva: domain.Decision(decision)}

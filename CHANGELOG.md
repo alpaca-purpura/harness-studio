@@ -36,6 +36,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ### Corregido
 - Mapa: un facet fuera del enum (clase/arquetipo/gate) ya no tumba el lienzo entero — degrada solo esa marca con warn nombrando el valor (deuda F del dogfood)
 - Mapa: el foco de actividad ya no se pierde al entrar por «Abrir en Mapa» (peek) — un refetch del índice con el mismo contenido no resetea el foco (race de identidad de array en el efecto de carga)
+- Sesión sobre material sin sello ya puede ESCRIBIR con humano en el loop (deuda D del dogfood): canal de permisos siempre cableado + tarjeta de grounding corregida + aprobar sin rol usa la autoridad del operador — forja conversacional E2E viva
 
 ### Seguridad
 

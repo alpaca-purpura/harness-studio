@@ -135,9 +135,11 @@ func TestControlResponseLineWireFormat(t *testing.T) {
 }
 
 func TestPermissionArgsMaterialization(t *testing.T) {
-	// Zero value = sin flags extra: el spawn interactivo del Dock no cambia.
-	if got := permissionArgs(domain.PermissionSet{}); got != nil {
-		t.Errorf("set vacío debe emitir cero flags, got %v", got)
+	// Zero value = canal SIEMPRE cableado (DD-1, deuda D): deny-by-default + prompt-tool,
+	// nada pre-aprobado — una sesión sin rol sellado sigue teniendo HITL, no headless mudo.
+	vacio := strings.Join(permissionArgs(domain.PermissionSet{}), " ")
+	if vacio != "--permission-mode default --permission-prompt-tool stdio" {
+		t.Errorf("set vacío debe cablear solo el canal (mode+prompt-tool), got %q", vacio)
 	}
 
 	ps := domain.PermissionSet{

@@ -34,7 +34,11 @@ func TarjetaIdentidad(entradas []domain.EntradaPortafolio, arnesID, cwd, rol str
 	canon := canonicalPathPortafolio(cwd)
 	rolLinea := rol
 	if rolLinea == "" {
-		rolLinea = "(sin rol declarado en el sello — sin rol la sesión no puede escribir; sellarlo es una reparación válida)"
+		// DD-1 (deuda D): sin rol NO es read-only — el canal de permisos va siempre
+		// cableado y cada escritura pasa por la tarjeta del panel. La tarjeta lo dice
+		// así; la versión anterior («sin rol la sesión no puede escribir») hacía que el
+		// modelo se auto-negara ANTES de intentar el Write y el HITL jamás se ejercía.
+		rolLinea = "(sin rol declarado en el sello — podés escribir: cada escritura pasa por la tarjeta de permiso del panel y la aprueba el operador; sellar el rol después da autoridad fina y es una reparación válida)"
 	}
 
 	var b strings.Builder

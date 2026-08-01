@@ -14,12 +14,22 @@ pointers:
 valida:
   - "TestTranslateForwardsControlRequest"
   - "TestControlResponseLineWireFormat"
-scenarios: []
-business_rules: []
+scenarios:
+  - "Dada una sesión SIN rol sellado, cuando el operador aprueba la tarjeta, entonces la resolución NO exige rol: la autoridad es el click humano con el set de valor cero — allow responde el control_response y el grant nace ya expirado (TTL 0, cada escritura re-pregunta) (DD-1)"
+  - "Dada la tarjeta de identidad de una sesión sin rol, cuando se arma el grounding, entonces DICE que se puede escribir vía la tarjeta del panel — jamás «sin rol no se escribe» (el modelo se auto-negaba antes de intentar el Write)"
+business_rules:
+  - "Un rol NOMBRADO que no resuelve sigue siendo error (autoridad rota se dice); solo el rol AUSENTE degrada al set de valor cero (DD-1)"
+  - "Verificado E2E contra binario sandbox 2026-08-01: Write → tarjeta → allow → archivo en disco; Bash mkdir → tarjeta → allow → dir creado (el quirk del validador de CC desapareció al cablear el prompt-tool)"
 related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-39)"
+last_modified: 2026-08-01
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: fix
+    summary: "DD-1: ResolvePermission sin rol usa la autoridad del click humano (set de valor cero, grant por-tarea) en vez de 400 «rol vacío»; tarjeta de grounding corregida (sin rol ⇒ escritura vía panel). Forja conversacional E2E viva."
 ---
 
 # HITL permisos (forward + respond wire)

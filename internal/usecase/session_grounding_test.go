@@ -47,11 +47,16 @@ func TestTarjetaCanonico(t *testing.T) {
 }
 
 // TestTarjetaSinRegistro: cwd fuera del Portafolio → tarjeta mínima honesta; y sin rol,
-// la tarjeta lo DICE (aprendizaje T4: sin rol no hay escritura).
+// la tarjeta lo DICE — y dice que SÍ se puede escribir vía la tarjeta de permiso del
+// panel (DD-1). El texto previo («sin rol no hay escritura», aprendizaje T4) hacía que
+// el modelo se auto-negara antes de intentar el Write y el HITL jamás se ejercía.
 func TestTarjetaSinRegistro(t *testing.T) {
 	tarjeta := usecase.TarjetaIdentidad(nil, "suelto", "/tmp/x", "")
 	if !strings.Contains(tarjeta, "NO registrado") || !strings.Contains(tarjeta, "sin rol declarado") {
 		t.Errorf("tarjeta suelta mal armada:\n%s", tarjeta)
+	}
+	if !strings.Contains(tarjeta, "podés escribir") || strings.Contains(tarjeta, "no puede escribir") {
+		t.Errorf("la tarjeta sin rol debe decir que la escritura pasa por el panel (DD-1), no negarla:\n%s", tarjeta)
 	}
 }
 

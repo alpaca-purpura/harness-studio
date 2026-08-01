@@ -157,6 +157,18 @@
   panel HITL. El contrato as-code (fitness `SpawnArgs` + boundary `permisos-gui`)
   se actualiza en el MISMO commit. El rol de forja (a) queda como evolución del
   modelo de roles, no en este corte.
+- **DD-1-bis — registro de ejecución (2026-08-01, hallazgos al implementar):** los flags
+  solos NO bastaban — el bloqueo era de TRES capas. (1) `permissionArgs` set vacío = cero
+  flags (la conocida); (2) la **tarjeta de grounding** decía «sin rol la sesión no puede
+  escribir» → el modelo se AUTO-NEGABA antes de intentar el Write y el HITL jamás se
+  ejercía (session_grounding.go:37, texto corregido: escritura vía tarjeta del panel);
+  (3) `ResolvePermission` exigía rol → aprobar la tarjeta de una sesión sin sello daba
+  400 «rol vacío» — el HITL moría en el último tramo (fix: sin rol = autoridad del click
+  humano con set de valor cero, grant TTL 0 por-tarea). E2E verificado contra binario
+  sandbox: Write→tarjeta→allow→archivo · Bash mkdir→tarjeta→allow→dir. **El 2° bloqueo
+  del handoff (quirk mkdir del validador de CC) DESAPARECIÓ al cablear el prompt-tool**,
+  como sospechaba — no hay issue aguas arriba. Boundary permisos-gui v1.3 (+check
+  `canal-siempre-cableado`).
 - **DD-2 🧑‍⚖️ (2026-08-01) — Deuda E entra COMPLETA en este corte: (a)+(c)+(b).**
   (a) «Adoptar como canónico» en Portafolio (copiar dir local al checkout del
   marketplace-home del sello, sellar canónico); (c) «↻ Refrescar» del catálogo
