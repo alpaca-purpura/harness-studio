@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react"
 import { Glyph } from "@/shared/canvas"
 import { cn } from "@/shared/lib/cn"
-import { KIND } from "../model/kind"
+import { kindFor } from "../model/kind"
 import {
-  ARQUETIPO_MARK,
-  GATE_TONE,
+  arquetipoMark,
+  gateTone,
   handleFor,
   isCaja,
   isPropuesto,
@@ -83,16 +83,20 @@ export function ArnesNode({
   marcaFugaGrave,
   motivoSinDato,
 }: ArnesNodeProps) {
-  const k = KIND[box.clase]
+  const k = kindFor(box.clase)
   const caja = isCaja(box)
   const puesto = isDelPuesto(box.id)
   const propuesto = isPropuesto(box)
   const alw = alwFor(box.id)
   const trans = transLabel(box)
   // Classification marks (§8.1/§8.2) — from REAL contract data; only cajas carry them.
+  // Lookups TOTALES (deuda F): un facet fuera del enum degrada SU marca («?» warn que
+  // nombra el valor), jamás tumba el lienzo al ErrorBoundary (§4.5).
   const arq = box.contract?.arquetipo
+  const marcaArq = arq ? arquetipoMark(arq) : undefined
   const perfil = box.contract?.perfil_harness
   const gate = box.contract?.gate?.tipo
+  const tonoGate = gate ? gateTone(gate) : undefined
   const style: NodeStyle = { "--tc": k.color }
   // Capa Mejora: el nodo gana alto solo cuando efectivamente hay algo que decir.
   const conMejora =
@@ -143,14 +147,14 @@ export function ArnesNode({
       )}
       {caja && (arq || perfil || gate) && (
         <span className="node-meta">
-          {arq && (
+          {marcaArq && (
             <span
-              className="nm-arq"
+              className={cn("nm-arq", !marcaArq.reconocido && "nr")}
               role="img"
-              title={ARQUETIPO_MARK[arq].label}
-              aria-label={ARQUETIPO_MARK[arq].label}
+              title={marcaArq.label}
+              aria-label={marcaArq.label}
             >
-              {ARQUETIPO_MARK[arq].char}
+              {marcaArq.char}
             </span>
           )}
           {perfil && (
@@ -161,13 +165,13 @@ export function ArnesNode({
               {perfil}
             </span>
           )}
-          {gate && (
+          {tonoGate && (
             <span
-              className={cn("nm-gate", GATE_TONE[gate].hollow && "hollow")}
-              style={{ "--gate": GATE_TONE[gate].color } as GateStyle}
+              className={cn("nm-gate", tonoGate.hollow && "hollow")}
+              style={{ "--gate": tonoGate.color } as GateStyle}
               role="img"
-              title={GATE_TONE[gate].label}
-              aria-label={GATE_TONE[gate].label}
+              title={tonoGate.label}
+              aria-label={tonoGate.label}
             />
           )}
         </span>

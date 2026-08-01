@@ -36,6 +36,22 @@ export const ARQUETIPO_MARK: Record<Arquetipo, { char: string; label: string }> 
   "no-arnesar": { char: "○", label: "no-arnesar · juicio puro (sale del grafo)" },
 }
 
+export interface ArquetipoMark {
+  char: string
+  label: string
+  /** false ⇔ el valor vino fuera del enum — la marca degradada lo NOMBRA (§4.5). */
+  reconocido: boolean
+}
+
+// arquetipoMark — lookup TOTAL sobre ARQUETIPO_MARK. Los grafos llegan como JSON en runtime:
+// un arquetipo fuera del enum degrada EL NODO (marca «?» warn que nombra el valor), jamás
+// tumba el lienzo al ErrorBoundary (§4.5 reconciliación honesta — deuda F del dogfood).
+export function arquetipoMark(arq: string): ArquetipoMark {
+  const m = (ARQUETIPO_MARK as Record<string, { char: string; label: string }>)[arq]
+  if (m) return { ...m, reconocido: true }
+  return { char: "?", label: `arquetipo no reconocido: ${arq}`, reconocido: false }
+}
+
 // GATE_TONE — the eval-gate honesty (A4). A status dot toned by gate.tipo. `none` is a FINDING,
 // not a blank: drawn crit + hollow (dotted ring) so the hole is impossible to miss (gris ≠ verde,
 // METODOLOGIA §3/§4). `manual` = a human decides (skill-blue). From REAL contract.gate.tipo.
@@ -44,6 +60,14 @@ export const GATE_TONE: Record<GateTipo, { color: string; label: string; hollow:
   parcial: { color: "var(--warn)", label: "gate parcial — auto + juicio", hollow: false },
   manual: { color: "var(--c-skill)", label: "gate manual — decide un humano", hollow: false },
   none: { color: "var(--crit)", label: "gate none — SIN eval (hallazgo)", hollow: true },
+}
+
+// gateTone — lookup TOTAL sobre GATE_TONE (mismo pacto que arquetipoMark). El tono degradado
+// es warn+hollow: distinto de `parcial` (warn lleno) y de `none` (crit hollow) — un tipo
+// desconocido no puede disfrazarse de ninguno de los dos.
+export function gateTone(tipo: string): { color: string; label: string; hollow: boolean } {
+  const t = (GATE_TONE as Record<string, { color: string; label: string; hollow: boolean }>)[tipo]
+  return t ?? { color: "var(--warn)", label: `gate no reconocido: ${tipo}`, hollow: true }
 }
 
 // handleFor — the invocation handle, DERIVED from the class (not a datum): command→id ·

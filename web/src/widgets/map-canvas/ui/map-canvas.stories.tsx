@@ -2,10 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, within } from "storybook/test"
 import {
+  type Arquetipo,
   type Banda,
   type Clase,
   cobranzaProveedores,
   devFullCycle,
+  type GateTipo,
   type Graph,
   luanaFeatureCycle,
   selectArtefactos,
@@ -120,13 +122,26 @@ export const BandaDesconocida: Story = {
   },
 }
 
-// A clase outside the enum crashes the node render (KIND[clase] → TypeError). The canvas
-// boundary catches it and paints the honest fallback — the failure is visible and CONTAINED
-// to the canvas, never a white screen for the whole app (§4.5).
-const conClaseRota: Graph = {
+// Deuda F (§4.5) — un facet fuera del enum degrada SU marca/nodo, JAMÁS el lienzo. Antes,
+// `clase: quimera` o `arquetipo: guiado` tumbaban el canvas entero al ErrorBoundary (repro
+// real de la forja developer-vitalia); hoy los lookups son totales (kindFor · arquetipoMark ·
+// gateTone) y el mapa sigue VIVO con la degradación visible y nombrada.
+const conFacetasInvalidas: Graph = {
   ...devFullCycle,
   nodos: [
     ...devFullCycle.nodos,
+    {
+      id: "forjada",
+      clase: "skill",
+      nombre: "caja forjada a mano",
+      banda: "fase",
+      fase: "spec",
+      contract: {
+        caja: true,
+        arquetipo: "guiado" as unknown as Arquetipo,
+        gate: { tipo: "quimera" as unknown as GateTipo },
+      },
+    },
     {
       id: "alien",
       clase: "quimera" as unknown as Clase,
@@ -136,8 +151,40 @@ const conClaseRota: Graph = {
   ],
 }
 
+export const FacetasInvalidas: Story = {
+  args: { graph: conFacetasInvalidas },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // El canvas SIGUE VIVO: carriles pintados, cero ErrorBoundary.
+    expect(canvasElement.querySelectorAll(".lane").length).toBeGreaterThan(0)
+    await expect(c.queryByText("El lienzo no pudo renderizar este arnés")).toBeNull()
+    // La caja con facetas sucias rinde con sus marcas degradadas NOMBRANDO el valor.
+    await expect(c.getByText("caja forjada a mano")).toBeInTheDocument()
+    await expect(c.getByLabelText("arquetipo no reconocido: guiado")).toHaveTextContent("?")
+    await expect(c.getByLabelText("gate no reconocido: quimera")).toHaveClass("hollow")
+    // La clase alien cae al visual no-reconocido, visible en la Base.
+    await expect(c.getByText("nodo alien")).toBeInTheDocument()
+  },
+}
+
+// The ErrorBoundary is still the LAST net for data the node cannot degrade (here: a nombre
+// that isn't a string — React refuses to render objects as children). The failure is visible
+// and CONTAINED to the canvas, never a white screen for the whole app (§4.5).
+const conNodoIrrenderizable: Graph = {
+  ...devFullCycle,
+  nodos: [
+    ...devFullCycle.nodos,
+    {
+      id: "roto",
+      clase: "mcp",
+      nombre: { rota: true } as unknown as string,
+      banda: "base",
+    },
+  ],
+}
+
 export const NodoMalformado: Story = {
-  args: { graph: conClaseRota },
+  args: { graph: conNodoIrrenderizable },
   play: async ({ canvasElement }) => {
     const c = within(canvasElement)
     await expect(c.getByText("El lienzo no pudo renderizar este arnés")).toBeInTheDocument()

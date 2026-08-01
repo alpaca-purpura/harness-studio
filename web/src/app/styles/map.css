@@ -412,6 +412,11 @@
   text-align: center;
   color: var(--muted-foreground);
 }
+/* arquetipo fuera del enum (deuda F, §4.5): marca «?» en warn — degrada la marca, no el mapa */
+.arnesia-map .nm-arq.nr {
+  color: var(--warn);
+  font-weight: 700;
+}
 /* perfil_harness (§8.2): pill con opacidad creciente = «más autonomía → más presencia» */
 .arnesia-map .nm-perfil {
   padding: 0 4px;

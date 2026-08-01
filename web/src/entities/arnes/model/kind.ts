@@ -45,3 +45,12 @@ export const KIND: Record<Clase, KindVisual> = {
     label: "No reconocido",
   },
 }
+
+// kindFor — lookup TOTAL sobre KIND (deuda F, §4.5): una clase que el wire trae fuera del
+// enum (sin pasar por el marcador del loader) degrada al visual no-reconocido NOMBRANDO el
+// valor, en vez de tumbar el lienzo entero al ErrorBoundary (`KIND[clase].color` undefined).
+export function kindFor(clase: string): KindVisual {
+  const k = (KIND as Record<string, KindVisual>)[clase]
+  if (k) return k
+  return { ...KIND["no-reconocido"], label: `No reconocido: ${clase}` }
+}

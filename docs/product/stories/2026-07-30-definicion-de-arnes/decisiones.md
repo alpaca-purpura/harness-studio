@@ -151,6 +151,23 @@
     guard — un `arquetipo` fuera del enum tira TODO el lienzo al ErrorBoundary
     (§4.5 pide degradar el NODO, no el mapa). Candidata: fallback `?.` + marca
     no-reconocido de faceta.
+- **DD-1 🧑‍⚖️ (2026-08-01) — Deuda D se resuelve con (b) canal SIEMPRE cableado:**
+  `permissionArgs` emite `--permission-mode default --permission-prompt-tool stdio`
+  incondicionalmente; `PermissionSet` vacío = NADA auto-allow, todo pasa por el
+  panel HITL. El contrato as-code (fitness `SpawnArgs` + boundary `permisos-gui`)
+  se actualiza en el MISMO commit. El rol de forja (a) queda como evolución del
+  modelo de roles, no en este corte.
+- **DD-2 🧑‍⚖️ (2026-08-01) — Deuda E entra COMPLETA en este corte: (a)+(c)+(b).**
+  (a) «Adoptar como canónico» en Portafolio (copiar dir local al checkout del
+  marketplace-home del sello, sellar canónico); (c) «↻ Refrescar» del catálogo
+  hace fetch/pull real; (b) B2-alta: `Publicar` cubre la situación «existe local,
+  falta en marketplace» (fila nueva vía RMW). El operador amplió el corte — el
+  handoff recomendaba diferir (b). Orden interno: (a)+(c) primero, (b) después.
+  E-ter (esquema multi-plugin de catalogo.json) sigue diferido a la 2ª versión.
+- **DD-3 🧑‍⚖️ (2026-08-01) — peek con foco COMPLETO:** la vista previa («Abrir en
+  Mapa», `viewedId ≠ arnesId`) recibe las mismas props de foco que la sesión
+  propia (secuencia/dimlane/breadcrumb). Es lectura pura (MA-L6); CH-D6 intacto
+  (solo gatea el CTA de chat). Story de regresión peek-con-foco obligatoria.
 - **DEF-D4 — registro (hallazgo, no decisión): gentle-ai analizado 2026-07-30.**
   NO es un plugin CC ni contiene arneses según nuestra definición: es un
   configurador de ecosistema transversal (14 agentes, memoria Engram, SDD opcional,

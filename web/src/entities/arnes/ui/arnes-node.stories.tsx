@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactNode } from "react"
 import { expect, within } from "storybook/test"
-import type { Box } from "../model/types"
+import type { Arquetipo, Box, GateTipo } from "../model/types"
 import { ArnesNode } from "./arnes-node"
 
 // Story = test (fe-visual-fitness). The node styles live in map.css scoped under
@@ -170,6 +170,40 @@ export const NoReconocido: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText("misterio (no reconocido)")).toBeInTheDocument()
+  },
+}
+
+// Deuda F (§4.5) — facetas FUERA del enum degradan SU marca, jamás el nodo ni el lienzo. Los
+// grafos llegan como JSON en runtime; los casts simulan ese dato sucio. Repro real del dogfood:
+// `arquetipo: guiado` (forja developer-vitalia) tumbaba el canvas ENTERO al ErrorBoundary.
+// arquetipo desconocido → «?» warn que NOMBRA el valor · gate desconocido → anillo warn hollow
+// (≠ parcial warn lleno, ≠ none crit hollow: no puede disfrazarse de ninguno).
+export const CajaFacetasNoReconocidas: Story = {
+  args: {
+    box: {
+      id: "forjada",
+      clase: "skill",
+      nombre: "caja forjada a mano",
+      banda: "fase",
+      fase: "spec",
+      contract: {
+        caja: true,
+        arquetipo: "guiado" as unknown as Arquetipo,
+        perfil_harness: "T2",
+        gate: { tipo: "quimera" as unknown as GateTipo },
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    // El nodo VIVE — nada de ErrorBoundary.
+    await expect(c.getByText("caja forjada a mano")).toBeInTheDocument()
+    const arq = c.getByLabelText("arquetipo no reconocido: guiado")
+    await expect(arq).toHaveTextContent("?")
+    await expect(arq).toHaveClass("nr")
+    await expect(c.getByLabelText("gate no reconocido: quimera")).toHaveClass("hollow")
+    // La marca sana del medio sigue intacta.
+    await expect(c.getByText("T2")).toBeInTheDocument()
   },
 }
 

@@ -34,6 +34,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ### Eliminado
 
 ### Corregido
+- Mapa: un facet fuera del enum (clase/arquetipo/gate) ya no tumba el lienzo entero — degrada solo esa marca con warn nombrando el valor (deuda F del dogfood)
 
 ### Seguridad
 

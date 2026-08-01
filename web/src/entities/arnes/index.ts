@@ -27,8 +27,15 @@ export {
   selectRefsEntrada,
 } from "./model/artefactos"
 export { DEF_CAMPO, DEF_VALOR, PROP_NOTE, SEC_TIP, tipDe } from "./model/doctrina"
-export { KIND, type KindVisual } from "./model/kind"
-export { handleFor, isCaja, isPropuesto, transLabel } from "./model/node-view"
+export { KIND, type KindVisual, kindFor } from "./model/kind"
+export {
+  arquetipoMark,
+  gateTone,
+  handleFor,
+  isCaja,
+  isPropuesto,
+  transLabel,
+} from "./model/node-view"
 export { alwFor, isDelPuesto } from "./model/proposals"
 export {
   type Lane,
@@ -45,6 +52,7 @@ export {
 export type {
   Actividad,
   Arnes,
+  Arquetipo,
   Banda,
   Box,
   Canal,
@@ -53,6 +61,7 @@ export type {
   ConformanceResult,
   Contract,
   Edge,
+  GateTipo,
   Graph,
   PasoActividad,
   Spine,

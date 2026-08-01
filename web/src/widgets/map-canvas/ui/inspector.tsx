@@ -7,7 +7,7 @@ import {
   type Graph,
   handleFor,
   isDelPuesto,
-  KIND,
+  kindFor,
   SEC_TIP,
   selectActividades,
   selectHallazgosConformance,
@@ -192,7 +192,9 @@ export function Inspector({
     return () => document.removeEventListener("keydown", onKey)
   }, [expanded])
 
-  const k = KIND[box.clase]
+  // Lookup total (deuda F): una clase fuera del enum degrada al visual no-reconocido, no
+  // tumba el drawer (§4.5).
+  const k = kindFor(box.clase)
 
   return (
     <aside
@@ -451,7 +453,8 @@ function Resumen({
   onFocarActividad?: ((id: string) => void) | undefined
 }) {
   const c = box.contract
-  const role = CLASS_ROLE[box.clase]
+  // Lookup total (deuda F): clase fuera del enum cae al framing de no-reconocido.
+  const role = CLASS_ROLE[box.clase] ?? CLASS_ROLE["no-reconocido"]
   // origen: the real L0 field wins; the proposals fixture stands in, labeled (spec §2.3).
   const origen = box.origen ?? (isDelPuesto(box.id) ? "del-puesto · PROPUESTA" : undefined)
   // Viene de (RF-89): edges inversos derivados del grafo; sin entradas → sección ausente.

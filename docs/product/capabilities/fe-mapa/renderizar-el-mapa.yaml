@@ -11,14 +11,28 @@ verb: observar
 pointers:
   - "web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas"
   - "web/src/entities/arnes/ui/arnes-node.tsx#ArnesNode"
+  - "web/src/entities/arnes/model/kind.ts#kindFor"
+  - "web/src/entities/arnes/model/node-view.ts#arquetipoMark"
+  - "web/src/entities/arnes/model/node-view.ts#gateTone"
 valida:
   - "web/src/widgets/map-canvas/ui/map-canvas.stories.tsx"
-scenarios: []
-business_rules: []
+  - "web/src/entities/arnes/ui/arnes-node.stories.tsx"
+scenarios:
+  - "Dado un grafo cuyo nodo trae un facet fuera del enum (clase, arquetipo o gate.tipo), cuando el Mapa renderiza, entonces el canvas SIGUE VIVO y solo ESA marca degrada con warn nombrando el valor desconocido (§4.5 — jamás ErrorBoundary por facet sucio)"
+  - "Dado un nodo con dato irrenderizable (p. ej. nombre no-string), cuando el render revienta, entonces el ErrorBoundary contiene la falla AL CANVAS con recuperación visible — nunca pantalla blanca de la app"
+business_rules:
+  - "Lookups por facet son TOTALES (kindFor · arquetipoMark · gateTone): degradar el NODO, jamás el mapa, jamás inventar (deuda F del dogfood developer-vitalia, DD del paquete 2026-07-30)"
+  - "El tono degradado de gate es warn+hollow — distinto de parcial (warn lleno) y de none (crit hollow): un tipo desconocido no puede disfrazarse de ninguno"
 related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-61)"
+last_modified: 2026-08-01
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: fix
+    summary: "Deuda F: lookups totales por facet (kindFor · arquetipoMark · gateTone) — un facet fuera del enum degrada su marca con warn nombrando el valor; el ErrorBoundary queda como red final para dato irrenderizable."
 ---
 
 # Renderizar el Mapa (HTML+SVG)
