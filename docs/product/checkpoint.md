@@ -33,9 +33,13 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
   probablemente · ¿solo otra actividad? JAMÁS. **DEF-D1:** feature/bugfix/spike = pipelines
   internos (aplica D20). **DEF-D3:** cadena = `proceso/<id>.yaml` en el home (fases con
   arnés-owner + `gate_salida` verificable; N:1 para empresa chica; Galaxia/telemetría leen de
-  ahí). gentle-ai analizado: no es plugin CC, no compite. Siguiente: spec (hoja canónica +
-  schema cadena + META afilada + dogfood actividades arnés-dev) →
-  [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](./stories/2026-07-30-definicion-de-arnes/INDEX.md).
+  ahí). gentle-ai analizado: no es plugin CC, no compite. **SPEC ESCRITA 2026-08-01 e
+  INTEGRADA AL MVP como carril D** (directivas DEF-D5/D6): Mapa multi-actividad sin saturación
+  (el-todo-primero N0 → foco por actividad N1, leyes MA-L1..L7, 12 escenarios) + dogfood real
+  **`developer-vitalia`** — extraer de `~/Proyectos/vitalia-app` (SIN ficción de marketplace,
+  material crudo `sin-home`), corte por puesto developer, 4 actividades, sello + publicar B2.
+  **Esperando firma 🧑‍⚖️ de la spec**; luego MA-T1..T3 (backend+forja) ∥ MA-T6 (mockup gate) →
+  FE → [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](./stories/2026-07-30-definicion-de-arnes/INDEX.md).
 - **Las conversaciones viven en el panel — MERGEADO A MAIN (v0.4.0, merge `bb53421`; el aviso
   previo de «no integrado» quedó stale y se corrigió 2026-07-30).** Paquete
   [`stories/2026-07-26-conversaciones-del-panel/`](./stories/2026-07-26-conversaciones-del-panel/INDEX.md).

@@ -23,16 +23,20 @@
   `init`/`doctor`/`loop-forward`, pausado, fuera de alcance de este spike) ni el re-key
   `(home,id,scope)` de la deuda viva (plomería de identidad del Portafolio, sin relación directa).
 
-## Definición canónica de arnés + cadena de proceso (DECISIONES FIRMADAS 🧑‍⚖️ 2026-08-01, falta la bajada)
+## Definición canónica de arnés — DECISIONES FIRMADAS 🧑‍⚖️ · spec escrita · CARRIL D del MVP (2026-08-01)
 
-- [ ] **Spec + bajada as-code de la definición FIRMADA (v3 + cadena).** DEF-D1..D3 firmadas
-  (arnés = paquete de UN puesto sobre UN tipo de terreno · actividades = pipelines internos ·
-  criterio de corte operador/terreno/actividad · cadena = `proceso/<id>.yaml` en el home).
-  Bajada: hoja canónica + glosario (arnés·actividad·procedimiento·proceso·fase·terreno) ·
-  schema de cadena (resolver: copia offline del tramo · versionado del proceso) · afilar META
-  `proceso`→referencia · dogfood: actividades del arnés-dev (semilla ya trae historia+spike;
-  faltan bugfix·revisar-capability) →
-  [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](stories/2026-07-30-definicion-de-arnes/INDEX.md) · `deuda`
+- [ ] **Firmar `spec.md`** (crear·visualizar·mantener multi-actividad + dogfood `developer-vitalia`) —
+  DEF-D5/D6 directivas dadas; leyes MA-L1..L7 · escenarios MA-E1..E12 · tickets MA-T1..T7 →
+  [`stories/2026-07-30-definicion-de-arnes/spec.md`](stories/2026-07-30-definicion-de-arnes/spec.md) · `gate`
+- [ ] **MA-T1..T3 backend+dogfood** (tras firma de spec): seam `actividades[]` en el payload del Mapa ·
+  saneo vitalia `sin-home` (eliminar ficción de marketplace) · **forja `developer-vitalia`** desde
+  `/home/chalreme/Proyectos/vitalia-app` (corte por puesto developer — primera aplicación real del
+  criterio de corte; 4 actividades: historia·bugfix·spike·revisar-capability; sello + publicar B2) · `bloqueo`(spec)
+- [ ] **MA-T6 mockup superset del Mapa** (chips N0 + foco N1) — forkear `arnesia-mapa-baseline.html`,
+  fila en `mockups/INDEX.md`, **gate 🧑‍⚖️ antes de MA-T4/T5/T7 (FE)** · `gate`
+- [ ] **Sub-especificaciones nombradas sin resolver:** hoja canónica de la definición en `docs/` ·
+  schema `proceso/<id>.yaml` (2 sub-preguntas DEF-D3: copia offline del tramo · versionado del
+  proceso) · afilar META `proceso`→referencia · `deuda`
 
 ## Rebrand PRENTER — gate FIRMADO (HS-25), deuda residual de diseño
 

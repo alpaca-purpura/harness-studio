@@ -39,6 +39,23 @@
   §5. **Quedan a la spec** (no bloquean la firma): ¿copia offline del tramo en
   cada `arnes.yaml`? · ¿versionado del proceso independiente del semver de cada
   arnés?
+- **DEF-D5 — DIRECTIVA del operador 2026-08-01 · Mapa por actividades + spec ya.**
+  «Que no se vea saturado: ver el todo, seleccionar una actividad y ver su proceso,
+  pero todo conectado — hay aspectos que van más allá de un paso y afectan a nivel
+  proyecto (arquitectura, etc.)». Bajado a spec (`spec.md`: leyes MA-L1..L7,
+  niveles N0/N1, escenarios MA-E1..E12) e **integrado al MVP como carril D**.
+  El orden §10 mockup→spec se invirtió por directiva; el mockup (MA-T6) queda como
+  gate 🧑‍⚖️ previo a construir FE. **La spec espera firma 🧑‍⚖️.**
+- **DEF-D6 — DIRECTIVA del operador 2026-08-01 · dogfood = `developer-vitalia`.**
+  Extraer el primer arnés del esquema v3 de `/home/chalreme/Proyectos/vitalia-app`
+  (material CRUDO: 42 skills · 10 agents · 45 rules · 4 hooks · 10 commands · 1
+  workflow, sin sello en raíz). **Eliminar la ficción de marketplace** (donde el
+  Portafolio la muestre como-si-de-marketplace → material crudo `sin-home`).
+  Corte por puesto developer (primera aplicación real del criterio de corte:
+  pm/po/sales/brand quedan FUERA, material de futuros arneses hermanos), 4
+  actividades (historia · bugfix · spike · revisar-capability), sellar y publicar
+  al marketplace propio como plugin **`developer-vitalia`** (write-side B2).
+  Detalle → `spec.md` §5.
 - **DEF-D4 — registro (hallazgo, no decisión): gentle-ai analizado 2026-07-30.**
   NO es un plugin CC ni contiene arneses según nuestra definición: es un
   configurador de ecosistema transversal (14 agentes, memoria Engram, SDD opcional,

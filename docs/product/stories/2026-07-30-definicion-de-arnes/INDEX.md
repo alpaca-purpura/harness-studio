@@ -14,24 +14,19 @@ declarada. Primero dev como dogfood, luego generaliza a otros rubros (p7).
 
 | Etapa | Estado |
 |---|---|
-| Mockup | n/a (doctrina; la superficie visual es la Galaxia, ya firmada HS-03) |
-| Decisiones | ✅ **FIRMADAS 🧑‍⚖️ 2026-08-01** — DEF-D1 (2026-07-30) · DEF-D2 definición v3 + vocabulario · DEF-D3 cadena · DEF-D4 hallazgo gentle-ai |
-| Spec | ⬜ ← **SIGUIENTE** |
-| Implementación | ⬜ |
+| Decisiones | ✅ **FIRMADAS 🧑‍⚖️ 2026-08-01** — DEF-D1..D3 + directivas DEF-D5/D6 · DEF-D4 hallazgo gentle-ai |
+| Spec | ✍️ **ESCRITA 2026-08-01, esperando firma 🧑‍⚖️** — [`spec.md`](./spec.md) (crear·visualizar·mantener + MA-L1..L7 + MA-E1..E12 + carril D del MVP) |
+| Mockup | ⬜ **MA-T6 — gate 🧑‍⚖️ ANTES de construir FE** (orden §10 invertido por directiva DEF-D5; forkear `arnesia-mapa-baseline.html`) |
+| Implementación | ⬜ MA-T1..T5/T7 (`spec.md` §7) |
 | PARIDAD | ⬜ |
 
 ## Retomar aquí
 
-Decisiones CERRADAS (2 rounds de debate, `decisiones.md` + `debate-definicion.md`
-§4b/§5). Sigue la **spec** de la bajada as-code:
-1. **Hoja canónica de la definición** (candidato: `docs/architecture/contracts/`
-   como `nomenclatura-arnes.md`, o glosario en `docs/product/`) — v3 + jerarquía
-   (proceso→fase→arnés→actividad→caja) + criterio de corte + vocabulario.
-2. **Schema `proceso/<id>.yaml`** (cadena, DEF-D3) resolviendo las 2 sub-preguntas
-   diferidas: copia offline del tramo en cada `arnes.yaml` · versionado del
-   proceso vs semver de arneses.
-3. **Afilar META:** `proceso` string → referencia `proceso: <id>` + `fases: [...]`
-   (aditivo; no romper loader/scanner ni `nomenclatura-arnes.md`).
-4. **Dogfood:** declarar las actividades/tipos-de-paquete del arnés-dev (la
-   semilla `.arnesia/proceso/{historia,spike}` del carril A del MVP ya materializa
-   2; faltan bugfix · revisar-capability).
+1. **Firma 🧑‍⚖️ de `spec.md`** (DEF-D5). Con firma → arrancan MA-T1 (seam de
+   datos) → MA-T2 (saneo vitalia sin-home) → MA-T3 (**forja `developer-vitalia`**:
+   corte por puesto + 4 actividades + sello + publicar B2) — backend/dogfood, sin
+   UI. En paralelo MA-T6 (mockup superset + gate) y recién después MA-T4/T5/T7 (FE).
+2. Sub-especificaciones que la spec dejó nombradas y NO resueltas (van naciendo
+   con sus tickets): hoja canónica de la definición en `docs/` · schema
+   `proceso/<id>.yaml` (2 sub-preguntas DEF-D3) · afilar META `proceso`→referencia.
+3. Contexto completo del debate: `debate-definicion.md` (§4b jerarquía · §5 cadena).

@@ -34,6 +34,22 @@ por definición para nosotros.» Ejemplos del operador:
    definidos «serían las actividades del puesto los "arneses"», e instalaría 1-2
    plugins si cumple 2 roles.
 
+## 2026-08-01 · round 3 — orden: Mapa por actividades + spec al MVP
+
+1. «Afinar cómo se muestra el mapa»: con múltiples procesos/actividades en un
+   arnés, **que no se vea saturado** — ver el todo, **seleccionar una actividad y
+   ver su proceso** para asegurar un entregable de calidad, pero **todo
+   conectado**: hay aspectos que van más allá de un paso y afectan a cómo se hacen
+   las cosas a nivel proyecto (p.ej. **arquitectura**).
+2. «Abstraete y ponte en todos los escenarios complejos»: definir cómo vamos a
+   **crear, visualizar y mantener** arneses con el nuevo esquema.
+3. «Hazlo en un spec e intégralo al MVP ahora mismo.»
+4. (mid-turn) Para probar: usar los arneses de
+   `/home/chalreme/Proyectos/vitalia-app`. «Aparece como si estuvieran en un
+   marketplace — **elimina eso**, haz como si no tuvieran marketplace.» Tomar ese
+   material y **crear nuestro primer arnés** con toda la lógica nueva, colgarlo
+   al marketplace; el plugin se llamará **`developer-vitalia`**.
+
 ## 2026-07-30 · respuestas al primer round (AskUserQuestion)
 
 - Definición v1: **No — debatir más** (ve un caso a discutir antes de firmar).
