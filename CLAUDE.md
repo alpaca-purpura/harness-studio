@@ -28,7 +28,7 @@ arneses propios. Constitución de 11 principios + visión → [`docs/product/vis
 | **Estándar as-code por elemento** (skill/hook/rule/…) | [`docs/architecture/knowledge/INDEX.md`](./docs/architecture/knowledge/INDEX.md) |
 | **UX firmada · inventario · mockups** | [`docs/product/ux.md`](docs/product/ux.md) · `mockups/` |
 | **Qué cambió en cada versión publicada** (agregado/cambiado/corregido/eliminado) | [`CHANGELOG.md`](./CHANGELOG.md) — se escribe en el mismo turno; el bump lo promueve y **falla si está vacío** |
-| **Armar/actualizar instalador de escritorio** (chequear ANTES de `bundle.sh` a mano) | `make installer` → versiona en `instaladores/vX.Y.Z/`, nunca pisa. **Si `~/.local/bin/arnesia` existe (self-update migrado), correr TAMBIÉN `make dev-sync`** — el shell instalado ignora el sidecar nuevo si no — [`docs/architecture/conventions/versionado.md`](docs/architecture/conventions/versionado.md) |
+| **Publicar versión / generar instalador** (JAMÁS `bump-*` ni `bundle.sh` sueltos) | skill **`/publicando-version`** — un comando por release: `make installer\|installer-minor\|installer-major` (bump+bundle FE+BE+`instaladores/vX.Y.Z/`+dev-sync automático, nunca pisa); reparación de versión sin instalador = `make installer-actual` |
 | **Diseñar / mockupear UI (LEER antes de forkear)** | [`mockups/INDEX.md`](./mockups/INDEX.md) — línea base vigente + disciplina superset (SSoT UI = Storybook) |
 | **Trabajar una feature** (mockup→spec→PARIDAD) | `docs/product/stories/<pkg>/INDEX.md` |
 
@@ -53,9 +53,9 @@ arneses propios. Constitución de 11 principios + visión → [`docs/product/vis
 - **Versión y changelog (metodológico, NO se pregunta):** toda versión publicada dice qué trae.
   Se anota **en el mismo turno en que se construye** —
   `python3 scripts/changelog.py add Agregado|Cambiado|Corregido|Eliminado|Deprecado|Seguridad "qué cambió"` —
-  y se publica con `make bump-patch|bump-minor|bump-major` (nunca editando manifiestos a mano):
-  el bump valida y promueve `[Sin publicar]` de [`CHANGELOG.md`](./CHANGELOG.md), y **falla si está
-  vacía**. Regla + criterio de qué bump usar:
+  y se publica con `make installer|installer-minor|installer-major` (bump + instalador en UN
+  comando — skill `/publicando-version`; nunca editando manifiestos a mano): el bump valida y
+  promueve `[Sin publicar]` de [`CHANGELOG.md`](./CHANGELOG.md), y **falla si está vacía**. Regla + criterio de qué bump usar:
   [`docs/architecture/conventions/versionado.md`](docs/architecture/conventions/versionado.md) §changelog-y-bump.
   El **sello de build** (`X.Y.Z.AAMMDDHHMM`) es otra cosa y es automático en todo `bundle.sh`.
 - **Arnés de construcción:** kit dev = plugin `harness@prenter-marketplace` canal ESTABLE; mejoras

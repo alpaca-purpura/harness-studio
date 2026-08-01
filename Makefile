@@ -47,7 +47,7 @@ NEXT_VERSION := $(shell echo '$(CURRENT_VERSION)' | awk -F. '{printf "%d.%d.%d",
 NEXT_MINOR := $(shell echo '$(CURRENT_VERSION)' | awk -F. '{printf "%d.%d.0", $$1, $$2+1}')
 NEXT_MAJOR := $(shell echo '$(CURRENT_VERSION)' | awk -F. '{printf "%d.0.0", $$1+1}')
 
-.PHONY: version bump-patch bump-minor bump-major changelog installer dev-sync
+.PHONY: version bump-patch bump-minor bump-major changelog installer installer-minor installer-major installer-actual _installer-build dev-sync
 
 version: ## imprime la version actual (fuente de verdad: Cargo.toml)
 	@echo "$(CURRENT_VERSION)"
@@ -67,21 +67,56 @@ bump-minor: ## superficie nueva compatible: bumpea Y, resetea Z + promueve el ch
 bump-major: ## rompe algo que el usuario ya usaba: bumpea X + promueve el changelog
 	@bash "$(ROOT)/scripts/bump.sh" "$(NEXT_MAJOR)"
 
-installer: bump-patch ## genera instalador (.deb/.rpm/.AppImage) versionado en instaladores/vX.Y.Z/
-	@echo "== build instalador v$(NEXT_VERSION) =="
+# ── Instalador desacoplado del bump (DD-4, 2026-08-01) ────────────────────────────────────
+#
+# El acople viejo (`installer: bump-patch` como ÚNICA vía) tenía un agujero real: publicar con
+# `make bump-minor` dejaba el changelog promovido y VACÍO, y entonces `make installer` (que
+# re-bumpea patch) FALLABA — la versión recién publicada se quedaba SIN instalador, o peor,
+# fabricaba un X.Y.Z+1 hueco. Ahora: el empaquetado es un paso propio (`_installer-build`,
+# versión ACTUAL de los manifiestos) y CADA sabor de bump tiene su target de release completo.
+# Regla: UN comando por release — bump y empaquetado nunca se separan a mano.
+#
+#   make installer         → fix compatible:      bump-patch + bundle + instaladores/vX.Y.Z/
+#   make installer-minor   → superficie nueva:    bump-minor + bundle + instaladores/vX.Y.0/
+#   make installer-major   → breaking:            bump-major + bundle + instaladores/vX.0.0/
+#   make installer-actual  → la versión YA bumpeada (reparación: un release que quedó sin
+#                            instalador). No bumpea nada; falla si vX.Y.Z/ ya tiene archivos.
+#
+# `_installer-build` corre en sub-make a propósito: CURRENT_VERSION se evalúa al parsear, y
+# tras un bump el valor fresco solo existe en una invocación nueva.
+
+installer: bump-patch ## release patch completo: bump Z + bundle + instaladores/vX.Y.Z/ + dev-sync
+	@$(MAKE) _installer-build
+
+installer-minor: bump-minor ## release minor completo: bump Y + bundle + instaladores/vX.Y.0/ + dev-sync
+	@$(MAKE) _installer-build
+
+installer-major: bump-major ## release major completo: bump X + bundle + instaladores/vX.0.0/ + dev-sync
+	@$(MAKE) _installer-build
+
+installer-actual: ## empaqueta la versión ACTUAL ya bumpeada (release que quedó sin instalador)
+	@$(MAKE) _installer-build
+
+_installer-build: # interno — bundle completo (SPA vite + daemon con SPA/doctrina/kit embebidos + shell Tauri) para CURRENT_VERSION
+	@test -z "$$(ls -A "$(INSTALL_DIR)/v$(CURRENT_VERSION)" 2>/dev/null)" || { echo "instaladores/v$(CURRENT_VERSION)/ ya tiene archivos — una generación publicada NUNCA se pisa (bumpeá primero)" >&2; exit 1; }
+	@echo "== build instalador v$(CURRENT_VERSION) =="
 	@rm -rf "$(BUNDLE_DIR)"
 	@bash "$(ROOT)/scripts/bundle.sh"
-	@mkdir -p "$(INSTALL_DIR)/v$(NEXT_VERSION)"
-	@find "$(BUNDLE_DIR)" -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*.msi' -o -name '*.exe' \) -exec cp {} "$(INSTALL_DIR)/v$(NEXT_VERSION)/" \;
-	@test -n "$$(ls -A "$(INSTALL_DIR)/v$(NEXT_VERSION)" 2>/dev/null)" || { echo "bundle no genero ningun instalador reconocido en $(BUNDLE_DIR) — revisar tauri.conf.json bundle.targets" >&2; exit 1; }
-	@(cd "$(INSTALL_DIR)/v$(NEXT_VERSION)" && sha256sum * > checksums.txt)
-	@echo "OK — instalador v$(NEXT_VERSION) en $(INSTALL_DIR)/v$(NEXT_VERSION)/"
-	@echo "recorda commitear el bump de version (Cargo.toml/tauri.conf.json/package.json) + CHANGELOG.md"
+	@mkdir -p "$(INSTALL_DIR)/v$(CURRENT_VERSION)"
+	@find "$(BUNDLE_DIR)" -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*.msi' -o -name '*.exe' \) -exec cp {} "$(INSTALL_DIR)/v$(CURRENT_VERSION)/" \;
+	@test -n "$$(ls -A "$(INSTALL_DIR)/v$(CURRENT_VERSION)" 2>/dev/null)" || { echo "bundle no genero ningun instalador reconocido en $(BUNDLE_DIR) — revisar tauri.conf.json bundle.targets" >&2; exit 1; }
+	@(cd "$(INSTALL_DIR)/v$(CURRENT_VERSION)" && sha256sum * > checksums.txt)
+	@echo "OK — instalador v$(CURRENT_VERSION) en $(INSTALL_DIR)/v$(CURRENT_VERSION)/"
+	@echo "recorda commitear el bump de version (Cargo.toml/tauri.conf.json/package.json) + CHANGELOG.md + instaladores/"
+	@# Cierre del GOTCHA 2026-07-25: el shell instalado prefiere SIEMPRE ~/.local/bin/arnesia
+	@# (override de self-update) sobre el sidecar del .deb nuevo. El bundle de arriba YA dejó
+	@# ese MISMO daemon fresco en bin/arnesia (mismo sello) — se sincroniza acá, automático,
+	@# en vez de confiar en que alguien recuerde `make dev-sync`.
 	@if [ -f "$(DEV_DAEMON)" ]; then \
-		echo ""; \
-		echo "⚠  tenés override local de self-update en $(DEV_DAEMON) — el shell instalado lo"; \
-		echo "   prefiere SIEMPRE sobre el sidecar nuevo de este .deb/.rpm/.AppImage. Si vas a"; \
-		echo "   probar el instalador en ESTA máquina corré también: make dev-sync"; \
+		install -m755 "$(ROOT)/bin/arnesia" "$(DEV_DAEMON).new"; \
+		mv -f "$(DEV_DAEMON).new" "$(DEV_DAEMON)"; \
+		pkill -f "$(shell dirname $(DEV_DAEMON))/[a]rnesia serve" 2>/dev/null || true; \
+		echo "OK — override local $(DEV_DAEMON) sincronizado con el MISMO build del instalador (daemon corriendo detenido; el shell lo relanza)"; \
 	fi
 
 dev-sync: ## sincroniza ~/.local/bin/arnesia (override local de self-update) con un build fresco del daemon

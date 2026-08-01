@@ -201,6 +201,18 @@
   Mapa», `viewedId ≠ arnesId`) recibe las mismas props de foco que la sesión
   propia (secuencia/dimlane/breadcrumb). Es lectura pura (MA-L6); CH-D6 intacto
   (solo gatea el CTA de chat). Story de regresión peek-con-foco obligatoria.
+- **DD-4 🧑‍⚖️ (2026-08-01) — release = UN comando; nace la skill `/publicando-version`:**
+  incidente real del cierre: v0.7.0 se publicó con `bump-minor` + `dev-sync` y quedó SIN
+  instalador — y `make installer` ya no podía repararlo (re-bumpeaba patch con changelog
+  vacío ⇒ o fallaba o fabricaba un 0.7.1 hueco). Fix estructural: Makefile desacopla el
+  empaquetado (`_installer-build`, versión ACTUAL, en sub-make por el caching de
+  `CURRENT_VERSION`) y cada sabor de bump gana su target de release completo
+  (`installer`/`installer-minor`/`installer-major`) + `installer-actual` como reparación;
+  el sync del override `~/.local/bin/arnesia` es AUTOMÁTICO dentro del build (mismo
+  binario, mismo sello — cierra el gotcha 2026-07-25 sin memoria humana). El PROCESO se
+  captura como **skill** (no regla suelta): `.claude/skills/publicando-version/` — el
+  operador eligió skill invocable; CLAUDE.md (fila + regla dura) apunta ahí. El FE va
+  SIEMPRE fresco en el instalador: `bundle.sh` paso 1 es `pnpm run build` (verificado).
 - **DEF-D4 — registro (hallazgo, no decisión): gentle-ai analizado 2026-07-30.**
   NO es un plugin CC ni contiene arneses según nuestra definición: es un
   configurador de ecosistema transversal (14 agentes, memoria Engram, SDD opcional,
