@@ -16,14 +16,19 @@
    distancia crudo→arnés son **5 bloques de frontmatter + 2 archivos**, y **90-95 % de los nodos
    caen en una sola banda** (muro que el baseline no cubre: su fixture mayor tiene 38 nodos).
    Ahí viven las **8 preguntas abiertas (Q1-Q8)** y las **5 propuestas (P-A..P-E)** previas al gate.
-3. **Próxima etapa: MOCKUP** (gate 🧑‍⚖️ antes de spec) — **bloqueado por Q1-Q3** de la auditoría
-   (quién escribe al hacer click · cómo se ataca el muro de 100 nodos · uno o dos gates). Dos superficies:
-   - **Ingesta**: wizard/flujo al apuntar a carpeta cruda (inventario → procedencia → clasificación
-     → curaduría). Hoy el wizard es callejón sin salida (`portafolio-wizard.tsx:308`).
-   - **Mapa editor**: crear/cablear/reapuntar manual con clicks → escribe archivos. Superset
+3. **Decisiones de forma ING-D11..D15 FIRMADAS 🧑‍⚖️** (2026-08-01, «Sigo todas tus propuestas»):
+   dos gates con ingesta primero · ingesta = tabla de decisión, no wizard de 6 pasos · primer
+   gesto del editor = «esto es un paso del proceso» · Base colapsada por autoría · escenario con
+   cifras medidas de vitalia-app.
+4. **Próxima etapa: MOCKUP 1 · INGESTA** (gate 🧑‍⚖️ antes de spec) — **BLOQUEADO por Q1-Q2** de la
+   auditoría: quién escribe cuando se hace click en el Mapa (Go / conductor / híbrido) y si el
+   muro de ~100 nodos se ataca en el Mapa o en la ingesta. Superficies, ya en orden por ING-D11:
+   - **(1) Ingesta**: apuntar a carpeta cruda → inventario → autoría → facetas → curaduría. Hoy el
+     wizard es callejón sin salida (`portafolio-wizard.tsx:308-327`).
+   - **(2) Mapa editor**: crear/cablear/reapuntar manual con clicks → escribe archivos. Superset
      ESTRICTO de la línea base — **arrancar leyendo [`mockups/INDEX.md`](../../../../mockups/INDEX.md)**
-     (SSoT UI = Storybook; no pisar vocabulario L0).
-4. **Quick-win desacoplado (T0)**: propagar `arnes.yaml` a instalaciones — hoy Identificar solo
+     (SSoT UI = Storybook; no pisar vocabulario L0 — ver Q4).
+5. **Quick-win desacoplado (T0)**: propagar `arnes.yaml` a instalaciones — hoy Identificar solo
    escribe el l0 y las instalaciones quedan ciegas de actividades (bug vivido 2026-08-01, fix
    manual hecho en vitalia-app). Diseño chico en `decisiones.md` §PENDIENTES → puede salir como
    bugfix propio antes del mockup grande.
@@ -57,8 +62,11 @@ asiste, no reemplaza.
 |---|---|
 | Decisiones de dirección (ING-D1..D10) | ✅ FIRMADAS 🧑‍⚖️ 2026-08-01 |
 | Informe de estado real (research) | ✅ escrito |
-| T0 quick-win `arnes.yaml`→instalaciones | ⬜ diseño chico pendiente (§PENDIENTES) |
-| Mockup ingesta + Mapa editor | ⬜ **próxima** — gate 🧑‍⚖️ |
-| Spec | ⬜ tras mockup firmado |
+| Auditoría previa (verificación independiente + medición del loader) | ✅ escrita — 5 correcciones al informe, Q1-Q8 abiertas |
+| Decisiones de forma del mockup (ING-D11..D15) | ✅ FIRMADAS 🧑‍⚖️ 2026-08-01 |
+| T0 quick-win `arnes.yaml`→instalaciones | ⬜ diseño chico pendiente (§PENDIENTES P1 · Q8) |
+| **Mockup 1 · ingesta** (ING-D11 partió el gate en dos) | ⬜ **próxima** — gate 🧑‍⚖️ · **bloqueada por Q1-Q2** |
+| Mockup 2 · Mapa editor | ⬜ tras mockup 1 firmado — gate 🧑‍⚖️ |
+| Spec | ⬜ tras mockups firmados |
 | Implementación (slices) | ⬜ |
 | PARIDAD | ⬜ |

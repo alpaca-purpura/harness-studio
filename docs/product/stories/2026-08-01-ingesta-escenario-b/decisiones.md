@@ -95,7 +95,63 @@ Ciclo de forja» apunta acá.
 
 ---
 
+## ING-D11..D15 · Forma del mockup — FIRMADAS 🧑‍⚖️ 2026-08-01
+
+> Aprobación conversacional del operador («Sigo todas tus propuestas») sobre las propuestas
+> P-A..P-E de [`auditoria-previa-mockup.md`](./auditoria-previa-mockup.md), que las derivó de la
+> medición real del loader contra los dos árboles. **Las preguntas Q1-Q8 de esa auditoría siguen
+> ABIERTAS** — están abajo en PENDIENTES como P6.
+
+### ING-D11 · Dos gates, ingesta primero (era P-A)
+
+El mockup se parte en dos etapas con gate 🧑‍⚖️ propio: **(1) ingesta**, **(2) Mapa editor**.
+
+**Por qué:** la ingesta produce el material que el editor edita — diseñar el editor antes de
+saber qué sale del inventario es diseñar sobre supuestos. Además la ingesta ya tiene caso de
+prueba medido (vitalia-app: 103 nodos, 1 caja, 98 en Base) y el editor todavía no.
+
+### ING-D12 · La ingesta es una TABLA DE DECISIÓN, no un wizard de 6 pasos (era P-B)
+
+El inventario ya es automático (el loader emite los 103 nodos hoy). Lo humano es una sola
+pregunta por pieza: **¿propio / de-referencia / suelto?** y **¿es paso del proceso?** Superficie =
+tabla densa con multi-select, agrupada por autoría, con acciones en lote. El wizard actual se
+conserva como puerta (escenario A intacto, superset estricto) y gana una tercera rama:
+«no encontré arnés — ¿inventariar igual?» (ING-D5).
+
+### ING-D13 · El primer gesto del Mapa editor = «esto es un paso del proceso» (era P-C)
+
+Convierte un nodo de Base en caja estampando `contract.caja: true` + `fase:` en el frontmatter.
+Determinista, reversible, diffeable.
+
+**Por qué:** es el gesto de mayor palanca **medido** — la distancia entre el proyecto crudo y el
+arnés publicado son 5 bloques de frontmatter + 2 archivos de raíz (auditoría §1.1). Si el mockup
+dibujara un solo gesto de escritura, tiene que ser ese.
+
+### ING-D14 · La banda Base se colapsa por AUTORÍA antes que por clase (era P-D)
+
+Subbandas plegadas con contador, expandibles bajo demanda, buscador de la map-bar como escape.
+
+**Por qué:** en un proyecto crudo «45 rules» no ayuda a decidir; «38 provistos por el plugin · 5
+propios · 12 de terceros» sí — **lo propio es lo que se empaqueta**. Ataca el muro medido de
+90-95 % de nodos en una sola banda (auditoría §1.2), que el baseline no cubre (su fixture mayor
+tiene 38 nodos).
+
+### ING-D15 · Escenario del mockup = vitalia-app real, cifras medidas (era P-E)
+
+Nada de datos ilustrativos para el inventario: las cifras salen de `arnesia index` y son
+reproducibles con un comando. Mismo criterio que hizo funcionar el gate de MA-T6.
+
+---
+
 ## PENDIENTES (diseño abierto — NO firmados)
+
+- **P6 · Q1-Q8 de la auditoría previa** ([`auditoria-previa-mockup.md`](./auditoria-previa-mockup.md)
+  §Preguntas abiertas) — **Q1-Q2 BLOQUEAN el mockup de ingesta**: quién escribe cuando se hace
+  click en el Mapa (Go / conductor / híbrido) · si el muro de 100 nodos se ataca en el Mapa o en
+  la ingesta. Q3 quedó resuelta por ING-D11. Las demás lo moldean: nombre del eje de autoría
+  (Q4, choca con `procedencia` L0) · vocabulario final de facetas (Q5, ver P2) · el `CLAUDE.md`
+  que no pasa el reconocedor (Q6) · los 3 `pasos[].caja` que no son cajas en el arnés YA
+  publicado (Q7) · si T0 sale ya y con qué mecanismo (Q8, ver P1).
 
 - **P1 · Mecanismo de T0** (propagar `arnes.yaml` a instalaciones): ¿(a) Identificar/sellar lo
   escribe junto al l0 cuando el canónico lo tiene? ¿(b) Refrescar/Adoptar sincroniza hacia las

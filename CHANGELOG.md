@@ -25,6 +25,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Agregado
 - auditoría previa al mockup de ingesta escenario B: verificación independiente del informe de estado (5 correcciones), medición real del loader contra canónico e instalación, 8 preguntas abiertas y 5 propuestas
+- decisiones ING-D11..D15 de forma del mockup de ingesta (dos gates con ingesta primero, tabla de decisión, gesto de mayor palanca, Base por autoría, cifras medidas)
 
 ### Cambiado
 - Release en UN comando: make installer|installer-minor|installer-major (bump + bundle FE+BE + instaladores/vX.Y.Z/ + sync automático del override dev) e installer-actual para reparar una versión bumpeada sin instalador; proceso capturado en la skill /publicando-version
@@ -32,6 +33,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ### Deprecado
 
 ### Eliminado
+- 7 ramas y 6 worktrees obsoletos del ciclo de conversaciones — verificados ancestros de main, cero contenido perdido
 
 ### Corregido
 
