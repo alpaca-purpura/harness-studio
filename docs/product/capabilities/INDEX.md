@@ -147,9 +147,11 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-88 · Observar en Mapa (presencia read-only del Portafolio)** `vivo` · portafolio/observar-en-mapa.yaml — `internal/usecase/portafolio.go#PortafolioService.ObservarEnMapa`
 - **CAP-93 · Identificar (sellar arnes.l0.json in-situ)** `vivo` · portafolio/identificar.yaml — `internal/usecase/portafolio.go#PortafolioService.Identificar`
 
-### `fe-mapa` (9)
+### `fe-mapa` (11)
 
 - **CAP-139 · Capa «Mejora» del Mapa — cifra, confianza, cobertura y puntos de mejora** `parcial` · fe-mapa/capa-mejora.yaml — `web/src/entities/telemetria/model/types.ts#CifraCaja`
+- **CAP-152 · Chips de actividad (N0) — panorama multi-actividad del Mapa** `vivo` · fe-mapa/chips-de-actividad.yaml — `web/src/widgets/map-canvas/ui/actividad-chips.tsx#ActividadChips`
+- **CAP-153 · Foco de actividad (N1) — secuencia del procedimiento, atenuación y radio de impacto** `vivo` · fe-mapa/foco-de-actividad.yaml — `web/src/widgets/map-canvas/model/use-secuencia-paths.ts#useSecuenciaPaths`
 - **CAP-61 · Renderizar el Mapa (HTML+SVG)** `vivo` · fe-mapa/renderizar-el-mapa.yaml — `web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas`
 - **CAP-62 · Pan/zoom/fit** `vivo·nc` · fe-mapa/pan-zoom-fit.yaml — `web/src/widgets/map-canvas/model/use-viewport.ts#useViewport`
 - **CAP-63 · Inspector drawer (Resumen|Contenido|Corridas)** `vivo` · fe-mapa/inspector-drawer.yaml — `web/src/widgets/map-canvas/ui/inspector.tsx#Inspector`

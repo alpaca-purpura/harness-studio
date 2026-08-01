@@ -97,6 +97,9 @@ export function ArnesNode({
   // Capa Mejora: el nodo gana alto solo cuando efectivamente hay algo que decir.
   const conMejora =
     cifraUsd !== undefined || marcaFuga !== undefined || participacionPct !== undefined
+  // Compartido visible (MA-L4): la faceta `actividades` viene DERIVADA del loader (MA-T1b);
+  // >1 ⇒ badge ×N con las actividades listadas. Sin catálogo la faceta no existe → cero DOM.
+  const faceta = box.actividades ?? []
 
   return (
     <button
@@ -120,6 +123,14 @@ export function ArnesNode({
     >
       {caja && <span className="caja-badge">caja</span>}
       {propuesto && <span className="prop-badge">propuesto</span>}
+      {faceta.length > 1 && (
+        <span
+          className="xn"
+          title={`usada por ${faceta.length} actividades: ${faceta.join(" · ")} (MA-L4)`}
+        >
+          ×{faceta.length}
+        </span>
+      )}
       <span className="node-top">
         <Glyph color={k.color} char={k.char} shape={k.shape} />
         <span className="node-nm">{box.nombre}</span>

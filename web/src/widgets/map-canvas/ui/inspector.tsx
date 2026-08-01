@@ -9,6 +9,7 @@ import {
   isDelPuesto,
   KIND,
   SEC_TIP,
+  selectActividades,
   selectHallazgosConformance,
   selectVieneDe,
   tipDe,
@@ -149,6 +150,12 @@ export interface InspectorProps {
    * `disabled` con su motivo honesto — jamás fingiendo funcionar.
    */
   onEditarConversando?: (() => void) | undefined
+  /**
+   * Foco de actividad desde la fila «Actividades» del Resumen (MA-T5, spec §3): click en un
+   * chip foca ese procedimiento en el Mapa. La inyecta la página (dueña del estado del foco);
+   * sin ella los chips quedan inertes rotulados — jamás muertos en silencio.
+   */
+  onFocarActividad?: ((id: string) => void) | undefined
 }
 
 export function Inspector({
@@ -160,6 +167,7 @@ export function Inspector({
   loadFuente,
   mejora,
   onEditarConversando,
+  onFocarActividad,
 }: InspectorProps) {
   const [expanded, setExpanded] = useState(false)
   const [tab, setTab] = useState<Tab>("resumen")
@@ -250,7 +258,13 @@ export function Inspector({
           aria-labelledby="dw-tab-resumen"
           hidden={tab !== "resumen"}
         >
-          <Resumen box={box} graph={graph} onSelect={onSelect} conformance={conformance} />
+          <Resumen
+            box={box}
+            graph={graph}
+            onSelect={onSelect}
+            conformance={conformance}
+            onFocarActividad={onFocarActividad}
+          />
         </div>
         <div
           className="tabpane"
@@ -377,8 +391,9 @@ function Hallazgos({
 }
 
 // Botonera staged (RF-92): acciones del NODO al pie del Resumen — disabled + rotuladas
-// con la fase que las cablea, jamás fingiendo funcionar.
-function BotoneraStaged() {
+// con la fase que las cablea, jamás fingiendo funcionar. `actividades` = la faceta derivada
+// del nodo: compartida (>1) ⇒ act-note con el radio de impacto (MA-L4).
+function BotoneraStaged({ actividades }: { actividades?: readonly string[] | undefined }) {
   return (
     <footer className="dw-actions">
       <button
@@ -389,6 +404,12 @@ function BotoneraStaged() {
       >
         Editar conversando
       </button>
+      {actividades && actividades.length > 1 && (
+        <p className="act-note">
+          ⚠ usada por {actividades.length} actividades ({actividades.join(" · ")}) — editarla avisa
+          el radio de impacto (MA-L4)
+        </p>
+      )}
       <button
         type="button"
         className="act"
@@ -421,11 +442,13 @@ function Resumen({
   graph,
   onSelect,
   conformance,
+  onFocarActividad,
 }: {
   box: Box
   graph?: Graph | undefined
   onSelect?: ((id: string) => void) | undefined
   conformance?: readonly ConformanceResult[] | undefined
+  onFocarActividad?: ((id: string) => void) | undefined
 }) {
   const c = box.contract
   const role = CLASS_ROLE[box.clase]
@@ -433,6 +456,10 @@ function Resumen({
   const origen = box.origen ?? (isDelPuesto(box.id) ? "del-puesto · PROPUESTA" : undefined)
   // Viene de (RF-89): edges inversos derivados del grafo; sin entradas → sección ausente.
   const vieneDe = graph ? selectVieneDe(graph, box.id) : []
+  // Fila «Actividades» (MA-T5, spec §3): SOLO nodos de banda fase Y con catálogo declarado —
+  // sin tipos la sección no existe y el inspector es el de hoy (MA-L5/E1).
+  const hayCatalogo = graph !== undefined && selectActividades(graph).length > 0
+  const faceta = box.actividades ?? []
 
   return (
     <>
@@ -450,6 +477,41 @@ function Resumen({
           </>
         )}
       </Section>
+
+      {/* «Actividades» ENTRE Clasificación y Fuente (punto de inserción de la spec §3). */}
+      {hayCatalogo && box.banda === "fase" && (
+        <Section title="Actividades">
+          {faceta.length > 0 ? (
+            <>
+              <div className="chips">
+                {faceta.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    className="chip"
+                    disabled={onFocarActividad === undefined}
+                    title={
+                      onFocarActividad
+                        ? `Focar ${a} en el Mapa`
+                        : "foco de actividad no disponible en esta vista"
+                    }
+                    onClick={onFocarActividad ? () => onFocarActividad(a) : undefined}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+              {faceta.length > 1 && (
+                <p className="mut">
+                  usada por {faceta.length} actividades — editarla avisa el radio de impacto (MA-L4)
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mut">sin-actividad — ningún procedimiento la referencia (E6)</p>
+          )}
+        </Section>
+      )}
 
       {(box.fuente_path || origen) && (
         <Section title="Fuente">
@@ -576,7 +638,7 @@ function Resumen({
 
       <Hallazgos box={box} conformance={conformance} />
 
-      <BotoneraStaged />
+      <BotoneraStaged actividades={hayCatalogo ? box.actividades : undefined} />
     </>
   )
 }

@@ -39,6 +39,10 @@ export interface CapaMejoraStageProps {
   selectedId?: string | undefined
   onSelect?: ((id: string) => void) | undefined
   artefactos?: ArtefactosMode | undefined
+  /** Foco/pre-resaltado de actividad (MA-T5) — pass-through al canvas; el estado vive en la
+   *  página (mismo patrón que `capa`/`artefactos`). Ausentes ⇒ el Mapa de hoy (MA-L3). */
+  actividadFoco?: string | undefined
+  actividadPre?: string | undefined
 
   // ── Datos CRUDOS del wire. El stage deriva; la página no interpreta. ──
   estado?: "datos" | "cargando" | "error" | undefined
@@ -91,6 +95,8 @@ export function CapaMejoraStage({
   selectedId,
   onSelect,
   artefactos,
+  actividadFoco,
+  actividadPre,
   estado = "datos",
   resumen,
   cajas,
@@ -192,6 +198,8 @@ export function CapaMejoraStage({
                 mejora={vista.mejoraPorNodo}
                 totalesPorFase={vista.totalesPorFase}
                 motivosSinDato={vista.motivosPorNodo}
+                actividadFoco={actividadFoco}
+                actividadPre={actividadPre}
               />
               {inspector?.(cuerpoMejora)}
             </>

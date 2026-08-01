@@ -18,6 +18,7 @@ export {
 export { bucketsDe, type DetalleCajaWire, ETIQUETA_VENTANA } from "./model/detalle-caja"
 export type { Capa, LayerDef } from "./model/layers"
 export { LAYERS } from "./model/layers"
+export { ActividadChips, type ActividadChipsProps } from "./ui/actividad-chips"
 export { CapaMejoraStage, type CapaMejoraStageProps } from "./ui/capa-mejora-stage"
 export { FranjaMejora, type FranjaMejoraProps } from "./ui/franja-mejora"
 export { Inspector } from "./ui/inspector"

@@ -6,6 +6,14 @@
 // TEMPORAL: once api.getGraph lands (Hito 1) the live graph replaces it; the fixture stays for tests.
 
 export {
+  cajasSinActividad,
+  fasesDeActividad,
+  type SaludActividad,
+  saludDeActividad,
+  saludDeGrupo,
+  selectActividades,
+} from "./model/actividades"
+export {
   type ArtEdge,
   type ArtefactosMode,
   artEdges,
@@ -54,6 +62,7 @@ export type {
 } from "./model/types"
 export { cobranzaProveedores } from "./testing/cobranza-proveedores"
 export { devFullCycle } from "./testing/dev-full-cycle"
+export { developerVitaliaActividades } from "./testing/developer-vitalia-actividades"
 export { luanaFeatureCycle } from "./testing/luana-feature-cycle"
 export { ArnesNode } from "./ui/arnes-node"
 export { ArtefactoChip } from "./ui/artefacto-chip"

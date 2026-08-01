@@ -1,0 +1,75 @@
+---
+# Nacida con MA-T5/MA-T7 (paquete 2026-07-30-definicion-de-arnes, spec v2 FIRMADA DEF-D8).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-mapa.foco-de-actividad
+cap_num: CAP-153
+slug: foco-de-actividad
+name: "Foco de actividad (N1) — secuencia del procedimiento, atenuación y radio de impacto"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+
+module: fe-mapa
+layer: fe
+
+verb: observar
+functional_area: "fe-mapa.multi-actividad"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/widgets/map-canvas/model/use-secuencia-paths.ts#useSecuenciaPaths"
+  - "web/src/widgets/map-canvas/model/use-secuencia-paths.ts#SecuenciaActividad"
+  - "web/src/entities/arnes/model/actividades.ts#fasesDeActividad"
+  - "web/src/widgets/map-canvas/ui/map-canvas.tsx#MapCanvas"
+  - "web/src/widgets/map-canvas/ui/edge-layer.tsx#EdgeLayer"
+  - "web/src/widgets/map-canvas/ui/lane.tsx#GhostPaso"
+  - "web/src/widgets/map-canvas/ui/map-bar.tsx#MapBar"
+  - "web/src/widgets/map-canvas/ui/inspector.tsx#Inspector"
+  - "web/src/entities/arnes/ui/arnes-node.tsx#ArnesNode"
+  - "web/src/widgets/map-canvas/model/use-edge-paths.ts#useEdgePaths"
+valida:
+  - "web/src/widgets/map-canvas/ui/actividades.stories.tsx"
+  - "web/src/entities/arnes/model/actividades.test.ts"
+scenarios:
+  - "Dado el click en un chip de actividad, cuando entra el foco N1, entonces las cajas de fase fuera de la actividad se atenúan (.dim, misma maquinaria related vigente) y Guardia/Base quedan SIEMPRE plenas (MA-L2)"
+  - "Dado el foco, cuando se mide el DOM, entonces la secuencia del procedimiento se dibuja en la capa de edges: trazo sólido --primary con flecha + círculo numerado por paso — los dash siguen significando escribe/lee/opcional"
+  - "Dada una actividad que no pisa todas las fases, cuando se foca, entonces los carriles sin pasos se atenúan ENTEROS (E5 — se VE que el spike termina antes)"
+  - "Dado un paso sin caja (o con caja ausente del grafo), cuando se dibuja la secuencia, entonces aparece un nodo fantasma «paso sin caja aún» EN el carril del paso anterior, numerado (E13 — hueco visible, jamás saltado)"
+  - "Dado el foco activo, cuando se mira la barra, entonces hay breadcrumb `arnés ▸ actividad` + «ver todo» + nota «cifras del arnés completo» (disclaimer §3); «ver todo» vuelve al panorama (MA-L1)"
+  - "Dada una caja usada por N>1 actividades, cuando se pinta el nodo, entonces lleva badge ×N con la lista al tocar; el Resumen del inspector gana la fila «Actividades» (click → foco) y la botonera avisa el radio de impacto (MA-L4)"
+  - "Dado el foco, cuando se miran los edges, entonces el spine invoca genérico baja a opacity .18 — atenuado, NUNCA removido (MA-L6)"
+business_rules:
+  - "El foco atenúa, no borra (MA-L6): nunca filtra-y-esconde; el todo sigue presente y clickeable"
+  - "Superset estricto (MA-L3): sin actividadFoco el DOM del canvas es EXACTAMENTE el vigente — las 13 stories de map-canvas + 5 de map-bar siguen verdes sin tocarse"
+  - "Las cifras de la capa Mejora siguen siendo del arnés completo bajo foco (disclaimer §3); filtrar costo por actividad = diferido E12"
+  - "La fila «Actividades» del inspector vive ENTRE Clasificación y Fuente, solo para nodos de banda fase con catálogo declarado"
+related_capabilities:
+  depends_on: ["arnesia.loader.derivar-actividades", "arnesia.fe-mapa.chips-de-actividad"]
+  enables: []
+
+dev_preview:
+  route: "#/mapa"
+  how_to_navigate: "Mapa de un arnés con tipos declarados → click en un chip de actividad → foco N1 (secuencia numerada + carriles atenuados); «ver todo» vuelve"
+  main_component: "web/src/widgets/map-canvas/ui/map-canvas.tsx"
+  api_endpoints: ["GET /api/harnesses/{id}/graph"]
+  e2e_test: null
+
+created_in_story: 2026-07-30-definicion-de-arnes
+created_date: 2026-08-01
+last_modified: 2026-08-01
+source_ref: "docs/product/stories/2026-07-30-definicion-de-arnes/spec.md §3/§4 (MA-T5 · MA-T7)"
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: new
+    summary: "Foco N1: dim por faceta + secuencia sólida --primary numerada + dimlane E5 + ghost E13 + breadcrumb + badge ×N + fila «Actividades» del inspector con radio de impacto MA-L4."
+---
+
+# Foco de actividad (N1) — secuencia del procedimiento, atenuación y radio de impacto
+
+El drill-down por actividad del Mapa multi-actividad (spec §3): reusa la maquinaria de
+atenuación vigente cambiando solo el origen del set, dibuja el procedimiento como secuencia
+sólida `--primary` numerada en la capa de edges (estilo nuevo sin colisión con los dash) y
+hace visibles los degradados E5/E13 y el radio de impacto de las cajas compartidas (MA-L4).

@@ -3,8 +3,11 @@ import {
   ArnesNode,
   type ArtefactosMode,
   artEdges,
+  fasesDeActividad,
   type Graph,
+  isCaja,
   planGutter,
+  selectActividades,
   selectArtefactos,
   selectEdges,
   selectGuardia,
@@ -20,6 +23,7 @@ import { SUPPORT_BANDS } from "../model/bands"
 import type { Capa } from "../model/layers"
 import { propsDeMejora } from "../model/props-de-mejora"
 import { type DrawableEdge, useEdgePaths } from "../model/use-edge-paths"
+import { useSecuenciaPaths } from "../model/use-secuencia-paths"
 import { useViewport } from "../model/use-viewport"
 import { Band } from "./band"
 import { BaseBand } from "./base-band"
@@ -69,6 +73,16 @@ interface MapCanvasProps {
   totalesPorFase?: ReadonlyMap<string, number | null> | undefined
   /** El motivo de «sin dato atribuible» por nodo, resuelto por la página con la clase real. */
   motivosSinDato?: ReadonlyMap<string, string> | undefined
+  /**
+   * Foco N1 (MA-T5): id de actividad del catálogo o `"sin-actividad"`. Reusa la maquinaria
+   * `related`/`.dim` vigente — solo cambia el ORIGEN del set (spec §3): cajas de fase fuera
+   * de la actividad → dim · Guardia/Base SIEMPRE plenas (MA-L2) · fases sin pasos → carril
+   * entero atenuado (E5) · secuencia sólida `--primary` numerada + ghosts E13 · spine
+   * genérico tenue, jamás removido (MA-L6). `undefined` ⇒ el Mapa de hoy, idéntico (MA-L3).
+   */
+  actividadFoco?: string | undefined
+  /** Pre-resaltado por hover de chip (N0): SOLO atenúa nodos — sin secuencia ni carriles. */
+  actividadPre?: string | undefined
 }
 
 // The render-error net (nomenclatura-arnes §4.5): a malformed node (e.g. a clase outside the
@@ -95,6 +109,8 @@ function MapCanvasInner({
   mejora,
   totalesPorFase,
   motivosSinDato,
+  actividadFoco,
+  actividadPre,
 }: MapCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -141,7 +157,81 @@ function MapCanvasInner({
     )
     return [...base, ...artes]
   }, [graph, chips, planes])
-  const paths = useEdgePaths(contentRef, drawableEdges, { z, focusId: focus })
+  // ── Foco de actividad (MA-T5, spec §3) — todo derivado del grafo, cero dato nuevo ──────
+  const actividades = useMemo(() => selectActividades(graph), [graph])
+  // El foco/pre solo existen si el catálogo existe (MA-L5: sin tipos, el Mapa de hoy).
+  const focoLegal = actividades.length > 0 ? actividadFoco : undefined
+  const actividadActiva = focoLegal ?? (actividades.length > 0 ? actividadPre : undefined)
+  const actividadObj = useMemo(
+    () =>
+      focoLegal !== undefined && focoLegal !== "sin-actividad"
+        ? actividades.find((a) => a.id === focoLegal)
+        : undefined,
+    [actividades, focoLegal],
+  )
+  // El MISMO mecanismo related/.dim vigente, con otro origen del set: quedan plenos todos
+  // los nodos fuera de banda fase (Guardia/Base/soporte, MA-L2) + las cajas de la actividad
+  // (o, en «sin-actividad», las cajas con faceta vacía). El hover de nodo NO pisa este dim.
+  const relatedActividad = useMemo<ReadonlySet<string> | undefined>(() => {
+    if (actividadActiva === undefined) return undefined
+    const s = new Set<string>()
+    for (const n of graph.nodos) {
+      if (n.banda !== "fase") {
+        s.add(n.id)
+        continue
+      }
+      const faceta = n.actividades ?? []
+      const enFoco =
+        actividadActiva === "sin-actividad"
+          ? isCaja(n) && faceta.length === 0
+          : faceta.includes(actividadActiva)
+      if (enFoco) s.add(n.id)
+    }
+    return s
+  }, [actividadActiva, graph])
+  // E5: fases donde el procedimiento no tiene pasos → carril entero atenuado.
+  const fasesActividad = useMemo(
+    () => (actividadObj ? fasesDeActividad(graph, actividadObj) : undefined),
+    [graph, actividadObj],
+  )
+  // E13: pasos sin caja (o con caja ausente del grafo) → ghost en el carril de la fase del
+  // paso anterior con caja (o el primero) — hueco visible, jamás saltado en silencio.
+  const ghostsPorFase = useMemo(() => {
+    const m = new Map<string, { numero: number; paso: string; artefacto?: string | undefined }[]>()
+    if (!actividadObj) return m
+    const pasos = actividadObj.pasos ?? []
+    const enGrafo = (id: string | undefined) =>
+      id !== undefined && graph.nodos.some((n) => n.id === id)
+    pasos.forEach((p, i) => {
+      if (enGrafo(p.caja)) return
+      const prev = pasos
+        .slice(0, i)
+        .reverse()
+        .find((q) => enGrafo(q.caja))
+      const prevNode = prev ? graph.nodos.find((n) => n.id === prev.caja) : undefined
+      const fase = prevNode?.fase ?? lanes[0]?.fase
+      if (fase === undefined) return
+      const arr = m.get(fase) ?? []
+      arr.push({ numero: i + 1, paso: p.paso, artefacto: p.artefacto })
+      m.set(fase, arr)
+    })
+    return m
+  }, [actividadObj, graph, lanes])
+  // La secuencia del procedimiento: anclas en orden de pasos (caja real o ghost E13).
+  const anclasSecuencia = useMemo(() => {
+    if (!actividadObj) return []
+    return (actividadObj.pasos ?? []).map((p) =>
+      p.caja !== undefined && graph.nodos.some((n) => n.id === p.caja) ? p.caja : `ghost-${p.paso}`,
+    )
+  }, [actividadObj, graph])
+
+  const paths = useEdgePaths(contentRef, drawableEdges, {
+    z,
+    focusId: focus,
+    // MA-L6: con foco (incluido «sin-actividad») el spine genérico baja a .18, nunca se borra.
+    spineTenue: focoLegal !== undefined,
+  })
+  const secuencia = useSecuenciaPaths(contentRef, anclasSecuencia, z)
 
   // La composición `CifraCaja → props primitivas`, una sola vez por render (D18). Con la capa
   // apagada el mapa queda VACÍO y el nodo no recibe ninguna prop nueva: el DOM es el de hoy.
@@ -168,7 +258,13 @@ function MapCanvasInner({
     }
     return s
   }, [focus, drawableEdges])
+  // dimmed gobierna los chips de la franja de artefactos (HandoffGutter) — SOLO hover, como
+  // hoy: el foco de actividad no alcanza a los artefactos (calco del mockup).
   const dimmed = (id: string) => related !== undefined && !related.has(id)
+  // El set que gobierna el dim de NODOS: con actividad activa manda su set (el hover de nodo
+  // no lo pisa, spec §3); sin actividad, la maquinaria hover vigente, intacta.
+  const relatedNodos = relatedActividad ?? related
+  const dimNodo = (id: string) => relatedNodos !== undefined && !relatedNodos.has(id)
 
   // Overview-first: fit the whole arnés on mount and whenever the arnés changes (RF-50). arnesId
   // is the intended trigger (re-fit on arnés swap), not read inside — hence the exhaustive-deps hint.
@@ -233,7 +329,7 @@ function MapCanvasInner({
                       key={b.id}
                       box={b}
                       compact
-                      dim={dimmed(b.id)}
+                      dim={dimNodo(b.id)}
                       selected={b.id === selectedId}
                       onSelect={onSelect}
                       {...mejoraDeCarril?.get(b.id)}
@@ -272,9 +368,13 @@ function MapCanvasInner({
                       <Lane
                         fase={l.fase}
                         nodes={l.nodos}
-                        related={related}
+                        related={relatedNodos}
                         selectedId={selectedId}
                         onSelect={onSelect}
+                        // E5: carril entero atenuado si el procedimiento focado no pisa la
+                        // fase; E13: ghosts del foco. Sin foco ambos son undefined (MA-L3).
+                        dimlane={fasesActividad !== undefined && !fasesActividad.has(l.fase)}
+                        ghosts={ghostsPorFase.get(l.fase)}
                         // El total del carril y las marcas del nodo son DOS decisiones, y
                         // gatearlas juntas fue un error propio: sin `totalesPorFase` los nodos
                         // se quedaban sin cifra. El carril calla cuando no hay medición en la
@@ -316,7 +416,7 @@ function MapCanvasInner({
                   <BaseBand
                     key={bd.id}
                     nodes={ns}
-                    related={related}
+                    related={relatedNodos}
                     selectedId={selectedId}
                     onSelect={onSelect}
                     mejora={mejoraDeCarril}
@@ -326,7 +426,7 @@ function MapCanvasInner({
                     key={bd.id}
                     band={bd}
                     nodes={ns}
-                    related={related}
+                    related={relatedNodos}
                     selectedId={selectedId}
                     onSelect={onSelect}
                     mejora={mejoraDeCarril}
@@ -335,7 +435,7 @@ function MapCanvasInner({
               })}
             </Region>
 
-            <EdgeLayer paths={paths} />
+            <EdgeLayer paths={paths} secuencia={actividadObj ? secuencia : undefined} />
           </div>
         </div>
       </div>

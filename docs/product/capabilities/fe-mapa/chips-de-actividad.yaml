@@ -1,0 +1,70 @@
+---
+# Nacida con MA-T4 (paquete 2026-07-30-definicion-de-arnes, spec v2 FIRMADA DEF-D8).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.fe-mapa.chips-de-actividad
+cap_num: CAP-152
+slug: chips-de-actividad
+name: "Chips de actividad (N0) — panorama multi-actividad del Mapa"
+status: vivo          # GENERADO (R4) — no teclear
+license: brand-local
+
+module: fe-mapa
+layer: fe
+
+verb: observar
+functional_area: "fe-mapa.multi-actividad"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "web/src/widgets/map-canvas/ui/actividad-chips.tsx#ActividadChips"
+  - "web/src/entities/arnes/model/actividades.ts#selectActividades"
+  - "web/src/entities/arnes/model/actividades.ts#cajasSinActividad"
+  - "web/src/entities/arnes/model/actividades.ts#saludDeActividad"
+  - "web/src/entities/arnes/model/actividades.ts#saludDeGrupo"
+  - "web/src/entities/arnes/model/actividades.test.ts#saludDeActividad"
+  - "web/src/entities/arnes/testing/developer-vitalia-actividades.ts#developerVitaliaActividades"
+valida:
+  - "web/src/widgets/map-canvas/ui/actividades.stories.tsx"
+  - "web/src/entities/arnes/model/actividades.test.ts"
+scenarios:
+  - "Dado un arnés con arnes.actividades[] declarado, cuando se abre el Mapa, entonces bajo la MapBar aparece un chip por actividad con dot de salud (worst-of de hallazgos FE existentes) · id mono · N cajas"
+  - "Dado un arnés SIN tipos declarados, cuando se abre el Mapa, entonces la fila NO se renderiza — cero DOM nuevo, el Mapa exacto de hoy (MA-L5/E1/E8)"
+  - "Dado que hay cajas que ningún procedimiento referencia, cuando se pinta la fila, entonces cierra el chip `sin-actividad · N cajas` focable (E6 — visible, jamás se oculta)"
+  - "Dada una actividad sin pasos, cuando se pinta su chip, entonces sale degradado (dashed·italic) «sin procedimiento aún (E7)», NO focable, con CTA «forjar el procedimiento conversando» si hay handler"
+  - "Dado hover sobre un chip sin foco activo, cuando el mouse entra, entonces el canvas pre-resalta (atenúa las cajas de fase fuera de la actividad) sin entrar al foco N1"
+business_rules:
+  - "La salud del chip es worst-of de hallazgos YA existentes (gate:none crit · no-reconocido warn · paso sin caja warn) — jamás una cifra tecleada ni un dato nuevo (spec §3)"
+  - "La faceta box.actividades viene DERIVADA del loader (CAP-151): el FE no re-deriva (AUD-2)"
+  - "El estado del foco vive en la página (workspace-stage), prop+callback — mismo patrón que capa/artefactos"
+  - "En código jamás `act` (tomado 2×: ActKind banda · act turno de chat) ni «spine» para la secuencia (AUD-4): siempre `actividad`/`pasos`"
+related_capabilities:
+  depends_on: ["arnesia.loader.derivar-actividades"]
+  enables: ["arnesia.fe-mapa.foco-de-actividad"]
+
+dev_preview:
+  route: "#/mapa"
+  how_to_navigate: "Mapa de un arnés con tipos declarados (arnes.yaml v3) → fila «actividades» bajo la barra"
+  main_component: "web/src/widgets/map-canvas/ui/actividad-chips.tsx"
+  api_endpoints: ["GET /api/harnesses/{id}/graph"]
+  e2e_test: null
+
+created_in_story: 2026-07-30-definicion-de-arnes
+created_date: 2026-08-01
+last_modified: 2026-08-01
+source_ref: "docs/product/stories/2026-07-30-definicion-de-arnes/spec.md §3 (MA-T4)"
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: new
+    summary: "Fila N0 de chips de actividad bajo la MapBar: salud worst-of honesta + sin-actividad E6 + degradado E7 + regresión E1/E8 (cero DOM sin catálogo)."
+---
+
+# Chips de actividad (N0) — panorama multi-actividad del Mapa
+
+La lente de agrupación nueva del esquema v3 (DEF-D1/D2: actividades = pipelines internos):
+un chip por tipo de paquete de trabajo declarado, con salud agregada honesta y el grupo
+`sin-actividad` siempre visible. El-todo-primero (MA-L1): la fila agrega, jamás filtra;
+sin tipos declarados no existe (MA-L5).

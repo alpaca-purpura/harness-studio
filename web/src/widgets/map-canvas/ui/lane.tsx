@@ -1,5 +1,17 @@
 import { Fragment } from "react"
 import { ArnesNode, type Box, isCaja } from "@/entities/arnes"
+import { cn } from "@/shared/lib/cn"
+
+/**
+ * Un paso del procedimiento focado SIN caja en este carril (E13, MA-T5): se pinta como nodo
+ * fantasma —dashed, muted, NO clickeable— para que el hueco sea visible, jamás saltado en
+ * silencio. `numero` es el número de paso dentro del procedimiento (la secuencia lo incluye).
+ */
+export interface GhostPaso {
+  numero: number
+  paso: string
+  artefacto?: string | undefined
+}
 
 // Lane is one process phase — a column in the Proceso region (mockup:84-89,419-434). Header =
 // fase name + node count; body = the boxes that declared this fase. Order is CAJA-FIRST
@@ -26,6 +38,13 @@ interface LaneProps {
   /** Marcas primitivas por nodo (D18): el widget compone `CifraCaja → props`, el nodo no importa
    *  `entities/telemetria`. */
   mejora?: ReadonlyMap<string, MejoraNodo> | undefined
+  /**
+   * E5 (MA-T5): la actividad focada no tiene pasos en esta fase → el carril ENTERO se atenúa
+   * (se VE que el spike termina antes). `undefined`/false ⇒ DOM idéntico al de hoy (MA-L3).
+   */
+  dimlane?: boolean | undefined
+  /** Ghosts E13 de esta fase (pasos del procedimiento focado sin caja). Ausente ⇒ cero DOM. */
+  ghosts?: readonly GhostPaso[] | undefined
 }
 
 /** Las props de mejora de UN nodo, ya compuestas por el widget. Espeja `MejoraProps` de
@@ -41,14 +60,24 @@ export interface MejoraNodo {
   motivoSinDato?: string | undefined
 }
 
-export function Lane({ fase, nodes, related, selectedId, onSelect, totalUsd, mejora }: LaneProps) {
+export function Lane({
+  fase,
+  nodes,
+  related,
+  selectedId,
+  onSelect,
+  totalUsd,
+  mejora,
+  dimlane,
+  ghosts,
+}: LaneProps) {
   // Stable caja-first sort (mockup:424): cajas keep their relative order, then the rest.
   const ordered = [...nodes].sort((a, b) => (isCaja(b) ? 1 : 0) - (isCaja(a) ? 1 : 0))
   const hasCaja = ordered.some(isCaja)
   const firstSupportIdx = ordered.findIndex((n) => !isCaja(n))
 
   return (
-    <section className="lane">
+    <section className={cn("lane", dimlane && "dimlane")}>
       <div className="lane-hd">
         <h3>{fase}</h3>
         {/* J-8: el `.count` se CONSERVA. El total de la fase se suma como tercer hijo, no
@@ -80,6 +109,19 @@ export function Lane({ fase, nodes, related, selectedId, onSelect, totalUsd, mej
             </Fragment>
           )
         })}
+        {/* E13 — el paso sin caja del procedimiento focado, EN la secuencia: un div (no
+            button) porque no es un nodo real — no se selecciona ni abre inspector. */}
+        {ghosts?.map((g) => (
+          <div key={g.paso} className="node ghost" data-node-id={`ghost-${g.paso}`}>
+            <span className="node-top">
+              <span className="ghost-num" aria-hidden="true">
+                {g.numero}
+              </span>
+              <span className="node-nm">{g.paso} — paso sin caja aún</span>
+            </span>
+            <span className="node-cmd">entrega: {g.artefacto ?? "—"}</span>
+          </div>
+        ))}
       </div>
     </section>
   )

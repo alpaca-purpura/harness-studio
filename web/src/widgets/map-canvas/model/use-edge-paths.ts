@@ -31,6 +31,12 @@ const STROKE: Record<TipoEdge, { color: string; opacity: number; dash?: string }
 interface Opts {
   z: number
   focusId?: string | null | undefined
+  /**
+   * Foco de actividad activo (MA-T5): el spine `invoca` genérico baja a opacity .18 —
+   * atenuado, NUNCA removido (MA-L6, mockup:666). Solo sin hover de nodo: con hover mandan
+   * las reglas de focus vigentes. `undefined`/false ⇒ cero cambio (superset MA-L3).
+   */
+  spineTenue?: boolean | undefined
 }
 
 // useEdgePaths measures node anchors from the DOM (the signed v3 approach) and returns the
@@ -43,7 +49,7 @@ interface Opts {
 export function useEdgePaths(
   contentRef: RefObject<HTMLElement | null>,
   edges: DrawableEdge[],
-  { z, focusId }: Opts,
+  { z, focusId, spineTenue }: Opts,
 ): EdgePath[] {
   const [paths, setPaths] = useState<EdgePath[]>([])
 
@@ -80,6 +86,10 @@ export function useEdgePaths(
         } else if (spine || e.art) {
           opacity = Math.min(opacity, 0.2)
         }
+      } else if (spineTenue && spine) {
+        // MA-L6: con actividad focada el spine genérico se asoma tenue — la secuencia
+        // sólida --primary es la protagonista, pero el todo sigue presente.
+        opacity = 0.18
       }
       next.push({
         key: `${e.de}->${e.a}`,
@@ -92,7 +102,7 @@ export function useEdgePaths(
       })
     }
     setPaths(next)
-  }, [contentRef, edges, z, focusId])
+  }, [contentRef, edges, z, focusId, spineTenue])
 
   useLayoutEffect(() => {
     const content = contentRef.current

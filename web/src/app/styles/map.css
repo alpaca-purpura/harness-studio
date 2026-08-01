@@ -881,3 +881,139 @@
   font-style: italic;
   color: var(--muted-foreground);
 }
+
+/* ═══ Multi-actividad (MA-T4/T5, paquete 2026-07-30-definicion-de-arnes — calco del mockup
+   firmado mockup-mapa-actividades.html). Superset estricto: sin catálogo declarado ninguna
+   de estas clases aparece en el DOM (MA-L5/E8). ═══ */
+
+/* ── fila de chips N0 (`ActividadChips`) — chrome bajo la MapBar, clase propia (no vive
+   dentro de .arnesia-map: es hermana de la barra, como en el mockup .actbar) ── */
+.arnesia-actividades {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 7px 16px;
+}
+.arnesia-actividades .lbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+.arnesia-actividades .achip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+}
+.arnesia-actividades .achip:hover {
+  border-color: var(--input);
+}
+.arnesia-actividades .achip[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.arnesia-actividades .achip .nm {
+  font-family: var(--font-mono);
+}
+.arnesia-actividades .achip .n {
+  color: var(--muted-foreground);
+}
+/* dot de salud: worst-of de hallazgos existentes — --sd ∈ {--ok, --warn, --crit} */
+.arnesia-actividades .achip .dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--sd, var(--ok));
+}
+/* E7 — degradado honesto: dashed + italic, no focable (disabled). */
+.arnesia-actividades .achip.degradado {
+  border-style: dashed;
+  color: var(--muted-foreground);
+  cursor: default;
+}
+.arnesia-actividades .achip.degradado .nm {
+  font-style: italic;
+}
+/* E6 — el grupo sin-actividad, muted pero focable. */
+.arnesia-actividades .achip.sinact {
+  color: var(--muted-foreground);
+  background: transparent;
+}
+.arnesia-actividades .cta-chat {
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  border: 1px dashed var(--primary);
+  background: transparent;
+  color: var(--primary);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+}
+
+/* ── foco N1 dentro del canvas ── */
+/* E5: la actividad no tiene pasos en la fase → el carril ENTERO se atenúa (mockup:155). */
+.arnesia-map .lane {
+  transition: opacity 0.15s;
+}
+.arnesia-map .lane.dimlane {
+  opacity: 0.35;
+}
+/* E13: paso sin caja aún — ghost dashed/muted, no clickeable como nodo real (mockup:193). */
+.arnesia-map .node.ghost {
+  border-style: dashed;
+  border-left-style: dashed;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: default;
+}
+.arnesia-map .node.ghost .node-nm {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.arnesia-map .node.ghost .ghost-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1px dashed var(--muted-foreground);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+/* MA-L4: caja compartida por N actividades — badge ×N esquina sup-der (mockup:180). */
+.arnesia-map .xn {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 5;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  padding: 1px 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.arnesia-map .node.compact .xn {
+  display: none;
+}

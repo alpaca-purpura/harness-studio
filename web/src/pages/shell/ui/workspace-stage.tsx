@@ -22,6 +22,7 @@ import {
 } from "@/shared"
 import type { DetalleCajaWire } from "@/widgets/map-canvas"
 import {
+  ActividadChips,
   type Capa,
   CapaMejoraStage,
   Inspector,
@@ -99,6 +100,11 @@ export function WorkspaceStage() {
   // Franja Artefactos (RF-143): default auto — reposo idéntico al mapa actual, chips al
   // seleccionar. Mismo patrón de estado que `capa` (sin persistencia dura, como el resto).
   const [artefactos, setArtefactos] = useState<ArtefactosMode>("auto")
+  // Foco de actividad (MA-T4/T5): `null` = panorama N0; un id del catálogo o "sin-actividad"
+  // = foco N1. `actividadPre` = pre-resaltado por hover de chip (solo sin foco). Mismo patrón
+  // de estado que `capa`/`artefactos` — la página es la dueña, los widgets reciben prop+callback.
+  const [actividadFoco, setActividadFoco] = useState<string | null>(null)
+  const [actividadPre, setActividadPre] = useState<string | null>(null)
 
   // The picker previews any arnés; it defaults to (and resets with) the session's own arnés.
   // La selección TAMBIÉN se limpia: si la vista nueva no recarga grafo (p.ej. Diag), el
@@ -127,6 +133,9 @@ export function WorkspaceStage() {
     setLoadErr(null)
     setSelectedId(undefined)
     setConformance(undefined)
+    // Cambiar de arnés vuelve al panorama: el foco de actividad pertenece a UN grafo.
+    setActividadFoco(null)
+    setActividadPre(null)
     if (!harnesses.some((h) => h.id === viewedId)) {
       setLoadErr(`«${viewedId}» no está en el índice del daemon.`)
       return () => {
@@ -429,7 +438,23 @@ export function WorkspaceStage() {
               ownId={arnesId}
               artefactos={artefactos}
               onArtefactos={setArtefactos}
+              actividadFoco={actividadFoco ?? undefined}
+              onVerTodo={() => setActividadFoco(null)}
             />
+            {/* Fila N0 (MA-T4): ActividadChips devuelve null sin catálogo (MA-L5/E8) — con
+                un arnés legacy esta línea no agrega DOM. El CTA E7 abre el Dock SOLO cuando
+                el arnés visto es el de la sesión (CH-D6, mismo guard que Editar conversando). */}
+            {graph && (
+              <ActividadChips
+                graph={graph}
+                actividadFoco={actividadFoco ?? undefined}
+                onActividadFoco={setActividadFoco}
+                onActividadPre={setActividadPre}
+                onForjarConversando={
+                  viewedId === arnesId ? () => useSessions.getState().openChat() : undefined
+                }
+              />
+            )}
             {/* 🔴 La COMPOSICIÓN vive en `CapaMejoraStage`, no acá. Los cuatro críticos de la
                 auditoría del Tramo B nacieron de componerla en `pages/`, que es el único lugar
                 del repo sin stories — y por eso el candado de D24 no los vio. Esta página hace
@@ -440,6 +465,8 @@ export function WorkspaceStage() {
               selectedId={selectedId}
               onSelect={setSelectedId}
               artefactos={artefactos}
+              actividadFoco={actividadFoco ?? undefined}
+              actividadPre={actividadPre ?? undefined}
               estado={mejEstado}
               resumen={resumen}
               cajas={cajas}
@@ -538,6 +565,9 @@ export function WorkspaceStage() {
                     conformance={conformance}
                     loadFuente={loadFuente}
                     mejora={cuerpoMejora}
+                    // Fila «Actividades» del Resumen (MA-T5): click en un chip foca ese
+                    // procedimiento en el Mapa — el estado del foco vive en esta página.
+                    onFocarActividad={setActividadFoco}
                     // C-D2 (2026-07-30) — «Editar conversando (dock)» vive SOLO cuando el
                     // arnés visto es el de la sesión (CH-D6: el chat embebido no alcanza
                     // otros arneses). Sin la prop, el inspector deja el botón disabled con

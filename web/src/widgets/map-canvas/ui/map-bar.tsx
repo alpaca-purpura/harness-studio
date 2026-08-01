@@ -33,6 +33,13 @@ interface MapBarProps {
   // Toggle de la franja Artefactos (RF-143). Optional: sin callback no se pinta.
   artefactos?: ArtefactosMode | undefined
   onArtefactos?: ((m: ArtefactosMode) => void) | undefined
+  /**
+   * Foco de actividad (MA-T5, spec §3): breadcrumb `arnés ▸ actividad` + «ver todo» + la nota
+   * «cifras del arnés completo» (el foco solo atenúa; las cifras siguen siendo del todo).
+   * Vive junto al id read-only (TS-D21 — el picker ya no existe). Sin foco: cero DOM nuevo.
+   */
+  actividadFoco?: string | undefined
+  onVerTodo?: (() => void) | undefined
 }
 
 function MetaChip({ k, v }: { k: string; v?: string | null | undefined }) {
@@ -53,6 +60,8 @@ export function MapBar({
   ownId,
   artefactos,
   onArtefactos,
+  actividadFoco,
+  onVerTodo,
 }: MapBarProps) {
   const isPeek = Boolean(ownId && activeId && ownId !== activeId)
 
@@ -61,6 +70,26 @@ export function MapBar({
       <span className="font-mono text-xs text-muted-foreground">
         {arnes?.id ?? activeId ?? "—"}
       </span>
+      {actividadFoco && (
+        <span className="flex items-center gap-2" data-testid="crumb-actividad">
+          <span aria-hidden="true" className="text-xs text-muted-foreground">
+            ▸
+          </span>
+          <span className="font-mono text-xs font-bold text-primary">{actividadFoco}</span>
+          {onVerTodo && (
+            <button
+              type="button"
+              onClick={onVerTodo}
+              title="Volver al panorama del arnés (N0)"
+              className="rounded-full border border-border bg-card px-2.5 py-0.5 text-xs text-foreground hover:bg-secondary"
+            >
+              ver todo
+            </button>
+          )}
+          {/* Disclaimer §3: el foco solo atenúa — las cifras del Mapa siguen siendo del todo. */}
+          <span className="text-xs text-muted-foreground">cifras del arnés completo</span>
+        </span>
+      )}
       {isPeek && ownId && (
         <button
           type="button"

@@ -25,6 +25,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Agregado
 - Mapa multi-actividad (backend): el loader deriva arnes.actividades[] + faceta actividades por caja desde el arnes.yaml del arnés al indexar (campo nuevo opcional caja: por paso de spine); enmienda aditiva a graph.l0.schema.json (actividades + degradado regularizado)
+- Mapa multi-actividad (FE): chips N0 + foco N1 + secuencia + badge ×N + fila Actividades + degradados E5/E6/E7/E13
 
 ### Cambiado
 
