@@ -49,3 +49,20 @@
 - [ ] Chips N0 + foco N1 en la app instalada (sesión propia de `developer-vitalia`)
 - [ ] `developer-vitalia` 0.1.0 en el marketplace propio (repo + tag)
 - [ ] Deudas D/E/F aceptadas como backlog
+
+## Deudas D/E/F + peek — RESUELTAS (2026-08-01, sesión de deudas del handoff)
+
+Decisiones DD-1/DD-2/DD-3 del operador vía AskUserQuestion; ejecución y evidencia:
+
+| Deuda | Resolución | Evidencia | Commit |
+|---|---|---|---|
+| **F** faceta inválida tiraba el lienzo | lookups TOTALES `kindFor`/`arquetipoMark`/`gateTone` — degrada LA MARCA (warn, nombra el valor), boundary = red final | stories `FacetasInvalidas` (canvas `.lane`>0 con arquetipo `guiado` + gate `quimera` + clase alien) y `CajaFacetasNoReconocidas`; `NodoMalformado` re-armada sobre nombre irrenderizable; 636/636 | `24512a9` |
+| **peek** foco parcial | NO reprodujo (foco completo verificado en vivo: peek developer-vitalia → `{crumb:true, circles:4, seq:3, dimlane:1}`); causa raíz probable = race de identidad del array `harnesses` en deps del efecto de carga (dos `listHarnesses` concurrentes al entrar por peek reseteaban el foco recién puesto) — dep cambiada a primitiva `enIndice` | probe Playwright contra daemon instalado :4200; CAP-153 | `faec39e` |
+| **D** sesión sin sello read-only sin HITL | canal SIEMPRE cableado (flags incondicionales) + tarjeta de grounding corregida («podés escribir vía tarjeta del panel») + `ResolvePermission` sin rol = autoridad del click humano (set valor-cero, grant TTL 0 por-tarea). Boundary permisos-gui v1.3 (+`canal-siempre-cableado`) | E2E binario sandbox (skill `verificando-binario-instalado`): Write→tarjeta→allow→`prueba-DD1.md` en disco · Bash mkdir→tarjeta→allow→`notas/n1.md`. **Quirk mkdir de CC desapareció al cablear prompt-tool** — sin issue aguas arriba | `4d14e75` |
+| **E** alta sin camino a canónico | (a) «⌂ Adoptar como canónico»: usecase (cola de Traer reusada) + `POST /api/portafolio/adopciones` + botón drawer; (b) B2-alta YA estaba en el publisher (RMW fila nueva) — clavada con `TestPublicarAltaAgregaFilaNueva` contra bare real; (c) `CatalogoSync` pull ff-only SOLO propio en Refrescar explícito (boundary marketplace-referencia v1.3) | 7 tests Adoptar + 3 sincronizador (repos git reales) + 2 usecase sync + 3 stories drawer; suites Go/FE completas verdes | `c5f4a97` (c) · `8d9cfdc` (a)+(b) |
+
+- Pendiente del operador: gate 🧑‍⚖️ de esta sección (checklist abajo) + repetir la forja
+  conversacional ENTERA desde el chat («el criterio de cierre del informe») cuando quiera.
+- [ ] 🧑‍⚖️ D: tarjeta de permiso aparece y aprueba en el panel REAL del Dock (app instalada)
+- [ ] 🧑‍⚖️ E: ciclo alta completo desde la UI (adoptar → publicar → refrescar → traer)
+- [ ] 🧑‍⚖️ F/peek: canvas degrada por-marca y foco completo en vista previa (app instalada)

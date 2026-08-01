@@ -18,16 +18,17 @@ declarada. Primero dev como dogfood, luego generaliza a otros rubros (p7).
 | Spec | ✅ **v2 FIRMADA 🧑‍⚖️ 2026-08-01** («ok firmo», /goal del operador) — [`spec.md`](./spec.md) (crear·visualizar·mantener + MA-L1..L7 + MA-E1..E13 + carril D del MVP; hallazgos AUD-1..9 en `decisiones.md`) |
 | Mockup | ✅ **MA-T6 GATE FIRMADO 🧑‍⚖️ 2026-08-01** (misma firma) — [`mockup-mapa-actividades.html`](./mockup-mapa-actividades.html) (re-derivado a la superficie VIGENTE; fila en `mockups/INDEX.md`) — FE desbloqueado |
 | Implementación | ✅ **MA-T1a..T7 EJECUTADOS 2026-08-01** — seam al indexar + saneo + `developer-vitalia` 0.1.0 publicado y VIVO en el Mapa de la app instalada (chips N0 · foco N1 · E5/E6/E7/E13 reales) |
-| PARIDAD | ✍️ [`PARIDAD.md`](./PARIDAD.md) con evidencia por ticket (§8 completo, 4 hallazgos de dogfood D/E/F/peek visibles) — **gate 🧑‍⚖️ del operador pendiente** |
+| PARIDAD | ✍️ [`PARIDAD.md`](./PARIDAD.md) con evidencia por ticket (§8 completo) — **gate 🧑‍⚖️ del operador pendiente** |
+| Deudas dogfood | ✅ **D · E(a/b/c) · F · peek RESUELTAS 2026-08-01** (DD-1/2/3 + registros de ejecución en `decisiones.md`; evidencia y checklist de gate en `PARIDAD.md` §Deudas) — commits `24512a9` · `faec39e` · `4d14e75` · `c5f4a97` · `8d9cfdc` |
 
 ## Retomar aquí
 
-1. **Resolver las deudas de dogfood D · E · F + gotcha peek COMO PARTE DE ESTA
-   STORY** → **[`handoff-deudas-dogfood.md`](./handoff-deudas-dogfood.md)**
-   (estado vivo, causas verificadas con file:line, orden de ataque F→peek→D→E,
-   opciones de diseño y las 3 preguntas para el operador ANTES de codear D/E).
+1. ✅ **Deudas de dogfood D · E · F + peek RESUELTAS (2026-08-01)** — el
+   `handoff-deudas-dogfood.md` quedó EJECUTADO (histórico); decisiones DD-1..DD-3
+   + registros en `decisiones.md`, evidencia en `PARIDAD.md` §Deudas D/E/F.
 2. **Gate 🧑‍⚖️ de PARIDAD del operador** (`PARIDAD.md`): chips N0 + foco N1 en la
-   app instalada (sesión propia de `developer-vitalia`). Independiente de 1.
+   app instalada + checklist de las deudas (tarjeta de permiso real · ciclo alta
+   desde la UI · degradación por-marca y peek).
 2. Sub-especificaciones que la spec dejó nombradas y NO resueltas (van naciendo
    con sus tickets): hoja canónica de la definición en `docs/` · schema
    `proceso/<id>.yaml` (2 sub-preguntas DEF-D3) · afilar META `proceso`→referencia.

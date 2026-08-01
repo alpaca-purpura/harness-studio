@@ -35,17 +35,20 @@
   (dup legacy re-key + vitalia-app sin-home) · **forja `developer-vitalia` CONVERSACIONAL desde
   la app** (directiva DEF-D8; ambiguos del corte = decisión del operador en el gate) · `curso`
 - [ ] **MA-T4/T5/T7 FE** (desbloqueados por el gate del mockup): chips N0 · foco N1 · stories a11y · `curso`
-- [ ] **Deuda dogfood D (forja): sesión sobre arnés sin sello = read-only de facto y el permiso
-  JAMÁS llega al panel** — `PermissionSet` vacío ⇒ sin `--permission-prompt-tool stdio` ⇒ CC
-  auto-niega Write/mkdir sin HITL (visto forjando `developer-vitalia`, 2026-08-01; detalle en
-  `stories/2026-07-30-definicion-de-arnes/decisiones.md` §HALLAZGOS). Falta rol de forja o canal
-  de permisos siempre cableado · `deuda`
-- [ ] **Deuda dogfood E (publicar): el ALTA de un plugin nuevo no tiene camino a canónico** —
-  RN-IDENT-4 exige checkout, escanear `~/.arnesia` está protegido, B2 exige canónico previo
-  (círculo). El alta 0.1.0 de `developer-vitalia` fue push manual formato-B2 · `deuda`
-- [ ] **Deuda dogfood F (Mapa): faceta inválida tira el lienzo entero** — `ARQUETIPO_MARK[b].label`
-  sin guard; un `arquetipo` fuera del enum manda TODO el canvas al ErrorBoundary en vez de
-  degradar el nodo (§4.5) · `deuda`
+- [x] ✅ **Deuda dogfood D RESUELTA (2026-08-01, DD-1)**: canal de permisos SIEMPRE cableado
+  (`--permission-mode default --permission-prompt-tool stdio` incondicional) + tarjeta de
+  grounding corregida + `ResolvePermission` sin rol usa la autoridad del click humano. Forja
+  conversacional E2E verificada contra binario sandbox (Write y Bash mkdir → tarjeta → allow →
+  disco); el quirk mkdir del validador de CC desapareció al cablear el prompt-tool. Commit `4d14e75`
+- [x] ✅ **Deuda dogfood E RESUELTA (2026-08-01, DD-2)**: (a) «⌂ Adoptar como canónico» (usecase +
+  `POST /api/portafolio/adopciones` + botón del drawer) rompe el círculo del alta; (b) B2-alta
+  resultó ya construida en el publisher (RMW fila nueva) y quedó clavada con test; (c) «↻
+  Refrescar» hace `git pull --ff-only` del checkout PROPIO (puerto `CatalogoSync`; referencia
+  jamás). Alta E2E: forjar → adoptar → publicar → refrescar. Falta gate 🧑‍⚖️ PARIDAD
+- [x] ✅ **Deuda dogfood F RESUELTA (2026-08-01)**: lookups totales por facet (`kindFor` ·
+  `arquetipoMark` · `gateTone`) — facet fuera del enum degrada SU marca warn nombrando el valor;
+  ErrorBoundary queda como red final (nombre irrenderizable). Stories `FacetasInvalidas` +
+  `CajaFacetasNoReconocidas`. Commit `24512a9`
 - [ ] **Sub-especificaciones nombradas sin resolver:** hoja canónica de la definición en `docs/` ·
   schema `proceso/<id>.yaml` (2 sub-preguntas DEF-D3: copia offline del tramo · versionado del
   proceso) · afilar META `proceso`→referencia · `deuda`
