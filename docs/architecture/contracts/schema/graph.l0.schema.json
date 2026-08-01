@@ -34,6 +34,11 @@
           "description": "Las fases que ESTE arnés declara (dato, no enum del producto). Cada `nodo.fase` debe ∈ esta lista (check per-arnés `fase-en-fases-declaradas`).",
           "items": { "type": "string", "minLength": 1 }
         },
+        "actividades": {
+          "type": "array",
+          "description": "ENMIENDA ADITIVA MA-T1b (spec v2 2026-07-30-definicion-de-arnes, DEF-D1/D2 v3): el catálogo de tipos de paquete de trabajo del arnés, cada uno con su procedimiento (`pasos`) sobre la base común. DERIVADO al indexar desde el arnes.yaml del arnés — jamás parte del sello ni tecleado. Ausente = arnés sin tipos declarados (el Mapa se ve como siempre, MA-L5/E8). El `spine` singular de abajo queda INTACTO (compat mono-actividad, AUD-4): acá la secuencia se llama `pasos`, nunca «spine».",
+          "items": { "$ref": "#/$defs/actividad" }
+        },
         "spine": {
           "type": "object",
           "description": "La FORMA del spine de estados de ESTE arnés (dato per-arnés). El producto da el TIPO + valida consistencia; los estados concretos (idea→…→released) son del arnés. Contra este spine se parametrizan los checks estado-en-spine-declarado / transicion-legal / spine-cobertura.",
@@ -74,9 +79,39 @@
       "type": "array",
       "description": "Relaciones entre nodos. Direccionales para invocación/escritura; punteadas sin flecha para lectura de knowledge.",
       "items": { "$ref": "#/$defs/edge" }
+    },
+    "degradado": {
+      "type": "boolean",
+      "description": "REGULARIZACIÓN MA-T1b (drift destapado en la auditoría AUD-3): el campo existía en el wire Go desde S1-D27 (grafo cargado SIN manifiesto que lo selle — nodos reconocidos, identidad sin sellar) pero no estaba declarado acá, violando additionalProperties:false. Ausente/false = arnés sellado normal."
     }
   },
   "$defs": {
+    "actividad": {
+      "type": "object",
+      "description": "UN tipo de paquete de trabajo del arnés con su procedimiento (DEF-D1 FIRMADA: feature/bugfix/spike = pipelines internos del MISMO arnés). Estados/cierre = DATO per-arnés (agnosticismo p3/p7); vocabulario REAL de la semilla (`cierre`, no `criterio_cierre` — AUD-5). `pasos` vacío/ausente = actividad sin procedimiento aún (E7, degradado visible).",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "estados": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "cierre": { "type": "string", "description": "Criterio de cierre del tipo (p.ej. ratifica_capability · documenta_decision)." },
+        "pasos": {
+          "type": "array",
+          "description": "La secuencia del procedimiento. `caja` (opcional, AUD-1) referencia la caja del grafo que ejecuta el paso; ausente = «paso sin caja aún» (E13) — hueco VISIBLE en el foco, jamás saltado en silencio.",
+          "items": {
+            "type": "object",
+            "required": ["paso"],
+            "additionalProperties": false,
+            "properties": {
+              "paso": { "type": "string", "minLength": 1 },
+              "rol": { "type": "string" },
+              "artefacto": { "type": "string" },
+              "caja": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "clase": {
       "type": "string",
       "description": "La clase L0 del componente (meta.clase, I-75): qué primitiva CC-native ES. UNO de tres ejes ortogonales — clase (qué primitiva) ⊥ banda (región del mapa) ⊥ perfil_harness (cómo ejecuta); no se confunden. 10 primitivas placeables, alineadas a los nodos de docs/architecture/knowledge/ que describen un componente ubicable. Labels canónicos (subagent/rule, no los legacy agente/regla). Aditivo: crece solo si la superficie CC suma una primitiva.",
@@ -113,6 +148,11 @@
           "type": "string",
           "description": "Procedencia de INSTANCIA del nodo: 'estandar' = proviene del kit genérico del rol; 'del-puesto' = añadido/llenado en el onboarding del puesto. Lo ESTAMPA el provisioner al instanciar el arnés (③), NO lo declara el autor — es metadata sobre la instancia, no maquinaria filtrándose al grafo (coherente con los 3 cuerpos doctrina/maquinaria/producto). Eje ortogonal a `procedencia` (honestidad-del-dato) y `canal` (release). En el MVP del Mapa se dibuja como borde-izquierdo punteado; hasta que el provisioning lo pueble (Hito 3) el FE lo deriva de un fixture aislado y lo etiqueta PROPUESTA. HS-09 Fase D.",
           "enum": ["estandar", "del-puesto"]
+        },
+        "actividades": {
+          "type": "array",
+          "description": "Faceta DERIVADA al indexar (MA-T1b): qué procedimientos del catálogo arnes.actividades referencian esta caja vía pasos[].caja (AUD-1). Ausente/vacía = caja que ningún procedimiento referencia — el grupo `sin-actividad` VISIBLE del Mapa (E6). Ya era legal por additionalProperties:true; se declara para que el contrato la nombre.",
+          "items": { "type": "string", "minLength": 1 }
         }
       }
     },

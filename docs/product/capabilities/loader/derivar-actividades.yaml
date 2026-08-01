@@ -1,0 +1,39 @@
+---
+# Nacida con MA-T1b (paquete 2026-07-30-definicion-de-arnes, spec v2 FIRMADA DEF-D8).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.loader.derivar-actividades
+cap_num: CAP-151
+slug: derivar-actividades
+name: "Derivar actividades (arnes.yaml → catálogo + faceta por caja)"
+status: vivo          # GENERADO (R4) — no teclear
+module: loader
+verb: mapear
+pointers:
+  - "internal/adapters/loader/actividades.go#leerActividades"
+  - "internal/adapters/loader/actividades.go#estamparFacetaActividades"
+valida:
+  - "TestLoaderActividadesDerivadas"
+  - "TestLoaderActividadesSinArnesYaml"
+  - "TestLoaderActividadesIlegibleAvisoVisible"
+  - "TestLoaderActividadesSinManifiestoNoDeriva"
+  - "TestLoaderActividadesSpineHuerfano"
+scenarios:
+  - "Dado un arnés sellado con arnes.yaml (tipos_paquete + spines con caja:), cuando se indexa, entonces el wire trae arnes.actividades[] en orden de documento y cada caja referenciada lleva la faceta actividades[]"
+  - "Dado un arnés sin arnes.yaml, cuando se indexa, entonces no hay catálogo y el Mapa se ve como siempre (MA-L5/E8)"
+  - "Dado un arnes.yaml ilegible, cuando se indexa, entonces el grafo carga SIN catálogo y el aviso queda visible (jamás aborta)"
+  - "Dado un paso sin caja, cuando se deriva, entonces el paso se preserva con caja vacía (E13 — hueco visible)"
+business_rules:
+  - "La derivación corre AL INDEXAR (patrón derivarEdges), jamás en el request ni al sello (AUD-2)"
+  - "Sin sello no hay catálogo: primero identificar (S1-D28), después agrupar"
+  - "La secuencia se llama `pasos` en el wire — «spine» ya significa la máquina de estados (AUD-4)"
+related_capabilities:
+  depends_on: ["arnesia.loader.cargar-arnes-a-grafo-l0"]
+  enables: []
+source_ref: "docs/product/stories/2026-07-30-definicion-de-arnes/spec.md §1 (MA-T1b, AUD-1..4)"
+---
+
+# Derivar actividades (arnes.yaml → catálogo + faceta por caja)
+
+El catálogo de tipos de paquete de trabajo del arnés (DEF-D1/D2 v3: actividades =
+pipelines internos, jamás plugins) y la faceta por caja que alimenta los chips N0 y el
+foco N1 del Mapa multi-actividad.

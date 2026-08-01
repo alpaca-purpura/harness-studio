@@ -39,9 +39,10 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-14 · Sesión = frente de trabajo** `vivo` · dominio-l0/sesion-frente-de-trabajo.yaml — `internal/domain/session.go#Session`
 - **CAP-140 · La conversación es una entidad, y la sesión la contiene** `vivo` · dominio-l0/conversacion-como-entidad.yaml — `internal/domain/conversacion.go#Conversacion`
 
-### `loader` (6)
+### `loader` (7)
 
 - **CAP-15 · Reconocer forma física (plugin|instalado)** `vivo` · loader/reconocer-forma-fisica.yaml — `internal/adapters/loader/loader.go#detectarElementos`
+- **CAP-151 · Derivar actividades (arnes.yaml → catálogo + faceta por caja)** `vivo` · loader/derivar-actividades.yaml — `internal/adapters/loader/actividades.go#leerActividades`
 - **CAP-16 · Cargar arnés a grafo L0** `vivo` · loader/cargar-arnes-a-grafo-l0.yaml — `internal/adapters/loader/loader.go#LoadArnes`
 - **CAP-17 · Leer manifiesto (degradado honesto)** `vivo` · loader/leer-manifiesto.yaml — `internal/adapters/loader/loader.go#leerManifiesto`
 - **CAP-18 · Reconocedores clase→ubicación (8 tipos)** `vivo` · loader/reconocedores-claseubicacion.yaml — `internal/adapters/loader/loader.go#reconocerSkills`

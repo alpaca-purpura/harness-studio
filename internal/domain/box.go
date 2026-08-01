@@ -208,8 +208,14 @@ type Box struct {
 	Procedencia Procedencia `json:"procedencia,omitempty"`
 	// Origen (L0 $defs.nodo.origen, HS-09 Fase D): estandar|del-puesto, lo estampa el
 	// provisioner. Sin este espejo el daemon TIRABA el campo al round-trip por el struct.
-	Origen   Origen    `json:"origen,omitempty"`
-	Contract *Contract `json:"contract,omitempty"`
+	Origen Origen `json:"origen,omitempty"`
+	// Actividades es la faceta DERIVADA al indexar (MA-T1b): qué procedimientos del
+	// catálogo Arnes.Actividades referencian esta caja vía `pasos[].caja` (AUD-1).
+	// Vacía en toda caja no referenciada — el grupo `sin-actividad` VISIBLE del Mapa
+	// (E6) sale de esa ausencia, jamás se oculta. Legal en el wire: $defs.nodo admite
+	// additionalProperties, y además queda declarada en el schema (enmienda MA-T1b).
+	Actividades []string  `json:"actividades,omitempty"`
+	Contract    *Contract `json:"contract,omitempty"`
 }
 
 // IsCaja reports whether the box is a process box (the skill-front of a phase), i.e.

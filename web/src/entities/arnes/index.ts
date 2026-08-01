@@ -35,6 +35,7 @@ export {
   type VieneDe,
 } from "./model/selectors"
 export type {
+  Actividad,
   Arnes,
   Banda,
   Box,
@@ -45,6 +46,7 @@ export type {
   Contract,
   Edge,
   Graph,
+  PasoActividad,
   Spine,
   TipoEdge,
   Transicion,

@@ -66,6 +66,25 @@ export interface Spine {
   transiciones?: Transicion[]
 }
 
+// PasoActividad — un paso del procedimiento de una actividad (MA-T1b). `caja` (opcional,
+// AUD-1) referencia la caja que ejecuta el paso; ausente = «paso sin caja aún» (E13).
+export interface PasoActividad {
+  paso: string
+  rol?: string
+  artefacto?: string
+  caja?: string
+}
+
+// Actividad — UN tipo de paquete de trabajo del arnés con su procedimiento (DEF-D1/D2 v3).
+// La secuencia se llama `pasos` — «spine» ya significa la máquina de estados (AUD-4).
+// `pasos` vacío/ausente = actividad sin procedimiento aún (E7, degradado visible).
+export interface Actividad {
+  id: string
+  estados?: string[]
+  cierre?: string
+  pasos?: PasoActividad[]
+}
+
 // Arnes — the harness manifiesto (META de enganche + this arnés's declared fases/spine).
 // empresas — N:M facet (S0-D3, Portafolio Slice 0); replaces the legacy `empresa` scalar.
 export interface Arnes {
@@ -82,6 +101,9 @@ export interface Arnes {
   fuente_manifiesto?: string
   fases?: string[]
   spine?: Spine
+  // actividades — catálogo DERIVADO al indexar desde arnes.yaml (MA-T1b); ausente =
+  // arnés sin tipos declarados → el Mapa se ve como siempre (MA-L5/E8).
+  actividades?: Actividad[]
 }
 
 export interface Capability {
@@ -163,6 +185,9 @@ export interface Box {
   fuente_path?: string
   procedencia?: Procedencia
   origen?: Origen
+  // actividades — faceta DERIVADA al indexar (MA-T1b): qué procedimientos referencian
+  // esta caja vía pasos[].caja. Vacía/ausente = grupo `sin-actividad` (E6, visible).
+  actividades?: string[]
   contract?: Contract
 }
 

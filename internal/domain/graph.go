@@ -43,6 +43,34 @@ type Arnes struct {
 	FuenteManifiesto string   `json:"fuente_manifiesto,omitempty"` // "arnes.l0.json" | "plugin.json" — de dónde salió este manifiesto (BR-3).
 	Fases            []Fase   `json:"fases,omitempty"`             // the phases THIS arnés declares (data, not a product enum).
 	Spine            *Spine   `json:"spine,omitempty"`             // THIS arnés's work-state spine (data, not a product enum).
+	// Actividades es el catálogo de tipos de paquete de trabajo del arnés (DEF-D1/D2 v3):
+	// cada actividad con su procedimiento (`pasos`) sobre la base común. DERIVADA al indexar
+	// desde el `arnes.yaml` del arnés (MA-T1b, AUD-2) — jamás parte del sello arnes.l0.json
+	// ni tecleada. Vacía/ausente = arnés sin tipos declarados: el Mapa se ve como siempre
+	// (MA-L5/E8). El Spine singular de arriba queda INTACTO (compat mono-actividad, AUD-4).
+	Actividades []Actividad `json:"actividades,omitempty"`
+}
+
+// Actividad es UN tipo de paquete de trabajo del arnés con su procedimiento propio
+// (DEF-D1 firmada: feature/bugfix/spike = pipelines internos del MISMO arnés, jamás
+// arneses separados). Estados/cierre son DATO per-arnés (agnosticismo p3/p7); `pasos`
+// es la secuencia del procedimiento — el nombre «spine» NO se usa aquí: en el wire ya
+// significa la máquina de estados (AUD-4).
+type Actividad struct {
+	ID      string          `json:"id"`
+	Estados []string        `json:"estados,omitempty"`
+	Cierre  string          `json:"cierre,omitempty"` // criterio de cierre (vocabulario real de la semilla, AUD-5)
+	Pasos   []PasoActividad `json:"pasos,omitempty"`  // vacío = actividad sin procedimiento aún (E7, visible)
+}
+
+// PasoActividad es un paso del procedimiento de una actividad. `caja` (opcional, AUD-1)
+// referencia la caja del grafo que ejecuta el paso; "" = «paso sin caja aún» (E13) — el
+// hueco queda VISIBLE en el foco del Mapa, jamás se salta en silencio.
+type PasoActividad struct {
+	Paso      string `json:"paso"`
+	Rol       string `json:"rol,omitempty"`
+	Artefacto string `json:"artefacto,omitempty"`
+	Caja      string `json:"caja,omitempty"`
 }
 
 // UnmarshalJSON acepta el legacy escalar `"empresa":"x"` (pre S0-D3), normalizándolo a

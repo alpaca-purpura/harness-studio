@@ -145,6 +145,22 @@ func LoadArnesInfo(dir string) (domain.Graph, Info, error) {
 
 	g.Edges = derivarEdges(g.Nodes)
 
+	// Actividades (MA-T1b): catálogo + faceta por caja, derivados del arnes.yaml de la
+	// raíz AL INDEXAR — mismo momento que derivarEdges, jamás en el request. Solo cuando
+	// hay manifiesto (el catálogo viaja DENTRO del bloque `arnes` del wire); un arnés
+	// degradado sin sello no gana catálogo — primero se sella (S1-D28), después se agrupa.
+	acts, avisoActs, aerr := leerActividades(dir)
+	if aerr != nil {
+		return domain.Graph{}, Info{}, aerr
+	}
+	if avisoActs != "" {
+		info.Aviso = concatAviso(info.Aviso, avisoActs)
+	}
+	if len(acts) > 0 && g.Arnes != nil {
+		g.Arnes.Actividades = acts
+		estamparFacetaActividades(acts, g.Nodes)
+	}
+
 	// Modo degradado (S1-D27, contrato §2): el arnés se reconoció por sus archivos pero NO
 	// tiene manifiesto que lo selle (`g.Arnes==nil`). Se marca visible; el aviso
 	// `manifiesto-ausente` es la señal única que consumen el Mapa (marca roja) y el drawer.
@@ -155,6 +171,19 @@ func LoadArnesInfo(dir string) (domain.Graph, Info, error) {
 		}
 	}
 	return g, info, nil
+}
+
+// concatAviso junta avisos independientes en el único slot Info.Aviso — visible siempre,
+// jamás uno pisando al otro.
+func concatAviso(a, b string) string {
+	switch {
+	case a == "":
+		return b
+	case b == "":
+		return a
+	default:
+		return a + " · " + b
+	}
 }
 
 // detectarElementos aplica el detector de §1 y devuelve el directorio bajo el que viven los

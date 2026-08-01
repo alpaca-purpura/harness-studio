@@ -43,13 +43,16 @@ type TipoPaquete struct {
 }
 
 // PasoSpine es un paso de `proceso.spines.<tipo>`: la plantilla vacía que se siembra y el
-// artefacto que se llena dentro del paquete (D18/D20).
+// artefacto que se llena dentro del paquete (D18/D20). `caja` (opcional, MA-T1a/AUD-1)
+// referencia la caja del grafo que ejecuta el paso — ausente = «paso sin caja aún»,
+// visible en el foco del Mapa (E13), jamás un default inventado.
 type PasoSpine struct {
 	Paso      string `yaml:"paso"`
 	Rol       string `yaml:"rol"`
 	Plantilla string `yaml:"plantilla"`
 	Artefacto string `yaml:"artefacto"`
 	Cond      string `yaml:"cond"`
+	Caja      string `yaml:"caja"`
 }
 
 // ArnesSemilla es el SUBSET parseado de `semilla/arnes.yaml` que la siembra necesita

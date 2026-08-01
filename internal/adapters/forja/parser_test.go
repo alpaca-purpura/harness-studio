@@ -97,6 +97,44 @@ func TestParseSemillaGoldenContraArnesYAMLReal(t *testing.T) {
 	}
 }
 
+// TestParseSemillaCajaOpcionalEnPaso (MA-T1a/AUD-1): `caja` referencia la caja del grafo
+// que ejecuta el paso; ausente queda "" — «paso sin caja aún» (E13), jamás un default.
+func TestParseSemillaCajaOpcionalEnPaso(t *testing.T) {
+	fsys := fstest.MapFS{"arnes.yaml": &fstest.MapFile{Data: []byte(
+		"schema: 0\narnes: {id: developer-vitalia}\n" +
+			"territorios:\n  producto: {label: Producto, naturaleza: definicion}\n" +
+			"proceso:\n  spines:\n    bugfix:\n" +
+			"      - { paso: reproducir, rol: dev, plantilla: p/00.md, artefacto: repro.md, caja: dev-team }\n" +
+			"      - { paso: decidir,    rol: dev, plantilla: p/01.md, artefacto: decision.md }\n")}}
+	sem, err := forja.ParseSemilla(fsys)
+	if err != nil {
+		t.Fatalf("ParseSemilla: %v", err)
+	}
+	sb := sem.Spines["bugfix"]
+	if len(sb) != 2 || sb[0].Caja != "dev-team" {
+		t.Errorf("bugfix[0].Caja = %q, quiero dev-team", sb[0].Caja)
+	}
+	if sb[1].Caja != "" {
+		t.Errorf("bugfix[1].Caja = %q, quiero \"\" (paso sin caja aún, E13)", sb[1].Caja)
+	}
+}
+
+// TestParseSemillaRealSinCajas: la semilla embebida HOY no declara cajas (las cajas son
+// del arnés que la opera, no de la plantilla genérica) — si esto cambia, el golden avisa.
+func TestParseSemillaRealSinCajas(t *testing.T) {
+	sem, err := forja.ParseSemilla(semillaReal(t))
+	if err != nil {
+		t.Fatalf("ParseSemilla: %v", err)
+	}
+	for tipo, pasos := range sem.Spines {
+		for _, p := range pasos {
+			if p.Caja != "" {
+				t.Errorf("semilla %s/%s declara caja %q — actualizar este golden a propósito", tipo, p.Paso, p.Caja)
+			}
+		}
+	}
+}
+
 // TestParseSemillaIlegibleErrorHonesto: YAML roto o incompleto ⇒ error con motivo, jamás
 // defaults inventados (spec RF-A.2).
 func TestParseSemillaIlegibleErrorHonesto(t *testing.T) {
