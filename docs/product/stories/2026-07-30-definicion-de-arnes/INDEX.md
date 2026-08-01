@@ -22,10 +22,12 @@ declarada. Primero dev como dogfood, luego generaliza a otros rubros (p7).
 
 ## Retomar aquí
 
-1. **Gate 🧑‍⚖️ de PARIDAD del operador** (`PARIDAD.md`): verificar chips N0 + foco
-   N1 en la app instalada (sesión propia de `developer-vitalia`), aceptar deudas
-   D/E/F (BACKLOG) + limitación del foco en modo peek. Todo lo demás está
-   EJECUTADO y commiteado (firmas DEF-D8/D9 transcritas).
+1. **Resolver las deudas de dogfood D · E · F + gotcha peek COMO PARTE DE ESTA
+   STORY** → **[`handoff-deudas-dogfood.md`](./handoff-deudas-dogfood.md)**
+   (estado vivo, causas verificadas con file:line, orden de ataque F→peek→D→E,
+   opciones de diseño y las 3 preguntas para el operador ANTES de codear D/E).
+2. **Gate 🧑‍⚖️ de PARIDAD del operador** (`PARIDAD.md`): chips N0 + foco N1 en la
+   app instalada (sesión propia de `developer-vitalia`). Independiente de 1.
 2. Sub-especificaciones que la spec dejó nombradas y NO resueltas (van naciendo
    con sus tickets): hoja canónica de la definición en `docs/` · schema
    `proceso/<id>.yaml` (2 sub-preguntas DEF-D3) · afilar META `proceso`→referencia.
