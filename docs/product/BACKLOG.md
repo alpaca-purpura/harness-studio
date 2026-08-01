@@ -23,17 +23,16 @@
   `init`/`doctor`/`loop-forward`, pausado, fuera de alcance de este spike) ni el re-key
   `(home,id,scope)` de la deuda viva (plomería de identidad del Portafolio, sin relación directa).
 
-## Definición canónica de arnés + cadena de proceso (paquete de doctrina, abierto 2026-07-30)
+## Definición canónica de arnés + cadena de proceso (DECISIONES FIRMADAS 🧑‍⚖️ 2026-08-01, falta la bajada)
 
-- [ ] **DEF-D2 — debatir y firmar la definición canónica de arnés.** v1 NO ratificada (el operador
-  pidió debatir); v2 propuesta: arnés = posee FASES de un proceso, lo opera UN rol, 1 arnés = 1
-  plugin; proceso = entidad aparte declarada en el home; vendible = proceso/familia, instalable =
-  arnés. DEF-D1 (feature/bugfix/spike = pipelines internos, aplica D20) YA FIRMADA 🧑‍⚖️ 2026-07-30.
-  → [`stories/2026-07-30-definicion-de-arnes/debate-definicion.md`](stories/2026-07-30-definicion-de-arnes/debate-definicion.md) · `gate`
-- [ ] **DEF-D3 — firmar el diseño de la cadena** (`proceso/<id>.yaml` en el home, fases con
-  arnés-owner + `gate_salida` verificable, N:1 para empresa chica). Directiva «diseñar ahora» dada;
-  se firma junto con DEF-D2. Después: hoja canónica en `docs/` + tipos-de-paquete del arnés-dev
-  (dogfood) · `gate` · `bloqueo`(DEF-D2)
+- [ ] **Spec + bajada as-code de la definición FIRMADA (v3 + cadena).** DEF-D1..D3 firmadas
+  (arnés = paquete de UN puesto sobre UN tipo de terreno · actividades = pipelines internos ·
+  criterio de corte operador/terreno/actividad · cadena = `proceso/<id>.yaml` en el home).
+  Bajada: hoja canónica + glosario (arnés·actividad·procedimiento·proceso·fase·terreno) ·
+  schema de cadena (resolver: copia offline del tramo · versionado del proceso) · afilar META
+  `proceso`→referencia · dogfood: actividades del arnés-dev (semilla ya trae historia+spike;
+  faltan bugfix·revisar-capability) →
+  [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](stories/2026-07-30-definicion-de-arnes/INDEX.md) · `deuda`
 
 ## Rebrand PRENTER — gate FIRMADO (HS-25), deuda residual de diseño
 

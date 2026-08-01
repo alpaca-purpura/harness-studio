@@ -15,19 +15,23 @@ declarada. Primero dev como dogfood, luego generaliza a otros rubros (p7).
 | Etapa | Estado |
 |---|---|
 | Mockup | n/a (doctrina; la superficie visual es la Galaxia, ya firmada HS-03) |
-| Decisiones | 🟡 EN DEBATE — DEF-D1 FIRMADA 🧑‍⚖️ · DEF-D2 ABIERTA (operador pidió debatir) · DEF-D3 propuesta lista, sin firma |
-| Spec | ⬜ (tras firmar DEF-D2/D3: hoja canónica en `docs/` + schema de cadena) |
-| Implementación | ⬜ (glosario canónico · afilar META `proceso` a referencia · tipos-de-paquete del arnés-dev) |
+| Decisiones | ✅ **FIRMADAS 🧑‍⚖️ 2026-08-01** — DEF-D1 (2026-07-30) · DEF-D2 definición v3 + vocabulario · DEF-D3 cadena · DEF-D4 hallazgo gentle-ai |
+| Spec | ⬜ ← **SIGUIENTE** |
+| Implementación | ⬜ |
 | PARIDAD | ⬜ |
 
 ## Retomar aquí
 
-1. **Debate DEF-D2 abierto** — el operador NO ratificó la definición v1; leer
-   [`debate-definicion.md`](./debate-definicion.md) (v1 · casos duros A-D · v2
-   propuesta) y preguntar QUÉ caso le hace ruido antes de proponer de nuevo.
-2. DEF-D3 (cadena) tiene directiva «diseñar ahora» — propuesta en
-   `debate-definicion.md` §5, espera la firma junto con DEF-D2 (v2 y cadena se
-   sostienen mutuamente).
-3. Firmadas D2+D3 → spec: hoja canónica (candidato: `docs/product/` glosario o
-   `docs/architecture/contracts/`) + declarar tipos-de-paquete del arnés-dev
-   (dogfood de DEF-D1, aterriza en `semilla/arnes.yaml` ya graduado — carril A del MVP).
+Decisiones CERRADAS (2 rounds de debate, `decisiones.md` + `debate-definicion.md`
+§4b/§5). Sigue la **spec** de la bajada as-code:
+1. **Hoja canónica de la definición** (candidato: `docs/architecture/contracts/`
+   como `nomenclatura-arnes.md`, o glosario en `docs/product/`) — v3 + jerarquía
+   (proceso→fase→arnés→actividad→caja) + criterio de corte + vocabulario.
+2. **Schema `proceso/<id>.yaml`** (cadena, DEF-D3) resolviendo las 2 sub-preguntas
+   diferidas: copia offline del tramo en cada `arnes.yaml` · versionado del
+   proceso vs semver de arneses.
+3. **Afilar META:** `proceso` string → referencia `proceso: <id>` + `fases: [...]`
+   (aditivo; no romper loader/scanner ni `nomenclatura-arnes.md`).
+4. **Dogfood:** declarar las actividades/tipos-de-paquete del arnés-dev (la
+   semilla `.arnesia/proceso/{historia,spike}` del carril A del MVP ya materializa
+   2; faltan bugfix · revisar-capability).

@@ -24,13 +24,17 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
   (semilla `.arnesia/` + `arnesia init` + enmienda doctrine) ·
   [`stories/2026-07-30-ciclo-conversacional-cables/`](./stories/2026-07-30-ciclo-conversacional-cables/INDEX.md)
   (Dock desde tarjeta de mejora + editar-conversando). Validación directo en laptop por bloque.
-- **Definición canónica de arnés + cadena de proceso — paquete de DOCTRINA abierto 2026-07-30,
-  EN DEBATE.** Nace de la pregunta fundacional del operador (¿qué es un arnés? ¿plugin
-  multi-arnés? ¿feature/bugfix/spike = arneses?). **DEF-D1 FIRMADA 🧑‍⚖️** (tipos de trabajo =
-  pipelines internos del mismo arnés, aplica D20) · **DEF-D2 ABIERTA** (definición v1 no
-  ratificada, v2 propuesta: arnés posee FASES de un proceso, proceso = entidad en el home) ·
-  **DEF-D3** cadena con directiva «diseñar ahora», diseño propuesto sin firma · gentle-ai
-  analizado (no es plugin CC, no compite). Retomar por
+- **Definición canónica de arnés + cadena de proceso — DECISIONES FIRMADAS 🧑‍⚖️ 2026-08-01
+  (2 rounds de debate), falta spec + bajada as-code.** **DEF-D2 v3:** arnés = paquete de
+  know-how de UN puesto sobre UN tipo de terreno; agrupa ACTIVIDADES (cada una con su
+  procedimiento/pipeline sobre base común); 1 arnés = 1 plugin; se instala POR CARPETA
+  (canónico + N instalaciones). Vocabulario: «arnés» vive a nivel paquete/plugin; el nivel
+  interno = actividad. Criterio de corte: ¿otro operador? SIEMPRE separá · ¿otro terreno?
+  probablemente · ¿solo otra actividad? JAMÁS. **DEF-D1:** feature/bugfix/spike = pipelines
+  internos (aplica D20). **DEF-D3:** cadena = `proceso/<id>.yaml` en el home (fases con
+  arnés-owner + `gate_salida` verificable; N:1 para empresa chica; Galaxia/telemetría leen de
+  ahí). gentle-ai analizado: no es plugin CC, no compite. Siguiente: spec (hoja canónica +
+  schema cadena + META afilada + dogfood actividades arnés-dev) →
   [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](./stories/2026-07-30-definicion-de-arnes/INDEX.md).
 - **Las conversaciones viven en el panel — MERGEADO A MAIN (v0.4.0, merge `bb53421`; el aviso
   previo de «no integrado» quedó stale y se corrigió 2026-07-30).** Paquete

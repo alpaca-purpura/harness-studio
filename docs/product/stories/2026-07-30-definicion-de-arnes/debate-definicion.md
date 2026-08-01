@@ -76,6 +76,63 @@ Qué gana v2 sobre v1:
 - «rol × proceso» de p3 se conserva: el rol sigue siendo el corte; solo se afila
   que lo poseído son FASES de un proceso con identidad propia.
 
+## §4b · v3 — refinada con el modelo del operador (actividad · macroproceso · carpeta, 2026-08-01)
+
+El operador aportó (round 2, `chris-input.md`): plugin POR PROYECTO/carpeta ·
+actividades del puesto con procedimiento propio · macroproceso que las agrupa ·
+agrupación flexible actividades→plugins según el caso. Mapeo 1:1 con lo firmado:
+
+| El operador dijo | En el modelo | Estado |
+|---|---|---|
+| actividad del puesto (feature/bugfix/spike/revisar-capability) | **tipo de paquete de trabajo** | DEF-D1 FIRMADA |
+| procedimiento de la actividad (flujo de pasos) | pipeline/spine del tipo | D20 |
+| «muchos puntos en común, parte de un macroproceso» | base común del arnés (doctrina · knowledge · plantillas · cajas reusadas entre pipelines) | D19/D20 |
+| macroproceso «Implementar software» acotado al puesto | el/los tramo(s)/fase(s) del proceso que el puesto posee | v2 §4 |
+| plugin por proyecto (carpeta estructurada) | **instalación** del arnés sobre un terreno — canónico + N instalaciones | HS-22 |
+| 2 roles → 2 plugins | 2 arneses instalados | v1/v2 |
+| agrupar actividades en 1 o N plugins «según el caso» | grado de libertad NUEVO → criterio de corte (abajo) | NUEVO v3 |
+
+**Jerarquía completa (v3):**
+
+```
+PROCESO end-to-end (cross-puestos, declarado en el home)   «desarrollo: idea→producción»
+ └─ FASE / tramo (handoff con gate_salida verificable)     «implementar software»
+     └─ ARNÉS = tramo(s) de UN puesto · 1 plugin           «arnés-dev»
+         ├─ se instala POR CARPETA (terreno concreto)      «repo A · repo B» (canónico + N instalaciones)
+         └─ ACTIVIDADES (tipos de paquete), cada una con
+            su PROCEDIMIENTO (pipeline) sobre base común   «feature · bugfix · spike · revisar-capability»
+             └─ CAJAS (skills) = pasos con gates
+```
+
+**Definición v3 (propuesta):**
+
+> **Arnés** = el paquete de know-how de **UN puesto** sobre **UN tipo de terreno**:
+> agrupa las **ACTIVIDADES** del puesto dentro de su tramo del proceso (su
+> macroproceso), cada actividad con su **procedimiento** (pipeline) propio sobre
+> una **base común**. 1 arnés = 1 plugin; **se instala POR CARPETA** — cada
+> instalación opera un terreno concreto. El proceso end-to-end es entidad aparte
+> (§5); el corte proceso→arneses y la agrupación actividades→arnés son decisiones
+> de diseño regidas por el criterio de corte. Cumplís 2 roles → instalás 2 arneses.
+
+**Criterio de corte (el «orden» que ArnesIA hace cumplir) — ¿cuándo va en OTRO plugin?**
+1. ¿Otro **OPERADOR** (puesto)? → separá SIEMPRE (frontera de seguridad/permisos).
+2. ¿Otro **TERRENO** (tipo de carpeta/datos)? → probablemente separá (CEO:
+   outreach-CRM vs campañas-ads pueden ser terrenos distintos).
+3. ¿Solo otra **actividad**, mismo operador y mismo terreno? → NO separes: es un
+   pipeline más del mismo arnés. Fragmentar acá multiplica sellos/versionados/
+   telemetrías para la misma persona sin ganar nada.
+
+**Fork de vocabulario (LA decisión pendiente):** el operador dijo «las actividades
+serían los "arneses"» — eso pone la palabra a nivel ACTIVIDAD. Todo lo firmado y
+TODO lo construido (sello `arnes.l0.json` · identidad `(home,id)` · Portafolio ·
+Mapa · `conformance --arnes` · DEF-D1 de ayer) ponen «arnés» a nivel PAQUETE/plugin.
+- **Opción A (recomendada): arnés = el paquete del puesto** (nivel plugin);
+  el nivel interno se llama **actividad** con su **procedimiento**. Costo cero:
+  estructura idéntica a la del operador, solo se nombra el nivel interno.
+- **Opción B: arnés = la actividad**; el paquete necesita nombre nuevo («traje»?
+  «equipo»?). Costo: re-vocabulario de docs+código+producto+marketing enteros, y
+  contradice DEF-D1 firmada ayer.
+
 ## §5 · Diseño de la cadena (DEF-D3 — PROPUESTO, sin firma)
 
 `proceso` como entidad de primer orden, declarada en el **home** (el marketplace de
