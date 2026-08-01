@@ -10,7 +10,14 @@
 2. **Estado real auditado** con evidencia archivo:línea → [`informe-estado-real.md`](./informe-estado-real.md)
    (2 exploraciones: anatomía de `~/Proyectos/vitalia-app` como espécimen de ingesta + maquinaria
    existente en arnesia). Leer ANTES de diseñar — dice qué existe y qué no, sin filtro.
-3. **Próxima etapa: MOCKUP** (gate 🧑‍⚖️ antes de spec). Dos superficies:
+   ⚠ **Leer JUNTO con [`auditoria-previa-mockup.md`](./auditoria-previa-mockup.md)** (2026-08-01):
+   verificación independiente que confirma los 15 gaps, **corrige 5 datos del informe** (C1-C5) y
+   agrega la medición que faltaba — el loader corrido de verdad contra los dos árboles: la
+   distancia crudo→arnés son **5 bloques de frontmatter + 2 archivos**, y **90-95 % de los nodos
+   caen en una sola banda** (muro que el baseline no cubre: su fixture mayor tiene 38 nodos).
+   Ahí viven las **8 preguntas abiertas (Q1-Q8)** y las **5 propuestas (P-A..P-E)** previas al gate.
+3. **Próxima etapa: MOCKUP** (gate 🧑‍⚖️ antes de spec) — **bloqueado por Q1-Q3** de la auditoría
+   (quién escribe al hacer click · cómo se ataca el muro de 100 nodos · uno o dos gates). Dos superficies:
    - **Ingesta**: wizard/flujo al apuntar a carpeta cruda (inventario → procedencia → clasificación
      → curaduría). Hoy el wizard es callejón sin salida (`portafolio-wizard.tsx:308`).
    - **Mapa editor**: crear/cablear/reapuntar manual con clicks → escribe archivos. Superset

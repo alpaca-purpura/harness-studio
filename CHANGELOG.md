@@ -24,6 +24,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+- auditoría previa al mockup de ingesta escenario B: verificación independiente del informe de estado (5 correcciones), medición real del loader contra canónico e instalación, 8 preguntas abiertas y 5 propuestas
 
 ### Cambiado
 - Release en UN comando: make installer|installer-minor|installer-major (bump + bundle FE+BE + instaladores/vX.Y.Z/ + sync automático del override dev) e installer-actual para reparar una versión bumpeada sin instalador; proceso capturado en la skill /publicando-version
