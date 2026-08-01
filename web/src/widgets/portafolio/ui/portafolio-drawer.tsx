@@ -65,6 +65,15 @@ export interface PortafolioDrawerProps {
   onPublicar?: (() => void) | undefined
   publicando?: boolean | undefined
   publicarError?: string | undefined
+  /** DD-2/E-a (deudas de dogfood 2026-07-30): «⌂ Adoptar como canónico» — el dir local YA
+   *  forjado (la instalación del proyecto) se copia al checkout del marketplace-home de su
+   *  sello y la entrada queda sellada con canónico; después `▲ Publicar` sigue el camino de
+   *  siempre. Es el REVERSO de Traer (el mismo estante, dos direcciones). undefined ⇒ el
+   *  botón no se ofrece (solo aplica a entradas sin canónico con una instalación local);
+   *  las stories firmadas sin la prop ven exactamente el DOM de antes (superset estricto). */
+  onAdoptar?: (() => void) | undefined
+  adoptando?: boolean | undefined
+  adoptarError?: string | undefined
 }
 
 const TOOLTIP_UPDATE = "update-check llega en Slice 4"
@@ -100,6 +109,9 @@ export function PortafolioDrawer({
   onPublicar,
   publicando,
   publicarError,
+  onAdoptar,
+  adoptando,
+  adoptarError,
 }: PortafolioDrawerProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeBtnRef = useRef<HTMLButtonElement>(null)
@@ -438,9 +450,29 @@ export function PortafolioDrawer({
             >
               {trayendo ? "Trayendo…" : "↧ Traer canónico"}
             </button>
+            {/* DD-2/E-a — el reverso de Traer: la copia local forjada SUBE al checkout del
+                marketplace-home y queda sellada como canónico. Solo se ofrece cuando la
+                página lo cablea (entrada sin canónico + instalación local que adoptar). */}
+            {onAdoptar && (
+              <button
+                type="button"
+                className="pf-btn-secundario"
+                disabled={adoptando}
+                aria-busy={adoptando}
+                onClick={onAdoptar}
+                title="Copia la instalación local al checkout del marketplace-home del sello y la sella como canónico"
+              >
+                {adoptando ? "Adoptando…" : "⌂ Adoptar como canónico"}
+              </button>
+            )}
             {traerError && (
               <p role="alert" className="pf-error">
                 {traerError}
+              </p>
+            )}
+            {adoptarError && (
+              <p role="alert" className="pf-error">
+                {adoptarError}
               </p>
             )}
           </div>

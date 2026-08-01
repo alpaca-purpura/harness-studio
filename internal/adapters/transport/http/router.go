@@ -136,6 +136,7 @@ func NewHandler(maps *usecase.MapService, sessions *usecase.SessionService, runs
 	// en su marketplace-home. Actúa sobre un ARNÉS (mismo criterio que /origen) aunque lo sirva
 	// el servicio de marketplaces — precedente getCandidatosOrigen.
 	mux.HandleFunc("POST /api/portafolio/arneses/{clave}/publicaciones", postPublicar(marketplaces))
+	mux.HandleFunc("POST /api/portafolio/adopciones", postAdoptar(marketplaces))
 
 	// Multisesión + Dock (S4). Every conductor turn streams back over /events.
 	mux.HandleFunc("GET /api/sessions", listSessions(sessions))

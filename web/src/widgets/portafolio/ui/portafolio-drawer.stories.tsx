@@ -502,6 +502,46 @@ export const DrawerTraerFallo: Story = {
   },
 }
 
+// DD-2/E-a (deudas de dogfood 2026-07-30) — «⌂ Adoptar como canónico», el REVERSO de Traer:
+// la instalación local forjada sube al checkout del marketplace-home. Solo existe cuando la
+// página pasa `onAdoptar` (entrada sin canónico + instalación local); sin la prop el DOM es
+// EXACTAMENTE el de antes (superset estricto — asertado por las stories firmadas vigentes).
+export const DrawerAdoptarHabilitado: Story = {
+  args: { entrada: entradaResueltaSinCanonico, onAdoptar: fn() },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement)
+    const adoptar = c.getByRole("button", { name: "⌂ Adoptar como canónico" })
+    await expect(adoptar).toBeEnabled()
+    await userEvent.click(adoptar)
+    await expect(args.onAdoptar).toHaveBeenCalledTimes(1)
+  },
+}
+
+// DD-2/E-a — adoptando: bloqueado + aria-busy; y el fallo muestra el motivo LITERAL del
+// dominio (p. ej. sello sin marketplace-home) — el FE no re-implementa las guardas.
+export const DrawerAdoptarFallo: Story = {
+  args: {
+    entrada: entradaResueltaSinCanonico,
+    onAdoptar: fn(),
+    adoptarError:
+      "arnesia POST /api/portafolio/adopciones: 400 adoptar: el sello no declara marketplace-home y el request no nombra uno",
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.getByRole("alert")).toHaveTextContent("no declara marketplace-home")
+    await expect(c.getByRole("button", { name: "⌂ Adoptar como canónico" })).toBeEnabled()
+  },
+}
+
+// DD-2/E-a — sin `onAdoptar` el botón NO existe (regresión del superset estricto).
+export const DrawerSinAdoptar: Story = {
+  args: { entrada: entradaResueltaSinCanonico },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement)
+    await expect(c.queryByRole("button", { name: "⌂ Adoptar como canónico" })).toBeNull()
+  },
+}
+
 // AG-D8 decisión 7 — la reconciliación se ejecuta ACÁ, in-situ sobre la ficha (mismo patrón que
 // «Identificar»). Solo se ofrece con identidad PROVISIONAL: un home ya declarado no necesita
 // resolverse.

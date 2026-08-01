@@ -185,6 +185,18 @@
   remota). Falla de pull = motivo visible arrastrado a `Lectura.Motivo`, la lectura
   sigue. El boundary se enmienda (v1.3) aclarando la distinción propio/ajeno en el
   MISMO commit.
+- **DD-2-ter — registro de ejecución de (a)+(b) (2026-08-01):** (a) «Adoptar como
+  canónico» construida completa: usecase `Adoptar` (reusa la cola de Traer: staging
+  bajo tmp + rename + BR-13 resuelto + registro + deriva BR-17; el home del SELLO manda,
+  el request desempata; identidad con canónico NO se pisa) + `POST
+  /api/portafolio/adopciones` + botón «⌂ Adoptar como canónico» en la zona
+  canónico-ausente del drawer (reverso de Traer; solo se ofrece con instalación local;
+  superset estricto asertado por story `DrawerSinAdoptar`). (b) B2-alta resultó **ya
+  construida a nivel guards**: `Publicar` no exige presencia en el catálogo y el
+  publisher YA agrega la fila nueva en su RMW (publisher.go «se agrega una fila
+  mínima») — lo que faltaba era el CAMINO a canónico, que (a) rompe. Se clavó con test
+  `TestPublicarAltaAgregaFilaNueva` (contra bare real: fila nueva + previas intactas).
+  El alta E2E queda: forjar (D) → Adoptar (a) → Publicar (B2 vigente) → Refrescar (c).
 - **DD-3 🧑‍⚖️ (2026-08-01) — peek con foco COMPLETO:** la vista previa («Abrir en
   Mapa», `viewedId ≠ arnesId`) recibe las mismas props de foco que la sesión
   propia (secuencia/dimlane/breadcrumb). Es lectura pura (MA-L6); CH-D6 intacto

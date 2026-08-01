@@ -1,0 +1,69 @@
+---
+# Nacida con DD-2/E-a (deudas de dogfood del paquete 2026-07-30-definicion-de-arnes).
+# Schema: docs/product/_templates/capability.template.yaml
+capability_id: arnesia.portafolio.adoptar-como-canonico
+cap_num: CAP-155
+slug: adoptar-como-canonico
+name: "Adoptar como canónico — el camino a canónico de un plugin forjado local"
+status: parcial        # código VIVO con checks en CI; `vivo` lo gradúa el gate humano 🧑‍⚖️ de PARIDAD.
+license: brand-local
+
+module: portafolio
+layer: usecase
+
+verb: crear
+functional_area: "portafolio.marketplaces"
+
+user_visible: true
+
+nature: feature
+
+pointers:
+  - "internal/usecase/adoptar.go#Adoptar"
+  - "internal/usecase/adoptar.go#ResultadoAdoptar"
+  - "internal/adapters/transport/http/marketplace.go#postAdoptar"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.tsx#PortafolioDrawer"
+  - "web/src/pages/shell/ui/portafolio-view.tsx#PortafolioView"
+valida:
+  - "internal/usecase/adoptar_test.go"
+  - "internal/adapters/publish/publisher_test.go"
+  - "web/src/widgets/portafolio/ui/portafolio-drawer.stories.tsx"
+scenarios:
+  - "Dado un dir local forjado con sello (id + marketplace-home), cuando el operador aprieta «⌂ Adoptar como canónico», entonces el árbol se copia a <raiz>/checkouts/<mkt>/<id> (staging+rename, BR-13 con symlinks resueltos) y la entrada queda registrada con canónico + deriva evaluada (BR-17)"
+  - "Dada una identidad que YA tiene canónico, cuando se adopta de nuevo, entonces 409 — la copia editable es UNA, jamás se pisa (ley anti-drift)"
+  - "Dado un sello sin marketplace-home y un request sin marketplace, cuando se adopta, entonces 400 con motivo — nada se inventa; sello y request en desacuerdo también es 400"
+  - "Dado un marketplace destino de clase referencia, cuando se adopta, entonces 400 ErrAdoptarNoPropio — BR-1 lado write en el dominio"
+  - "Dada una entrada previa del proyecto (instalaciones del wizard), cuando se adopta, entonces la entrada CONSERVA sus instalaciones y solo gana el canónico"
+  - "Dado el canónico adoptado, cuando se aprieta ▲ Publicar, entonces B2 corre con sus guards vigentes y el publisher agrega la fila NUEVA al marketplace.json (RMW, filas previas intactas) — el alta E2E cierra: forjar → adoptar → publicar → refrescar"
+business_rules:
+  - "Rompe el círculo del alta (RN-IDENT-4 exige checkouts · el wizard no escanea ~/.arnesia · B2 exige canónico) SIN tocar los guards de Publicar (deuda E del dogfood developer-vitalia)"
+  - "El home del sello (arnes.Marketplace) manda; el request desempata o suple — jamás adoptar «a donde caiga»"
+  - "Versión no-semver adopta igual (material crudo es el caso de uso) con aviso de que Publicar la exigirá"
+related_capabilities:
+  depends_on: ["arnesia.portafolio.traer-canonico", "arnesia.portafolio.registrar-identidad"]
+  enables: ["arnesia.portafolio.publicar"]
+
+dev_preview:
+  route: "#/portafolio"
+  how_to_navigate: "Drawer de una entrada sin canónico con instalación local → «⌂ Adoptar como canónico»"
+  main_component: "web/src/widgets/portafolio/ui/portafolio-drawer.tsx"
+  api_endpoints: ["POST /api/portafolio/adopciones"]
+  e2e_test: null
+
+created_in_story: 2026-07-30-definicion-de-arnes
+created_date: 2026-08-01
+last_modified: 2026-08-01
+source_ref: "docs/product/stories/2026-07-30-definicion-de-arnes/decisiones.md DD-2/DD-2-ter"
+change_log:
+  - story_id: 2026-07-30-definicion-de-arnes
+    date: 2026-08-01
+    type: new
+    summary: "E-a: usecase Adoptar (cola de Traer reusada) + POST /api/portafolio/adopciones + botón del drawer; E-b clavada con TestPublicarAltaAgregaFilaNueva (el publisher ya hacía el RMW de fila nueva)."
+---
+
+# Adoptar como canónico — el camino a canónico de un plugin forjado local
+
+Cierra la deuda E del dogfood developer-vitalia: el alta de un plugin nuevo no tenía camino
+a canónico (círculo RN-IDENT-4 / wizard / B2). Adoptar copia el dir forjado al checkout del
+marketplace-home declarado en su sello y sella la entrada; Publicar sigue el camino B2 de
+siempre y el publisher agrega la fila nueva al marketplace.json.

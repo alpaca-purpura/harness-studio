@@ -358,3 +358,65 @@ func TestPublicarSymlinkOmitidoConAviso(t *testing.T) {
 		t.Fatalf("falta el aviso del symlink omitido: %v", res.Avisos)
 	}
 }
+
+// DD-2/E-b (deudas de dogfood 2026-07-30) — B2-alta: publicar un plugin que NO existe en el
+// marketplace.json AGREGA su fila (RMW, filas ajenas intactas) además de subir el árbol. Es
+// el tramo final del alta: forjar → adoptar como canónico → Publicar — sin este caso el
+// publisher solo re-apuntaba plugins ya listados.
+func TestPublicarAltaAgregaFilaNueva(t *testing.T) {
+	bare := semillaBare(t)
+
+	dir := filepath.Join(t.TempDir(), "canonico-nuevo")
+	if err := os.MkdirAll(filepath.Join(dir, ".claude-plugin"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".claude-plugin", "plugin.json"),
+		[]byte(`{"name":"developer-vitalia","version":"0.1.0"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("arnés developer-vitalia\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	pub := publisherDePrueba(t)
+	res, err := pub.Publicar(context.Background(), domain.SolicitudPublicacion{
+		RepoHome: repoHomeTest, ID: "developer-vitalia", Version: "0.1.0", OrigenDir: dir,
+	})
+	if err != nil {
+		t.Fatalf("Publicar alta: %v", err)
+	}
+	if res.Commit == "" {
+		t.Error("sin commit reportado")
+	}
+
+	// Verificación EN EL BARE (clonándolo), como el camino feliz.
+	verif := filepath.Join(t.TempDir(), "verif")
+	gitT(t, t.TempDir(), "clone", "-q", bare, verif)
+	if _, serr := os.Stat(filepath.Join(verif, "plugins", "developer-vitalia", "0.1.0", ".claude-plugin", "plugin.json")); serr != nil {
+		t.Fatalf("el árbol del alta no está en el remoto: %v", serr)
+	}
+	lector := &marketplace.LectorLocal{}
+	cat, lerr := lector.Leer(context.Background(), domain.MarketplaceConocido{
+		Nombre: "prenter-marketplace", InstallLocation: verif,
+	})
+	if lerr != nil {
+		t.Fatalf("el marketplace.json publicado no re-parsea: %v", lerr)
+	}
+	var nueva, previas int
+	for i := range cat.Entradas {
+		if cat.Entradas[i].Nombre == "developer-vitalia" {
+			nueva++
+			if cat.Entradas[i].Source.Crudo != "./plugins/developer-vitalia/0.1.0" {
+				t.Errorf("source de la fila nueva = %q", cat.Entradas[i].Source.Crudo)
+			}
+		} else {
+			previas++
+		}
+	}
+	if nueva != 1 {
+		t.Fatalf("la fila nueva no se agregó (nueva=%d) — entradas: %+v", nueva, cat.Entradas)
+	}
+	if previas == 0 {
+		t.Fatal("las filas previas del marketplace.json se perdieron en el RMW")
+	}
+}

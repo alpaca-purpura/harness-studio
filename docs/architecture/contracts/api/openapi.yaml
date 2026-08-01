@@ -48,7 +48,12 @@ info:
   # con `ya_existian` poblado es el comportamiento correcto, no un fallo; (b) el chequeo
   # devuelve 200 TAMBIÉN con estado `incompleta`/`ausente` — la salud es un veredicto,
   # no un error HTTP; convertirla en 4xx sería fabricar que «chequear falló».
-  version: 0.11.0-forja-semilla
+  # 0.12.0-adoptar-canonico: + POST /portafolio/adopciones (DD-2/E-a, deudas de dogfood del
+  # paquete 2026-07-30-definicion-de-arnes): «Adoptar como canónico» — el dir local forjado
+  # se copia al checkout del marketplace-home de su sello (cola de Traer reusada: staging +
+  # rename + BR-13 con symlinks resueltos) y la entrada queda sellada con canónico + deriva
+  # (BR-17). Rompe el círculo del alta SIN tocar los guards de Publicar.
+  version: 0.12.0-adoptar-canonico
   description: >-
     Superficie HTTP/SSE del daemon `arnesia serve` (:4200). Single source: de aquí se generan los
     tipos Go (oapi-codegen) y TS (openapi-typescript). El transporte NO contiene reglas de negocio
@@ -533,6 +538,51 @@ paths:
                   conformance: { type: object, description: "ConformanceReport completo; SOLO en el caso (c) gate rojo." }
         "503": { description: "«no puedo escribir»: sin `gh` autenticado ni PAT (BR-18 — ArnesIA no pide, guarda ni proxya credenciales), o el publisher no está cableado en esta instalación." }
         "500": { description: "Fallo NUESTRO: loader del canónico, disco, git local. El remoto NO cambió (toda guarda corre antes del push)." }
+
+  /portafolio/adopciones:
+    post:
+      operationId: postAdoptarCanonico
+      summary: >-
+        «⌂ Adoptar como canónico» (DD-2/E-a): copia el árbol de `path` (el plugin forjado
+        localmente) a `~/.arnesia/checkouts/<marketplace>/<id>` y registra la entrada con
+        canónico. El marketplace destino sale del HOME DEL SELLO (`arnes.Marketplace`
+        canonicalizado); `marketplace` en el body desempata o suple, y una discrepancia es 400.
+        La identidad con canónico existente NO se pisa (ley anti-drift). La deriva se evalúa
+        de inmediato y viaja tal cual salga (BR-17).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string, description: "dir ABSOLUTO del plugin forjado local." }
+                marketplace: { type: string, description: "nombre registrado del marketplace destino; vacío ⇒ el home del sello manda." }
+      responses:
+        "200":
+          description: >-
+            Adoptado. `avisos` puede traer degradaciones visibles (symlinks omitidos de la
+            copia, versión no-semver que Publicar exigirá).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entrada, clave, destino, marketplace, deriva]
+                properties:
+                  entrada: { type: object, description: "la EntradaPortafolio sellada (con canonico)." }
+                  clave: { type: string }
+                  destino: { type: string }
+                  marketplace: { type: string }
+                  version: { type: string }
+                  deriva: { type: string }
+                  deriva_detalle: { type: string }
+                  avisos: { type: array, items: { type: string } }
+        "404": { description: "El `marketplace` nombrado no es conocido." }
+        "400": { description: "Precondiciones: path no absoluto/inexistente · sin id en el manifiesto · sello sin home y request sin marketplace · sello y request discrepantes · destino no propio · ruta que escapa de checkouts." }
+        "409": { description: "La identidad ya tiene canónico registrado, o el destino en checkouts está poblado — nada se pisó." }
+        "503": { description: "El loader del arnés o el materializador local no están cableados en esta instalación." }
+        "500": { description: "Fallo NUESTRO: disco, staging, rename, registro (si el registro falla el dir QUEDA y se dice — el próximo intento da 409)." }
 
   /forja/semillas:
     post:

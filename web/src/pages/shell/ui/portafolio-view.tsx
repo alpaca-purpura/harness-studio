@@ -628,6 +628,38 @@ export function PortafolioView() {
     return () => onTraerCanonico(nombre, entradaNombre)
   }, [marketplaceDelDrawer, seleccionadaEntrada, onTraerCanonico])
 
+  // ── «⌂ Adoptar como canónico» (DD-2/E-a) — el reverso de Traer: la instalación local
+  // forjada sube al checkout del marketplace-home del sello. Mismo patrón de estado por
+  // clave; tras el 200 se refetchea el Portafolio (la entrada ganó canónico). El marketplace
+  // no se pre-resuelve acá: el home del sello manda y el dominio rechaza con su literal. ──
+  const [adoptar, setAdoptar] = useState<Record<string, EstadoPublicarUi>>({})
+
+  const adoptarDelDrawer = seleccionadaEntrada ? adoptar[seleccionadaEntrada.clave] : undefined
+  const onAdoptarDelDrawer = useMemo(() => {
+    // Solo aplica a una entrada SIN canónico con una instalación local que adoptar.
+    if (!seleccionadaEntrada || seleccionadaEntrada.canonico) return undefined
+    const dir = seleccionadaEntrada.instalaciones?.[0]?.install_path
+    if (!dir) return undefined
+    const clave = seleccionadaEntrada.clave
+    return () => {
+      setAdoptar((p) => ({ ...p, [clave]: { fase: "publicando" } }))
+      api
+        .adoptarArnes(dir)
+        .then(() => {
+          if (!vivo.current) return
+          setAdoptar((p) => ({ ...p, [clave]: { fase: "publicado" } }))
+          cargar()
+        })
+        .catch((e: unknown) => {
+          if (!vivo.current) return
+          setAdoptar((p) => ({
+            ...p,
+            [clave]: { fase: "fallo", motivo: e instanceof Error ? e.message : String(e) },
+          }))
+        })
+    }
+  }, [seleccionadaEntrada, cargar])
+
   // ── Wizard: fuente→escaneando→candidatos→agregando (rama Proyecto) + url→validando→validado→
   // registrando (rama Marketplace). AbortController del escaneo (S1-D9) y de la validación. ──
   const [wizardAbierto, setWizardAbierto] = useState(false)
@@ -1067,6 +1099,11 @@ export function PortafolioView() {
               publicando={publicarDelDrawer?.fase === "publicando"}
               publicarError={
                 publicarDelDrawer?.fase === "fallo" ? publicarDelDrawer.motivo : undefined
+              }
+              onAdoptar={onAdoptarDelDrawer}
+              adoptando={adoptarDelDrawer?.fase === "publicando"}
+              adoptarError={
+                adoptarDelDrawer?.fase === "fallo" ? adoptarDelDrawer.motivo : undefined
               }
             />
           </div>

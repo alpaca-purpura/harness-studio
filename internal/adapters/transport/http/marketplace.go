@@ -296,6 +296,61 @@ func escribirErrorPublicar(w http.ResponseWriter, err error) {
 	}
 }
 
+// postAdoptarBody — POST /api/portafolio/adopciones (DD-2/E-a): `path` = el dir forjado
+// local; `marketplace` opcional (el home del sello manda; esto desempata o suple).
+type postAdoptarBody struct {
+	Path        string `json:"path"`
+	Marketplace string `json:"marketplace"`
+}
+
+// postAdoptar — «Adoptar como canónico»: copia el dir al checkout del marketplace-home y
+// sella la entrada. Vive bajo /portafolio (actúa sobre el Portafolio, precedente
+// publicaciones); el trabajo pesado y las guardas viven en el usecase.
+func postAdoptar(svc *usecase.MarketplaceService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if svc == nil {
+			writeJSON(w, http.StatusInternalServerError, errorBody{Error: "marketplaces: servicio no cableado"})
+			return
+		}
+		var body postAdoptarBody
+		if err := decodeJSON(w, r, &body); err != nil {
+			return
+		}
+		if body.Path == "" {
+			writeJSON(w, http.StatusBadRequest, errorBody{Error: "adoptar: falta `path` (el dir local del plugin forjado)"})
+			return
+		}
+		res, err := svc.Adoptar(r.Context(), body.Path, body.Marketplace)
+		if err != nil {
+			escribirErrorAdoptar(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
+	}
+}
+
+// escribirErrorAdoptar mapea los centinelas de Adoptar (espejo de la tabla de Publicar).
+func escribirErrorAdoptar(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, usecase.ErrMarketplaceNoConocido):
+		writeJSON(w, http.StatusNotFound, errorBody{Error: err.Error()})
+	case errors.Is(err, usecase.ErrAdoptarSinMarketplace),
+		errors.Is(err, usecase.ErrAdoptarNoPropio),
+		errors.Is(err, usecase.ErrAdoptarHomeDiscrepante),
+		errors.Is(err, domain.ErrPublicarNoPropio),
+		errors.Is(err, domain.ErrPublicarSinHome),
+		errors.Is(err, domain.ErrTraerDestinoEscapa):
+		writeJSON(w, http.StatusBadRequest, errorBody{Error: err.Error()})
+	case errors.Is(err, usecase.ErrAdoptarYaCanonico),
+		errors.Is(err, usecase.ErrTraerDestinoPoblado):
+		writeJSON(w, http.StatusConflict, errorBody{Error: err.Error()})
+	case errors.Is(err, usecase.ErrPublicarNoDisponible):
+		writeJSON(w, http.StatusServiceUnavailable, errorBody{Error: err.Error()})
+	default:
+		writeJSON(w, http.StatusInternalServerError, errorBody{Error: err.Error()})
+	}
+}
+
 // statusDeLectura mapea los errores de LECTURA/registro a su status: 400 «tu url no sirve» vs
 // 503 «no puedo mirar» (§7.2 — el FE los usa distinto y jamás insinúa que la url esté mal).
 func statusDeLectura(err error) int {

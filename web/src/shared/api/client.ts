@@ -242,6 +242,16 @@ export const api = {
       method: "POST",
     }),
 
+  // adoptarArnes (DD-2/E-a, deudas de dogfood 2026-07-30) — «Adoptar como canónico»: copia el
+  // dir local forjado al checkout del marketplace-home de su sello y sella la entrada. El
+  // marketplace va vacío a propósito: el home del sello manda, y si el sello no declara el
+  // dominio rechaza con SU literal (mismo criterio round-trip que publicarArnes).
+  adoptarArnes: <T = unknown>(path: string, marketplace = "") =>
+    req<T>("/api/portafolio/adopciones", {
+      method: "POST",
+      body: JSON.stringify({ path, marketplace }),
+    }),
+
   listSessions: () => req<Session[]>("/api/sessions"),
 
   // ── El panel de conversaciones (RF-340…RF-344, CV-D2) ───────────────────────────────────

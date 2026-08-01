@@ -131,7 +131,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 
 - **CAP-60 · Self-update sin sudo (5 pasos atómico)** `vivo` · self-update/self-update-sin-sudo.yaml — `internal/usecase/selfupdate_service.go#Actualizar`
 
-### `portafolio` (14)
+### `portafolio` (15)
 
 - **CAP-102 · Registro de marketplaces conocidos (collect-all CC + declarado)** `parcial` · portafolio/registrar-marketplace.yaml — `internal/domain/repo_ref.go#CanonicalizarRepo`
 - **CAP-103 · Leer el catálogo de un marketplace (local primero, remoto por gh, caché fechado)** `parcial` · portafolio/leer-catalogo-marketplace.yaml — `internal/domain/repo_ref.go#CanonicalizarRepo`
@@ -140,6 +140,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-111 · Traer canónico (materializar el arnés del estante: local o clone externo, atómico)** `parcial` · portafolio/traer-canonico.yaml — `internal/domain/portafolio.go#Canonico`
 - **CAP-148 · Publicar (write-side prenter-marketplace: gate de conformance → copia versionada → push sin force → tag)** `parcial` · portafolio/publicar.yaml — `internal/domain/publicar.go#SolicitudPublicacion`
 - **CAP-154 · Sincronizar el checkout de un marketplace propio al Refrescar (pull ff-only)** `parcial` · portafolio/sincronizar-catalogo.yaml — `internal/ports/marketplace.go#CatalogoSync`
+- **CAP-155 · Adoptar como canónico — el camino a canónico de un plugin forjado local** `parcial` · portafolio/adoptar-como-canonico.yaml — `internal/usecase/adoptar.go#Adoptar`
 - **CAP-83 · Registrar identidad de arnés (home,id)** `vivo` · portafolio/registrar-identidad.yaml — `internal/domain/portafolio.go#IdentidadArnes`
 - **CAP-84 · Escanear proyecto (walker multi-instalación)** `vivo` · portafolio/escanear-proyecto.yaml — `internal/domain/portafolio.go#TipoInstalacion`
 - **CAP-85 · Resolver origen (collect-all + reconcilia)** `vivo` · portafolio/resolver-origen.yaml — `internal/domain/portafolio.go#OrigenPortafolio`
