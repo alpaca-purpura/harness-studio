@@ -23,17 +23,18 @@
   `init`/`doctor`/`loop-forward`, pausado, fuera de alcance de este spike) ni el re-key
   `(home,id,scope)` de la deuda viva (plomería de identidad del Portafolio, sin relación directa).
 
-## Definición canónica de arnés — DECISIONES FIRMADAS 🧑‍⚖️ · spec escrita · CARRIL D del MVP (2026-08-01)
+## Definición canónica de arnés — SPEC v2 + MOCKUP FIRMADOS 🧑‍⚖️ (DEF-D8) · CARRIL D EN EJECUCIÓN (2026-08-01)
 
-- [ ] **Firmar `spec.md`** (crear·visualizar·mantener multi-actividad + dogfood `developer-vitalia`) —
-  DEF-D5/D6 directivas dadas; leyes MA-L1..L7 · escenarios MA-E1..E12 · tickets MA-T1..T7 →
-  [`stories/2026-07-30-definicion-de-arnes/spec.md`](stories/2026-07-30-definicion-de-arnes/spec.md) · `gate`
-- [ ] **MA-T1..T3 backend+dogfood** (tras firma de spec): seam `actividades[]` en el payload del Mapa ·
-  saneo vitalia `sin-home` (eliminar ficción de marketplace) · **forja `developer-vitalia`** desde
-  `/home/chalreme/Proyectos/vitalia-app` (corte por puesto developer — primera aplicación real del
-  criterio de corte; 4 actividades: historia·bugfix·spike·revisar-capability; sello + publicar B2) · `bloqueo`(spec)
-- [ ] **MA-T6 mockup superset del Mapa** (chips N0 + foco N1) — forkear `arnesia-mapa-baseline.html`,
-  fila en `mockups/INDEX.md`, **gate 🧑‍⚖️ antes de MA-T4/T5/T7 (FE)** · `gate`
+- [x] ✅ **`spec.md` v2 FIRMADA 🧑‍⚖️ 2026-08-01** (auditada contra el sistema real, AUD-1..9;
+  MA-L1..L7 · MA-E1..E13 · tickets MA-T1a..T7) →
+  [`stories/2026-07-30-definicion-de-arnes/spec.md`](stories/2026-07-30-definicion-de-arnes/spec.md)
+- [x] ✅ **MA-T6 mockup GATE FIRMADO 🧑‍⚖️ 2026-08-01** — `mockup-mapa-actividades.html`
+  (superficie vigente re-derivada, no el baseline stale), fila en `mockups/INDEX.md`
+- [ ] **MA-T1a/T1b/T2/T3 backend+dogfood EN CURSO**: campo `caja:` en PasoSpine · loader lee
+  `arnes.yaml` + deriva `arnes.actividades[]` AL INDEXAR + enmienda schema · saneo REAL vitalia
+  (dup legacy re-key + vitalia-app sin-home) · **forja `developer-vitalia` CONVERSACIONAL desde
+  la app** (directiva DEF-D8; ambiguos del corte = decisión del operador en el gate) · `curso`
+- [ ] **MA-T4/T5/T7 FE** (desbloqueados por el gate del mockup): chips N0 · foco N1 · stories a11y · `curso`
 - [ ] **Sub-especificaciones nombradas sin resolver:** hoja canónica de la definición en `docs/` ·
   schema `proceso/<id>.yaml` (2 sub-preguntas DEF-D3: copia offline del tramo · versionado del
   proceso) · afilar META `proceso`→referencia · `deuda`

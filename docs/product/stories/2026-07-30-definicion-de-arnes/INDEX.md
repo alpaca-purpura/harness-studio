@@ -14,18 +14,20 @@ declarada. Primero dev como dogfood, luego generaliza a otros rubros (p7).
 
 | Etapa | Estado |
 |---|---|
-| Decisiones | ✅ **FIRMADAS 🧑‍⚖️ 2026-08-01** — DEF-D1..D3 + directivas DEF-D5/D6 · DEF-D4 hallazgo gentle-ai |
-| Spec | ✍️ **ESCRITA 2026-08-01, esperando firma 🧑‍⚖️** — [`spec.md`](./spec.md) (crear·visualizar·mantener + MA-L1..L7 + MA-E1..E12 + carril D del MVP) |
-| Mockup | ⬜ **MA-T6 — gate 🧑‍⚖️ ANTES de construir FE** (orden §10 invertido por directiva DEF-D5; forkear `arnesia-mapa-baseline.html`) |
+| Decisiones | ✅ **FIRMADAS 🧑‍⚖️ 2026-08-01** — DEF-D1..D3 + directivas DEF-D5/D6 · DEF-D4 hallazgo gentle-ai · registro AUD-1..9 (auditoría de la spec) |
+| Spec | ✅ **v2 FIRMADA 🧑‍⚖️ 2026-08-01** («ok firmo», /goal del operador) — [`spec.md`](./spec.md) (crear·visualizar·mantener + MA-L1..L7 + MA-E1..E13 + carril D del MVP; hallazgos AUD-1..9 en `decisiones.md`) |
+| Mockup | ✅ **MA-T6 GATE FIRMADO 🧑‍⚖️ 2026-08-01** (misma firma) — [`mockup-mapa-actividades.html`](./mockup-mapa-actividades.html) (re-derivado a la superficie VIGENTE; fila en `mockups/INDEX.md`) — FE desbloqueado |
 | Implementación | ⬜ MA-T1..T5/T7 (`spec.md` §7) |
 | PARIDAD | ⬜ |
 
 ## Retomar aquí
 
-1. **Firma 🧑‍⚖️ de `spec.md`** (DEF-D5). Con firma → arrancan MA-T1 (seam de
-   datos) → MA-T2 (saneo vitalia sin-home) → MA-T3 (**forja `developer-vitalia`**:
-   corte por puesto + 4 actividades + sello + publicar B2) — backend/dogfood, sin
-   UI. En paralelo MA-T6 (mockup superset + gate) y recién después MA-T4/T5/T7 (FE).
+1. **Dos gates 🧑‍⚖️ del operador, juntos:** firma de `spec.md` v2 (auditada
+   AUD-1..9) + gate del mockup `mockup-mapa-actividades.html` (MA-T6, abrir en
+   navegador). Con firmas → MA-T1a/T1b (dato+seam) → MA-T2 (saneo REAL: dup
+   legacy + vitalia-app sin-home) → MA-T3 (**forja `developer-vitalia`**: tabla
+   de clasificación con 6 ambiguos A DECIDIR en el gate + 4 actividades + sello +
+   publicar B2) → recién después MA-T4/T5/T7 (FE).
 2. Sub-especificaciones que la spec dejó nombradas y NO resueltas (van naciendo
    con sus tickets): hoja canónica de la definición en `docs/` · schema
    `proceso/<id>.yaml` (2 sub-preguntas DEF-D3) · afilar META `proceso`→referencia.

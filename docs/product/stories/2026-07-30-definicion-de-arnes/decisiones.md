@@ -56,6 +56,48 @@
   actividades (historia · bugfix · spike · revisar-capability), sellar y publicar
   al marketplace propio como plugin **`developer-vitalia`** (write-side B2).
   Detalle → `spec.md` §5.
+- **DEF-D8 — FIRMA 🧑‍⚖️ 2026-08-01 · spec v2 + gate del mockup MA-T6, juntas.**
+  Transcripta del /goal del operador («ok firmo, ejecuta y desarrolla todo con
+  tus propios mecanismos de verificación y validación…»). Directivas adjuntas a
+  la firma: arnés de prueba = `~/Proyectos/vitalia-app` (sin marketplace ni
+  plugin aún) · la forja de `developer-vitalia` se hace **CONVERSACIONALMENTE
+  DESDE LA APP** («para que ya comencemos a usar el app correctamente») ·
+  verificación/validación propias del constructor · ante dudas: preguntar,
+  jamás asumir. Desbloquea MA-T1a..T7 completo.
+- **AUD — registro de auditoría de la spec contra el sistema real (2026-08-01,
+  pedido del operador: «auditala, revisala y completala»; spec → v2, FIRMADA
+  vía DEF-D8).** Hallazgos aplicados como correcciones:
+  - **AUD-1 · la cadena paso→caja NO existía como dato** (ningún `PasoSpine`
+    referencia cajas — `forja/parser.go:47-53`): la spec ahora la crea como campo
+    opcional `caja:` por paso + escenario E13 (paso sin caja VISIBLE).
+  - **AUD-2 · el seam no está cableado**: el daemon jamás lee `arnes.yaml` de un
+    proyecto (gap Fase 2 declarado, `parser.go:6-7`); el payload del Mapa es
+    passthrough del índice. MA-T1 se partió en T1a (dato) + T1b (seam + derivar
+    AL INDEXAR, patrón edges).
+  - **AUD-3 · schema L0 raíz cerrada** (`additionalProperties:false`): catálogo
+    va en `arnes.actividades[]` vía enmienda ADITIVA; faceta por caja ya legal.
+    Drift destapado de paso: `degradado` en wire y no en schema → misma enmienda.
+  - **AUD-4 · «spine» tomado en el wire** (= máquina de estados singular): la
+    secuencia por actividad se llama `pasos`/procedimiento; en FE jamás `act`.
+  - **AUD-5 · vocabulario real de la semilla**: `cierre` (no `criterio_cierre`),
+    id = clave del mapa, `label` no existe; 13 stories (no 14); inspector 4 tabs.
+  - **AUD-6 · MA-L7 sin dato de puertos**: la satisface la franja de artefactos
+    vigente (`externo`/`salida del proceso`); `proceso/<id>.yaml` no existe aún.
+  - **AUD-7 · saneo vitalia — estado observado ≠ asumido**: lo indexado ya está
+    `sin-home` (y es `luana-vitalia/vitalia`, no vitalia-app); lo real a sanear =
+    clave legacy `vitalia` duplicada (residuo re-key) + vitalia-app jamás
+    escaneado. MA-T2 redefinido.
+  - **AUD-8 · corte §5.2 completado** contra inventario real (42·10·10·45·4·1;
+    clerk-*=12 exacto): DENTRO/FUERA explícitos + 6 ambiguos que decide el
+    operador en el gate de MA-T3 (architect · auditor · manychat-expert ·
+    handoff · harnesses-improvement · harness-issue). `pase-produccion` FUERA
+    por el ejemplo 1 del operador.
+  - **AUD-9 · N0/N1 anclados a lo vigente**: salud del chip = worst-of hallazgos
+    FE existentes (sin dato nuevo); foco N1 reusa `related`/`.dim`
+    (`map-canvas.tsx:101-171`); secuencia = sólido `--primary` numerado (los dash
+    ya significan escribe/lee/opcional); breadcrumb junto al id read-only
+    (picker eliminado, TS-D21). Baseline `.html` declarado STALE → MA-T6
+    re-deriva a la superficie vigente (4 tabs · node-meta · PRENTER · charset).
 - **DEF-D4 — registro (hallazgo, no decisión): gentle-ai analizado 2026-07-30.**
   NO es un plugin CC ni contiene arneses según nuestra definición: es un
   configurador de ecosistema transversal (14 agentes, memoria Engram, SDD opcional,
