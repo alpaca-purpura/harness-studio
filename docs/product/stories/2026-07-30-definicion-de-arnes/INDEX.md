@@ -17,17 +17,15 @@ declarada. Primero dev como dogfood, luego generaliza a otros rubros (p7).
 | Decisiones | ✅ **FIRMADAS 🧑‍⚖️ 2026-08-01** — DEF-D1..D3 + directivas DEF-D5/D6 · DEF-D4 hallazgo gentle-ai · registro AUD-1..9 (auditoría de la spec) |
 | Spec | ✅ **v2 FIRMADA 🧑‍⚖️ 2026-08-01** («ok firmo», /goal del operador) — [`spec.md`](./spec.md) (crear·visualizar·mantener + MA-L1..L7 + MA-E1..E13 + carril D del MVP; hallazgos AUD-1..9 en `decisiones.md`) |
 | Mockup | ✅ **MA-T6 GATE FIRMADO 🧑‍⚖️ 2026-08-01** (misma firma) — [`mockup-mapa-actividades.html`](./mockup-mapa-actividades.html) (re-derivado a la superficie VIGENTE; fila en `mockups/INDEX.md`) — FE desbloqueado |
-| Implementación | ⬜ MA-T1..T5/T7 (`spec.md` §7) |
-| PARIDAD | ⬜ |
+| Implementación | ✅ **MA-T1a..T7 EJECUTADOS 2026-08-01** — seam al indexar + saneo + `developer-vitalia` 0.1.0 publicado y VIVO en el Mapa de la app instalada (chips N0 · foco N1 · E5/E6/E7/E13 reales) |
+| PARIDAD | ✍️ [`PARIDAD.md`](./PARIDAD.md) con evidencia por ticket (§8 completo, 4 hallazgos de dogfood D/E/F/peek visibles) — **gate 🧑‍⚖️ del operador pendiente** |
 
 ## Retomar aquí
 
-1. **Dos gates 🧑‍⚖️ del operador, juntos:** firma de `spec.md` v2 (auditada
-   AUD-1..9) + gate del mockup `mockup-mapa-actividades.html` (MA-T6, abrir en
-   navegador). Con firmas → MA-T1a/T1b (dato+seam) → MA-T2 (saneo REAL: dup
-   legacy + vitalia-app sin-home) → MA-T3 (**forja `developer-vitalia`**: tabla
-   de clasificación con 6 ambiguos A DECIDIR en el gate + 4 actividades + sello +
-   publicar B2) → recién después MA-T4/T5/T7 (FE).
+1. **Gate 🧑‍⚖️ de PARIDAD del operador** (`PARIDAD.md`): verificar chips N0 + foco
+   N1 en la app instalada (sesión propia de `developer-vitalia`), aceptar deudas
+   D/E/F (BACKLOG) + limitación del foco en modo peek. Todo lo demás está
+   EJECUTADO y commiteado (firmas DEF-D8/D9 transcritas).
 2. Sub-especificaciones que la spec dejó nombradas y NO resueltas (van naciendo
    con sus tickets): hoja canónica de la definición en `docs/` · schema
    `proceso/<id>.yaml` (2 sub-preguntas DEF-D3) · afilar META `proceso`→referencia.

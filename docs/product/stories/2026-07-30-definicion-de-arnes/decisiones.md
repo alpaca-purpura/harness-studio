@@ -98,6 +98,59 @@
     ya significan escribe/lee/opcional); breadcrumb junto al id read-only
     (picker eliminado, TS-D21). Baseline `.html` declarado STALE → MA-T6
     re-deriva a la superficie vigente (4 tabs · node-meta · PRENTER · charset).
+- **DEF-D9 — FIRMADA 🧑‍⚖️ 2026-08-01 (AskUserQuestion, gate de MA-T3) · corte final
+  de `developer-vitalia`: TODO DENTRO.** «Para este arnés el rol es de un developer
+  que hace todo, desde la idea hasta que se integra al desarrollo para ser cargado
+  como PR.» Los 6 ambiguos de AUD-8 resueltos: architect DENTRO · auditor DENTRO ·
+  manychat-expert DENTRO · handoff DENTRO · harness-issue DENTRO ·
+  harnesses-improvement FUERA (stop semanal, owner /pm-vitalia). Corte resultante:
+  **27 skills** (los 42 menos pm · pm-vitalia · po · po-ux · ux-agentico ·
+  sales-agent-expert · brand-* (2) · content-hunter · data-storyteller ·
+  metrics-expert · offer-* (2) · pase-produccion · harnesses-improvement) ·
+  **10 agents** · **10 commands** · **43 rules** (fuera: pm-skill-chaining ·
+  sales-agent-brand-voice) · **4 hooks** · 0 workflows (harness-audit.js es del
+  stop semanal). El límite del arnés = PR cargado (pase-produccion sigue FUERA,
+  ejemplo 1 del operador).
+- **MA-T2 — EJECUTADO 2026-08-01 (registro).** (1) Clave legacy `vitalia` (residuo
+  re-key) removida de `arneses.json` (backup `.bak-saneo-MA-T2`, daemon apagado);
+  el `Rebuild` del arranque limpió el índice solo — mecanismo de producto, cero
+  cirugía en la DB. (2) `~/Proyectos/vitalia-app` agregado como material crudo
+  vía el wizard REAL del Portafolio (escanear→elegir→agregar): identidad
+  provisional sin-home `{id:"", scope:"github.com/alpacapurpura/vitalia-app"}`,
+  deriva-no-evaluable, origen desconocido — todo honesto, nada inventado.
+- **MA-T3 — EJECUTADO 2026-08-01 (registro) · `developer-vitalia` 0.1.0 PUBLICADO
+  y VIVO en el Mapa.** Flujo real: sesión del dock sobre el material crudo →
+  el conductor VERIFICÓ el inventario (42/10/10/45/4; las 27 del corte presentes)
+  y resolvió 2 desvíos conversando (no existe `.mcp.json` — dato mío stale; hook
+  `Stop` = maquinaria del proyecto, queda fuera del plugin) → **BLOQUEADO para
+  escribir** (hallazgo D abajo) → materialización mecánica por el constructor
+  siguiendo el plan conversacional EXACTO (27 skills · 10 agents · 10 commands ·
+  43 rules · 4 hooks + sello + arnes.yaml v3 + 4 contracts) → publicado al
+  marketplace propio (commits `e4cfb9a`+`2de8426`+`80923cd`, tag
+  `developer-vitalia/v0.1.0`) → catálogo refrescado y **«Traer canónico» desde la
+  app** (checkout, `al-hilo`, identidad `(prenter-marketplace, developer-vitalia)`)
+  → **el wire sirve `arnes.actividades[]`** (historia 4 pasos · bugfix 4 · spike 2
+  con E13 real · revisar-capability 0 = E7 real) + facetas (`dev-team`×2,
+  `commit-push`×2) → Mapa renderiza (5 carriles + spine). 2 fixes en el camino:
+  clerk-* eran symlinks a `.agents/` del proyecto (rotos fuera — desreferenciados)
+  y `arquetipo: guiado` NO existe en el enum (mi error, vocabulario del mockup
+  viejo; el canvas vigente crasheó y el ErrorBoundary degradó honesto).
+- **HALLAZGOS DE DOGFOOD (deudas → BACKLOG, registro 2026-08-01):**
+  - **D · Sesión sobre arnés SIN SELLO no puede escribir y el permiso JAMÁS llega
+    al panel:** `PermissionSet` vacío (sin rol sellado) ⇒ `permissionArgs` emite
+    CERO flags ⇒ el conductor corre headless sin `--permission-prompt-tool stdio`
+    ⇒ CC auto-niega Write/mkdir sin HITL. Una «sesión de forja» sobre material
+    crudo hoy es read-only de facto. Falta: rol/perfil de forja o al menos el
+    canal de permisos SIEMPRE cableado.
+  - **E · El ALTA de un plugin nuevo no tiene camino a canónico:** RN-IDENT-4
+    exige vivir en checkout para ser canónico, pero escanear `~/.arnesia` está
+    protegido y B2 `Publicar` exige canónico previo — círculo. El alta 0.1.0 se
+    hizo con push manual formato-B2 (validado por el `check_marketplace_shape`
+    del propio marketplace, verde).
+  - **F · El canvas muere con un facet inválido:** `ARQUETIPO_MARK[b].label` sin
+    guard — un `arquetipo` fuera del enum tira TODO el lienzo al ErrorBoundary
+    (§4.5 pide degradar el NODO, no el mapa). Candidata: fallback `?.` + marca
+    no-reconocido de faceta.
 - **DEF-D4 — registro (hallazgo, no decisión): gentle-ai analizado 2026-07-30.**
   NO es un plugin CC ni contiene arneses según nuestra definición: es un
   configurador de ecosistema transversal (14 agentes, memoria Engram, SDD opcional,

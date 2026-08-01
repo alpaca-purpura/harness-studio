@@ -35,6 +35,17 @@
   (dup legacy re-key + vitalia-app sin-home) · **forja `developer-vitalia` CONVERSACIONAL desde
   la app** (directiva DEF-D8; ambiguos del corte = decisión del operador en el gate) · `curso`
 - [ ] **MA-T4/T5/T7 FE** (desbloqueados por el gate del mockup): chips N0 · foco N1 · stories a11y · `curso`
+- [ ] **Deuda dogfood D (forja): sesión sobre arnés sin sello = read-only de facto y el permiso
+  JAMÁS llega al panel** — `PermissionSet` vacío ⇒ sin `--permission-prompt-tool stdio` ⇒ CC
+  auto-niega Write/mkdir sin HITL (visto forjando `developer-vitalia`, 2026-08-01; detalle en
+  `stories/2026-07-30-definicion-de-arnes/decisiones.md` §HALLAZGOS). Falta rol de forja o canal
+  de permisos siempre cableado · `deuda`
+- [ ] **Deuda dogfood E (publicar): el ALTA de un plugin nuevo no tiene camino a canónico** —
+  RN-IDENT-4 exige checkout, escanear `~/.arnesia` está protegido, B2 exige canónico previo
+  (círculo). El alta 0.1.0 de `developer-vitalia` fue push manual formato-B2 · `deuda`
+- [ ] **Deuda dogfood F (Mapa): faceta inválida tira el lienzo entero** — `ARQUETIPO_MARK[b].label`
+  sin guard; un `arquetipo` fuera del enum manda TODO el canvas al ErrorBoundary en vez de
+  degradar el nodo (§4.5) · `deuda`
 - [ ] **Sub-especificaciones nombradas sin resolver:** hoja canónica de la definición en `docs/` ·
   schema `proceso/<id>.yaml` (2 sub-preguntas DEF-D3: copia offline del tramo · versionado del
   proceso) · afilar META `proceso`→referencia · `deuda`

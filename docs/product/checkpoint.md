@@ -38,8 +38,13 @@ botón «Correr» pausado por el operador, 2026-07-24). Índice de historia → 
   (el-todo-primero N0 → foco por actividad N1, leyes MA-L1..L7, 12 escenarios) + dogfood real
   **`developer-vitalia`** — extraer de `~/Proyectos/vitalia-app` (SIN ficción de marketplace,
   material crudo `sin-home`), corte por puesto developer, 4 actividades, sello + publicar B2.
-  **Esperando firma 🧑‍⚖️ de la spec**; luego MA-T1..T3 (backend+forja) ∥ MA-T6 (mockup gate) →
-  FE → [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](./stories/2026-07-30-definicion-de-arnes/INDEX.md).
+  **CARRIL D EJECUTADO COMPLETO 2026-08-01** (firmas DEF-D8/D9 transcritas del /goal): spec v2
+  auditada (AUD-1..9) · seam `arnes.actividades[]` AL INDEXAR + enmienda schema · saneo vitalia
+  real · **`developer-vitalia` 0.1.0 PUBLICADO** (marketplace propio, tag) y VIVO en el Mapa de
+  la app instalada con chips N0 + foco N1 + E5/E6/E7/E13 reales · 8 stories nuevas a11y, 13+5
+  vigentes intactas. Quedan: **gate 🧑‍⚖️ de PARIDAD** + 3 deudas de dogfood (D permisos-forja ·
+  E alta-plugin-nuevo · F faceta-inválida-tira-lienzo, en BACKLOG) →
+  [`stories/2026-07-30-definicion-de-arnes/INDEX.md`](./stories/2026-07-30-definicion-de-arnes/INDEX.md).
 - **Las conversaciones viven en el panel — MERGEADO A MAIN (v0.4.0, merge `bb53421`; el aviso
   previo de «no integrado» quedó stale y se corrigió 2026-07-30).** Paquete
   [`stories/2026-07-26-conversaciones-del-panel/`](./stories/2026-07-26-conversaciones-del-panel/INDEX.md).
