@@ -143,23 +143,78 @@ reproducibles con un comando. Mismo criterio que hizo funcionar el gate de MA-T6
 
 ---
 
+## ING-D16..D19 · Respuestas a Q1/Q2/Q4/Q8 — FIRMADAS 🧑‍⚖️ 2026-08-01
+
+> Elección explícita del operador sobre las opciones renderizadas de la auditoría previa.
+> Q3 la había resuelto ING-D11. **Siguen abiertas Q5 · Q6 · Q7** (abajo, P6).
+
+### ING-D16 · La escritura desde el Mapa es HÍBRIDA (responde Q1)
+
+- **Gestos deterministas → los escribe Go**, con diff de confirmación: estampar
+  `contract.caja:true` + `fase:`, cablear un edge, renombrar, reapuntar.
+- **Gestos que exigen redactar prosa → los despacha el conductor** (crear una skill nueva desde
+  cero), por la tarjeta de permiso que ya existe.
+
+**Por qué:** es el corte que ING-D2 ya dibujaba («lo conversacional AYUDA pero no reemplaza»).
+Un click que estampa dos campos de frontmatter no puede costar ~10 s ni fallar por criterio del
+modelo; uno que escribe una skill entera no puede ser un formulario. Hoy la ÚNICA ruta viva de
+escritura de as-code es el conductor (`conductor.go:113-160`, DD-1) — D16 agrega la ruta
+determinista sin tirarla.
+
+### ING-D17 · El muro de nodos se ataca EN LA INGESTA primero (responde Q2)
+
+La curaduría marca la mayoría como `de-referencia`/heredado ANTES de que lleguen al lienzo: el
+Mapa recibe el grafo ya reducido (~53 de 103 en vitalia-app), no los 103 crudos. El colapso por
+autoría en Base (ING-D14) sigue vigente para lo que quede, pero no es la defensa principal.
+
+**Por qué:** confirma el orden de ING-D11 — el mockup 1 es la ingesta, y el Mapa hereda material
+ya curado en vez de tener que defenderse solo de un grafo crudo.
+
+### ING-D18 · El eje de ING-D3 se llama `autoría` (responde Q4 · cierra el choque con L0)
+
+**Valores:** `del-plugin` · `propia` · `suelta` · `derivada` (copiada del plugin y editada local) ·
+`de-referencia` (terceros, lockfile).
+
+**Por qué:** `procedencia` (medido/estimado/declarado/inferido/no-declarado) y `origen`
+(estandar/del-puesto) están TOMADOS con otro significado — `mockups/INDEX.md` regla dura 4 lo
+advierte explícitamente. `autoría` dice lo que mide (quién escribió este archivo), es corto para
+chip y lee natural como subbanda («Base por autoría», ING-D14). Nota: los valores firmados
+renombran los provisionales de ING-D3 (`provisto-por-plugin`→`del-plugin`,
+`creado-por-usuario`→`propia`, `suelto`→`suelta`, `drifteado`→`derivada`).
+
+### ING-D19 · T0 sale YA, y sale solo el fallback de lectura (responde Q8 · cierra P1)
+
+El loader, cuando la instalación no trae `arnes.yaml`, cae al del **canónico** vía Portafolio y
+deriva las actividades desde ahí. Bugfix propio, desacoplado, ANTES del mockup.
+
+**Por qué:** es la única de las tres opciones que **cura las instalaciones que YA existen** —
+la variante (a) «escribir al sellar» sólo alcanzaría a las que se identifiquen después del fix,
+así que no arregla el caso vivido. Y no escribe una sola línea en disco ajeno. Descartada la
+combinación (c)+(a): (a) no agrega cobertura que (c) no dé, y sí agrega escritura.
+
+---
+
 ## PENDIENTES (diseño abierto — NO firmados)
 
-- **P6 · Q1-Q8 de la auditoría previa** ([`auditoria-previa-mockup.md`](./auditoria-previa-mockup.md)
-  §Preguntas abiertas) — **Q1-Q2 BLOQUEAN el mockup de ingesta**: quién escribe cuando se hace
-  click en el Mapa (Go / conductor / híbrido) · si el muro de 100 nodos se ataca en el Mapa o en
-  la ingesta. Q3 quedó resuelta por ING-D11. Las demás lo moldean: nombre del eje de autoría
-  (Q4, choca con `procedencia` L0) · vocabulario final de facetas (Q5, ver P2) · el `CLAUDE.md`
-  que no pasa el reconocedor (Q6) · los 3 `pasos[].caja` que no son cajas en el arnés YA
-  publicado (Q7) · si T0 sale ya y con qué mecanismo (Q8, ver P1).
+- **P6 · Q5 · Q6 · Q7 de la auditoría previa** ([`auditoria-previa-mockup.md`](./auditoria-previa-mockup.md)
+  §Preguntas abiertas) — lo que sigue abierto tras ING-D16..D19:
+  - **Q5 · vocabulario final de facetas** (= P2 abajo). Lectura propuesta, NO firmada: las
+    facetas son la **cara** (D18) y las 11 canónicas son el **tema** (D19) ⇒ ejes ortogonales, y
+    `WIP-home` es el territorio de INSTANCIA de D19, no una faceta par de las otras 4. Si se
+    confirma, el vocabulario es **4 facetas** (`knowledge` · `knowledge-as-code` · `docs-as-code` ·
+    `process-as-code`) **+ el puntero a WIP-home aparte**. El mockup 1 la dibuja como propuesta.
+  - **Q6 · el `CLAUDE.md` que no pasa el reconocedor** (`regla.go:24-46` exige frontmatter `id:`
+    o heading `# <id> — <nombre>`; el de vitalia abre `# CLAUDE.md` ⇒ `no-reconocido`). Un
+    proyecto crudo nunca cumple una convención que no conoció. Opciones: (a) aflojar el
+    reconocedor, ~5 líneas; (b) que la ingesta OFREZCA estampar el heading. Recomendación: (a).
+  - **Q7 · los 3 `pasos[].caja` que no son cajas** en `developer-vitalia` YA publicado
+    (`chrome-devtools-verify` · `test-all` · `explore-module` son nodos sin fase; y
+    `revisar-capability` tiene cero pasos). ¿Se sanea el dato o se dibuja el estado degradado con
+    CTA «convertir en caja»? Es territorio del **mockup 2** (Mapa editor), no del 1.
 
-- **P1 · Mecanismo de T0** (propagar `arnes.yaml` a instalaciones): ¿(a) Identificar/sellar lo
-  escribe junto al l0 cuando el canónico lo tiene? ¿(b) Refrescar/Adoptar sincroniza hacia las
-  instalaciones? ¿(c) el loader hace fallback al `arnes.yaml` del canónico vía Portafolio cuando
-  la instalación no lo trae? — (c) no toca disco ajeno; (a) requiere canónico conocido.
-  Recomendación preliminar: (c) para leer + (a) al sellar. Decidir en el diseño de T0.
-- **P2 · Vocabulario final de facetas** (ING-D4): nombres exactos y si mapean 1:1 a territorios
-  del terreno (D19) o son eje aparte.
+- ~~**P1 · Mecanismo de T0**~~ → **RESUELTO por ING-D19** (fallback de lectura al canónico, solo).
+- **P2 · Vocabulario final de facetas** (ING-D4) = **Q5** arriba: nombres exactos y si mapean 1:1
+  a territorios del terreno (D19) o son eje aparte.
 - **P3 · UI de edición del Mapa**: qué gestos (click-crear en carril, drag-cablear, panel de
   alta), qué escribe cada gesto, y el contrato de seguridad (diff antes de confirmar, nace beta
   → tren, como ya anticipa el tooltip de «Editar fuente»). → etapa mockup.

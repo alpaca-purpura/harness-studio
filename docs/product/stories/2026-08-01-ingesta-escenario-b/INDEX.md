@@ -20,18 +20,22 @@
    dos gates con ingesta primero · ingesta = tabla de decisión, no wizard de 6 pasos · primer
    gesto del editor = «esto es un paso del proceso» · Base colapsada por autoría · escenario con
    cifras medidas de vitalia-app.
-4. **Próxima etapa: MOCKUP 1 · INGESTA** (gate 🧑‍⚖️ antes de spec) — **BLOQUEADO por Q1-Q2** de la
-   auditoría: quién escribe cuando se hace click en el Mapa (Go / conductor / híbrido) y si el
-   muro de ~100 nodos se ataca en el Mapa o en la ingesta. Superficies, ya en orden por ING-D11:
+4. **ING-D16..D19 FIRMADAS 🧑‍⚖️** (2026-08-01, elección sobre opciones renderizadas): escritura
+   **híbrida** desde el Mapa (determinista→Go · redactar→conductor) · el muro se ataca **en la
+   ingesta** primero · el eje de ING-D3 se llama **`autoría`** (`del-plugin`·`propia`·`suelta`·
+   `derivada`·`de-referencia`) · **T0 sale ya**, solo el fallback de lectura al canónico.
+5. **Próxima etapa: MOCKUP 1 · INGESTA** (gate 🧑‍⚖️ antes de spec) — **DESBLOQUEADO**. Siguen
+   abiertas Q5 (facetas) · Q6 (`CLAUDE.md` no reconocido) · Q7 (pasos que no son cajas, es del
+   mockup 2); el mockup 1 dibuja Q5/Q6 como propuesta rotulada. Superficies, en orden por ING-D11:
    - **(1) Ingesta**: apuntar a carpeta cruda → inventario → autoría → facetas → curaduría. Hoy el
      wizard es callejón sin salida (`portafolio-wizard.tsx:308-327`).
    - **(2) Mapa editor**: crear/cablear/reapuntar manual con clicks → escribe archivos. Superset
      ESTRICTO de la línea base — **arrancar leyendo [`mockups/INDEX.md`](../../../../mockups/INDEX.md)**
      (SSoT UI = Storybook; no pisar vocabulario L0 — ver Q4).
-5. **Quick-win desacoplado (T0)**: propagar `arnes.yaml` a instalaciones — hoy Identificar solo
-   escribe el l0 y las instalaciones quedan ciegas de actividades (bug vivido 2026-08-01, fix
-   manual hecho en vitalia-app). Diseño chico en `decisiones.md` §PENDIENTES → puede salir como
-   bugfix propio antes del mockup grande.
+6. **T0 · FIRMADO y desacoplado (ING-D19)**: el loader cae al `arnes.yaml` del **canónico** vía
+   Portafolio cuando la instalación no lo trae. Cura las instalaciones que YA existen (incluida
+   la que se arregló a mano en vitalia-app) sin escribir una línea en disco ajeno. Sale como
+   bugfix propio ANTES del mockup.
 
 ## Qué es (1 párrafo)
 
