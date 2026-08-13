@@ -35,4 +35,31 @@ por el gran plan (nada se porta sin pasar su fase).
 
 Kit dev: plugin `harness@prenter-marketplace` (canal estable).
 
+## Desarrollo en Windows
+
+El daemon compila y corre nativo en Windows (`go build -o bin\arnesia.exe .\cmd\arnesia`; el
+self-update degrada honesto: deja el binario nuevo y pide reiniciar — no hay swap en caliente de
+un `.exe` en ejecución). Notas de entorno:
+
+- **Prereqs**: Go ≥1.25 · Python 3 (`python`; el `python3` de WindowsApps es un stub falso — el
+  Makefile y lefthook ya sondean ejecutando) · Node ≥20.16 + pnpm 9 · **Git Bash** (los `.sh` se
+  corren con Git Bash, NUNCA con el `bash` de WSL del PATH de sistema) · lefthook + golangci-lint
+  para los hooks locales.
+- **Instalador de escritorio** (`.msi`/`.exe`, Tauri): requiere además Rust toolchain
+  `x86_64-pc-windows-msvc` + Visual Studio Build Tools (MSVC + Windows SDK) + WebView2 (ya viene
+  en Win11). Tauri no cross-compila: el bundle Windows se produce EN Windows. Sin certificado de
+  firma, SmartScreen muestra «Windows protegió tu PC» → «Ejecutar de todos modos» (esperado).
+- **Line endings**: `.gitattributes` fija LF; no activar `core.autocrlf=true` (el repo lo
+  neutraliza con atributos, pero no lo peleés).
+- **Empaquetado portable**: `python scripts/bundle.py --solo-daemon` (Windows) es el espejo de
+  `bash scripts/bundle.sh --daemon-only` (Linux) — mismo sello de identidad `X.Y.Z.AAMMDDHHMM`.
+
+### Mapa de puertos (local)
+
+| Puerto | Servicio |
+| --- | --- |
+| **4200** | daemon `arnesia serve` (API + SPA + OTLP) — hardcodeado en SPA/Tauri/auth por diseño actual |
+| **4300** | reservado: cockpit de harness-studio (migración futura — ver plan cockpit-y-windows) |
+| 4002 | cockpit de vitalia-app (repo hermano en esta máquina) — no usar |
+
 Privado — © Alpaca Púrpura / Prenter.
