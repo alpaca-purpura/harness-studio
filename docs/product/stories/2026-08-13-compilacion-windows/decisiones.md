@@ -71,6 +71,39 @@ Hallazgos que cambiaron el alcance y decisiones tomadas:
   minutos. El gate barato de compilación Windows sigue siendo `go-windows` (build+vet+tests
   de la superficie portada), que sí corre siempre.
 
+## CW-D8 · El attach del shell se VERIFICA, no se adivina 🧑‍⚖️ RATIFICADA (2026-08-14)
+
+**Bug reportado por el operador:** instaló el `.exe` y la ventana mostraba únicamente
+`arnesia: este build no embebe la UI (scripts/bundle.sh la incluye); la API vive en /api`.
+
+**Causa raíz (investigada, no supuesta):** el instalador estaba bien — el `arnesia-daemon.exe`
+instalado es byte-idéntico (SHA256 `B54256E9…`) al que ya se verificó sirviendo la SPA. Quien
+respondía era **otro daemon del propio operador corriendo en WSL** sobre el mismo repo
+(`/mnt/c/…/bin/arnesia`, `version: dev`, huella `bf914df` del 2026-08-01), compilado con
+`go build` suelto **cuando `web/dist` estaba vacío**: su `embeddedUI()` da `nil` y el router
+contesta ese 404 (`router.go:66-68`). El shell lo tomó por «el daemon ya está arriba» porque
+`daemon_running()` solo hacía `TcpStream::connect` — verificaba que **algo** escuchara, no que
+ese algo sirviera la interfaz. Prueba de cierre: al detener ese proceso, la app instalada
+levantó su propio sidecar y `GET /` pasó a 200 con la SPA.
+
+**Decisión:** el bind-or-bail pasa de ciego a verificado. `estado_daemon()` sondea con un
+`GET /` crudo (HTTP a mano sobre el mismo socket: es una línea de estado, no vale sumar un
+cliente HTTP al shell) y `veredicto_daemon()` —regla pura, con 6 tests, misma doctrina que
+`concede_captura`— decide entre `Ausente` (spawnear), `ConUI` (attach) y `SinUI`. En `SinUI`
+no se attachea (mostraría la respuesta del ocupante) **ni** se intenta spawnear (el bind
+moriría con «address already in use»): la ventana muestra una tarjeta que nombra el problema y
+el paso siguiente. La verificación va en Rust y no en el JS de `conectando.html` porque un
+`fetch` del WebView viaja con el `Origin` de Tauri y chocaría con los gates de `auth.go` —por
+eso esa página sondea `/healthz`, el único exento (HS-14 fix ②)—. Sin botón «Reintentar»: el
+shell decide al arrancar, y sin reiniciar no hay nada que cambie; ofrecerlo sería mentir.
+
+**Corrección de una evidencia previa (honestidad):** la `dod_evidence` del 2026-08-13 decía
+que se había ejercido la app lanzando `target/release/arnesia-app.exe`. Ese binario —producido
+por `cargo build`— **apunta al `devUrl` (`http://localhost:5173`) y muestra un error de
+conexión de WebView2**, no la app real: el binario válido lo produce `tauri build`, que embebe
+los assets. Aquel chequeo solo probaba que el proceso levantaba y abría ventana; se reemplaza
+por la verificación contra el binario bundleado.
+
 ## CW-D5 · Suite de tests en Windows: superficie portada verde, resto = DEUDA VISIBLE
 
 `go build ./...` + `go vet ./...` verdes en windows/linux/darwin. Tests verdes en Windows:

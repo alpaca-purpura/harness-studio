@@ -473,8 +473,11 @@
   chmod/bits como fault-injection, JSON que embebe backslash, literales `/` en domain/usecase/
   portafolio/stt. Inventario por-paquete en
   [`stories/2026-08-13-compilacion-windows/decisiones.md`](stories/2026-08-13-compilacion-windows/decisiones.md) § CW-D5 · `deuda`
-- [windows] `bump.py` portable — hoy el bump sigue siendo `bash scripts/bump.sh` (Linux); en Windows
-  `installer.ps1` empaqueta la versión ACTUAL (equivale a `make installer-actual`), no bumpea · `deuda`
+- [windows] `bump.py` portable — `bump.sh` ya corre en Git Bash (shim de python aplicado 2026-08-14),
+  así que el bump YA funciona en Windows; el `.py` quedaría solo para no depender de bash · `deuda`
+- [windows] `cargo build` produce un binario que apunta al `devUrl` (error de conexión en la ventana):
+  el binario válido lo da `tauri build`. Evaluar declarar el feature `custom-protocol` en
+  `web/src-tauri/Cargo.toml` para que un `cargo build --release` suelto no engañe · `deuda`
 - [windows] rename-trick NTFS para el self-update (hoy degradación honesta CW-D1: staged + aviso) · `deuda`
 - [windows] go-arch-lint reporta violaciones falsas con paths backslash (skip honesto en windows;
   diagnosticar/upstreamear al tool) · `deuda`

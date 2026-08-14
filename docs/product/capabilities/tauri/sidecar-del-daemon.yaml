@@ -4,16 +4,25 @@
 capability_id: arnesia.tauri.sidecar-del-daemon
 cap_num: CAP-80
 slug: sidecar-del-daemon
-name: "Sidecar del daemon (bind-or-bail, kill al salir)"
-status: vivo·nc          # GENERADO (R4) — no teclear
+name: "Sidecar del daemon (bind-or-bail verificado, kill al salir)"
+status: vivo          # GENERADO (R4) — no teclear
 module: tauri
 verb: infra
 pointers:
-  - "web/src-tauri/src/lib.rs#daemon_running"
-valida: []
+  - "web/src-tauri/src/lib.rs#estado_daemon"
+  - "web/src-tauri/src/lib.rs#veredicto_daemon"
+  - "web/src-tauri/src/lib.rs#status_de_respuesta"
+valida:
+  - "puerto_libre_significa_spawnear"
+  - "daemon_que_sirve_la_ui_se_attachea"
+  - "ocupante_que_no_sirve_la_ui_no_se_attachea"
+  - "ocupante_mudo_no_se_attachea"
+  - "lee_el_status_de_la_linea_de_respuesta"
+  - "una_respuesta_que_no_es_http_no_da_status"
 scenarios:
   - "Windows (2026-08-14): el bundle empaqueta el sidecar como binaries/arnesia-daemon-x86_64-pc-windows-msvc.exe — Tauri EXIGE el sufijo .exe en el externalBin y el triple lo deriva scripts/bundle.py de `rustc -vV`; tauri-build falla el compilado si el archivo no está"
-  - "Con un daemon ya escuchando en :4200 (p. ej. uno corriendo en WSL con su relay), el shell NO spawnea el sidecar: entra en modo attach — verificado en vivo al ejercer target/release/arnesia-app.exe"
+  - "Con un daemon ya escuchando en :4200 que SÍ sirve la interfaz (GET / → 200), el shell no spawnea el sidecar: entra en modo attach (camino de dev con `arnesia serve` a mano)"
+  - "Si el ocupante de :4200 responde pero NO sirve la interfaz (404/401/otro, o ni siquiera habla HTTP), el shell NO se attachea ni intenta spawnear —el bind fallaría— y la ventana muestra la tarjeta «Otro programa ocupa el puerto» con el paso a seguir, en vez del 404 crudo del ocupante (CW-D8)"
 business_rules: []
 related_capabilities:
   depends_on: []
@@ -24,6 +33,11 @@ change_log:
     date: 2026-08-14
     type: extend
     summary: "Instalador Windows construido (CW-D7): el sidecar viaja en el .msi/.exe con el naming por triple MSVC. Sin cambio de código Rust — el shell ya estaba gateado por OS; lo que cambió es el empaquetado (bundle.py + installer.ps1) y la toolchain instalada."
+    merge_sha: null
+  - story_id: 2026-08-13-compilacion-windows
+    date: 2026-08-14
+    type: fix
+    summary: "Attach VERIFICADO (CW-D8): daemon_running (TCP a secas) → estado_daemon, que pide GET / crudo y decide con veredicto_daemon {Ausente|ConUI|SinUI}. Cierra el bug reportado: con un `arnesia serve` sin la SPA ocupando :4200 (caso real: binario Linux en WSL sobre el mismo repo), el shell se attacheaba a ciegas y la ventana mostraba el 404 en texto plano del ocupante. La cap pasa de vivo·nc a vivo: la decisión ahora tiene 6 tests (antes no había check)."
     merge_sha: null
 ---
 

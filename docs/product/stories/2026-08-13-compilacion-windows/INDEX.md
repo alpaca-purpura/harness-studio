@@ -45,3 +45,10 @@
   `Makefile` con utilidades nativas (`Get-FileHash` en vez de `sha256sum`, sin `dev-sync`);
   produce `instaladores/vX.Y.Z/` + `checksums.txt`. Toolchain: Rust 1.97.1 sobre el MSVC 2019
   que la máquina ya tenía.
+- **Attach verificado (CW-D8, v0.7.1)** — `web/src-tauri/src/lib.rs`: `daemon_running` (TCP a
+  secas) → `estado_daemon` + `veredicto_daemon` con 6 tests. Cierra el bug reportado: con otro
+  `arnesia serve` sin la SPA ocupando `:4200` (caso real: el daemon del operador en WSL), la app
+  instalada mostraba el 404 crudo del ocupante; ahora la ventana explica el conflicto
+  (`web/public/conectando.html`, tercer estado). El gate de ese check corre en CI (`cargo test`
+  agregado al job `rust`). Shim de python también en `bump.sh` + `changelog.py` con stdout UTF-8
+  (la consola cp1252 abortaba el bump por un `✓`).

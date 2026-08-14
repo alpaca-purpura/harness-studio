@@ -50,10 +50,14 @@
 		animation: latido 1.2s ease-in-out infinite;
 	}
 	@keyframes latido { 50% { opacity: .25; } }
-	#fallo { display: none; }
+	#fallo, #conflicto { display: none; }
 	body[data-estado="fallo"] #fallo { display: block; }
 	body[data-estado="fallo"] #conectando { display: none; }
-	body[data-estado="fallo"] .punto { background: var(--destructive); animation: none; }
+	body[data-estado="conflicto"] #conflicto { display: block; }
+	body[data-estado="conflicto"] #conectando { display: none; }
+	body[data-estado="fallo"] .punto,
+	body[data-estado="conflicto"] .punto { background: var(--destructive); animation: none; }
+	#conflicto p + p { margin-top: 8px; }
 	button {
 		margin-top: 14px;
 		font: inherit; font-size: 12.5px;
@@ -80,6 +84,15 @@
 		ocupando el puerto.</p>
 		<button onclick="location.reload()">Reintentar</button>
 	</div>
+	<div id="conflicto">
+		<h1>Otro programa ocupa el puerto</h1>
+		<p>Algo ya está escuchando en <code>127.0.0.1:4200</code>, pero no entrega la
+		interfaz de ArnesIA. Suele ser otro <code>arnesia serve</code> compilado sin la
+		interfaz — por ejemplo uno corriendo en WSL, o uno hecho con <code>go build</code>
+		suelto en vez de <code>bundle.sh</code>.</p>
+		<p>Cerrá ese proceso y volvé a abrir ArnesIA: así usa su propio daemon, el que
+		vino con la instalación.</p>
+	</div>
 </div>
 <script>
 	// Sondea GET /healthz (HS-14 fix ②: es el ÚNICO endpoint exento de los 3 gates de
@@ -97,7 +110,17 @@
 		if (Date.now() - ARRANQUE > 15000) document.body.dataset.estado = "fallo";
 		setTimeout(sondear, 300);
 	}
-	sondear();
+
+	// Conflicto de puerto (CW-D8): el shell YA sondeó en Rust —con un GET crudo, sin el
+	// Origin de Tauri que los gates de auth.go rechazarían— y encontró un ocupante que NO
+	// sirve la interfaz. Saltar a su raíz mostraría SU respuesta (un 404 en texto plano):
+	// mejor decir qué pasa. Acá no se sondea ni se reintenta — el shell decidió al arrancar
+	// y sin reiniciar la app nada cambia; un botón «Reintentar» sería una promesa falsa.
+	if (window.__ARNESIA_CONFLICTO__) {
+		document.body.dataset.estado = "conflicto";
+	} else {
+		sondear();
+	}
 </script>
 </body>
 </html>

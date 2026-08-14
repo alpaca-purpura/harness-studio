@@ -153,3 +153,7 @@ jobs:
         run: |
           cargo clippy --all-targets -- -D warnings
           cargo fmt --check
+      - name: test (la decisión del bind-or-bail verificado — CW-D8)
+        # Sin esto, el `valida:` de la capability sidecar-del-daemon sería una promesa:
+        # los tests existirían y nadie los correría.
+        run: cargo test

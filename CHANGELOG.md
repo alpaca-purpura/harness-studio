@@ -24,6 +24,20 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+
+### Seguridad
+
+## [0.7.1] — 2026-08-14
+
+### Agregado
 - auditoría previa al mockup de ingesta escenario B: verificación independiente del informe de estado (5 correcciones), medición real del loader contra canónico e instalación, 8 preguntas abiertas y 5 propuestas
 - decisiones ING-D11..D15 de forma del mockup de ingesta (dos gates con ingesta primero, tabla de decisión, gesto de mayor palanca, Base por autoría, cifras medidas)
 - decisiones ING-D16..D19: escritura híbrida desde el Mapa, el muro se ataca en la ingesta, el eje nuevo se llama autoría, T0 = fallback de lectura al canónico
@@ -42,6 +56,7 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Corregido
 - tests que 'aislaban' el home con HOME seguían tocando el ~/.arnesia REAL en Windows (os.UserHomeDir lee USERPROFILE) — 12 sitios + fixtures por-OS
+- el shell ya no se engancha a ciegas a cualquier proceso del puerto 4200: verifica que sirva la interfaz (GET / = 200) y, si no, la ventana explica que otro programa lo ocupa en vez de mostrar su 404 crudo
 
 ### Seguridad
 

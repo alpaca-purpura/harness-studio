@@ -23,7 +23,15 @@ dod_evidence:
   - action: "powershell -File scripts/installer.ps1 (guard + bundle.py + recolección + checksums)"
     observed: "instaladores/v0.7.0/ con ArnesIA_0.7.0_x64-setup.exe (8.62 MB, NSIS) + ArnesIA_0.7.0_x64_en-US.msi (11.09 MB, WiX) + checksums.txt SHA256; Tauri descargó NSIS/WiX solo"
   - action: "live-verify de la app real: lanzar target/release/arnesia-app.exe"
-    observed: "ventana «ArnesIA» abierta, WebView2 151.0.4129.78 hijo con user-data-dir lat.alpacapurpura.arnesia, cierre limpio. NO ejercitó el spawn del sidecar: :4200 ya estaba ocupado por el daemon del operador corriendo en WSL (wslrelay) → el shell entró en modo attach, que es su comportamiento correcto. El sidecar Windows es byte-idéntico al bin/arnesia.exe ya verificado sirviendo /healthz + /api/version + SPA"
+    observed: "⚠️ CORREGIDO 2026-08-14 (CW-D8): esta evidencia era ENGAÑOSA. Ese binario lo produce `cargo build`, que apunta al devUrl (http://localhost:5173) — la ventana abría pero mostraba el error ERR_CONNECTION_REFUSED de WebView2, no la app. El binario válido lo produce `tauri build` (embebe los assets). Lo único que probaba era que el proceso levantaba. Reemplazada por las evidencias de abajo."
+  - action: "2026-08-14 · bug reportado por el operador: la app instalada mostraba solo «arnesia: este build no embebe la UI…». Investigación de causa raíz"
+    observed: "el instalador estaba BIEN (arnesia-daemon.exe instalado = SHA256 B54256E9… byte-idéntico al ya verificado con la SPA). Respondía OTRO daemon: el del operador en WSL (wslrelay → /mnt/c/…/bin/arnesia, version dev, huella bf914df) compilado sin web/dist. `curl -i :4200/` reprodujo el 404 exacto. Al detenerlo (pkill dirigido), la app instalada levantó su propio sidecar y GET / pasó a 200"
+  - action: "reproducción controlada del bug + fix: ocupante que responde 404 en :4200 (scratchpad/ocupante_sin_ui.py) contra el binario de `tauri build`"
+    observed: "el shell ya NO se attachea: stderr «:4200 está ocupado por algo que NO sirve la UI: ni attach ni spawn» y la ventana muestra la tarjeta «Otro programa ocupa el puerto» (captura verificada), en vez del 404 crudo"
+  - action: "camino feliz con el puerto libre (mismo binario bundleado)"
+    observed: "spawnea arnesia-daemon.exe como hijo, GET / → 200, y la ventana muestra la SPA REAL de ArnesIA: rail de sesiones, vistas Mapa/Diag/Corridas/Tren/Hist y el botón Conversar (captura verificada)"
+  - action: "gates del shell: cargo test · cargo fmt --check · cargo clippy --all-targets -- -D warnings"
+    observed: "6 tests de la decisión del attach en verde; fmt y clippy exit 0 (clippy/rustfmt agregados al toolchain minimal)"
 verified_at: 2026-08-14
 ---
 
@@ -36,10 +44,11 @@ Linux (bundle.sh VERBATIM; GOOS=linux/darwin verdes). Verificación en vivo regi
 
 ## Retomar aquí
 
-1. **Gate PARIDAD 🧑‍⚖️**: el operador instala `instaladores/v0.7.0/ArnesIA_0.7.0_x64-setup.exe`
-   (SmartScreen mostrará «Ejecutar de todos modos» — sin certificado, decisión ②), abre la app
-   instalada y confirma que levanta su propio sidecar (para eso conviene que NO haya otro daemon
-   escuchando en `:4200`, como el de WSL durante la verificación del 2026-08-14), y firma.
+1. **Gate PARIDAD 🧑‍⚖️**: el operador instala `instaladores/v0.7.1/ArnesIA_0.7.1_x64-setup.exe`
+   (SmartScreen mostrará «Ejecutar de todos modos» — sin certificado, decisión ②) y confirma que
+   la app abre la interfaz. Si otro daemon ocupa `:4200` (p. ej. uno en WSL), la app ahora lo
+   dice con la tarjeta «Otro programa ocupa el puerto» en vez de mostrar su 404 (CW-D8).
+   Conviene desinstalar la 0.7.0 previa, que tiene el attach ciego.
 2. Siguientes (BACKLOG § Port Windows): suite completa verde en Windows, `bump.py` portable,
    rename-trick del self-update, certificado de firma, `os.UserConfigDir`.
 3. Parte B del plan (cockpit :4300 + CIL + skills) sigue podada en
