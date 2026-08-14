@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -24,9 +25,11 @@ func (r regFija) List() []ports.ArnesPath { return r }
 // el path exacto de un arnés, un archivo/dir bajo él, un vecino con prefijo similar (no
 // debe confundirse), y un path huérfano (ningún arnés registrado lo contiene).
 func TestOwnerOf(t *testing.T) {
+	// filepath.FromSlash: ownerOf compara con el separador NATIVO (filepath.Separator)
+	// — los fixtures deben hablar el mismo idioma en Windows.
 	reg := regFija{
-		{Arnes: "a", Path: "/arneses/a"},
-		{Arnes: "a-2", Path: "/arneses/a-2"},
+		{Arnes: "a", Path: filepath.FromSlash("/arneses/a")},
+		{Arnes: "a-2", Path: filepath.FromSlash("/arneses/a-2")},
 	}
 
 	tests := []struct {
@@ -35,11 +38,11 @@ func TestOwnerOf(t *testing.T) {
 		wantID string
 		wantOK bool
 	}{
-		{"path exacto del arnés", "/arneses/a", "a", true},
-		{"archivo bajo el árbol del arnés", "/arneses/a/skills/x/SKILL.md", "a", true},
-		{"vecino con prefijo similar no colisiona", "/arneses/a-2/CLAUDE.md", "a-2", true},
-		{"path huérfano", "/otro/lugar/x.txt", "", false},
-		{"el propio path raíz de un arnés (no confundido con el vecino 'a')", "/arneses/a-2", "a-2", true},
+		{"path exacto del arnés", filepath.FromSlash("/arneses/a"), "a", true},
+		{"archivo bajo el árbol del arnés", filepath.FromSlash("/arneses/a/skills/x/SKILL.md"), "a", true},
+		{"vecino con prefijo similar no colisiona", filepath.FromSlash("/arneses/a-2/CLAUDE.md"), "a-2", true},
+		{"path huérfano", filepath.FromSlash("/otro/lugar/x.txt"), "", false},
+		{"el propio path raíz de un arnés (no confundido con el vecino 'a')", filepath.FromSlash("/arneses/a-2"), "a-2", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

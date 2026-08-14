@@ -14,6 +14,7 @@ import (
 func TestRefiereAlgunoNoMatcheaArnesiaDeProyecto(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 
 	s := &SessionService{}
 	s.ProtegerPaqueteCerrado(filepath.Join(home, ".arnesia", "kit"))

@@ -28,6 +28,7 @@ func proyectoDePrueba(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	dir := filepath.Join(home, "proyecto")
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		t.Fatal(err)
@@ -66,6 +67,7 @@ func TestPostSembrarSemilla(t *testing.T) {
 func TestPostSembrarSemillaPathProtegido(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	svc := usecase.NewForjaService(&fakeForjaPort{})
 
 	r := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/forja/semillas", strings.NewReader(`{"path":"`+home+`"}`))

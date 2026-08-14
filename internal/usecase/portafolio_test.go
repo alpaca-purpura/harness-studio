@@ -255,6 +255,7 @@ func TestServiceDesvincularNoTocaDisco(t *testing.T) {
 func TestServiceRootProtegido(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 
 	store := newFakePortafolioStore()
 	scan := &fakePortafolioScanner{}

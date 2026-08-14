@@ -180,7 +180,9 @@ func TestResolverDeLlavesUsaElPortafolioReal(t *testing.T) {
 // TestArchivoDeArchivadasCambioDeNombre — el registro de sesiones archivadas dejó de
 // llamarse «cerradas»: las conversaciones no se cierran, se desactivan y se retoman.
 func TestArchivoDeArchivadasCambioDeNombre(t *testing.T) {
-	if got := cerradasPathDefault("/tmp/x/sesiones.json"); got != "/tmp/x/sesiones-archivadas.json" {
+	entrada := filepath.FromSlash("/tmp/x/sesiones.json")
+	quiero := filepath.FromSlash("/tmp/x/sesiones-archivadas.json")
+	if got := cerradasPathDefault(entrada); got != quiero {
 		t.Errorf("= %q, quiero el archivo de archivadas junto al de vivas", got)
 	}
 }

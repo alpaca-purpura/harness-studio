@@ -192,11 +192,23 @@ func TestChangelogCubreLaVersionDeLosManifiestos(t *testing.T) {
 		"que promueve [Sin publicar] (VC-D2); nunca a mano", version)
 }
 
+// pythonDelHost resuelve el intérprete: python3 (unix) o python (Windows, donde el
+// python3 de WindowsApps es un stub falso que abre la Store) — sondeando por EJECUCIÓN,
+// no por presencia en PATH (mismo criterio que el shim PYTHON del Makefile).
+func pythonDelHost() string {
+	for _, p := range []string{"python3", "python"} {
+		if exec.Command(p, "-c", "pass").Run() == nil {
+			return p
+		}
+	}
+	return "python3"
+}
+
 // TestChangelogScriptSeValidaASiMismo corre el gate real. Si `scripts/changelog.py` se rompe,
 // el bump dejaría de proteger nada y nadie se enteraría hasta el próximo release.
 func TestChangelogScriptSeValidaASiMismo(t *testing.T) {
 	root := repoRoot()
-	cmd := exec.Command("python3", filepath.Join(root, "scripts", "changelog.py"), "check")
+	cmd := exec.Command(pythonDelHost(), filepath.Join(root, "scripts", "changelog.py"), "check")
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {

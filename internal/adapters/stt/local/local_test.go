@@ -358,6 +358,7 @@ func TestElModeloEsElFirmado(t *testing.T) {
 func TestPathAumentadoEncuentraElMotorFueraDelPathHeredado(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	// PATH heredado VACÍO: es el escenario del launcher gráfico.
 	t.Setenv("PATH", t.TempDir())
 
@@ -385,7 +386,9 @@ func TestPathAumentadoEncuentraElMotorFueraDelPathHeredado(t *testing.T) {
 
 // TestPathAumentadoNoInventaLoQueNoEsta — el fallback no puede volverse un falso positivo.
 func TestPathAumentadoNoInventaLoQueNoEsta(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	t.Setenv("PATH", t.TempDir())
 
 	if _, err := lookPathAumentado("whisper-ctranslate2"); err == nil {

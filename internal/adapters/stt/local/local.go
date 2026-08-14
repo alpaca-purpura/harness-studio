@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/alpacapurpura/arnesia/internal/ports"
@@ -149,18 +150,29 @@ func candidatosPATH() []string {
 
 // lookPathAumentado resolves bin on the inherited $PATH first, then on candidatosPATH().
 // Devuelve la ruta ABSOLUTA: correr por nombre pelado volvería a depender del $PATH del
-// proceso, que es justo lo que falla en el launcher gráfico.
+// proceso, que es justo lo que falla en el launcher gráfico. En Windows no hay bit de
+// ejecución (NTFS reporta 0666) y los binarios llevan extensión — se prueba PATHEXT
+// mínimo en vez del chequeo de modo.
 func lookPathAumentado(bin string) (string, error) {
 	if p, err := exec.LookPath(bin); err == nil {
 		return p, nil
 	}
+	sufijos := []string{""}
+	if runtime.GOOS == "windows" {
+		sufijos = []string{".exe", ".cmd", ".bat", ""}
+	}
 	for _, dir := range candidatosPATH() {
-		cand := filepath.Join(dir, bin)
-		st, err := os.Stat(cand)
-		if err != nil || st.IsDir() || st.Mode()&0o111 == 0 {
-			continue
+		for _, suf := range sufijos {
+			cand := filepath.Join(dir, bin+suf)
+			st, err := os.Stat(cand)
+			if err != nil || st.IsDir() {
+				continue
+			}
+			if runtime.GOOS != "windows" && st.Mode()&0o111 == 0 {
+				continue
+			}
+			return cand, nil
 		}
-		return cand, nil
 	}
 	return "", exec.ErrNotFound
 }
