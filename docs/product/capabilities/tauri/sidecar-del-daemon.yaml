@@ -11,12 +11,20 @@ verb: infra
 pointers:
   - "web/src-tauri/src/lib.rs#daemon_running"
 valida: []
-scenarios: []
+scenarios:
+  - "Windows (2026-08-14): el bundle empaqueta el sidecar como binaries/arnesia-daemon-x86_64-pc-windows-msvc.exe — Tauri EXIGE el sufijo .exe en el externalBin y el triple lo deriva scripts/bundle.py de `rustc -vV`; tauri-build falla el compilado si el archivo no está"
+  - "Con un daemon ya escuchando en :4200 (p. ej. uno corriendo en WSL con su relay), el shell NO spawnea el sidecar: entra en modo attach — verificado en vivo al ejercer target/release/arnesia-app.exe"
 business_rules: []
 related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-80)"
+change_log:
+  - story_id: 2026-08-13-compilacion-windows
+    date: 2026-08-14
+    type: extend
+    summary: "Instalador Windows construido (CW-D7): el sidecar viaja en el .msi/.exe con el naming por triple MSVC. Sin cambio de código Rust — el shell ya estaba gateado por OS; lo que cambió es el empaquetado (bundle.py + installer.ps1) y la toolchain instalada."
+    merge_sha: null
 ---
 
 # Sidecar del daemon (bind-or-bail, kill al salir)

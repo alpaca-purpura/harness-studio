@@ -95,6 +95,44 @@ jobs:
         if: ${{ hashFiles('web/src/shared/api/generated/**') != '' }}
         run: pnpm run openapi:gen && git diff --exit-code src/shared/api/generated
 
+  tauri-windows:
+    # Instalador de escritorio Windows (.msi WiX + .exe NSIS) — paquete
+    # 2026-08-13-compilacion-windows. Tauri NO cross-compila: el bundle Windows solo se
+    # produce EN Windows. Prereqs del runner: MSVC + Windows SDK + Rust ya vienen en la
+    # imagen windows-latest; NSIS/WiX los descarga el propio Tauri.
+    #
+    # Solo en push a main: `tauri build` con lto+codegen-units=1 tarda decenas de minutos y
+    # no puede pagarse en cada PR. El gate de COMPILACIÓN Windows (barato) es `go-windows`.
+    if: github.event_name == 'push'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: sidecar (el mismo daemon que embebe el instalador; nombre por triple MSVC)
+        run: go build -o web/src-tauri/binaries/arnesia-daemon-x86_64-pc-windows-msvc.exe ./cmd/arnesia
+      - uses: pnpm/action-setup@v4
+        with: { package_json_file: web/package.json }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: web/src-tauri }
+      - name: tauri build (SPA vía beforeBuildCommand + shell + bundles)
+        run: pnpm exec tauri build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores-windows
+          path: |
+            web/src-tauri/target/release/bundle/msi/*.msi
+            web/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
   rust:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web/src-tauri } }

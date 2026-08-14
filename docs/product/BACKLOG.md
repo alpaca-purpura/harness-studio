@@ -467,15 +467,14 @@
   solo shell · `deuda`
 - [ux] Empleados-IA del producto (Valeria·Lisa…) vs roster de dev — ¿dos vistas separadas? · `deuda`
 
-## Port Windows — continuaciones (paquete 2026-08-13-compilacion-windows; build+vet+superficie portada VERDES)
+## Port Windows — continuaciones (paquete 2026-08-13-compilacion-windows; build+vet+superficie portada VERDES · instalador .msi/.exe CONSTRUIDO 2026-08-14, CW-D7)
 
 - [windows] **suite de tests COMPLETA verde en Windows** — clases restantes: shims `gh`/`git` sh,
   chmod/bits como fault-injection, JSON que embebe backslash, literales `/` en domain/usecase/
   portafolio/stt. Inventario por-paquete en
   [`stories/2026-08-13-compilacion-windows/decisiones.md`](stories/2026-08-13-compilacion-windows/decisiones.md) § CW-D5 · `deuda`
-- [windows] **instalador Tauri `.msi`/`.exe`** — bundle.py ya nombra el sidecar `.exe` y `tauri.conf`
-  ya lo soporta; falta toolchain en la máquina (Rust MSVC + VS Build Tools) + `bump.py`/`installer.ps1`
-  + job CI `tauri-windows` · `bloqueo`
+- [windows] `bump.py` portable — hoy el bump sigue siendo `bash scripts/bump.sh` (Linux); en Windows
+  `installer.ps1` empaqueta la versión ACTUAL (equivale a `make installer-actual`), no bumpea · `deuda`
 - [windows] rename-trick NTFS para el self-update (hoy degradación honesta CW-D1: staged + aviso) · `deuda`
 - [windows] go-arch-lint reporta violaciones falsas con paths backslash (skip honesto en windows;
   diagnosticar/upstreamear al tool) · `deuda`

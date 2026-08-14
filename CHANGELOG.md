@@ -28,10 +28,12 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - decisiones ING-D11..D15 de forma del mockup de ingesta (dos gates con ingesta primero, tabla de decisión, gesto de mayor palanca, Base por autoría, cifras medidas)
 - decisiones ING-D16..D19: escritura híbrida desde el Mapa, el muro se ataca en la ingesta, el eje nuevo se llama autoría, T0 = fallback de lectura al canónico
 - compila y corre NATIVO en Windows: split por-OS del self-update (os_/instalar_ unix|windows, degradación honesta al instalar), descubrimiento de binarios con PATHEXT, bundle.py portable con el mismo sello RF-231, CI go-windows
+- instalador de escritorio Windows: .msi (WiX) + .exe (NSIS) via scripts/installer.ps1 — espejo de make installer-actual con Get-FileHash; job CI tauri-windows en push a main
 
 ### Cambiado
 - Release en UN comando: make installer|installer-minor|installer-major (bump + bundle FE+BE + instaladores/vX.Y.Z/ + sync automático del override dev) e installer-actual para reparar una versión bumpeada sin instalador; proceso capturado en la skill /publicando-version
 - .gitattributes fuerza LF (checkout Windows seguro) + shim python3->python en Makefile/lefthook + README § Desarrollo en Windows con mapa de puertos (4200 daemon / 4300 reservado cockpit)
+- README: prereqs Windows reales — VS Build Tools 2019 o 2022 con VC.Tools.x86.x64 + cualquier Win10/11 SDK (no hace falta el IDE), instalacion de Rust user-scope y comando del instalador
 
 ### Deprecado
 

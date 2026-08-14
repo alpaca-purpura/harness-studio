@@ -45,10 +45,22 @@ un `.exe` en ejecución). Notas de entorno:
   Makefile y lefthook ya sondean ejecutando) · Node ≥20.16 + pnpm 9 · **Git Bash** (los `.sh` se
   corren con Git Bash, NUNCA con el `bash` de WSL del PATH de sistema) · lefthook + golangci-lint
   para los hooks locales.
-- **Instalador de escritorio** (`.msi`/`.exe`, Tauri): requiere además Rust toolchain
-  `x86_64-pc-windows-msvc` + Visual Studio Build Tools (MSVC + Windows SDK) + WebView2 (ya viene
-  en Win11). Tauri no cross-compila: el bundle Windows se produce EN Windows. Sin certificado de
-  firma, SmartScreen muestra «Windows protegió tu PC» → «Ejecutar de todos modos» (esperado).
+- **Instalador de escritorio** (`.msi` WiX + `.exe` NSIS, Tauri) — Tauri **no cross-compila**: el
+  bundle Windows se produce EN Windows con `powershell -File scripts\installer.ps1` (espejo de
+  `make installer-actual`: bundle + `instaladores/vX.Y.Z/` + checksums). Prereqs, verificados
+  2026-08-14:
+  - **Rust** `x86_64-pc-windows-msvc` — `winget install Rustlang.Rustup`, o el `rustup-init.exe`
+    de <https://rustup.rs> con `-y --default-host x86_64-pc-windows-msvc --profile minimal`
+    (user-scope, sin admin; ~1.3 GB). El toolchain reserva otros ~4 GB para `target/` en la
+    primera compilación (`cargo clean` los devuelve).
+  - **MSVC + Windows SDK** — alcanza **Build Tools 2019 o 2022** con el componente
+    `VC.Tools.x86.x64` y cualquier Windows 10/11 SDK; no hace falta el IDE. Verificalo con
+    `& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`.
+  - **WebView2 Runtime** — ya viene en Windows 11.
+  - **NSIS/WiX** los descarga Tauri solo a `%LOCALAPPDATA%\tauri` (~200 MB) la primera vez.
+
+  Sin certificado de firma, SmartScreen muestra «Windows protegió tu PC» → «Ejecutar de todos
+  modos» (esperado; el certificado es deuda registrada).
 - **Line endings**: `.gitattributes` fija LF; no activar `core.autocrlf=true` (el repo lo
   neutraliza con atributos, pero no lo peleés).
 - **Empaquetado portable**: `python scripts/bundle.py --solo-daemon` (Windows) es el espejo de

@@ -32,14 +32,44 @@ el sello vive en el script de bundle, jamás en el Makefile) y es lo que invoca 
 Windows (`Build()` de `os_windows.go`). Unificar ambos en un solo script = decisión futura,
 no de este paquete.
 
-## CW-D4 · Instalador Tauri Windows DIFERIDO por toolchain 🧑‍⚖️ RATIFICADA (plan v3)
+## CW-D4 · Instalador Tauri Windows — ⚠️ SUPERSEDED por CW-D7 (2026-08-14): YA NO está diferido
 
-Verificado en la máquina del operador: `rustc`/`cargo` NO instalados → `tauri build` es
-imposible en esta ejecución (Tauri no cross-compila). Prereqs documentados en README:
-Rust `x86_64-pc-windows-msvc` + VS Build Tools (MSVC + Windows SDK) + WebView2 (ya en Win11);
-NSIS/WiX los baja Tauri. `bundle.py` ya nombra el sidecar `arnesia-daemon-<triple>.exe` y
-falla honesto si falta rustc. Sin certificado de firma por ahora (ratificado): SmartScreen
-mostrará «Ejecutar de todos modos» — certificado OV/EV = deuda para cuando se distribuya.
+*(histórico)* Verificado el 2026-08-13: `rustc`/`cargo` NO instalados → `tauri build` era
+imposible en esa ejecución (Tauri no cross-compila). Prereqs documentados en README. Sin
+certificado de firma (ratificado ②): SmartScreen mostrará «Ejecutar de todos modos» —
+certificado OV/EV sigue siendo deuda para cuando se distribuya. **El bloqueo se levantó en
+CW-D7: la toolchain se instaló y el instalador se produce.**
+
+## CW-D7 · Toolchain instalada y instalador Windows CONSTRUIDO 🧑‍⚖️ RATIFICADA (2026-08-14)
+
+Pedido del operador: «instalá Rust/MSVC de los prereqs para sanar la deuda registrada».
+Hallazgos que cambiaron el alcance y decisiones tomadas:
+
+- **MSVC NO hacía falta instalarlo.** La máquina ya tenía **Visual Studio Build Tools 2019**
+  (16.11.35425) con `VC.Tools.x86.x64` — `cl.exe` 14.29.30133 — y **Windows SDK 10.0.19041**,
+  más WebView2 Runtime 151.x. Se REUTILIZA en vez de instalar Build Tools 2022 (ahorra ~5 GB y
+  ~30 min). Validado en vivo: el shell Tauri linkea sin tocar `vcvars` (rustc resuelve el
+  toolset vía `vswhere`). El README pasa a decir «Build Tools 2019 **o** 2022», que es la
+  verdad medida, en vez de exigir la versión más nueva por costumbre.
+- **Rust: instalación estándar en C:, no en el disco con más espacio.** C: quedó con 14.47 GB
+  tras la limpieza del operador y es el **único SSD** (NVMe); D:/E: son particiones del mismo
+  HDD SATA. Con `lto = true` + `codegen-units = 1` el build es I/O-intensivo: compilar en HDD
+  costaría varias veces más. Se instaló `rustup` user-scope (sin admin) con
+  `--profile minimal` y host `x86_64-pc-windows-msvc` → **Rust 1.97.1**. Integridad del
+  `rustup-init.exe` verificada contra el SHA256 oficial de `static.rust-lang.org` (no trae
+  firma Authenticode, es lo normal en rustup).
+- **El `Cargo.lock` NO se toca.** La nota «correr `cargo update` al instalar» del `Cargo.toml`
+  se resuelve CONFIRMANDO que el lock existente resuelve en Windows (compila en 7m24s), no
+  regenerándolo: el lock es el contrato compartido con Linux y actualizarlo divergiría las dos
+  plataformas sin necesidad. La nota queda como deuda de mantenimiento, no de este paquete.
+- **`scripts/installer.ps1` es el espejo de `_installer-build`, no un camino nuevo**: mismo
+  guard «una generación publicada NUNCA se pisa», mismo `bundle.py` (mismo sello RF-231),
+  `Get-FileHash` en lugar de `sha256sum`, y **sin dev-sync** (en Windows no existe el override
+  `~/.local/bin/arnesia` — DA-9: siempre el sidecar empaquetado). No bumpea: equivale a
+  `make installer-actual`; el bump sigue siendo `bump.sh` en Linux (`bump.py` = deuda abierta).
+- **CI `tauri-windows` solo en push a `main`**, no en cada PR: el bundle tarda decenas de
+  minutos. El gate barato de compilación Windows sigue siendo `go-windows` (build+vet+tests
+  de la superficie portada), que sí corre siempre.
 
 ## CW-D5 · Suite de tests en Windows: superficie portada verde, resto = DEUDA VISIBLE
 
