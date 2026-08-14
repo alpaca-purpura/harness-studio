@@ -1,5 +1,10 @@
 package selfupdate
 
+// updater_test.go — casos VÁLIDOS EN AMBOS OS (split 2026-08-13-compilacion-windows):
+// los fixtures por-OS (stubTool, aislarHome, stubBundle*) viven en stubs_{unix,windows}_test.go
+// y los casos cuya semántica solo existe en un OS (bit de ejecución, chmod 0555,
+// instalar con rename/degradación) en updater_{unix,windows}_test.go.
+
 import (
 	"context"
 	"os"
@@ -12,7 +17,7 @@ import (
 )
 
 // escribe es os.WriteFile con el fallo cortando el test — los fixtures jamás fallan
-// en silencio. El modo lo decide el caso (los stubs de bundle.sh DEBEN ser ejecutables).
+// en silencio. El modo lo decide el caso (los stubs de bundle DEBEN ser ejecutables).
 func escribe(t *testing.T, path string, contenido string, modo os.FileMode) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
@@ -23,16 +28,16 @@ func escribe(t *testing.T, path string, contenido string, modo os.FileMode) {
 	}
 }
 
-// repoFake arma un árbol mínimo que pasa Verificar: go.mod del módulo esperado +
-// scripts/bundle.sh (el stub que se le pase, o uno vacío OK).
+// repoFake arma un árbol mínimo que pasa Verificar: go.mod del módulo esperado + el
+// script de bundle del OS (el stub que se le pase, o el noop OK).
 func repoFake(t *testing.T, bundleStub string) string {
 	t.Helper()
 	dir := t.TempDir()
 	escribe(t, filepath.Join(dir, "go.mod"), "module github.com/alpacapurpura/arnesia\n\ngo 1.23.0\n", 0o600)
 	if bundleStub == "" {
-		bundleStub = "#!/usr/bin/env bash\nexit 0\n"
+		bundleStub = stubBundleNoop()
 	}
-	escribe(t, filepath.Join(dir, "scripts", "bundle.sh"), bundleStub, 0o755)
+	escribe(t, filepath.Join(dir, scriptDeBundle()), bundleStub, 0o755)
 	return dir
 }
 
@@ -54,17 +59,6 @@ func leeExe(t *testing.T, path string) string {
 	return string(b)
 }
 
-func soloLectura(t *testing.T, dir string) {
-	t.Helper()
-	if os.Geteuid() == 0 {
-		t.Skip("root escribe en cualquier lado — el caso no-escribible no aplica")
-	}
-	if err := os.Chmod(dir, 0o555); err != nil { //nolint:gosec // G302: el 0555 ES el caso probado (dir no escribible).
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) }) //nolint:gosec // G302: restaura el TempDir del test para su limpieza.
-}
-
 func TestVersionHonesta(t *testing.T) {
 	exe := exeFake(t, "binario corriente")
 	u := &Updater{repo: "", exePath: exe}
@@ -80,15 +74,6 @@ func TestVersionHonesta(t *testing.T) {
 	}
 	if v.Huella == "" {
 		t.Fatal("Huella jamás vacía — sin VCS info debe decir 'dev'")
-	}
-}
-
-func TestVersionNoEscribible(t *testing.T) {
-	exe := exeFake(t, "binario corriente")
-	soloLectura(t, filepath.Dir(exe))
-	u := &Updater{exePath: exe}
-	if u.Version().Escribible {
-		t.Fatal("un dir 0555 debe reportar Escribible=false")
 	}
 }
 
@@ -115,20 +100,21 @@ func TestVerificar(t *testing.T) {
 			t.Fatal("un módulo ajeno debe rechazarse (decisión #4c)")
 		}
 	})
-	t.Run("sin bundle.sh", func(t *testing.T) {
+	t.Run("sin script de bundle", func(t *testing.T) {
 		dir := t.TempDir()
 		escribe(t, filepath.Join(dir, "go.mod"), "module github.com/alpacapurpura/arnesia\n", 0o600)
 		u := &Updater{repo: dir}
 		if _, err := u.Verificar(ctx); err == nil {
-			t.Fatal("sin scripts/bundle.sh debe fallar")
+			t.Fatalf("sin %s debe fallar", scriptDeBundle())
 		}
 	})
 	t.Run("repo completo", func(t *testing.T) {
-		// Toolchain hermética: el runner de CI del job go NO trae pnpm — un stub
-		// ejecutable en un dir prepended a PATH hace al test independiente del host.
+		// Toolchain hermética: el runner de CI NO trae pnpm — stubs que lookPathEn
+		// resuelve (por bit en unix, por PATHEXT en windows) en un dir prepended a PATH
+		// hacen al test independiente del host.
 		stubs := t.TempDir()
-		for _, tool := range []string{"go", "pnpm", "bash"} {
-			escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
+		for _, tool := range toolchainRequerida() {
+			stubTool(t, stubs, tool)
 		}
 		t.Setenv("PATH", stubs+string(os.PathListSeparator)+os.Getenv("PATH"))
 		u := &Updater{repo: repoFake(t, "")}
@@ -141,57 +127,14 @@ func TestVerificar(t *testing.T) {
 		}
 	})
 	t.Run("toolchain incompleta", func(t *testing.T) {
-		// PATH SIN pnpm/go/bash → Verificar corta honesto (feature de operador-dev).
-		// HOME aislado: si esto corre en la máquina de un operador con go instalado en
-		// ~/.local/go/bin (fallback real de pathAumentado), el caso negativo debe
-		// seguir fallando — no puede depender de qué toolchain tenga el host.
+		// PATH sin toolchain → Verificar corta honesto (feature de operador-dev).
+		// Home/env aislados: los fallbacks reales de candidatosPATHOS del host no
+		// pueden decidir el caso negativo.
 		t.Setenv("PATH", t.TempDir())
-		t.Setenv("HOME", t.TempDir())
+		aislarHome(t)
 		u := &Updater{repo: repoFake(t, "")}
 		if _, err := u.Verificar(ctx); err == nil {
 			t.Fatal("sin toolchain en PATH debe fallar honesto")
-		}
-	})
-	t.Run("toolchain resuelta por PATH aumentado (fallback go.dev)", func(t *testing.T) {
-		// Bug real (no de staleness): un proceso lanzado desde el launcher gráfico NO
-		// hereda ~/.profile/~/.bashrc — go queda fuera de PATH aunque cualquier
-		// terminal lo vea. pathAumentado() debe encontrarlo igual vía la convención
-		// ~/.local/go/bin (ver ~/.profile) sin que el operador reinicie sesión.
-		home := t.TempDir()
-		t.Setenv("HOME", home)
-		golangStub := filepath.Join(home, ".local", "go", "bin", "go")
-		escribe(t, golangStub, "#!/bin/sh\nexit 0\n", 0o755)
-		stubs := t.TempDir()
-		for _, tool := range []string{"pnpm", "bash"} { // go NO va acá: debe venir del fallback.
-			escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
-		}
-		t.Setenv("PATH", stubs)
-		u := &Updater{repo: repoFake(t, "")}
-		if _, err := u.Verificar(ctx); err != nil {
-			t.Fatalf("go en ~/.local/go/bin debe resolverse vía fallback: %v", err)
-		}
-	})
-	t.Run("toolchain resuelta por PATH aumentado (fallback nvm pnpm)", func(t *testing.T) {
-		// Mismo root cause que el caso go de arriba: pnpm instalado vía nvm vive en
-		// ~/.nvm/versions/node/vX.Y.Z/bin, invisible para un proceso lanzado sin
-		// ~/.bashrc. pathAumentado() debe encontrarlo igual, sin symlink "current".
-		home := t.TempDir()
-		t.Setenv("HOME", home)
-		// NVM_DIR manda sobre ~/.nvm (comportamiento correcto de producción) — pinnearlo
-		// al home fake: los runners de GitHub traen nvm SIN versiones con NVM_DIR global
-		// (/home/runner/.nvm), que secuestraba el fallback y el stub nunca se encontraba
-		// (CI rojo 2026-07-17); en dev, un NVM_DIR real con pnpm enmascaraba el caso.
-		t.Setenv("NVM_DIR", filepath.Join(home, ".nvm"))
-		pnpmStub := filepath.Join(home, ".nvm", "versions", "node", "v24.18.0", "bin", "pnpm")
-		escribe(t, pnpmStub, "#!/bin/sh\nexit 0\n", 0o755)
-		stubs := t.TempDir()
-		for _, tool := range []string{"go", "bash"} { // pnpm NO va acá: debe venir del fallback nvm.
-			escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
-		}
-		t.Setenv("PATH", stubs)
-		u := &Updater{repo: repoFake(t, "")}
-		if _, err := u.Verificar(ctx); err != nil {
-			t.Fatalf("pnpm en ~/.nvm/versions/node/*/bin debe resolverse vía fallback: %v", err)
 		}
 	})
 }
@@ -201,8 +144,8 @@ func TestVerificar(t *testing.T) {
 func TestConfigurarRepo(t *testing.T) {
 	ctx := context.Background()
 	stubs := t.TempDir()
-	for _, tool := range []string{"go", "pnpm", "bash"} {
-		escribe(t, filepath.Join(stubs, tool), "#!/bin/sh\nexit 0\n", 0o755)
+	for _, tool := range toolchainRequerida() {
+		stubTool(t, stubs, tool)
 	}
 	t.Setenv("PATH", stubs+string(os.PathListSeparator)+os.Getenv("PATH"))
 
@@ -247,44 +190,18 @@ func TestConfigurarRepo(t *testing.T) {
 }
 
 func TestBuildStubOK(t *testing.T) {
-	repo := repoFake(t, "#!/usr/bin/env bash\nmkdir -p bin\necho compilado > bin/arnesia\n")
+	repo := repoFake(t, stubBundleOK())
 	u := &Updater{repo: repo}
 	if _, err := u.Build(context.Background()); err != nil {
 		t.Fatalf("stub OK debe pasar: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(repo, "bin", "arnesia")); err != nil {
-		t.Fatalf("el stub debió dejar bin/arnesia: %v", err)
-	}
-}
-
-func TestBuildVePathAumentado(t *testing.T) {
-	// Regresión del bug real: validarRepo podía encontrar go vía fallback pero Build()
-	// heredaba el PATH SIN aumentar (cmd.Env nil = os.Environ() tal cual) — bundle.sh
-	// fallaba igual adentro. bundle.sh acá resuelve "go" vía `command -v`, que solo
-	// existe en el fallback ~/.local/go/bin, nunca en el PATH base del test.
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	escribe(t, filepath.Join(home, ".local", "go", "bin", "go"), "#!/bin/sh\nexit 0\n", 0o755)
-	// base PATH fiel al bug real: bash SÍ resuelve (systemd/session lo trae de
-	// /usr/bin — por eso el error reportado era solo sobre "go"), pero go NO — solo
-	// el fallback ~/.local/go/bin lo resuelve. bashDir real (no un stub): así el
-	// bash que corre bundle.sh es el de verdad, no otra capa de fixture.
-	bashReal, err := exec.LookPath("bash")
-	if err != nil {
-		t.Skip("host sin bash resoluble — no puedo probar el PATH aumentado")
-	}
-	t.Setenv("PATH", filepath.Dir(bashReal))
-
-	repo := repoFake(t, "#!/usr/bin/env bash\ncommand -v go >/dev/null || { echo 'go no resuelto' >&2; exit 1; }\nmkdir -p bin\necho compilado > bin/arnesia\n")
-	u := &Updater{repo: repo}
-	detalle, err := u.Build(context.Background())
-	if err != nil {
-		t.Fatalf("Build debe heredar el PATH aumentado (go vía fallback): %v — detalle: %s", err, detalle)
+	if _, err := os.Stat(filepath.Join(repo, "bin", nombreBinNuevo())); err != nil {
+		t.Fatalf("el stub debió dejar bin/%s: %v", nombreBinNuevo(), err)
 	}
 }
 
 func TestBuildFallaConStderr(t *testing.T) {
-	repo := repoFake(t, "#!/usr/bin/env bash\necho 'error TS2345: tipo roto' >&2\nexit 1\n")
+	repo := repoFake(t, stubBundleFalla())
 	u := &Updater{repo: repo}
 	detalle, err := u.Build(context.Background())
 	if err == nil {
@@ -296,7 +213,7 @@ func TestBuildFallaConStderr(t *testing.T) {
 }
 
 func TestBuildCancelable(t *testing.T) {
-	repo := repoFake(t, "#!/usr/bin/env bash\nsleep 10\n")
+	repo := repoFake(t, stubBundleCuelga())
 	u := &Updater{repo: repo}
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
 	defer cancel()
@@ -310,14 +227,14 @@ func TestBuildCancelable(t *testing.T) {
 }
 
 // binarioGoTest compila un main trivial FUERA del repo (sin VCS → huella "dev") y lo
-// deja como repo/bin/arnesia — un binario Go REAL cuyo buildinfo se puede leer sin
+// deja como repo/bin/<binario> — un binario Go REAL cuyo buildinfo se puede leer sin
 // ejecutarlo (RF-104 ③).
 func binarioGoTest(ctx context.Context, t *testing.T, repo string) {
 	t.Helper()
 	src := t.TempDir()
 	escribe(t, filepath.Join(src, "go.mod"), "module tiny\n\ngo 1.23.0\n", 0o600)
 	escribe(t, filepath.Join(src, "main.go"), "package main\n\nfunc main() {}\n", 0o600)
-	out := filepath.Join(repo, "bin", "arnesia")
+	out := filepath.Join(repo, "bin", nombreBinNuevo())
 	if err := os.MkdirAll(filepath.Dir(out), 0o750); err != nil {
 		t.Fatal(err)
 	}
@@ -334,20 +251,12 @@ func TestVerificarBinario(t *testing.T) {
 	t.Run("inexistente", func(t *testing.T) {
 		u := &Updater{repo: t.TempDir()}
 		if _, _, err := u.VerificarBinario(ctx); err == nil {
-			t.Fatal("sin bin/arnesia debe fallar honesto")
-		}
-	})
-	t.Run("no ejecutable", func(t *testing.T) {
-		repo := t.TempDir()
-		escribe(t, filepath.Join(repo, "bin", "arnesia"), "x", 0o600)
-		u := &Updater{repo: repo}
-		if _, _, err := u.VerificarBinario(ctx); err == nil {
-			t.Fatal("un archivo sin bit de ejecución debe rechazarse")
+			t.Fatal("sin el binario nuevo debe fallar honesto")
 		}
 	})
 	t.Run("sin buildinfo", func(t *testing.T) {
 		repo := t.TempDir()
-		escribe(t, filepath.Join(repo, "bin", "arnesia"), "#!/bin/sh\n", 0o755)
+		escribe(t, filepath.Join(repo, "bin", nombreBinNuevo()), "#!/bin/sh\n", 0o755)
 		u := &Updater{repo: repo}
 		if _, _, err := u.VerificarBinario(ctx); err == nil {
 			t.Fatal("un no-binario-Go debe rechazarse (buildinfo ilegible)")
@@ -370,54 +279,10 @@ func TestVerificarBinario(t *testing.T) {
 	})
 }
 
-func TestInstalarAtomico(t *testing.T) {
-	repo := t.TempDir()
-	escribe(t, filepath.Join(repo, "bin", "arnesia"), "NUEVO", 0o755)
-	exe := exeFake(t, "VIEJO")
-	u := &Updater{repo: repo, exePath: exe}
-
-	if _, err := u.Instalar(context.Background()); err != nil {
-		t.Fatalf("instalar debe pasar: %v", err)
-	}
-	if got := leeExe(t, exe); got != "NUEVO" {
-		t.Fatalf("el ejecutable debe ser el binario nuevo, tengo %q", got)
-	}
-	st, err := os.Stat(exe)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Mode().Perm() != 0o755 {
-		t.Fatalf("modo = %v, quiero 0755", st.Mode().Perm())
-	}
-	// Sin residuos: el tmp del write-tmp→rename no queda tirado.
-	restos, err := filepath.Glob(filepath.Join(filepath.Dir(exe), ".arnesia-nuevo-*"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(restos) != 0 {
-		t.Fatalf("quedaron tmp sin limpiar: %v", restos)
-	}
-}
-
-func TestInstalarNoEscribibleDejaIntacto(t *testing.T) {
-	repo := t.TempDir()
-	escribe(t, filepath.Join(repo, "bin", "arnesia"), "NUEVO", 0o755)
-	exe := exeFake(t, "VIEJO")
-	soloLectura(t, filepath.Dir(exe))
-	u := &Updater{repo: repo, exePath: exe}
-
-	if _, err := u.Instalar(context.Background()); err == nil {
-		t.Fatal("un dir no escribible debe fallar honesto")
-	}
-	if got := leeExe(t, exe); got != "VIEJO" {
-		t.Fatalf("el binario instalado debe quedar INTACTO tras el fallo, tengo %q", got)
-	}
-}
-
 func TestInstalarSinBinarioNuevo(t *testing.T) {
 	u := &Updater{repo: t.TempDir(), exePath: exeFake(t, "VIEJO")}
 	if _, err := u.Instalar(context.Background()); err == nil {
-		t.Fatal("sin bin/arnesia el paso instalar debe fallar")
+		t.Fatal("sin el binario nuevo el paso instalar debe fallar")
 	}
 }
 

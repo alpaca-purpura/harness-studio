@@ -108,7 +108,7 @@ func TestAvisaCuandoElRepoTieneUnBuildSinInstalar(t *testing.T) {
 	archivoConMtime(t, exe, sello.Add(-time.Hour)) // el instalado ES este build
 
 	repo := filepath.Join(dir, "repo")
-	archivoConMtime(t, filepath.Join(repo, "bin", "arnesia"), sello.Add(3*time.Hour))
+	archivoConMtime(t, filepath.Join(repo, "bin", nombreBinNuevo()), sello.Add(3*time.Hour))
 
 	aviso := avisoDeBuildViejo(exe, repo)
 	if !strings.Contains(aviso, "sin instalar") || !strings.Contains(aviso, "dev-sync") {

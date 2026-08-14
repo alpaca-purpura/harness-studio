@@ -3,6 +3,7 @@ package selfupdate
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -125,7 +126,7 @@ func avisoDeBuildViejo(exePath, repo string) string {
 	if repo == "" {
 		return ""
 	}
-	binRepo := repo + "/bin/arnesia"
+	binRepo := filepath.Join(repo, "bin", nombreBinNuevo())
 	if nuevo, cuando := masNuevoQueEsteBuild(binRepo); nuevo {
 		return fmt.Sprintf("hay un build más nuevo sin instalar (%s en %s) — corré `make dev-sync`",
 			cuando, binRepo)

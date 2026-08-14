@@ -11,8 +11,11 @@ verb: mejorar
 pointers:
   - "internal/usecase/selfupdate_service.go#Actualizar"
   - "internal/adapters/selfupdate/updater.go#Build"
-  - "internal/adapters/selfupdate/updater.go#Instalar"
-  - "internal/adapters/selfupdate/updater.go#Reiniciar"
+  - "internal/adapters/selfupdate/instalar_unix.go#Instalar"
+  - "internal/adapters/selfupdate/instalar_windows.go#Instalar"
+  - "internal/adapters/selfupdate/instalar_unix.go#Reiniciar"
+  - "internal/adapters/selfupdate/os_unix.go#comandoBundle"
+  - "internal/adapters/selfupdate/os_windows.go#comandoBundle"
   - "internal/usecase/selfupdate_service.go#ConfigurarRepo"
   - "internal/adapters/selfupdate/updater.go#ConfigurarRepo"
   - "internal/adapters/selfupdate/repo_store.go#RepoStore"
@@ -22,6 +25,8 @@ pointers:
 valida:
   - "internal/usecase/selfupdate_service_test.go"
   - "updater_test.go"
+  - "updater_unix_test.go"
+  - "updater_windows_test.go"
   - "repo_store_test.go"
   - "identidad_test.go"
 scenarios:
@@ -31,6 +36,7 @@ scenarios:
   - "RF-231: GET /api/version reporta el identificador COMPLETO del build (semver + sello de compilación AAMMDDHHMM), no solo la huella del commit — dos compilaciones del mismo árbol comparten commit y no comparten sello"
   - "RF-231: si en disco hay un binario compilado DESPUÉS que el que corre (el propio ejecutable tras un dev-sync, o bin/arnesia del repo), la respuesta lo avisa en una línea accionable; si el que corre es el último, no avisa nada"
   - "RF-231: un binario sin identidad inyectada (CI, go run) reporta «dev» — jamás un número inventado"
+  - "Windows (2026-08-13, decisión ① compilacion-windows): el paso instalar DEGRADA HONESTO — deja el binario nuevo staged en arnesia-nuevo.exe junto al instalado y el reporte muestra instalar=fallo con la acción concreta (un .exe en ejecución no se puede reemplazar); build/verificar-binario/ya-al-día funcionan igual que en unix; el bundle corre vía scripts/bundle.py (python, mismo sello RF-231)"
 business_rules:
   - "RF-108/109 (bugfix fix-repo-self-update, 2026-07-13): configurar el repo es una acción SEPARADA de dispararlo — POST /api/self-update sigue ignorando el body por completo (RF-106 intacto)"
   - "RF-231 (2026-07-26): el sello de build se inyecta en scripts/bundle.sh y NO en el Makefile, porque el self-update corre ese mismo script — inyectarlo en el Makefile haría que la app, al actualizarse a sí misma, se reportara como «dev» y perdiera su identidad en el acto"
@@ -38,6 +44,12 @@ related_capabilities:
   depends_on: []
   enables: []
 source_ref: "docs/product/ledger/HS-18.md (barrido 7-subagentes, CAP-60)"
+change_log:
+  - story_id: 2026-08-13-compilacion-windows
+    date: 2026-08-13
+    type: extend
+    summary: "Split por-OS del adapter (os_{unix,windows}.go + instalar_{unix,windows}.go): GOOS=windows compila; unix conserva rename atómico + re-exec VERBATIM; Windows degrada honesto (staged arnesia-nuevo.exe + instalar=fallo accionable, reiniciar honesto); Build() windows corre scripts/bundle.py --solo-daemon; lookPathEn con PATHEXT; esEjecutable por extensión (NTFS sin bit 0o111)."
+    merge_sha: null
 ---
 
 # Self-update sin sudo (5 pasos atómico)
