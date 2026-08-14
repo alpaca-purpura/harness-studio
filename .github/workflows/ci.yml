@@ -38,6 +38,25 @@ jobs:
         # (procedencia, no cifra). Es GENERATE-ONLY en modo --check: no escribe el árbol.
         run: bash scripts/estado.sh --check
 
+  go-windows:
+    # Port Windows (paquete 2026-08-13-compilacion-windows): build+vet de TODO el árbol
+    # nativo en windows — previene la regresión que rompía GOOS=windows (selfupdate con
+    # syscalls unix sin build tags). Tests: SOLO la superficie portada; la suite COMPLETA
+    # en Windows es deuda registrada (fixtures con shims sh, bits de ejecución y JSON que
+    # embebe backslash) — ver docs/product/stories/2026-08-13-compilacion-windows/.
+    # Los gates de doctrina (golangci/arch-lint/estado-drift) viven en el job `go` ubuntu.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: build
+        run: go build ./...
+      - name: vet
+        run: go vet ./...
+      - name: test (superficie portada)
+        run: go test ./internal/adapters/selfupdate/ ./cmd/... ./internal/adapters/telemetria/store/ -count=1
+
   ts:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web } }
