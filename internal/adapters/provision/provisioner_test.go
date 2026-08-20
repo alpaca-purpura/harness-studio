@@ -30,6 +30,7 @@ func TestProvisionMaterializesAndIsIdempotent(t *testing.T) {
 	// La Injection apunta a los tres cuerpos materializados.
 	wantFiles := []string{
 		filepath.Join(base, "kit", ".claude-plugin", "plugin.json"),
+		filepath.Join(base, "kit", "skills", "forjar-arnes", "SKILL.md"),
 		filepath.Join(base, "kit", "skills", "forjar-caja", "SKILL.md"),
 		filepath.Join(base, "kit", "skills", "auditar-arnes", "SKILL.md"),
 		inj.SystemPromptFile, // doctrine.md suelto (--append-system-prompt-file).
