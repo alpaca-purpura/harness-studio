@@ -74,3 +74,4 @@ business_rules:
 related_capabilities:
   depends_on:
     - arnesia.forja.sembrar-semilla
+---
