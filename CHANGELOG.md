@@ -35,6 +35,44 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 
 ### Seguridad
 
+## [0.8.1] — 2026-08-20
+
+### Agregado
+- Eval repetible de la skill forjar-arnes en evals/forjar-arnes/: replica la inyeccion del provisioner, lanza claude -p con los flags reales del spawn y verifica que la sesion abra los nodos del estandar, los declare y deje un manifiesto valido. Incluye el caso baseline sin el kit (el delta con/sin que pide L1.6).
+- Carriles del CIL: docs/process/harness-backlog.md (L1, proceso y herramientas), docs/process/tech-debt.md (L3, codigo e infra) y docs/learnings/ (L2). Indexan la deuda que ya vivia en BACKLOG.md en prosa; el cockpit ahora la cuenta y la pinta en las vistas Harness y Learnings, que estaban apagadas por falta de fuente.
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+- forjar-arnes no decia la FORMA del manifiesto y la sesion la adivinaba: fases como objetos, marketplace como objeto y una clave extra en cada transicion (9 errores de schema). Ahora la skill trae el esqueleto exacto del arnes.l0.json, validado contra graph.l0.schema.json.
+- forjar-arnes no decia que un arnes nace en forma-plugin, asi que la forja se frenaba a pedir autorizacion para escribir .claude/settings.json (ruta protegida por Claude Code). Ahora declara el layout completo y manda la Guardia a hooks/hooks.json.
+
+### Seguridad
+
+## [0.8.0] — 2026-08-19
+
+### Agregado
+- Cockpit del proceso: vendored en tools/cockpit (puerto 4300, cockpit.ps1 build|run|stop|status). Lee del filesystem las 157 capabilities y las 41 stories del repo y las pinta como board, roadmap y proceso.
+- Skill forjar-arnes en el kit: crea un arnes COMPLETO (manifiesto arnes.l0.json con rol x proceso, fases y spine, bandas Guardia y Base, y las cajas de cada fase). Hasta ahora solo existia forjar-caja, que asume el arnes ya creado.
+- scripts/backfill_checkpoints.py: siembra el checkpoint.md que le faltaba a 37 de 41 paquetes de trabajo (dry-run por defecto; jamas fabrica una firma) y sincroniza la pertenencia a release.
+
+### Cambiado
+- Las skills del kit abren el nodo del estandar ANTES de escribir, no al verificar: el arbol docs/architecture/knowledge viajaba a cada sesion via --add-dir y quedaba inerte porque ninguna skill lo leia. forjar-caja lo abre en el paso 1 (era el 8), auditar-arnes abre el nodo de CADA clase presente (eran solo skills) y ambas declaran cuales abrieron.
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+- El cockpit ya no inventa datos al leer una capability: 3 caps del repo son documentos YAML sin delimitador de cierre y el reader devolvia defaults fabricados (capability_id vacio, status 'live' que ni siquiera pertenece al enum de este repo). Ademas se normalizaron los 3 archivos a la forma canonica.
+- Portabilidad Windows del cockpit: el file-API rechazaba TODO path (filepath.Clean traduce a backslash y el whitelist parte por barra), un absoluto POSIX pasaba el guardia de traversal (filepath.IsAbs no lo reconoce en Windows), el watcher clasificaba mal todo cambio, y la cadena de editores era Linux pura.
+
+### Seguridad
+
 ## [0.7.1] — 2026-08-14
 
 ### Agregado
