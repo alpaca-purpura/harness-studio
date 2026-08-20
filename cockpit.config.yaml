@@ -1,0 +1,36 @@
+# Cockpit · navegación del workspace harness-studio.
+#
+# `nav` define QUÉ tabs muestra el sidebar y en qué orden. Quitar una línea la oculta;
+# borrar el archivo vuelve al default (todas). IDs disponibles: roadmap · evolucion ·
+# board · map · drift · delivery · torre · learnings · harness · proceso.
+#
+# Se listan SOLO las tabs que este repo puede alimentar con datos reales — una tab
+# vacía no es neutral: hace parecer roto lo que simplemente no aplica (principio 10,
+# el hueco se declara, no se disimula).
+nav:
+  # las 41 stories de docs/product/stories/ por estado del spine
+  - board
+  # docs/product/releases/*.yaml
+  - roadmap
+  # docs/learnings/ + tooling/ — el carril L2 del CIL
+  - learnings
+  # docs/process/harness-backlog.md (L1) + tech-debt.md (L3)
+  - harness
+  # el descriptor de proceso embebido (estados + dueños)
+  - proceso
+
+# Ocultas a propósito, cada una con su motivo — verificado endpoint por endpoint, no
+# supuesto:
+#   map       — necesita docs/architecture/SYSTEM-MAP.yaml (zonas→cajas); acá el mapa del
+#               arnés lo pinta la SPA de ArnesIA en :4200, no el cockpit.
+#   drift     — necesita _status-computed.json / _bidirectional-validation.json,
+#               artefactos del tooling de vitalia que este repo no genera (su doctor es
+#               scripts/cap_doctor.py).
+#   evolucion, delivery, torre — sin fuente de datos en este workspace.
+#
+# `learnings` y `harness` estuvieron apagadas hasta 2026-08-19 porque sus carriles no
+# existían acá. Se abrieron con la deuda que YA estaba registrada en docs/product/BACKLOG.md
+# — indexada, no duplicada.
+#
+# Las capabilities NO son una tab: se navegan desde el board (cada story enlaza su
+# cap_target) y por /api/capabilities. Las 157 se sirven completas.

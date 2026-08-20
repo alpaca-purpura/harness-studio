@@ -1,0 +1,46 @@
+/**
+ * Tooltips por campo del checkpoint.md — para que un dev nuevo entienda cada
+ * propiedad sin capacitación. Consumido por CheckpointTab (frontmatter completo)
+ * y cualquier vista que renderice campos del story.
+ */
+
+export const FIELD_TOOLTIPS: Record<string, string> = {
+  story_id: 'Identificador único de la story (kebab-case). Es el nombre del folder en docs/product/stories/.',
+  state: 'Estado en el ciclo SDD: idea → refining → refined → ready → developing → developed → reviewing → done (+ parked/dropped fuera del ciclo).',
+  phase: 'Sub-fase dentro de developed: AWAIT_CHRIS_VERIFY = esperando la verificación live del operador (gate G).',
+  release: 'Release al que pertenece la story (ej. F2). Se asigna arrastrando en el Roadmap mientras está en idea/refining/refined.',
+  cap_target: 'Capability que esta story crea o extiende. Es el "hogar" permanente de la funcionalidad en el mapa del producto.',
+  cap_change_type: 'Relación con la capability: new = crea una · extend = amplía existente · fix = corrige · derive = deriva de otra story.',
+  parent_story: 'Story madre de la que esta deriva (si aplica).',
+  type: 'Naturaleza de la story: ui (pantallas) · service (backend) · agentic (agentes) · bugfix (lite, repro-first) · tech.',
+  owner: 'Caja del mapa del producto (agente) dueña de la funcionalidad.',
+  module: 'Módulo de código principal que toca la story.',
+  priority: 'Prioridad relativa dentro de su estado (high/medium/low).',
+  autonomous_mode: 'true = salta la pausa del gate G y corre directo al auditor. false (default) = el build pausa y espera tu verificación live.',
+  ratified_by_chris: 'true = el operador ratificó el plan/spec de esta story.',
+  reconciled: 'Gate R: /pm alineó spec/arch/validators/cap con lo realmente construido. El auditor NO empieza sin esto en true.',
+  dod_live_verified: 'Definition of Done: la acción real fue ejercida contra la app corriendo + se leyó el log + se confirmó el efecto. Verde de tests NO basta.',
+  dod_env: 'Entorno donde se ejerció la verificación live (ej. localhost:3002 o dev-app del sistema).',
+  dod_evidence: 'Lista de acciones reales ejercidas con su efecto observado y el log del backend.',
+  verified_at: 'Fecha de la última verificación live.',
+  dod_verified_at: 'Fecha de la última verificación live (DoD).',
+  demo_required: 'true = la story tiene UI y el operador debe ejercerla en vivo antes de cerrar (gate G).',
+  chris_verify: 'Gate G: el operador ejerce el kit live ANTES del auditor y firma el signoff (SATISFIED / SATISFIED_WITH_FOLLOWUPS / REJECTED).',
+  defer_audit: 'true = excepción ratificada para posponer la auditoría y poder arrancar otra story del módulo.',
+  defer_audit_reason: 'Razón documentada del defer_audit.',
+  parked_reason: 'Por qué se pausó la story. Contexto para cuando se reactive.',
+  dropped_reason: 'Por qué se descartó (estado terminal).',
+  blocked_reason: 'Qué bloquea el avance de la story.',
+  parallel_safe: 'true = puede construirse en paralelo con otras stories (módulos distintos, sin conflicto).',
+  spawned_at: 'Cuándo se creó la story.',
+  spawned_by: 'Quién/qué la creó (cockpit, /pm, from-done…).',
+  last_artifact: 'Último artefacto producido (qué archivo tocó el último paso).',
+  last_modified: 'Última modificación del checkpoint.',
+  next_action: 'El siguiente paso concreto: qué skill invocar o qué decisión falta.',
+  audit_iterations: 'Cuántas vueltas de fix-loop lleva con el auditor (cap 2).',
+  repro_evidence: 'Bugfix: evidencia de reproducción (local o traza) que ancla el diagnóstico. Sin esto no se construye el fix.',
+  goal: 'Qué busca lograr la story en una frase.',
+  anti: 'Anti-goal: qué NO debe hacer / dónde no meterse.',
+  reuse: 'Qué código/patrón existente debe reutilizar (anti-duplicación).',
+  decisions: 'Decisiones ratificadas por el operador que el build debe respetar.',
+};
