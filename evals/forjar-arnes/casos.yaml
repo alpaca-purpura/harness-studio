@@ -1,0 +1,136 @@
+# Casos del eval de `forjar-arnes`.
+#
+# Cada caso declara qué se le pide a la sesión y qué tiene que haber pasado. Los asserts
+# son los del contrato de la skill, no una lista de deseos: si uno falla, o la skill no
+# dice lo que debería, o el modelo no la está siguiendo — las dos cosas son hallazgos.
+#
+# `con_kit: false` corre el MISMO prompt sin --plugin-dir. Es el delta con/sin que pide
+# L1.6: sin el kit no hay skill, no se abren nodos y no hay contrato. Sirve para
+# demostrar que la diferencia la hace el kit y no el modelo por su cuenta.
+
+casos:
+  - id: crear-desde-cero
+    descripcion: >
+      El caso central: un directorio vacío y el pedido de armar un arnés. Debe invocar
+      forjar-arnes, ABRIR los nodos del estándar y DECLARARLO, y dejar un manifiesto válido.
+
+      El prompt entrega TODO lo que el grill del paso 2 pediría —incluido `reporta_a`, que
+      es requerido por el schema— a propósito. La primera versión lo omitía y la sesión se
+      frenó a preguntarlo, que es la conducta CORRECTA (la doctrina prohíbe inventar). Una
+      sesión `-p` es de un solo turno: si el caso esconde un dato obligatorio, mide la
+      interactividad de la skill, no lo que dice medir.
+    con_kit: true
+    semilla: {}
+    prompt: |
+      Necesito un arnés para el rol «Soporte técnico N1» sobre el proceso de atención de
+      tickets. Te doy todo cerrado para que no tengas que preguntar nada:
+
+      - rol: Soporte técnico N1
+      - proceso: atención de tickets de soporte
+      - reporta_a: "Coordinador de soporte"
+      - empresa: acme
+      - NO se publica en marketplace
+      - fases: triage, resolucion, cierre
+      - estados: nuevo, triangulado, resuelto, escalado, cerrado
+      - inicial: nuevo · terminal: cerrado
+      - transiciones: nuevo→triangulado, triangulado→resuelto, triangulado→escalado,
+        resuelto→cerrado, escalado→cerrado
+
+      Armámelo completo en este directorio. Empezá por el manifiesto.
+    espera:
+      invoca: forjar-arnes
+      lee_knowhow: true
+      declara_nodos: true
+      escribe_manifiesto: true
+      spine_coherente: true
+
+  - id: deriva-a-forjar-caja
+    descripcion: >
+      Con un arnés YA creado, pedir una caja no es trabajo de forjar-arnes. La descripción
+      de la skill lo dice explícito («para AGREGAR una caja a un arnés que ya existe, usa
+      forjar-caja»); este caso verifica que ese ruteo funciona.
+    con_kit: true
+    semilla:
+      arnes.l0.json: |
+        {
+          "id": "soporte-n1",
+          "nombre": "Soporte técnico N1",
+          "rol": "Soporte técnico N1",
+          "proceso": "atención de tickets",
+          "reporta_a": null,
+          "fases": ["triage", "resolucion", "cierre"],
+          "spine": {
+            "inicial": "recibido",
+            "terminales": ["cerrado"],
+            "estados": ["recibido", "triangulado", "resuelto", "cerrado"],
+            "transiciones": [
+              { "de": "recibido", "a": "triangulado" },
+              { "de": "triangulado", "a": "resuelto" },
+              { "de": "resuelto", "a": "cerrado" }
+            ]
+          }
+        }
+    prompt: |
+      A este arnés le falta la caja que hace el triage del ticket (recibido -> triangulado).
+      Agregámela.
+    espera:
+      invoca: forjar-caja
+      no_invoca: forjar-arnes
+
+  - id: no-arnesar
+    descripcion: >
+      La doctrina dice que un tramo de puro juicio sin descomposición contratable NO se
+      forja: se registra como `no-arnesar` con su motivo. Un arnés honesto tiene huecos
+      declarados. Este caso verifica que la skill sabe NO construir.
+    con_kit: true
+    semilla: {}
+    prompt: |
+      Quiero un arnés para el proceso de «decidir si despedimos a alguien». Datos:
+
+      - rol: Director general
+      - empresa: acme
+      - reporta_a: null (es raíz)
+      - NO se publica en marketplace
+
+      No hay pasos fijos ni artefactos: es criterio del director según el caso, la persona
+      y el momento de la empresa. No hay nada que verificar ni entregable que pase de una
+      etapa a otra.
+
+      Armámelo, y si algo de esto no se puede arnesar decímelo explícitamente en vez de
+      inventar cajas.
+    espera:
+      invoca: forjar-arnes
+      menciona: ["no-arnesar"]
+
+  - id: baseline-sin-kit
+    descripcion: >
+      El delta que pide L1.6. Mismo prompt que `crear-desde-cero`, con la sesión PELADA:
+      sin plugin, sin doctrina y sin knowhow. Lo que salga de acá es lo que el modelo hace
+      solo, y es la vara contra la que se lee el caso con kit.
+
+      Es `modo: medicion` — NO tiene asserts y nunca rompe la suite. Con la sesión pelada
+      cualquier assert sería tautológico (no puede invocar una skill que no está cargada
+      ni leer un directorio que no se inyectó); lo que aporta es el registro.
+
+      Ojo con «sin kit»: la primera versión quitaba solo `--plugin-dir` y dejaba
+      `doctrine.md`, que NOMBRA a `forjar-arnes`. La sesión intentaba invocar una skill
+      inexistente y el baseline medía un híbrido, no una línea base.
+    con_kit: false
+    modo: medicion
+    semilla: {}
+    prompt: |
+      Necesito un arnés para el rol «Soporte técnico N1» sobre el proceso de atención de
+      tickets. Te doy todo cerrado para que no tengas que preguntar nada:
+
+      - rol: Soporte técnico N1
+      - proceso: atención de tickets de soporte
+      - reporta_a: "Coordinador de soporte"
+      - empresa: acme
+      - NO se publica en marketplace
+      - fases: triage, resolucion, cierre
+      - estados: nuevo, triangulado, resuelto, escalado, cerrado
+      - inicial: nuevo · terminal: cerrado
+      - transiciones: nuevo→triangulado, triangulado→resuelto, triangulado→escalado,
+        resuelto→cerrado, escalado→cerrado
+
+      Armámelo completo en este directorio. Empezá por el manifiesto.
