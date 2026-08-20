@@ -1,0 +1,111 @@
+# GENERADO por tooling/scripts/gen_proceso_descriptor.py — NO editar a mano.
+# Fuente (SSoT): products/kit/core-harness/process/sdd-default.yaml — el kit shipea la
+# instancia (I-77); DevHub la embebe (go:embed) y gates.go deriva sus tablas de aquí.
+# SPEC: products/devhub/specs/proceso-descriptor.md (RN-27..RN-34).
+
+# sdd-default.yaml — el ciclo SDD de 10 estados COMO DATO (instancia 1 del descriptor
+# de proceso — contrato L0: process-descriptor.schema.yaml en la fábrica; I-77).
+#
+# SSoT de esta instancia. Viaja EN el kit (la superficie process/ pasa de prosa a dato)
+# y se versiona con su CHANGELOG. Las consolas (DevHub) consumen un espejo GENERADO por
+# la fábrica — no leas este archivo en runtime desde fuera del kit.
+#
+# Round-trip: esta instancia reproduce EXACTO el comportamiento del motor pre-F4
+# (gates.go de DevHub) — mismos estados, mismas transiciones de operador, mismos dueños.
+# Relación con ticket-states.md: aquella es la máquina a nivel TICKET (unidad dentro de
+# una story); esta es la de STORY (los 10 estados macro). No confundirlas.
+
+descriptor:
+  id: sdd-default
+  nombre: Ciclo SDD (default del kit)
+  version: 2   # v2 (F6): verbos CDEvents + nombres de acción + límites WIP
+  descripcion: >
+    Ciclo de vida de una story bajo Spec-Driven Development: de idea a done con
+    refinamiento gateado, construcción TDD y auditoría. La instancia por defecto que
+    shipea el kit — otra empresa u otro puesto = otro descriptor sobre el mismo contrato.
+
+# El ORDEN del array = orden canónico de render. `id` nativo inmutable; `categoria` =
+# la semántica fija del contrato (propuesto·en-progreso·completado·descartado·pausado).
+estados:
+  - { id: idea,       categoria: propuesto,   inicial: true,
+      descripcion: "capturada en el backlog; el operador decide si entra a refinar" }
+  - { id: refining,   categoria: en-progreso, wip: 3,
+      descripcion: "refinamiento en curso (spec en construcción)" }
+  - { id: refined,    categoria: en-progreso, wip: 5,
+      descripcion: "spec cerrada y ratificada" }
+  - { id: ready,      categoria: en-progreso, wip: 5,
+      descripcion: "ready package completo; en cola para construcción" }
+  - { id: developing, categoria: en-progreso, wip: 3,
+      descripcion: "construcción TDD en curso" }
+  - { id: developed,  categoria: en-progreso, wip: 1,
+      descripcion: "validators verdes; espera verificación y auditoría" }
+  - { id: reviewing,  categoria: en-progreso, wip: 1,
+      descripcion: "auditoría en curso" }
+  - { id: done,       categoria: completado,
+      descripcion: "mergeada y entregada" }
+  - { id: parked,     categoria: pausado,
+      descripcion: "pausada con razón explícita; puede volver a idea" }
+  - { id: dropped,    categoria: descartado,
+      descripcion: "descartada con razón explícita; terminal" }
+
+# Operador = las que el motor evalúa (evaluateOperatorTransition). Rol = declarativas en
+# v1: documentan el ciclo feliz y se renderizan; las ejecuta el skill dueño del estado
+# destino. `verbo` (F6/RN-45) = el EVENTO CDEvents "<sujeto>.<predicado>" — NO único
+# (story.parked ocurre desde idea Y desde refining). `nombre` = etiqueta humana de la
+# acción, labels de la consola.
+transiciones:
+  - { de: idea,       a: refining,  ejecutor: operador, verbo: spec.started,      nombre: "Empezar a refinar" }
+  - { de: idea,       a: parked,    ejecutor: operador, verbo: story.parked,      nombre: "Parquear",  requiere_razon: true }
+  - { de: idea,       a: dropped,   ejecutor: operador, verbo: story.dropped,     nombre: "Descartar", requiere_razon: true }
+  - { de: refining,   a: idea,      ejecutor: operador, verbo: story.backlogged,  nombre: "Volver a backlog" }
+  - { de: refining,   a: parked,    ejecutor: operador, verbo: story.parked,      nombre: "Parquear",  requiere_razon: true }
+  - { de: refining,   a: dropped,   ejecutor: operador, verbo: story.dropped,     nombre: "Descartar", requiere_razon: true }
+  - { de: parked,     a: idea,      ejecutor: operador, verbo: story.reactivated, nombre: "Reactivar" }
+  - { de: refining,   a: refined,   ejecutor: rol,      verbo: story.refined }
+  - { de: refined,    a: ready,     ejecutor: rol,      verbo: story.queued }
+  - { de: ready,      a: developing, ejecutor: rol,     verbo: build.started }
+  - { de: developing, a: developed, ejecutor: rol,      verbo: build.finished }
+  - { de: developed,  a: reviewing, ejecutor: rol,      verbo: review.started }
+  - { de: reviewing,  a: done,      ejecutor: rol,      verbo: story.merged }
+
+# El gate ES su checklist (Essence/SEMAT). v1 = solo lo que el motor hace cumplir hoy.
+gates:
+  - id: razon-de-cierre
+    nombre: Razón de cierre
+    momento: [idea→parked, idea→dropped, refining→parked, refining→dropped]
+    autoridad: { rol: operador }
+    checklist:
+      - "razón explícita registrada (mínimo parametros.razon_minima caracteres)"
+  - id: verificacion-operador
+    nombre: Verificación del operador (gate G)
+    momento: developed
+    autoridad: { rol: operador }
+    checklist:
+      - "signoff registrado en el checkpoint (SATISFIED | SATISFIED_WITH_FOLLOWUPS | REJECTED)"
+      - "open_items vaciados o aceptados como follow-ups"
+  - id: merge-gate
+    nombre: Merge del release
+    momento: done
+    autoridad: { rol: pm, arnes: "/pm-{sistema}" }
+    checklist:
+      - "toda story del release en categoría terminal (completado o descartado) — ninguna en vuelo ni pausada"
+
+# Bindings NOMBRADOS (matan el hardcode): estados cuya LLEGADA ejecuta un rol/arnés, no
+# el operador. La consola rinde la nota de owner como "{arnes} ({nota})" unidos por " o ".
+duenos:
+  refined:
+    - { rol: architect, arnes: "/architect",    nota: "cierra spec" }
+    - { rol: pm,        arnes: "/pm-{sistema}", nota: "ratifica" }
+  ready:
+    - { rol: architect, arnes: "/architect",    nota: "ready package completo" }
+  developing:
+    - { rol: dev-team,  arnes: "/dev-team",     nota: "builder spawn" }
+  developed:
+    - { rol: dev-team,  arnes: "/dev-team",     nota: "validators GREEN" }
+  reviewing:
+    - { rol: auditor,   arnes: "/auditor",      nota: "AUTO-HANDOFF desde developed" }
+  done:
+    - { rol: pm,        arnes: "/pm-{sistema}", nota: "Fase F MERGE" }
+
+parametros:
+  razon_minima: 10

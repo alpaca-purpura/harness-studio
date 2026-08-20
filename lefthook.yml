@@ -38,8 +38,9 @@ pre-commit:
       # Mismo patrón que `estado-cifras` (regenera + `git add` explícito, por el gotcha de
       # `stage_fixed`), pero cuesta ~200 ms en vez de 60 s, así que corre siempre que se toque una
       # hoja. No hay gate DURO en CI todavía: acá el enforcement es que se regenere solo.
+      # PY portable: en Windows `python3` es el stub falso de WindowsApps — se sondea ejecutando.
       glob: "docs/product/capabilities/**/*.yaml"
-      run: python3 scripts/cap_doctor.py --index >/dev/null && git add docs/product/capabilities/INDEX.md
+      run: PY=$(python3 -c "print(1)" >/dev/null 2>&1 && echo python3 || echo python); "$PY" scripts/cap_doctor.py --index >/dev/null && git add docs/product/capabilities/INDEX.md
     changelog:
       # El bump de versión exige changelog (VC-D2, paquete versionado-y-changelog-metodologicos).
       # `scripts/bump.sh` ya lo bloquea, pero solo a quien pasa por `make bump-*`: este job agarra

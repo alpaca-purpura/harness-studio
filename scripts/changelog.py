@@ -28,6 +28,13 @@ import pathlib
 import re
 import sys
 
+# Windows: la consola cp1252 no mapea «✓/·/—» y el print del gate crashearía con
+# UnicodeEncodeError — abortando el bump por un carácter de adorno. stdout/stderr a UTF-8
+# SIEMPRE (no-op en unix). Mismo fix que scripts/cap_doctor.py.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8")
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CHANGELOG = ROOT / "CHANGELOG.md"
 

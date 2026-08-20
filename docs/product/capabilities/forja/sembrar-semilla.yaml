@@ -96,3 +96,4 @@ business_rules:
   - "A-D3: `.arnesia/` del proyecto = zona de escritura sancionada del PROCESO; sigue PROHIBIDO copiar kit/doctrina/know-how dentro del arnés — runtime intacto."
 related_capabilities:
   depends_on: []
+---

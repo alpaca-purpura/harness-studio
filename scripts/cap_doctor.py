@@ -24,6 +24,12 @@ from pathlib import Path
 
 import yaml
 
+# Windows: la consola cp1252 no mapea «✓/·» y el print final crashearía el doctor
+# (UnicodeEncodeError) — stdout/stderr a UTF-8 SIEMPRE (no-op en unix).
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8")
+
 CAP_DIR = Path("docs/product/capabilities")
 STATUS_ENUM = {"vivo", "vivo·nc", "parcial", "stub"}
 NATURE_ENUM = {"feature", "scaffold", "extension-point"}

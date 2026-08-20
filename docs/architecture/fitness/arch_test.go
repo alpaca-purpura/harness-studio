@@ -32,6 +32,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -144,6 +145,9 @@ func TestDaemonServableHeadless(t *testing.T) {
 	defer cancel()
 
 	bin := filepath.Join(t.TempDir(), "arnesia-headless-test")
+	if runtime.GOOS == "windows" {
+		bin += ".exe" // exec exige extensión ejecutable en Windows
+	}
 	//nolint:gosec // G204: fixed args (go build -o <tmp> ./cmd/arnesia); bin is this test's own t.TempDir(), never external input.
 	build := exec.CommandContext(ctx, "go", "build", "-o", bin, "./cmd/arnesia")
 	build.Dir = root
@@ -161,7 +165,17 @@ func TestDaemonServableHeadless(t *testing.T) {
 
 	//nolint:gosec // G204: bin is the binary this test just built to its own t.TempDir(), never external input.
 	cmd := exec.CommandContext(ctx, bin, "serve", "--addr", addr)
-	cmd.Env = []string{"HOME=" + t.TempDir(), "PATH=" + os.Getenv("PATH")} // headless: no shell, no display, no DISPLAY var at all.
+	homeTmp := t.TempDir()
+	cmd.Env = []string{"HOME=" + homeTmp, "PATH=" + os.Getenv("PATH")} // headless: no shell, no display, no DISPLAY var at all.
+	if runtime.GOOS == "windows" {
+		// os.UserHomeDir lee USERPROFILE y el runtime necesita SystemRoot (winsock);
+		// sin redirigir el home el subproceso escribiría en el ~/.arnesia REAL.
+		cmd.Env = append(cmd.Env,
+			"USERPROFILE="+homeTmp,
+			"APPDATA="+filepath.Join(homeTmp, ".config"),
+			"LOCALAPPDATA="+filepath.Join(homeTmp, ".local"),
+			"SYSTEMROOT="+os.Getenv("SYSTEMROOT"))
+	}
 	if serr := cmd.Start(); serr != nil {
 		t.Fatalf("start serve: %v", serr)
 	}
@@ -398,6 +412,13 @@ func TestNoJSONLSchemaParsing(t *testing.T) {
 // (el canal de vuelta del human-in-the-loop). Sin `claude` real: el protocolo es lo
 // que se prueba.
 func TestLiveEventsFromStreamJSON(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// El fake es un script sh ejecutable — Windows no lo puede spawnear. El gate
+		// real corre en CI ubuntu; el port del fake (binario Go o .cmd) es deuda
+		// registrada del paquete 2026-08-13-compilacion-windows. Skip visible, no
+		// pass fabricado.
+		t.Skip("fixture sh unix-only — gate cubierto por CI ubuntu; port del fake = deuda registrada")
+	}
 	dir := t.TempDir()
 	stdinCopy := filepath.Join(dir, "stdin-recibido.ndjson")
 	frames := []string{
@@ -885,6 +906,13 @@ func TestDogfoodComposicionFabricaConforma(t *testing.T) {
 // TestDogfoodComposicionFabricaConforma pasan ahí porque RunGraph los construye a mano con el
 // MISMO id, no porque el ruteo los alcance).
 func TestGoArchLintAdapterCorreDeVerdad(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// go-arch-lint sobre paths con backslash reporta violaciones FALSAS del grafo
+		// de componentes (verificado 2026-08-13: acusa a cmd de imports que el .yml
+		// permite y que en CI ubuntu pasan verdes). El gate real corre en CI ubuntu;
+		// diagnosticar/upstreamear el bug de paths = deuda registrada. Skip visible.
+		t.Skip("go-arch-lint da falsos fail con paths windows — gate cubierto por CI ubuntu; deuda registrada")
+	}
 	root := repoRoot()
 	if root == "" {
 		return

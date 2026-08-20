@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -22,16 +23,22 @@ import (
 	"github.com/alpacapurpura/arnesia/internal/usecase"
 )
 
-// homeDePrueba fija HOME y XDG_CONFIG_HOME a un temporal.
+// homeDePrueba fija el home y el config-dir del proceso a un temporal.
 //
 // 🔴 **Ningún test de este paquete puede tocar el `~/.arnesia` real del operador**: escribir
 // eventos de prueba ahí contaminaría los totales que la propia feature muestra, que es
-// exactamente el pecado que este módulo existe para no cometer.
+// exactamente el pecado que este módulo existe para no cometer. En Windows,
+// os.UserHomeDir lee USERPROFILE (no HOME) y os.UserConfigDir lee APPDATA — sin
+// redirigirlos, el test escribiría en el ~/.arnesia REAL (bug de aislamiento detectado
+// en el port 2026-08-13).
 func homeDePrueba(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(dir, ".config"))
+	t.Setenv("APPDATA", filepath.Join(dir, ".config"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(dir, ".local"))
 	return dir
 }
 
@@ -258,6 +265,9 @@ func TestHookNoTardaNiFalla(t *testing.T) {
 	// recibe el HOME de prueba. Al revés, `go build` re-descargaría el módulo entero bajo un
 	// HOME falso — mismo gotcha que ya documenta TestDaemonServableHeadless.
 	bin := filepath.Join(t.TempDir(), "arnesia")
+	if runtime.GOOS == "windows" {
+		bin += ".exe" // exec exige extensión ejecutable en Windows
+	}
 	build := exec.Command("go", "build", "-o", bin, ".")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)

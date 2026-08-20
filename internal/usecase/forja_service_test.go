@@ -32,6 +32,7 @@ func (f *fakeForjaPort) Chequear(dir string) (domain.SaludSemilla, error) {
 func TestForjaServiceValidaDirProtegido(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	claudeDir := filepath.Join(home, ".claude")
 	if err := os.MkdirAll(claudeDir, 0o750); err != nil {
 		t.Fatal(err)
@@ -64,6 +65,7 @@ func TestForjaServiceValidaDirProtegido(t *testing.T) {
 func TestForjaServiceDelegaConDirValido(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	proyecto := filepath.Join(home, "proyectos", "demo")
 	if err := os.MkdirAll(proyecto, 0o750); err != nil {
 		t.Fatal(err)

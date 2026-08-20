@@ -466,3 +466,27 @@
 - [ux] Unificar al portar: shell-A-galaxia (it.13) + shell-A-sessions (it.14) + detalle v3 en un
   solo shell · `deuda`
 - [ux] Empleados-IA del producto (Valeria·Lisa…) vs roster de dev — ¿dos vistas separadas? · `deuda`
+
+## Port Windows — continuaciones (paquete 2026-08-13-compilacion-windows; build+vet+superficie portada VERDES · instalador .msi/.exe CONSTRUIDO 2026-08-14, CW-D7)
+
+- [windows] **suite de tests COMPLETA verde en Windows** — clases restantes: shims `gh`/`git` sh,
+  chmod/bits como fault-injection, JSON que embebe backslash, literales `/` en domain/usecase/
+  portafolio/stt. Inventario por-paquete en
+  [`stories/2026-08-13-compilacion-windows/decisiones.md`](stories/2026-08-13-compilacion-windows/decisiones.md) § CW-D5 · `deuda`
+- [windows] `bump.py` portable — `bump.sh` ya corre en Git Bash (shim de python aplicado 2026-08-14),
+  así que el bump YA funciona en Windows; el `.py` quedaría solo para no depender de bash · `deuda`
+- [windows] `cargo build` produce un binario que apunta al `devUrl` (error de conexión en la ventana):
+  el binario válido lo da `tauri build`. Evaluar declarar el feature `custom-protocol` en
+  `web/src-tauri/Cargo.toml` para que un `cargo build --release` suelto no engañe · `deuda`
+- [windows] rename-trick NTFS para el self-update (hoy degradación honesta CW-D1: staged + aviso) · `deuda`
+- [windows] go-arch-lint reporta violaciones falsas con paths backslash (skip honesto en windows;
+  diagnosticar/upstreamear al tool) · `deuda`
+- [windows] port del fake stream-json (script sh) a binario Go — TestLiveEventsFromStreamJSON hoy
+  skip honesto en windows · `deuda`
+- [windows] `~/.arnesia` → `os.UserConfigDir()` (D6 p.7 de telemetría; migración con respaldo) · `deuda`
+- [windows] parametrizar el puerto del daemon (la SPA hardcodea `127.0.0.1:4200`; mapa de puertos en
+  README — 4300 queda reservado para el cockpit de la Parte B) · `deuda`
+- [windows] `estado.sh` / `arnesia conformance --todo` no termina en Windows (>10 min; probable raíz
+  = mecanismo go-arch-lint con paths backslash, mismo síntoma que el skip de fitness) — la regen de
+  cifras se hace en Linux/CI por ahora; scripts python con stdout UTF-8 forzado (`cap_doctor.py` ya
+  corregido) · `deuda`

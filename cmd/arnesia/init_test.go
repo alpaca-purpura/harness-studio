@@ -13,6 +13,7 @@ import (
 func TestRunInitSiembraChequeaYExitCode(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	proyecto := filepath.Join(home, "proyecto")
 	if err := os.MkdirAll(proyecto, 0o750); err != nil {
 		t.Fatal(err)

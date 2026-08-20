@@ -34,6 +34,10 @@
 SHELL := /usr/bin/env bash
 .SHELLFLAGS := -euo pipefail -c
 
+# Python portable: en Windows `python3` suele ser el stub falso de WindowsApps (existe en PATH
+# pero no ejecuta) — se sondea EJECUTANDO, no con `command -v`.
+PYTHON := $(shell python3 -c 'print(1)' >/dev/null 2>&1 && echo python3 || echo python)
+
 ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 CARGO_TOML := $(ROOT)/web/src-tauri/Cargo.toml
 TAURI_CONF := $(ROOT)/web/src-tauri/tauri.conf.json
@@ -53,7 +57,7 @@ version: ## imprime la version actual (fuente de verdad: Cargo.toml)
 	@echo "$(CURRENT_VERSION)"
 
 changelog: ## imprime lo que hoy iría en la próxima versión ([Sin publicar])
-	@python3 "$(ROOT)/scripts/changelog.py" sin-publicar
+	@$(PYTHON) "$(ROOT)/scripts/changelog.py" sin-publicar
 
 # Los 3 bumps pasan por scripts/bump.sh — punto único, con el changelog como CONDICIÓN: si
 # [Sin publicar] está vacía el bump aborta sin tocar ningún manifiesto (VC-D2). Criterio de cuál

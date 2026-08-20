@@ -76,6 +76,7 @@ func contarEventos(t *testing.T, s *Store) int {
 func TestRutasPorHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	s, err := New("", Opciones{})
 	if err != nil {
 		t.Fatalf("New con ruta vacía: %v", err)

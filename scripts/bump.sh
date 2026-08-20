@@ -19,6 +19,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NUEVA="${1:-}"
 
+# Intérprete: en Windows (Git Bash) `python3` suele ser el stub de WindowsApps — existe en
+# PATH y no ejecuta. Se sondea EJECUTANDO, igual que el shim del Makefile y de lefthook.
+PY="$(python3 -c 'pass' >/dev/null 2>&1 && echo python3 || echo python)"
+
 if [[ ! "$NUEVA" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "uso: bump.sh <X.Y.Z>   (semver plano, sin prefijo v — lo exige Keygen.Release.version)" >&2
   exit 1
@@ -39,7 +43,7 @@ if [[ "$ACTUAL" == "$NUEVA" ]]; then
 fi
 
 # 1) El gate. Falla acá = no se tocó nada.
-python3 "$ROOT/scripts/changelog.py" check --exige-entradas
+"$PY" "$ROOT/scripts/changelog.py" check --exige-entradas
 
 # 2) Los 3 manifiestos, en lockstep (TestVersionManifestsInSync los vigila).
 echo "version: $ACTUAL -> $NUEVA"
@@ -48,6 +52,6 @@ sed -i "0,/\"version\":/s/\"version\": \"[^\"]*\"/\"version\": \"$NUEVA\"/" "$TA
 sed -i "0,/\"version\":/s/\"version\": \"[^\"]*\"/\"version\": \"$NUEVA\"/" "$PKG"
 
 # 3) El changelog pasa a ser el de esta versión.
-python3 "$ROOT/scripts/changelog.py" release "$NUEVA"
+"$PY" "$ROOT/scripts/changelog.py" release "$NUEVA"
 
 echo "OK — $NUEVA en los 3 manifiestos + CHANGELOG.md. Falta commitear (el bump no toca git)."

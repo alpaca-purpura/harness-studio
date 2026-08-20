@@ -412,6 +412,7 @@ func TestTelemetriaDBNoEsElIndice(t *testing.T) {
 	// Control positivo funcional: un store real resuelve a `telemetria.db`, no a `index.db`.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	st, err := telstore.New("", telstore.Opciones{})
 	if err != nil {
 		t.Fatal(err)

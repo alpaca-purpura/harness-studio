@@ -34,9 +34,11 @@ const DAEMON_ADDR: &str = "127.0.0.1:4200";
 pub fn run() {
     // Mint del token ANTES de construir: es la raíz de confianza de la superficie local.
     let token = mint_token();
-    // Solo spawneamos (y por ende inyectamos token) si el daemon NO está ya arriba. En attach
-    // (dev) no conocemos su token → el WebView va sin token (Host+Origin lo protegen igual).
-    let spawn = !daemon_running();
+    // Solo spawneamos (y por ende inyectamos token) si NADIE ocupa el puerto. En attach (dev)
+    // no conocemos su token → el WebView va sin token (Host+Origin lo protegen igual). Y si el
+    // ocupante NO sirve la UI, ni attach ni spawn: la ventana lo explica (CW-D8).
+    let estado = estado_daemon();
+    let spawn = estado == EstadoDaemon::Ausente;
 
     // Handle al hijo sidecar para poder matarlo al salir (evita daemon huérfano con un token
     // que un próximo shell no podría replicar).
@@ -92,6 +94,12 @@ pub fn run() {
                     "window.__ARNESIA_TOKEN__ = \"{token_for_setup}\";"
                 ));
             }
+            // Conflicto de puerto: la página de arranque no debe saltar a la raíz del ocupante
+            // (mostraría SU respuesta, típicamente un 404 en texto plano). Se lo decimos y ella
+            // muestra la tarjeta accionable en vez de sondear.
+            if estado == EstadoDaemon::SinUI {
+                win = win.initialization_script("window.__ARNESIA_CONFLICTO__ = true;");
+            }
             let ventana = win.build()?;
 
             // RF-215 (V-D6 FIRMADA): sin esto, el botón de dictado se cuelga MUDO en la app
@@ -101,9 +109,16 @@ pub fn run() {
 
             // Sidecar: si el daemon NO responde en :4200, spawnear el externalBin
             // `binaries/arnesia-<target-triple>` con `serve` + el token por env.
-            if !spawn {
-                eprintln!("[arnesia] daemon ya activo en {DAEMON_ADDR}; no spawneo (attach: WebView sin token)");
-                return Ok(());
+            match estado {
+                EstadoDaemon::ConUI => {
+                    eprintln!("[arnesia] daemon ya activo en {DAEMON_ADDR}; no spawneo (attach: WebView sin token)");
+                    return Ok(());
+                }
+                EstadoDaemon::SinUI => {
+                    eprintln!("[arnesia] {DAEMON_ADDR} está ocupado por algo que NO sirve la UI: ni attach ni spawn (el bind fallaría). Cerrá ese proceso y reabrí ArnesIA");
+                    return Ok(());
+                }
+                EstadoDaemon::Ausente => {}
             }
             // override local (bugfix self-update-sidecar-ignora-path): tauri_plugin_shell
             // resuelve sidecar() SIEMPRE como dirname(current_exe())/programa — jamás vía
@@ -255,14 +270,137 @@ fn mint_token() -> String {
     b.iter().map(|x| format!("{x:02x}")).collect()
 }
 
-/// daemon_running sondea el puerto del daemon con un timeout corto (bind-or-bail: si algo
-/// ya escucha, no spawneamos una segunda instancia).
-fn daemon_running() -> bool {
-    DAEMON_ADDR
-        .parse()
+/// Qué encontró el shell en `DAEMON_ADDR` al arrancar (CW-D8).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EstadoDaemon {
+    /// Nadie escucha: spawneamos nuestro sidecar (camino normal de la app instalada).
+    Ausente,
+    /// Un daemon que SIRVE la UI: attach (camino normal de dev, con `arnesia serve` a mano).
+    ConUI,
+    /// Algo ocupa el puerto pero no sirve la UI. Ni attach (mostraría su 404 crudo) ni spawn
+    /// (el bind moriría con «address already in use»): se lo decimos al operador.
+    SinUI,
+}
+
+/// veredicto_daemon es la regla, aislada de la red para que sea verificable — misma doctrina
+/// que [`concede_captura`].
+///
+/// **El bug que cierra (2026-08-14):** el sondeo era `TcpStream::connect` a secas, así que
+/// CUALQUIER cosa escuchando en el puerto contaba como «el daemon ya está arriba». Un
+/// `arnesia serve` compilado sin la SPA (un `go build` suelto, o el binario Linux corriendo en
+/// WSL sobre el mismo repo) responde el puerto Y responde 404 en `/` — y la ventana del shell
+/// terminaba mostrando ese 404 en texto plano, sin ninguna pista de qué hacer.
+fn veredicto_daemon(conecta: bool, status: Option<u16>) -> EstadoDaemon {
+    match (conecta, status) {
+        (false, _) => EstadoDaemon::Ausente,
+        (true, Some(200)) => EstadoDaemon::ConUI,
+        (true, _) => EstadoDaemon::SinUI,
+    }
+}
+
+/// status_de_respuesta extrae el código de una línea de estado HTTP (`HTTP/1.1 200 OK` → 200).
+/// Devuelve `None` si lo que contestó no es HTTP: un ocupante mudo no puede pasar por daemon.
+fn status_de_respuesta(linea: &str) -> Option<u16> {
+    let mut partes = linea.split_whitespace();
+    let version = partes.next()?;
+    if !version.starts_with("HTTP/") {
+        return None;
+    }
+    partes.next()?.parse().ok()
+}
+
+/// estado_daemon sondea `DAEMON_ADDR` y decide qué hacer (bind-or-bail verificado).
+///
+/// Pide `GET /` con un HTTP crudo sobre el mismo socket en vez de sumar un cliente HTTP al
+/// shell: es una línea de estado, no vale una dependencia. Va acá y NO en el JS de
+/// `conectando.html` porque un `fetch` del WebView viaja con el `Origin` de Tauri y chocaría
+/// con los gates de `auth.go` — por eso esa página sondea `/healthz`, el único exento
+/// (HS-14 fix ②). Todos los timeouts son cortos: el arranque de la app no espera a nadie.
+fn estado_daemon() -> EstadoDaemon {
+    const ESPERA: Duration = Duration::from_millis(300);
+
+    let Some(addr) = DAEMON_ADDR.parse().ok() else {
+        return EstadoDaemon::Ausente;
+    };
+    let Ok(mut sock) = TcpStream::connect_timeout(&addr, ESPERA) else {
+        return veredicto_daemon(false, None);
+    };
+    let _ = sock.set_read_timeout(Some(ESPERA));
+    let _ = sock.set_write_timeout(Some(ESPERA));
+
+    // `Connection: close` para que el servidor no deje el socket abierto esperando otra
+    // petición: solo queremos la primera línea.
+    let peticion = format!("GET / HTTP/1.1\r\nHost: {DAEMON_ADDR}\r\nConnection: close\r\n\r\n");
+    let status = std::io::Write::write_all(&mut sock, peticion.as_bytes())
         .ok()
-        .and_then(|addr| TcpStream::connect_timeout(&addr, Duration::from_millis(300)).ok())
-        .is_some()
+        .and_then(|()| {
+            let mut linea = String::new();
+            std::io::BufRead::read_line(&mut std::io::BufReader::new(&sock), &mut linea).ok()?;
+            status_de_respuesta(&linea)
+        });
+    veredicto_daemon(true, status)
+}
+
+// Attach verificado (CW-D8): misma doctrina que `concede_captura` — la DECISIÓN se aísla de
+// la red para poder testearla. Estos tests SÍ corren en todos los OS (el bug que cierran se
+// reportó en Windows) a diferencia de los de permisos, que exigen la superficie GTK.
+#[cfg(test)]
+mod tests_attach {
+    use super::{status_de_respuesta, veredicto_daemon, EstadoDaemon};
+
+    #[test]
+    fn puerto_libre_significa_spawnear() {
+        assert!(matches!(
+            veredicto_daemon(false, None),
+            EstadoDaemon::Ausente
+        ));
+    }
+
+    #[test]
+    fn daemon_que_sirve_la_ui_se_attachea() {
+        assert!(matches!(
+            veredicto_daemon(true, Some(200)),
+            EstadoDaemon::ConUI
+        ));
+    }
+
+    // EL bug (2026-08-14): un `arnesia serve` compilado sin la SPA (go build suelto, WSL)
+    // responde 404 en `/`. El attach ciego mostraba ese 404 crudo en la ventana.
+    #[test]
+    fn ocupante_que_no_sirve_la_ui_no_se_attachea() {
+        for status in [404, 401, 403, 500, 302] {
+            assert!(
+                matches!(veredicto_daemon(true, Some(status)), EstadoDaemon::SinUI),
+                "status {status} debe ser SinUI"
+            );
+        }
+    }
+
+    // Algo ocupa el puerto pero no habla HTTP (otro programa cualquiera): tampoco se attachea.
+    #[test]
+    fn ocupante_mudo_no_se_attachea() {
+        assert!(matches!(veredicto_daemon(true, None), EstadoDaemon::SinUI));
+    }
+
+    #[test]
+    fn lee_el_status_de_la_linea_de_respuesta() {
+        assert_eq!(status_de_respuesta("HTTP/1.1 200 OK"), Some(200));
+        assert_eq!(status_de_respuesta("HTTP/1.0 404 Not Found"), Some(404));
+        assert_eq!(status_de_respuesta("HTTP/1.1 500 "), Some(500));
+    }
+
+    #[test]
+    fn una_respuesta_que_no_es_http_no_da_status() {
+        for basura in [
+            "",
+            "hola",
+            "HTTP/1.1",
+            "HTTP/1.1 no-numero OK",
+            "220 SMTP listo",
+        ] {
+            assert_eq!(status_de_respuesta(basura), None, "{basura:?} no es HTTP");
+        }
+    }
 }
 
 // RF-215 · capability arnesia.tauri.permiso-de-microfono. La regla de concesión se testea

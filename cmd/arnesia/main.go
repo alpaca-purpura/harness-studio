@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -629,11 +630,13 @@ func embeddedUI() http.Handler {
 }
 
 // resolveClaudeBin hardens `claude` discovery for GUI launches: una app de escritorio
-// Linux (lanzada desde .desktop, no desde una shell) frecuentemente NO lleva
+// (lanzada desde .desktop/acceso directo, no desde una shell) frecuentemente NO lleva
 // ~/.local/bin en su PATH — el binario existe pero LookPath no lo ve y el spawn moriría
 // silencioso hacia el Dock (hallazgo de la auditoría 2026-07-07). Un nombre pelado que
-// PATH no resuelve se sondea en las rutas de instalación conocidas; el error del spawn
-// sigue siendo la autoridad final.
+// PATH no resuelve se sondea en las rutas de instalación conocidas del OS; el error del
+// spawn sigue siendo la autoridad final. En Windows, LookPath ya resuelve PATHEXT
+// (claude.cmd/claude.exe) sobre el PATH heredado; los candidatos cubren instalaciones
+// fuera de PATH (instalador nativo en ~/.local/bin, npm global en %APPDATA%\npm).
 func resolveClaudeBin(bin string) string {
 	if strings.ContainsRune(bin, os.PathSeparator) {
 		return bin // ruta explícita del operador: se respeta tal cual.
@@ -642,15 +645,29 @@ func resolveClaudeBin(bin string) string {
 		return bin
 	}
 	home, _ := os.UserHomeDir()
-	for _, p := range []string{
-		filepath.Join(home, ".local", "bin", bin),
-		filepath.Join(home, ".claude", "local", bin),
-		filepath.Join("/usr/local/bin", bin),
-		filepath.Join("/opt/homebrew/bin", bin),
-	} {
-		if st, err := os.Stat(p); err == nil && !st.IsDir() {
-			slog.Info("claude resuelto fuera de PATH (entorno GUI)", "path", p)
-			return p
+	dirs := []string{
+		filepath.Join(home, ".local", "bin"), // instalador nativo de Claude Code (también en Windows)
+		filepath.Join(home, ".claude", "local"),
+	}
+	sufijos := []string{""}
+	if runtime.GOOS == "windows" {
+		if appdata := os.Getenv("APPDATA"); appdata != "" {
+			dirs = append(dirs, filepath.Join(appdata, "npm")) // shim de `npm install -g`
+		}
+		if local := os.Getenv("LOCALAPPDATA"); local != "" {
+			dirs = append(dirs, filepath.Join(local, "Programs", "claude"))
+		}
+		sufijos = []string{".exe", ".cmd", ""}
+	} else {
+		dirs = append(dirs, "/usr/local/bin", "/opt/homebrew/bin")
+	}
+	for _, dir := range dirs {
+		for _, suf := range sufijos {
+			p := filepath.Join(dir, bin+suf)
+			if st, err := os.Stat(p); err == nil && !st.IsDir() {
+				slog.Info("claude resuelto fuera de PATH (entorno GUI)", "path", p)
+				return p
+			}
 		}
 	}
 	slog.Warn("claude no está en PATH ni en rutas conocidas — instala Claude Code o pasa --claude", "bin", bin)

@@ -38,6 +38,25 @@ jobs:
         # (procedencia, no cifra). Es GENERATE-ONLY en modo --check: no escribe el árbol.
         run: bash scripts/estado.sh --check
 
+  go-windows:
+    # Port Windows (paquete 2026-08-13-compilacion-windows): build+vet de TODO el árbol
+    # nativo en windows — previene la regresión que rompía GOOS=windows (selfupdate con
+    # syscalls unix sin build tags). Tests: SOLO la superficie portada; la suite COMPLETA
+    # en Windows es deuda registrada (fixtures con shims sh, bits de ejecución y JSON que
+    # embebe backslash) — ver docs/product/stories/2026-08-13-compilacion-windows/.
+    # Los gates de doctrina (golangci/arch-lint/estado-drift) viven en el job `go` ubuntu.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: build
+        run: go build ./...
+      - name: vet
+        run: go vet ./...
+      - name: test (superficie portada)
+        run: go test ./internal/adapters/selfupdate/ ./cmd/... ./internal/adapters/telemetria/store/ -count=1
+
   ts:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web } }
@@ -76,6 +95,44 @@ jobs:
         if: ${{ hashFiles('web/src/shared/api/generated/**') != '' }}
         run: pnpm run openapi:gen && git diff --exit-code src/shared/api/generated
 
+  tauri-windows:
+    # Instalador de escritorio Windows (.msi WiX + .exe NSIS) — paquete
+    # 2026-08-13-compilacion-windows. Tauri NO cross-compila: el bundle Windows solo se
+    # produce EN Windows. Prereqs del runner: MSVC + Windows SDK + Rust ya vienen en la
+    # imagen windows-latest; NSIS/WiX los descarga el propio Tauri.
+    #
+    # Solo en push a main: `tauri build` con lto+codegen-units=1 tarda decenas de minutos y
+    # no puede pagarse en cada PR. El gate de COMPILACIÓN Windows (barato) es `go-windows`.
+    if: github.event_name == 'push'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "stable" }
+      - name: sidecar (el mismo daemon que embebe el instalador; nombre por triple MSVC)
+        run: go build -o web/src-tauri/binaries/arnesia-daemon-x86_64-pc-windows-msvc.exe ./cmd/arnesia
+      - uses: pnpm/action-setup@v4
+        with: { package_json_file: web/package.json }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: web/src-tauri }
+      - name: tauri build (SPA vía beforeBuildCommand + shell + bundles)
+        run: pnpm exec tauri build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores-windows
+          path: |
+            web/src-tauri/target/release/bundle/msi/*.msi
+            web/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
   rust:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web/src-tauri } }
@@ -96,3 +153,7 @@ jobs:
         run: |
           cargo clippy --all-targets -- -D warnings
           cargo fmt --check
+      - name: test (la decisión del bind-or-bail verificado — CW-D8)
+        # Sin esto, el `valida:` de la capability sidecar-del-daemon sería una promesa:
+        # los tests existirían y nadie los correría.
+        run: cargo test

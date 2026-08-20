@@ -199,7 +199,7 @@ _Generado por `cap_doctor.py --index` desde las hojas `*.yaml` (SSoT). No editar
 - **CAP-101 · Deep-link arnesia:// enfoca la app instalada** `vivo·nc` · tauri/deep-link-enfoca-app.yaml — `web/src-tauri/src/lib.rs`
 - **CAP-112 · El shell concede el permiso de micrófono del WebView** `vivo` · tauri/permiso-de-microfono.yaml — `web/src-tauri/src/lib.rs#conceder_permiso_de_microfono`
 - **CAP-79 · Single-instance reenfoca** `vivo·nc` · tauri/single-instance-reenfoca.yaml — `web/src-tauri/src/lib.rs`
-- **CAP-80 · Sidecar del daemon (bind-or-bail, kill al salir)** `vivo·nc` · tauri/sidecar-del-daemon.yaml — `web/src-tauri/src/lib.rs#daemon_running`
+- **CAP-80 · Sidecar del daemon (bind-or-bail verificado, kill al salir)** `vivo` · tauri/sidecar-del-daemon.yaml — `web/src-tauri/src/lib.rs#estado_daemon`
 - **CAP-81 · Inyección de token (raíz de confianza)** `vivo·nc` · tauri/inyeccion-de-token.yaml — `web/src-tauri/src/lib.rs#mint_token`
 - **CAP-82 · Workaround render Linux (WEBKIT_DISABLE_DMABUF)** `vivo·nc` · tauri/workaround-render-linux.yaml — `web/src-tauri/src/main.rs`
 

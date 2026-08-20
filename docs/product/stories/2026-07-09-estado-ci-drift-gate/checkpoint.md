@@ -1,6 +1,7 @@
 ---
 story_id: 2026-07-09-estado-ci-drift-gate
 state: done               # idea→refining→refined→ready→developing→developed→reviewing→[done]
+release: v0.7-mvp-instalable
 module: conformance
 cap_target: ninguno (infra/honestidad — fuera del universo R2; ver decisiones D-módulo)
 chris_verify:

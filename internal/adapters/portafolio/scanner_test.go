@@ -88,6 +88,7 @@ func TestScannerLockDevstudio(t *testing.T) {
 	root := t.TempDir()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 	// entrada resoluble: el dir existe en el caché local.
 	cacheDir := filepath.Join(home, ".dev-studio", "arneses", "harness-a", "1.0.0")
 	if err := os.MkdirAll(cacheDir, 0o750); err != nil {

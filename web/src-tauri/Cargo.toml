@@ -7,7 +7,7 @@
 
 [package]
 name = "arnesia"
-version = "0.7.0"
+version = "0.8.1"
 description = "ArnesIA — la fábrica de arneses (shell de escritorio)"
 authors = ["alpacapurpura <hola@alpacapurpura.lat>"]
 edition = "2021"                    # verificar al instalar (MSRV la marca la Tauri 2 vigente)

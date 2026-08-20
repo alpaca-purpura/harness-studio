@@ -1,0 +1,47 @@
+---
+# Release schema del cockpit (tools/cockpit/go/handlers_releases.go::releaseKeyOrder).
+# Path canónico: docs/product/releases/<release_id>.yaml
+#
+# HONESTIDAD DEL AGRUPAMIENTO (§4 — gris ≠ verde): hasta esta hoja, harness-studio NO
+# llevaba registro de qué story entró en qué versión — las releases se publicaban por
+# CHANGELOG + bump, sin eje de release. Las `stories` de abajo se derivaron del estado
+# del paquete (gate 🧑‍⚖️ de PARIDAD firmado ⇒ entregado), NO de un registro previo que
+# no existía. Es una reconstrucción declarada, no un dato histórico.
+release_id: v0.7-mvp-instalable
+sistema: platform
+name: "MVP instalable — shell, chat, portafolio, mapa y telemetría"
+description: >
+  Lo entregado hasta v0.7.1 (instaladores .msi/.exe en instaladores/v0.7.0 y v0.7.1):
+  el shell Tauri con selector de arnés, el chat sobre Claude Code, el portafolio con
+  sello de identidad, el mapa y la telemetría embebida OTLP. Agrupa los paquetes cuyo
+  gate 🧑‍⚖️ de PARIDAD está firmado.
+status: shipped
+target_date: null
+shipped_date: "2026-08-14"
+order: 0
+created_at: "2026-08-18"
+created_by: scripts/backfill_checkpoints.py + revisión manual
+stories:
+  - 2026-07-07-boton-actualizar
+  - 2026-07-07-franja-artefactos
+  - 2026-07-07-inspector-drawer
+  - 2026-07-08-chat-cc-funcional
+  - 2026-07-09-estado-ci-drift-gate
+  - 2026-07-09-homologacion-metodologia
+  - 2026-07-14-auditoria-portafolio-carga
+  - 2026-07-15-rebrand-prenter-design-system
+  - 2026-07-17-portafolio-slice2-sello-identificar
+  - 2026-07-20-shell-topbar-selector-arnes
+  - 2026-07-22-chat-dock-ux
+  - 2026-07-24-telemetria-embebida-otel
+---
+
+## Notas
+
+Los instaladores de esta release viven en `instaladores/v0.7.0/` y `instaladores/v0.7.1/`
+(gitignoreados: al repo va el bump de los manifiestos, no los binarios).
+
+**16 paquetes quedaron en `developed`**, no en esta release: tienen su `PARIDAD.md` con
+evidencia y la casilla de firma vacía. Eso es exactamente lo que el checkpoint raíz llama
+«faltan las firmas 🧑‍⚖️ de PARIDAD del operador» — el board ahora lo muestra como columna
+en vez de como prosa.

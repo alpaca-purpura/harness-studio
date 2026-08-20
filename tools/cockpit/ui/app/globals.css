@@ -1,0 +1,242 @@
+@import 'tailwindcss';
+@source '../../../cockpit/ui';
+@import 'highlight.js/styles/github-dark.css';
+
+@theme {
+  --color-bg: #0b0e14;
+  --color-panel: #11151d;
+  --color-panel2: #161b26;
+  --color-border: #232936;
+  --color-text: #e6edf3;
+  --color-muted: #7d8590;
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Componentes base reutilizables — replican el mockup */
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+}
+
+.panel2 {
+  background: var(--color-panel2);
+  border: 1px solid var(--color-border);
+}
+
+.text-muted {
+  color: var(--color-muted);
+}
+
+.card {
+  background: var(--color-panel2);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px;
+  transition: all 0.12s;
+}
+
+.btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text);
+  transition: all 0.12s;
+}
+
+.btn:hover {
+  background: var(--color-panel2);
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+input,
+select,
+textarea {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--color-text);
+  font-size: 13px;
+  width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Markdown render (.cockpit-md) — usado por MarkdownView en story drawer.
+ * Tailwind v4 NO trae @tailwindcss/typography out of the box · escribimos
+ * estilos mínimos consistentes con el tema dark.
+ * ────────────────────────────────────────────────────────────────────────── */
+.cockpit-md {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cockpit-md h1,
+.cockpit-md h2,
+.cockpit-md h3,
+.cockpit-md h4,
+.cockpit-md h5,
+.cockpit-md h6 {
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 1.2em 0 0.5em;
+  line-height: 1.25;
+}
+.cockpit-md h1 { font-size: 1.5em; border-bottom: 1px solid var(--color-border); padding-bottom: 0.3em; }
+.cockpit-md h2 { font-size: 1.3em; border-bottom: 1px solid var(--color-border); padding-bottom: 0.2em; }
+.cockpit-md h3 { font-size: 1.15em; }
+.cockpit-md h4 { font-size: 1em; }
+.cockpit-md h5, .cockpit-md h6 { font-size: 0.95em; color: var(--color-muted); }
+
+.cockpit-md p {
+  margin: 0.6em 0;
+}
+.cockpit-md a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cockpit-md a:hover {
+  color: var(--color-accent-hover);
+}
+
+.cockpit-md ul,
+.cockpit-md ol {
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+}
+.cockpit-md ul { list-style: disc; }
+.cockpit-md ol { list-style: decimal; }
+.cockpit-md li { margin: 0.2em 0; }
+.cockpit-md li > p { margin: 0.2em 0; }
+
+.cockpit-md blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding: 0.3em 0.8em;
+  margin: 0.8em 0;
+  color: var(--color-muted);
+  background: var(--color-panel2);
+  border-radius: 0 4px 4px 0;
+}
+
+.cockpit-md code {
+  background: var(--color-panel2);
+  border: 1px solid var(--color-border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+}
+.cockpit-md pre {
+  background: var(--color-panel2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.8em;
+  overflow-x: auto;
+  margin: 0.8em 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cockpit-md pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.cockpit-md hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 1.2em 0;
+}
+
+.cockpit-md table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.8em 0;
+  font-size: 12px;
+}
+.cockpit-md th,
+.cockpit-md td {
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.cockpit-md th {
+  background: var(--color-panel2);
+  font-weight: 600;
+}
+.cockpit-md tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cockpit-md img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  margin: 0.5em 0;
+}
+
+.cockpit-md input[type='checkbox'] {
+  margin-right: 0.4em;
+  vertical-align: middle;
+  width: auto;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * @uiw/react-md-editor tema dark override (algunos colores hardcoded por la
+ * librería · forzamos var()).
+ * ────────────────────────────────────────────────────────────────────────── */
+.w-md-editor {
+  background: var(--color-panel) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+}
+.w-md-editor-toolbar {
+  background: var(--color-panel2) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+.w-md-editor-text,
+.w-md-editor-text-input,
+.w-md-editor-text-pre {
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+.w-md-editor-toolbar li button {
+  color: var(--color-muted) !important;
+}
+.w-md-editor-toolbar li button:hover {
+  color: var(--color-text) !important;
+}
+
+/* highlight.js dark theme ya viene importado al top */
+

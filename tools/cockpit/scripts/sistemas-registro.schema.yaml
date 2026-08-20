@@ -1,0 +1,31 @@
+# sistemas-registro.schema.yaml — CONTRATO del registro CURADO de sistemas de la torre
+# (SPEC torre-read-only §2, RN-04..RN-07 · DH-04/D2 — espejo del corte 3 bandas de OBS-15).
+#
+# Banda CURADA (la EMPRESA — I-39): prenter/sistemas/sistemas.yaml conforma ESTE schema.
+# Banda RUNTIME: gen_registro.py (curado × ~/.config/prenter/devhub.yaml) → ~/.cockpit/cockpit.yaml.
+# Banda FÁBRICA: este contrato + check_registro.py (validate() único — SC-30) + testdata/sistemas-fixture.yaml.
+#
+# Regla dura (RN-04): el curado lleva slugs/refs, JAMÁS rutas — las rutas locales viven en
+# la config del operador (~/.config/prenter/devhub.yaml → torre.workspaces).
+
+version:            # int ≥ 1 — versión del formato del curado
+  requerido: true
+  tipo: int
+
+sistemas:           # lista no vacía — cada entrada = una fila de la torre
+  requerido: true
+  item:
+    slug:           # LA LLAVE — kebab-case, único en el registro
+      requerido: true
+      patron: "^[a-z0-9][a-z0-9-]*$"
+    nombre:         # display humano de la fila
+      requerido: true
+    tipo:           # taxonomía I-39
+      requerido: true
+      enum: [fabrica, empresa, engagement]
+    gate_check:     # comando de SOLO-verificación, relativo al workspace (RN-05);
+      requerido: false   # ausente → categoría `sin-gate`. Side-effect-free = responsabilidad del curador.
+    ref:            # ref al CRM de la EMPRESA (cuenta#proyecto=...) — requerido si tipo=engagement
+      requerido: condicional   # tipo == engagement
+  llaves_desconocidas: prohibidas   # en particular path/workspace/ruta (RN-04 con dientes)
+  rutas: prohibidas                 # ningún valor string puede ser ruta absoluta ni ~ (RN-04)

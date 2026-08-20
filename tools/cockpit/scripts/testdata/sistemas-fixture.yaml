@@ -1,0 +1,20 @@
+# sistemas-fixture.yaml — FIXTURE del registro CURADO de la torre (banda FÁBRICA — RN-07).
+# El curado REAL vive en la EMPRESA: prenter/sistemas/sistemas.yaml (I-39; slugs/refs, jamás rutas).
+# Este fixture ejercita el validador en todo clone y deja a F2 arrancar con el gate de prenter
+# rojo (RN-07): la config del operador puede apuntar `torre.registro` aquí mientras tanto.
+# prenter-harness y prenter son la CLASE y la EMPRESA (no data de cliente); el engagement es
+# la persona-muestra ficticia (Inmobiliaria Vértice) — jamás una cuenta real.
+version: 1
+sistemas:
+  - slug: prenter-harness
+    nombre: prenter-harness · fábrica SDD (4 células)
+    tipo: fabrica
+    gate_check: python3 tooling/scripts/gen_all.py --check
+  - slug: prenter
+    nombre: Prenter · la EMPRESA
+    tipo: empresa
+    gate_check: python3 harnesses/scripts/check.py
+  - slug: vertice-crm
+    nombre: Inmobiliaria Vértice · CRM (engagement ficticio)
+    tipo: engagement
+    ref: vertice#proyecto=crm

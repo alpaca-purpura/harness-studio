@@ -38,3 +38,13 @@ instaladores/
 
 # Sesiones efímeras del MCP playwright (logs/snapshots de debug)
 .playwright-mcp/
+
+# Cockpit vendored (tools/cockpit) — al repo van las FUENTES, jamás los productos de
+# build: el binario (~11M), la UI compilada que se le embebe, y las deps/caché de Next.
+tools/cockpit/go/cockpit
+tools/cockpit/go/cockpit.exe
+tools/cockpit/go/ui/
+tools/cockpit/ui/node_modules/
+tools/cockpit/ui/.next/
+tools/cockpit/ui/out/
+tools/cockpit/.cockpit-local/

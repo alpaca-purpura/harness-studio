@@ -1,0 +1,35 @@
+---
+# Release schema del cockpit (tools/cockpit/go/handlers_releases.go::releaseKeyOrder).
+release_id: v0.8-cockpit-y-doctrina
+sistema: platform
+name: "Cockpit del proceso + la doctrina que se abre al forjar"
+description: >
+  Dos cosas que se sostienen: VER el proceso (el cockpit vendored en :4300 lee las 157
+  capabilities y las 41 stories del filesystem) y CERRAR el gap de doctrina (el árbol
+  docs/architecture/knowledge/ se inyectaba por --add-dir pero ninguna skill lo abría;
+  nace forjar-arnes y las skills del kit leen su nodo del estándar como primer paso).
+  Arrastra el paquete de ingesta escenario B, que es el trabajo activo.
+status: planning
+target_date: null
+shipped_date: null
+order: 1
+created_at: "2026-08-18"
+created_by: operador
+stories:
+  - 2026-08-18-cockpit-y-doctrina
+  - 2026-08-01-ingesta-escenario-b
+  - 2026-07-09-reorg-docs
+  - 2026-07-10-spike-carga-arneses
+  - 2026-07-23-portafolio-agregar-marketplace
+---
+
+## Notas
+
+El cockpit vive en `tools/cockpit/` como copia vendored del de `vitalia-app` — los diffs
+contra upstream están tabulados en `tools/cockpit/README-vendored.md` y fijados por
+`tools/cockpit/go/vendored_arnesia_test.go`, para que un merge desde upstream que los
+borre rompa un test en vez de romper el board.
+
+`tools/` está EXENTO del gate R2 de capabilities (verificado en
+`docs/architecture/fitness/capability_trace_test.go`), así que el cockpit no declara
+capabilities propias. El cambio al `kit/` sí las declara.

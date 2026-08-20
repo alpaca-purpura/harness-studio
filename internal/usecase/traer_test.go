@@ -538,6 +538,7 @@ func TestTraerJamasEscribeEnClaude(t *testing.T) {
 		t.Run(nombre, func(t *testing.T) {
 			esc := armarTraer(t)
 			t.Setenv("HOME", homeFalso)
+			t.Setenv("USERPROFILE", homeFalso) // Windows: os.UserHomeDir lee USERPROFILE, no HOME
 			preparar(esc)
 
 			_, _ = esc.svc.Traer(context.Background(), "prenter-marketplace", "harness")

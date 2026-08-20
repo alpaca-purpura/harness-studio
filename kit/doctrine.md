@@ -53,6 +53,21 @@ plantillas sembradas por `arnesia init` y ahí escriben las cajas sus artefactos
 paquete. Es process-as-code DEL PROYECTO, no doctrina copiada. Sigue PROHIBIDO copiar
 kit, doctrina o know-how dentro del arnés.
 
-Referencia completa (read-only): el directorio `knowhow/` inyectado con `--add-dir`
-contiene los nodos del estándar (checklists evaluables por elemento). Consúltalos al
-crear o auditar cada elemento; el veredicto mecánico lo da `arnesia conformance`.
+## El estándar se ABRE, no se supone (regla dura)
+
+El directorio `knowhow/` viaja inyectado con `--add-dir`: son los 12 nodos del estándar
+(uno por clase de elemento), cada uno con su checklist evaluable — 138 checks en total.
+
+**`--add-dir` da ACCESO, no lectura.** El árbol llega a la sesión y se queda inerte hasta
+que alguien lo abre. Por eso:
+
+> **Antes de crear o auditar un elemento de clase X, abrí `knowhow/X.md`. Una respuesta
+> que no lo abrió no cumple la doctrina — y lo abriste solo si podés decir qué leíste.**
+
+Declarar qué nodos abriste es parte del trabajo, no un trámite: es lo que separa «apliqué
+el estándar» de «me acordaba del estándar». Lo de arriba en este archivo es el RESUMEN;
+la checklist que se mide vive en el nodo. El veredicto mecánico lo da `arnesia conformance`.
+
+Las skills que encarnan esto: **`forjar-arnes`** (crear un arnés completo: manifiesto,
+spine, bandas, cajas), **`forjar-caja`** (una caja sobre un arnés existente),
+**`auditar-arnes`** (informe de brechas contra los checks).

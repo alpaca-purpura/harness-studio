@@ -24,12 +24,68 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 ## [Sin publicar]
 
 ### Agregado
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+
+### Seguridad
+
+## [0.8.1] — 2026-08-20
+
+### Agregado
+- Eval repetible de la skill forjar-arnes en evals/forjar-arnes/: replica la inyeccion del provisioner, lanza claude -p con los flags reales del spawn y verifica que la sesion abra los nodos del estandar, los declare y deje un manifiesto valido. Incluye el caso baseline sin el kit (el delta con/sin que pide L1.6).
+- Carriles del CIL: docs/process/harness-backlog.md (L1, proceso y herramientas), docs/process/tech-debt.md (L3, codigo e infra) y docs/learnings/ (L2). Indexan la deuda que ya vivia en BACKLOG.md en prosa; el cockpit ahora la cuenta y la pinta en las vistas Harness y Learnings, que estaban apagadas por falta de fuente.
+
+### Cambiado
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+- forjar-arnes no decia la FORMA del manifiesto y la sesion la adivinaba: fases como objetos, marketplace como objeto y una clave extra en cada transicion (9 errores de schema). Ahora la skill trae el esqueleto exacto del arnes.l0.json, validado contra graph.l0.schema.json.
+- forjar-arnes no decia que un arnes nace en forma-plugin, asi que la forja se frenaba a pedir autorizacion para escribir .claude/settings.json (ruta protegida por Claude Code). Ahora declara el layout completo y manda la Guardia a hooks/hooks.json.
+
+### Seguridad
+
+## [0.8.0] — 2026-08-19
+
+### Agregado
+- Cockpit del proceso: vendored en tools/cockpit (puerto 4300, cockpit.ps1 build|run|stop|status). Lee del filesystem las 157 capabilities y las 41 stories del repo y las pinta como board, roadmap y proceso.
+- Skill forjar-arnes en el kit: crea un arnes COMPLETO (manifiesto arnes.l0.json con rol x proceso, fases y spine, bandas Guardia y Base, y las cajas de cada fase). Hasta ahora solo existia forjar-caja, que asume el arnes ya creado.
+- scripts/backfill_checkpoints.py: siembra el checkpoint.md que le faltaba a 37 de 41 paquetes de trabajo (dry-run por defecto; jamas fabrica una firma) y sincroniza la pertenencia a release.
+
+### Cambiado
+- Las skills del kit abren el nodo del estandar ANTES de escribir, no al verificar: el arbol docs/architecture/knowledge viajaba a cada sesion via --add-dir y quedaba inerte porque ninguna skill lo leia. forjar-caja lo abre en el paso 1 (era el 8), auditar-arnes abre el nodo de CADA clase presente (eran solo skills) y ambas declaran cuales abrieron.
+
+### Deprecado
+
+### Eliminado
+
+### Corregido
+- El cockpit ya no inventa datos al leer una capability: 3 caps del repo son documentos YAML sin delimitador de cierre y el reader devolvia defaults fabricados (capability_id vacio, status 'live' que ni siquiera pertenece al enum de este repo). Ademas se normalizaron los 3 archivos a la forma canonica.
+- Portabilidad Windows del cockpit: el file-API rechazaba TODO path (filepath.Clean traduce a backslash y el whitelist parte por barra), un absoluto POSIX pasaba el guardia de traversal (filepath.IsAbs no lo reconoce en Windows), el watcher clasificaba mal todo cambio, y la cadena de editores era Linux pura.
+
+### Seguridad
+
+## [0.7.1] — 2026-08-14
+
+### Agregado
 - auditoría previa al mockup de ingesta escenario B: verificación independiente del informe de estado (5 correcciones), medición real del loader contra canónico e instalación, 8 preguntas abiertas y 5 propuestas
 - decisiones ING-D11..D15 de forma del mockup de ingesta (dos gates con ingesta primero, tabla de decisión, gesto de mayor palanca, Base por autoría, cifras medidas)
 - decisiones ING-D16..D19: escritura híbrida desde el Mapa, el muro se ataca en la ingesta, el eje nuevo se llama autoría, T0 = fallback de lectura al canónico
+- compila y corre NATIVO en Windows: split por-OS del self-update (os_/instalar_ unix|windows, degradación honesta al instalar), descubrimiento de binarios con PATHEXT, bundle.py portable con el mismo sello RF-231, CI go-windows
+- instalador de escritorio Windows: .msi (WiX) + .exe (NSIS) via scripts/installer.ps1 — espejo de make installer-actual con Get-FileHash; job CI tauri-windows en push a main
 
 ### Cambiado
 - Release en UN comando: make installer|installer-minor|installer-major (bump + bundle FE+BE + instaladores/vX.Y.Z/ + sync automático del override dev) e installer-actual para reparar una versión bumpeada sin instalador; proceso capturado en la skill /publicando-version
+- .gitattributes fuerza LF (checkout Windows seguro) + shim python3->python en Makefile/lefthook + README § Desarrollo en Windows con mapa de puertos (4200 daemon / 4300 reservado cockpit)
+- README: prereqs Windows reales — VS Build Tools 2019 o 2022 con VC.Tools.x86.x64 + cualquier Win10/11 SDK (no hace falta el IDE), instalacion de Rust user-scope y comando del instalador
 
 ### Deprecado
 
@@ -37,6 +93,8 @@ Formato: [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) · ve
 - 7 ramas y 6 worktrees obsoletos del ciclo de conversaciones — verificados ancestros de main, cero contenido perdido
 
 ### Corregido
+- tests que 'aislaban' el home con HOME seguían tocando el ~/.arnesia REAL en Windows (os.UserHomeDir lee USERPROFILE) — 12 sitios + fixtures por-OS
+- el shell ya no se engancha a ciegas a cualquier proceso del puerto 4200: verifica que sirva la interfaz (GET / = 200) y, si no, la ventana explica que otro programa lo ocupa en vez de mostrar su 404 crudo
 
 ### Seguridad
 
