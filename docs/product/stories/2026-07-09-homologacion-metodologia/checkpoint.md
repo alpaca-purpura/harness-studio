@@ -1,6 +1,7 @@
 ---
 story_id: 2026-07-09-homologacion-metodologia
 state: done               # idea→refining→refined→ready→developing→developed→reviewing→[done]
+release: v0.7-mvp-instalable
 module: kit
 cap_target: método-homologado (transversal)
 chris_verify:
